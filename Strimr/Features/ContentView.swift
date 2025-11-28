@@ -6,7 +6,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
-
+            
             switch sessionCoordinator.status {
             case .hydrating:
                 ProgressView("Loading…")
@@ -15,8 +15,7 @@ struct ContentView: View {
             case .signedOut:
                 SignInView()
             case .needsServerSelection:
-                Text("Server selection placeholder")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SelectServerView(sessionCoordinator: sessionCoordinator)
             case .ready:
                 Text("App ready placeholder")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

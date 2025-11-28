@@ -83,7 +83,7 @@ final class SessionCoordinator: ObservableObject {
 
         user = userResponse
         authToken = token
-
+        
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId }) {
             selectServer(server)

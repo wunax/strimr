@@ -28,19 +28,6 @@ struct PlexCloudResource: Codable, Equatable {
 }
 
 struct PlexCloudUser: Codable, Equatable {
-    struct Subscription: Codable, Equatable {
-        let active: Bool
-        let subscribedAt: String?
-        let status: String?
-        let paymentService: String?
-        let plan: String?
-        let features: [String]?
-    }
-
-    struct Roles: Codable, Equatable {
-        let roles: [String]
-    }
-
     let id: Int
     let uuid: String
     let username: String
@@ -49,24 +36,16 @@ struct PlexCloudUser: Codable, Equatable {
     let friendlyName: String
     let locale: String?
     let confirmed: Bool
-    let joinedAt: String
+    let joinedAt: Int
     let authToken: String
-    let subscription: Subscription
-    let roles: Roles
 }
 
 struct PlexCloudPin: Codable, Equatable {
-    struct Location: Codable, Equatable {
-        let code: String
-        let country: String
-    }
-
     let id: Int
     let code: String
     let product: String
     let trusted: Bool
     let clientIdentifier: String
-    let location: Location
     let expiresIn: Int
     let createdAt: String
     let expiresAt: String

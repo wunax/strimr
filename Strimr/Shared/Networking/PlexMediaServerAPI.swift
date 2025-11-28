@@ -212,7 +212,6 @@ final class PlexMediaServerAPI {
 
         do {
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
             return try decoder.decode(Response.self, from: data)
         } catch {
             throw PlexAPIError.decodingFailed(error)

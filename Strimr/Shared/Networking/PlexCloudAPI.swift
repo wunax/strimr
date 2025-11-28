@@ -80,9 +80,9 @@ final class PlexCloudAPI {
 
         do {
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
             return try decoder.decode(Response.self, from: data)
         } catch {
+            debugPrint(error)
             throw PlexAPIError.decodingFailed(error)
         }
     }
