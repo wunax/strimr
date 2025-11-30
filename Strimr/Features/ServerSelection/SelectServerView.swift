@@ -1,11 +1,7 @@
 import SwiftUI
 
 struct SelectServerView: View {
-    @StateObject private var viewModel: ServerSelectionViewModel
-
-    init(sessionCoordinator: SessionCoordinator) {
-        _viewModel = StateObject(wrappedValue: ServerSelectionViewModel(sessionCoordinator: sessionCoordinator))
-    }
+    @State var viewModel: ServerSelectionViewModel
 
     var body: some View {
         VStack(spacing: 24) {
@@ -122,5 +118,15 @@ struct SelectServerView: View {
 }
 
 #Preview {
-    SelectServerView(sessionCoordinator: SessionCoordinator())
+    let api = PlexAPIManager()
+    let session = SessionManager(
+        apiManager: api
+    )
+    
+    return SelectServerView(
+        viewModel: ServerSelectionViewModel(
+            sessionManager: session,
+            plexApiManager: api
+        )
+    )
 }

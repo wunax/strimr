@@ -1,34 +1,31 @@
 import Foundation
 import Combine
 
-@MainActor
-final class ServerSelectionViewModel: ObservableObject {
-    @Published var servers: [PlexCloudResource] = []
-    @Published var isLoading = false
+@Observable
+final class ServerSelectionViewModel {
+    var servers: [PlexCloudResource] = []
+    var isLoading = false
+    
+    @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let plexApi: PlexAPIManager
 
-    private let sessionCoordinator: SessionCoordinator
-
-    init(sessionCoordinator: SessionCoordinator) {
-        self.sessionCoordinator = sessionCoordinator
+    init(sessionManager: SessionManager, plexApiManager: PlexAPIManager) {
+        self.sessionManager = sessionManager
+        self.plexApi = plexApiManager
     }
 
     func load() async {
-        guard let cloudAPI = sessionCoordinator.cloudAPI else {
-            servers = []
-            return
-        }
-
         isLoading = true
         defer { isLoading = false }
 
         do {
-            servers = try await cloudAPI.getResources().filter { !$0.connections.isEmpty }
+            servers = try await plexApi.cloud.getResources().filter { !$0.connections.isEmpty }
         } catch {
             servers = []
         }
     }
 
     func select(server: PlexCloudResource) {
-        sessionCoordinator.selectServer(server)
+        sessionManager.selectServer(server)
     }
 }

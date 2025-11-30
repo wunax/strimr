@@ -10,16 +10,22 @@ enum PlexAPIError: Error {
 
 final class PlexCloudAPI {
     private let baseURL = URL(string: "https://plex.tv/api/v2")!
-    private let clientIdentifier: String
-    private let authToken: String?
+    private var clientIdentifier: String?
+    private var authToken: String?
     private let session: URLSession
 
-    init(clientIdentifier: String, authToken: String? = nil, session: URLSession = .shared) {
-        self.clientIdentifier = clientIdentifier
-        self.authToken = authToken
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
+    func setClientIdentifier(_ clientIdentifier: String) {
+        self.clientIdentifier = clientIdentifier
+    }
+    
+    func setAuthToken(_ authToken: String?) {
+        self.authToken = authToken
+    }
+    
     func requestPin() async throws -> PlexCloudPin {
         try await request(
             path: "/pins",
@@ -82,7 +88,6 @@ final class PlexCloudAPI {
             let decoder = JSONDecoder()
             return try decoder.decode(Response.self, from: data)
         } catch {
-            debugPrint(error)
             throw PlexAPIError.decodingFailed(error)
         }
     }

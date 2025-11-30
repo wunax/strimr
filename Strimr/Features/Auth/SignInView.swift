@@ -3,7 +3,8 @@ import AuthenticationServices
 import UIKit
 
 struct SignInView: View {
-    @EnvironmentObject private var sessionCoordinator: SessionCoordinator
+    @Environment(SessionManager.self) private var sessionManager
+    @Environment(PlexAPIManager.self) private var plexApi
 
     @State private var isAuthenticating = false
     @State private var errorMessage: String?
@@ -65,7 +66,6 @@ struct SignInView: View {
 }
 
 extension SignInView {
-
     private var appIcon: UIImage? {
         guard
             let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
@@ -91,17 +91,12 @@ extension SignInView {
 
     @MainActor
     private func startSignIn() async {
-        guard let cloudAPI = sessionCoordinator.cloudAPI else {
-            errorMessage = String(localized: "signIn.error.notReady", bundle: .main)
-            return
-        }
-
         cancelSignIn()
         errorMessage = nil
         isAuthenticating = true
 
         do {
-            let pinResponse = try await cloudAPI.requestPin()
+            let pinResponse = try await plexApi.cloud.requestPin()
             pin = pinResponse
 
             let url = plexAuthURL(pin: pinResponse)
@@ -158,13 +153,11 @@ extension SignInView {
         pollTask?.cancel()
 
         pollTask = Task {
-            guard let cloudAPI = sessionCoordinator.cloudAPI else { return }
-
             while !Task.isCancelled && isAuthenticating {
                 do {
-                    let result = try await cloudAPI.pollToken(pinId: pinID)
+                    let result = try await plexApi.cloud.pollToken(pinId: pinID)
                     if let token = result.authToken {
-                        await sessionCoordinator.signIn(with: token)
+                        await sessionManager.signIn(with: token)
                         cancelSignIn()
                         return
                     }

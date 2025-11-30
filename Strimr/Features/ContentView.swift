@@ -1,13 +1,14 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var sessionCoordinator: SessionCoordinator
+    @Environment(SessionManager.self) private var sessionManager
+    @Environment(PlexAPIManager.self) private var plexApiManager
 
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
             
-            switch sessionCoordinator.status {
+            switch sessionManager.status {
             case .hydrating:
                 ProgressView("loading")
                     .progressViewStyle(.circular)
@@ -15,7 +16,12 @@ struct ContentView: View {
             case .signedOut:
                 SignInView()
             case .needsServerSelection:
-                SelectServerView(sessionCoordinator: sessionCoordinator)
+                SelectServerView(
+                    viewModel: ServerSelectionViewModel(
+                        sessionManager: sessionManager,
+                        plexApiManager: plexApiManager
+                    )
+                )
             case .ready:
                 MainTabView()
         }
@@ -25,5 +31,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(SessionCoordinator())
+        .environment(SessionManager(apiManager: PlexAPIManager()))
 }
