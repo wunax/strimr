@@ -41,6 +41,9 @@
     "Loading libraries" : {
 
     },
+    "Loading recommendations" : {
+
+    },
     "Media Detail" : {
 
     },
@@ -439,9 +442,6 @@
       }
     },
     "Try refreshing to load your Plex libraries." : {
-
-    },
-    "We will surface hubs for %@ here." : {
 
     }
   },
