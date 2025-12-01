@@ -21,11 +21,11 @@ final class PlexCloudAPI {
     func setClientIdentifier(_ clientIdentifier: String) {
         self.clientIdentifier = clientIdentifier
     }
-    
+
     func setAuthToken(_ authToken: String?) {
         self.authToken = authToken
     }
-    
+
     func requestPin() async throws -> PlexCloudPin {
         try await request(
             path: "/pins",
@@ -72,7 +72,7 @@ final class PlexCloudAPI {
         if let authToken {
             request.setValue(authToken, forHTTPHeaderField: "X-Plex-Token")
         }
-        headers.forEach { key, value in
+        for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
@@ -80,7 +80,7 @@ final class PlexCloudAPI {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlexAPIError.requestFailed(statusCode: -1)
         }
-        guard 200..<300 ~= httpResponse.statusCode else {
+        guard 200 ..< 300 ~= httpResponse.statusCode else {
             throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
         }
 

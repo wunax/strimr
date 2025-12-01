@@ -7,7 +7,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
-            
+
             switch sessionManager.status {
             case .hydrating:
                 ProgressView("loading")
@@ -24,9 +24,9 @@ struct ContentView: View {
                 )
             case .ready:
                 MainTabView()
+            }
         }
     }
-}
 }
 
 #Preview {

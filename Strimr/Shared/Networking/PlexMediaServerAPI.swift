@@ -108,7 +108,7 @@ final class PlexMediaServerAPI {
             URLQueryItem(name: "width", value: String(width)),
             URLQueryItem(name: "height", value: String(height)),
             URLQueryItem(name: "minSize", value: String(minSize)),
-            URLQueryItem(name: "upscale", value: String(upscale))
+            URLQueryItem(name: "upscale", value: String(upscale)),
         ]
         return components?.url
     }
@@ -127,7 +127,7 @@ final class PlexMediaServerAPI {
             queryItems: params.toQueryItems(),
             headers: [
                 "X-Plex-Container-Start": String(pagination.start),
-                "X-Plex-Container-Size": String(pagination.size)
+                "X-Plex-Container-Size": String(pagination.size),
             ]
         )
     }
@@ -138,7 +138,7 @@ final class PlexMediaServerAPI {
             queryItems: [URLQueryItem(name: "includeMeta", value: "1")],
             headers: [
                 "X-Plex-Container-Start": "0",
-                "X-Plex-Container-Size": "0"
+                "X-Plex-Container-Size": "0",
             ]
         )
     }
@@ -156,7 +156,7 @@ final class PlexMediaServerAPI {
         queryItems.append(contentsOf: [
             URLQueryItem(name: "count", value: "20"),
             URLQueryItem(name: "excludeFields", value: "summary"),
-            URLQueryItem(name: "excludeContinueWatching", value: "1")
+            URLQueryItem(name: "excludeContinueWatching", value: "1"),
         ])
         return try await request(path: "/hubs/promoted", queryItems: queryItems)
     }
@@ -166,7 +166,7 @@ final class PlexMediaServerAPI {
             path: "/hubs/sections/\(sectionId)",
             queryItems: [
                 URLQueryItem(name: "count", value: "20"),
-                URLQueryItem(name: "excludeFields", value: "summary")
+                URLQueryItem(name: "excludeFields", value: "summary"),
             ]
         )
     }
@@ -198,7 +198,7 @@ final class PlexMediaServerAPI {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(resource.accessToken, forHTTPHeaderField: "X-Plex-Token")
         request.setValue(language, forHTTPHeaderField: "X-Plex-Language")
-        headers.forEach { key, value in
+        for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
@@ -206,7 +206,7 @@ final class PlexMediaServerAPI {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlexAPIError.requestFailed(statusCode: -1)
         }
-        guard 200..<300 ~= httpResponse.statusCode else {
+        guard 200 ..< 300 ~= httpResponse.statusCode else {
             throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
         }
 

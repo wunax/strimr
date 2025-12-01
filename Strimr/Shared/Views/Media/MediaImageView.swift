@@ -26,7 +26,7 @@ struct MediaImageView: View {
                     case .empty:
                         ProgressView()
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case .success(let image):
+                    case let .success(image):
                         image
                             .resizable()
                             .scaledToFill()

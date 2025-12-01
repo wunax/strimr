@@ -122,7 +122,7 @@ struct SelectServerView: View {
     let session = SessionManager(
         apiManager: api
     )
-    
+
     return SelectServerView(
         viewModel: ServerSelectionViewModel(
             sessionManager: session,

@@ -20,7 +20,7 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentThumbPath: String?
     let grandparentArtPath: String?
     let parentThumbPath: String?
-    
+
     var primaryLabel: String {
         grandparentTitle ?? parentTitle ?? title
     }
@@ -29,15 +29,16 @@ struct MediaItem: Identifiable, Hashable {
         switch type {
         case .movie:
             return year.map(String.init)
+
         case .show:
             guard let childCount else { return nil }
             return String(localized: "media.labels.seasonsCount \(childCount)")
-            
+
         case .season, .episode:
             return title
         }
     }
-    
+
     var tertiaryLabel: String? {
         guard case .episode = type, let parentIndex, let index else {
             return nil

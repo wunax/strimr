@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct MediaCard: View {
@@ -63,6 +62,3 @@ struct MediaCard: View {
         return media.secondaryLabel
     }
 }
-
-
-

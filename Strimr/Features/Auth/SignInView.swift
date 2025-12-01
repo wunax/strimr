@@ -1,5 +1,5 @@
-import SwiftUI
 import AuthenticationServices
+import SwiftUI
 import UIKit
 
 struct SignInView: View {
@@ -85,7 +85,7 @@ extension SignInView {
             "clientID=\(pin.clientIdentifier)" +
             "&context[device][product]=Strimr" +
             "&code=\(pin.code)"
-        
+
         return URL(string: base + fragment)!
     }
 
@@ -120,7 +120,8 @@ extension SignInView {
 
         let session = ASWebAuthenticationSession(url: url, callbackURLScheme: nil) { _, error in
             if let authError = error as? ASWebAuthenticationSessionError,
-               authError.code == .canceledLogin {
+               authError.code == .canceledLogin
+            {
                 Task { @MainActor in cancelSignIn() }
             }
         }
@@ -187,11 +188,12 @@ private enum SignInError: Error {
 }
 
 private final class WebAuthenticationPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         if let keyWindow = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }) {
+            .first(where: { $0.isKeyWindow })
+        {
             return keyWindow
         }
 

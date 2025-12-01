@@ -1,18 +1,18 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 @Observable
 final class ServerSelectionViewModel {
     var servers: [PlexCloudResource] = []
     var isLoading = false
-    
+
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let plexApi: PlexAPIManager
 
     init(sessionManager: SessionManager, plexApiManager: PlexAPIManager) {
         self.sessionManager = sessionManager
-        self.plexApi = plexApiManager
+        plexApi = plexApiManager
     }
 
     func load() async {

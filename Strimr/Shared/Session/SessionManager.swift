@@ -12,7 +12,7 @@ final class SessionManager {
     }
 
     private let plexApi: PlexAPIManager
-    
+
     private(set) var status: Status = .hydrating
     private(set) var authToken: String?
     private(set) var user: PlexCloudUser?
@@ -25,7 +25,7 @@ final class SessionManager {
     @ObservationIgnored private let serverIdDefaultsKey = "strimr.plex.serverIdentifier"
 
     init(apiManager: PlexAPIManager) {
-        self.plexApi = apiManager
+        plexApi = apiManager
         Task { await hydrate() }
     }
 
@@ -35,7 +35,7 @@ final class SessionManager {
             let storedToken = try keychain.string(forKey: tokenKey)
             authToken = storedToken
             plexApi.cloud.setAuthToken(storedToken)
-            
+
             if let token = storedToken {
                 try await bootstrapAuthenticatedSession(with: token)
             } else {
@@ -81,9 +81,10 @@ final class SessionManager {
 
         user = userResponse
         authToken = token
-                
+
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
-           let server = resources.first(where: { $0.clientIdentifier == persistedServerId }) {
+           let server = resources.first(where: { $0.clientIdentifier == persistedServerId })
+        {
             selectServer(server)
         } else if resources.count == 1, let server = resources.first {
             selectServer(server)
