@@ -7,6 +7,9 @@
     "Browse" : {
 
     },
+    "Genres" : {
+
+    },
     "Home" : {
 
     },
@@ -42,9 +45,6 @@
 
     },
     "Loading recommendations" : {
-
-    },
-    "Media Detail" : {
 
     },
     "media.labels.seasonEpisode %lld %lld" : {
@@ -119,6 +119,9 @@
 
     },
     "Player" : {
+
+    },
+    "Read more" : {
 
     },
     "Recommended" : {
@@ -279,6 +282,9 @@
           }
         }
       }
+    },
+    "Show less" : {
+
     },
     "signIn.button.cancel" : {
       "extractionState" : "manual",
@@ -451,6 +457,9 @@
 
     },
     "Try refreshing to load your Plex libraries." : {
+
+    },
+    "Updating details" : {
 
     }
   },

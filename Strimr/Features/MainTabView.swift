@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @Environment(PlexAPIManager.self) private var plexApiManager
     @StateObject private var coordinator = MainCoordinator()
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -63,8 +64,13 @@ struct MainTabView: View {
     @ViewBuilder
     private func destination(for route: MainCoordinator.Route) -> some View {
         switch route {
-        case .mediaDetail:
-            MediaDetailView()
+        case let .mediaDetail(media):
+            MediaDetailView(
+                viewModel: MediaDetailViewModel(
+                    media: media,
+                    plexApiManager: plexApiManager
+                )
+            )
         }
     }
 }

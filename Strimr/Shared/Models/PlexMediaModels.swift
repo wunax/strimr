@@ -98,11 +98,16 @@ struct PlexGuid: Codable, Equatable {
     let id: String
 }
 
-struct PlexUltraBlurColors: Codable, Equatable {
+struct PlexUltraBlurColors: Codable, Equatable, Hashable {
     let topLeft: String
     let topRight: String
     let bottomRight: String
     let bottomLeft: String
+}
+
+struct PlexPartStream: Codable, Equatable {
+    let id: Int
+    let codec: String
 }
 
 struct PlexPart: Codable, Equatable {
@@ -113,6 +118,12 @@ struct PlexPart: Codable, Equatable {
     let size: Int
     let container: String
     let videoProfile: String?
+    let stream: [PlexPartStream]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, key, duration, file, size, container, videoProfile
+        case stream = "Stream"
+    }
 }
 
 struct PlexMedia: Codable, Equatable {

@@ -9,8 +9,12 @@ struct MediaItem: Identifiable, Hashable {
     let year: Int?
     let duration: TimeInterval?
     let rating: Double?
+    let contentRating: String?
+    let studio: String?
+    let tagline: String?
     let thumbPath: String?
     let artPath: String?
+    let ultraBlurColors: PlexUltraBlurColors?
     let viewOffset: TimeInterval?
     let childCount: Int?
     let grandparentTitle: String?
