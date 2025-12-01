@@ -24,7 +24,8 @@ struct ContentView: View {
                 )
             case .ready:
                 MainTabView(
-                    homeViewModel: HomeViewModel(plexApiManager: plexApiManager)
+                    homeViewModel: HomeViewModel(plexApiManager: plexApiManager),
+                    libraryViewModel: LibraryViewModel(plexApiManager: plexApiManager)
                 )
             }
         }

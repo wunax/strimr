@@ -3,9 +3,11 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var coordinator = MainCoordinator()
     @State private var homeViewModel: HomeViewModel
+    @State private var libraryViewModel: LibraryViewModel
 
-    init(homeViewModel: HomeViewModel) {
+    init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
         _homeViewModel = State(initialValue: homeViewModel)
+        _libraryViewModel = State(initialValue: libraryViewModel)
     }
 
     var body: some View {
@@ -32,7 +34,10 @@ struct MainTabView: View {
             .tag(MainCoordinator.Tab.search)
 
             NavigationStack(path: coordinator.pathBinding(for: .library)) {
-                LibraryView()
+                LibraryView(
+                    viewModel: libraryViewModel,
+                    onSelectMedia: coordinator.showMediaDetail
+                )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
                         destination(for: route)
                     }
@@ -63,7 +68,8 @@ struct MainTabView: View {
     let session = SessionManager(apiManager: api)
 
     return MainTabView(
-        homeViewModel: HomeViewModel(plexApiManager: api)
+        homeViewModel: HomeViewModel(plexApiManager: api),
+        libraryViewModel: LibraryViewModel(plexApiManager: api)
     )
     .environment(api)
     .environment(session)

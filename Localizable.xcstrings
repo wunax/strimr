@@ -1,10 +1,22 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Add a Plex server or pull to refresh." : {
+
+    },
+    "Browse" : {
+
+    },
+    "Explore filters, genres, and collections for %@." : {
+
+    },
     "Home" : {
 
     },
-    "Library" : {
+    "Libraries" : {
+
+    },
+    "Library tab" : {
 
     },
     "loading" : {
@@ -24,6 +36,9 @@
       }
     },
     "Loading home" : {
+
+    },
+    "Loading libraries" : {
 
     },
     "Media Detail" : {
@@ -88,10 +103,16 @@
     "No artwork" : {
 
     },
+    "No libraries yet" : {
+
+    },
     "Nothing to show yet." : {
 
     },
     "Player" : {
+
+    },
+    "Recommended" : {
 
     },
     "Search" : {
@@ -416,6 +437,12 @@
           }
         }
       }
+    },
+    "Try refreshing to load your Plex libraries." : {
+
+    },
+    "We will surface hubs for %@ here." : {
+
     }
   },
   "version" : "1.1"
