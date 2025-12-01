@@ -23,7 +23,9 @@ struct ContentView: View {
                     )
                 )
             case .ready:
-                MainTabView()
+                MainTabView(
+                    homeViewModel: HomeViewModel(plexApiManager: plexApiManager)
+                )
             }
         }
     }

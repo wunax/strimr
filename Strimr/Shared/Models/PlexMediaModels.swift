@@ -8,12 +8,12 @@ enum PlexItemType: String, Codable {
 }
 
 struct PlexHub: Codable, Equatable {
-    let hubKey: String
+    let hubKey: String?
     let key: String
     let title: String
     let hubIdentifier: String
     let size: Int
-    let metadata: [PlexItem]
+    let metadata: [PlexItem]?
 
     private enum CodingKeys: String, CodingKey {
         case hubKey, key, title, hubIdentifier, size

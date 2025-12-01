@@ -2,12 +2,17 @@ import SwiftUI
 
 struct MainTabView: View {
     @StateObject private var coordinator = MainCoordinator()
+    @State private var homeViewModel: HomeViewModel
+
+    init(homeViewModel: HomeViewModel) {
+        _homeViewModel = State(initialValue: homeViewModel)
+    }
 
     var body: some View {
         TabView(selection: $coordinator.tab) {
             NavigationStack(path: coordinator.pathBinding(for: .home)) {
                 HomeView(
-                    viewModel: HomeViewModel(),
+                    viewModel: homeViewModel,
                     onSelectMedia: coordinator.showMediaDetail
                 )
                 .navigationDestination(for: MainCoordinator.Route.self) { route in
@@ -54,5 +59,12 @@ struct MainTabView: View {
 }
 
 #Preview {
-    MainTabView()
+    let api = PlexAPIManager()
+    let session = SessionManager(apiManager: api)
+
+    return MainTabView(
+        homeViewModel: HomeViewModel(plexApiManager: api)
+    )
+    .environment(api)
+    .environment(session)
 }

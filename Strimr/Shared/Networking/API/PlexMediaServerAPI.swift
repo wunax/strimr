@@ -214,6 +214,7 @@ final class PlexMediaServerAPI {
             let decoder = JSONDecoder()
             return try decoder.decode(Response.self, from: data)
         } catch {
+            debugPrint(error)
             throw PlexAPIError.decodingFailed(error)
         }
     }
