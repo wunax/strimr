@@ -99,8 +99,6 @@ struct SeasonEpisodesSection: View {
         .pickerStyle(.menu)
         .tint(.brandSecondaryForeground)
         .background(.brandSecondary)
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
         .cornerRadius(12)
 #endif
     }
