@@ -19,7 +19,13 @@ struct EpisodeCardView: View {
                 progress: progress
             )
 
-            Text(titleText)
+            if let index = episode.index {
+                Text("Episode \(index)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(episode.title)
                 .font(.title3)
                 .fontWeight(.semibold)
                 .lineLimit(2)
@@ -52,13 +58,6 @@ struct EpisodeCardView: View {
 #else
         // iOS: leave flat, image/overlays carry hierarchy
 #endif
-    }
-
-    private var titleText: String {
-        if let index = episode.index {
-            return "E\(index): \(episode.title)"
-        }
-        return episode.title
     }
 }
 
