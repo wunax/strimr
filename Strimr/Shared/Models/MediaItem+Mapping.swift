@@ -7,6 +7,8 @@ extension MediaItem {
             summary: plexItem.summary,
             title: plexItem.title,
             type: plexItem.type,
+            parentRatingKey: plexItem.parentRatingKey,
+            grandparentRatingKey: plexItem.grandparentRatingKey,
             genres: plexItem.genres?.map(\.tag) ?? [],
             year: plexItem.year,
             duration: plexItem.duration.map { TimeInterval($0) / 1000 },

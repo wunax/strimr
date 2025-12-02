@@ -166,6 +166,7 @@ struct MediaDetailView: View {
             .frame(height: heroHeight)
         }
         .frame(maxWidth: .infinity, minHeight: heroHeight, maxHeight: heroHeight)
+        .ignoresSafeArea(edges: .horizontal)
     }
 
     private func badge(text: String, systemImage: String? = nil) -> some View {
@@ -229,6 +230,8 @@ struct MediaDetailView: View {
         summary: "A high-stakes story about streaming.",
         title: "Strimr Origins",
         type: .movie,
+        parentRatingKey: nil,
+        grandparentRatingKey: nil,
         genres: ["Drama", "Tech"],
         year: 2024,
         duration: 7200,

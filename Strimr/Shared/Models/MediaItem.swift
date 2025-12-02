@@ -5,6 +5,8 @@ struct MediaItem: Identifiable, Hashable {
     let summary: String?
     let title: String
     let type: PlexItemType
+    let parentRatingKey: String?
+    let grandparentRatingKey: String?
     let genres: [String]
     let year: Int?
     let duration: TimeInterval?
@@ -49,6 +51,17 @@ struct MediaItem: Identifiable, Hashable {
         }
 
         return String(localized: "media.labels.seasonEpisode \(parentIndex) \(index)")
+    }
+
+    var metadataRatingKey: String {
+        switch type {
+        case .episode:
+            return grandparentRatingKey ?? parentRatingKey ?? id
+        case .season:
+            return parentRatingKey ?? id
+        case .movie, .show:
+            return id
+        }
     }
 
     var viewProgressPercentage: Double? {

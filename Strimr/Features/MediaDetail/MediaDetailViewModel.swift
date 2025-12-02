@@ -30,7 +30,7 @@ final class MediaDetailViewModel {
         defer { isLoading = false }
 
         do {
-            let response = try await api.getMetadata(ratingKey: media.id)
+            let response = try await api.getMetadata(ratingKey: media.metadataRatingKey)
             if let item = response.mediaContainer.metadata?.first {
                 media = MediaItem(plexItem: item)
                 resolveArtwork()
