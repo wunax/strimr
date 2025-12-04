@@ -85,6 +85,8 @@ final class MPVPlayerViewController: UIViewController {
         
         mpv_observe_property(mpv, 0, MPVProperty.videoParamsSigPeak, MPV_FORMAT_DOUBLE)
         mpv_observe_property(mpv, 0, MPVProperty.pausedForCache, MPV_FORMAT_FLAG)
+        mpv_observe_property(mpv, 0, MPVProperty.timePos, MPV_FORMAT_DOUBLE)
+        mpv_observe_property(mpv, 0, MPVProperty.duration, MPV_FORMAT_DOUBLE)
         mpv_set_wakeup_callback(self.mpv, { (ctx) in
             let client = unsafeBitCast(ctx, to: MPVPlayerViewController.self)
             client.readEvents()
@@ -136,6 +138,10 @@ final class MPVPlayerViewController: UIViewController {
     func pause() {
         setFlag(MPVProperty.pause, true)
     }
+
+    func seek(to time: Double) {
+        setDouble(MPVProperty.timePos, time)
+    }
     
     private func getDouble(_ name: String) -> Double {
         guard mpv != nil else { return 0.0 }
@@ -162,6 +168,12 @@ final class MPVPlayerViewController: UIViewController {
         guard mpv != nil else { return }
         var data: Int = flag ? 1 : 0
         mpv_set_property(mpv, name, MPV_FORMAT_FLAG, &data)
+    }
+
+    private func setDouble(_ name: String, _ value: Double) {
+        guard mpv != nil else { return }
+        var data = value
+        mpv_set_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
     }
     
     
@@ -231,6 +243,11 @@ final class MPVPlayerViewController: UIViewController {
                             let buffering = UnsafePointer<Bool>(OpaquePointer(property.data))?.pointee ?? true
                             DispatchQueue.main.async {
                                 self.playDelegate?.propertyChange(mpv: self.mpv, propertyName: propertyName, data: buffering)
+                            }
+                        case MPVProperty.timePos, MPVProperty.duration:
+                            let value = UnsafePointer<Double>(OpaquePointer(property.data))?.pointee
+                            DispatchQueue.main.async {
+                                self.playDelegate?.propertyChange(mpv: self.mpv, propertyName: propertyName, data: value)
                             }
                         default: break
                         }

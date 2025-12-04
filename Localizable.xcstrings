@@ -4,16 +4,10 @@
     "Add a Plex server or pull to refresh." : {
 
     },
-    "Buffering..." : {
-
-    },
     "Episode %lld" : {
 
     },
     "Genres" : {
-
-    },
-    "HDR" : {
 
     },
     "Home" : {
@@ -183,9 +177,6 @@
 
     },
     "Read more" : {
-
-    },
-    "Replay" : {
 
     },
     "Search" : {
