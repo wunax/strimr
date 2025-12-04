@@ -4,6 +4,7 @@ import SwiftUI
 struct StrimrApp: App {
     @State private var plexApiManager: PlexAPIManager
     @State private var sessionManager: SessionManager
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
         let api = PlexAPIManager()

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -7,6 +8,7 @@ struct PlayerView: View {
     @State private var isBuffering = false
     @State private var isPlaying = true
     @State private var hdrEnabled = false
+    @State private var previousOrientationLock = AppDelegate.orientationLock
 
     private let demoUrl = URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
 
@@ -99,6 +101,29 @@ struct PlayerView: View {
                 }
             }
             .padding(.bottom, 24)
+        }
+        .onAppear {
+            previousOrientationLock = AppDelegate.orientationLock
+            lockOrientation(.landscape, rotateTo: .landscapeRight)
+        }
+        .onDisappear {
+            lockOrientation(previousOrientationLock, rotateTo: .portrait)
+        }
+    }
+
+    private func lockOrientation(_ orientation: UIInterfaceOrientationMask, rotateTo orientationValue: UIInterfaceOrientation? = nil) {
+        AppDelegate.orientationLock = orientation
+
+        if let orientationValue {
+            UIDevice.current.setValue(orientationValue.rawValue, forKey: "orientation")
+
+            UIApplication.shared
+                .connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?
+                .keyWindow?
+                .rootViewController?
+                .setNeedsUpdateOfSupportedInterfaceOrientations()
         }
     }
 }
