@@ -65,12 +65,19 @@ final class SessionManager {
         status = .signedOut
     }
 
-    func selectServer(_ server: PlexCloudResource) {
-        plexServer = server
-        UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
-        context.selectServer(server)
-        if authToken != nil {
-            status = .ready
+    func selectServer(_ server: PlexCloudResource) async {
+        do {
+            try await context.selectServer(server)
+            plexServer = server
+            UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
+            if authToken != nil {
+                status = .ready
+            }
+        } catch {
+            plexServer = nil
+            context.removeServer()
+            UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+            status = .needsServerSelection
         }
     }
 
@@ -87,9 +94,9 @@ final class SessionManager {
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId })
         {
-            selectServer(server)
+            await selectServer(server)
         } else if resources.count == 1, let server = resources.first {
-            selectServer(server)
+            await selectServer(server)
         } else {
             plexServer = nil
             context.removeServer()

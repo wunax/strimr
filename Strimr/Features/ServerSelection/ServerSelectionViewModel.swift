@@ -27,7 +27,7 @@ final class ServerSelectionViewModel {
         }
     }
 
-    func select(server: PlexCloudResource) {
-        sessionManager.selectServer(server)
+    func select(server: PlexCloudResource) async {
+        await sessionManager.selectServer(server)
     }
 }

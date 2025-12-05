@@ -39,13 +39,11 @@ final class PlexAPIContext {
         authToken = token
     }
 
-    func selectServer(_ resource: PlexCloudResource) {
+    func selectServer(_ resource: PlexCloudResource) async throws {
         self.resource = resource
         baseURLServer = nil
         
-        Task {
-            _ = try? await ensureConnection()
-        }
+        try await ensureConnection()
     }
 
     func removeServer() {

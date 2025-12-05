@@ -70,7 +70,9 @@ struct SelectServerView: View {
 
     private func serverRow(_ server: PlexCloudResource) -> some View {
         Button {
-            viewModel.select(server: server)
+            Task {
+                await viewModel.select(server: server)
+            }
         } label: {
             HStack(spacing: 12) {
                 Circle()
