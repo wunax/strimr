@@ -2,46 +2,36 @@ import SwiftUI
 import UIKit
 
 struct PlayerView: View {
-    let ratingKey: String
+    @State var viewModel: PlayerViewModel
     @State private var coordinator = MPVPlayerView.Coordinator()
-    @State private var isBuffering = false
-    @State private var duration: Double?
-    @State private var position = 0.0
-    @State private var bufferedAhead = 0.0
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
     @State private var previousOrientationLock = AppDelegate.orientationLock
 
-    private let demoUrl = URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
     private let controlsHideDelay: TimeInterval = 3.0
 
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
+
         ZStack {
             Color.black
                 .ignoresSafeArea()
 
             MPVPlayerView(coordinator: coordinator)
                 .onPropertyChange { player, propertyName, data in
-                    switch propertyName {
-                    case MPVProperty.pausedForCache:
-                        isBuffering = (data as? Bool) ?? false
-                    case MPVProperty.timePos:
-                        guard !isScrubbing else { return }
-                        position = data as? Double ?? 0.0
-                    case MPVProperty.duration:
-                        duration = data as? Double
-                    case MPVProperty.demuxerCacheDuration:
-                        bufferedAhead = data as? Double ?? 0.0
-                    case MPVProperty.videoParamsSigPeak:
+                    bindableViewModel.handlePropertyChange(
+                        name: propertyName,
+                        data: data,
+                        isScrubbing: isScrubbing
+                    )
+
+                    if propertyName == MPVProperty.videoParamsSigPeak {
                         let supportsHdr = (data as? Double ?? 1.0) > 1.0
                         player.hdrEnabled = supportsHdr
-                    default:
-                        break
                     }
                 }
                 .onAppear {
-                    coordinator.play(demoUrl)
                     showControls(temporarily: true)
                 }
                 .ignoresSafeArea()
@@ -50,7 +40,7 @@ struct PlayerView: View {
                     controlsVisible ? hideControls() : showControls(temporarily: true)
                 }
 
-            if isBuffering {
+            if bindableViewModel.isBuffering {
                 ProgressView()
                     .progressViewStyle(.circular)
                     .tint(.white)
@@ -59,7 +49,11 @@ struct PlayerView: View {
             if controlsVisible {
                 VStack {
                     Spacer()
-                    PlayerControlsView(position: $position, duration: duration, bufferedAhead: bufferedAhead) { editing in
+                    PlayerControlsView(
+                        position: $bindableViewModel.position,
+                        duration: bindableViewModel.duration,
+                        bufferedAhead: bindableViewModel.bufferedAhead
+                    ) { editing in
                         handleScrubbing(editing: editing)
                     }
                 }
@@ -76,6 +70,14 @@ struct PlayerView: View {
             hideControlsWorkItem?.cancel()
             lockOrientation(previousOrientationLock, rotateTo: .portrait)
         }
+        .task {
+            await bindableViewModel.load()
+        }
+        .onChange(of: bindableViewModel.playbackURL) { newURL in
+            guard let url = newURL else { return }
+            coordinator.play(url)
+            showControls(temporarily: true)
+        }
     }
 
     private func handleScrubbing(editing: Bool) {
@@ -87,7 +89,7 @@ struct PlayerView: View {
                 controlsVisible = true
             }
         } else {
-            coordinator.player?.seek(to: position)
+            coordinator.player?.seek(to: viewModel.position)
             scheduleControlsHide()
         }
     }
@@ -142,5 +144,8 @@ struct PlayerView: View {
 }
 
 #Preview {
-    PlayerView(ratingKey: "demo")
+    let context = PlexAPIContext()
+    let viewModel = PlayerViewModel(ratingKey: "demo", context: context)
+    return PlayerView(viewModel: viewModel)
+        .environment(context)
 }
