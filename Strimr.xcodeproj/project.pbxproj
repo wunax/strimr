@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
-		E9CF1CCE2EE0D8DF005C7325 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9CF1CCD2EE0D8DF005C7325 /* MPVKit-GPL */; };
+		E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9E487BA2EE4E664009184C1 /* MPVKit-GPL */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,7 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9CF1CCE2EE0D8DF005C7325 /* MPVKit-GPL in Frameworks */,
+				E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,7 +87,7 @@
 			);
 			name = Strimr;
 			packageProductDependencies = (
-				E9CF1CCD2EE0D8DF005C7325 /* MPVKit-GPL */,
+				E9E487BA2EE4E664009184C1 /* MPVKit-GPL */,
 			);
 			productName = Strimr;
 			productReference = E98A13B92ED8CBAD002F98B2 /* Strimr.app */;
@@ -119,7 +119,7 @@
 			mainGroup = E98A13B02ED8CBAD002F98B2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E9CF1CCC2EE0D8DF005C7325 /* XCRemoteSwiftPackageReference "MPVKit" */,
+				E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98A13BA2ED8CBAD002F98B2 /* Products */;
@@ -379,7 +379,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E9CF1CCC2EE0D8DF005C7325 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
+		E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mpvkit/MPVKit.git";
 			requirement = {
@@ -390,9 +390,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E9CF1CCD2EE0D8DF005C7325 /* MPVKit-GPL */ = {
+		E9E487BA2EE4E664009184C1 /* MPVKit-GPL */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E9CF1CCC2EE0D8DF005C7325 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			package = E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */;
 			productName = "MPVKit-GPL";
 		};
 /* End XCSwiftPackageProductDependency section */

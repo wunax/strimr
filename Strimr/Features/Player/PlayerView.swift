@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,7 +7,6 @@ struct PlayerView: View {
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
-    @State private var previousOrientationLock = AppDelegate.orientationLock
     @State private var supportsHDR = false
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -67,18 +65,15 @@ struct PlayerView: View {
         }
         .statusBarHidden()
         .onAppear {
-            previousOrientationLock = AppDelegate.orientationLock
-            lockOrientation(.landscape, rotateTo: .landscapeRight)
             showControls(temporarily: true)
         }
         .onDisappear {
             hideControlsWorkItem?.cancel()
-            lockOrientation(previousOrientationLock, rotateTo: .portrait)
         }
         .task {
             await bindableViewModel.load()
         }
-        .onChange(of: bindableViewModel.playbackURL) { newURL in
+        .onChange(of: bindableViewModel.playbackURL) { _, newURL in
             guard let url = newURL else { return }
             coordinator.play(url)
             showControls(temporarily: true)
@@ -168,22 +163,6 @@ struct PlayerView: View {
 
         hideControlsWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + controlsHideDelay, execute: workItem)
-    }
-
-    private func lockOrientation(_ orientation: UIInterfaceOrientationMask, rotateTo orientationValue: UIInterfaceOrientation? = nil) {
-        AppDelegate.orientationLock = orientation
-
-        if let orientationValue {
-            UIDevice.current.setValue(orientationValue.rawValue, forKey: "orientation")
-
-            UIApplication.shared
-                .connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?
-                .keyWindow?
-                .rootViewController?
-                .setNeedsUpdateOfSupportedInterfaceOrientations()
-        }
     }
 }
 
