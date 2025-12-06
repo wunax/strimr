@@ -16,8 +16,6 @@ struct PlayerControlsView: View {
 
     var body: some View {
         ZStack {
-            PlayerControlsBackground()
-
             VStack(spacing: 18) {
                 PlayerControlsHeader(
                     media: media,
@@ -43,6 +41,9 @@ struct PlayerControlsView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+        }
+        .background {
+            PlayerControlsBackground()
         }
     }
 }
