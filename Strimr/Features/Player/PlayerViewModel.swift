@@ -12,6 +12,7 @@ final class PlayerViewModel {
     var position = 0.0
     var bufferedAhead = 0.0
     var playbackURL: URL?
+    var isPaused = false
 
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private let context: PlexAPIContext
@@ -55,6 +56,8 @@ final class PlayerViewModel {
         isScrubbing: Bool
     ) {
         switch name {
+        case MPVProperty.pause:
+            isPaused = (data as? Bool) ?? false
         case MPVProperty.pausedForCache:
             isBuffering = (data as? Bool) ?? false
         case MPVProperty.timePos:

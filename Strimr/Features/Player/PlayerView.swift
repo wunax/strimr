@@ -2,21 +2,23 @@ import SwiftUI
 import UIKit
 
 struct PlayerView: View {
+    @Environment(\.dismiss) private var dismiss
     @State var viewModel: PlayerViewModel
     @State private var coordinator = MPVPlayerView.Coordinator()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
     @State private var previousOrientationLock = AppDelegate.orientationLock
+    @State private var supportsHDR = false
 
     private let controlsHideDelay: TimeInterval = 3.0
+    private let seekInterval: Double = 10
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
 
         ZStack {
-            Color.black
-                .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
             MPVPlayerView(coordinator: coordinator)
                 .onPropertyChange { player, propertyName, data in
@@ -28,6 +30,7 @@ struct PlayerView: View {
 
                     if propertyName == MPVProperty.videoParamsSigPeak {
                         let supportsHdr = (data as? Double ?? 1.0) > 1.0
+                        supportsHDR = supportsHdr
                         player.hdrEnabled = supportsHdr
                     }
                 }
@@ -41,23 +44,25 @@ struct PlayerView: View {
                 }
 
             if bindableViewModel.isBuffering {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(.white)
+                bufferingOverlay
             }
 
             if controlsVisible {
-                VStack {
-                    Spacer()
-                    PlayerControlsView(
-                        position: $bindableViewModel.position,
-                        duration: bindableViewModel.duration,
-                        bufferedAhead: bindableViewModel.bufferedAhead
-                    ) { editing in
-                        handleScrubbing(editing: editing)
-                    }
-                }
-                .transition(.opacity)
+                PlayerControlsView(
+                    media: bindableViewModel.media,
+                    isPaused: bindableViewModel.isPaused,
+                    isBuffering: bindableViewModel.isBuffering,
+                    supportsHDR: supportsHDR,
+                    position: positionBinding(for: bindableViewModel),
+                    duration: bindableViewModel.duration,
+                    bufferedAhead: bindableViewModel.bufferedAhead,
+                    onDismiss: dismissPlayer,
+                    onSeekBackward: { jump(by: -seekInterval) },
+                    onPlayPause: togglePlayPause,
+                    onSeekForward: { jump(by: seekInterval) },
+                    onScrubbingChanged: handleScrubbing(editing:)
+                )
+                    .transition(.opacity)
             }
         }
         .statusBarHidden()
@@ -80,6 +85,43 @@ struct PlayerView: View {
         }
     }
 
+    private var bufferingOverlay: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+
+            Text("Buffering")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func positionBinding(for viewModel: PlayerViewModel) -> Binding<Double> {
+        Binding(
+            get: { viewModel.position },
+            set: { viewModel.position = $0 }
+        )
+    }
+
+    private func togglePlayPause() {
+        coordinator.togglePlayback()
+        showControls(temporarily: true)
+    }
+
+    private func jump(by seconds: Double) {
+        coordinator.seek(by: seconds)
+        showControls(temporarily: true)
+    }
+
+    private func dismissPlayer() {
+        hideControlsWorkItem?.cancel()
+        dismiss()
+    }
+
     private func handleScrubbing(editing: Bool) {
         isScrubbing = editing
 
@@ -89,7 +131,7 @@ struct PlayerView: View {
                 controlsVisible = true
             }
         } else {
-            coordinator.player?.seek(to: viewModel.position)
+            coordinator.seek(to: viewModel.position)
             scheduleControlsHide()
         }
     }

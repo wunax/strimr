@@ -4,6 +4,9 @@
     "Add a Plex server or pull to refresh." : {
 
     },
+    "Buffering" : {
+
+    },
     "Episode %lld" : {
 
     },
@@ -171,6 +174,9 @@
 
     },
     "Nothing to show yet." : {
+
+    },
+    "Pause" : {
 
     },
     "Play" : {

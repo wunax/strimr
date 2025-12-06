@@ -41,6 +41,26 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         func play(_ url: URL) {
             player?.loadFile(url)
         }
+
+        func togglePlayback() {
+            player?.togglePause()
+        }
+
+        func pause() {
+            player?.pause()
+        }
+
+        func resume() {
+            player?.play()
+        }
+
+        func seek(to time: Double) {
+            player?.seek(to: time)
+        }
+        
+        func seek(by delta: Double) {
+            player?.seek(by: delta)
+        }
         
         func propertyChange(mpv: OpaquePointer, propertyName: String, data: Any?) {
             guard let player else { return }

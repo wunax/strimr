@@ -83,6 +83,7 @@ final class MPVPlayerViewController: UIViewController {
         
         checkError(mpv_initialize(mpv))
         
+        mpv_observe_property(mpv, 0, MPVProperty.pause, MPV_FORMAT_FLAG)
         mpv_observe_property(mpv, 0, MPVProperty.videoParamsSigPeak, MPV_FORMAT_DOUBLE)
         mpv_observe_property(mpv, 0, MPVProperty.pausedForCache, MPV_FORMAT_FLAG)
         mpv_observe_property(mpv, 0, MPVProperty.timePos, MPV_FORMAT_DOUBLE)
@@ -142,6 +143,18 @@ final class MPVPlayerViewController: UIViewController {
 
     func seek(to time: Double) {
         setDouble(MPVProperty.timePos, time)
+    }
+
+    func seek(by delta: Double) {
+        guard mpv != nil else { return }
+        command(
+            "seek",
+            args: [
+                String(delta),
+                "relative",
+                "exact"
+            ]
+        )
     }
     
     private func getDouble(_ name: String) -> Double {
@@ -239,6 +252,12 @@ final class MPVPlayerViewController: UIViewController {
                                     self.hdrAvailable = maxEDRRange > 1.0 && sigPeak > 1.0
                                     self.playDelegate?.propertyChange(mpv: self.mpv, propertyName: propertyName, data: sigPeak)
                                 }
+                            }
+                        case MPVProperty.pause:
+                            let pausedValue = UnsafePointer<Int64>(OpaquePointer(property.data))?.pointee ?? 0
+                            let isPaused = pausedValue > 0
+                            DispatchQueue.main.async {
+                                self.playDelegate?.propertyChange(mpv: self.mpv, propertyName: propertyName, data: isPaused)
                             }
                         case MPVProperty.pausedForCache:
                             let buffering = UnsafePointer<Bool>(OpaquePointer(property.data))?.pointee ?? true
