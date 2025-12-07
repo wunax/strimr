@@ -15,6 +15,9 @@ final class PlayerViewModel {
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
     var preferredSubtitleStreamFFIndex: Int?
+    var resumePosition: Double? {
+        media?.viewOffset
+    }
 
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
     @ObservationIgnored private var lastTimelineSentAt: Date?

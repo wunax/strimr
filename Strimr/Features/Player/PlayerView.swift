@@ -15,6 +15,7 @@ struct PlayerView: View {
     @State private var selectedSubtitleTrackID: Int?
     @State private var appliedPreferredAudio = false
     @State private var appliedPreferredSubtitle = false
+    @State private var appliedResumeOffset = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private let seekInterval: Double = 10
@@ -89,9 +90,11 @@ struct PlayerView: View {
             appliedPreferredSubtitle = false
             selectedAudioTrackID = nil
             selectedSubtitleTrackID = nil
+            appliedResumeOffset = false
             coordinator.play(url)
             showControls(temporarily: true)
             refreshTracks()
+            applyResumeOffsetIfNeeded()
         }
         .sheet(isPresented: $showingSettings) {
             PlaybackSettingsView(
@@ -206,6 +209,16 @@ struct PlayerView: View {
     private func jump(by seconds: Double) {
         coordinator.seek(by: seconds)
         showControls(temporarily: true)
+    }
+
+    private func applyResumeOffsetIfNeeded() {
+        guard !appliedResumeOffset, let offset = viewModel.resumePosition, offset > 0 else { return }
+        appliedResumeOffset = true
+
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
+            coordinator.seek(to: offset)
+        }
     }
 
     private func dismissPlayer() {
