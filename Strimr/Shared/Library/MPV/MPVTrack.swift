@@ -8,6 +8,7 @@ struct MPVTrack: Identifiable, Hashable {
     }
 
     let id: Int
+    let ffIndex: Int?
     let type: TrackType
     let title: String?
     let language: String?

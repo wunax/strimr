@@ -13,6 +13,8 @@ struct PlayerView: View {
     @State private var subtitleTracks: [MPVTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    @State private var appliedPreferredAudio = false
+    @State private var appliedPreferredSubtitle = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private let seekInterval: Double = 10
@@ -82,6 +84,10 @@ struct PlayerView: View {
         }
         .onChange(of: bindableViewModel.playbackURL) { _, newURL in
             guard let url = newURL else { return }
+            appliedPreferredAudio = false
+            appliedPreferredSubtitle = false
+            selectedAudioTrackID = nil
+            selectedSubtitleTrackID = nil
             coordinator.play(url)
             showControls(temporarily: true)
             refreshTracks()
@@ -138,6 +144,8 @@ struct PlayerView: View {
 
     private func refreshTracks() {
         Task {
+            // Waits for MPV player to hydrate the tracks
+            try await Task.sleep(for: .milliseconds(150))
             let tracks = coordinator.trackList()
 
             let audio = tracks.filter { $0.type == .audio }
@@ -147,11 +155,15 @@ struct PlayerView: View {
                 audioTracks = audio
                 subtitleTracks = subtitles
 
-                if let activeAudio = audio.first(where: { $0.isSelected })?.id ?? audioTracks.first?.id {
+                applyPreferredTracksIfNeeded(audioTracks: audio, subtitleTracks: subtitles)
+
+                if selectedAudioTrackID == nil,
+                   let activeAudio = audio.first(where: { $0.isSelected })?.id ?? audioTracks.first?.id {
                     selectedAudioTrackID = activeAudio
                 }
 
-                if let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id {
+                if selectedSubtitleTrackID == nil,
+                   let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id {
                     selectedSubtitleTrackID = activeSubtitle
                 }
             }
@@ -222,6 +234,27 @@ struct PlayerView: View {
 
         hideControlsWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + controlsHideDelay, execute: workItem)
+    }
+
+    private func applyPreferredTracksIfNeeded(audioTracks: [MPVTrack], subtitleTracks: [MPVTrack]) {
+        if !appliedPreferredAudio,
+           let preferredAudioIndex = viewModel.preferredAudioStreamFFIndex,
+           let track = audioTracks.first(where: { $0.ffIndex == preferredAudioIndex }) {
+            selectedAudioTrackID = track.id
+            coordinator.selectAudioTrack(id: track.id)
+            appliedPreferredAudio = true
+        }
+
+        if !appliedPreferredSubtitle,
+           let preferredSubtitleIndex = viewModel.preferredSubtitleStreamFFIndex,
+           let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitleIndex }) {
+            
+            debugPrint(preferredSubtitleIndex)
+            
+            selectedSubtitleTrackID = track.id
+            coordinator.selectSubtitleTrack(id: track.id)
+            appliedPreferredSubtitle = true
+        }
     }
 }
 

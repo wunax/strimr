@@ -13,6 +13,8 @@ final class PlayerViewModel {
     var bufferedAhead = 0.0
     var playbackURL: URL?
     var isPaused = false
+    var preferredAudioStreamFFIndex: Int?
+    var preferredSubtitleStreamFFIndex: Int?
 
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private let context: PlexAPIContext
@@ -30,6 +32,8 @@ final class PlayerViewModel {
 
         isLoading = true
         errorMessage = nil
+        preferredAudioStreamFFIndex = nil
+        preferredSubtitleStreamFFIndex = nil
         defer { isLoading = false }
 
         do {
@@ -44,6 +48,7 @@ final class PlayerViewModel {
             )
             let metadata = response.mediaContainer.metadata?.first
             media = metadata.map(MediaItem.init)
+            resolvePreferredStreams(from: metadata)
             playbackURL = resolvePlaybackURL(from: metadata)
         } catch {
             errorMessage = error.localizedDescription
@@ -81,5 +86,17 @@ final class PlayerViewModel {
         }
 
         return mediaRepository.mediaURL(path: partPath)
+    }
+
+    private func resolvePreferredStreams(from metadata: PlexItem?) {
+        let streams = metadata?.media?.first?.parts.first?.stream ?? []
+
+        preferredAudioStreamFFIndex = streams.first {
+            $0.streamType == .audio && $0.selected == true
+        }?.index
+
+        preferredSubtitleStreamFFIndex = streams.first {
+            $0.streamType == .subtitle && $0.selected == true
+        }?.index
     }
 }

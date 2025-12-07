@@ -194,6 +194,7 @@ final class MPVPlayerViewController: UIViewController {
 
             let track = MPVTrack(
                 id: id,
+                ffIndex: values["ff-index"] as? Int,
                 type: type,
                 title: values["title"] as? String,
                 language: values["lang"] as? String,
