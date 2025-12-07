@@ -69,9 +69,6 @@ final class MPVPlayerViewController: UIViewController {
 #else
         checkError(mpv_request_log_messages(mpv, "no"))
 #endif
-#if os(macOS)
-        checkError(mpv_set_option_string(mpv, "input-media-keys", "yes"))
-#endif
         checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
         checkError(mpv_set_option_string(mpv, "subs-match-os-language", "yes"))
         checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
@@ -163,6 +160,53 @@ final class MPVPlayerViewController: UIViewController {
             ]
         )
     }
+
+    func setAudioTrack(id: Int?) {
+        setTrackProperty("aid", trackID: id)
+    }
+
+    func setSubtitleTrack(id: Int?) {
+        setTrackProperty("sid", trackID: id)
+    }
+
+    func trackList() -> [MPVTrack] {
+        guard let mpv else { return [] }
+
+        var node = mpv_node()
+        guard mpv_get_property(mpv, "track-list", MPV_FORMAT_NODE, &node) >= 0 else { return [] }
+        defer { mpv_free_node_contents(&node) }
+
+        guard node.format == MPV_FORMAT_NODE_ARRAY, let list = node.u.list?.pointee else { return [] }
+
+        var tracks: [MPVTrack] = []
+        for index in 0..<Int(list.num) {
+            let entry = list.values[index]
+            guard entry.format == MPV_FORMAT_NODE_MAP, let map = entry.u.list?.pointee else { continue }
+            let values = parseMap(map)
+
+            guard
+                let typeString = values["type"] as? String,
+                let type = MPVTrack.TrackType(rawValue: typeString),
+                let id = values["id"] as? Int
+            else {
+                continue
+            }
+
+            let track = MPVTrack(
+                id: id,
+                type: type,
+                title: values["title"] as? String,
+                language: values["lang"] as? String,
+                codec: values["codec"] as? String,
+                isDefault: values["default"] as? Bool ?? false,
+                isSelected: values["selected"] as? Bool ?? false
+            )
+
+            tracks.append(track)
+        }
+
+        return tracks
+    }
     
     private func getDouble(_ name: String) -> Double {
         guard let mpv else { return 0.0 }
@@ -196,6 +240,11 @@ final class MPVPlayerViewController: UIViewController {
         guard let mpv else { return }
         var data = value
         mpv_set_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
+    }
+
+    private func setTrackProperty(_ name: String, trackID: Int?) {
+        let value = trackID.map(String.init) ?? "no"
+        command("set", args: [name, value])
     }
     
     
@@ -311,8 +360,34 @@ final class MPVPlayerViewController: UIViewController {
             mpv_terminate_destroy(mpvHandle)
         }
     }
-    
-    
+
+    private func parseMap(_ map: mpv_node_list) -> [String: Any] {
+        var values: [String: Any] = [:]
+
+        for index in 0..<Int(map.num) {
+            guard let keyPointer = map.keys?[index] else { continue }
+            let key = String(cString: keyPointer)
+            let valueNode = map.values[index]
+
+            switch valueNode.format {
+            case MPV_FORMAT_STRING:
+                if let pointer = valueNode.u.string {
+                    values[key] = String(cString: pointer)
+                }
+            case MPV_FORMAT_INT64:
+                values[key] = Int(valueNode.u.int64)
+            case MPV_FORMAT_DOUBLE:
+                values[key] = valueNode.u.double_
+            case MPV_FORMAT_FLAG:
+                values[key] = valueNode.u.flag != 0
+            default:
+                continue
+            }
+        }
+
+        return values
+    }
+
     private func checkError(_ status: CInt) {
         if status < 0 {
             print("MPV API error: \(String(cString: mpv_error_string(status)))\n")

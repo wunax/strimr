@@ -9,6 +9,7 @@ struct PlayerControlsView: View {
     var duration: Double?
     var bufferedAhead: Double
     var onDismiss: () -> Void
+    var onShowSettings: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -19,7 +20,8 @@ struct PlayerControlsView: View {
             VStack(spacing: 18) {
                 PlayerControlsHeader(
                     media: media,
-                    onDismiss: onDismiss
+                    onDismiss: onDismiss,
+                    onShowSettings: onShowSettings
                 )
 
                 Spacer()
@@ -53,6 +55,7 @@ struct PlayerControlsView: View {
 private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
+    var onShowSettings: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -85,6 +88,18 @@ private struct PlayerControlsHeader: View {
             }
 
             Spacer()
+
+            Button(action: onShowSettings) {
+                Image(systemName: "gearshape")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+            }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)

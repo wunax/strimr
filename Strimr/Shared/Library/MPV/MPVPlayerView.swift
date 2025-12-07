@@ -61,6 +61,18 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         func seek(by delta: Double) {
             player?.seek(by: delta)
         }
+
+        func selectAudioTrack(id: Int?) {
+            player?.setAudioTrack(id: id)
+        }
+
+        func selectSubtitleTrack(id: Int?) {
+            player?.setSubtitleTrack(id: id)
+        }
+
+        func trackList() -> [MPVTrack] {
+            player?.trackList() ?? []
+        }
         
         func propertyChange(mpv: OpaquePointer, propertyName: String, data: Any?) {
             guard let player else { return }

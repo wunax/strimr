@@ -8,6 +8,11 @@ struct PlayerView: View {
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
     @State private var supportsHDR = false
+    @State private var showingSettings = false
+    @State private var audioTracks: [MPVTrack] = []
+    @State private var subtitleTracks: [MPVTrack] = []
+    @State private var selectedAudioTrackID: Int?
+    @State private var selectedSubtitleTrackID: Int?
 
     private let controlsHideDelay: TimeInterval = 3.0
     private let seekInterval: Double = 10
@@ -55,6 +60,7 @@ struct PlayerView: View {
                     duration: bindableViewModel.duration,
                     bufferedAhead: bindableViewModel.bufferedAhead,
                     onDismiss: dismissPlayer,
+                    onShowSettings: showSettings,
                     onSeekBackward: { jump(by: -seekInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekInterval) },
@@ -78,6 +84,20 @@ struct PlayerView: View {
             guard let url = newURL else { return }
             coordinator.play(url)
             showControls(temporarily: true)
+            refreshTracks()
+        }
+        .sheet(isPresented: $showingSettings) {
+            PlaybackSettingsView(
+                audioTracks: audioTracks,
+                subtitleTracks: subtitleTracks,
+                selectedAudioTrackID: selectedAudioTrackID,
+                selectedSubtitleTrackID: selectedSubtitleTrackID,
+                onSelectAudio: selectAudioTrack(_:),
+                onSelectSubtitle: selectSubtitleTrack(_:),
+                onClose: { showingSettings = false }
+            )
+            .presentationDetents([.medium])
+            .presentationBackground(.ultraThinMaterial)
         }
     }
 
@@ -108,6 +128,44 @@ struct PlayerView: View {
     private func togglePlayPause() {
         coordinator.togglePlayback()
         showControls(temporarily: true)
+    }
+
+    private func showSettings() {
+        refreshTracks()
+        showingSettings = true
+        hideControlsWorkItem?.cancel()
+    }
+
+    private func refreshTracks() {
+        Task {
+            let tracks = coordinator.trackList()
+
+            let audio = tracks.filter { $0.type == .audio }
+            let subtitles = tracks.filter { $0.type == .subtitle }
+
+            await MainActor.run {
+                audioTracks = audio
+                subtitleTracks = subtitles
+
+                if let activeAudio = audio.first(where: { $0.isSelected })?.id ?? audioTracks.first?.id {
+                    selectedAudioTrackID = activeAudio
+                }
+
+                if let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id {
+                    selectedSubtitleTrackID = activeSubtitle
+                }
+            }
+        }
+    }
+
+    private func selectAudioTrack(_ id: Int?) {
+        selectedAudioTrackID = id
+        coordinator.selectAudioTrack(id: id)
+    }
+
+    private func selectSubtitleTrack(_ id: Int?) {
+        selectedSubtitleTrackID = id
+        coordinator.selectSubtitleTrack(id: id)
     }
 
     private func jump(by seconds: Double) {

@@ -4,7 +4,13 @@
     "Add a Plex server or pull to refresh." : {
 
     },
+    "Audio" : {
+
+    },
     "Buffering" : {
+
+    },
+    "Done" : {
 
     },
     "Episode %lld" : {
@@ -155,6 +161,9 @@
     "No artwork" : {
 
     },
+    "No audio tracks available" : {
+
+    },
     "No episodes for this season." : {
 
     },
@@ -180,6 +189,9 @@
 
     },
     "Play" : {
+
+    },
+    "Playback" : {
 
     },
     "Read more" : {
@@ -516,6 +528,9 @@
           }
         }
       }
+    },
+    "Subtitles" : {
+
     },
     "tabs.home" : {
       "localizations" : {
