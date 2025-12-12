@@ -88,6 +88,13 @@ struct PlexTag: Codable, Equatable {
     let tag: String
 }
 
+struct PlexTagPerson: Codable, Equatable {
+    let id: Int?
+    let tag: String
+    let role: String?
+    let thumb: String?
+}
+
 struct PlexImage: Codable, Equatable {
     let alt: String
     let type: String
@@ -189,9 +196,9 @@ struct PlexItem: Codable, Equatable {
     let guids: [PlexGuid]?
     let genres: [PlexTag]?
     let countries: [PlexTag]?
-    let directors: [PlexTag]?
-    let writers: [PlexTag]?
-    let roles: [PlexTag]?
+    let directors: [PlexTagPerson]?
+    let writers: [PlexTagPerson]?
+    let roles: [PlexTagPerson]?
     let media: [PlexMedia]?
 
     // Movie

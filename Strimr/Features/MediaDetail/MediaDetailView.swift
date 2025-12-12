@@ -27,6 +27,8 @@ struct MediaDetailView: View {
                 if bindableViewModel.media.type == .show {
                     SeasonEpisodesSection(viewModel: bindableViewModel)
                 }
+
+                CastSection(viewModel: bindableViewModel)
             }
         }
         .ignoresSafeArea(edges: .top)

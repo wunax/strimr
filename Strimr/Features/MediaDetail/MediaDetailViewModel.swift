@@ -15,6 +15,7 @@ final class MediaDetailViewModel {
     var backdropGradient: [Color] = []
     var seasons: [MediaItem] = []
     var episodes: [MediaItem] = []
+    var cast: [CastMember] = []
     var selectedSeasonId: String?
     var isLoadingSeasons = false
     var isLoadingEpisodes = false
@@ -30,6 +31,7 @@ final class MediaDetailViewModel {
     }
 
     func loadDetails() async {
+        cast = []
         guard let metadataRepository = try? MetadataRepository(context: context) else {
             errorMessage = "Select a server to load details."
             if media.type == .show {
@@ -51,6 +53,7 @@ final class MediaDetailViewModel {
             )
             if let item = response.mediaContainer.metadata?.first {
                 media = MediaItem(plexItem: item)
+                cast = castMembers(from: item)
                 resolveArtwork()
                 resolveGradient()
             }
@@ -168,6 +171,12 @@ final class MediaDetailViewModel {
     func runtimeText(for item: MediaItem) -> String? {
         guard let duration = item.duration else { return nil }
         return formatDuration(duration)
+    }
+
+    func castImageURL(for member: CastMember, width: Int = 200, height: Int = 260) -> URL? {
+        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+        guard let thumbPath = member.thumbPath else { return nil }
+        return imageRepository.transcodeImageURL(path: thumbPath, width: width, height: height)
     }
 
     var primaryActionTitle: String {
@@ -361,6 +370,21 @@ final class MediaDetailViewModel {
                 episodes = []
                 episodesErrorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func castMembers(from item: PlexItem?) -> [CastMember] {
+        guard let roles = item?.roles, !roles.isEmpty else { return [] }
+
+        return roles.map { role in
+            let identifier = role.id.map(String.init) ?? "\(role.tag)-\(role.role ?? "role")"
+            let character = role.role?.isEmpty == false ? role.role : nil
+            return CastMember(
+                id: identifier,
+                name: role.tag,
+                character: character,
+                thumbPath: role.thumb
+            )
         }
     }
 }

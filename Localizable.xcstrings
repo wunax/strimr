@@ -13,6 +13,9 @@
     "Buffering" : {
 
     },
+    "Cast" : {
+
+    },
     "Done" : {
 
     },
@@ -49,6 +52,9 @@
           }
         }
       }
+    },
+    "Loading cast…" : {
+
     },
     "Loading episodes…" : {
 
@@ -170,6 +176,9 @@
     "No audio tracks available" : {
 
     },
+    "No cast information available." : {
+
+    },
     "No episodes for this season." : {
 
     },
@@ -180,6 +189,9 @@
 
     },
     "No matches" : {
+
+    },
+    "No photo" : {
 
     },
     "No seasons available yet." : {
