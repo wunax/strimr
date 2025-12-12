@@ -114,6 +114,38 @@ final class PlayerViewModel {
         reportTimeline(state: .stopped, force: true)
     }
 
+    func markPlaybackFinished() async {
+        let currentDuration = max(0, Int((media?.duration ?? duration ?? position) * 1000))
+        
+        do {
+            let repository = try PlaybackRepository(context: context)
+            try await repository.updateTimeline(
+                ratingKey: ratingKey,
+                state: .stopped,
+                time: currentDuration,
+                duration: currentDuration
+            )
+        } catch {
+            debugPrint("Failed to mark playback as finished:", error)
+        }
+    }
+
+    func fetchOnDeckEpisode(grandparentRatingKey: String) async -> PlexItem? {
+        do {
+            let repository = try MetadataRepository(context: context)
+            let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
+            let response = try await repository.getMetadata(
+                ratingKey: grandparentRatingKey,
+                params: params
+            )
+
+            return response.mediaContainer.metadata?.first?.onDeck?.metadata
+        } catch {
+            debugPrint("Failed to fetch on deck metadata:", error)
+            return nil
+        }
+    }
+
     private var playbackState: PlaybackRepository.PlaybackState {
         if isBuffering {
             return .buffering

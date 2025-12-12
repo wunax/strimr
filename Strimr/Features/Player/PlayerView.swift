@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(PlexAPIContext.self) private var context
+    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PlayerViewModel
     @State private var coordinator = MPVPlayerView.Coordinator()
     @State private var controlsVisible = true
@@ -45,6 +47,9 @@ struct PlayerView: View {
                         supportsHDR = supportsHdr
                         player.hdrEnabled = supportsHdr
                     }
+                }
+                .onPlaybackEnded {
+                    handlePlaybackEnded()
                 }
                 .onAppear {
                     showControls(temporarily: true)
@@ -339,6 +344,58 @@ struct PlayerView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
+    }
+
+    private func handlePlaybackEnded() {
+        guard let media = viewModel.media else {
+            dismissPlayer()
+            return
+        }
+
+        switch media.type {
+        case .movie:
+            dismissPlayer()
+        case .episode:
+            Task {
+                await handleEpisodeCompletion(for: media)
+            }
+        default:
+            dismissPlayer()
+        }
+    }
+
+    private func handleEpisodeCompletion(for media: MediaItem) async {
+        guard settingsManager.playback.autoPlayNextEpisode else {
+            await MainActor.run {
+                dismissPlayer()
+            }
+            return
+        }
+
+        await viewModel.markPlaybackFinished()
+
+        guard
+            let grandparentRatingKey = media.grandparentRatingKey,
+            let nextEpisode = await viewModel.fetchOnDeckEpisode(grandparentRatingKey: grandparentRatingKey)
+        else {
+            await MainActor.run {
+                dismissPlayer()
+            }
+            return
+        }
+
+        await startPlayback(of: nextEpisode)
+    }
+
+    private func startPlayback(of episode: PlexItem) async {
+        await MainActor.run {
+            viewModel = PlayerViewModel(
+                ratingKey: episode.ratingKey,
+                context: context
+            )
+        }
+
+        await viewModel.load()
     }
 }
 

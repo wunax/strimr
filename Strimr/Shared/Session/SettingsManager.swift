@@ -4,8 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class SettingsManager {
-    static let shared = SettingsManager()
-
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let storageKey = "dev.strimr.app.settings"
 

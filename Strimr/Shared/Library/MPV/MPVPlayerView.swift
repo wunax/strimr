@@ -29,6 +29,11 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         coordinator.onPropertyChange = handler
         return self
     }
+
+    func onPlaybackEnded(_ handler: @escaping () -> Void) -> Self {
+        coordinator.onPlaybackEnded = handler
+        return self
+    }
     
     @MainActor
     @Observable
@@ -37,6 +42,7 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         
         @ObservationIgnored var playUrl : URL?
         @ObservationIgnored var onPropertyChange: ((MPVPlayerViewController, String, Any?) -> Void)?
+        @ObservationIgnored var onPlaybackEnded: (() -> Void)?
         
         func play(_ url: URL) {
             player?.loadFile(url)
@@ -78,6 +84,10 @@ struct MPVPlayerView: UIViewControllerRepresentable {
             guard let player else { return }
             
             self.onPropertyChange?(player, propertyName, data)
+        }
+
+        func playbackEnded() {
+            onPlaybackEnded?()
         }
     }
 }

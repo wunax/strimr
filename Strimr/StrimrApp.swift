@@ -11,7 +11,7 @@ struct StrimrApp: App {
         let context = PlexAPIContext()
         _plexApiContext = State(initialValue: context)
         _sessionManager = State(initialValue: SessionManager(context: context))
-        _settingsManager = State(initialValue: SettingsManager.shared)
+        _settingsManager = State(initialValue: SettingsManager())
     }
 
     var body: some Scene {

@@ -331,6 +331,14 @@ final class MPVPlayerViewController: UIViewController {
                         default: break
                         }
                     }
+                case MPV_EVENT_END_FILE:
+                    let endFileData = UnsafeMutablePointer<mpv_event_end_file>(OpaquePointer(event!.pointee.data))
+                    let reason = endFileData?.pointee.reason ?? MPV_END_FILE_REASON_ERROR
+                    if reason == MPV_END_FILE_REASON_EOF {
+                        DispatchQueue.main.async {
+                            self.playDelegate?.playbackEnded()
+                        }
+                    }
                 case MPV_EVENT_SHUTDOWN:
                     print("event: shutdown\n");
                     destruct()
