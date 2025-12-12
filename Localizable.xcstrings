@@ -74,6 +74,22 @@
     "Loading seasons…" : {
 
     },
+    "Log Out" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter"
+          }
+        }
+      }
+    },
     "media.labels.countEpisode %lld" : {
       "localizations" : {
         "en" : {
@@ -170,6 +186,22 @@
         }
       }
     },
+    "More" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus"
+          }
+        }
+      }
+    },
     "No artwork" : {
 
     },
@@ -210,6 +242,9 @@
 
     },
     "Play" : {
+
+    },
+    "Play next episode automatically" : {
 
     },
     "Playback" : {
@@ -382,6 +417,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez votre serveur"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paramètres"
+          }
+        }
+      }
+    },
+    "Settings will be available here soon." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings will be available here soon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les paramètres seront bientôt disponibles ici."
           }
         }
       }
@@ -562,6 +630,22 @@
     "Subtitles" : {
 
     },
+    "Switch Profile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch Profile"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer de profil"
+          }
+        }
+      }
+    },
     "tabs.home" : {
       "localizations" : {
         "en" : {
@@ -594,22 +678,6 @@
         }
       }
     },
-    "tabs.search" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recherche"
-          }
-        }
-      }
-    },
     "tabs.more" : {
       "localizations" : {
         "en" : {
@@ -626,82 +694,18 @@
         }
       }
     },
-    "Log Out" : {
+    "tabs.search" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log Out"
+            "value" : "Search"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se déconnecter"
-          }
-        }
-      }
-    },
-    "More" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "More"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plus"
-          }
-        }
-      }
-    },
-    "Settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paramètres"
-          }
-        }
-      }
-    },
-    "Settings will be available here soon." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings will be available here soon."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les paramètres seront bientôt disponibles ici."
-          }
-        }
-      }
-    },
-    "Switch Profile" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Switch Profile"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer de profil"
+            "value" : "Recherche"
           }
         }
       }
