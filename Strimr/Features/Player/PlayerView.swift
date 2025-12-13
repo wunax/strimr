@@ -75,6 +75,7 @@ struct PlayerView: View {
                     duration: bindableViewModel.duration,
                     bufferedAhead: bindableViewModel.bufferedAhead,
                     bufferBasePosition: bindableViewModel.position,
+                    isScrubbing: isScrubbing,
                     onDismiss: dismissPlayer,
                     onShowSettings: showSettings,
                     onSeekBackward: { jump(by: -seekInterval) },

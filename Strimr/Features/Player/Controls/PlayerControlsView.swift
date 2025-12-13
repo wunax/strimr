@@ -9,6 +9,7 @@ struct PlayerControlsView: View {
     var duration: Double?
     var bufferedAhead: Double
     var bufferBasePosition: Double
+    var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
     var onSeekBackward: () -> Void
@@ -38,7 +39,7 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                if let skipMarkerTitle, let onSkipMarker {
+                if !isScrubbing, let skipMarkerTitle, let onSkipMarker {
                     HStack {
                         Spacer()
                         SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
