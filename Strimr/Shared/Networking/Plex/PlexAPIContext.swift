@@ -2,10 +2,11 @@ import Foundation
 
 @Observable
 final class PlexAPIContext {
-    private(set) var authToken: String?
+    private(set) var authTokenCloud: String?
     private(set) var clientIdentifier: String = ""
     private var resource: PlexCloudResource?
     private(set) var baseURLServer: URL?
+    private(set) var authTokenServer: String?
 
     @ObservationIgnored private let keychain = Keychain(service: "dev.strimr.app")
     @ObservationIgnored private let clientIdKey = "strimr.plex.clientId"
@@ -36,12 +37,13 @@ final class PlexAPIContext {
     }
     
     func setAuthToken(_ token: String) {
-        authToken = token
+        authTokenCloud = token
     }
 
     func selectServer(_ resource: PlexCloudResource) async throws {
         self.resource = resource
         baseURLServer = nil
+        authTokenServer = resource.accessToken
         
         try await ensureConnection()
     }
@@ -106,7 +108,7 @@ final class PlexAPIContext {
     
     func reset() {
         resource = nil
-        authToken = nil
+        authTokenCloud = nil
         baseURLServer = nil
     }
 }

@@ -16,10 +16,22 @@
     "Buffering" : {
 
     },
+    "Cancel" : {
+
+    },
     "Cast" : {
 
     },
+    "Choose a profile to continue" : {
+
+    },
     "Done" : {
+
+    },
+    "Enter PIN" : {
+
+    },
+    "Enter the 4-digit PIN for %@." : {
 
     },
     "Episode %lld" : {
@@ -72,6 +84,9 @@
 
     },
     "Loading library" : {
+
+    },
+    "Loading profiles..." : {
 
     },
     "Loading recommendations" : {
@@ -235,6 +250,9 @@
     "No photo" : {
 
     },
+    "No profiles available." : {
+
+    },
     "No related content found." : {
 
     },
@@ -253,6 +271,12 @@
     "Pause" : {
 
     },
+    "PIN" : {
+
+    },
+    "PIN Required" : {
+
+    },
     "Play" : {
 
     },
@@ -263,6 +287,9 @@
 
     },
     "Read more" : {
+
+    },
+    "Retry" : {
 
     },
     "Rewind" : {
@@ -281,6 +308,9 @@
 
     },
     "Season" : {
+
+    },
+    "Select Profile" : {
 
     },
     "serverSelection.connection.localFormat %@" : {
@@ -735,6 +765,9 @@
 
     },
     "Updating details" : {
+
+    },
+    "Who's watching?" : {
 
     }
   },

@@ -19,6 +19,15 @@ struct ContentView: View {
 #else
                 SignInView()
 #endif
+            case .needsProfileSelection:
+                NavigationStack {
+                    ProfileSwitcherView(
+                        viewModel: ProfileSwitcherViewModel(
+                            context: plexApiContext,
+                            sessionManager: sessionManager
+                        )
+                    )
+                }
             case .needsServerSelection:
                 SelectServerView(
                     viewModel: ServerSelectionViewModel(

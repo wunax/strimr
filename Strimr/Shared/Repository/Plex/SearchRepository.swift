@@ -27,7 +27,7 @@ final class SearchRepository {
             throw PlexAPIError.missingConnection
         }
 
-        guard let authToken = context.authToken else {
+        guard let authToken = context.authTokenServer else {
             throw PlexAPIError.missingAuthToken
         }
 

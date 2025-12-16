@@ -7,6 +7,7 @@ final class SessionManager {
     enum Status {
         case hydrating
         case signedOut
+        case needsProfileSelection
         case needsServerSelection
         case ready
     }
@@ -36,7 +37,10 @@ final class SessionManager {
             }
 
             if let token = storedToken {
-                try await bootstrapAuthenticatedSession(with: token)
+                try await bootstrapAuthenticatedSession(
+                    with: token,
+                    allowProfileSelection: false
+                )
             } else {
                 status = .signedOut
             }
@@ -51,7 +55,10 @@ final class SessionManager {
             try keychain.setString(token, forKey: tokenKey)
             authToken = token
             context.setAuthToken(token)
-            try await bootstrapAuthenticatedSession(with: token)
+            try await bootstrapAuthenticatedSession(
+                with: token,
+                allowProfileSelection: true
+            )
         } catch {
             await clearSession()
             status = .signedOut
@@ -63,6 +70,22 @@ final class SessionManager {
         try? keychain.deleteValue(forKey: tokenKey)
         UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
         status = .signedOut
+    }
+
+    func switchProfile(to user: PlexCloudUser) async {
+        do {
+            try keychain.setString(user.authToken, forKey: tokenKey)
+            authToken = user.authToken
+            self.user = user
+            context.setAuthToken(user.authToken)
+            try await bootstrapAuthenticatedSession(
+                with: user.authToken,
+                allowProfileSelection: false
+            )
+        } catch {
+            await clearSession()
+            status = .signedOut
+        }
     }
 
     func selectServer(_ server: PlexCloudResource) async {
@@ -81,15 +104,35 @@ final class SessionManager {
         }
     }
 
-    private func bootstrapAuthenticatedSession(with token: String) async throws {
+    func requestProfileSelection() async {
+        status = .needsProfileSelection
+        plexServer = nil
+        context.removeServer()
+    }
+
+    private func bootstrapAuthenticatedSession(
+        with token: String,
+        allowProfileSelection: Bool
+    ) async throws {
         let userRepo = UserRepository(context: context)
         let resourcesRepo = ResourceRepository(context: context)
 
         let userResponse = try await userRepo.getUser()
-        let resources = try await resourcesRepo.getResources().filter { !$0.connections.isEmpty }
-
         user = userResponse
         authToken = token
+
+        if allowProfileSelection {
+            let home = try await userRepo.getHomeUsers()
+
+            if home.users.count > 1 {
+                status = .needsProfileSelection
+                context.removeServer()
+                plexServer = nil
+                return
+            }
+        }
+
+        let resources = try await resourcesRepo.getResources().filter { !$0.connections.isEmpty }
 
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId })

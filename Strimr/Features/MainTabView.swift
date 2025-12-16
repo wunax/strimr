@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(SessionManager.self) private var sessionManager
     @StateObject private var coordinator = MainCoordinator()
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -56,10 +57,17 @@ struct MainTabView: View {
             .tag(MainCoordinator.Tab.library)
 
             NavigationStack(path: coordinator.pathBinding(for: .more)) {
-                MoreView()
-                    .navigationDestination(for: MoreRoute.self) { route in
-                        moreDestination(for: route)
+                MoreView(
+                    onSwitchProfile: {
+                        Task { await sessionManager.requestProfileSelection() }
+                    },
+                    onLogout: {
+                        Task { await sessionManager.signOut() }
                     }
+                )
+                .navigationDestination(for: MoreRoute.self) { route in
+                    moreDestination(for: route)
+                }
             }
             .tabItem { Label("tabs.more", systemImage: "ellipsis.circle") }
             .tag(MainCoordinator.Tab.more)

@@ -36,8 +36,11 @@ struct MoreView: View {
 #Preview {
     NavigationStack {
         MoreView()
-            .navigationDestination(for: MoreRoute.self) { _ in
-                EmptyView()
+            .navigationDestination(for: MoreRoute.self) { route in
+                switch route {
+                case .settings:
+                    EmptyView()
+                }
             }
     }
 }
