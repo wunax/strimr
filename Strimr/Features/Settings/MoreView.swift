@@ -7,6 +7,7 @@ enum MoreRoute: Hashable {
 @MainActor
 struct MoreView: View {
     var onSwitchProfile: () -> Void = {}
+    var onSwitchServer: () -> Void = {}
     var onLogout: () -> Void = {}
 
     var body: some View {
@@ -18,6 +19,11 @@ struct MoreView: View {
 
                 Button(action: onSwitchProfile) {
                     Label("Switch Profile", systemImage: "person.2.circle")
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onSwitchServer) {
+                    Label("Switch Server", systemImage: "server.rack")
                 }
                 .buttonStyle(.plain)
 

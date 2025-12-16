@@ -61,6 +61,9 @@ struct MainTabView: View {
                     onSwitchProfile: {
                         Task { await sessionManager.requestProfileSelection() }
                     },
+                    onSwitchServer: {
+                        Task { await sessionManager.requestServerSelection() }
+                    },
                     onLogout: {
                         Task { await sessionManager.signOut() }
                     }

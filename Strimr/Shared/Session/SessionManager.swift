@@ -110,6 +110,13 @@ final class SessionManager {
         context.removeServer()
     }
 
+    func requestServerSelection() async {
+        status = .needsServerSelection
+        plexServer = nil
+        context.removeServer()
+        UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+    }
+
     private func bootstrapAuthenticatedSession(
         with token: String,
         allowProfileSelection: Bool
