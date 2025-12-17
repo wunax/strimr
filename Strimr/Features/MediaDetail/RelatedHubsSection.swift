@@ -29,12 +29,12 @@ struct RelatedHubsSection: View {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Loading related content…")
+                Text("media.detail.loadingRelated")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         } else if viewModel.relatedHubs.isEmpty {
-            Text("No related content found.")
+            Text("media.detail.noRelated")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {

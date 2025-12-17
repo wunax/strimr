@@ -39,7 +39,7 @@ struct PlayerTimelineView: View {
             if supportsHDR {
                 HStack {
                     Spacer()
-                    PlayerBadge("HDR", systemImage: "sparkles")
+                    PlayerBadge(String(localized: "player.badge.hdr"), systemImage: "sparkles")
                 }
             }
             

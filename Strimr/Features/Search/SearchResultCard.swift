@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct SearchResultCard: View {
@@ -79,13 +80,13 @@ private struct TypeBadge: View {
     private var label: String {
         switch type {
         case .movie:
-            return "MOVIE"
+            return String(localized: "search.badge.movie")
         case .show:
-            return "SHOW"
+            return String(localized: "search.badge.show")
         case .season:
-            return "SEASON"
+            return String(localized: "search.badge.season")
         case .episode:
-            return "EPISODE"
+            return String(localized: "search.badge.episode")
         }
     }
 
@@ -107,13 +108,16 @@ private extension SearchResultCard {
     var subtitle: String {
         switch media.type {
         case .movie:
-            return media.year.map(String.init) ?? "Movie"
+            return media.year.map(String.init) ?? String(localized: "search.fallback.movie")
         case .show:
-            return media.secondaryLabel ?? "TV Show"
+            return media.secondaryLabel ?? String(localized: "search.fallback.show")
         case .season:
             return media.secondaryLabel ?? media.title
         case .episode:
-            return media.tertiaryLabel ?? media.secondaryLabel ?? media.parentTitle ?? "Episode"
+            return media.tertiaryLabel
+                ?? media.secondaryLabel
+                ?? media.parentTitle
+                ?? String(localized: "search.fallback.episode")
         }
     }
 }

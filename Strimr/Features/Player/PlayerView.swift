@@ -35,7 +35,9 @@ struct PlayerView: View {
         @Bindable var bindableViewModel = viewModel
         let activeMarker = bindableViewModel.activeSkipMarker
         let skipTitle = activeMarker.flatMap { marker in
-            marker.isCredits ? "Skip credits" : "Skip intro"
+            marker.isCredits
+                ? String(localized: "player.skip.credits")
+                : String(localized: "player.skip.intro")
         }
 
         ZStack {
@@ -154,7 +156,7 @@ struct PlayerView: View {
                     .progressViewStyle(.circular)
                     .tint(.white)
                 
-                Text("Buffering")
+                Text("player.status.buffering")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.9))
             }

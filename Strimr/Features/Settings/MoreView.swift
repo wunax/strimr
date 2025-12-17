@@ -15,37 +15,37 @@ struct MoreView: View {
         List {
             Section {
                 NavigationLink(value: MoreRoute.settings) {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("settings.title", systemImage: "gearshape.fill")
                 }
 
                 Button(action: onSwitchProfile) {
-                    Label("Switch Profile", systemImage: "person.2.circle")
+                    Label("common.actions.switchProfile", systemImage: "person.2.circle")
                 }
                 .buttonStyle(.plain)
 
                 Button(action: onSwitchServer) {
-                    Label("Switch Server", systemImage: "server.rack")
+                    Label("common.actions.switchServer", systemImage: "server.rack")
                 }
                 .buttonStyle(.plain)
 
                 Button {
                     isShowingLogoutConfirmation = true
                 } label: {
-                    Label("Log Out", systemImage: "arrow.backward.circle")
+                    Label("common.actions.logOut", systemImage: "arrow.backward.circle")
                 }
                 .buttonStyle(.plain)
                 .tint(.red)
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("More")
-        .alert("Log Out", isPresented: $isShowingLogoutConfirmation) {
-            Button("Log Out", role: .destructive) {
+        .navigationTitle("tabs.more")
+        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
+            Button("common.actions.logOut", role: .destructive) {
                 Task { await sessionManager.signOut() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("common.actions.cancel", role: .cancel) {}
         } message: {
-            Text("You will need to sign in again.")
+            Text("more.logout.message")
         }
     }
 }

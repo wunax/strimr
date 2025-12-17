@@ -30,11 +30,11 @@ final class LibraryBrowseViewModel {
 
     private func fetch(reset: Bool) async {
         guard let sectionId = library.sectionId else {
-            resetState(error: "Missing library identifier.")
+            resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
         guard let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: "Select a server to browse.")
+            resetState(error: String(localized: "errors.selectServer.browseLibrary"))
             return
         }
 

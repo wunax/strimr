@@ -41,7 +41,7 @@ struct HomeView: View {
                 }
 
                 if viewModel.isLoading && !viewModel.hasContent {
-                    ProgressView("Loading home")
+                    ProgressView("home.loading")
                         .frame(maxWidth: .infinity)
                 }
 
@@ -49,14 +49,14 @@ struct HomeView: View {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                 } else if !viewModel.hasContent && !viewModel.isLoading {
-                    Text("Nothing to show yet.")
+                    Text("common.empty.nothingToShow")
                         .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
         }
-        .navigationTitle("Home")
+        .navigationTitle("tabs.home")
         .task {
             await viewModel.load()
         }

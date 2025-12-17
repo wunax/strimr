@@ -24,11 +24,11 @@ struct SearchView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .navigationTitle("Search")
+        .navigationTitle("tabs.search")
         .searchable(
             text: $bindableViewModel.query,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search movies, shows, episodes"
+            prompt: "search.prompt"
         )
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
@@ -43,10 +43,10 @@ struct SearchView: View {
     @ViewBuilder
     private func resultsContent() -> some View {
         if !viewModel.hasQuery {
-            ContentUnavailableView("Search your library", systemImage: "magnifyingglass", description: Text("Find movies, shows, and episodes across your Plex libraries."))
+            ContentUnavailableView("search.empty.title", systemImage: "magnifyingglass", description: Text("search.empty.description"))
                 .frame(maxWidth: .infinity)
         } else if viewModel.isLoading {
-            ProgressView("Searching…")
+            ProgressView("search.loading")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         } else if let error = viewModel.errorMessage {
@@ -55,7 +55,7 @@ struct SearchView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 4)
         } else if viewModel.filteredItems.isEmpty {
-            ContentUnavailableView("No matches", systemImage: "film.stack.fill", description: Text("Try a different query or adjust the filters."))
+            ContentUnavailableView("search.noResults.title", systemImage: "film.stack.fill", description: Text("search.noResults.description"))
                 .frame(maxWidth: .infinity)
         } else {
             LazyVStack(alignment: .leading, spacing: 12) {

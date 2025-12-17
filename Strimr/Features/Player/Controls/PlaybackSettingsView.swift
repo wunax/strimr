@@ -12,9 +12,9 @@ struct PlaybackSettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Audio") {
+                Section("player.settings.audio") {
                     if audioTracks.isEmpty {
-                        Text("No audio tracks available")
+                        Text("player.settings.audio.empty")
                             .foregroundStyle(.secondary)
                     }
 
@@ -29,10 +29,10 @@ struct PlaybackSettingsView: View {
                     }
                 }
 
-                Section("Subtitles") {
+                Section("player.settings.subtitles") {
                     TrackSelectionRow(
-                        title: "Off",
-                        subtitle: "Disable subtitles",
+                        title: String(localized: "player.settings.subtitles.off"),
+                        subtitle: String(localized: "player.settings.subtitles.offDescription"),
                         isSelected: selectedSubtitleTrackID == nil
                     ) {
                         onSelectSubtitle(nil)
@@ -50,11 +50,11 @@ struct PlaybackSettingsView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Playback")
+            .navigationTitle("settings.playback.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", action: onClose)
+                    Button("common.actions.done", action: onClose)
                         .fontWeight(.semibold)
                 }
             }

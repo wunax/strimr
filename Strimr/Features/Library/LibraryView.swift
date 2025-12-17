@@ -87,15 +87,15 @@ struct LibraryView: View {
         .listStyle(.plain)
         .overlay {
             if viewModel.isLoading && viewModel.libraries.isEmpty {
-                ProgressView("Loading libraries")
+                ProgressView("library.loading")
             } else if let errorMessage = viewModel.errorMessage, viewModel.libraries.isEmpty {
-                ContentUnavailableView(errorMessage, systemImage: "exclamationmark.triangle.fill", description: Text("Try refreshing to load your Plex libraries."))
+                ContentUnavailableView(errorMessage, systemImage: "exclamationmark.triangle.fill", description: Text("library.error.description"))
                     .symbolRenderingMode(.multicolor)
             } else if viewModel.libraries.isEmpty {
-                ContentUnavailableView("No libraries yet", systemImage: "rectangle.stack.fill", description: Text("Add a Plex server or pull to refresh."))
+                ContentUnavailableView("library.empty.title", systemImage: "rectangle.stack.fill", description: Text("library.empty.description"))
             }
         }
-        .navigationTitle("Libraries")
+        .navigationTitle("tabs.libraries")
         .task {
             await viewModel.load()
         }

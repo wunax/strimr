@@ -38,7 +38,7 @@ final class HomeViewModel {
 
     private func fetchHubs() async {
         guard let hubRepository = try? HubRepository(context: context) else {
-            resetState(error: "Select a server to load content.")
+            resetState(error: String(localized: "errors.selectServer.loadContent"))
             return
         }
 

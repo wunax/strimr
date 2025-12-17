@@ -37,11 +37,11 @@ final class MediaDetailViewModel {
         cast = []
         relatedHubs = []
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            errorMessage = "Select a server to load details."
+            errorMessage = String(localized: "errors.selectServer.loadDetails")
             if media.type == .show {
-                seasonsErrorMessage = "Select a server to load seasons."
+                seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
             }
-            relatedHubsErrorMessage = "Select a server to load related content."
+            relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
             return
         }
 
@@ -92,7 +92,7 @@ final class MediaDetailViewModel {
 
         guard let scrobbleRepository = try? ScrobbleRepository(context: context) else {
             if target == nil {
-                watchActionErrorMessage = "Select a server to update watch status."
+                watchActionErrorMessage = String(localized: "errors.selectServer.updateWatchStatus")
             }
             return
         }
@@ -172,7 +172,7 @@ final class MediaDetailViewModel {
     }
 
     var selectedSeasonTitle: String {
-        selectedSeason?.title ?? "Season"
+        selectedSeason?.title ?? String(localized: "media.detail.season")
     }
 
     func runtimeText(for item: MediaItem) -> String? {
@@ -189,11 +189,17 @@ final class MediaDetailViewModel {
     var primaryActionTitle: String {
         switch media.type {
         case .movie:
-            return hasProgress(for: media) ? "Resume" : "Play"
+            return hasProgress(for: media)
+                ? String(localized: "common.actions.resume")
+                : String(localized: "common.actions.play")
         case .show:
-            return hasProgress(for: onDeckItem) ? "Resume" : "Play"
+            return hasProgress(for: onDeckItem)
+                ? String(localized: "common.actions.resume")
+                : String(localized: "common.actions.play")
         case .season, .episode:
-            return hasProgress(for: media) ? "Resume" : "Play"
+            return hasProgress(for: media)
+                ? String(localized: "common.actions.resume")
+                : String(localized: "common.actions.play")
         }
     }
 
@@ -273,7 +279,9 @@ final class MediaDetailViewModel {
     }
 
     func watchActionTitle(for item: MediaItem) -> String {
-        isWatched(item) ? "Mark as unwatched" : "Mark as watched"
+        isWatched(item)
+            ? String(localized: "media.detail.watchAction.markUnwatched")
+            : String(localized: "media.detail.watchAction.markWatched")
     }
 
     func watchActionIcon(for item: MediaItem) -> String {
@@ -307,12 +315,12 @@ final class MediaDetailViewModel {
         let remaining = max(0, duration - viewOffset)
         guard remaining > 0 else { return nil }
 
-        return "\(formatDuration(remaining)) left"
+        return String(localized: "media.detail.timeLeft \(formatDuration(remaining))")
     }
 
     private func seasonEpisodeLabel(for item: MediaItem) -> String? {
         guard let season = item.parentIndex, let episode = item.index else { return nil }
-        return "S\(season) - E\(episode)"
+        return String(localized: "media.detail.seasonEpisode \(season) \(episode)")
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -320,14 +328,14 @@ final class MediaDetailViewModel {
         let hours = minutes / 60
         let remainingMinutes = minutes % 60
         if hours > 0 {
-            return "\(hours)h \(remainingMinutes)m"
+            return String(localized: "media.detail.duration.hoursMinutes \(hours) \(remainingMinutes)")
         }
-        return "\(remainingMinutes)m"
+        return String(localized: "media.detail.duration.minutes \(remainingMinutes)")
     }
 
     private func fetchSeasons() async {
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            seasonsErrorMessage = "Select a server to load seasons."
+            seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
             return
         }
 
@@ -366,7 +374,7 @@ final class MediaDetailViewModel {
 
     private func fetchEpisodes(for seasonId: String) async {
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            episodesErrorMessage = "Select a server to load episodes."
+            episodesErrorMessage = String(localized: "errors.selectServer.loadEpisodes")
             return
         }
 
@@ -417,7 +425,7 @@ final class MediaDetailViewModel {
 
     func loadRelatedHubs() async {
         guard let hubRepository = try? HubRepository(context: context) else {
-            relatedHubsErrorMessage = "Select a server to load related content."
+            relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
             return
         }
 

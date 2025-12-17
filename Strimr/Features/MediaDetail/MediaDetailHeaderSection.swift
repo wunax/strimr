@@ -34,7 +34,7 @@ struct MediaDetailHeaderSection: View {
                             .lineLimit(isSummaryExpanded ? nil : 3)
 
                         Button(action: { isSummaryExpanded.toggle() }) {
-                            Text(isSummaryExpanded ? "Show less" : "Read more")
+                            Text(isSummaryExpanded ? "common.actions.showLess" : "common.actions.readMore")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .tint(.brandSecondary)
@@ -46,7 +46,7 @@ struct MediaDetailHeaderSection: View {
                 genresSection
 
                 if let studio = viewModel.media.studio {
-                    metaRow(label: "Studio", value: studio)
+                    metaRow(label: String(localized: "media.detail.studio"), value: studio)
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -60,7 +60,7 @@ struct MediaDetailHeaderSection: View {
                 }
 
                 if viewModel.isLoading {
-                    ProgressView("Updating details")
+                    ProgressView("media.detail.updating")
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -116,7 +116,7 @@ struct MediaDetailHeaderSection: View {
         Group {
             if !viewModel.media.genres.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Genres")
+                    Text("media.detail.genres")
                         .font(.headline)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {

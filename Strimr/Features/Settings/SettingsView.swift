@@ -29,24 +29,24 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section("Playback") {
-                Toggle("Play next episode automatically", isOn: autoPlayNextBinding)
+            Section("settings.playback.title") {
+                Toggle("settings.playback.autoPlayNext", isOn: autoPlayNextBinding)
 
-                Picker("Rewind", selection: rewindBinding) {
+                Picker("settings.playback.rewind", selection: rewindBinding) {
                     ForEach(seekOptions, id: \.self) { seconds in
-                        Text("\(seconds) seconds").tag(seconds)
+                        Text("settings.playback.seconds \(seconds)").tag(seconds)
                     }
                 }
 
-                Picker("Fast forward", selection: fastForwardBinding) {
+                Picker("settings.playback.fastForward", selection: fastForwardBinding) {
                     ForEach(seekOptions, id: \.self) { seconds in
-                        Text("\(seconds) seconds").tag(seconds)
+                        Text("settings.playback.seconds \(seconds)").tag(seconds)
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Settings")
+        .navigationTitle("settings.title")
     }
 }
 

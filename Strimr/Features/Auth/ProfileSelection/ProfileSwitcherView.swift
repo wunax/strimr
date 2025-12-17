@@ -33,20 +33,20 @@ struct ProfileSwitcherView: View {
                 .padding(.bottom, 12)
             }
         }
-        .navigationTitle("Select Profile")
+        .navigationTitle("auth.profile.title")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadUsers() }
         .refreshable { await viewModel.loadUsers() }
         .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
             NavigationStack {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Enter PIN")
+                    Text("auth.profile.pin.title")
                         .font(.headline)
 
-                    Text("Enter the 4-digit PIN for \(user.title).")
+                    Text("auth.profile.pin.prompt \(user.title)")
                         .foregroundStyle(.secondary)
 
-                    TextField("PIN", text: $pinInput)
+                    TextField("auth.profile.pin.placeholder", text: $pinInput)
                         .keyboardType(.numberPad)
                         .textContentType(.oneTimeCode)
                         .focused($isPinFieldFocused)
@@ -61,14 +61,14 @@ struct ProfileSwitcherView: View {
                         }
                         resetPinPrompt()
                     } label: {
-                        Text("Switch Profile")
+                        Text("common.actions.switchProfile")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.brandPrimary)
                     .disabled(pinInput.count < 4)
 
-                    Button("Cancel", role: .cancel) {
+                    Button("common.actions.cancel", role: .cancel) {
                         resetPinPrompt()
                     }
                     .frame(maxWidth: .infinity)
@@ -76,7 +76,7 @@ struct ProfileSwitcherView: View {
                     Spacer()
                 }
                 .padding()
-                .navigationTitle("PIN Required")
+                .navigationTitle("auth.profile.pin.required")
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     isPinFieldFocused = true
@@ -90,10 +90,10 @@ struct ProfileSwitcherView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            Text("Who's watching?")
+            Text("auth.profile.header.title")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)
-            Text("Choose a profile to continue")
+            Text("auth.profile.header.subtitle")
                 .foregroundStyle(.white.opacity(0.7))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,13 +116,13 @@ struct ProfileSwitcherView: View {
             HStack(spacing: 12) {
                 ProgressView()
                     .tint(.white)
-                Text("Loading profiles...")
+                Text("auth.profile.loading")
                     .foregroundStyle(.white.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         } else {
-            Text("No profiles available.")
+            Text("auth.profile.empty")
                 .foregroundStyle(.white.opacity(0.7))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -224,7 +224,7 @@ struct ProfileSwitcherView: View {
             Button {
                 Task { await viewModel.loadUsers() }
             } label: {
-                Text("Retry")
+                Text("common.actions.retry")
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)

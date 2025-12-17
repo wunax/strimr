@@ -13,11 +13,11 @@ enum SearchFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .movies:
-            return "Movies"
+            return String(localized: "search.filter.movies")
         case .shows:
-            return "TV Shows"
+            return String(localized: "search.filter.shows")
         case .episodes:
-            return "Episodes"
+            return String(localized: "search.filter.episodes")
         }
     }
 
@@ -128,7 +128,7 @@ final class SearchViewModel {
 
     private func performSearch() async {
         guard let repository = try? SearchRepository(context: context) else {
-            resetState(error: "Select a server to search your library.")
+            resetState(error: String(localized: "errors.selectServer.searchLibrary"))
             return
         }
 

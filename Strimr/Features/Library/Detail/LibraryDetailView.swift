@@ -9,7 +9,7 @@ struct LibraryDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Library tab", selection: $selectedTab) {
+            Picker("library.detail.tabPicker", selection: $selectedTab) {
                 ForEach(LibraryDetailTab.allCases) { tab in
                     Text(tab.title).tag(tab)
                 }
@@ -53,12 +53,12 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
         rawValue
     }
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .recommended:
-            return "Recommended"
+            return "library.detail.tab.recommended"
         case .browse:
-            return "Browse"
+            return "library.detail.tab.browse"
         }
     }
 }

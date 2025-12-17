@@ -33,12 +33,12 @@ struct LibraryBrowseView: View {
         }
         .overlay {
             if viewModel.isLoading && viewModel.items.isEmpty {
-                ProgressView("Loading library")
+                ProgressView("library.browse.loading")
             } else if let errorMessage = viewModel.errorMessage, viewModel.items.isEmpty {
-                ContentUnavailableView(errorMessage, systemImage: "exclamationmark.triangle.fill", description: Text("Try again later."))
+                ContentUnavailableView(errorMessage, systemImage: "exclamationmark.triangle.fill", description: Text("common.errors.tryAgainLater"))
                     .symbolRenderingMode(.multicolor)
             } else if viewModel.items.isEmpty {
-                ContentUnavailableView("No items", systemImage: "square.grid.2x2.fill", description: Text("Nothing to browse yet."))
+                ContentUnavailableView("library.browse.empty.title", systemImage: "square.grid.2x2.fill", description: Text("library.browse.empty.description"))
             }
         }
         .task {

@@ -20,7 +20,7 @@ struct LibraryRecommendedView: View {
                 }
 
                 if viewModel.isLoading && !viewModel.hasContent {
-                    ProgressView("Loading recommendations")
+                    ProgressView("library.recommended.loading")
                         .frame(maxWidth: .infinity)
                 }
 
@@ -28,7 +28,7 @@ struct LibraryRecommendedView: View {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                 } else if !viewModel.hasContent && !viewModel.isLoading {
-                    Text("Nothing to show yet.")
+                    Text("common.empty.nothingToShow")
                         .foregroundStyle(.secondary)
                 }
             }

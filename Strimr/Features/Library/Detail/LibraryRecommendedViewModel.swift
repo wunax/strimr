@@ -27,11 +27,11 @@ final class LibraryRecommendedViewModel {
 
     private func fetchHubs() async {
         guard let sectionId = library.sectionId else {
-            resetState(error: "Missing library identifier.")
+            resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
         guard let hubRepository = try? HubRepository(context: context) else {
-            resetState(error: "Select a server to load recommendations.")
+            resetState(error: String(localized: "errors.selectServer.loadRecommendations"))
             return
         }
 

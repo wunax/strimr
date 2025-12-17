@@ -41,12 +41,12 @@ struct SeasonEpisodesSection: View {
         } else if (viewModel.isLoadingSeasons || viewModel.isLoading) && viewModel.seasons.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
-                Text("Loading seasons…")
+                Text("media.detail.loadingSeasons")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         } else if viewModel.seasons.isEmpty {
-            Text("No seasons available.")
+            Text("media.detail.noSeasons")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
@@ -87,7 +87,7 @@ struct SeasonEpisodesSection: View {
             .padding(.vertical, 4)
         }
 #else
-        Picker("Season", selection: Binding(
+        Picker("media.detail.season", selection: Binding(
             get: { viewModel.selectedSeasonId ?? viewModel.seasons.first?.id ?? "" },
             set: { seasonId in
                 guard !seasonId.isEmpty else { return }
@@ -142,11 +142,11 @@ struct SeasonEpisodesSection: View {
                 .foregroundStyle(.red)
                 .padding(.vertical, 8)
         } else if (viewModel.isLoadingSeasons || viewModel.isLoading) && viewModel.seasons.isEmpty {
-            ProgressView("Loading seasons…")
+            ProgressView("media.detail.loadingSeasons")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         } else if viewModel.seasons.isEmpty {
-            Text("No seasons available yet.")
+            Text("media.detail.noSeasonsYet")
                 .foregroundStyle(.secondary)
                 .padding(.vertical, 8)
         } else {
@@ -157,11 +157,11 @@ struct SeasonEpisodesSection: View {
                 }
 
                 if viewModel.isLoadingEpisodes && viewModel.episodes.isEmpty {
-                    ProgressView("Loading episodes…")
+                    ProgressView("media.detail.loadingEpisodes")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                 } else if viewModel.episodes.isEmpty {
-                    Text("No episodes for this season.")
+                    Text("media.detail.noEpisodes")
                         .foregroundStyle(.secondary)
                 } else {
                     episodeList

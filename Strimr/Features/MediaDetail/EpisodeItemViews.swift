@@ -26,7 +26,7 @@ struct EpisodeCardView: View {
 
             HStack(alignment: .center, spacing: 8) {
                 if let index = episode.index {
-                    Text("Episode \(index)")
+                    Text("media.detail.episodeNumber \(index)")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

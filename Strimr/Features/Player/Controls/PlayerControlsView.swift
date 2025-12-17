@@ -135,7 +135,7 @@ private struct PrimaryControls: View {
         HStack(spacing: 26) {
             PlayerIconButton(
                 systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
-                accessibilityLabel: "Rewind \(seekBackwardSeconds) seconds",
+                accessibilityLabel: String(localized: "player.controls.rewindSeconds \(seekBackwardSeconds)"),
                 action: onSeekBackward
             )
 
@@ -143,7 +143,7 @@ private struct PrimaryControls: View {
 
             PlayerIconButton(
                 systemName: iconName(prefix: "goforward", seconds: seekForwardSeconds),
-                accessibilityLabel: "Skip forward \(seekForwardSeconds) seconds",
+                accessibilityLabel: String(localized: "player.controls.skipForwardSeconds \(seekForwardSeconds)"),
                 action: onSeekForward
             )
         }

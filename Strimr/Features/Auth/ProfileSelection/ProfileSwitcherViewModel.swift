@@ -41,7 +41,7 @@ final class ProfileSwitcherViewModel {
             }
         } catch {
             users = []
-            errorMessage = "Unable to load profiles. Please try again."
+            errorMessage = String(localized: "auth.profile.error.loadFailed")
         }
     }
 
@@ -49,7 +49,7 @@ final class ProfileSwitcherViewModel {
         guard switchingUserUUID == nil else { return }
 
         if requiresPin(for: user) && (pin?.isEmpty ?? true) {
-            errorMessage = "Enter the PIN for this profile."
+            errorMessage = String(localized: "auth.profile.error.pinRequired")
             return
         }
 
@@ -61,7 +61,7 @@ final class ProfileSwitcherViewModel {
             let switchedUser = try await userRepository.switchUser(uuid: user.uuid, pin: pin)
             await sessionManager.switchProfile(to: switchedUser)
         } catch {
-            errorMessage = "Unable to switch profile. Check the PIN and try again."
+            errorMessage = String(localized: "auth.profile.error.switchFailed")
         }
     }
 

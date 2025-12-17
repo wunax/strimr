@@ -4,56 +4,519 @@
     "%lld" : {
 
     },
-    "%lld seconds" : {
-
+    "auth.profile.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No profiles available."
+          }
+        }
+      }
     },
-    "Add a Plex server or pull to refresh." : {
-
+    "auth.profile.error.loadFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to load profiles. Please try again."
+          }
+        }
+      }
     },
-    "Audio" : {
-
+    "auth.profile.error.pinRequired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the PIN for this profile."
+          }
+        }
+      }
     },
-    "Buffering" : {
-
+    "auth.profile.error.switchFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to switch profile. Check the PIN and try again."
+          }
+        }
+      }
     },
-    "Cancel" : {
-
+    "auth.profile.header.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a profile to continue"
+          }
+        }
+      }
     },
-    "Cast" : {
-
+    "auth.profile.header.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Who's watching?"
+          }
+        }
+      }
     },
-    "Choose a profile to continue" : {
-
+    "auth.profile.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading profiles..."
+          }
+        }
+      }
     },
-    "Done" : {
-
+    "auth.profile.pin.placeholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN"
+          }
+        }
+      }
     },
-    "Enter PIN" : {
-
+    "auth.profile.pin.prompt %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the 4-digit PIN for %@."
+          }
+        }
+      }
     },
-    "Enter the 4-digit PIN for %@." : {
-
+    "auth.profile.pin.required" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN Required"
+          }
+        }
+      }
     },
-    "Episode %lld" : {
-
+    "auth.profile.pin.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter PIN"
+          }
+        }
+      }
     },
-    "Fast forward" : {
-
+    "auth.profile.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Profile"
+          }
+        }
+      }
     },
-    "Find movies, shows, and episodes across your Plex libraries." : {
-
+    "common.actions.cancel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        }
+      }
     },
-    "Genres" : {
-
+    "common.actions.done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
     },
-    "Home" : {
-
+    "common.actions.logOut" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter"
+          }
+        }
+      }
     },
-    "Libraries" : {
-
+    "common.actions.pause" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
     },
-    "Library tab" : {
-
+    "common.actions.play" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        }
+      }
+    },
+    "common.actions.readMore" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read more"
+          }
+        }
+      }
+    },
+    "common.actions.resume" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        }
+      }
+    },
+    "common.actions.retry" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        }
+      }
+    },
+    "common.actions.showLess" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show less"
+          }
+        }
+      }
+    },
+    "common.actions.switchProfile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch Profile"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer de profil"
+          }
+        }
+      }
+    },
+    "common.actions.switchServer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch Server"
+          }
+        }
+      }
+    },
+    "common.empty.nothingToShow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to show yet."
+          }
+        }
+      }
+    },
+    "common.errors.tryAgainLater" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again later."
+          }
+        }
+      }
+    },
+    "errors.missingLibraryIdentifier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing library identifier."
+          }
+        }
+      }
+    },
+    "errors.selectServer.browseLibrary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to browse."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadContent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load content."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadDetails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load details."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadEpisodes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load episodes."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadLibraries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load libraries."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadRecommendations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load recommendations."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadRelatedContent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load related content."
+          }
+        }
+      }
+    },
+    "errors.selectServer.loadSeasons" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to load seasons."
+          }
+        }
+      }
+    },
+    "errors.selectServer.playMedia" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to play media."
+          }
+        }
+      }
+    },
+    "errors.selectServer.searchLibrary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to search your library."
+          }
+        }
+      }
+    },
+    "errors.selectServer.updateWatchStatus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to update watch status."
+          }
+        }
+      }
+    },
+    "home.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading home"
+          }
+        }
+      }
+    },
+    "library.browse.empty.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to browse yet."
+          }
+        }
+      }
+    },
+    "library.browse.empty.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No items"
+          }
+        }
+      }
+    },
+    "library.browse.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading library"
+          }
+        }
+      }
+    },
+    "library.detail.tab.browse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse"
+          }
+        }
+      }
+    },
+    "library.detail.tab.recommended" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended"
+          }
+        }
+      }
+    },
+    "library.detail.tabPicker" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library tab"
+          }
+        }
+      }
+    },
+    "library.empty.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a Plex server or pull to refresh."
+          }
+        }
+      }
+    },
+    "library.empty.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No libraries yet"
+          }
+        }
+      }
+    },
+    "library.error.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try refreshing to load your Plex libraries."
+          }
+        }
+      }
+    },
+    "library.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading libraries"
+          }
+        }
+      }
+    },
+    "library.recommended.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading recommendations"
+          }
+        }
+      }
     },
     "loading" : {
       "localizations" : {
@@ -71,45 +534,222 @@
         }
       }
     },
-    "Loading cast…" : {
-
-    },
-    "Loading episodes…" : {
-
-    },
-    "Loading home" : {
-
-    },
-    "Loading libraries" : {
-
-    },
-    "Loading library" : {
-
-    },
-    "Loading profiles..." : {
-
-    },
-    "Loading recommendations" : {
-
-    },
-    "Loading related content…" : {
-
-    },
-    "Loading seasons…" : {
-
-    },
-    "Log Out" : {
+    "media.detail.cast.empty" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log Out"
+            "value" : "No cast information available."
           }
-        },
-        "fr" : {
+        }
+      }
+    },
+    "media.detail.cast.loading" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se déconnecter"
+            "value" : "Loading cast…"
+          }
+        }
+      }
+    },
+    "media.detail.cast.noPhoto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No photo"
+          }
+        }
+      }
+    },
+    "media.detail.cast.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cast"
+          }
+        }
+      }
+    },
+    "media.detail.duration.hoursMinutes %lld %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldh %lldm"
+          }
+        }
+      }
+    },
+    "media.detail.duration.minutes %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldm"
+          }
+        }
+      }
+    },
+    "media.detail.episodeNumber %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %lld"
+          }
+        }
+      }
+    },
+    "media.detail.genres" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genres"
+          }
+        }
+      }
+    },
+    "media.detail.loadingEpisodes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading episodes…"
+          }
+        }
+      }
+    },
+    "media.detail.loadingRelated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading related content…"
+          }
+        }
+      }
+    },
+    "media.detail.loadingSeasons" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading seasons…"
+          }
+        }
+      }
+    },
+    "media.detail.noEpisodes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No episodes for this season."
+          }
+        }
+      }
+    },
+    "media.detail.noRelated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No related content found."
+          }
+        }
+      }
+    },
+    "media.detail.noSeasons" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No seasons available."
+          }
+        }
+      }
+    },
+    "media.detail.noSeasonsYet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No seasons available yet."
+          }
+        }
+      }
+    },
+    "media.detail.season" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Season"
+          }
+        }
+      }
+    },
+    "media.detail.seasonEpisode %lld %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S%1$lld - E%2$lld"
+          }
+        }
+      }
+    },
+    "media.detail.studio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio"
+          }
+        }
+      }
+    },
+    "media.detail.timeLeft %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left"
+          }
+        }
+      }
+    },
+    "media.detail.updating" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updating details"
+          }
+        }
+      }
+    },
+    "media.detail.watchAction.markUnwatched" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as unwatched"
+          }
+        }
+      }
+    },
+    "media.detail.watchAction.markWatched" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as watched"
           }
         }
       }
@@ -210,108 +850,295 @@
         }
       }
     },
-    "More" : {
+    "media.placeholder.noArtwork" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "More"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plus"
+            "value" : "No artwork"
           }
         }
       }
     },
-    "No artwork" : {
-
+    "more.logout.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will need to sign in again."
+          }
+        }
+      }
     },
-    "No audio tracks available" : {
-
+    "player.badge.hdr" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR"
+          }
+        }
+      }
     },
-    "No cast information available." : {
-
+    "player.controls.rewindSeconds %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewind %lld seconds"
+          }
+        }
+      }
     },
-    "No episodes for this season." : {
-
+    "player.controls.skipForwardSeconds %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip forward %lld seconds"
+          }
+        }
+      }
     },
-    "No items" : {
-
+    "player.settings.audio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        }
+      }
     },
-    "No libraries yet" : {
-
+    "player.settings.audio.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No audio tracks available"
+          }
+        }
+      }
     },
-    "No matches" : {
-
+    "player.settings.subtitles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles"
+          }
+        }
+      }
     },
-    "No photo" : {
-
+    "player.settings.subtitles.off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        }
+      }
     },
-    "No profiles available." : {
-
+    "player.settings.subtitles.offDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable subtitles"
+          }
+        }
+      }
     },
-    "No related content found." : {
-
+    "player.skip.credits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip credits"
+          }
+        }
+      }
     },
-    "No seasons available yet." : {
-
+    "player.skip.intro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip intro"
+          }
+        }
+      }
     },
-    "No seasons available." : {
-
+    "player.status.buffering" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffering"
+          }
+        }
+      }
     },
-    "Nothing to browse yet." : {
-
+    "search.badge.episode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPISODE"
+          }
+        }
+      }
     },
-    "Nothing to show yet." : {
-
+    "search.badge.movie" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MOVIE"
+          }
+        }
+      }
     },
-    "Pause" : {
-
+    "search.badge.season" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SEASON"
+          }
+        }
+      }
     },
-    "PIN" : {
-
+    "search.badge.show" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SHOW"
+          }
+        }
+      }
     },
-    "PIN Required" : {
-
+    "search.empty.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find movies, shows, and episodes across your Plex libraries."
+          }
+        }
+      }
     },
-    "Play" : {
-
+    "search.empty.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search your library"
+          }
+        }
+      }
     },
-    "Play next episode automatically" : {
-
+    "search.fallback.episode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode"
+          }
+        }
+      }
     },
-    "Playback" : {
-
+    "search.fallback.movie" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movie"
+          }
+        }
+      }
     },
-    "Read more" : {
-
+    "search.fallback.show" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV Show"
+          }
+        }
+      }
     },
-    "Retry" : {
-
+    "search.filter.episodes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes"
+          }
+        }
+      }
     },
-    "Rewind" : {
-
+    "search.filter.movies" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movies"
+          }
+        }
+      }
     },
-    "Search" : {
-
+    "search.filter.shows" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV Shows"
+          }
+        }
+      }
     },
-    "Search movies, shows, episodes" : {
-
+    "search.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching…"
+          }
+        }
+      }
     },
-    "Search your library" : {
-
+    "search.noResults.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different query or adjust the filters."
+          }
+        }
+      }
     },
-    "Searching…" : {
-
+    "search.noResults.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches"
+          }
+        }
+      }
     },
-    "Season" : {
-
-    },
-    "Select Profile" : {
-
+    "search.prompt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search movies, shows, episodes"
+          }
+        }
+      }
     },
     "serverSelection.connection.localFormat %@" : {
       "extractionState" : "manual",
@@ -466,7 +1293,57 @@
         }
       }
     },
-    "Settings" : {
+    "settings.playback.autoPlayNext" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play next episode automatically"
+          }
+        }
+      }
+    },
+    "settings.playback.fastForward" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast forward"
+          }
+        }
+      }
+    },
+    "settings.playback.rewind" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewind"
+          }
+        }
+      }
+    },
+    "settings.playback.seconds %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld seconds"
+          }
+        }
+      }
+    },
+    "settings.playback.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback"
+          }
+        }
+      }
+    },
+    "settings.title" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -481,9 +1358,6 @@
           }
         }
       }
-    },
-    "Show less" : {
-
     },
     "signIn.button.cancel" : {
       "extractionState" : "manual",
@@ -549,23 +1423,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En attente de Plex…"
-          }
-        }
-      }
-    },
-    "signIn.error.notReady" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plex is not ready. Try again."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plex n'est pas prêt. Réessayez."
           }
         }
       }
@@ -655,28 +1512,6 @@
         }
       }
     },
-    "Subtitles" : {
-
-    },
-    "Switch Profile" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Switch Profile"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer de profil"
-          }
-        }
-      }
-    },
-    "Switch Server" : {
-
-    },
     "tabs.home" : {
       "localizations" : {
         "en" : {
@@ -740,24 +1575,6 @@
           }
         }
       }
-    },
-    "Try a different query or adjust the filters." : {
-
-    },
-    "Try again later." : {
-
-    },
-    "Try refreshing to load your Plex libraries." : {
-
-    },
-    "Updating details" : {
-
-    },
-    "Who's watching?" : {
-
-    },
-    "You will need to sign in again." : {
-
     }
   },
   "version" : "1.1"

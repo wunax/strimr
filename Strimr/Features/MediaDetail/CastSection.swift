@@ -11,7 +11,7 @@ struct CastSection: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
-                        Text("Cast")
+                        Text("media.detail.cast.title")
                             .font(.headline)
                             .fontWeight(.semibold)
 
@@ -34,7 +34,7 @@ struct CastSection: View {
     @ViewBuilder
     private var castContent: some View {
         if viewModel.cast.isEmpty {
-            Text(viewModel.isLoading ? "Loading cast…" : "No cast information available.")
+            Text(viewModel.isLoading ? "media.detail.cast.loading" : "media.detail.cast.empty")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
@@ -121,7 +121,7 @@ struct CastCard: View {
             Image(systemName: "person.fill")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            Text("No photo")
+            Text("media.detail.cast.noPhoto")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -22,7 +22,7 @@ final class LibraryViewModel {
 
     private func fetchLibraries() async {
         guard let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: "Select a server to load libraries.")
+            resetState(error: String(localized: "errors.selectServer.loadLibraries"))
             return
         }
 

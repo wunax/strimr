@@ -59,7 +59,10 @@ struct PlayPauseButton: View {
                 )
                 .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 14)
         }
-        .accessibilityLabel(isPaused ? "Play" : "Pause")
+        .accessibilityLabel(isPaused
+            ? String(localized: "common.actions.play")
+            : String(localized: "common.actions.pause")
+        )
     }
 }
 

@@ -35,7 +35,7 @@ struct MediaImageView: View {
             Image(systemName: "film")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            Text("No artwork")
+            Text("media.placeholder.noArtwork")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

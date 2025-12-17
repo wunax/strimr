@@ -44,7 +44,7 @@ final class PlayerViewModel {
 
     func load() async {
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            errorMessage = "Select a server to play media."
+            errorMessage = String(localized: "errors.selectServer.playMedia")
             return
         }
 
