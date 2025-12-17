@@ -3,15 +3,13 @@ import SwiftUI
 import UIKit
 
 struct SignInTVView: View {
-    @Environment(SessionManager.self) private var sessionManager
-    @Environment(PlexAPIContext.self) private var plexContext
-
-    @State private var isAuthenticating = false
-    @State private var errorMessage: String?
-    @State private var pin: PlexCloudPin?
-    @State private var pollTask: Task<Void, Never>?
+    @State private var viewModel: SignInTVViewModel
 
     private let ciContext = CIContext()
+
+    init(viewModel: SignInTVViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 32) {
@@ -28,13 +26,13 @@ struct SignInTVView: View {
                     .font(.title3)
             }
 
-            if let errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
             }
 
             Group {
-                if let pin {
+                if let pin = viewModel.pin {
                     VStack(spacing: 20) {
                         if let url = plexAuthURL(pin: pin),
                            let qrImage = qrImage(from: url.absoluteString)
@@ -53,7 +51,7 @@ struct SignInTVView: View {
                             .font(.title2.monospacedDigit())
                             .fontWeight(.bold)
                     }
-                } else if isAuthenticating {
+                } else if viewModel.isAuthenticating {
                     ProgressView("signIn.button.waiting")
                         .progressViewStyle(.circular)
                 }
@@ -62,8 +60,8 @@ struct SignInTVView: View {
             Spacer()
         }
         .padding(48)
-        .onAppear { Task { await startSignIn() } }
-        .onDisappear { cancelSignIn() }
+        .onAppear { Task { await viewModel.startSignIn() } }
+        .onDisappear { viewModel.cancelSignIn() }
     }
 }
 
@@ -91,58 +89,4 @@ extension SignInTVView {
 
         return URL(string: base + fragment)
     }
-
-    @MainActor
-    private func startSignIn() async {
-        resetSignInState()
-        errorMessage = nil
-        isAuthenticating = true
-
-        do {
-            let authRepository = AuthRepository(context: plexContext)
-            let pinResponse = try await authRepository.requestPin()
-            pin = pinResponse
-            beginPolling(pinID: pinResponse.id)
-        } catch {
-            errorMessage = String(localized: "signIn.error.startFailed", bundle: .main)
-            isAuthenticating = false
-        }
-    }
-
-    @MainActor
-    private func beginPolling(pinID: Int) {
-        pollTask?.cancel()
-
-        pollTask = Task {
-            while !Task.isCancelled && isAuthenticating {
-                do {
-                    let authRepository = AuthRepository(context: plexContext)
-                    let result = try await authRepository.pollToken(pinId: pinID)
-                    if let token = result.authToken {
-                        await sessionManager.signIn(with: token)
-                        cancelSignIn()
-                        return
-                    }
-                } catch {
-                    // ignore and keep polling
-                }
-
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-            }
-        }
-    }
-
-    @MainActor
-    private func cancelSignIn() {
-        isAuthenticating = false
-        resetSignInState()
-    }
-
-    @MainActor
-    private func resetSignInState() {
-        pollTask?.cancel()
-        pollTask = nil
-        pin = nil
-    }
 }
-

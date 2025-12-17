@@ -14,11 +14,12 @@ struct ContentView: View {
                     .progressViewStyle(.circular)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .signedOut:
-                #if os(tvOS)
-                    SignInTVView()
-                #else
-                    SignInView()
-                #endif
+                SignInView(
+                    viewModel: SignInViewModel(
+                        sessionManager: sessionManager,
+                        context: plexApiContext
+                    )
+                )
             case .needsProfileSelection:
                 NavigationStack {
                     ProfileSwitcherView(
