@@ -15,7 +15,7 @@ struct MediaHubSection<Content: View>: View {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(Color.brandPrimary)
                     .frame(width: 3, height: 18)
-                Text(title.uppercased())
+                Text(title)
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.brandSecondary)
