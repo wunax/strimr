@@ -26,12 +26,13 @@ struct LibraryDetailView: View {
                 MediaHeroBackgroundView(media: heroMedia)
             }
 
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 36) {
                 sidebarView
                     .focusSection()
                 contentView
                     .focusSection()
             }
+            .ignoresSafeArea(edges: [.leading])
         }
     }
 
@@ -66,7 +67,8 @@ struct LibraryDetailView: View {
                 sidebarButton(for: tab)
             }
         }
-        .frame(width: sidebarWidth)
+        .frame(maxWidth: sidebarWidth, maxHeight: .infinity)
+        .padding(.leading, 36)
         .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
     }
 
