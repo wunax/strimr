@@ -14,9 +14,8 @@ struct MainTabTVView: View {
             .tabItem { Label("tabs.home", systemImage: "house.fill") }
 
             NavigationStack {
-                TVSectionPlaceholder(
-                    title: "tabs.search",
-                    subtitle: "Search will arrive in a future build."
+                SearchTVView(
+                    viewModel: SearchViewModel(context: plexApiContext)
                 )
             }
             .tabItem { Label("tabs.search", systemImage: "magnifyingglass") }
