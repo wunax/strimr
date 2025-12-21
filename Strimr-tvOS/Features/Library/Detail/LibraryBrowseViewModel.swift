@@ -12,15 +12,16 @@ final class LibraryBrowseViewModel {
     }
 
     let library: Library
-    var items: [MediaItem] = []
+    var itemsByIndex: [Int: MediaItem] = [:]
+    var totalItemCount = 0
     var sectionCharacters: [SectionCharacter] = []
     var isLoading = false
-    var isLoadingMore = false
     var errorMessage: String?
-    private var reachedEnd = false
+    private var loadedPageStarts: Set<Int> = []
+    private var loadingPageStarts: Set<Int> = []
 
     @ObservationIgnored private let context: PlexAPIContext
-    private let pageSize = 24
+    private let pageSize = 40
 
     init(library: Library, context: PlexAPIContext) {
         self.library = library
@@ -28,20 +29,31 @@ final class LibraryBrowseViewModel {
     }
 
     func load() async {
-        guard items.isEmpty else { return }
-        await fetch(reset: true)
+        guard itemsByIndex.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
         await fetchCharactersIfNeeded()
+        await loadPage(start: 0)
     }
 
-    func loadMore() async {
-        guard !isLoading, !isLoadingMore, !reachedEnd else { return }
-        await fetch(reset: false)
-    }
-
-    func jump(to character: SectionCharacter) async -> MediaItem? {
-        await ensureLoaded(upTo: character.startIndex)
-        guard items.indices.contains(character.startIndex) else { return nil }
-        return items[character.startIndex]
+    func loadPagesAround(index: Int) async {
+        guard index >= 0 else { return }
+        let pageStart = max(0, (index / pageSize) * pageSize)
+        if itemsByIndex[index] == nil,
+           loadedPageStarts.contains(pageStart),
+           !loadingPageStarts.contains(pageStart) {
+            loadedPageStarts.remove(pageStart)
+        }
+        let pageStarts = [
+            pageStart - (pageSize * 2),
+            pageStart - pageSize,
+            pageStart,
+            pageStart + pageSize,
+            pageStart + (pageSize * 2),
+        ]
+        for start in pageStarts where start >= 0 && (totalItemCount == 0 || start < totalItemCount) {
+            await loadPage(start: start)
+        }
     }
 
     private func fetchCharactersIfNeeded() async {
@@ -72,24 +84,16 @@ final class LibraryBrowseViewModel {
             }
 
             sectionCharacters = characters
+            totalItemCount = max(totalItemCount, runningIndex)
         } catch {
-            if items.isEmpty {
+            if itemsByIndex.isEmpty {
                 errorMessage = error.localizedDescription
             }
         }
     }
 
-    private func ensureLoaded(upTo index: Int) async {
-        guard index >= 0 else { return }
-        while items.count <= index && !reachedEnd {
-            await fetch(reset: false)
-            if errorMessage != nil {
-                break
-            }
-        }
-    }
-
-    private func fetch(reset: Bool) async {
+    private func loadPage(start: Int) async {
+        guard !loadedPageStarts.contains(start), !loadingPageStarts.contains(start) else { return }
         guard let sectionId = library.sectionId else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
@@ -99,19 +103,13 @@ final class LibraryBrowseViewModel {
             return
         }
 
-        if reset {
-            isLoading = true
-        } else {
-            isLoadingMore = true
-        }
         errorMessage = nil
+        loadingPageStarts.insert(start)
         defer {
-            isLoading = false
-            isLoadingMore = false
+            loadingPageStarts.remove(start)
         }
 
         do {
-            let start = reset ? 0 : items.count
             let response = try await sectionRepository.getSectionsItems(
                 sectionId: sectionId,
                 pagination: PlexPagination(start: start, size: pageSize)
@@ -120,28 +118,23 @@ final class LibraryBrowseViewModel {
             let newItems = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
             let total = response.mediaContainer.totalSize ?? (start + newItems.count)
 
-            if reset {
-                items = newItems
-            } else {
-                items.append(contentsOf: newItems)
+            for (offset, item) in newItems.enumerated() {
+                itemsByIndex[start + offset] = item
             }
-
-            reachedEnd = items.count >= total || newItems.isEmpty
+            loadedPageStarts.insert(start)
+            totalItemCount = max(totalItemCount, total)
         } catch {
-            if reset {
-                resetState(error: error.localizedDescription)
-            } else {
-                errorMessage = error.localizedDescription
-            }
+            errorMessage = error.localizedDescription
         }
     }
 
     private func resetState(error: String? = nil) {
-        items = []
+        itemsByIndex = [:]
+        totalItemCount = 0
         sectionCharacters = []
         errorMessage = error
         isLoading = false
-        isLoadingMore = false
-        reachedEnd = false
+        loadedPageStarts = []
+        loadingPageStarts = []
     }
 }

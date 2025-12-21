@@ -23,22 +23,23 @@ struct LibraryBrowseView: View {
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
                     LazyVGrid(columns: gridColumns, spacing: 32) {
-                        ForEach(viewModel.items) { media in
-                            PortraitMediaCard(media: media) {
-                                onSelectMedia(media)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 300)
-                            .id(media.id)
-                            .task {
-                                if media == viewModel.items.last {
-                                    await viewModel.loadMore()
+                        ForEach(0..<viewModel.totalItemCount, id: \.self) { index in
+                            Group {
+                                if let media = viewModel.itemsByIndex[index] {
+                                    PortraitMediaCard(media: media) {
+                                        onSelectMedia(media)
+                                    }
+                                } else {
+                                    ProgressView()
                                 }
                             }
-                        }
-
-                        if viewModel.isLoadingMore {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: 300)
+                            .id(index)
+                            .onAppear {
+                                Task {
+                                    await viewModel.loadPagesAround(index: index)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, 48)
@@ -50,16 +51,16 @@ struct LibraryBrowseView: View {
                 characterColumn(proxy: proxy)
             }
             .overlay {
-                if viewModel.isLoading && viewModel.items.isEmpty {
+                if viewModel.isLoading && viewModel.itemsByIndex.isEmpty {
                     ProgressView("library.browse.loading")
-                } else if let errorMessage = viewModel.errorMessage, viewModel.items.isEmpty {
+                } else if let errorMessage = viewModel.errorMessage, viewModel.itemsByIndex.isEmpty {
                     ContentUnavailableView(
                         errorMessage,
                         systemImage: "exclamationmark.triangle.fill",
                         description: Text("common.errors.tryAgainLater")
                     )
                     .symbolRenderingMode(.multicolor)
-                } else if viewModel.items.isEmpty {
+                } else if viewModel.totalItemCount == 0 && !viewModel.isLoading {
                     ContentUnavailableView(
                         "library.browse.empty.title",
                         systemImage: "square.grid.2x2.fill",
@@ -91,10 +92,9 @@ struct LibraryBrowseView: View {
         let isFocused = focusedCharacterId == character.id
         return Button {
             Task {
-                if let target = await viewModel.jump(to: character) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(target.id, anchor: .top)
-                    }
+                await viewModel.loadPagesAround(index: character.startIndex)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    proxy.scrollTo(character.startIndex, anchor: .top)
                 }
             }
         } label: {
