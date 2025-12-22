@@ -41,7 +41,8 @@ final class LibraryBrowseViewModel {
         let pageStart = max(0, (index / pageSize) * pageSize)
         if itemsByIndex[index] == nil,
            loadedPageStarts.contains(pageStart),
-           !loadingPageStarts.contains(pageStart) {
+           !loadingPageStarts.contains(pageStart)
+        {
             loadedPageStarts.remove(pageStart)
         }
         let pageStarts = [

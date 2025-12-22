@@ -65,7 +65,7 @@ struct MainTabTVView: View {
     private var moreView: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("tabs.more")
@@ -73,7 +73,7 @@ struct MainTabTVView: View {
                     Text("Manage your session while we finish the tvOS experience.")
                         .foregroundStyle(.secondary)
                         .padding(.bottom, 8)
-                    
+
                     Button {
                         Task { await sessionManager.requestProfileSelection() }
                     } label: {
@@ -82,7 +82,7 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-                    
+
                     Button {
                         Task { await sessionManager.requestServerSelection() }
                     } label: {
@@ -91,7 +91,7 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-                    
+
                     Button {
                         Task { await sessionManager.signOut() }
                     } label: {
@@ -100,7 +100,7 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-                    
+
                     Spacer()
                 }
                 .padding(48)

@@ -45,9 +45,9 @@ final class HubRepository {
             queryItems.append(URLQueryItem(name: "count", value: "20"))
         }
         #if !os(tvOS)
-        if resolved.excludeFields == nil {
-            queryItems.append(URLQueryItem(name: "excludeFields", value: "summary"))
-        }
+            if resolved.excludeFields == nil {
+                queryItems.append(URLQueryItem(name: "excludeFields", value: "summary"))
+            }
         #endif
         if resolved.excludeContinueWatching == nil {
             queryItems.append(URLQueryItem(name: "excludeContinueWatching", value: "1"))
@@ -60,7 +60,7 @@ final class HubRepository {
             URLQueryItem(name: "count", value: "20"),
         ]
         #if !os(tvOS)
-        queryItems.append(URLQueryItem(name: "excludeFields", value: "summary"))
+            queryItems.append(URLQueryItem(name: "excludeFields", value: "summary"))
         #endif
         return try await network.request(path: "/hubs/sections/\(sectionId)", queryItems: queryItems)
     }

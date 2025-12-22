@@ -23,7 +23,7 @@ struct LibraryBrowseView: View {
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
                     LazyVGrid(columns: gridColumns, spacing: 32) {
-                        ForEach(0..<viewModel.totalItemCount, id: \.self) { index in
+                        ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {
                                     PortraitMediaCard(media: media, showsLabels: true) {
