@@ -3,49 +3,69 @@ import SwiftUI
 struct MainTabTVView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @StateObject private var coordinator = MainCoordinator()
 
     var body: some View {
-        TabView {
-            NavigationStack {
+        TabView(selection: $coordinator.tab) {
+            NavigationStack(path: coordinator.pathBinding(for: .home)) {
                 HomeTVView(
-                    viewModel: HomeViewModel(context: plexApiContext)
+                    viewModel: HomeViewModel(context: plexApiContext),
+                    onSelectMedia: coordinator.showMediaDetail
                 )
+                .navigationDestination(for: MainCoordinator.Route.self) { route in
+                    destination(for: route)
+                }
             }
             .tabItem { Label("tabs.home", systemImage: "house.fill") }
+            .tag(MainCoordinator.Tab.home)
 
-            NavigationStack {
+            NavigationStack(path: coordinator.pathBinding(for: .search)) {
                 SearchTVView(
-                    viewModel: SearchViewModel(context: plexApiContext)
+                    viewModel: SearchViewModel(context: plexApiContext),
+                    onSelectMedia: coordinator.showMediaDetail
                 )
+                .navigationDestination(for: MainCoordinator.Route.self) { route in
+                    destination(for: route)
+                }
             }
             .tabItem { Label("tabs.search", systemImage: "magnifyingglass") }
+            .tag(MainCoordinator.Tab.search)
 
-            NavigationStack {
+            NavigationStack(path: coordinator.pathBinding(for: .library)) {
                 ZStack {
                     Color("Background")
                         .ignoresSafeArea()
 
                     LibraryTVView(
-                        viewModel: LibraryViewModel(context: plexApiContext)
+                        viewModel: LibraryViewModel(context: plexApiContext),
+                        onSelectMedia: coordinator.showMediaDetail
                     )
                     .navigationDestination(for: Library.self) { library in
-                        LibraryDetailView(library: library)
+                        LibraryDetailView(
+                            library: library,
+                            onSelectMedia: coordinator.showMediaDetail
+                        )
+                    }
+                    .navigationDestination(for: MainCoordinator.Route.self) { route in
+                        destination(for: route)
                     }
                 }
             }
             .tabItem { Label("tabs.libraries", systemImage: "rectangle.stack.fill") }
+            .tag(MainCoordinator.Tab.library)
 
             NavigationStack {
                 moreView
             }
             .tabItem { Label("tabs.more", systemImage: "ellipsis.circle") }
+            .tag(MainCoordinator.Tab.more)
         }
     }
 
     private var moreView: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
-
+            
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("tabs.more")
@@ -53,7 +73,7 @@ struct MainTabTVView: View {
                     Text("Manage your session while we finish the tvOS experience.")
                         .foregroundStyle(.secondary)
                         .padding(.bottom, 8)
-
+                    
                     Button {
                         Task { await sessionManager.requestProfileSelection() }
                     } label: {
@@ -62,7 +82,7 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-
+                    
                     Button {
                         Task { await sessionManager.requestServerSelection() }
                     } label: {
@@ -71,7 +91,7 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-
+                    
                     Button {
                         Task { await sessionManager.signOut() }
                     } label: {
@@ -80,11 +100,22 @@ struct MainTabTVView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
-
+                    
                     Spacer()
                 }
                 .padding(48)
             }
+        }
+    }
+
+    @ViewBuilder
+    func destination(for route: MainCoordinator.Route) -> some View {
+        switch route {
+        case let .mediaDetail(media):
+            MediaDetailTVView(
+                viewModel: MediaDetailViewModel(media: media, context: plexApiContext),
+                onSelectMedia: coordinator.showMediaDetail
+            )
         }
     }
 }
