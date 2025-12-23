@@ -140,33 +140,3 @@ private struct PlayerControlsTVBackground: View {
         .allowsHitTesting(false)
     }
 }
-
-private struct PlayerSettingButton: View {
-    var systemImage: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                LinearGradient(
-                    colors: [
-                        .white.opacity(0.18),
-                        .white.opacity(0.08),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: Capsule(style: .continuous)
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}

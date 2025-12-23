@@ -56,7 +56,6 @@
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
 				Features/Player/Controls/PlayerBadge.swift,
-				Features/Player/Controls/PlayerControlButtons.swift,
 				Features/Player/Controls/PlayerTimelineView.swift,
 				Features/Player/PlaybackSettingsTrack.swift,
 				Features/Player/PlayerViewModel.swift,

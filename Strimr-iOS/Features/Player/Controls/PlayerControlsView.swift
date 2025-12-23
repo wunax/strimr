@@ -106,17 +106,7 @@ private struct PlayerControlsHeader: View {
 
             Spacer()
 
-            Button(action: onShowSettings) {
-                Image(systemName: "gearshape")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
+            PlayerSettingsButton(action: onShowSettings)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
