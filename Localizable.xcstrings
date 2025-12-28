@@ -1373,6 +1373,42 @@
         }
       }
     },
+    "settings.playback.player" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Player"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecteur"
+          }
+        }
+      }
+    },
+    "settings.playback.player.mpv" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MPV"
+          }
+        }
+      }
+    },
+    "settings.playback.player.vlc" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VLC"
+          }
+        }
+      }
+    },
     "settings.playback.rewind" : {
       "localizations" : {
         "en" : {

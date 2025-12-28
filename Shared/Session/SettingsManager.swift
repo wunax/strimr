@@ -39,6 +39,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setPlaybackPlayer(_ player: PlaybackPlayer) {
+        settings.playback.player = player
+        persist()
+    }
+
     func updatePlayback(_ transform: (inout PlaybackSettings) -> Void) {
         transform(&settings.playback)
         persist()

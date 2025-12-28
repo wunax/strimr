@@ -88,7 +88,7 @@ private struct MediaFlowTVView: View {
                 onSelectMedia: onSelectMedia
             )
             .navigationDestination(for: String.self) { ratingKey in
-                PlayerTVView(
+                PlayerTVWrapper(
                     viewModel: PlayerViewModel(ratingKey: ratingKey, context: context),
                     onExit: {
                         if !path.isEmpty {

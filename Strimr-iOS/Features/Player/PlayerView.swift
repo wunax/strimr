@@ -5,7 +5,8 @@ struct PlayerView: View {
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PlayerViewModel
-    @State private var coordinator = MPVPlayerView.Coordinator()
+    let activePlayer: PlaybackPlayer
+    @State private var playerCoordinator: any PlayerCoordinating
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
@@ -31,6 +32,12 @@ struct PlayerView: View {
         Double(settingsManager.playback.seekForwardSeconds)
     }
 
+    init(viewModel: PlayerViewModel, initialPlayer: PlaybackPlayer) {
+        _viewModel = State(initialValue: viewModel)
+        activePlayer = initialPlayer
+        _playerCoordinator = State(initialValue: PlayerFactory.makeCoordinator(for: initialPlayer))
+    }
+
     var body: some View {
         @Bindable var bindableViewModel = viewModel
         let activeMarker = bindableViewModel.activeSkipMarker
@@ -43,8 +50,10 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            MPVPlayerView(coordinator: coordinator)
-                .onPropertyChange { player, propertyName, data in
+            PlayerFactory.makeView(
+                selection: activePlayer,
+                coordinator: playerCoordinator,
+                onPropertyChange: { propertyName, data in
                     bindableViewModel.handlePropertyChange(
                         property: propertyName,
                         data: data,
@@ -54,20 +63,20 @@ struct PlayerView: View {
                     if propertyName == .videoParamsSigPeak {
                         let supportsHdr = (data as? Double ?? 1.0) > 1.0
                         supportsHDR = supportsHdr
-                        player.hdrEnabled = supportsHdr
                     }
-                }
-                .onPlaybackEnded {
+                },
+                onPlaybackEnded: {
                     handlePlaybackEnded()
                 }
-                .onAppear {
-                    showControls(temporarily: true)
-                }
-                .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    controlsVisible ? hideControls() : showControls(temporarily: true)
-                }
+            )
+            .onAppear {
+                showControls(temporarily: true)
+            }
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                controlsVisible ? hideControls() : showControls(temporarily: true)
+            }
 
             if bindableViewModel.isBuffering {
                 bufferingOverlay
@@ -111,7 +120,7 @@ struct PlayerView: View {
         .onDisappear {
             viewModel.handleStop()
             hideControlsWorkItem?.cancel()
-            coordinator.destruct()
+            playerCoordinator.destruct()
         }
         .task {
             await bindableViewModel.load()
@@ -123,7 +132,7 @@ struct PlayerView: View {
             selectedAudioTrackID = nil
             selectedSubtitleTrackID = nil
             appliedResumeOffset = false
-            coordinator.play(url)
+            playerCoordinator.play(url)
             showControls(temporarily: true)
             refreshTracks()
             applyResumeOffsetIfNeeded()
@@ -172,7 +181,7 @@ struct PlayerView: View {
     }
 
     private func togglePlayPause() {
-        coordinator.togglePlayback()
+        playerCoordinator.togglePlayback()
         showControls(temporarily: true)
     }
 
@@ -184,9 +193,9 @@ struct PlayerView: View {
 
     private func refreshTracks() {
         Task {
-            // Waits for MPV player to hydrate the tracks
+            // Waits for the player to hydrate the tracks
             try await Task.sleep(for: .milliseconds(150))
-            let tracks = coordinator.trackList()
+            let tracks = playerCoordinator.trackList()
 
             let audio = tracks.filter { $0.type == .audio }
             let subtitles = tracks.filter { $0.type == .subtitle }
@@ -228,7 +237,7 @@ struct PlayerView: View {
 
     private func selectAudioTrack(_ id: Int?) {
         selectedAudioTrackID = id
-        coordinator.selectAudioTrack(id: id)
+        playerCoordinator.selectAudioTrack(id: id)
 
         guard
             let id,
@@ -244,7 +253,7 @@ struct PlayerView: View {
 
     private func selectSubtitleTrack(_ id: Int?) {
         selectedSubtitleTrackID = id
-        coordinator.selectSubtitleTrack(id: id)
+        playerCoordinator.selectSubtitleTrack(id: id)
 
         guard
             let id,
@@ -259,7 +268,7 @@ struct PlayerView: View {
     }
 
     private func jump(by seconds: Double) {
-        coordinator.seek(by: seconds)
+        playerCoordinator.seek(by: seconds)
         showControls(temporarily: true)
     }
 
@@ -269,7 +278,7 @@ struct PlayerView: View {
 
         Task {
             try? await Task.sleep(for: .milliseconds(250))
-            coordinator.seek(to: offset)
+            playerCoordinator.seek(to: offset)
         }
     }
 
@@ -288,7 +297,7 @@ struct PlayerView: View {
                 controlsVisible = true
             }
         } else {
-            coordinator.seek(to: timelinePosition)
+            playerCoordinator.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
         }
@@ -332,7 +341,7 @@ struct PlayerView: View {
            let track = audioTracks.first(where: { $0.ffIndex == preferredAudioIndex })
         {
             selectedAudioTrackID = track.id
-            coordinator.selectAudioTrack(id: track.id)
+            playerCoordinator.selectAudioTrack(id: track.id)
             appliedPreferredAudio = true
         }
 
@@ -341,13 +350,13 @@ struct PlayerView: View {
            let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitleIndex })
         {
             selectedSubtitleTrackID = track.id
-            coordinator.selectSubtitleTrack(id: track.id)
+            playerCoordinator.selectSubtitleTrack(id: track.id)
             appliedPreferredSubtitle = true
         }
     }
 
     private func skipMarker(to marker: PlexMarker) {
-        coordinator.seek(to: marker.endTime)
+        playerCoordinator.seek(to: marker.endTime)
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
@@ -423,6 +432,6 @@ struct PlayerView: View {
 #Preview {
     let context = PlexAPIContext()
     let viewModel = PlayerViewModel(ratingKey: "demo", context: context)
-    return PlayerView(viewModel: viewModel)
+    return PlayerView(viewModel: viewModel, initialPlayer: .mpv)
         .environment(context)
 }

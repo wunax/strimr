@@ -86,6 +86,10 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         func propertyChange(mpv _: OpaquePointer, property: PlayerProperty, data: Any?) {
             guard let player else { return }
 
+            if property == .videoParamsSigPeak {
+                let supportsHdr = (data as? Double ?? 1.0) > 1.0
+                player.hdrEnabled = supportsHdr
+            }
             onPropertyChange?(player, property, data)
         }
 

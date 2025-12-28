@@ -26,6 +26,13 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.navigationLink)
+
+                Picker("settings.playback.player", selection: viewModel.playerBinding) {
+                    ForEach(viewModel.playerOptions) { player in
+                        Text(player.localizationKey).tag(player)
+                    }
+                }
+                .pickerStyle(.navigationLink)
             }
         }
         .navigationTitle("settings.title")

@@ -6,6 +6,7 @@ import SwiftUI
 final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
+    let playerOptions = PlaybackPlayer.allCases
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -29,6 +30,13 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.seekForwardSeconds },
             set: { self.settingsManager.setSeekForwardSeconds($0) }
+        )
+    }
+
+    var playerBinding: Binding<PlaybackPlayer> {
+        Binding(
+            get: { self.settingsManager.playback.player },
+            set: { self.settingsManager.setPlaybackPlayer($0) }
         )
     }
 }

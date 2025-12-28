@@ -24,6 +24,12 @@ struct SettingsView: View {
                         Text("settings.playback.seconds \(seconds)").tag(seconds)
                     }
                 }
+
+                Picker("settings.playback.player", selection: viewModel.playerBinding) {
+                    ForEach(viewModel.playerOptions) { player in
+                        Text(player.localizationKey).tag(player)
+                    }
+                }
             }
         }
         .listStyle(.insetGrouped)

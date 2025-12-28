@@ -11,7 +11,6 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
     private let mediaPlayer = VLCMediaPlayer()
     var playDelegate: VLCPlayerDelegate?
     var playUrl: URL?
-    var hdrEnabled: Bool = false
 
     deinit {
         mediaPlayer.stop()

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PlayerWrapper: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let viewModel: PlayerViewModel
     @State private var landscapeReady = false
 
@@ -9,7 +10,7 @@ struct PlayerWrapper: View {
             Color.black.ignoresSafeArea()
 
             if landscapeReady {
-                PlayerView(viewModel: viewModel)
+                PlayerView(viewModel: viewModel, initialPlayer: settingsManager.playback.player)
                     .transition(.opacity)
             } else {
                 ProgressView()
