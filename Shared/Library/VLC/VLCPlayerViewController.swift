@@ -11,6 +11,7 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
     private let mediaPlayer = VLCMediaPlayer()
     var playDelegate: VLCPlayerDelegate?
     var playUrl: URL?
+    private var lastReportedTimeSeconds = -1.0
 
     deinit {
         mediaPlayer.stop()
@@ -112,6 +113,11 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
         let durationSeconds = Double(mediaPlayer.media?.length.intValue ?? 0) / 1000.0
 
         DispatchQueue.main.async {
+            // VLC can remain in `.buffering` even while playback advances; time ticks are the most reliable signal.
+            if timeSeconds != self.lastReportedTimeSeconds {
+                self.lastReportedTimeSeconds = timeSeconds
+                self.playDelegate?.propertyChange(player: self, property: .pausedForCache, data: false)
+            }
             self.playDelegate?.propertyChange(player: self, property: .timePos, data: timeSeconds)
             if durationSeconds > 0 {
                 self.playDelegate?.propertyChange(player: self, property: .duration, data: durationSeconds)

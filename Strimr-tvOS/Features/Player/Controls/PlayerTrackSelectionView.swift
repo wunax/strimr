@@ -43,7 +43,6 @@ struct PlayerTrackSelectionView: View {
                 }
             }
             .listStyle(.automatic)
-            .navigationTitle(titleKey)
         }
     }
 }
