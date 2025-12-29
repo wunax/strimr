@@ -46,7 +46,7 @@ struct MediaDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             await bindableViewModel.loadDetails()
         }

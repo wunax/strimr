@@ -54,6 +54,7 @@ struct MediaDetailTVView: View {
                 focusedMedia = newValue
             }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var playButton: some View {
