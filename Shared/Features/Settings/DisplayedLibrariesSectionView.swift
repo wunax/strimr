@@ -4,11 +4,11 @@ import SwiftUI
 struct DisplayedLibrariesSectionView: View {
     @State private var viewModel: DisplayedLibrariesViewModel
 
-    init(settingsManager: SettingsManager, plexApiContext: PlexAPIContext) {
+    init(settingsManager: SettingsManager, libraryStore: LibraryStore) {
         _viewModel = State(
             initialValue: DisplayedLibrariesViewModel(
                 settingsManager: settingsManager,
-                plexApiContext: plexApiContext
+                libraryStore: libraryStore
             )
         )
     }

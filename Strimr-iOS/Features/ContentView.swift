@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(LibraryStore.self) private var libraryStore
 
     var body: some View {
         ZStack {
@@ -39,7 +40,10 @@ struct ContentView: View {
             case .ready:
                 MainTabView(
                     homeViewModel: HomeViewModel(context: plexApiContext),
-                    libraryViewModel: LibraryViewModel(context: plexApiContext)
+                    libraryViewModel: LibraryViewModel(
+                        context: plexApiContext,
+                        libraryStore: libraryStore
+                    )
                 )
             }
         }
@@ -51,4 +55,5 @@ struct ContentView: View {
     ContentView()
         .environment(context)
         .environment(SessionManager(context: context))
+        .environment(LibraryStore(context: context))
 }

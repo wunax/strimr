@@ -80,6 +80,7 @@
 				Features/Settings/DisplayedLibrariesSectionView.swift,
 				Features/Settings/DisplayedLibrariesViewModel.swift,
 				Features/Settings/SettingsViewModel.swift,
+				Library/LibraryStore.swift,
 				Library/MPV/MetalLayer.swift,
 				Library/MPV/MPVPlayerDelegate.swift,
 				Library/MPV/MPVPlayerView.swift,

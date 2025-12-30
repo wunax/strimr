@@ -4,15 +4,23 @@ import Observation
 @MainActor
 @Observable
 final class LibraryViewModel {
-    var libraries: [Library] = []
-    var isLoading = false
+    var libraries: [Library] {
+        libraryStore.libraries
+    }
+
+    var isLoading: Bool {
+        libraryStore.isLoading
+    }
+
     var errorMessage: String?
     var artworkURLs: [String: URL] = [:]
 
     @ObservationIgnored private let context: PlexAPIContext
+    private let libraryStore: LibraryStore
 
-    init(context: PlexAPIContext) {
+    init(context: PlexAPIContext, libraryStore: LibraryStore) {
         self.context = context
+        self.libraryStore = libraryStore
     }
 
     func load() async {
@@ -21,21 +29,18 @@ final class LibraryViewModel {
     }
 
     private func fetchLibraries() async {
-        guard let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.loadLibraries"))
-            return
-        }
-
-        isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
 
         do {
-            let response = try await sectionRepository.getSections()
-            let sections = response.mediaContainer.directory ?? []
-            libraries = sections.map(Library.init)
+            try await libraryStore.loadLibraries()
         } catch {
-            resetState(error: error.localizedDescription)
+            if case PlexAPIError.missingConnection = error {
+                errorMessage = String(localized: "errors.selectServer.loadLibraries")
+            } else if case PlexAPIError.missingAuthToken = error {
+                errorMessage = String(localized: "errors.selectServer.loadLibraries")
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -70,12 +75,5 @@ final class LibraryViewModel {
                 self.artworkURLs[library.id] = nil
             }
         }
-    }
-
-    private func resetState(error: String? = nil) {
-        libraries = []
-        errorMessage = error
-        isLoading = false
-        artworkURLs = [:]
     }
 }

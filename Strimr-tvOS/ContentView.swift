@@ -50,4 +50,5 @@ struct ContentView: View {
     ContentView()
         .environment(context)
         .environment(SessionManager(context: context))
+        .environment(LibraryStore(context: context))
 }

@@ -5,37 +5,34 @@ import SwiftUI
 @Observable
 final class DisplayedLibrariesViewModel {
     private let settingsManager: SettingsManager
-    private let plexApiContext: PlexAPIContext
+    private let libraryStore: LibraryStore
 
-    var libraries: [Library] = []
-    var isLoading = false
-    var loadFailed = false
+    var libraries: [Library] {
+        libraryStore.libraries
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
 
-    init(settingsManager: SettingsManager, plexApiContext: PlexAPIContext) {
+    var isLoading: Bool {
+        libraryStore.isLoading
+    }
+
+    var loadFailed: Bool {
+        libraryStore.loadFailed
+    }
+
+    init(settingsManager: SettingsManager, libraryStore: LibraryStore) {
         self.settingsManager = settingsManager
-        self.plexApiContext = plexApiContext
+        self.libraryStore = libraryStore
     }
 
     func loadLibraries() async {
-        guard !isLoading else { return }
-        guard libraries.isEmpty else { return }
-
-        isLoading = true
-        loadFailed = false
-        defer { isLoading = false }
+        guard !libraryStore.isLoading else { return }
+        guard libraryStore.libraries.isEmpty else { return }
 
         do {
-            let repository = try SectionRepository(context: plexApiContext)
-            let response = try await repository.getSections()
-            let sections = response.mediaContainer.directory ?? []
-            let resolvedLibraries = sections
-                .map(Library.init)
-                .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-            libraries = resolvedLibraries
-            pruneHiddenLibraries(with: resolvedLibraries)
-        } catch {
-            loadFailed = true
-        }
+            try await libraryStore.loadLibraries()
+            pruneHiddenLibraries(with: libraries)
+        } catch { }
     }
 
     func displayedBinding(for library: Library) -> Binding<Bool> {

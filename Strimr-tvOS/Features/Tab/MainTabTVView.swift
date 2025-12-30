@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabTVView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(LibraryStore.self) private var libraryStore
     @StateObject private var coordinator = MainCoordinator()
 
     var body: some View {
@@ -33,7 +34,10 @@ struct MainTabTVView: View {
             Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
                 NavigationStack(path: coordinator.pathBinding(for: .library)) {
                     LibraryTVView(
-                        viewModel: LibraryViewModel(context: plexApiContext),
+                        viewModel: LibraryViewModel(
+                            context: plexApiContext,
+                            libraryStore: libraryStore
+                        ),
                         onSelectMedia: coordinator.showMediaDetail
                     )
                     .navigationDestination(for: Library.self) { library in
