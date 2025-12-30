@@ -59,7 +59,7 @@ final class HomeViewModel {
 
             continueWatching = continueHub.map(mapHub)
             recentlyAdded = promotedHubs
-                .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") }
+                .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
                 .map(mapHub)
         } catch {
             guard !Task.isCancelled else { return }

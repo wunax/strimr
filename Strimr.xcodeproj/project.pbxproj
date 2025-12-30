@@ -77,6 +77,8 @@
 				Features/Player/PlayerViewModel.swift,
 				Features/Search/SearchResultCard.swift,
 				Features/Search/SearchViewModel.swift,
+				Features/Settings/DisplayedLibrariesSectionView.swift,
+				Features/Settings/DisplayedLibrariesViewModel.swift,
 				Features/Settings/SettingsViewModel.swift,
 				Library/MPV/MetalLayer.swift,
 				Library/MPV/MPVPlayerDelegate.swift,

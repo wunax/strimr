@@ -24,6 +24,10 @@ final class SettingsManager {
         settings.playback
     }
 
+    var interface: InterfaceSettings {
+        settings.interface
+    }
+
     func setAutoPlayNextEpisode(_ enabled: Bool) {
         settings.playback.autoPlayNextEpisode = enabled
         persist()
@@ -51,6 +55,22 @@ final class SettingsManager {
 
     func updatePlayback(_ transform: (inout PlaybackSettings) -> Void) {
         transform(&settings.playback)
+        persist()
+    }
+
+    func setHiddenLibraryIds(_ ids: [String]) {
+        settings.interface.hiddenLibraryIds = ids.sorted()
+        persist()
+    }
+
+    func setLibraryDisplayed(_ libraryId: String, displayed: Bool) {
+        var hiddenIds = Set(settings.interface.hiddenLibraryIds)
+        if displayed {
+            hiddenIds.remove(libraryId)
+        } else {
+            hiddenIds.insert(libraryId)
+        }
+        settings.interface.hiddenLibraryIds = hiddenIds.sorted()
         persist()
     }
 

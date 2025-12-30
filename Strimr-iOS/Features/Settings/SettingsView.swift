@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct SettingsView: View {
+    @Environment(PlexAPIContext.self) private var plexApiContext
     @Environment(SettingsManager.self) private var settingsManager
 
     private var viewModel: SettingsViewModel {
@@ -37,6 +38,11 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            DisplayedLibrariesSectionView(
+                settingsManager: settingsManager,
+                plexApiContext: plexApiContext
+            )
         }
         .listStyle(.insetGrouped)
         .navigationTitle("settings.title")
