@@ -1489,6 +1489,16 @@
         }
       }
     },
+    "settings.playback.player.infuse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infuse"
+          }
+        }
+      }
+    },
     "settings.playback.player.vlc" : {
       "localizations" : {
         "en" : {

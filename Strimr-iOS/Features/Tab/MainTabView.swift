@@ -1,12 +1,13 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
-    @Environment(SettingsManager.self) private var settingsManager
-    @Environment(LibraryStore.self) private var libraryStore
-    @StateObject private var coordinator = MainCoordinator()
-    @State private var homeViewModel: HomeViewModel
-    @State private var libraryViewModel: LibraryViewModel
+    @Environment(PlexAPIContext.self) var plexApiContext
+    @Environment(SettingsManager.self) var settingsManager
+    @Environment(LibraryStore.self) var libraryStore
+    @Environment(\.openURL) var openURL
+    @StateObject var coordinator = MainCoordinator()
+    @State var homeViewModel: HomeViewModel
+    @State var libraryViewModel: LibraryViewModel
 
     init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
         _homeViewModel = State(initialValue: homeViewModel)
@@ -104,10 +105,10 @@ struct MainTabView: View {
                     context: plexApiContext
                 ),
                 onPlay: { ratingKey in
-                    coordinator.showPlayer(for: ratingKey)
+                    handlePlay(ratingKey: ratingKey)
                 },
                 onPlayFromStart: { ratingKey in
-                    coordinator.showPlayer(for: ratingKey, shouldResumeFromOffset: false)
+                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
                 },
                 onSelectMedia: coordinator.showMediaDetail
             )

@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct MainTabTVView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
-    @Environment(SettingsManager.self) private var settingsManager
-    @Environment(LibraryStore.self) private var libraryStore
-    @StateObject private var coordinator = MainCoordinator()
+    @Environment(PlexAPIContext.self) var plexApiContext
+    @Environment(SettingsManager.self) var settingsManager
+    @Environment(LibraryStore.self) var libraryStore
+    @Environment(\.openURL) var openURL
+    @StateObject var coordinator = MainCoordinator()
 
     var body: some View {
         TabView(selection: $coordinator.tab) {
@@ -108,10 +109,10 @@ struct MainTabTVView: View {
             MediaDetailTVView(
                 viewModel: MediaDetailViewModel(media: media, context: plexApiContext),
                 onPlay: { ratingKey in
-                    coordinator.showPlayer(for: ratingKey)
+                    handlePlay(ratingKey: ratingKey)
                 },
                 onPlayFromStart: { ratingKey in
-                    coordinator.showPlayer(for: ratingKey, shouldResumeFromOffset: false)
+                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
                 },
                 onSelectMedia: coordinator.showMediaDetail
             )

@@ -5,7 +5,7 @@ struct PlayerTVView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
-    let activePlayer: PlaybackPlayer
+    let activePlayer: InternalPlaybackPlayer
     @State private var playerCoordinator: any PlayerCoordinating
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
@@ -36,7 +36,7 @@ struct PlayerTVView: View {
         Double(settingsManager.playback.seekForwardSeconds)
     }
 
-    init(viewModel: PlayerViewModel, initialPlayer: PlaybackPlayer, options: PlayerOptions, onExit: @escaping () -> Void) {
+    init(viewModel: PlayerViewModel, initialPlayer: InternalPlaybackPlayer, options: PlayerOptions, onExit: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
         activePlayer = initialPlayer
         _playerCoordinator = State(initialValue: PlayerFactory.makeCoordinator(for: initialPlayer, options: options))

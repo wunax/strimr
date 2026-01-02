@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum PlayerFactory {
-    static func makeCoordinator(for selection: PlaybackPlayer, options: PlayerOptions) -> any PlayerCoordinating {
+    static func makeCoordinator(for selection: InternalPlaybackPlayer, options: PlayerOptions) -> any PlayerCoordinating {
         switch selection {
         case .mpv:
             let coordinator = MPVPlayerView.Coordinator()
@@ -16,7 +16,7 @@ enum PlayerFactory {
     }
 
     static func makeView(
-        selection: PlaybackPlayer,
+        selection: InternalPlaybackPlayer,
         coordinator: any PlayerCoordinating,
         onPropertyChange: @escaping (PlayerProperty, Any?) -> Void,
         onPlaybackEnded: @escaping () -> Void

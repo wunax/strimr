@@ -5,7 +5,7 @@ struct PlayerView: View {
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PlayerViewModel
-    let activePlayer: PlaybackPlayer
+    let activePlayer: InternalPlaybackPlayer
     @State private var playerCoordinator: any PlayerCoordinating
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
@@ -32,7 +32,7 @@ struct PlayerView: View {
         Double(settingsManager.playback.seekForwardSeconds)
     }
 
-    init(viewModel: PlayerViewModel, initialPlayer: PlaybackPlayer, options: PlayerOptions) {
+    init(viewModel: PlayerViewModel, initialPlayer: InternalPlaybackPlayer, options: PlayerOptions) {
         _viewModel = State(initialValue: viewModel)
         activePlayer = initialPlayer
         _playerCoordinator = State(initialValue: PlayerFactory.makeCoordinator(for: initialPlayer, options: options))
