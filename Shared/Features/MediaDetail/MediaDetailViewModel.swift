@@ -68,7 +68,7 @@ final class MediaDetailViewModel {
         }
 
         isLoading = false
-        async let relatedHubsTask = loadRelatedHubs()
+        async let relatedHubsTask: Void = loadRelatedHubs()
         await loadSeasonsIfNeeded(forceReload: true)
         await relatedHubsTask
     }

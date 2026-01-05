@@ -53,9 +53,10 @@ final class HomeViewModel {
         }
 
         do {
-            let hiddenLibraryIds = settingsManager.interface.hiddenLibraryIds
-            var hubParams: HubRepository.HubParams?
-            if !hiddenLibraryIds.isEmpty {
+            let hubParams: HubRepository.HubParams? = await {
+                let hiddenLibraryIds = settingsManager.interface.hiddenLibraryIds
+                guard !hiddenLibraryIds.isEmpty else { return nil }
+
                 if libraryStore.libraries.isEmpty {
                     try? await libraryStore.loadLibraries()
                 }
@@ -63,8 +64,10 @@ final class HomeViewModel {
                 let visibleSectionIds = libraryStore.libraries
                     .filter { !hiddenLibraryIds.contains($0.id) }
                     .compactMap(\.sectionId)
-                hubParams = HubRepository.HubParams(sectionIds: visibleSectionIds)
-            }
+
+                return HubRepository.HubParams(sectionIds: visibleSectionIds)
+            }()
+
 
             async let continueResponse = hubRepository.getContinueWatchingHub(params: hubParams)
             async let promotedResponse = hubRepository.getPromotedHub(params: hubParams)
