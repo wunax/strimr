@@ -144,80 +144,31 @@ struct SeasonEpisodesSection: View {
 
     @ViewBuilder
     private var episodeList: some View {
-        #if os(tvOS)
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 20) {
-                    ForEach(viewModel.episodes) { episode in
-                        EpisodeCardView(
-                            episode: episode,
-                            imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
-                            runtime: viewModel.runtimeText(for: episode),
-                            progress: viewModel.progressFraction(for: episode),
-                            cardWidth: 520,
-                            isWatched: viewModel.isWatched(episode),
-                            isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
-                            onToggleWatch: {
-                                Task {
-                                    await viewModel.toggleWatchStatus(for: episode)
-                                }
-                            },
-                            onPlay: {
-                                onPlay(episode.id)
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-        #elseif os(macOS)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 420, maximum: 520), spacing: 16)], spacing: 16) {
-                ForEach(viewModel.episodes) { episode in
-                    EpisodeCardView(
-                        episode: episode,
-                        imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
-                        runtime: viewModel.runtimeText(for: episode),
-                        progress: viewModel.progressFraction(for: episode),
-                        cardWidth: nil,
-                        isWatched: viewModel.isWatched(episode),
-                        isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
-                        onToggleWatch: {
-                            Task {
-                                await viewModel.toggleWatchStatus(for: episode)
-                            }
-                        },
-                        onPlay: {
-                            onPlay(episode.id)
+        LazyVStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
+                EpisodeCardView(
+                    episode: episode,
+                    imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
+                    runtime: viewModel.runtimeText(for: episode),
+                    progress: viewModel.progressFraction(for: episode),
+                    cardWidth: nil,
+                    isWatched: viewModel.isWatched(episode),
+                    isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
+                    onToggleWatch: {
+                        Task {
+                            await viewModel.toggleWatchStatus(for: episode)
                         }
-                    )
-                }
-            }
-        #else
-            LazyVStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
-                    EpisodeCardView(
-                        episode: episode,
-                        imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
-                        runtime: viewModel.runtimeText(for: episode),
-                        progress: viewModel.progressFraction(for: episode),
-                        cardWidth: nil,
-                        isWatched: viewModel.isWatched(episode),
-                        isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
-                        onToggleWatch: {
-                            Task {
-                                await viewModel.toggleWatchStatus(for: episode)
-                            }
-                        },
-                        onPlay: {
-                            onPlay(episode.id)
-                        }
-                    )
-                    if index < viewModel.episodes.count - 1 {
-                        Divider()
-                            .background(.brandSecondary)
-                            .padding(.vertical, 4)
+                    },
+                    onPlay: {
+                        onPlay(episode.id)
                     }
+                )
+                if index < viewModel.episodes.count - 1 {
+                    Divider()
+                        .background(.brandSecondary)
+                        .padding(.vertical, 4)
                 }
             }
-        #endif
+        }
     }
 }

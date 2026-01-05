@@ -10,17 +10,57 @@ struct EpisodeCardView: View {
     let isUpdatingWatchStatus: Bool
     let onToggleWatch: (() -> Void)?
     let onPlay: (() -> Void)?
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isRegularWidth: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var artworkWidth: CGFloat? {
+        guard isRegularWidth else { return cardWidth }
+        let preferredWidth: CGFloat = 240
+        return min(cardWidth ?? preferredWidth, preferredWidth)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            EpisodeArtworkView(
-                episode: episode,
-                imageURL: imageURL,
-                width: cardWidth,
-                runtime: runtime,
-                progress: progress
-            )
+        Group {
+            if isRegularWidth {
+                HStack(alignment: .top, spacing: 16) {
+                    EpisodeArtworkView(
+                        episode: episode,
+                        imageURL: imageURL,
+                        width: artworkWidth,
+                        runtime: runtime,
+                        progress: progress
+                    )
 
+                    detailStack
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    EpisodeArtworkView(
+                        episode: episode,
+                        imageURL: imageURL,
+                        width: artworkWidth,
+                        runtime: runtime,
+                        progress: progress
+                    )
+
+                    detailStack
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .frame(width: cardWidth)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onPlay?()
+        }
+    }
+
+    private var detailStack: some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 8) {
                 if let index = episode.index {
                     Text("media.detail.episodeNumber \(index)")
@@ -64,11 +104,5 @@ struct EpisodeCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 12)
-        .frame(width: cardWidth)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onPlay?()
-        }
     }
 }
