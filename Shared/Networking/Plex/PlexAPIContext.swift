@@ -65,7 +65,8 @@ final class PlexAPIContext {
 
         if let savedConnection = loadSavedConnection(for: resource),
            let matchingConnection = resource.connections.first(where: { $0.uri == savedConnection }),
-           try await isConnectionReachable(matchingConnection, accessToken: resource.accessToken) {
+           try await isConnectionReachable(matchingConnection, accessToken: resource.accessToken)
+        {
             baseURLServer = matchingConnection.uri
             return matchingConnection.uri
         }

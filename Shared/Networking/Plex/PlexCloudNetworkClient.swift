@@ -11,7 +11,7 @@ final class PlexCloudNetworkClient {
     init(authToken: String?, clientIdentifier: String, useDiscoverBaseURL: Bool = false) {
         self.authToken = authToken
         self.clientIdentifier = clientIdentifier
-        self.baseURL = useDiscoverBaseURL ? discoverBaseURL : apiURL
+        baseURL = useDiscoverBaseURL ? discoverBaseURL : apiURL
     }
 
     func request<Response: Decodable>(

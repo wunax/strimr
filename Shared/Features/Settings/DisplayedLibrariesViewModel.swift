@@ -32,7 +32,7 @@ final class DisplayedLibrariesViewModel {
         do {
             try await libraryStore.loadLibraries()
             pruneHiddenLibraries(with: libraries)
-        } catch { }
+        } catch {}
     }
 
     func displayedBinding(for library: Library) -> Binding<Bool> {

@@ -96,7 +96,7 @@ struct MediaDetailTVView: View {
             if viewModel.shouldShowPlayFromStartButton {
                 playFromStartButton
             }
-            
+
             watchToggleButton
 
             if viewModel.shouldShowWatchlistButton {
@@ -104,7 +104,6 @@ struct MediaDetailTVView: View {
             }
         }
     }
-
 
     private var playFromStartButton: some View {
         Button(action: handlePlayFromStart) {

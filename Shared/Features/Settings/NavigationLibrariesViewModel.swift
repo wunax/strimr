@@ -33,7 +33,7 @@ final class NavigationLibrariesViewModel {
     init(settingsManager: SettingsManager, libraryStore: LibraryStore) {
         self.settingsManager = settingsManager
         self.libraryStore = libraryStore
-        self.navigationLibraryIds = settingsManager.interface.navigationLibraryIds
+        navigationLibraryIds = settingsManager.interface.navigationLibraryIds
     }
 
     func loadLibraries() async {
@@ -46,7 +46,7 @@ final class NavigationLibrariesViewModel {
         do {
             try await libraryStore.loadLibraries()
             pruneNavigationLibraries(with: libraryStore.libraries)
-        } catch { }
+        } catch {}
     }
 
     func navigationBinding(for library: Library) -> Binding<Bool> {

@@ -26,7 +26,7 @@ struct ExternalPlaybackLauncher {
         guard let playbackURL = mediaRepository.mediaURL(path: partPath) else {
             throw PlexAPIError.invalidURL
         }
-        
+
         return playbackURL
     }
 }
@@ -35,7 +35,7 @@ private enum InfuseURLBuilder {
     static func make(playbackURL: URL, callbackScheme: String) -> URL? {
         let callbackSuccess = "\(callbackScheme)://x-callback-url/playbackDidFinish"
         let callbackError = "\(callbackScheme)://x-callback-url/playbackDidFail"
-        
+
         guard
             let encodedPlayback = percentEncodeQueryValue(playbackURL.absoluteString)
         else {

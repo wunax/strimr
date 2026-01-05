@@ -138,8 +138,7 @@ final class MediaDetailViewModel {
                 try await repository.addToWatchlist(ratingKey: discoverID)
             }
             await loadWatchlistStatus()
-        } catch {
-        }
+        } catch {}
     }
 
     func imageURL(for media: MediaItem, width: Int = 320, height: Int = 180) -> URL? {

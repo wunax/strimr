@@ -67,4 +67,3 @@ struct MediaDetailView: View {
             .ignoresSafeArea()
     }
 }
-

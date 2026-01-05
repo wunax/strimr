@@ -326,4 +326,3 @@ struct ProfileSwitcherTVView: View {
         pinInput = ""
     }
 }
-

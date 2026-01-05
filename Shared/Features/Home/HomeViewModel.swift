@@ -68,7 +68,6 @@ final class HomeViewModel {
                 return HubRepository.HubParams(sectionIds: visibleSectionIds)
             }()
 
-
             async let continueResponse = hubRepository.getContinueWatchingHub(params: hubParams)
             async let promotedResponse = hubRepository.getPromotedHub(params: hubParams)
 
