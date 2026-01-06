@@ -17,6 +17,7 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
     var playDelegate: VLCPlayerDelegate?
     var playUrl: URL?
     private var lastReportedTimeSeconds = -1.0
+    private var hasNotifiedFileLoaded = false
 
     init(options: PlayerOptions) {
         self.options = options
@@ -47,6 +48,7 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
     }
 
     func loadFile(_ url: URL) {
+        hasNotifiedFileLoaded = false
         mediaPlayer.media = VLCMedia(url: url)
         mediaPlayer.play()
     }
@@ -123,6 +125,13 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
         DispatchQueue.main.async {
             self.playDelegate?.propertyChange(player: self, property: .pause, data: isPaused)
             self.playDelegate?.propertyChange(player: self, property: .pausedForCache, data: isBuffering)
+        }
+
+        if !hasNotifiedFileLoaded, state == .playing || state == .paused {
+            hasNotifiedFileLoaded = true
+            DispatchQueue.main.async {
+                self.playDelegate?.fileLoaded()
+            }
         }
 
         if state == .ended {

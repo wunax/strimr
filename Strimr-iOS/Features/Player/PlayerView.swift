@@ -21,6 +21,7 @@ struct PlayerView: View {
     @State private var appliedPreferredAudio = false
     @State private var appliedPreferredSubtitle = false
     @State private var appliedResumeOffset = false
+    @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -67,6 +68,9 @@ struct PlayerView: View {
                 },
                 onPlaybackEnded: {
                     handlePlaybackEnded()
+                },
+                onMediaLoaded: {
+                    handleMediaLoaded()
                 }
             )
             .onAppear {
@@ -135,10 +139,9 @@ struct PlayerView: View {
             selectedAudioTrackID = nil
             selectedSubtitleTrackID = nil
             appliedResumeOffset = false
+            awaitingMediaLoad = true
             playerCoordinator.play(url)
             showControls(temporarily: true)
-            refreshTracks()
-            applyResumeOffsetIfNeeded()
         }
         .onChange(of: bindableViewModel.position) { _, newValue in
             guard !isScrubbing else { return }
@@ -196,8 +199,6 @@ struct PlayerView: View {
 
     private func refreshTracks() {
         Task {
-            // Waits for the player to hydrate the tracks
-            try await Task.sleep(for: .milliseconds(150))
             let tracks = playerCoordinator.trackList()
 
             let audio = tracks.filter { $0.type == .audio }
@@ -279,11 +280,14 @@ struct PlayerView: View {
         guard viewModel.shouldResumeFromOffset else { return }
         guard !appliedResumeOffset, let offset = viewModel.resumePosition, offset > 0 else { return }
         appliedResumeOffset = true
+        playerCoordinator.seek(to: offset)
+    }
 
-        Task {
-            try? await Task.sleep(for: .milliseconds(250))
-            playerCoordinator.seek(to: offset)
-        }
+    private func handleMediaLoaded() {
+        guard awaitingMediaLoad else { return }
+        awaitingMediaLoad = false
+        refreshTracks()
+        applyResumeOffsetIfNeeded()
     }
 
     private func dismissPlayer() {

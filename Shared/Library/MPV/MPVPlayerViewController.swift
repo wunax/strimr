@@ -356,6 +356,10 @@ final class MPVPlayerViewController: UIViewController {
                             self.playDelegate?.playbackEnded()
                         }
                     }
+                case MPV_EVENT_FILE_LOADED:
+                    DispatchQueue.main.async {
+                        self.playDelegate?.fileLoaded()
+                    }
                 case MPV_EVENT_SHUTDOWN:
                     print("event: shutdown\n")
                     destruct()

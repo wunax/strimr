@@ -19,7 +19,8 @@ enum PlayerFactory {
         selection: InternalPlaybackPlayer,
         coordinator: any PlayerCoordinating,
         onPropertyChange: @escaping (PlayerProperty, Any?) -> Void,
-        onPlaybackEnded: @escaping () -> Void
+        onPlaybackEnded: @escaping () -> Void,
+        onMediaLoaded: @escaping () -> Void
     ) -> AnyView {
         switch selection {
         case .mpv:
@@ -33,6 +34,7 @@ enum PlayerFactory {
                         onPropertyChange(property, data)
                     }
                     .onPlaybackEnded(onPlaybackEnded)
+                    .onMediaLoaded(onMediaLoaded)
             )
         case .vlc:
             guard let vlcCoordinator = coordinator as? VLCPlayerView.Coordinator else {
@@ -45,6 +47,7 @@ enum PlayerFactory {
                         onPropertyChange(property, data)
                     }
                     .onPlaybackEnded(onPlaybackEnded)
+                    .onMediaLoaded(onMediaLoaded)
             )
         }
     }

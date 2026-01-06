@@ -34,6 +34,11 @@ struct VLCPlayerView: UIViewControllerRepresentable {
         return self
     }
 
+    func onMediaLoaded(_ handler: @escaping () -> Void) -> Self {
+        coordinator.onMediaLoaded = handler
+        return self
+    }
+
     @MainActor
     @Observable
     final class Coordinator: VLCPlayerDelegate, PlayerCoordinating {
@@ -43,6 +48,7 @@ struct VLCPlayerView: UIViewControllerRepresentable {
         @ObservationIgnored var options = PlayerOptions()
         @ObservationIgnored var onPropertyChange: ((VLCPlayerViewController, PlayerProperty, Any?) -> Void)?
         @ObservationIgnored var onPlaybackEnded: (() -> Void)?
+        @ObservationIgnored var onMediaLoaded: (() -> Void)?
 
         func play(_ url: URL) {
             player?.loadFile(url)
@@ -90,6 +96,10 @@ struct VLCPlayerView: UIViewControllerRepresentable {
 
         func playbackEnded() {
             onPlaybackEnded?()
+        }
+
+        func fileLoaded() {
+            onMediaLoaded?()
         }
     }
 }
