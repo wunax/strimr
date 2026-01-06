@@ -3,6 +3,7 @@
 Thanks for helping improve Strimr. New features are welcome, and so are bug fixes, behavior improvements, and UX/UI polish.
 
 Before starting a feature request, please open an issue first so we can discuss the implementation, any obstacles, and help other users understand what is planned.
+Before reporting a bug, please check that it does not already exist.
 
 ## Setup
 
@@ -51,3 +52,4 @@ Use `swiftformat` to format the code.
 - Keep PRs focused and avoid mixing unrelated changes.
 - Add or update localization keys as needed.
 - If you add new assets, keep them in the correct target catalog: `Strimr-iOS/Assets.xcassets` or `Strimr-tvOS/Assets.xcassets`.
+- Use Conventional Commits with the scope `ios` or `tvos`.
