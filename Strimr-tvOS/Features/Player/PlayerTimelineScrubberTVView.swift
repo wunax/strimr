@@ -31,38 +31,33 @@ struct PlayerTimelineScrubberTVView: View {
             let bufferedWidth = width * min(max(bufferedProgress, 0), 1)
             let thumbX = min(max(progressWidth, 0), width)
 
-            VStack {
-                Spacer()
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.35))
-                        .frame(height: 8, alignment: .center)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(height: 8, alignment: .center)
 
-                    Capsule()
-                        .fill(Color.white.opacity(0.65))
-                        .frame(width: bufferedWidth)
-                        .frame(height: 8, alignment: .center)
+                Capsule()
+                    .fill(Color.white.opacity(0.65))
+                    .frame(width: bufferedWidth)
+                    .frame(height: 8, alignment: .center)
 
-                    Capsule()
-                        .fill(Color.white)
-                        .frame(width: progressWidth)
-                        .frame(height: 8, alignment: .center)
+                Capsule()
+                    .fill(Color.white)
+                    .frame(width: progressWidth)
+                    .frame(height: 8, alignment: .center)
 
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: isFocused ? 24 : 18, height: isFocused ? 24 : 18)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.black.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 6)
-                        .offset(x: max(0, thumbX - (isFocused ? 9 : 7)))
-                }
-                .animation(.easeInOut(duration: 0.15), value: isFocused)
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 28, height: 28)
+                    .scaleEffect(isFocused ? 1.0 : 0.75)
+                    .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 6)
+                    .offset(x: max(0, thumbX - 16))
+                    .animation(.easeInOut(duration: 0.15), value: isFocused)
             }
+            .animation(.easeInOut(duration: 0.15), value: isFocused)
         }
         .contentShape(Rectangle())
-        .frame(maxWidth: .infinity, maxHeight: 28)
+        .frame(maxWidth: .infinity, maxHeight: 32)
         .focusable()
         .focused($isFocused)
         .onMoveCommand { direction in
