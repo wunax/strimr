@@ -418,14 +418,14 @@ struct PlayerView: View {
     }
 
     private func handleEpisodeCompletion(for media: MediaItem) async {
+        await viewModel.markPlaybackFinished()
+
         guard settingsManager.playback.autoPlayNextEpisode else {
             await MainActor.run {
                 dismissPlayer()
             }
             return
         }
-
-        await viewModel.markPlaybackFinished()
 
         guard
             let grandparentRatingKey = media.grandparentRatingKey,
