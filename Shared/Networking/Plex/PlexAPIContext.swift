@@ -8,7 +8,7 @@ final class PlexAPIContext {
     private(set) var baseURLServer: URL?
     private(set) var authTokenServer: String?
 
-    @ObservationIgnored private let keychain = Keychain(service: "dev.strimr.app")
+    @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     @ObservationIgnored private let clientIdKey = "strimr.plex.clientId"
     @ObservationIgnored private let connectionKeyPrefix = "strimr.plex.connection"
 

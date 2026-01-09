@@ -19,7 +19,7 @@ final class SessionManager {
     private(set) var user: PlexCloudUser?
     private(set) var plexServer: PlexCloudResource?
 
-    @ObservationIgnored private let keychain = Keychain(service: "dev.strimr.app")
+    @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     @ObservationIgnored private let tokenKey = "strimr.plex.authToken"
     @ObservationIgnored private let serverIdDefaultsKey = "strimr.plex.serverIdentifier"
 

@@ -5,7 +5,7 @@ import Observation
 @Observable
 final class SettingsManager {
     @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let storageKey = "dev.strimr.app.settings"
+    @ObservationIgnored private let storageKey = "strimr.settings"
 
     private(set) var settings: AppSettings
 
