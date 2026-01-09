@@ -31,14 +31,6 @@ final class ProfileSwitcherViewModel {
         do {
             let home = try await userRepository.getHomeUsers()
             users = home.users
-
-            if sessionManager.status == .needsProfileSelection,
-               home.users.count == 1,
-               let onlyUser = home.users.first,
-               requiresPin(for: onlyUser) == false
-            {
-                await switchToUser(onlyUser, pin: nil)
-            }
         } catch {
             users = []
             errorMessage = String(localized: "auth.profile.error.loadFailed")
