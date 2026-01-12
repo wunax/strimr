@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: iOS build
+        run: |
+          xcodebuild \
+            -project Strimr.xcodeproj \
+            -scheme Strimr \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            build
+
+      - name: tvOS build
+        run: |
+          xcodebuild \
+            -project Strimr.xcodeproj \
+            -scheme Strimr-tvOS \
+            -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            build
