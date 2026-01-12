@@ -11,7 +11,7 @@ struct LandscapeMediaCard: View {
             media: media,
             artworkKind: .art,
             showsLabels: showsLabels,
-            onTap: onTap
+            onTap: onTap,
         )
     }
 }

@@ -15,9 +15,9 @@ struct MainTabTVView: View {
                         viewModel: HomeViewModel(
                             context: plexApiContext,
                             settingsManager: settingsManager,
-                            libraryStore: libraryStore
+                            libraryStore: libraryStore,
                         ),
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
                         destination(for: route)
@@ -29,7 +29,7 @@ struct MainTabTVView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchTVView(
                         viewModel: SearchViewModel(context: plexApiContext),
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
                         destination(for: route)
@@ -42,14 +42,14 @@ struct MainTabTVView: View {
                     LibraryTVView(
                         viewModel: LibraryViewModel(
                             context: plexApiContext,
-                            libraryStore: libraryStore
+                            libraryStore: libraryStore,
                         ),
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: Library.self) { library in
                         LibraryDetailView(
                             library: library,
-                            onSelectMedia: coordinator.showMediaDetail
+                            onSelectMedia: coordinator.showMediaDetail,
                         )
                     }
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
@@ -59,11 +59,15 @@ struct MainTabTVView: View {
             }
 
             ForEach(navigationLibraries) { library in
-                Tab(library.title, systemImage: library.iconName, value: MainCoordinator.Tab.libraryDetail(library.id)) {
+                Tab(
+                    library.title,
+                    systemImage: library.iconName,
+                    value: MainCoordinator.Tab.libraryDetail(library.id),
+                ) {
                     NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
                         LibraryDetailView(
                             library: library,
-                            onSelectMedia: coordinator.showMediaDetail
+                            onSelectMedia: coordinator.showMediaDetail,
                         )
                         .navigationDestination(for: MainCoordinator.Route.self) { route in
                             destination(for: route)
@@ -94,9 +98,9 @@ struct MainTabTVView: View {
                     viewModel: PlayerViewModel(
                         ratingKey: ratingKey,
                         context: plexApiContext,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset
+                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
                     ),
-                    onExit: coordinator.resetPlayer
+                    onExit: coordinator.resetPlayer,
                 )
             }
         }
@@ -114,7 +118,7 @@ struct MainTabTVView: View {
                 onPlayFromStart: { ratingKey in
                     handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
                 },
-                onSelectMedia: coordinator.showMediaDetail
+                onSelectMedia: coordinator.showMediaDetail,
             )
         }
     }

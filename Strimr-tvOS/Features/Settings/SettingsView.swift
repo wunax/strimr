@@ -18,7 +18,7 @@ struct SettingsView: View {
                 if newValue == .infuse {
                     showingExternalPlayerWarning = true
                 }
-            }
+            },
         )
     }
 
@@ -58,12 +58,12 @@ struct SettingsView: View {
 
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
-                libraryStore: libraryStore
+                libraryStore: libraryStore,
             )
 
             NavigationLibrariesSectionView(
                 settingsManager: settingsManager,
-                libraryStore: libraryStore
+                libraryStore: libraryStore,
             )
         }
         .navigationTitle("settings.title")

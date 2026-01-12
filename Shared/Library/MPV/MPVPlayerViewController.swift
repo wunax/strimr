@@ -113,8 +113,18 @@ final class MPVPlayerViewController: UIViewController {
     }
 
     func setupNotification() {
-        NotificationCenter.default.addObserver(self, selector: #selector(enterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(enterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(enterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(enterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil,
+        )
     }
 
     @objc func enterBackground() {
@@ -131,7 +141,7 @@ final class MPVPlayerViewController: UIViewController {
     }
 
     func loadFile(
-        _ url: URL
+        _ url: URL,
     ) {
         var args = [url.absoluteString]
         let options = [String]()
@@ -171,7 +181,7 @@ final class MPVPlayerViewController: UIViewController {
                 String(delta),
                 "relative",
                 "exact",
-            ]
+            ],
         )
     }
 
@@ -214,28 +224,13 @@ final class MPVPlayerViewController: UIViewController {
                 language: values["lang"] as? String,
                 codec: values["codec"] as? String,
                 isDefault: values["default"] as? Bool ?? false,
-                isSelected: values["selected"] as? Bool ?? false
+                isSelected: values["selected"] as? Bool ?? false,
             )
 
             tracks.append(track)
         }
 
         return tracks
-    }
-
-    private func getDouble(_ name: String) -> Double {
-        guard let mpv else { return 0.0 }
-        var data = Double()
-        mpv_get_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
-        return data
-    }
-
-    private func getString(_ name: String) -> String? {
-        guard let mpv else { return nil }
-        let cstr = mpv_get_property_string(mpv, name)
-        let str: String? = cstr == nil ? nil : String(cString: cstr!)
-        mpv_free(cstr)
-        return str
     }
 
     private func getFlag(_ name: String) -> Bool {
@@ -266,7 +261,7 @@ final class MPVPlayerViewController: UIViewController {
         _ command: String,
         args: [String?] = [],
         checkForErrors: Bool = true,
-        returnValueCallback: ((Int32) -> Void)? = nil
+        returnValueCallback: ((Int32) -> Void)? = nil,
     ) {
         guard let mpv else {
             return
@@ -304,7 +299,7 @@ final class MPVPlayerViewController: UIViewController {
             guard let self else { return }
 
             while true {
-                guard let mpv = self.mpv else { break }
+                guard let mpv else { break }
                 let event = mpv_wait_event(mpv, 0)
                 if event?.pointee.event_id == MPV_EVENT_NONE {
                     break
@@ -351,7 +346,7 @@ final class MPVPlayerViewController: UIViewController {
                     let endFileData = UnsafeMutablePointer<mpv_event_end_file>(OpaquePointer(event!.pointee.data))
                     let reason = endFileData?.pointee.reason ?? MPV_END_FILE_REASON_ERROR
                     if reason == MPV_END_FILE_REASON_EOF {
-                        self.updateIdleTimer(isPlaying: false)
+                        updateIdleTimer(isPlaying: false)
                         DispatchQueue.main.async {
                             self.playDelegate?.playbackEnded()
                         }
@@ -365,7 +360,10 @@ final class MPVPlayerViewController: UIViewController {
                     destruct()
                 case MPV_EVENT_LOG_MESSAGE:
                     let msg = UnsafeMutablePointer<mpv_event_log_message>(OpaquePointer(event!.pointee.data))
-                    print("[\(String(cString: (msg!.pointee.prefix)!))] \(String(cString: (msg!.pointee.level)!)): \(String(cString: (msg!.pointee.text)!))", terminator: "")
+                    print(
+                        "[\(String(cString: (msg!.pointee.prefix)!))] \(String(cString: (msg!.pointee.level)!)): \(String(cString: (msg!.pointee.text)!))",
+                        terminator: "",
+                    )
                 default:
                     let eventName = mpv_event_name(event!.pointee.event_id)
                     print("event: \(String(cString: eventName!))")

@@ -34,7 +34,7 @@ final class HomeViewModel {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.fetchHubs()
+            await fetchHubs()
         }
         loadTask = task
         await task.value

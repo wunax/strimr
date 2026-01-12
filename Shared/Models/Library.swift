@@ -9,11 +9,11 @@ struct Library: Identifiable, Equatable, Hashable {
     var iconName: String {
         switch type {
         case .movie:
-            return "film.fill"
+            "film.fill"
         case .show:
-            return "tv.fill"
+            "tv.fill"
         case .season, .episode:
-            return "play.rectangle.fill"
+            "play.rectangle.fill"
         }
     }
 
@@ -21,7 +21,7 @@ struct Library: Identifiable, Equatable, Hashable {
         id: String,
         title: String,
         type: PlexItemType,
-        sectionId: Int? = nil
+        sectionId: Int? = nil,
     ) {
         self.id = id
         self.title = title
@@ -36,7 +36,7 @@ extension Library {
             id: plexSection.key,
             title: plexSection.title,
             type: plexSection.type,
-            sectionId: Int(plexSection.key)
+            sectionId: Int(plexSection.key),
         )
     }
 }

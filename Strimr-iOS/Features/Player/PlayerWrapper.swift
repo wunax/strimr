@@ -14,7 +14,7 @@ struct PlayerWrapper: View {
                     PlayerView(
                         viewModel: viewModel,
                         initialPlayer: internalPlayer,
-                        options: PlayerOptions(subtitleScale: settingsManager.playback.subtitleScale)
+                        options: PlayerOptions(subtitleScale: settingsManager.playback.subtitleScale),
                     )
                     .transition(.opacity)
                 } else {

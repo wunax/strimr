@@ -38,7 +38,7 @@ struct SeasonEpisodesSection: View {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .font(.subheadline)
-        } else if (viewModel.isLoadingSeasons || viewModel.isLoading) && viewModel.seasons.isEmpty {
+        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                 Text("media.detail.loadingSeasons")
@@ -67,7 +67,7 @@ struct SeasonEpisodesSection: View {
                 Task {
                     await viewModel.selectSeason(id: seasonId)
                 }
-            }
+            },
         )) {
             ForEach(viewModel.seasons, id: \.id) { season in
                 Text(season.title)
@@ -113,7 +113,7 @@ struct SeasonEpisodesSection: View {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .padding(.vertical, 8)
-        } else if (viewModel.isLoadingSeasons || viewModel.isLoading) && viewModel.seasons.isEmpty {
+        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
             ProgressView("media.detail.loadingSeasons")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
@@ -128,7 +128,7 @@ struct SeasonEpisodesSection: View {
                         .foregroundStyle(.red)
                 }
 
-                if viewModel.isLoadingEpisodes && viewModel.episodes.isEmpty {
+                if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
                     ProgressView("media.detail.loadingEpisodes")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -161,7 +161,7 @@ struct SeasonEpisodesSection: View {
                     },
                     onPlay: {
                         onPlay(episode.id)
-                    }
+                    },
                 )
                 if index < viewModel.episodes.count - 1 {
                     Divider()

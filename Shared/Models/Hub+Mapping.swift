@@ -6,7 +6,7 @@ extension Hub {
         self.init(
             id: plexHub.hubIdentifier,
             title: plexHub.title,
-            items: (plexHub.metadata ?? []).map(MediaItem.init)
+            items: (plexHub.metadata ?? []).map(MediaItem.init),
         )
     }
 }

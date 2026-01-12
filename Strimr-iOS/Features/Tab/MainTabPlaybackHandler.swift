@@ -16,7 +16,7 @@ extension MainTabView {
     func launchExternalPlayback(ratingKey: String) async {
         do {
             let launcher = ExternalPlaybackLauncher(
-                context: plexApiContext
+                context: plexApiContext,
             )
             let infuseURL = try await launcher.infuseURL(for: ratingKey)
             openURL(infuseURL)

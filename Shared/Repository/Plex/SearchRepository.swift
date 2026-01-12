@@ -16,7 +16,7 @@ final class SearchRepository {
                 URLQueryItem(name: "query", value: query),
                 URLQueryItem.makeArray("searchTypes", searchTypes.map(\.rawValue)),
                 URLQueryItem.make("limit", limit),
-            ].compactMap { $0 }
+            ].compactMap(\.self)
         }
     }
 

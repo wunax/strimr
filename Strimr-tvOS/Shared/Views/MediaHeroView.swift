@@ -17,7 +17,7 @@ struct MediaHeroBackgroundView: View {
                 heroImage
                     .frame(
                         width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
-                        height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66
+                        height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
                     )
                     .clipped()
                     .overlay(Color.black.opacity(0.2))
@@ -79,7 +79,7 @@ struct MediaHeroBackgroundView: View {
                 .init(color: .clear, location: 1.0),
             ],
             startPoint: .top,
-            endPoint: .bottom
+            endPoint: .bottom,
         )
         .mask(
             LinearGradient(
@@ -89,8 +89,8 @@ struct MediaHeroBackgroundView: View {
                     .init(color: .clear, location: 1.0),
                 ],
                 startPoint: .trailing,
-                endPoint: .leading
-            )
+                endPoint: .leading,
+            ),
         )
     }
 
@@ -112,7 +112,7 @@ struct MediaHeroBackgroundView: View {
                 width: 3840,
                 height: 2160,
                 minSize: 1,
-                upscale: 1
+                upscale: 1,
             )
         } catch {
             imageURL = nil

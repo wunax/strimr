@@ -59,7 +59,7 @@ final class LibraryViewModel {
             let itemContainer = try await sectionRepository.getSectionsItems(
                 sectionId: sectionId,
                 params: SectionRepository.SectionItemsParams(sort: "random", limit: 1),
-                pagination: PlexPagination(start: 0, size: 1)
+                pagination: PlexPagination(start: 0, size: 1),
             )
 
             if let item = itemContainer.mediaContainer.metadata?.first {

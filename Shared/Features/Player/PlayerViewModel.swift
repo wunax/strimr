@@ -71,11 +71,11 @@ final class PlayerViewModel {
             let params = MetadataRepository.PlexMetadataParams(
                 checkFiles: true,
                 includeChapters: true,
-                includeMarkers: true
+                includeMarkers: true,
             )
             let response = try await metadataRepository.getMetadata(
                 ratingKey: ratingKey,
-                params: params
+                params: params,
             )
             let metadata = response.mediaContainer.metadata?.first
             media = metadata.map(MediaItem.init)
@@ -91,7 +91,7 @@ final class PlayerViewModel {
     func handlePropertyChange(
         property: PlayerProperty,
         data: Any?,
-        isScrubbing: Bool
+        isScrubbing: Bool,
     ) {
         let previousState = playbackState
         var stateChanged = false
@@ -129,12 +129,12 @@ final class PlayerViewModel {
 
         do {
             let repository = try PlaybackRepository(context: context)
-            let _ = try await repository.updateTimeline(
+            _ = try await repository.updateTimeline(
                 ratingKey: ratingKey,
                 state: .stopped,
                 time: currentDuration,
                 duration: currentDuration,
-                sessionIdentifier: sessionIdentifier
+                sessionIdentifier: sessionIdentifier,
             )
         } catch {
             debugPrint("Failed to mark playback as finished:", error)
@@ -147,7 +147,7 @@ final class PlayerViewModel {
             let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
             let response = try await repository.getMetadata(
                 ratingKey: grandparentRatingKey,
-                params: params
+                params: params,
             )
 
             return response.mediaContainer.metadata?.first?.onDeck?.metadata
@@ -166,12 +166,13 @@ final class PlayerViewModel {
 
     private func reportTimeline(
         state: PlaybackRepository.PlaybackState,
-        force: Bool = false
+        force: Bool = false,
     ) {
         guard !didReceiveTermination else { return }
         let now = Date()
         let stateChanged = lastTimelineState != state
-        let shouldSend = force || stateChanged || lastTimelineSentAt.map { now.timeIntervalSince($0) >= timelineInterval } ?? true
+        let shouldSend = force || stateChanged || lastTimelineSentAt
+            .map { now.timeIntervalSince($0) >= timelineInterval } ?? true
 
         guard shouldSend else { return }
 
@@ -194,7 +195,7 @@ final class PlayerViewModel {
                 state: state,
                 time: currentTime,
                 duration: currentDuration,
-                sessionIdentifier: sessionIdentifier
+                sessionIdentifier: sessionIdentifier,
             )
             handleTerminationIfNeeded(response)
         } catch {
@@ -267,7 +268,7 @@ final class PlayerViewModel {
                 state: .stopped,
                 time: currentTime,
                 duration: currentDuration,
-                sessionIdentifier: sessionIdentifier
+                sessionIdentifier: sessionIdentifier,
             )
         } catch {
             debugPrint("Failed to report termination stop:", error)
@@ -289,12 +290,12 @@ final class PlayerViewModel {
             case .audio:
                 try await playbackRepository.setPreferredStreams(
                     partId: partId,
-                    audioStreamId: stream.id
+                    audioStreamId: stream.id,
                 )
             case .subtitle:
                 try await playbackRepository.setPreferredStreams(
                     partId: partId,
-                    subtitleStreamId: stream.id
+                    subtitleStreamId: stream.id,
                 )
             case .video:
                 break

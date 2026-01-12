@@ -14,9 +14,9 @@ struct MediaCard: View {
         var aspectRatio: CGFloat {
             switch self {
             case .landscape:
-                return 16 / 9
+                16 / 9
             case .portrait:
-                return 2 / 3
+                2 / 3
             }
         }
     }
@@ -37,13 +37,13 @@ struct MediaCard: View {
                 viewModel: MediaImageViewModel(
                     context: plexApiContext,
                     artworkKind: artworkKind,
-                    media: media
-                )
+                    media: media,
+                ),
             )
             .frame(maxWidth: .infinity)
             .aspectRatio(layout.aspectRatio, contentMode: .fit)
             .clipShape(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous),
             )
             .overlay(alignment: .topTrailing) {
                 WatchStatusBadge(media: media)
@@ -81,7 +81,7 @@ struct MediaCard: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
                     isFocused ? Color.brandSecondary : .clear,
-                    lineWidth: 4
+                    lineWidth: 4,
                 )
         }
         .animation(.easeOut(duration: 0.15), value: isFocused)

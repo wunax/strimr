@@ -13,8 +13,8 @@ struct SearchResultCard: View {
                     viewModel: MediaImageViewModel(
                         context: plexApiContext,
                         artworkKind: .thumb,
-                        media: media
-                    )
+                        media: media,
+                    ),
                 )
                 .frame(width: 100, height: 150)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -54,7 +54,7 @@ struct SearchResultCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.gray.opacity(0.08))
+                    .fill(Color.gray.opacity(0.08)),
             )
         }
         .buttonStyle(.plain)
@@ -72,7 +72,7 @@ private struct TypeBadge: View {
             .padding(.vertical, 6)
             .background(
                 Capsule(style: .continuous)
-                    .fill(color.opacity(0.15))
+                    .fill(color.opacity(0.15)),
             )
             .foregroundStyle(color)
     }
@@ -80,26 +80,26 @@ private struct TypeBadge: View {
     private var label: String {
         switch type {
         case .movie:
-            return String(localized: "search.badge.movie")
+            String(localized: "search.badge.movie")
         case .show:
-            return String(localized: "search.badge.show")
+            String(localized: "search.badge.show")
         case .season:
-            return String(localized: "search.badge.season")
+            String(localized: "search.badge.season")
         case .episode:
-            return String(localized: "search.badge.episode")
+            String(localized: "search.badge.episode")
         }
     }
 
     private var color: Color {
         switch type {
         case .movie:
-            return .brandPrimary
+            .brandPrimary
         case .show:
-            return .mint
+            .mint
         case .season:
-            return .orange
+            .orange
         case .episode:
-            return .purple
+            .purple
         }
     }
 }
@@ -108,13 +108,13 @@ private extension SearchResultCard {
     var subtitle: String {
         switch media.type {
         case .movie:
-            return media.year.map(String.init) ?? String(localized: "search.fallback.movie")
+            media.year.map(String.init) ?? String(localized: "search.fallback.movie")
         case .show:
-            return media.secondaryLabel ?? String(localized: "search.fallback.show")
+            media.secondaryLabel ?? String(localized: "search.fallback.show")
         case .season:
-            return media.secondaryLabel ?? media.title
+            media.secondaryLabel ?? media.title
         case .episode:
-            return media.tertiaryLabel
+            media.tertiaryLabel
                 ?? media.secondaryLabel
                 ?? media.parentTitle
                 ?? String(localized: "search.fallback.episode")

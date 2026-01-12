@@ -14,7 +14,7 @@ struct LibraryTVRecommendedView: View {
     init(
         viewModel: LibraryRecommendedViewModel,
         heroMedia: Binding<MediaItem?>,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         _heroMedia = heroMedia
@@ -29,7 +29,7 @@ struct LibraryTVRecommendedView: View {
                         .frame(
                             maxWidth: proxy.size.width * 0.60,
                             maxHeight: .infinity,
-                            alignment: .topLeading
+                            alignment: .topLeading,
                         )
                 }
 
@@ -64,7 +64,7 @@ struct LibraryTVRecommendedView: View {
                     }
                 }
 
-                if viewModel.isLoading && !viewModel.hasContent {
+                if viewModel.isLoading, !viewModel.hasContent {
                     ProgressView("library.recommended.loading")
                         .frame(maxWidth: .infinity)
                 }
@@ -72,7 +72,7 @@ struct LibraryTVRecommendedView: View {
                 if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
-                } else if !viewModel.hasContent && !viewModel.isLoading {
+                } else if !viewModel.hasContent, !viewModel.isLoading {
                     Text("common.empty.nothingToShow")
                         .foregroundStyle(.secondary)
                 }
@@ -88,14 +88,14 @@ struct LibraryTVRecommendedView: View {
                 layout: .landscape,
                 items: hub.items,
                 showsLabels: false,
-                onSelectMedia: onSelectMedia
+                onSelectMedia: onSelectMedia,
             )
         } else {
             MediaCarousel(
                 layout: .portrait,
                 items: hub.items,
                 showsLabels: false,
-                onSelectMedia: onSelectMedia
+                onSelectMedia: onSelectMedia,
             )
         }
     }

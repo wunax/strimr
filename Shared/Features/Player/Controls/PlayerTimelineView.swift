@@ -30,7 +30,7 @@ struct PlayerTimelineView: View {
             },
             set: { newValue in
                 position = newValue
-            }
+            },
         )
     }
 
@@ -49,7 +49,7 @@ struct PlayerTimelineView: View {
                     upperBound: sliderUpperBound,
                     duration: duration,
                     bufferedProgress: bufferedProgress,
-                    onEditingChanged: onEditingChanged
+                    onEditingChanged: onEditingChanged,
                 )
             #else
                 ZStack {

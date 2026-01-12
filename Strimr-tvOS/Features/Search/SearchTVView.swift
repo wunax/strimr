@@ -7,7 +7,7 @@ struct SearchTVView: View {
 
     init(
         viewModel: SearchViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -40,8 +40,12 @@ struct SearchTVView: View {
     @ViewBuilder
     private func resultsContent() -> some View {
         if !viewModel.hasQuery {
-            ContentUnavailableView("search.empty.title", systemImage: "magnifyingglass", description: Text("search.empty.description"))
-                .frame(maxWidth: .infinity)
+            ContentUnavailableView(
+                "search.empty.title",
+                systemImage: "magnifyingglass",
+                description: Text("search.empty.description"),
+            )
+            .frame(maxWidth: .infinity)
         } else if viewModel.isLoading {
             ProgressView("search.loading")
                 .frame(maxWidth: .infinity)
@@ -52,8 +56,12 @@ struct SearchTVView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 4)
         } else if viewModel.filteredItems.isEmpty {
-            ContentUnavailableView("search.noResults.title", systemImage: "film.stack.fill", description: Text("search.noResults.description"))
-                .frame(maxWidth: .infinity)
+            ContentUnavailableView(
+                "search.noResults.title",
+                systemImage: "film.stack.fill",
+                description: Text("search.noResults.description"),
+            )
+            .frame(maxWidth: .infinity)
         } else {
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 48) {
                 ForEach(viewModel.filteredItems) { media in
@@ -89,7 +97,7 @@ struct SearchTVView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12))
+                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
                         )
                         .overlay {
                             Capsule(style: .continuous)

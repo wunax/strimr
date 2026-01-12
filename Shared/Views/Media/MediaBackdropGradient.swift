@@ -14,7 +14,7 @@ struct MediaBackdropGradient: View {
                     gradient: Gradient(colors: [colors[0], .clear]),
                     center: .topLeading,
                     startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.75
+                    endRadius: max(geo.size.width, geo.size.height) * 0.75,
                 )
 
                 // Top Right
@@ -22,7 +22,7 @@ struct MediaBackdropGradient: View {
                     gradient: Gradient(colors: [colors[1], .clear]),
                     center: .topTrailing,
                     startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.75
+                    endRadius: max(geo.size.width, geo.size.height) * 0.75,
                 )
 
                 // Bottom Right
@@ -30,7 +30,7 @@ struct MediaBackdropGradient: View {
                     gradient: Gradient(colors: [colors[2], .clear]),
                     center: .bottomTrailing,
                     startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.75
+                    endRadius: max(geo.size.width, geo.size.height) * 0.75,
                 )
 
                 // Bottom Left
@@ -38,7 +38,7 @@ struct MediaBackdropGradient: View {
                     gradient: Gradient(colors: [colors[3], .clear]),
                     center: .bottomLeading,
                     startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.75
+                    endRadius: max(geo.size.width, geo.size.height) * 0.75,
                 )
             }
         }

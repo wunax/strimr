@@ -19,36 +19,36 @@ struct ContentView: View {
                 SignInView(
                     viewModel: SignInViewModel(
                         sessionManager: sessionManager,
-                        context: plexApiContext
-                    )
+                        context: plexApiContext,
+                    ),
                 )
             case .needsProfileSelection:
                 NavigationStack {
                     ProfileSwitcherView(
                         viewModel: ProfileSwitcherViewModel(
                             context: plexApiContext,
-                            sessionManager: sessionManager
-                        )
+                            sessionManager: sessionManager,
+                        ),
                     )
                 }
             case .needsServerSelection:
                 SelectServerView(
                     viewModel: ServerSelectionViewModel(
                         sessionManager: sessionManager,
-                        context: plexApiContext
-                    )
+                        context: plexApiContext,
+                    ),
                 )
             case .ready:
                 MainTabView(
                     homeViewModel: HomeViewModel(
                         context: plexApiContext,
                         settingsManager: settingsManager,
-                        libraryStore: libraryStore
+                        libraryStore: libraryStore,
                     ),
                     libraryViewModel: LibraryViewModel(
                         context: plexApiContext,
-                        libraryStore: libraryStore
-                    )
+                        libraryStore: libraryStore,
+                    ),
                 )
             }
         }

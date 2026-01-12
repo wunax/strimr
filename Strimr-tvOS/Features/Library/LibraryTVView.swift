@@ -10,7 +10,7 @@ struct LibraryTVView: View {
 
     init(
         viewModel: LibraryViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -67,13 +67,21 @@ struct LibraryTVView: View {
             .padding(.vertical, 20)
         }
         .overlay {
-            if viewModel.isLoading && viewModel.libraries.isEmpty {
+            if viewModel.isLoading, viewModel.libraries.isEmpty {
                 ProgressView("library.loading")
             } else if let errorMessage = viewModel.errorMessage, viewModel.libraries.isEmpty {
-                ContentUnavailableView(errorMessage, systemImage: "exclamationmark.triangle.fill", description: Text("library.error.description"))
-                    .symbolRenderingMode(.multicolor)
+                ContentUnavailableView(
+                    errorMessage,
+                    systemImage: "exclamationmark.triangle.fill",
+                    description: Text("library.error.description"),
+                )
+                .symbolRenderingMode(.multicolor)
             } else if viewModel.libraries.isEmpty {
-                ContentUnavailableView("library.empty.title", systemImage: "rectangle.stack.fill", description: Text("library.empty.description"))
+                ContentUnavailableView(
+                    "library.empty.title",
+                    systemImage: "rectangle.stack.fill",
+                    description: Text("library.empty.description"),
+                )
             }
         }
         .task {
@@ -133,7 +141,7 @@ struct LibraryTVView: View {
                     .clear,
                 ],
                 startPoint: .bottom,
-                endPoint: .top
+                endPoint: .top,
             )
             .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight)
 

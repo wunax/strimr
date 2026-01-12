@@ -100,7 +100,10 @@ final class PlexAPIContext {
         return nil
     }
 
-    private func isConnectionReachable(_ connection: PlexCloudResource.Connection, accessToken: String) async throws -> Bool {
+    private func isConnectionReachable(
+        _ connection: PlexCloudResource.Connection,
+        accessToken: String,
+    ) async throws -> Bool {
         var request = URLRequest(url: connection.uri)
         request.setValue(accessToken, forHTTPHeaderField: "X-Plex-Token")
         request.timeoutInterval = 3

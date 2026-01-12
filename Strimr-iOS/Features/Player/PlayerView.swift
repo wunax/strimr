@@ -60,7 +60,7 @@ struct PlayerView: View {
                     bindableViewModel.handlePropertyChange(
                         property: propertyName,
                         data: data,
-                        isScrubbing: isScrubbing
+                        isScrubbing: isScrubbing,
                     )
 
                     if propertyName == .videoParamsSigPeak {
@@ -73,7 +73,7 @@ struct PlayerView: View {
                 },
                 onMediaLoaded: {
                     handleMediaLoaded()
-                }
+                },
             )
             .onAppear {
                 showControls(temporarily: true)
@@ -113,7 +113,7 @@ struct PlayerView: View {
                     skipMarkerTitle: skipTitle,
                     onSkipMarker: activeMarker.map { marker in
                         { skipMarker(to: marker) }
-                    }
+                    },
                 )
                 .transition(.opacity)
             }
@@ -163,7 +163,7 @@ struct PlayerView: View {
                 selectedSubtitleTrackID: selectedSubtitleTrackID,
                 onSelectAudio: selectAudioTrack(_:),
                 onSelectSubtitle: selectSubtitleTrack(_:),
-                onClose: { showingSettings = false }
+                onClose: { showingSettings = false },
             )
             .presentationDetents([.medium])
             .presentationBackground(.ultraThinMaterial)
@@ -197,7 +197,7 @@ struct PlayerView: View {
     private var timelineBinding: Binding<Double> {
         Binding(
             get: { timelinePosition },
-            set: { timelinePosition = $0 }
+            set: { timelinePosition = $0 },
         )
     }
 
@@ -226,14 +226,14 @@ struct PlayerView: View {
                 settingsAudioTracks = audio.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex)
+                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
                     )
                 }
 
                 settingsSubtitleTracks = subtitles.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex)
+                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
                     )
                 }
 
@@ -444,7 +444,7 @@ struct PlayerView: View {
         await MainActor.run {
             viewModel = PlayerViewModel(
                 ratingKey: episode.ratingKey,
-                context: context
+                context: context,
             )
         }
 

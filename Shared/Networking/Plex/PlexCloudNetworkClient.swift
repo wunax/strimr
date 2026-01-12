@@ -29,7 +29,7 @@ final class PlexCloudNetworkClient {
         method: String = "GET",
         queryItems: [URLQueryItem]? = nil,
         headers: [String: String] = [:],
-        body: Data? = nil
+        body: Data? = nil,
     ) async throws -> Response {
         let request = try buildRequest(path: path, method: method, queryItems: queryItems, headers: headers, body: body)
 
@@ -54,7 +54,7 @@ final class PlexCloudNetworkClient {
         method: String = "GET",
         queryItems: [URLQueryItem]? = nil,
         headers: [String: String] = [:],
-        body: Data? = nil
+        body: Data? = nil,
     ) async throws {
         let request = try buildRequest(path: path, method: method, queryItems: queryItems, headers: headers, body: body)
 
@@ -72,9 +72,10 @@ final class PlexCloudNetworkClient {
         method: String,
         queryItems: [URLQueryItem]?,
         headers: [String: String],
-        body: Data?
+        body: Data?,
     ) throws -> URLRequest {
-        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        else {
             throw PlexAPIError.invalidURL
         }
         if let queryItems {

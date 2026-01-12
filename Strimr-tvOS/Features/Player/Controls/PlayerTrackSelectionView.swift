@@ -15,7 +15,7 @@ struct PlayerTrackSelectionView: View {
                     TrackSelectionRow(
                         title: String(localized: "player.settings.subtitles.off"),
                         subtitle: String(localized: "player.settings.subtitles.offDescription"),
-                        isSelected: selectedTrackID == nil
+                        isSelected: selectedTrackID == nil,
                     ) {
                         onSelect(nil)
                     }
@@ -33,7 +33,7 @@ struct PlayerTrackSelectionView: View {
                             TrackSelectionRow(
                                 title: track.title,
                                 subtitle: track.subtitle,
-                                isSelected: selectedTrackID == track.id
+                                isSelected: selectedTrackID == track.id,
                             ) {
                                 onSelect(track.track.id)
                             }

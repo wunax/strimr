@@ -57,7 +57,7 @@ final class MediaDetailViewModel {
             let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
             let response = try await metadataRepository.getMetadata(
                 ratingKey: media.metadataRatingKey,
-                params: params
+                params: params,
             )
             if let item = response.mediaContainer.metadata?.first {
                 media = MediaItem(plexItem: item)
@@ -229,15 +229,15 @@ final class MediaDetailViewModel {
     var primaryActionTitle: String {
         switch media.type {
         case .movie:
-            return hasProgress(for: media)
+            hasProgress(for: media)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
         case .show:
-            return hasProgress(for: onDeckItem)
+            hasProgress(for: onDeckItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
         case .season, .episode:
-            return hasProgress(for: media)
+            hasProgress(for: media)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
         }
@@ -275,22 +275,22 @@ final class MediaDetailViewModel {
     var shouldShowPlayFromStartButton: Bool {
         switch media.type {
         case .movie:
-            return hasProgress(for: media)
+            hasProgress(for: media)
         case .show:
-            return hasProgress(for: onDeckItem)
+            hasProgress(for: onDeckItem)
         case .season, .episode:
-            return hasProgress(for: media)
+            hasProgress(for: media)
         }
     }
 
     var primaryActionRatingKey: String? {
         switch media.type {
         case .movie:
-            return media.id
+            media.id
         case .show:
-            return onDeckItem?.id
+            onDeckItem?.id
         case .season, .episode:
-            return media.id
+            media.id
         }
     }
 
@@ -462,7 +462,7 @@ final class MediaDetailViewModel {
                 id: identifier,
                 name: role.tag,
                 character: character,
-                thumbPath: role.thumb
+                thumbPath: role.thumb,
             )
         }
     }

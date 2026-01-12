@@ -16,35 +16,35 @@ final class SettingsViewModel {
     var autoPlayNextBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.autoPlayNextEpisode },
-            set: { self.settingsManager.setAutoPlayNextEpisode($0) }
+            set: { self.settingsManager.setAutoPlayNextEpisode($0) },
         )
     }
 
     var rewindBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.seekBackwardSeconds },
-            set: { self.settingsManager.setSeekBackwardSeconds($0) }
+            set: { self.settingsManager.setSeekBackwardSeconds($0) },
         )
     }
 
     var fastForwardBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.seekForwardSeconds },
-            set: { self.settingsManager.setSeekForwardSeconds($0) }
+            set: { self.settingsManager.setSeekForwardSeconds($0) },
         )
     }
 
     var playerBinding: Binding<PlaybackPlayer> {
         Binding(
             get: { self.settingsManager.playback.player },
-            set: { self.settingsManager.setPlaybackPlayer($0) }
+            set: { self.settingsManager.setPlaybackPlayer($0) },
         )
     }
 
     var subtitleScaleBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.subtitleScale },
-            set: { self.settingsManager.setSubtitleScale($0) }
+            set: { self.settingsManager.setSubtitleScale($0) },
         )
     }
 }

@@ -13,7 +13,7 @@ struct LibraryDetailView: View {
 
     init(
         library: Library,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
@@ -49,18 +49,18 @@ struct LibraryDetailView: View {
                 LibraryTVRecommendedView(
                     viewModel: LibraryRecommendedViewModel(
                         library: library,
-                        context: plexApiContext
+                        context: plexApiContext,
                     ),
                     heroMedia: $viewModel.heroMedia,
-                    onSelectMedia: onSelectMedia
+                    onSelectMedia: onSelectMedia,
                 )
             case .browse:
                 LibraryBrowseView(
                     viewModel: LibraryBrowseViewModel(
                         library: library,
-                        context: plexApiContext
+                        context: plexApiContext,
                     ),
-                    onSelectMedia: onSelectMedia
+                    onSelectMedia: onSelectMedia,
                 )
             }
         }
@@ -122,18 +122,18 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .recommended:
-            return "library.detail.tab.recommended"
+            "library.detail.tab.recommended"
         case .browse:
-            return "library.detail.tab.browse"
+            "library.detail.tab.browse"
         }
     }
 
     var systemImageName: String {
         switch self {
         case .recommended:
-            return "sparkles"
+            "sparkles"
         case .browse:
-            return "square.grid.2x2.fill"
+            "square.grid.2x2.fill"
         }
     }
 }

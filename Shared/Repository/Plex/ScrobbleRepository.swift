@@ -15,21 +15,21 @@ final class ScrobbleRepository {
 
         network = PlexServerNetworkClient(
             authToken: authToken,
-            baseURL: baseURLServer
+            baseURL: baseURLServer,
         )
     }
 
     func markWatched(key: String) async throws {
         try await network.send(
             path: "/:/scrobble",
-            queryItems: queryItems(for: key)
+            queryItems: queryItems(for: key),
         )
     }
 
     func markUnwatched(key: String) async throws {
         try await network.send(
             path: "/:/unscrobble",
-            queryItems: queryItems(for: key)
+            queryItems: queryItems(for: key),
         )
     }
 

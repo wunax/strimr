@@ -90,7 +90,7 @@ struct ProfileSwitcherTVView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(borderColor(for: user), lineWidth: viewModel.activeUserUUID == user.uuid ? 3 : 1)
+                            .stroke(borderColor(for: user), lineWidth: viewModel.activeUserUUID == user.uuid ? 3 : 1),
                     )
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -163,14 +163,14 @@ struct ProfileSwitcherTVView: View {
                 Color.red.opacity(0.5),
             ],
             startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            endPoint: .bottomTrailing,
         )
         .overlay(
             Image(systemName: "person.crop.square.fill")
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(.white.opacity(0.9))
-                .padding(32)
+                .padding(32),
         )
     }
 
@@ -267,19 +267,13 @@ struct ProfileSwitcherTVView: View {
             }
 
             Color.clear
-                .frame(width: keypadButtonSize.width,
-                       height: keypadButtonSize.height)
+                .frame(
+                    width: keypadButtonSize.width,
+                    height: keypadButtonSize.height,
+                )
 
             keypadDigitButton("0")
             keypadDeleteButton()
-        }
-    }
-
-    private func keypadRow(_ digits: [String]) -> some View {
-        HStack(spacing: 16) {
-            ForEach(digits, id: \.self) { digit in
-                keypadDigitButton(digit)
-            }
         }
     }
 

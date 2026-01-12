@@ -38,7 +38,7 @@ final class DisplayedLibrariesViewModel {
     func displayedBinding(for library: Library) -> Binding<Bool> {
         Binding(
             get: { !self.settingsManager.interface.hiddenLibraryIds.contains(library.id) },
-            set: { self.settingsManager.setLibraryDisplayed(library.id, displayed: $0) }
+            set: { self.settingsManager.setLibraryDisplayed(library.id, displayed: $0) },
         )
     }
 

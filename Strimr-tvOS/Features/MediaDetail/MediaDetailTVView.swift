@@ -13,7 +13,7 @@ struct MediaDetailTVView: View {
         viewModel: MediaDetailViewModel,
         onPlay: @escaping (String) -> Void = { _ in },
         onPlayFromStart: @escaping (String) -> Void = { _ in },
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
@@ -169,7 +169,7 @@ struct MediaDetailTVView: View {
         if let error = viewModel.seasonsErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-        } else if (viewModel.isLoadingSeasons || viewModel.isLoading) && viewModel.seasons.isEmpty {
+        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                 Text("media.detail.loadingSeasons")
@@ -195,7 +195,7 @@ struct MediaDetailTVView: View {
                                 if focusedMedia?.id == season.id {
                                     focusedMedia = nil
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -210,7 +210,7 @@ struct MediaDetailTVView: View {
         if let error = viewModel.episodesErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-        } else if viewModel.isLoadingEpisodes && viewModel.episodes.isEmpty {
+        } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
             ProgressView("media.detail.loadingEpisodes")
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
@@ -230,7 +230,7 @@ struct MediaDetailTVView: View {
                             },
                             onFocus: {
                                 focusedMedia = episode
-                            }
+                            },
                         )
                     }
                 }
@@ -274,11 +274,14 @@ private struct SeasonPillButton: View {
                 .foregroundStyle(.brandSecondary)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(isSelected ? Color.brandSecondary.opacity(0.5) : Color.gray.opacity(0.12))
+                        .fill(isSelected ? Color.brandSecondary.opacity(0.5) : Color.gray.opacity(0.12)),
                 )
                 .overlay {
                     Capsule(style: .continuous)
-                        .stroke(isFocused ? Color.brandSecondary : Color.gray.opacity(0.25), lineWidth: isFocused ? 3 : 1)
+                        .stroke(
+                            isFocused ? Color.brandSecondary : Color.gray.opacity(0.25),
+                            lineWidth: isFocused ? 3 : 1,
+                        )
                 }
         }
         .focusable()
@@ -314,7 +317,7 @@ private struct EpisodeArtworkCard: View {
                 imageURL: imageURL,
                 width: width,
                 runtime: runtime,
-                progress: progress
+                progress: progress,
             )
         }
         .buttonStyle(.plain)

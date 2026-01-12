@@ -30,7 +30,7 @@ struct SelectServerTVView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isLoading && viewModel.servers.isEmpty {
+        if viewModel.isLoading, viewModel.servers.isEmpty {
             ProgressView("serverSelection.loading")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else if viewModel.servers.isEmpty {
@@ -82,7 +82,7 @@ struct SelectServerTVView: View {
                     .overlay(
                         Image(systemName: "server.rack")
                             .font(.title)
-                            .foregroundStyle(.brandPrimary)
+                            .foregroundStyle(.brandPrimary),
                     )
 
                 VStack(alignment: .leading, spacing: 6) {

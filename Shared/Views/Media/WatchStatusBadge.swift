@@ -18,7 +18,7 @@ struct WatchStatusBadge: View {
     }
 
     @ViewBuilder
-    private func badge<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func badge(@ViewBuilder content: () -> some View) -> some View {
         content()
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)

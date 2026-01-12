@@ -24,9 +24,12 @@ final class ImageRepository {
         width: Int = 240,
         height: Int = 360,
         minSize: Int = 1,
-        upscale: Int = 1
+        upscale: Int = 1,
     ) -> URL? {
-        var components = URLComponents(url: baseURL.appendingPathComponent("photo/:/transcode"), resolvingAgainstBaseURL: false)
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("photo/:/transcode"),
+            resolvingAgainstBaseURL: false,
+        )
         components?.queryItems = [
             URLQueryItem(name: "X-Plex-Token", value: authToken),
             URLQueryItem(name: "url", value: path),

@@ -27,13 +27,13 @@ struct PlayerBadge: View {
                     .white.opacity(0.08),
                 ],
                 startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                endPoint: .bottomTrailing,
             ),
-            in: Capsule()
+            in: Capsule(),
         )
         .overlay(
             Capsule()
-                .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                .stroke(Color.white.opacity(0.25), lineWidth: 1),
         )
     }
 }

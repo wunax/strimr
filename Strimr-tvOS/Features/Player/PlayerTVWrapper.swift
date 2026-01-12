@@ -11,7 +11,7 @@ struct PlayerTVWrapper: View {
                 viewModel: viewModel,
                 initialPlayer: internalPlayer,
                 options: PlayerOptions(subtitleScale: settingsManager.playback.subtitleScale),
-                onExit: onExit
+                onExit: onExit,
             )
         } else {
             ProgressView()

@@ -2,7 +2,10 @@ import Foundation
 import SwiftUI
 
 enum PlayerFactory {
-    static func makeCoordinator(for selection: InternalPlaybackPlayer, options: PlayerOptions) -> any PlayerCoordinating {
+    static func makeCoordinator(
+        for selection: InternalPlaybackPlayer,
+        options: PlayerOptions,
+    ) -> any PlayerCoordinating {
         switch selection {
         case .mpv:
             let coordinator = MPVPlayerView.Coordinator()
@@ -20,7 +23,7 @@ enum PlayerFactory {
         coordinator: any PlayerCoordinating,
         onPropertyChange: @escaping (PlayerProperty, Any?) -> Void,
         onPlaybackEnded: @escaping () -> Void,
-        onMediaLoaded: @escaping () -> Void
+        onMediaLoaded: @escaping () -> Void,
     ) -> AnyView {
         switch selection {
         case .mpv:
@@ -34,7 +37,7 @@ enum PlayerFactory {
                         onPropertyChange(property, data)
                     }
                     .onPlaybackEnded(onPlaybackEnded)
-                    .onMediaLoaded(onMediaLoaded)
+                    .onMediaLoaded(onMediaLoaded),
             )
         case .vlc:
             guard let vlcCoordinator = coordinator as? VLCPlayerView.Coordinator else {
@@ -47,7 +50,7 @@ enum PlayerFactory {
                         onPropertyChange(property, data)
                     }
                     .onPlaybackEnded(onPlaybackEnded)
-                    .onMediaLoaded(onMediaLoaded)
+                    .onMediaLoaded(onMediaLoaded),
             )
         }
     }

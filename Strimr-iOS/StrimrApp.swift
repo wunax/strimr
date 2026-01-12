@@ -6,8 +6,6 @@ struct StrimrApp: App {
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var libraryStore: LibraryStore
-    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
     init() {
         let context = PlexAPIContext()
         let store = LibraryStore(context: context)

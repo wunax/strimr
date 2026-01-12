@@ -53,7 +53,7 @@ final class LibraryBrowseViewModel {
             let start = reset ? 0 : items.count
             let response = try await sectionRepository.getSectionsItems(
                 sectionId: sectionId,
-                pagination: PlexPagination(start: start, size: 20)
+                pagination: PlexPagination(start: start, size: 20),
             )
 
             let newItems = (response.mediaContainer.metadata ?? []).map(MediaItem.init)

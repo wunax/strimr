@@ -14,7 +14,7 @@ final class SectionRepository {
                 URLQueryItem.make("sort", sort),
                 URLQueryItem.make("limit", limit),
                 URLQueryItem.makeBoolFlag("includeMeta", includeMeta),
-            ].compactMap { $0 }
+            ].compactMap(\.self)
         }
     }
 
@@ -38,14 +38,14 @@ final class SectionRepository {
     func getSectionsItems(
         sectionId: Int,
         params: SectionItemsParams? = nil,
-        pagination: PlexPagination? = nil
+        pagination: PlexPagination? = nil,
     ) async throws -> PlexItemMediaContainer {
         let resolvedParams = params ?? SectionItemsParams()
         let resolvedPagination = pagination ?? PlexPagination()
         return try await network.request(
             path: "/library/sections/\(sectionId)/all",
             queryItems: resolvedParams.queryItems,
-            headers: resolvedPagination.headers
+            headers: resolvedPagination.headers,
         )
     }
 
@@ -53,7 +53,7 @@ final class SectionRepository {
         try await network.request(
             path: "/library/sections/\(sectionId)/all",
             queryItems: SectionItemsParams(includeMeta: true).queryItems,
-            headers: PlexPagination(start: 0, size: 0).headers
+            headers: PlexPagination(start: 0, size: 0).headers,
         )
     }
 

@@ -17,16 +17,16 @@ struct ContentView: View {
                 SignInTVView(
                     viewModel: SignInTVViewModel(
                         sessionManager: sessionManager,
-                        context: plexApiContext
-                    )
+                        context: plexApiContext,
+                    ),
                 )
             case .needsProfileSelection:
                 NavigationStack {
                     ProfileSwitcherTVView(
                         viewModel: ProfileSwitcherViewModel(
                             context: plexApiContext,
-                            sessionManager: sessionManager
-                        )
+                            sessionManager: sessionManager,
+                        ),
                     )
                 }
             case .needsServerSelection:
@@ -34,8 +34,8 @@ struct ContentView: View {
                     SelectServerTVView(
                         viewModel: ServerSelectionViewModel(
                             sessionManager: sessionManager,
-                            context: plexApiContext
-                        )
+                            context: plexApiContext,
+                        ),
                     )
                 }
             case .ready:

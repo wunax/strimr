@@ -16,7 +16,7 @@ final class HubRepository {
                 URLQueryItem.make("count", count),
                 URLQueryItem.makeArray("excludeFields", excludeFields),
                 URLQueryItem.makeBoolFlag("excludeContinueWatching", excludeContinueWatching),
-            ].compactMap { $0 }
+            ].compactMap(\.self)
         }
     }
 

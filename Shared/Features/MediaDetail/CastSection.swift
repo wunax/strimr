@@ -15,7 +15,7 @@ struct CastSection: View {
                             .font(.headline)
                             .fontWeight(.semibold)
 
-                        if viewModel.isLoading && viewModel.cast.isEmpty {
+                        if viewModel.isLoading, viewModel.cast.isEmpty {
                             ProgressView()
                                 .controlSize(.small)
                         }
@@ -52,7 +52,7 @@ struct CastCarousel: View {
                 ForEach(viewModel.cast) { member in
                     CastCard(
                         member: member,
-                        imageURL: viewModel.castImageURL(for: member)
+                        imageURL: viewModel.castImageURL(for: member),
                     )
                 }
             }
@@ -93,7 +93,7 @@ struct CastCard: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
                         isFocused ? Color.brandSecondary : .clear,
-                        lineWidth: 4
+                        lineWidth: 4,
                     )
             }
         #endif

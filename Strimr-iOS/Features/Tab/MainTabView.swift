@@ -20,7 +20,7 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .home)) {
                     HomeView(
                         viewModel: homeViewModel,
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) {
                         destination(for: $0)
@@ -32,7 +32,7 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchView(
                         viewModel: SearchViewModel(context: plexApiContext),
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) {
                         destination(for: $0)
@@ -44,12 +44,12 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .library)) {
                     LibraryView(
                         viewModel: libraryViewModel,
-                        onSelectMedia: coordinator.showMediaDetail
+                        onSelectMedia: coordinator.showMediaDetail,
                     )
                     .navigationDestination(for: Library.self) { library in
                         LibraryDetailView(
                             library: library,
-                            onSelectMedia: coordinator.showMediaDetail
+                            onSelectMedia: coordinator.showMediaDetail,
                         )
                     }
                     .navigationDestination(for: MainCoordinator.Route.self) {
@@ -59,11 +59,15 @@ struct MainTabView: View {
             }
 
             ForEach(navigationLibraries) { library in
-                Tab(library.title, systemImage: library.iconName, value: MainCoordinator.Tab.libraryDetail(library.id)) {
+                Tab(
+                    library.title,
+                    systemImage: library.iconName,
+                    value: MainCoordinator.Tab.libraryDetail(library.id),
+                ) {
                     NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
                         LibraryDetailView(
                             library: library,
-                            onSelectMedia: coordinator.showMediaDetail
+                            onSelectMedia: coordinator.showMediaDetail,
                         )
                         .navigationDestination(for: MainCoordinator.Route.self) {
                             destination(for: $0)
@@ -83,8 +87,8 @@ struct MainTabView: View {
                     viewModel: PlayerViewModel(
                         ratingKey: ratingKey,
                         context: plexApiContext,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset
-                    )
+                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                    ),
                 )
             }
         }
@@ -102,7 +106,7 @@ struct MainTabView: View {
             MediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    context: plexApiContext
+                    context: plexApiContext,
                 ),
                 onPlay: { ratingKey in
                     handlePlay(ratingKey: ratingKey)
@@ -110,7 +114,7 @@ struct MainTabView: View {
                 onPlayFromStart: { ratingKey in
                     handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
                 },
-                onSelectMedia: coordinator.showMediaDetail
+                onSelectMedia: coordinator.showMediaDetail,
             )
         }
     }

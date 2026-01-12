@@ -64,11 +64,11 @@ struct MediaItem: Identifiable, Hashable {
     var metadataRatingKey: String {
         switch type {
         case .episode:
-            return grandparentRatingKey ?? parentRatingKey ?? id
+            grandparentRatingKey ?? parentRatingKey ?? id
         case .season:
-            return parentRatingKey ?? id
+            parentRatingKey ?? id
         case .movie, .show:
-            return id
+            id
         }
     }
 

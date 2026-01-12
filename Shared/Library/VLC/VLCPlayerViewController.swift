@@ -93,13 +93,13 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
             names: mediaPlayer.audioTrackNames,
             indexes: mediaPlayer.audioTrackIndexes,
             type: .audio,
-            selectedIndex: Int(mediaPlayer.currentAudioTrackIndex)
+            selectedIndex: Int(mediaPlayer.currentAudioTrackIndex),
         )
         let subtitleTracks = makeTracks(
             names: mediaPlayer.videoSubTitlesNames,
             indexes: mediaPlayer.videoSubTitlesIndexes,
             type: .subtitle,
-            selectedIndex: Int(mediaPlayer.currentVideoSubTitleIndex)
+            selectedIndex: Int(mediaPlayer.currentVideoSubTitleIndex),
         )
 
         return audioTracks + subtitleTracks
@@ -172,7 +172,7 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
         names: [Any],
         indexes: [Any],
         type: PlayerTrack.TrackType,
-        selectedIndex: Int
+        selectedIndex: Int,
     ) -> [PlayerTrack] {
         let paired = zip(names, indexes)
         return paired.compactMap { name, index in
@@ -193,7 +193,7 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
                 language: nil,
                 codec: nil,
                 isDefault: false,
-                isSelected: id == selectedIndex
+                isSelected: id == selectedIndex,
             )
         }
     }

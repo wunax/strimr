@@ -9,7 +9,7 @@ struct HomeTVView: View {
 
     init(
         viewModel: HomeViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -57,7 +57,7 @@ struct HomeTVView: View {
                             layout: .landscape,
                             items: hub.items,
                             showsLabels: false,
-                            onSelectMedia: onSelectMedia
+                            onSelectMedia: onSelectMedia,
                         )
                     }
                 }
@@ -70,14 +70,14 @@ struct HomeTVView: View {
                                     layout: .portrait,
                                     items: hub.items,
                                     showsLabels: false,
-                                    onSelectMedia: onSelectMedia
+                                    onSelectMedia: onSelectMedia,
                                 )
                             }
                         }
                     }
                 }
 
-                if viewModel.isLoading && !viewModel.hasContent {
+                if viewModel.isLoading, !viewModel.hasContent {
                     ProgressView("home.loading")
                         .frame(maxWidth: .infinity)
                 }
@@ -85,7 +85,7 @@ struct HomeTVView: View {
                 if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
-                } else if !viewModel.hasContent && !viewModel.isLoading {
+                } else if !viewModel.hasContent, !viewModel.isLoading {
                     Text("common.empty.nothingToShow")
                         .foregroundStyle(.secondary)
                 }

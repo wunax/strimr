@@ -41,7 +41,7 @@ final class SessionManager {
             if let token = storedToken {
                 try await bootstrapAuthenticatedSession(
                     with: token,
-                    allowProfileSelection: false
+                    allowProfileSelection: false,
                 )
             } else {
                 status = .signedOut
@@ -59,7 +59,7 @@ final class SessionManager {
             context.setAuthToken(token)
             try await bootstrapAuthenticatedSession(
                 with: token,
-                allowProfileSelection: true
+                allowProfileSelection: true,
             )
         } catch {
             await clearSession()
@@ -82,7 +82,7 @@ final class SessionManager {
             context.setAuthToken(user.authToken)
             try await bootstrapAuthenticatedSession(
                 with: user.authToken,
-                allowProfileSelection: false
+                allowProfileSelection: false,
             )
         } catch {
             await clearSession()
@@ -122,7 +122,7 @@ final class SessionManager {
 
     private func bootstrapAuthenticatedSession(
         with token: String,
-        allowProfileSelection: Bool
+        allowProfileSelection: Bool,
     ) async throws {
         let userRepo = UserRepository(context: context)
         let resourcesRepo = ResourceRepository(context: context)

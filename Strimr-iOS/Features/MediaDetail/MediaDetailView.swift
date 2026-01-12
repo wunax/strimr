@@ -14,7 +14,7 @@ struct MediaDetailView: View {
         viewModel: MediaDetailViewModel,
         onPlay: @escaping (String) -> Void = { _ in },
         onPlayFromStart: @escaping (String) -> Void = { _ in },
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
@@ -32,13 +32,13 @@ struct MediaDetailView: View {
                     isSummaryExpanded: $isSummaryExpanded,
                     heroHeight: heroHeight,
                     onPlay: onPlay,
-                    onPlayFromStart: onPlayFromStart
+                    onPlayFromStart: onPlayFromStart,
                 )
 
                 if bindableViewModel.media.type == .show {
                     SeasonEpisodesSection(
                         viewModel: bindableViewModel,
-                        onPlay: onPlay
+                        onPlay: onPlay,
                     )
                 }
 
@@ -46,7 +46,7 @@ struct MediaDetailView: View {
 
                 RelatedHubsSection(
                     viewModel: bindableViewModel,
-                    onSelectMedia: onSelectMedia
+                    onSelectMedia: onSelectMedia,
                 )
             }
         }

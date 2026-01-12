@@ -39,7 +39,12 @@ struct PlayerTVView: View {
         Double(settingsManager.playback.seekForwardSeconds)
     }
 
-    init(viewModel: PlayerViewModel, initialPlayer: InternalPlaybackPlayer, options: PlayerOptions, onExit: @escaping () -> Void) {
+    init(
+        viewModel: PlayerViewModel,
+        initialPlayer: InternalPlaybackPlayer,
+        options: PlayerOptions,
+        onExit: @escaping () -> Void,
+    ) {
         _viewModel = State(initialValue: viewModel)
         activePlayer = initialPlayer
         _playerCoordinator = State(initialValue: PlayerFactory.makeCoordinator(for: initialPlayer, options: options))
@@ -65,7 +70,7 @@ struct PlayerTVView: View {
                     bindableViewModel.handlePropertyChange(
                         property: propertyName,
                         data: data,
-                        isScrubbing: isScrubbing
+                        isScrubbing: isScrubbing,
                     )
 
                     if propertyName == .videoParamsSigPeak {
@@ -78,7 +83,7 @@ struct PlayerTVView: View {
                 },
                 onMediaLoaded: {
                     handleMediaLoaded()
-                }
+                },
             )
             .ignoresSafeArea()
             .contentShape(Rectangle())
@@ -121,7 +126,7 @@ struct PlayerTVView: View {
                     onSkipMarker: activeMarker.map { marker in
                         { skipMarker(to: marker) }
                     },
-                    onUserInteraction: { showControls(temporarily: true) }
+                    onUserInteraction: { showControls(temporarily: true) },
                 )
                 .transition(.opacity)
             }
@@ -187,7 +192,7 @@ struct PlayerTVView: View {
                         selectSubtitleTrack(id)
                     }
                 },
-                onClose: { activeSettingsSheet = nil }
+                onClose: { activeSettingsSheet = nil },
             )
         }
         .alert("player.termination.title", isPresented: $showingTerminationAlert) {
@@ -219,7 +224,7 @@ struct PlayerTVView: View {
     private var timelineBinding: Binding<Double> {
         Binding(
             get: { timelinePosition },
-            set: { timelinePosition = $0 }
+            set: { timelinePosition = $0 },
         )
     }
 
@@ -254,14 +259,14 @@ struct PlayerTVView: View {
                 settingsAudioTracks = audio.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex)
+                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
                     )
                 }
 
                 settingsSubtitleTracks = subtitles.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex)
+                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
                     )
                 }
 
@@ -440,7 +445,7 @@ struct PlayerTVView: View {
             .background(.black.opacity(0.7), in: Capsule(style: .continuous))
             .overlay(
                 Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1),
             )
             Spacer()
         }
@@ -522,7 +527,7 @@ struct PlayerTVView: View {
         await MainActor.run {
             viewModel = PlayerViewModel(
                 ratingKey: episode.ratingKey,
-                context: context
+                context: context,
             )
         }
 
@@ -539,9 +544,9 @@ private enum TrackSettingsSheet: String, Identifiable {
     var titleKey: LocalizedStringKey {
         switch self {
         case .audio:
-            return "player.settings.audio"
+            "player.settings.audio"
         case .subtitle:
-            return "player.settings.subtitles"
+            "player.settings.subtitles"
         }
     }
 }

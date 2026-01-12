@@ -16,7 +16,7 @@ struct MediaCarousel: View {
                 ForEach(items, id: \.id) { item in
                     card(for: item)
                         .frame(
-                            width: cardWidth(for: layout, sizeClass: sizeClass)
+                            width: cardWidth(for: layout, sizeClass: sizeClass),
                         )
                 }
             }
@@ -43,21 +43,21 @@ struct MediaCarousel: View {
 
     private func cardWidth(
         for layout: Layout,
-        sizeClass: UserInterfaceSizeClass?
+        sizeClass: UserInterfaceSizeClass?,
     ) -> CGFloat {
         switch layout {
         case .portrait:
             if sizeClass == .compact {
-                return 120
+                120
             } else {
-                return 160
+                160
             }
 
         case .landscape:
             if sizeClass == .compact {
-                return 160
+                160
             } else {
-                return 220
+                220
             }
         }
     }
@@ -65,9 +65,9 @@ struct MediaCarousel: View {
     private func spacing(for layout: Layout) -> CGFloat {
         switch layout {
         case .portrait:
-            return 12
+            12
         case .landscape:
-            return 16
+            16
         }
     }
 }

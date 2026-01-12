@@ -11,7 +11,7 @@ struct PortraitMediaCard: View {
             media: media,
             artworkKind: .thumb,
             showsLabels: showsLabels,
-            onTap: onTap
+            onTap: onTap,
         )
     }
 }

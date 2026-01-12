@@ -8,8 +8,8 @@ struct NavigationLibrariesSectionView: View {
         _viewModel = State(
             initialValue: NavigationLibrariesViewModel(
                 settingsManager: settingsManager,
-                libraryStore: libraryStore
-            )
+                libraryStore: libraryStore,
+            ),
         )
     }
 

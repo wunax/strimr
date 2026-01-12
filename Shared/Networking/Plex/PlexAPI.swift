@@ -14,11 +14,11 @@ protocol QueryItemConvertible {
 }
 
 extension URLQueryItem {
-    static func make<T: LosslessStringConvertible>(_ name: String, _ value: T?) -> URLQueryItem? {
+    static func make(_ name: String, _ value: (some LosslessStringConvertible)?) -> URLQueryItem? {
         value.map { URLQueryItem(name: name, value: String($0)) }
     }
 
-    static func makeArray<T: LosslessStringConvertible>(_ name: String, _ values: [T]?) -> URLQueryItem? {
+    static func makeArray(_ name: String, _ values: [some LosslessStringConvertible]?) -> URLQueryItem? {
         guard let values, !values.isEmpty else { return nil }
         return URLQueryItem(name: name, value: values.map(String.init).joined(separator: ","))
     }

@@ -200,7 +200,7 @@ struct MediaDetailHeaderSection: View {
                 .clear,
             ],
             startPoint: .top,
-            endPoint: .bottom
+            endPoint: .bottom,
         )
     }
 
@@ -345,7 +345,7 @@ private struct PlayProgressIcon: View {
                     .trim(from: 0, to: progress)
                     .stroke(
                         Color.brandSecondaryForeground,
-                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round),
                     )
                     .rotationEffect(.degrees(-90))
             }

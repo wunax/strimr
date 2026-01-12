@@ -78,8 +78,8 @@ final class LibraryBrowseViewModel {
                         id: identifier,
                         title: title,
                         size: size,
-                        startIndex: runningIndex
-                    )
+                        startIndex: runningIndex,
+                    ),
                 )
                 runningIndex += size
             }
@@ -113,7 +113,7 @@ final class LibraryBrowseViewModel {
         do {
             let response = try await sectionRepository.getSectionsItems(
                 sectionId: sectionId,
-                pagination: PlexPagination(start: start, size: pageSize)
+                pagination: PlexPagination(start: start, size: pageSize),
             )
 
             let newItems = (response.mediaContainer.metadata ?? []).map(MediaItem.init)

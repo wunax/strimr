@@ -13,7 +13,7 @@ final class AuthRepository {
         try await network.request(
             path: "/pins",
             method: "POST",
-            queryItems: [URLQueryItem(name: "strong", value: "true")]
+            queryItems: [URLQueryItem(name: "strong", value: "true")],
         )
     }
 

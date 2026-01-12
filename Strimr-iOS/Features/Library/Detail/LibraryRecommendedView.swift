@@ -19,7 +19,7 @@ struct LibraryRecommendedView: View {
                     }
                 }
 
-                if viewModel.isLoading && !viewModel.hasContent {
+                if viewModel.isLoading, !viewModel.hasContent {
                     ProgressView("library.recommended.loading")
                         .frame(maxWidth: .infinity)
                 }
@@ -27,7 +27,7 @@ struct LibraryRecommendedView: View {
                 if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
-                } else if !viewModel.hasContent && !viewModel.isLoading {
+                } else if !viewModel.hasContent, !viewModel.isLoading {
                     Text("common.empty.nothingToShow")
                         .foregroundStyle(.secondary)
                 }
@@ -47,14 +47,14 @@ struct LibraryRecommendedView: View {
                 layout: .landscape,
                 items: hub.items,
                 showsLabels: true,
-                onSelectMedia: onSelectMedia
+                onSelectMedia: onSelectMedia,
             )
         } else {
             MediaCarousel(
                 layout: .portrait,
                 items: hub.items,
                 showsLabels: true,
-                onSelectMedia: onSelectMedia
+                onSelectMedia: onSelectMedia,
             )
         }
     }

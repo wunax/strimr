@@ -42,7 +42,7 @@ final class SignInTVViewModel {
         pollTask?.cancel()
 
         pollTask = Task {
-            while !Task.isCancelled && isAuthenticating {
+            while !Task.isCancelled, isAuthenticating {
                 do {
                     let authRepository = AuthRepository(context: plexContext)
                     let result = try await authRepository.pollToken(pinId: pinID)

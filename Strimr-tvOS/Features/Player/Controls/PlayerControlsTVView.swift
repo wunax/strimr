@@ -60,19 +60,19 @@ struct PlayerControlsTVView: View {
                 bufferedAhead: bufferedAhead,
                 playbackPosition: bufferBasePosition,
                 supportsHDR: supportsHDR,
-                onEditingChanged: onScrubbingChanged
+                onEditingChanged: onScrubbingChanged,
             )
 
             ZStack {
                 HStack(spacing: 36) {
                     PlayerSettingButton(
                         systemImage: "speaker.wave.2",
-                        action: onShowAudioSettings
+                        action: onShowAudioSettings,
                     )
 
                     PlayerSettingButton(
                         systemImage: "captions.bubble",
-                        action: onShowSubtitleSettings
+                        action: onShowSubtitleSettings,
                     )
 
                     Spacer()
@@ -82,7 +82,7 @@ struct PlayerControlsTVView: View {
                     PlayerIconButton(
                         systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
                         accessibilityLabel: String(localized: "player.controls.rewindSeconds \(seekBackwardSeconds)"),
-                        action: onSeekBackward
+                        action: onSeekBackward,
                     )
 
                     PlayPauseButton(isPaused: isPaused, action: onPlayPause)
@@ -90,8 +90,10 @@ struct PlayerControlsTVView: View {
 
                     PlayerIconButton(
                         systemName: iconName(prefix: "goforward", seconds: seekForwardSeconds),
-                        accessibilityLabel: String(localized: "player.controls.skipForwardSeconds \(seekForwardSeconds)"),
-                        action: onSeekForward
+                        accessibilityLabel: String(
+                            localized: "player.controls.skipForwardSeconds \(seekForwardSeconds)",
+                        ),
+                        action: onSeekForward,
                     )
                 }
             }
@@ -129,7 +131,7 @@ private struct PlayerControlsTVBackground: View {
                     .clear,
                 ],
                 startPoint: .top,
-                endPoint: .bottom
+                endPoint: .bottom,
             )
             .frame(height: 200)
 
@@ -141,7 +143,7 @@ private struct PlayerControlsTVBackground: View {
                     .black.opacity(0.7),
                 ],
                 startPoint: .top,
-                endPoint: .bottom
+                endPoint: .bottom,
             )
             .frame(height: 280)
         }

@@ -52,7 +52,7 @@ final class NavigationLibrariesViewModel {
     func navigationBinding(for library: Library) -> Binding<Bool> {
         Binding(
             get: { self.navigationLibraryIds.contains(library.id) },
-            set: { self.setLibraryNavigationEnabled(library.id, enabled: $0) }
+            set: { self.setLibraryNavigationEnabled(library.id, enabled: $0) },
         )
     }
 

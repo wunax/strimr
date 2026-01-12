@@ -22,7 +22,7 @@ struct PlaybackSettingsView: View {
                         TrackSelectionRow(
                             title: track.title,
                             subtitle: track.subtitle,
-                            isSelected: selectedAudioTrackID == track.id
+                            isSelected: selectedAudioTrackID == track.id,
                         ) {
                             onSelectAudio(track.track.id)
                         }
@@ -33,7 +33,7 @@ struct PlaybackSettingsView: View {
                     TrackSelectionRow(
                         title: String(localized: "player.settings.subtitles.off"),
                         subtitle: String(localized: "player.settings.subtitles.offDescription"),
-                        isSelected: selectedSubtitleTrackID == nil
+                        isSelected: selectedSubtitleTrackID == nil,
                     ) {
                         onSelectSubtitle(nil)
                     }
@@ -42,7 +42,7 @@ struct PlaybackSettingsView: View {
                         TrackSelectionRow(
                             title: track.title,
                             subtitle: track.subtitle,
-                            isSelected: selectedSubtitleTrackID == track.id
+                            isSelected: selectedSubtitleTrackID == track.id,
                         ) {
                             onSelectSubtitle(track.track.id)
                         }

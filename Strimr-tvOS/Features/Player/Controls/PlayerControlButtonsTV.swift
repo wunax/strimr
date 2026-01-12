@@ -30,7 +30,7 @@ struct PlayPauseButton: View {
         .accessibilityLabel(
             isPaused
                 ? String(localized: "common.actions.play")
-                : String(localized: "common.actions.pause")
+                : String(localized: "common.actions.pause"),
         )
     }
 }

@@ -18,13 +18,13 @@ struct PlayerIconButton: View {
                             .white.opacity(0.08),
                         ],
                         startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        endPoint: .bottomTrailing,
                     ),
-                    in: Circle()
+                    in: Circle(),
                 )
                 .overlay(
                     Circle()
-                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.25), lineWidth: 1),
                 )
                 .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 12)
         }
@@ -49,20 +49,19 @@ struct PlayPauseButton: View {
                             Color.white.opacity(0.85),
                         ],
                         startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        endPoint: .bottomTrailing,
                     ),
-                    in: Circle()
+                    in: Circle(),
                 )
                 .overlay(
                     Circle()
-                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.35), lineWidth: 1),
                 )
                 .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 14)
         }
         .accessibilityLabel(isPaused
             ? String(localized: "common.actions.play")
-            : String(localized: "common.actions.pause")
-        )
+            : String(localized: "common.actions.pause"))
     }
 }
 
@@ -88,13 +87,13 @@ struct SkipMarkerButton: View {
                         Color.white.opacity(0.9),
                     ],
                     startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    endPoint: .bottomTrailing,
                 ),
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous),
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.35), lineWidth: 1),
             )
             .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 12)
         }
@@ -114,7 +113,7 @@ struct PlayerSettingsButton: View {
                 .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1),
                 )
         }
         .accessibilityLabel(String(localized: "settings.title"))

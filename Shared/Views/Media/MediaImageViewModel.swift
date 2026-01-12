@@ -21,12 +21,11 @@ final class MediaImageViewModel {
     }
 
     func load() async {
-        let path: String?
-        switch artworkKind {
+        let path: String? = switch artworkKind {
         case .thumb:
-            path = media.grandparentThumbPath ?? media.parentThumbPath ?? media.thumbPath
+            media.grandparentThumbPath ?? media.parentThumbPath ?? media.thumbPath
         case .art:
-            path = media.grandparentArtPath ?? media.artPath
+            media.grandparentArtPath ?? media.artPath
         }
 
         guard let path else {

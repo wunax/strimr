@@ -25,7 +25,7 @@ struct RelatedHubsSection: View {
             Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .font(.subheadline)
-        } else if viewModel.isLoadingRelatedHubs && viewModel.relatedHubs.isEmpty {
+        } else if viewModel.isLoadingRelatedHubs, viewModel.relatedHubs.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
@@ -49,7 +49,7 @@ struct RelatedHubsSection: View {
                             layout: .portrait,
                             items: hub.items,
                             showsLabels: true,
-                            onSelectMedia: onSelectMedia
+                            onSelectMedia: onSelectMedia,
                         )
                     }
                 }

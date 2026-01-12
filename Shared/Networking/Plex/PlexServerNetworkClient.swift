@@ -28,7 +28,7 @@ final class PlexServerNetworkClient {
         path: String,
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) async throws -> Response {
         let request = try buildRequest(path: path, queryItems: queryItems, method: method, headers: headers)
 
@@ -53,7 +53,7 @@ final class PlexServerNetworkClient {
         path: String,
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) async throws {
         let request = try buildRequest(path: path, queryItems: queryItems, method: method, headers: headers)
 
@@ -70,9 +70,10 @@ final class PlexServerNetworkClient {
         path: String,
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) throws -> URLRequest {
-        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        else {
             throw PlexAPIError.invalidURL
         }
         if let queryItems {
@@ -92,7 +93,7 @@ final class PlexServerNetworkClient {
         }
         request.setValue(authToken, forHTTPHeaderField: "X-Plex-Token")
         request.setValue(language, forHTTPHeaderField: "X-Plex-Language")
-        if let clientIdentifier = clientIdentifier {
+        if let clientIdentifier {
             request.setValue(clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
         }
         for (key, value) in headers {

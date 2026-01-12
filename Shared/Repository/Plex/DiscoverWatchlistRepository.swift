@@ -11,7 +11,7 @@ final class DiscoverWatchlistRepository {
         network = PlexCloudNetworkClient(
             authToken: authToken,
             clientIdentifier: context.clientIdentifier,
-            useDiscoverBaseURL: true
+            useDiscoverBaseURL: true,
         )
     }
 
@@ -23,7 +23,7 @@ final class DiscoverWatchlistRepository {
         try await network.send(
             path: "/actions/addToWatchlist",
             method: "PUT",
-            queryItems: [URLQueryItem(name: "ratingKey", value: ratingKey)]
+            queryItems: [URLQueryItem(name: "ratingKey", value: ratingKey)],
         )
     }
 
@@ -31,7 +31,7 @@ final class DiscoverWatchlistRepository {
         try await network.send(
             path: "/actions/removeFromWatchlist",
             method: "PUT",
-            queryItems: [URLQueryItem(name: "ratingKey", value: ratingKey)]
+            queryItems: [URLQueryItem(name: "ratingKey", value: ratingKey)],
         )
     }
 }

@@ -16,7 +16,7 @@ final class MetadataRepository {
                 URLQueryItem.makeBoolFlag("includeChapters", includeChapters),
                 URLQueryItem.makeBoolFlag("includeMarkers", includeMarkers),
                 URLQueryItem.makeBoolFlag("includeOnDeck", includeOnDeck),
-            ].compactMap { $0 }
+            ].compactMap(\.self)
         }
     }
 
@@ -35,7 +35,7 @@ final class MetadataRepository {
 
     func getMetadata(
         ratingKey: String,
-        params: PlexMetadataParams? = nil
+        params: PlexMetadataParams? = nil,
     ) async throws -> PlexItemMediaContainer {
         let resolved = params ?? PlexMetadataParams()
         return try await network.request(path: "/library/metadata/\(ratingKey)", queryItems: resolved.queryItems)

@@ -31,7 +31,7 @@ struct EpisodeCardView: View {
                         imageURL: imageURL,
                         width: artworkWidth,
                         runtime: runtime,
-                        progress: progress
+                        progress: progress,
                     )
                     .overlay { playOverlay }
 
@@ -44,7 +44,7 @@ struct EpisodeCardView: View {
                         imageURL: imageURL,
                         width: artworkWidth,
                         runtime: runtime,
-                        progress: progress
+                        progress: progress,
                     )
                     .overlay { playOverlay }
 

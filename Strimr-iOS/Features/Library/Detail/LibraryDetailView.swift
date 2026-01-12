@@ -24,17 +24,17 @@ struct LibraryDetailView: View {
                     LibraryRecommendedView(
                         viewModel: LibraryRecommendedViewModel(
                             library: library,
-                            context: plexApiContext
+                            context: plexApiContext,
                         ),
-                        onSelectMedia: onSelectMedia
+                        onSelectMedia: onSelectMedia,
                     )
                 case .browse:
                     LibraryBrowseView(
                         viewModel: LibraryBrowseViewModel(
                             library: library,
-                            context: plexApiContext
+                            context: plexApiContext,
                         ),
-                        onSelectMedia: onSelectMedia
+                        onSelectMedia: onSelectMedia,
                     )
                 }
             }
@@ -56,9 +56,9 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .recommended:
-            return "library.detail.tab.recommended"
+            "library.detail.tab.recommended"
         case .browse:
-            return "library.detail.tab.browse"
+            "library.detail.tab.browse"
         }
     }
 }

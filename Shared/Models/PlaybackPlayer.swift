@@ -10,11 +10,11 @@ enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
     var localizationKey: String {
         switch self {
         case .mpv:
-            return "settings.playback.player.mpv"
+            "settings.playback.player.mpv"
         case .vlc:
-            return "settings.playback.player.vlc"
+            "settings.playback.player.vlc"
         case .infuse:
-            return "settings.playback.player.infuse"
+            "settings.playback.player.infuse"
         }
     }
 

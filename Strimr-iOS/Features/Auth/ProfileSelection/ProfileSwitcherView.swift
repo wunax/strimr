@@ -16,7 +16,7 @@ struct ProfileSwitcherView: View {
             LinearGradient(
                 colors: [Color.black, Color(red: 0.08, green: 0.05, blue: 0.07)],
                 startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                endPoint: .bottomTrailing,
             )
             .ignoresSafeArea()
 
@@ -155,7 +155,10 @@ struct ProfileSwitcherView: View {
                     }
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(viewModel.activeUserUUID == user.uuid ? 0.8 : 0.25), lineWidth: viewModel.activeUserUUID == user.uuid ? 2 : 1)
+                            .stroke(
+                                Color.white.opacity(viewModel.activeUserUUID == user.uuid ? 0.8 : 0.25),
+                                lineWidth: viewModel.activeUserUUID == user.uuid ? 2 : 1,
+                            ),
                     )
                     .scaleEffect(viewModel.activeUserUUID == user.uuid ? 1.03 : 1)
 
@@ -204,14 +207,14 @@ struct ProfileSwitcherView: View {
         LinearGradient(
             colors: [Color.red.opacity(0.8), Color.red.opacity(0.5)],
             startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            endPoint: .bottomTrailing,
         )
         .overlay(
             Image(systemName: "person.crop.square.fill")
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(.white.opacity(0.9))
-                .padding(24)
+                .padding(24),
         )
     }
 

@@ -31,7 +31,7 @@ extension MediaItem {
             index: plexItem.index,
             grandparentThumbPath: plexItem.grandparentThumb,
             grandparentArtPath: plexItem.grandparentArt,
-            parentThumbPath: plexItem.parentThumb
+            parentThumbPath: plexItem.parentThumb,
         )
     }
 }

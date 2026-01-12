@@ -31,15 +31,15 @@ final class MainCoordinator: ObservableObject {
             get: {
                 switch tab {
                 case .home:
-                    return self.homePath
+                    self.homePath
                 case .search:
-                    return self.searchPath
+                    self.searchPath
                 case .library:
-                    return self.libraryPath
+                    self.libraryPath
                 case .more:
-                    return self.morePath
+                    self.morePath
                 case let .libraryDetail(libraryId):
-                    return self.libraryDetailPaths[libraryId] ?? NavigationPath()
+                    self.libraryDetailPaths[libraryId] ?? NavigationPath()
                 }
             },
             set: { newValue in
@@ -55,7 +55,7 @@ final class MainCoordinator: ObservableObject {
                 case let .libraryDetail(libraryId):
                     self.libraryDetailPaths[libraryId] = newValue
                 }
-            }
+            },
         )
     }
 

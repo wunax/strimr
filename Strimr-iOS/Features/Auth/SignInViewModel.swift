@@ -102,7 +102,7 @@ final class SignInViewModel {
         pollTask?.cancel()
 
         pollTask = Task {
-            while !Task.isCancelled && isAuthenticating {
+            while !Task.isCancelled, isAuthenticating {
                 do {
                     let authRepository = AuthRepository(context: plexContext)
                     let result = try await authRepository.pollToken(pinId: pinID)
@@ -125,11 +125,13 @@ private enum SignInError: Error {
     case authSessionFailed
 }
 
-private final class WebAuthenticationPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+private final class WebAuthenticationPresentationContextProvider: NSObject,
+    ASWebAuthenticationPresentationContextProviding
+{
     func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         if let keyWindow = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
-            .flatMap({ $0.windows })
+            .flatMap(\.windows)
             .first(where: { $0.isKeyWindow })
         {
             return keyWindow

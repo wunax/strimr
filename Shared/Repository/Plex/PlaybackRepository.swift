@@ -21,14 +21,18 @@ final class PlaybackRepository {
         }
 
         self.context = context
-        network = PlexServerNetworkClient(authToken: authToken, baseURL: baseURLServer, clientIdentifier: context.clientIdentifier)
+        network = PlexServerNetworkClient(
+            authToken: authToken,
+            baseURL: baseURLServer,
+            clientIdentifier: context.clientIdentifier,
+        )
     }
 
     func setPreferredStreams(
         partId: Int,
         audioStreamId: Int? = nil,
         subtitleStreamId: Int? = nil,
-        applyToAllParts: Bool = true
+        applyToAllParts: Bool = true,
     ) async throws {
         var queryItems: [URLQueryItem] = []
 
@@ -45,7 +49,7 @@ final class PlaybackRepository {
         try await network.send(
             path: "/library/parts/\(partId)",
             queryItems: queryItems,
-            method: "PUT"
+            method: "PUT",
         )
     }
 
@@ -54,7 +58,7 @@ final class PlaybackRepository {
         state: PlaybackState,
         time: Int,
         duration: Int,
-        sessionIdentifier: String
+        sessionIdentifier: String,
     ) async throws -> PlexTimelineResponse {
         try await network.request(
             path: "/:/timeline",
@@ -66,7 +70,7 @@ final class PlaybackRepository {
             ],
             headers: [
                 "X-Plex-Session-Identifier": sessionIdentifier,
-            ]
+            ],
         )
     }
 }

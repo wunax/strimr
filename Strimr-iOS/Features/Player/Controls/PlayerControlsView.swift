@@ -27,7 +27,7 @@ struct PlayerControlsView: View {
                 PlayerControlsHeader(
                     media: media,
                     onDismiss: onDismiss,
-                    onShowSettings: onShowSettings
+                    onShowSettings: onShowSettings,
                 )
 
                 Spacer()
@@ -38,7 +38,7 @@ struct PlayerControlsView: View {
                     onPlayPause: onPlayPause,
                     onSeekForward: onSeekForward,
                     seekBackwardSeconds: seekBackwardSeconds,
-                    seekForwardSeconds: seekForwardSeconds
+                    seekForwardSeconds: seekForwardSeconds,
                 )
 
                 Spacer()
@@ -57,7 +57,7 @@ struct PlayerControlsView: View {
                     bufferedAhead: bufferedAhead,
                     playbackPosition: bufferBasePosition,
                     supportsHDR: supportsHDR,
-                    onEditingChanged: onScrubbingChanged
+                    onEditingChanged: onScrubbingChanged,
                 )
             }
             .padding(.horizontal, 20)
@@ -84,7 +84,7 @@ private struct PlayerControlsHeader: View {
                     .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 1),
                     )
             }
 
@@ -126,7 +126,7 @@ private struct PrimaryControls: View {
             PlayerIconButton(
                 systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
                 accessibilityLabel: String(localized: "player.controls.rewindSeconds \(seekBackwardSeconds)"),
-                action: onSeekBackward
+                action: onSeekBackward,
             )
 
             PlayPauseButton(isPaused: isPaused, action: onPlayPause)
@@ -134,7 +134,7 @@ private struct PrimaryControls: View {
             PlayerIconButton(
                 systemName: iconName(prefix: "goforward", seconds: seekForwardSeconds),
                 accessibilityLabel: String(localized: "player.controls.skipForwardSeconds \(seekForwardSeconds)"),
-                action: onSeekForward
+                action: onSeekForward,
             )
         }
         .padding(.bottom, 4)
@@ -156,7 +156,7 @@ private struct PlayerControlsBackground: View {
                     .clear,
                 ],
                 startPoint: .top,
-                endPoint: .bottom
+                endPoint: .bottom,
             )
             .frame(height: 180)
 
@@ -168,7 +168,7 @@ private struct PlayerControlsBackground: View {
                     .black.opacity(0.7),
                 ],
                 startPoint: .top,
-                endPoint: .bottom
+                endPoint: .bottom,
             )
             .frame(height: 260)
         }

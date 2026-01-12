@@ -34,7 +34,7 @@ final class UserRepository {
             path: "/home/users/\(uuid)/switch",
             method: "POST",
             headers: headers,
-            body: body
+            body: body,
         )
     }
 }

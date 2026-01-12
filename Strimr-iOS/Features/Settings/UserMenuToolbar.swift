@@ -43,7 +43,7 @@ struct UserMenuToolbarButton: View {
         .clipShape(Circle())
         .overlay(
             Circle()
-                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.12), lineWidth: 1),
         )
     }
 
@@ -60,7 +60,7 @@ struct UserMenuToolbarButton: View {
             .overlay(
                 Image(systemName: "person.crop.circle.fill")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.gray.opacity(0.7))
+                    .foregroundStyle(Color.gray.opacity(0.7)),
             )
     }
 }

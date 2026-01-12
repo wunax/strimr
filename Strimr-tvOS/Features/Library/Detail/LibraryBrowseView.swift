@@ -12,7 +12,7 @@ struct LibraryBrowseView: View {
 
     init(
         viewModel: LibraryBrowseViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in }
+        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -51,20 +51,20 @@ struct LibraryBrowseView: View {
                 characterColumn(proxy: proxy)
             }
             .overlay {
-                if viewModel.isLoading && viewModel.itemsByIndex.isEmpty {
+                if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
                     ProgressView("library.browse.loading")
                 } else if let errorMessage = viewModel.errorMessage, viewModel.itemsByIndex.isEmpty {
                     ContentUnavailableView(
                         errorMessage,
                         systemImage: "exclamationmark.triangle.fill",
-                        description: Text("common.errors.tryAgainLater")
+                        description: Text("common.errors.tryAgainLater"),
                     )
                     .symbolRenderingMode(.multicolor)
-                } else if viewModel.totalItemCount == 0 && !viewModel.isLoading {
+                } else if viewModel.totalItemCount == 0, !viewModel.isLoading {
                     ContentUnavailableView(
                         "library.browse.empty.title",
                         systemImage: "square.grid.2x2.fill",
-                        description: Text("library.browse.empty.description")
+                        description: Text("library.browse.empty.description"),
                     )
                 }
             }
@@ -87,7 +87,7 @@ struct LibraryBrowseView: View {
 
     private func characterButton(
         _ character: LibraryBrowseViewModel.SectionCharacter,
-        proxy: ScrollViewProxy
+        proxy: ScrollViewProxy,
     ) -> some View {
         let isFocused = focusedCharacterId == character.id
         return Button {

@@ -13,42 +13,42 @@ enum SearchFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .movies:
-            return String(localized: "search.filter.movies")
+            String(localized: "search.filter.movies")
         case .shows:
-            return String(localized: "search.filter.shows")
+            String(localized: "search.filter.shows")
         case .episodes:
-            return String(localized: "search.filter.episodes")
+            String(localized: "search.filter.episodes")
         }
     }
 
     var systemImageName: String {
         switch self {
         case .movies:
-            return "film.fill"
+            "film.fill"
         case .shows:
-            return "tv.fill"
+            "tv.fill"
         case .episodes:
-            return "play.rectangle.on.rectangle.fill"
+            "play.rectangle.on.rectangle.fill"
         }
     }
 
     func matches(_ type: PlexItemType) -> Bool {
         switch self {
         case .movies:
-            return type == .movie
+            type == .movie
         case .shows:
-            return type == .show || type == .season
+            type == .show || type == .season
         case .episodes:
-            return type == .episode
+            type == .episode
         }
     }
 
     var requiredSearchTypes: [SearchRepository.SearchType] {
         switch self {
         case .movies:
-            return [.movies]
+            [.movies]
         case .shows, .episodes:
-            return [.tv]
+            [.tv]
         }
     }
 }
@@ -141,7 +141,7 @@ final class SearchViewModel {
             let params = SearchRepository.SearchParams(
                 query: trimmedQuery,
                 searchTypes: resolvedSearchTypes(),
-                limit: 100
+                limit: 100,
             )
             let response = try await repository.search(params: params)
             guard !Task.isCancelled else { return }

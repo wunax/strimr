@@ -1,0 +1,26 @@
+# format
+
+--swift-version 6.2
+--indent 4
+--linebreaks lf
+--max-width 120
+--trim-whitespace always
+--wrap-arguments before-first
+--wrap-parameters before-first
+--wrap-collections before-first
+--strip-unused-args always
+--semicolons inline
+--self remove
+--exclude Carthage,Strimr.xcodeproj,Strimr.xcworkspace
+
+# rules
+
+--enable unusedPrivateDeclarations
+--enable emptyExtensions
+--enable isEmpty
+--enable preferFinalClasses
+--enable redundantAsync
+--enable redundantEquatable
+--enable redundantMemberwiseInit
+--enable redundantProperty
+--enable redundantThrows
