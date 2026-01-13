@@ -32,12 +32,14 @@ struct ContentView: View {
                     )
                 }
             case .needsServerSelection:
-                SelectServerView(
-                    viewModel: ServerSelectionViewModel(
-                        sessionManager: sessionManager,
-                        context: plexApiContext,
-                    ),
-                )
+                NavigationStack {
+                    SelectServerView(
+                        viewModel: ServerSelectionViewModel(
+                            sessionManager: sessionManager,
+                            context: plexApiContext,
+                        ),
+                    )
+                }
             case .ready:
                 MainTabView(
                     homeViewModel: HomeViewModel(

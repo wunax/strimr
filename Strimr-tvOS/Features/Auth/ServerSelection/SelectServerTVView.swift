@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct SelectServerTVView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State var viewModel: ServerSelectionViewModel
+    @State private var isShowingLogoutConfirmation = false
 
     var body: some View {
         ZStack {
@@ -13,6 +15,24 @@ struct SelectServerTVView: View {
                 Spacer()
             }
             .padding(48)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingLogoutConfirmation = true
+                } label: {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                }
+                .accessibilityLabel("common.actions.logOut")
+            }
+        }
+        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
+            Button("common.actions.logOut", role: .destructive) {
+                Task { await sessionManager.signOut() }
+            }
+            Button("common.actions.cancel", role: .cancel) {}
+        } message: {
+            Text("more.logout.message")
         }
         .task { await viewModel.load() }
     }

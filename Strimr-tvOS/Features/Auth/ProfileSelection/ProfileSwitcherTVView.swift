@@ -2,9 +2,11 @@ import SwiftUI
 
 @MainActor
 struct ProfileSwitcherTVView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: ProfileSwitcherViewModel
     @State private var pinPromptUser: PlexHomeUser?
     @State private var pinInput: String = ""
+    @State private var isShowingLogoutConfirmation = false
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -28,6 +30,24 @@ struct ProfileSwitcherTVView: View {
             }
         }
         .task { await viewModel.loadUsers() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingLogoutConfirmation = true
+                } label: {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                }
+                .accessibilityLabel("common.actions.logOut")
+            }
+        }
+        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
+            Button("common.actions.logOut", role: .destructive) {
+                Task { await sessionManager.signOut() }
+            }
+            Button("common.actions.cancel", role: .cancel) {}
+        } message: {
+            Text("more.logout.message")
+        }
         .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
             pinEntrySheet(for: user)
         }

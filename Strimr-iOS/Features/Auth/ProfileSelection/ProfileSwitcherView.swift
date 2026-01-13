@@ -2,10 +2,12 @@ import SwiftUI
 
 @MainActor
 struct ProfileSwitcherView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: ProfileSwitcherViewModel
     @State private var pinPromptUser: PlexHomeUser?
     @State private var pinInput: String = ""
     @FocusState private var isPinFieldFocused: Bool
+    @State private var isShowingLogoutConfirmation = false
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -35,6 +37,24 @@ struct ProfileSwitcherView: View {
         }
         .navigationTitle("auth.profile.title")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    isShowingLogoutConfirmation = true
+                } label: {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                }
+                .accessibilityLabel("common.actions.logOut")
+            }
+        }
+        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
+            Button("common.actions.logOut", role: .destructive) {
+                Task { await sessionManager.signOut() }
+            }
+            Button("common.actions.cancel", role: .cancel) {}
+        } message: {
+            Text("more.logout.message")
+        }
         .task { await viewModel.loadUsers() }
         .refreshable { await viewModel.loadUsers() }
         .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
