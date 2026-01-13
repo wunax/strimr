@@ -7,6 +7,7 @@ struct ProfileSwitcherTVView: View {
     @State private var pinPromptUser: PlexHomeUser?
     @State private var pinInput: String = ""
     @State private var isShowingLogoutConfirmation = false
+    @FocusState private var focusedUserID: String?
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -47,6 +48,16 @@ struct ProfileSwitcherTVView: View {
             Button("common.actions.cancel", role: .cancel) {}
         } message: {
             Text("more.logout.message")
+        }
+        .onAppear {
+            if focusedUserID == nil, let firstUser = viewModel.users.first {
+                focusedUserID = firstUser.uuid
+            }
+        }
+        .onChange(of: viewModel.users) { _, newValue in
+            if focusedUserID == nil, let firstUser = newValue.first {
+                focusedUserID = firstUser.uuid
+            }
         }
         .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
             pinEntrySheet(for: user)
@@ -130,6 +141,7 @@ struct ProfileSwitcherTVView: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
+        .focused($focusedUserID, equals: user.uuid)
     }
 
     @ViewBuilder

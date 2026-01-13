@@ -4,6 +4,7 @@ struct SelectServerTVView: View {
     @Environment(SessionManager.self) private var sessionManager
     @State var viewModel: ServerSelectionViewModel
     @State private var isShowingLogoutConfirmation = false
+    @FocusState private var focusedServerID: String?
 
     var body: some View {
         ZStack {
@@ -35,6 +36,16 @@ struct SelectServerTVView: View {
             Text("more.logout.message")
         }
         .task { await viewModel.load() }
+        .onAppear {
+            if focusedServerID == nil, let firstServer = viewModel.servers.first {
+                focusedServerID = firstServer.clientIdentifier
+            }
+        }
+        .onChange(of: viewModel.servers) { _, newValue in
+            if focusedServerID == nil, let firstServer = newValue.first {
+                focusedServerID = firstServer.clientIdentifier
+            }
+        }
     }
 
     private var header: some View {
@@ -122,6 +133,7 @@ struct SelectServerTVView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
+        .focused($focusedServerID, equals: server.clientIdentifier)
     }
 
     private func connectionSummary(for server: PlexCloudResource) -> some View {
