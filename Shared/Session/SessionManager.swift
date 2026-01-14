@@ -132,14 +132,15 @@ final class SessionManager {
         authToken = token
 
         if allowProfileSelection {
-            let home = try await userRepo.getHomeUsers()
-
-            if home.users.count > 1 {
-                status = .needsProfileSelection
-                context.removeServer()
-                plexServer = nil
-                return
-            }
+            do {
+                let home = try await userRepo.getHomeUsers()
+                if home.users.count > 1 {
+                    status = .needsProfileSelection
+                    context.removeServer()
+                    plexServer = nil
+                    return
+                }
+            } catch {}
         }
 
         let resources = try await resourcesRepo.getResources().filter { !$0.connections.isEmpty }
