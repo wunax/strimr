@@ -106,7 +106,7 @@ final class PlexAPIContext {
     ) async throws -> Bool {
         var request = URLRequest(url: connection.uri)
         request.setValue(accessToken, forHTTPHeaderField: "X-Plex-Token")
-        request.timeoutInterval = 3
+        request.timeoutInterval = 6
 
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -123,6 +123,7 @@ final class PlexAPIContext {
         resource = nil
         authTokenCloud = nil
         baseURLServer = nil
+        authTokenServer = nil
     }
 
     private func connectionKey(for resource: PlexCloudResource) -> String {
