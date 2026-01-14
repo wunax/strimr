@@ -54,7 +54,7 @@ final class SessionManager {
         }
     }
 
-    func signIn(with token: String) async {
+    func signIn(with token: String) async throws {
         do {
             try keychain.setString(token, forKey: tokenKey)
             authToken = token
@@ -66,6 +66,7 @@ final class SessionManager {
         } catch {
             await clearSession()
             status = .signedOut
+            throw error
         }
     }
 
@@ -76,7 +77,9 @@ final class SessionManager {
         status = .signedOut
     }
 
-    func switchProfile(to user: PlexCloudUser) async {
+    func switchProfile(to user: PlexCloudUser) async throws {
+        let snapshot = (token: authToken, user: self.user, server: plexServer, status: status)
+
         do {
             try keychain.setString(user.authToken, forKey: tokenKey)
             authToken = user.authToken
@@ -87,8 +90,15 @@ final class SessionManager {
                 allowProfileSelection: false,
             )
         } catch {
-            await clearSession()
-            status = .signedOut
+            if let token = snapshot.token {
+                try? keychain.setString(token, forKey: tokenKey)
+                authToken = token
+                context.setAuthToken(token)
+            }
+            self.user = snapshot.user
+            plexServer = snapshot.server
+            status = snapshot.status
+            throw error
         }
     }
 

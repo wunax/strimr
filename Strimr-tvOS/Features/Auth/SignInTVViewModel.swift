@@ -6,6 +6,7 @@ import Observation
 final class SignInTVViewModel {
     var isAuthenticating = false
     var errorMessage: String?
+    var errorDetails: String?
     var pin: PlexCloudPin?
 
     @ObservationIgnored private var pollTask: Task<Void, Never>?
@@ -20,6 +21,7 @@ final class SignInTVViewModel {
     func startSignIn() async {
         resetSignInState()
         errorMessage = nil
+        errorDetails = nil
         isAuthenticating = true
 
         do {
@@ -28,7 +30,8 @@ final class SignInTVViewModel {
             pin = pinResponse
             beginPolling(pinID: pinResponse.id)
         } catch {
-            errorMessage = String(localized: "signIn.error.startFailed", bundle: .main)
+            errorMessage = AuthErrorMapper.signInMessage(for: error)
+            errorDetails = String(describing: error)
             isAuthenticating = false
         }
     }
@@ -47,12 +50,19 @@ final class SignInTVViewModel {
                     let authRepository = AuthRepository(context: plexContext)
                     let result = try await authRepository.pollToken(pinId: pinID)
                     if let token = result.authToken {
-                        await sessionManager.signIn(with: token)
-                        cancelSignIn()
-                        return
+                        do {
+                            try await sessionManager.signIn(with: token)
+                            cancelSignIn()
+                            return
+                        } catch {
+                            errorMessage = AuthErrorMapper.signInMessage(for: error)
+                            errorDetails = String(describing: error)
+                            cancelSignIn()
+                        }
                     }
                 } catch {
-                    // ignore and keep polling
+                    errorMessage = AuthErrorMapper.signInMessage(for: error)
+                    errorDetails = String(describing: error)
                 }
 
                 try? await Task.sleep(nanoseconds: 2_000_000_000)

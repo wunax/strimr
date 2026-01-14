@@ -8,6 +8,7 @@ struct ProfileSwitcherTVView: View {
     @State private var pinInput: String = ""
     @State private var isShowingLogoutConfirmation = false
     @FocusState private var focusedUserID: String?
+    @State private var isShowingErrorDetails = false
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -64,6 +65,9 @@ struct ProfileSwitcherTVView: View {
         }
         .onChange(of: pinInput) { _, newValue in
             pinInput = String(newValue.filter(\.isNumber).prefix(4))
+        }
+        .onChange(of: viewModel.errorDetails) { _, _ in
+            isShowingErrorDetails = false
         }
     }
 
@@ -210,6 +214,24 @@ struct ProfileSwitcherTVView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(message)
                 .font(.headline)
+
+            if let errorDetails = viewModel.errorDetails {
+                DisclosureGroup(
+                    isExpanded: $isShowingErrorDetails,
+                    content: {
+                        Text(errorDetails)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    },
+                    label: {
+                        Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    },
+                )
+            }
             Button {
                 Task { await viewModel.loadUsers() }
             } label: {

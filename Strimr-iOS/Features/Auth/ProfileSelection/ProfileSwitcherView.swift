@@ -8,6 +8,7 @@ struct ProfileSwitcherView: View {
     @State private var pinInput: String = ""
     @FocusState private var isPinFieldFocused: Bool
     @State private var isShowingLogoutConfirmation = false
+    @State private var isShowingErrorDetails = false
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -66,9 +67,9 @@ struct ProfileSwitcherView: View {
                     Text("auth.profile.pin.prompt \(user.title)")
                         .foregroundStyle(.secondary)
 
-                    TextField("auth.profile.pin.placeholder", text: $pinInput)
+                    SecureField("auth.profile.pin.placeholder", text: $pinInput)
                         .keyboardType(.numberPad)
-                        .textContentType(.oneTimeCode)
+                        .textContentType(.password)
                         .focused($isPinFieldFocused)
                         .padding()
                         .background(.gray.opacity(0.12))
@@ -105,6 +106,9 @@ struct ProfileSwitcherView: View {
         }
         .onChange(of: pinInput) { _, newValue in
             pinInput = String(newValue.filter(\.isNumber).prefix(4))
+        }
+        .onChange(of: viewModel.errorDetails) { _, _ in
+            isShowingErrorDetails = false
         }
     }
 
@@ -242,6 +246,24 @@ struct ProfileSwitcherView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(message)
                 .foregroundStyle(.white)
+
+            if let errorDetails = viewModel.errorDetails {
+                DisclosureGroup(
+                    isExpanded: $isShowingErrorDetails,
+                    content: {
+                        Text(errorDetails)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    },
+                    label: {
+                        Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    },
+                )
+            }
 
             Button {
                 Task { await viewModel.loadUsers() }

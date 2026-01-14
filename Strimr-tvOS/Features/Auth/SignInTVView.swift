@@ -4,6 +4,7 @@ import UIKit
 
 struct SignInTVView: View {
     @State private var viewModel: SignInTVViewModel
+    @State private var isShowingErrorDetails = false
 
     private let ciContext = CIContext()
 
@@ -31,11 +32,6 @@ struct SignInTVView: View {
                     .font(.title3)
             }
 
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-            }
-
             Group {
                 if let pin = viewModel.pin {
                     VStack(spacing: 20) {
@@ -58,11 +54,41 @@ struct SignInTVView: View {
                 }
             }
 
+            if let errorMessage = viewModel.errorMessage {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+
+                    if let errorDetails = viewModel.errorDetails {
+                        DisclosureGroup(
+                            isExpanded: $isShowingErrorDetails,
+                            content: {
+                                Text(errorDetails)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            },
+                            label: {
+                                Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            },
+                        )
+                    }
+                }
+                .frame(maxWidth: 720, alignment: .leading)
+                .padding(.top, 16)
+            }
+
             Spacer()
         }
         .padding(48)
         .onAppear { Task { await viewModel.startSignIn() } }
         .onDisappear { viewModel.cancelSignIn() }
+        .onChange(of: viewModel.errorDetails) { _, _ in
+            isShowingErrorDetails = false
+        }
     }
 }
 
