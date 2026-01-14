@@ -57,6 +57,7 @@ final class PlexAPIContext {
     func removeServer() {
         resource = nil
         baseURLServer = nil
+        authTokenServer = nil
     }
 
     @discardableResult
