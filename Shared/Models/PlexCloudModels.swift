@@ -30,15 +30,11 @@ struct PlexCloudResource: Codable, Equatable {
 struct PlexCloudUser: Codable, Equatable {
     let id: Int
     let uuid: String
-    let username: String
-    let title: String
-    let email: String
-    let friendlyName: String
-    let locale: String?
-    let confirmed: Bool
-    let joinedAt: Int
+    let username: String?
+    let title: String?
+    let friendlyName: String?
     let authToken: String
-    let thumb: String
+    let thumb: String?
 }
 
 struct PlexCloudPin: Codable, Equatable {
@@ -55,45 +51,21 @@ struct PlexCloudPin: Codable, Equatable {
 }
 
 struct PlexHome: Codable, Equatable {
-    let id: Int?
-    let name: String?
-    let guestUserID: Int?
-    let guestUserUUID: String?
-    let guestEnabled: Bool?
-    let subscription: Bool?
     let users: [PlexHomeUser]
 
     private enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case guestUserID
-        case guestUserUUID
-        case guestEnabled
-        case subscription
         case users
     }
 }
 
 struct PlexHomeUser: Codable, Equatable, Identifiable {
-    struct Subscription: Codable, Equatable {
-        let state: String?
-        let type: String?
-    }
-
     let id: Int
     let uuid: String
-    let title: String
+    let title: String?
     let username: String?
     let email: String?
     let friendlyName: String?
     let thumb: URL?
-    let hasPassword: Bool
-    let restricted: Bool
-    let updatedAt: Int?
-    let restrictionProfile: String?
-    let admin: Bool?
-    let guest: Bool?
     let protected: Bool?
     let pin: String?
-    let subscription: Subscription?
 }

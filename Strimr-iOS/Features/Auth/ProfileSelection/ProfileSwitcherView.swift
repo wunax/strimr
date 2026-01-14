@@ -183,7 +183,7 @@ struct ProfileSwitcherView: View {
                     .scaleEffect(viewModel.activeUserUUID == user.uuid ? 1.03 : 1)
 
                 VStack(spacing: 4) {
-                    Text(user.friendlyName ?? user.title)
+                    Text(user.friendlyName ?? user.title ?? "?")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(1)
