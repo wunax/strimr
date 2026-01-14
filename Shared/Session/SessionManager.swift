@@ -32,6 +32,8 @@ final class SessionManager {
     func hydrate() async {
         status = .hydrating
         do {
+            await context.waitForBootstrap()
+
             let storedToken = try keychain.string(forKey: tokenKey)
             authToken = storedToken
             if let storedToken {

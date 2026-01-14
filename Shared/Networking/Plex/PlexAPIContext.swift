@@ -7,14 +7,15 @@ final class PlexAPIContext {
     private var resource: PlexCloudResource?
     private(set) var baseURLServer: URL?
     private(set) var authTokenServer: String?
+    @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
 
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     @ObservationIgnored private let clientIdKey = "strimr.plex.clientId"
     @ObservationIgnored private let connectionKeyPrefix = "strimr.plex.connection"
 
     init() {
-        Task {
-            await bootstrap()
+        bootstrapTask = Task { [weak self] in
+            await self?.bootstrap()
         }
     }
 
@@ -35,6 +36,10 @@ final class PlexAPIContext {
         let identifier = UUID().uuidString
         try keychain.setString(identifier, forKey: clientIdKey)
         return identifier
+    }
+
+    func waitForBootstrap() async {
+        await bootstrapTask?.value
     }
 
     func setAuthToken(_ token: String) {
