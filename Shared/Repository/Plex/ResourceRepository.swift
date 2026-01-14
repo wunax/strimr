@@ -16,7 +16,7 @@ final class ResourceRepository {
             queryItems: [
                 URLQueryItem(name: "includeHttps", value: "1"),
                 URLQueryItem(name: "includeRelay", value: "1"),
-            ]
+            ],
         )
     }
 }
