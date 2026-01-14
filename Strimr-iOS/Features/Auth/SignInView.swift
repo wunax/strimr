@@ -63,7 +63,8 @@ struct SignInView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             },
                             label: {
-                                Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
+                                Text(isShowingErrorDetails ? "common.actions.hideDetails" :
+                                    "common.actions.showDetails")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             },
