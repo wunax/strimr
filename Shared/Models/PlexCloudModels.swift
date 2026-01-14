@@ -28,8 +28,8 @@ struct PlexCloudResource: Codable, Equatable {
 }
 
 struct PlexCloudUser: Codable, Equatable {
-    let id: Int
-    let uuid: String
+    let id: Int?
+    let uuid: String?
     let username: String?
     let title: String?
     let friendlyName: String?
@@ -53,7 +53,7 @@ struct PlexHome: Codable, Equatable {
 }
 
 struct PlexHomeUser: Codable, Equatable, Identifiable {
-    let id: Int
+    let id: Int?
     let uuid: String
     let title: String?
     let username: String?
