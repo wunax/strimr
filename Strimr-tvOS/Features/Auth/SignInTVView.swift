@@ -60,21 +60,23 @@ struct SignInTVView: View {
                         .foregroundStyle(.red)
 
                     if let errorDetails = viewModel.errorDetails {
-                        DisclosureGroup(
-                            isExpanded: $isShowingErrorDetails,
-                            content: {
-                                Text(errorDetails)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            },
-                            label: {
-                                Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            },
-                        )
+                        Button {
+                            isShowingErrorDetails.toggle()
+                        } label: {
+                            Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 12)
+
+                        if isShowingErrorDetails {
+                            Text(errorDetails)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 20)
+                        }
                     }
                 }
                 .frame(maxWidth: 720, alignment: .leading)
