@@ -40,14 +40,8 @@ struct PlexCloudUser: Codable, Equatable {
 struct PlexCloudPin: Codable, Equatable {
     let id: Int
     let code: String
-    let product: String
-    let trusted: Bool
     let clientIdentifier: String
-    let expiresIn: Int
-    let createdAt: String
-    let expiresAt: String
     let authToken: String?
-    let newRegistration: Bool?
 }
 
 struct PlexHome: Codable, Equatable {
