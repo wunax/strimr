@@ -178,39 +178,20 @@ struct PlexPartStream: Codable, Equatable, Hashable {
 struct PlexPart: Codable, Equatable {
     let id: Int
     let key: String
-    let duration: Int
-    let file: String
-    let size: Int
-    let container: String
-    let videoProfile: String?
     let stream: [PlexPartStream]?
 
     private enum CodingKeys: String, CodingKey {
-        case id, key, duration, file, size, container, videoProfile
+        case id, key
         case stream = "Stream"
     }
 }
 
 struct PlexMedia: Codable, Equatable {
     let id: Int
-    let duration: Int
-    let bitrate: Int
-    let width: Int
-    let height: Int
-    let aspectRatio: Double
-    let audioChannels: Int
-    let audioCodec: String
-    let videoCodec: String
-    let videoResolution: String
-    let container: String
-    let videoFrameRate: String
-    let videoProfile: String
-    let hasVoiceActivity: Bool
     let parts: [PlexPart]
 
     private enum CodingKeys: String, CodingKey {
-        case id, duration, bitrate, width, height, aspectRatio, audioChannels, audioCodec, videoCodec, videoResolution
-        case container, videoFrameRate, videoProfile, hasVoiceActivity
+        case id
         case parts = "Part"
     }
 }
@@ -230,8 +211,6 @@ struct PlexItem: Codable, Equatable {
     let lastViewedAt: Int?
     let viewCount: Int?
     let originallyAvailableAt: String?
-    let addedAt: Int
-    let updatedAt: Int
     let duration: Int?
     let audienceRating: Double?
     let audienceRatingImage: String?
@@ -289,7 +268,7 @@ struct PlexItem: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, type, title, summary, thumb, art, year, viewOffset, lastViewedAt, viewCount
-        case originallyAvailableAt, addedAt, updatedAt, duration, audienceRating, audienceRatingImage, contentRating
+        case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
         case contentRatingAge, tagline, slug, studio, rating, chapterSource, primaryExtraKey, ratingImage
         case index, leafCount, viewedLeafCount, childCount
         case parentRatingKey, parentGuid, parentSlug, parentStudio, parentKey, parentTitle, parentThumb, parentYear
