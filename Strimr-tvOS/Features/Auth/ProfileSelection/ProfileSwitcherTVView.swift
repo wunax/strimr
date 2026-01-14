@@ -125,7 +125,7 @@ struct ProfileSwitcherTVView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(user.friendlyName ?? user.title)
+                    Text(user.friendlyName ?? user.title ?? "?")
                         .font(.headline)
                         .lineLimit(1)
                     Text(user.username ?? user.email ?? "")

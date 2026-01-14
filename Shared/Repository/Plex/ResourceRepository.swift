@@ -10,6 +10,13 @@ final class ResourceRepository {
     }
 
     func getResources() async throws -> [PlexCloudResource] {
-        try await network.request(path: "/resources", method: "GET")
+        try await network.request(
+            path: "/resources",
+            method: "GET",
+            queryItems: [
+                URLQueryItem(name: "includeHttps", value: "1"),
+                URLQueryItem(name: "includeRelay", value: "1"),
+            ]
+        )
     }
 }
