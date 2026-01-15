@@ -50,6 +50,9 @@ struct MediaItem: Identifiable, Hashable {
 
         case .season, .episode:
             return title
+
+        case .unknown:
+            return nil
         }
     }
 
@@ -68,6 +71,8 @@ struct MediaItem: Identifiable, Hashable {
         case .season:
             parentRatingKey ?? id
         case .movie, .show:
+            id
+        case .unknown:
             id
         }
     }

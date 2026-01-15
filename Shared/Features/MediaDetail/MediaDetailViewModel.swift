@@ -240,6 +240,8 @@ final class MediaDetailViewModel {
             hasProgress(for: media)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
+        case .unknown:
+            String(localized: "common.actions.play")
         }
     }
 
@@ -257,6 +259,8 @@ final class MediaDetailViewModel {
             return episodeLabel ?? timeLeft
         case .season, .episode:
             return timeLeftText(for: media)
+        case .unknown:
+            return nil
         }
     }
 
@@ -269,6 +273,8 @@ final class MediaDetailViewModel {
             return progressFraction(for: onDeckItem)
         case .season, .episode:
             return progressFraction(for: media)
+        case .unknown:
+            return nil
         }
     }
 
@@ -280,6 +286,8 @@ final class MediaDetailViewModel {
             hasProgress(for: onDeckItem)
         case .season, .episode:
             hasProgress(for: media)
+        case .unknown:
+            false
         }
     }
 
@@ -291,6 +299,8 @@ final class MediaDetailViewModel {
             onDeckItem?.id
         case .season, .episode:
             media.id
+        case .unknown:
+            nil
         }
     }
 
@@ -341,6 +351,8 @@ final class MediaDetailViewModel {
             }
             guard leafCount > 0 else { return false }
             return leafCount == viewedLeafCount
+        case .unknown:
+            return false
         }
     }
 

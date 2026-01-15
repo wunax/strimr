@@ -11,6 +11,8 @@ final class SectionRepository {
 
         var queryItems: [URLQueryItem] {
             [
+                // "1,2" maps to movie and show.
+                URLQueryItem(name: "type", value: "1,2"),
                 URLQueryItem.make("sort", sort),
                 URLQueryItem.make("limit", limit),
                 URLQueryItem.makeBoolFlag("includeMeta", includeMeta),

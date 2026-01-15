@@ -1657,6 +1657,22 @@
         }
       }
     },
+    "search.badge.unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNKNOWN"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INCONNU"
+          }
+        }
+      }
+    },
     "search.empty.description" : {
       "localizations" : {
         "en" : {
