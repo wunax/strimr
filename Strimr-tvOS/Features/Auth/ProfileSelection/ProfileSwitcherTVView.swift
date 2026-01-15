@@ -235,7 +235,8 @@ struct ProfileSwitcherTVView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("auth.profile.pin.title")
                 .font(.title2.bold())
-            Text("auth.profile.pin.prompt \(user.title)")
+            let userDisplayName: String = user.friendlyName ?? user.title ?? "?"
+            Text("auth.profile.pin.prompt \(userDisplayName)")
                 .foregroundStyle(.secondary)
 
             pinDisplay
