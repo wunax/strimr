@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SignInView: View {
     @State private var viewModel: SignInViewModel
-    @State private var isShowingErrorDetails = false
 
     init(viewModel: SignInViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -51,25 +50,6 @@ struct SignInView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(errorMessage)
                         .foregroundStyle(.red)
-
-                    if let errorDetails = viewModel.errorDetails {
-                        DisclosureGroup(
-                            isExpanded: $isShowingErrorDetails,
-                            content: {
-                                Text(errorDetails)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            },
-                            label: {
-                                Text(isShowingErrorDetails ? "common.actions.hideDetails" :
-                                    "common.actions.showDetails")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            },
-                        )
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 12)
@@ -78,8 +58,5 @@ struct SignInView: View {
             Spacer()
         }
         .padding(24)
-        .onChange(of: viewModel.errorDetails) { _, _ in
-            isShowingErrorDetails = false
-        }
     }
 }

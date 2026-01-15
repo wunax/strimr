@@ -4,7 +4,6 @@ import UIKit
 
 struct SignInTVView: View {
     @State private var viewModel: SignInTVViewModel
-    @State private var isShowingErrorDetails = false
 
     private let ciContext = CIContext()
 
@@ -58,26 +57,6 @@ struct SignInTVView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(errorMessage)
                         .foregroundStyle(.red)
-
-                    if let errorDetails = viewModel.errorDetails {
-                        Button {
-                            isShowingErrorDetails.toggle()
-                        } label: {
-                            Text(isShowingErrorDetails ? "common.actions.hideDetails" : "common.actions.showDetails")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 12)
-
-                        if isShowingErrorDetails {
-                            Text(errorDetails)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 20)
-                        }
-                    }
                 }
                 .frame(maxWidth: 720, alignment: .leading)
                 .padding(.top, 16)
@@ -88,9 +67,6 @@ struct SignInTVView: View {
         .padding(48)
         .onAppear { Task { await viewModel.startSignIn() } }
         .onDisappear { viewModel.cancelSignIn() }
-        .onChange(of: viewModel.errorDetails) { _, _ in
-            isShowingErrorDetails = false
-        }
     }
 }
 

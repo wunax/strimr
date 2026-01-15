@@ -7,7 +7,6 @@ final class ProfileSwitcherViewModel {
     var users: [PlexHomeUser] = []
     var isLoading = false
     var errorMessage: String?
-    var errorDetails: String?
     var switchingUserUUID: String?
 
     @ObservationIgnored private let userRepository: UserRepository
@@ -27,7 +26,6 @@ final class ProfileSwitcherViewModel {
 
         isLoading = true
         errorMessage = nil
-        errorDetails = nil
         defer { isLoading = false }
 
         do {
@@ -35,8 +33,8 @@ final class ProfileSwitcherViewModel {
             users = home.users
         } catch {
             users = []
-            errorMessage = AuthErrorMapper.profileLoadMessage(for: error)
-            errorDetails = String(describing: error)
+            errorMessage = String(localized: "auth.profile.error.loadFailed")
+            ErrorReporter.capture(error)
         }
     }
 
@@ -45,21 +43,19 @@ final class ProfileSwitcherViewModel {
 
         if requiresPin(for: user), pin?.isEmpty ?? true {
             errorMessage = String(localized: "auth.profile.error.pinRequired")
-            errorDetails = nil
             return
         }
 
         switchingUserUUID = user.uuid
         errorMessage = nil
-        errorDetails = nil
         defer { switchingUserUUID = nil }
 
         do {
             let switchedUser = try await userRepository.switchUser(uuid: user.uuid, pin: pin)
             try await sessionManager.switchProfile(to: switchedUser)
         } catch {
-            errorMessage = AuthErrorMapper.profileSwitchMessage(for: error)
-            errorDetails = String(describing: error)
+            errorMessage = String(localized: "auth.profile.error.switchFailed")
+            ErrorReporter.capture(error)
         }
     }
 

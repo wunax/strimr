@@ -8,7 +8,6 @@ import UIKit
 final class SignInViewModel {
     var isAuthenticating = false
     var errorMessage: String?
-    var errorDetails: String?
 
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var authSession: ASWebAuthenticationSession?
@@ -24,7 +23,6 @@ final class SignInViewModel {
     func startSignIn() async {
         cancelSignIn()
         errorMessage = nil
-        errorDetails = nil
         isAuthenticating = true
 
         do {
@@ -41,8 +39,8 @@ final class SignInViewModel {
             beginPolling(pinID: pinResponse.id)
 
         } catch {
-            errorMessage = AuthErrorMapper.signInMessage(for: error)
-            errorDetails = String(describing: error)
+            errorMessage = String(localized: "signIn.error.startFailed")
+            ErrorReporter.capture(error)
             cancelSignIn()
         }
     }
@@ -115,14 +113,14 @@ final class SignInViewModel {
                             cancelSignIn()
                             return
                         } catch {
-                            errorMessage = AuthErrorMapper.signInMessage(for: error)
-                            errorDetails = String(describing: error)
+                            errorMessage = String(localized: "signIn.error.startFailed")
+                            ErrorReporter.capture(error)
                             cancelSignIn()
                         }
                     }
                 } catch {
-                    errorMessage = AuthErrorMapper.signInMessage(for: error)
-                    errorDetails = String(describing: error)
+                    errorMessage = String(localized: "signIn.error.startFailed")
+                    ErrorReporter.capture(error)
                 }
 
                 try? await Task.sleep(nanoseconds: 2_000_000_000)

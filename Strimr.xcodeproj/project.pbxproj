@@ -63,7 +63,6 @@
 			membershipExceptions = (
 				"Extensions/Color+Hex.swift",
 				"Extensions/TimeInterval+MediaFormat.swift",
-				Features/Auth/AuthErrorMapper.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
 				Features/Home/HomeViewModel.swift,

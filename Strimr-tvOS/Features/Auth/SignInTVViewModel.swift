@@ -6,7 +6,6 @@ import Observation
 final class SignInTVViewModel {
     var isAuthenticating = false
     var errorMessage: String?
-    var errorDetails: String?
     var pin: PlexCloudPin?
 
     @ObservationIgnored private var pollTask: Task<Void, Never>?
@@ -21,7 +20,6 @@ final class SignInTVViewModel {
     func startSignIn() async {
         resetSignInState()
         errorMessage = nil
-        errorDetails = nil
         isAuthenticating = true
 
         do {
@@ -30,8 +28,8 @@ final class SignInTVViewModel {
             pin = pinResponse
             beginPolling(pinID: pinResponse.id)
         } catch {
-            errorMessage = AuthErrorMapper.signInMessage(for: error)
-            errorDetails = String(describing: error)
+            errorMessage = String(localized: "signIn.error.startFailed")
+            ErrorReporter.capture(error)
             isAuthenticating = false
         }
     }
@@ -55,14 +53,14 @@ final class SignInTVViewModel {
                             cancelSignIn()
                             return
                         } catch {
-                            errorMessage = AuthErrorMapper.signInMessage(for: error)
-                            errorDetails = String(describing: error)
+                            errorMessage = String(localized: "signIn.error.startFailed")
+                            ErrorReporter.capture(error)
                             cancelSignIn()
                         }
                     }
                 } catch {
-                    errorMessage = AuthErrorMapper.signInMessage(for: error)
-                    errorDetails = String(describing: error)
+                    errorMessage = String(localized: "signIn.error.startFailed")
+                    ErrorReporter.capture(error)
                 }
 
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
