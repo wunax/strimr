@@ -10,6 +10,8 @@
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		E98AE52E2F008D9D0062F372 /* MobileVLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E98AE52C2F008D9D0062F372 /* MobileVLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E98AE9B02F009FE30062F372 /* TVVLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E98AE52F2F008DA20062F372 /* TVVLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
+		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
 		E9C449002EF3063500D2895B /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9C448FF2EF3063500D2895B /* MPVKit-GPL */; settings = {ATTRIBUTES = (Required, ); }; };
 		E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9E487BA2EE4E664009184C1 /* MPVKit-GPL */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -110,6 +112,7 @@
 				Models/PlexDiscoverModels.swift,
 				Models/PlexMediaModels.swift,
 				Models/PlexTimelineModels.swift,
+				Monitoring/ErrorReporter.swift,
 				Networking/Plex/PlexAPI.swift,
 				Networking/Plex/PlexAPIContext.swift,
 				Networking/Plex/PlexCloudNetworkClient.swift,
@@ -189,6 +192,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */,
+				E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,6 +201,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9C449002EF3063500D2895B /* MPVKit-GPL in Frameworks */,
+				E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +263,7 @@
 			name = "Strimr-iOS";
 			packageProductDependencies = (
 				E9E487BA2EE4E664009184C1 /* MPVKit-GPL */,
+				E9B55C4A2F18F6FE00AC81AD /* Sentry */,
 			);
 			productName = Strimr;
 			productReference = E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */;
@@ -282,6 +288,7 @@
 			name = "Strimr-tvOS";
 			packageProductDependencies = (
 				E9C448FF2EF3063500D2895B /* MPVKit-GPL */,
+				E9B55C4C2F18F71100AC81AD /* Sentry */,
 			);
 			productName = "Strimr-tvOS";
 			productReference = E9C448F32EF3034900D2895B /* Strimr-tvOS.app */;
@@ -316,6 +323,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */,
+				E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98A13BA2ED8CBAD002F98B2 /* Products */;
@@ -681,6 +689,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 		E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mpvkit/MPVKit.git";
@@ -692,6 +708,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E9B55C4A2F18F6FE00AC81AD /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+		E9B55C4C2F18F71100AC81AD /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
 		E9C448FF2EF3063500D2895B /* MPVKit-GPL */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */;

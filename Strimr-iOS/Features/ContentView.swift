@@ -6,6 +6,10 @@ struct ContentView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
 
+    init() {
+        ErrorReporter.start()
+    }
+    
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()

@@ -4,6 +4,10 @@ struct ContentView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(PlexAPIContext.self) private var plexApiContext
 
+    init() {
+        ErrorReporter.start()
+    }
+
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
