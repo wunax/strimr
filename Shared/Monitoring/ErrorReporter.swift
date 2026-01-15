@@ -5,6 +5,7 @@ enum ErrorReporter {
         #if canImport(Sentry)
         SentrySDK.start { options in
             options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN") as? String
+            options.enableLogs = true
         }
         #endif
     }
