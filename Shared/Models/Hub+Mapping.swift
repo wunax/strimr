@@ -7,7 +7,7 @@ extension Hub {
             id: plexHub.hubIdentifier,
             title: plexHub.title,
             items: (plexHub.metadata ?? [])
-                .filter { $0.type.isSupported }
+                .filter(\.type.isSupported)
                 .map(MediaItem.init),
         )
     }

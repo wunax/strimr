@@ -27,7 +27,7 @@ final class LibraryStore {
             let response = try await repository.getSections()
             let sections = response.mediaContainer.directory ?? []
             libraries = sections
-                .filter { $0.type.isSupported }
+                .filter(\.type.isSupported)
                 .map(Library.init)
         } catch {
             loadFailed = true

@@ -10,7 +10,7 @@ enum PlexItemType: String, Codable {
     var isSupported: Bool {
         self != .unknown
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let rawValue = try container.decode(String.self)
