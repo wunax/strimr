@@ -155,11 +155,7 @@ final class SessionManager {
             } catch {}
         }
 
-        let resources = try await resourcesRepo.getResources().filter { resource in
-            let hasConnections = !(resource.connections?.isEmpty ?? true)
-            let hasAccessToken = resource.accessToken != nil
-            return hasConnections && hasAccessToken
-        }
+        let resources = try await resourcesRepo.getAvailableResources()
 
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId })
