@@ -19,4 +19,14 @@ final class ResourceRepository {
             ],
         )
     }
+
+    func getAvailableResources() async throws -> [PlexCloudResource] {
+        try await getResources().filter { ResourceRepository.isSelectable($0) }
+    }
+
+    private static func isSelectable(_ resource: PlexCloudResource) -> Bool {
+        let hasConnections = !(resource.connections?.isEmpty ?? true)
+        let hasAccessToken = resource.accessToken != nil
+        return hasConnections && hasAccessToken
+    }
 }
