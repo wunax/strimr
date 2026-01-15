@@ -70,7 +70,7 @@ final class PlexAPIContext {
         }
 
         if let savedConnection = loadSavedConnection(for: resource),
-           let matchingConnection = resource.connections.first(where: { $0.uri == savedConnection }),
+           let matchingConnection = resource.connections?.first(where: { $0.uri == savedConnection }),
            try await isConnectionReachable(matchingConnection, accessToken: resource.accessToken)
         {
             baseURLServer = matchingConnection.uri
@@ -87,7 +87,10 @@ final class PlexAPIContext {
     }
 
     private func resolveConnection(using resource: PlexCloudResource) async throws -> PlexCloudResource.Connection? {
-        let sortedConnections = resource.connections.sorted { lhs, rhs in
+        guard let connections = resource.connections, !connections.isEmpty else {
+            return nil
+        }
+        let sortedConnections = connections.sorted { lhs, rhs in
             if lhs.isRelay != rhs.isRelay {
                 return rhs.isRelay // non-relay first
             }
@@ -108,10 +111,12 @@ final class PlexAPIContext {
 
     private func isConnectionReachable(
         _ connection: PlexCloudResource.Connection,
-        accessToken: String,
+        accessToken: String?,
     ) async throws -> Bool {
         var request = URLRequest(url: connection.uri)
-        request.setValue(accessToken, forHTTPHeaderField: "X-Plex-Token")
+        if let accessToken {
+            request.setValue(accessToken, forHTTPHeaderField: "X-Plex-Token")
+        }
         request.timeoutInterval = 6
 
         do {

@@ -23,8 +23,8 @@ struct PlexCloudResource: Codable, Equatable {
 
     let name: String
     let clientIdentifier: String
-    let accessToken: String
-    let connections: [Connection]
+    let accessToken: String?
+    let connections: [Connection]?
 }
 
 struct PlexCloudUser: Codable, Equatable {

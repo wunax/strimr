@@ -21,7 +21,11 @@ final class ServerSelectionViewModel {
 
         do {
             let repository = ResourceRepository(context: context)
-            servers = try await repository.getResources().filter { !$0.connections.isEmpty }
+            servers = try await repository.getResources().filter { resource in
+                let hasConnections = !(resource.connections?.isEmpty ?? true)
+                let hasAccessToken = resource.accessToken != nil
+                return hasConnections && hasAccessToken
+            }
         } catch {
             ErrorReporter.capture(error)
             servers = []

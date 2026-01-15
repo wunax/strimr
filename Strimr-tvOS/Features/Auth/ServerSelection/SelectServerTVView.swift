@@ -137,7 +137,7 @@ struct SelectServerTVView: View {
     }
 
     private func connectionSummary(for server: PlexCloudResource) -> some View {
-        guard let connection = server.connections.first else {
+        guard let connection = server.connections?.first else {
             return Text("serverSelection.connection.unavailable")
         }
 
