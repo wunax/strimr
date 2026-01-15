@@ -149,6 +149,7 @@ final class SearchViewModel {
             items = results.compactMap(\.metadata).map(MediaItem.init)
         } catch {
             guard !Task.isCancelled else { return }
+            ErrorReporter.capture(error)
             items = []
             errorMessage = error.localizedDescription
         }

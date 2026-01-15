@@ -82,6 +82,7 @@ final class HomeViewModel {
                 .map(mapHub)
         } catch {
             guard !Task.isCancelled else { return }
+            ErrorReporter.capture(error)
             resetState(error: error.localizedDescription)
         }
     }

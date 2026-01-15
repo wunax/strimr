@@ -44,6 +44,7 @@ final class LibraryRecommendedViewModel {
             let plexHubs = response.mediaContainer.hub ?? []
             hubs = plexHubs.map(Hub.init)
         } catch {
+            ErrorReporter.capture(error)
             resetState(error: error.localizedDescription)
         }
     }
