@@ -20,7 +20,7 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>SENTRY_DSN</key>
-	<string>https://$(SENTRY_DSN)</string>
+	<key>SENTRY_DSN_IOS</key>
+	<string>https://$(SENTRY_DSN_IOS)</string>
 </dict>
 </plist>
