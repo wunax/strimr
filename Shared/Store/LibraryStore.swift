@@ -34,4 +34,9 @@ final class LibraryStore {
             throw error
         }
     }
+
+    func reloadLibraries() async throws {
+        libraries = []
+        try await loadLibraries()
+    }
 }

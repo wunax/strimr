@@ -108,7 +108,7 @@ final class SessionManager {
             plexServer = server
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
             if authToken != nil {
-                try? await libraryStore.loadLibraries()
+                try? await libraryStore.reloadLibraries()
                 status = .ready
             }
         } catch {
