@@ -4,11 +4,11 @@ enum ErrorReporter {
     static func start() {
         #if canImport(Sentry)
             SentrySDK.start { options in
-            #if os(iOS)
-                options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_IOS") as? String
-            #elseif os(tvOS)
-                options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_TVOS") as? String
-            #endif
+                #if os(iOS)
+                    options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_IOS") as? String
+                #elseif os(tvOS)
+                    options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_TVOS") as? String
+                #endif
                 options.enableLogs = true
             }
         #endif
