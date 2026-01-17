@@ -52,6 +52,12 @@ struct SettingsView: View {
                 }
             }
 
+            Section("settings.download.title") {
+                Toggle("settings.download.showAfterMovie", isOn: viewModel.showDownloadsAfterMovieBinding)
+                Toggle("settings.download.showAfterEpisode", isOn: viewModel.showDownloadsAfterEpisodeBinding)
+                Toggle("settings.download.showAfterShow", isOn: viewModel.showDownloadsAfterShowBinding)
+            }
+
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
                 libraryStore: libraryStore,

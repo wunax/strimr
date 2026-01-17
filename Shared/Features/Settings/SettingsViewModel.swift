@@ -47,4 +47,25 @@ final class SettingsViewModel {
             set: { self.settingsManager.setSubtitleScale($0) },
         )
     }
+
+    var showDownloadsAfterMovieBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.download.showDownloadsAfterMovieDownload },
+            set: { self.settingsManager.setShowDownloadsAfterMovieDownload($0) },
+        )
+    }
+
+    var showDownloadsAfterEpisodeBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.download.showDownloadsAfterEpisodeDownload },
+            set: { self.settingsManager.setShowDownloadsAfterEpisodeDownload($0) },
+        )
+    }
+
+    var showDownloadsAfterShowBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.download.showDownloadsAfterShowDownload },
+            set: { self.settingsManager.setShowDownloadsAfterShowDownload($0) },
+        )
+    }
 }

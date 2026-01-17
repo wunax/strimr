@@ -7,6 +7,7 @@ struct MediaDetailHeaderSection: View {
     let heroHeight: CGFloat
     let onPlay: (String) -> Void
     let onPlayFromStart: (String) -> Void
+    let onDownloadClick: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -211,6 +212,10 @@ struct MediaDetailHeaderSection: View {
             if viewModel.shouldShowWatchlistButton {
                 watchlistToggleButton
             }
+            
+            if viewModel.shouldShowDownloadButton {
+                downloadToggleButton
+            }
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -310,6 +315,33 @@ struct MediaDetailHeaderSection: View {
             .disabled(viewModel.isLoading || viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus)
 
             Text(viewModel.watchlistActionTitle)
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 48)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+    }
+
+    private var downloadToggleButton: some View {
+        VStack(spacing: 2) {
+            Button {
+                viewModel.toggleDownload()
+                onDownloadClick()
+            } label: {
+                DownloadStatusIcon(
+                    state: viewModel.downloadState,
+                    progress: viewModel.downloadProgress,
+                    lineWidth: 3
+                )
+                .padding(viewModel.downloadState == .downloading ? 8 : 0)
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+
+            Text(viewModel.downloadTitle)
                 .font(.caption2)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: 48)

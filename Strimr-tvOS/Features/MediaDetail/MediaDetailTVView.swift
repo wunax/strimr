@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 struct MediaDetailTVView: View {
-    @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(MainCoordinator.self) private var coordinator
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
     private let onPlay: (String) -> Void

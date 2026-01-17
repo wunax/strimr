@@ -1,14 +1,14 @@
 import SwiftUI
 
 extension MainTabView {
-    func handlePlay(ratingKey: String, shouldResumeFromOffset: Bool = true) {
+    func handlePlay(ratingKey: String, shouldResumeFromOffset: Bool = true, downloadPath: String? = nil) {
         let player = settingsManager.playback.player
         if player.isExternal {
             Task { @MainActor in
                 await launchExternalPlayback(ratingKey: ratingKey)
             }
         } else {
-            coordinator.showPlayer(for: ratingKey, shouldResumeFromOffset: shouldResumeFromOffset)
+            coordinator.showPlayer(for: ratingKey, shouldResumeFromOffset: shouldResumeFromOffset, downloadPath: downloadPath)
         }
     }
 

@@ -8,8 +8,11 @@ struct EpisodeCardView: View {
     let cardWidth: CGFloat?
     let isWatched: Bool
     let isUpdatingWatchStatus: Bool
+    let downloadState: DownloadState
+    let downloadProgress: Double
     let onToggleWatch: (() -> Void)?
     let onPlay: (() -> Void)?
+    let onDownload: (() -> Void)?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isRegularWidth: Bool {
@@ -72,6 +75,23 @@ struct EpisodeCardView: View {
 
                 Spacer()
 
+                if let onDownload {
+                    Button {
+                        onDownload()
+                    } label: {
+                        DownloadStatusIcon(
+                            state: downloadState,
+                            progress: downloadProgress,
+                            lineWidth: 2,
+                            size: 22
+                        )
+                        .frame(width: 22, height: 22)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.brandSecondary)
+                }
+
                 if let onToggleWatch {
                     Button {
                         onToggleWatch()
@@ -115,4 +135,6 @@ struct EpisodeCardView: View {
             .padding(12)
             .background(Color.black.opacity(0.50), in: Circle())
     }
+
+
 }

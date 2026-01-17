@@ -5,9 +5,10 @@ struct MainTabTVView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(\.openURL) var openURL
-    @StateObject var coordinator = MainCoordinator()
+    @State var coordinator = MainCoordinator()
 
     var body: some View {
+        @Bindable var coordinator = coordinator
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
                 NavigationStack(path: coordinator.pathBinding(for: .home)) {
@@ -88,7 +89,7 @@ struct MainTabTVView: View {
                 }
             }
         }
-        .environmentObject(coordinator)
+        .environment(coordinator)
         .task {
             try? await libraryStore.loadLibraries()
         }
@@ -120,6 +121,8 @@ struct MainTabTVView: View {
                 },
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        case .downloads, .seriesDownloadSelection:
+            Text("Downloads not supported on tvOS")
         }
     }
 
