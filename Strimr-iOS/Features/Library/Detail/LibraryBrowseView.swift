@@ -5,17 +5,16 @@ struct LibraryBrowseView: View {
     let onSelectMedia: (MediaItem) -> Void
 
     private let gridColumns = [
-        GridItem(.adaptive(minimum: 100, maximum: 180), spacing: 12),
+        GridItem(.adaptive(minimum: 124, maximum: 180), spacing: 12),
     ]
 
     var body: some View {
         ScrollView {
             LazyVGrid(columns: gridColumns, spacing: 16) {
                 ForEach(viewModel.items) { media in
-                    PortraitMediaCard(media: media, showsLabels: true) {
+                    PortraitMediaCard(media: media, height: 200, showsLabels: true) {
                         onSelectMedia(media)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 200)
                     .task {
                         if media == viewModel.items.last {
                             await viewModel.loadMore()

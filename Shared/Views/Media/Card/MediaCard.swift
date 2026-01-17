@@ -7,21 +7,7 @@ struct MediaCard: View {
         @FocusState private var isFocused: Bool
     #endif
 
-    enum Layout {
-        case landscape
-        case portrait
-
-        var aspectRatio: CGFloat {
-            switch self {
-            case .landscape:
-                16 / 9
-            case .portrait:
-                2 / 3
-            }
-        }
-    }
-
-    let layout: Layout
+    let size: CGSize
     let media: MediaItem
     let artworkKind: MediaImageViewModel.ArtworkKind
     let showsLabels: Bool
@@ -40,8 +26,7 @@ struct MediaCard: View {
                     media: media,
                 ),
             )
-            .frame(maxWidth: .infinity)
-            .aspectRatio(layout.aspectRatio, contentMode: .fit)
+            .frame(width: size.width, height: size.height)
             .clipShape(
                 RoundedRectangle(cornerRadius: 14, style: .continuous),
             )
@@ -74,6 +59,7 @@ struct MediaCard: View {
                 }
             }
         }
+        .frame(width: size.width, alignment: .leading)
         #if os(tvOS)
         .focusable()
         .focused($isFocused)
