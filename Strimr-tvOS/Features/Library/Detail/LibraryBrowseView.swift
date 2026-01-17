@@ -7,7 +7,7 @@ struct LibraryBrowseView: View {
     @FocusState private var focusedCharacterId: String?
 
     private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 280), spacing: 32),
+        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
     ]
 
     init(
@@ -26,14 +26,13 @@ struct LibraryBrowseView: View {
                         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {
-                                    PortraitMediaCard(media: media, height: 300, showsLabels: true) {
+                                    PortraitMediaCard(media: media, width: 200, showsLabels: true) {
                                         onSelectMedia(media)
                                     }
                                 } else {
                                     ProgressView()
                                 }
                             }
-                            .frame(maxWidth: .infinity, minHeight: 300)
                             .id(index)
                             .onAppear {
                                 Task {

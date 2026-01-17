@@ -3,6 +3,7 @@ import SwiftUI
 struct LandscapeMediaCard: View {
     let media: MediaItem
     let height: CGFloat?
+    let width: CGFloat?
     let showsLabels: Bool
     let onTap: () -> Void
 
@@ -13,11 +14,13 @@ struct LandscapeMediaCard: View {
     init(
         media: MediaItem,
         height: CGFloat? = nil,
+        width: CGFloat? = nil,
         showsLabels: Bool,
         onTap: @escaping () -> Void
     ) {
         self.media = media
         self.height = height
+        self.width = width
         self.showsLabels = showsLabels
         self.onTap = onTap
     }
@@ -31,10 +34,10 @@ struct LandscapeMediaCard: View {
     }
 
     var body: some View {
-        let resolvedHeight = height ?? defaultHeight
-        let width = resolvedHeight * aspectRatio
+        let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
+        let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
         MediaCard(
-            size: CGSize(width: width, height: resolvedHeight),
+            size: CGSize(width: resolvedWidth, height: resolvedHeight),
             media: media,
             artworkKind: .art,
             showsLabels: showsLabels,
