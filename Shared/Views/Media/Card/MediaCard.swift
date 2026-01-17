@@ -61,23 +61,23 @@ struct MediaCard: View {
         }
         .frame(width: size.width, alignment: .leading)
         #if os(tvOS)
-        .focusable()
-        .focused($isFocused)
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(
-                    isFocused ? Color.brandSecondary : .clear,
-                    lineWidth: 4,
-                )
-        }
-        .animation(.easeOut(duration: 0.15), value: isFocused)
-        .onChange(of: isFocused) { _, focused in
-            if focused {
-                focusModel.focusedMedia = media
+            .focusable()
+            .focused($isFocused)
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(
+                        isFocused ? Color.brandSecondary : .clear,
+                        lineWidth: 4,
+                    )
             }
-        }
-        .onPlayPauseCommand(perform: onTap)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    focusModel.focusedMedia = media
+                }
+            }
+            .onPlayPauseCommand(perform: onTap)
         #endif
-        .onTapGesture(perform: onTap)
+            .onTapGesture(perform: onTap)
     }
 }

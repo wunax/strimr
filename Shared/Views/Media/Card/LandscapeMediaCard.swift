@@ -16,7 +16,7 @@ struct LandscapeMediaCard: View {
         height: CGFloat? = nil,
         width: CGFloat? = nil,
         showsLabels: Bool,
-        onTap: @escaping () -> Void
+        onTap: @escaping () -> Void,
     ) {
         self.media = media
         self.height = height
