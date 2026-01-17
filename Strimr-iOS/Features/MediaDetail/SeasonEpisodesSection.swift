@@ -2,6 +2,8 @@ import Observation
 import SwiftUI
 
 struct SeasonEpisodesSection: View {
+    @Environment(MainCoordinator.self) private var coordinator
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let onPlay: (String) -> Void
 
@@ -154,6 +156,8 @@ struct SeasonEpisodesSection: View {
                     cardWidth: nil,
                     isWatched: viewModel.isWatched(episode),
                     isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
+                    downloadState: viewModel.downloadState(for: episode),
+                    downloadProgress: viewModel.downloadProgress(for: episode),
                     onToggleWatch: {
                         Task {
                             await viewModel.toggleWatchStatus(for: episode)
@@ -162,6 +166,12 @@ struct SeasonEpisodesSection: View {
                     onPlay: {
                         onPlay(episode.id)
                     },
+                    onDownload: {
+                        viewModel.toggleDownload(for: episode)
+                        if settingsManager.download.showDownloadsAfterEpisodeDownload || viewModel.downloadState(for: episode) == .downloaded {
+                            coordinator.showDownloads()
+                        }
+                    }
                 )
                 if index < viewModel.episodes.count - 1 {
                     Divider()

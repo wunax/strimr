@@ -3,11 +3,18 @@ import SwiftUI
 @MainActor
 struct UserMenuView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(MainCoordinator.self) private var coordinator
     @State private var isShowingLogoutConfirmation = false
 
     var body: some View {
         List {
             Section {
+                NavigationLink {
+                    DownloadsView()
+                } label: {
+                    Label("downloads.title", systemImage: "arrow.down.circle")
+                }
+
                 NavigationLink {
                     SettingsView()
                 } label: {

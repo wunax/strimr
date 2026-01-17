@@ -1,8 +1,10 @@
-import Combine
+
+import Observation
 import SwiftUI
 
 @MainActor
-final class MainCoordinator: ObservableObject {
+@Observable
+final class MainCoordinator {
     enum Tab: Hashable {
         case home
         case search
@@ -13,18 +15,22 @@ final class MainCoordinator: ObservableObject {
 
     enum Route: Hashable {
         case mediaDetail(MediaItem)
+        case downloads
+        case seriesDownloadSelection(MediaItem)
     }
 
-    @Published var tab: Tab = .home
-    @Published var homePath = NavigationPath()
-    @Published var searchPath = NavigationPath()
-    @Published var libraryPath = NavigationPath()
-    @Published var morePath = NavigationPath()
-    @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
+    var tab: Tab = .home
+    var homePath = NavigationPath()
+    var searchPath = NavigationPath()
+    var libraryPath = NavigationPath()
+    var morePath = NavigationPath()
+    private var libraryDetailPaths: [String: NavigationPath] = [:]
 
-    @Published var selectedRatingKey: String?
-    @Published var isPresentingPlayer = false
-    @Published var shouldResumeFromOffset = true
+    var selectedRatingKey: String?
+    var selectedDownloadPath: String?
+    var isPresentingPlayer = false
+    var isPresentingUserMenu = false
+    var shouldResumeFromOffset = true
 
     func pathBinding(for tab: Tab) -> Binding<NavigationPath> {
         Binding(
@@ -55,38 +61,99 @@ final class MainCoordinator: ObservableObject {
                 case let .libraryDetail(libraryId):
                     self.libraryDetailPaths[libraryId] = newValue
                 }
-            },
+            }
         )
     }
 
+    // MARK: - Navigation Actions
+
     func showMediaDetail(_ media: MediaItem) {
         let route = Route.mediaDetail(media)
+        appendRoute(route)
+    }
 
-        switch tab {
-        case .home:
-            homePath.append(route)
-        case .search:
-            searchPath.append(route)
-        case .library:
-            libraryPath.append(route)
-        case .more:
-            break
-        case let .libraryDetail(libraryId):
-            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+    func showMediaDetailReplacingDownloads(_ media: MediaItem) {
+        isPresentingUserMenu = false
+        let route = Route.mediaDetail(media)
+
+        withCurrentPath { path in
+            if !path.isEmpty {
+                path.removeLast()
+            } else {
+                print("DEBUG: Path was empty, nothing removed.")
+            }
             path.append(route)
-            libraryDetailPaths[libraryId] = path
         }
     }
 
-    func showPlayer(for ratingKey: String, shouldResumeFromOffset: Bool = true) {
+    func showPlayer(for ratingKey: String, shouldResumeFromOffset: Bool = true, downloadPath: String? = nil) {
         selectedRatingKey = ratingKey
         self.shouldResumeFromOffset = shouldResumeFromOffset
+        self.selectedDownloadPath = downloadPath
         isPresentingPlayer = true
     }
 
     func resetPlayer() {
         selectedRatingKey = nil
+        selectedDownloadPath = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
+    }
+
+    func showDownloads() {
+        isPresentingUserMenu = false
+        let route = Route.downloads
+        appendRoute(route)
+    }
+
+    func replaceSelectionWithDownloads() {
+        isPresentingUserMenu = false
+        let route = Route.downloads
+
+        withCurrentPath { path in
+            if !path.isEmpty {
+                path.removeLast()
+            }
+            path.append(route)
+        }
+    }
+
+    func goBack() {
+        withCurrentPath { path in
+            if !path.isEmpty {
+                path.removeLast()
+            }
+        }
+    }
+
+    func showSeriesDownloadSelection(for media: MediaItem) {
+        isPresentingUserMenu = false
+        let route = Route.seriesDownloadSelection(media)
+        appendRoute(route)
+    }
+
+    // MARK: - Private Helper
+
+    private func appendRoute(_ route: Route) {
+        withCurrentPath { path in
+            path.append(route)
+        }
+    }
+
+    private func withCurrentPath(_ block: (inout NavigationPath) -> Void) {
+        switch tab {
+        case .home:
+            block(&homePath)
+        case .search:
+            block(&searchPath)
+        case .library:
+            block(&libraryPath)
+        case .more:
+            block(&morePath)
+        case let .libraryDetail(libraryId):
+            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+            block(&path)
+            libraryDetailPaths[libraryId] = path
+        }
     }
 }

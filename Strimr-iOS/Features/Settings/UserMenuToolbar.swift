@@ -2,18 +2,35 @@ import SwiftUI
 
 struct UserMenuToolbarButton: View {
     @Environment(SessionManager.self) private var sessionManager
-    @State private var isPresentingMenu = false
+    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MainCoordinator.self) private var coordinator
+    @State private var navPath = NavigationPath()
 
     var body: some View {
+        @Bindable var coordinator = coordinator
         Button {
-            isPresentingMenu = true
+            coordinator.isPresentingUserMenu = true
         } label: {
             avatarView
         }
         .accessibilityLabel(Text("tabs.more"))
-        .sheet(isPresented: $isPresentingMenu) {
-            NavigationStack {
+        .sheet(isPresented: $coordinator.isPresentingUserMenu) {
+            NavigationStack(path: $navPath) {
                 UserMenuView()
+                    .navigationDestination(for: MediaItem.self) { media in
+                    MediaDetailView(
+                        viewModel: MediaDetailViewModel(media: media, context: plexApiContext),
+                        onPlay: { ratingKey, downloadPath in
+                            coordinator.showPlayer(for: ratingKey, downloadPath: downloadPath)
+                        },
+                        onPlayFromStart: { ratingKey, downloadPath in
+                            coordinator.showPlayer(for: ratingKey, shouldResumeFromOffset: false, downloadPath: downloadPath)
+                        },
+                        onSelectMedia: { item in
+                            navPath.append(item)
+                        }
+                    )
+                }
             }
         }
     }

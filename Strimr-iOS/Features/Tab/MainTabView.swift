@@ -5,7 +5,7 @@ struct MainTabView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(\.openURL) var openURL
-    @StateObject var coordinator = MainCoordinator()
+    @State var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
     @State var libraryViewModel: LibraryViewModel
 
@@ -15,6 +15,7 @@ struct MainTabView: View {
     }
 
     var body: some View {
+        @Bindable var coordinator = coordinator
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
                 NavigationStack(path: coordinator.pathBinding(for: .home)) {
@@ -77,7 +78,7 @@ struct MainTabView: View {
             }
         }
         .tint(.brandPrimary)
-        .environmentObject(coordinator)
+        .environment(coordinator)
         .task {
             try? await libraryStore.loadLibraries()
         }
@@ -88,6 +89,7 @@ struct MainTabView: View {
                         ratingKey: ratingKey,
                         context: plexApiContext,
                         shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                        downloadPath: coordinator.selectedDownloadPath
                     ),
                 )
             }
@@ -108,14 +110,18 @@ struct MainTabView: View {
                     media: media,
                     context: plexApiContext,
                 ),
-                onPlay: { ratingKey in
-                    handlePlay(ratingKey: ratingKey)
+                onPlay: { ratingKey, downloadPath in
+                    handlePlay(ratingKey: ratingKey, downloadPath: downloadPath)
                 },
-                onPlayFromStart: { ratingKey in
-                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
+                onPlayFromStart: { ratingKey, downloadPath in
+                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false, downloadPath: downloadPath)
                 },
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        case .downloads:
+            DownloadsView()
+        case let .seriesDownloadSelection(media):
+            SeriesDownloadSelectionView(series: media, context: plexApiContext)
         }
     }
 }

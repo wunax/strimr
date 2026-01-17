@@ -13,9 +13,16 @@ struct InterfaceSettings: Codable, Equatable {
     var navigationLibraryIds: [String] = []
 }
 
+struct DownloadSettings: Codable, Equatable {
+    var showDownloadsAfterMovieDownload = true
+    var showDownloadsAfterEpisodeDownload = false
+    var showDownloadsAfterShowDownload = true
+}
+
 struct AppSettings: Codable, Equatable {
     var playback = PlaybackSettings()
     var interface = InterfaceSettings()
+    var download = DownloadSettings()
 
     init() {}
 
@@ -23,5 +30,6 @@ struct AppSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         playback = try container.decodeIfPresent(PlaybackSettings.self, forKey: .playback) ?? PlaybackSettings()
         interface = try container.decodeIfPresent(InterfaceSettings.self, forKey: .interface) ?? InterfaceSettings()
+        download = try container.decodeIfPresent(DownloadSettings.self, forKey: .download) ?? DownloadSettings()
     }
 }

@@ -30,6 +30,9 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentThumbPath: String?
     let grandparentArtPath: String?
     let parentThumbPath: String?
+    let downloadPath: String?
+    let videoResolution: String?
+    let bitrate: Int?
 
     var primaryLabel: String {
         grandparentTitle ?? parentTitle ?? title

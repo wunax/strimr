@@ -28,6 +28,10 @@ final class SettingsManager {
         settings.interface
     }
 
+    var download: DownloadSettings {
+        settings.download
+    }
+
     func setAutoPlayNextEpisode(_ enabled: Bool) {
         settings.playback.autoPlayNextEpisode = enabled
         persist()
@@ -76,6 +80,21 @@ final class SettingsManager {
 
     func setNavigationLibraryIds(_ ids: [String]) {
         settings.interface.navigationLibraryIds = ids
+        persist()
+    }
+
+    func setShowDownloadsAfterMovieDownload(_ enabled: Bool) {
+        settings.download.showDownloadsAfterMovieDownload = enabled
+        persist()
+    }
+
+    func setShowDownloadsAfterEpisodeDownload(_ enabled: Bool) {
+        settings.download.showDownloadsAfterEpisodeDownload = enabled
+        persist()
+    }
+
+    func setShowDownloadsAfterShowDownload(_ enabled: Bool) {
+        settings.download.showDownloadsAfterShowDownload = enabled
         persist()
     }
 

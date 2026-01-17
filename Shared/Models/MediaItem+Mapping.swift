@@ -32,6 +32,9 @@ extension MediaItem {
             grandparentThumbPath: plexItem.grandparentThumb,
             grandparentArtPath: plexItem.grandparentArt,
             parentThumbPath: plexItem.parentThumb,
+            downloadPath: plexItem.media?.first?.parts.first?.key,
+            videoResolution: plexItem.media?.first?.videoResolution,
+            bitrate: plexItem.media?.first?.bitrate
         )
     }
 }

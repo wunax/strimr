@@ -314,6 +314,28 @@ final class MediaDetailViewModel {
         return await firstGrandchildRatingKey()
     }
 
+    func playbackDownloadPath(for ratingKey: String) async -> String? {
+        if media.id == ratingKey {
+             return media.downloadPath
+        }
+        if let onDeck = onDeckItem, onDeck.id == ratingKey {
+            return onDeck.downloadPath
+        }
+        if let season = seasons.first(where: { $0.id == ratingKey }) {
+            return season.downloadPath
+        }
+        if let episode = episodes.first(where: { $0.id == ratingKey }) {
+            return episode.downloadPath
+        }
+        
+        // If it's a grandchild (first episode of show), we might not have it loaded in episodes list if we are offline.
+        // But if we are offline, we can't play it unless we have it.
+        // If it was downloaded, it should be in the hierarchy somewhere?
+        // If we are playing a Show, and we click Play, it plays onDeck.
+        
+        return nil
+    }
+
     var watchActionTitle: String {
         watchActionTitle(for: media)
     }
@@ -509,4 +531,70 @@ final class MediaDetailViewModel {
             relatedHubsErrorMessage = error.localizedDescription
         }
     }
+
+#if os(iOS)
+    private func downloadURL(for item: MediaItem) -> URL? {
+        guard let downloadPath = item.downloadPath else { return nil }
+        guard let baseURL = context.baseURLServer, let token = context.authTokenServer else { return nil }
+        
+        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+        let normalizedPath = downloadPath.hasPrefix("/") ? downloadPath : "/\(downloadPath)"
+        components?.path = normalizedPath
+        components?.queryItems = [
+            URLQueryItem(name: "X-Plex-Token", value: token),
+            URLQueryItem(name: "download", value: "1")
+        ]
+        return components?.url
+    }
+
+    func downloadState(for item: MediaItem) -> DownloadState {
+        guard let url = downloadURL(for: item) else { return .notDownloaded }
+        return DownloadManager.shared.downloadState(for: url)
+    }
+
+    func downloadProgress(for item: MediaItem) -> Double {
+        guard let url = downloadURL(for: item) else { return 0 }
+        return DownloadManager.shared.activeDownloads[url]?.progress ?? 0
+    }
+    
+    var downloadState: DownloadState {
+        downloadState(for: media)
+    }
+
+    var downloadProgress: Double {
+        downloadProgress(for: media)
+    }
+    
+    var shouldShowDownloadButton: Bool {
+        return (media.downloadPath != nil && (media.type == .movie || media.type == .episode)) || media.type == .show
+    }
+
+    var downloadTitle: String {
+        if media.type == .show {
+            return String(localized: "media.actions.downloads")
+        }
+        switch downloadState {
+        case .notDownloaded: return String(localized: "media.actions.download")
+        case .downloading: return String(localized: "media.actions.downloading")
+        case .downloaded: return String(localized: "media.actions.downloaded")
+        }
+    }
+
+    func toggleDownload() {
+        toggleDownload(for: media)
+    }
+
+    func toggleDownload(for item: MediaItem) {
+        guard let url = downloadURL(for: item) else { return }
+        switch downloadState(for: item) {
+        case .notDownloaded:
+            DownloadManager.shared.startDownload(media: item, url: url)
+        case .downloading:
+            DownloadManager.shared.cancelDownload(url: url)
+        case .downloaded:
+            // Do nothing, the view will handle navigation to downloads page
+            break
+        }
+    }
+#endif
 }

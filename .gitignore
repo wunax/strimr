@@ -30,6 +30,7 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+build/
 
 # CocoaPods
 #
@@ -64,3 +65,4 @@ fastlane/test_output
 .idea/
 .DS_Store
 Config/Config.xcconfig
+GEMINI.md

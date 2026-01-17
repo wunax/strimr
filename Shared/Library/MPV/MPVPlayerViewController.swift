@@ -143,7 +143,8 @@ final class MPVPlayerViewController: UIViewController {
     func loadFile(
         _ url: URL,
     ) {
-        var args = [url.absoluteString]
+        let path = url.isFileURL ? url.path : url.absoluteString
+        var args = [path]
         let options = [String]()
 
         args.append("replace")
