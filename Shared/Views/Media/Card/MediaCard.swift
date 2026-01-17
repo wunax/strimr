@@ -7,21 +7,7 @@ struct MediaCard: View {
         @FocusState private var isFocused: Bool
     #endif
 
-    enum Layout {
-        case landscape
-        case portrait
-
-        var aspectRatio: CGFloat {
-            switch self {
-            case .landscape:
-                16 / 9
-            case .portrait:
-                2 / 3
-            }
-        }
-    }
-
-    let layout: Layout
+    let size: CGSize
     let media: MediaItem
     let artworkKind: MediaImageViewModel.ArtworkKind
     let showsLabels: Bool
@@ -40,8 +26,7 @@ struct MediaCard: View {
                     media: media,
                 ),
             )
-            .frame(maxWidth: .infinity)
-            .aspectRatio(layout.aspectRatio, contentMode: .fit)
+            .frame(width: size.width, height: size.height)
             .clipShape(
                 RoundedRectangle(cornerRadius: 14, style: .continuous),
             )
@@ -74,24 +59,25 @@ struct MediaCard: View {
                 }
             }
         }
+        .frame(width: size.width, alignment: .leading)
         #if os(tvOS)
-        .focusable()
-        .focused($isFocused)
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(
-                    isFocused ? Color.brandSecondary : .clear,
-                    lineWidth: 4,
-                )
-        }
-        .animation(.easeOut(duration: 0.15), value: isFocused)
-        .onChange(of: isFocused) { _, focused in
-            if focused {
-                focusModel.focusedMedia = media
+            .focusable()
+            .focused($isFocused)
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(
+                        isFocused ? Color.brandSecondary : .clear,
+                        lineWidth: 4,
+                    )
             }
-        }
-        .onPlayPauseCommand(perform: onTap)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    focusModel.focusedMedia = media
+                }
+            }
+            .onPlayPauseCommand(perform: onTap)
         #endif
-        .onTapGesture(perform: onTap)
+            .onTapGesture(perform: onTap)
     }
 }
