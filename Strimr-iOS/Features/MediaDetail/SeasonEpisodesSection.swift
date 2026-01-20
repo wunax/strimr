@@ -151,7 +151,6 @@ struct SeasonEpisodesSection: View {
                     imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
                     runtime: viewModel.runtimeText(for: episode),
                     progress: viewModel.progressFraction(for: episode),
-                    cardWidth: nil,
                     isWatched: viewModel.isWatched(episode),
                     isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
                     onToggleWatch: {

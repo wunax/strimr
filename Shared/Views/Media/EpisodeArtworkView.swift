@@ -3,7 +3,7 @@ import SwiftUI
 struct EpisodeArtworkView: View {
     let episode: MediaItem
     let imageURL: URL?
-    let width: CGFloat?
+    let width: CGFloat
     let runtime: String?
     let progress: Double?
     private let aspectRatio: CGFloat = 16 / 9
@@ -24,7 +24,7 @@ struct EpisodeArtworkView: View {
                     Color.gray.opacity(0.15)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: width)
             .aspectRatio(aspectRatio, contentMode: .fit)
 
             if let runtime {

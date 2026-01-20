@@ -5,7 +5,6 @@ struct EpisodeCardView: View {
     let imageURL: URL?
     let runtime: String?
     let progress: Double?
-    let cardWidth: CGFloat?
     let isWatched: Bool
     let isUpdatingWatchStatus: Bool
     let onToggleWatch: (() -> Void)?
@@ -15,11 +14,9 @@ struct EpisodeCardView: View {
     private var isRegularWidth: Bool {
         horizontalSizeClass == .regular
     }
-
-    private var artworkWidth: CGFloat? {
-        guard isRegularWidth else { return cardWidth }
-        let preferredWidth: CGFloat = 240
-        return min(cardWidth ?? preferredWidth, preferredWidth)
+    
+    private var regularImageWidth: CGFloat {
+        UIScreen.main.bounds.width / 3
     }
 
     var body: some View {
@@ -29,7 +26,7 @@ struct EpisodeCardView: View {
                     EpisodeArtworkView(
                         episode: episode,
                         imageURL: imageURL,
-                        width: artworkWidth,
+                        width: regularImageWidth,
                         runtime: runtime,
                         progress: progress,
                     )
@@ -39,13 +36,17 @@ struct EpisodeCardView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    EpisodeArtworkView(
-                        episode: episode,
-                        imageURL: imageURL,
-                        width: artworkWidth,
-                        runtime: runtime,
-                        progress: progress,
-                    )
+                    GeometryReader { proxy in
+                        EpisodeArtworkView(
+                            episode: episode,
+                            imageURL: imageURL,
+                            width: proxy.size.width,
+                            runtime: runtime,
+                            progress: progress,
+                        )
+                    }
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .overlay { playOverlay }
 
                     detailStack
@@ -54,7 +55,6 @@ struct EpisodeCardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
-        .frame(width: cardWidth)
         .contentShape(Rectangle())
         .onTapGesture {
             onPlay?()
@@ -105,7 +105,6 @@ struct EpisodeCardView: View {
                     .lineLimit(3)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var playOverlay: some View {
