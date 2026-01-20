@@ -14,7 +14,7 @@ struct EpisodeCardView: View {
     private var isRegularWidth: Bool {
         horizontalSizeClass == .regular
     }
-    
+
     private var regularImageWidth: CGFloat {
         UIScreen.main.bounds.width / 3
     }
