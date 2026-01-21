@@ -2,10 +2,13 @@ import SwiftUI
 
 @main
 struct StrimrApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate: AppDelegate
+
     @State private var plexApiContext: PlexAPIContext
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var libraryStore: LibraryStore
+
     init() {
         let context = PlexAPIContext()
         let store = LibraryStore(context: context)

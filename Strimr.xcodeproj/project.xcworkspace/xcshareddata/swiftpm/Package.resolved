@@ -1,13 +1,13 @@
 {
-  "originHash" : "389cba2a454e74090a455e48a3cce8d7af03c810b4707a2fab452c99d3927ca8",
+  "originHash" : "8ba1a3667a4c89c272bd3aba302df911ac8eac7b035cc3936fdd204824db04c4",
   "pins" : [
     {
       "identity" : "mpvkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mpvkit/MPVKit.git",
+      "location" : "https://github.com/wunax/MPVKit",
       "state" : {
-        "revision" : "613c0ccc3acf70e136aaff880a9b5fe8fdfaf5b8",
-        "version" : "0.41.0"
+        "revision" : "5e10c5a69e0fd94043087ef28fa24addf603f41e",
+        "version" : "0.41.2"
       }
     },
     {

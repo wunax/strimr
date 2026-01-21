@@ -13,7 +13,9 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         return mpv
     }
 
-    func updateUIViewController(_: UIViewControllerType, context _: Context) {}
+    func updateUIViewController(_ uiViewController: UIViewControllerType, context _: Context) {
+        (uiViewController as? MPVPlayerViewController)?.updateMetalLayerLayout()
+    }
 
     func makeCoordinator() -> Coordinator {
         coordinator

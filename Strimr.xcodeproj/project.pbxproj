@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E93807CC2F20DE6D00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */; };
+		E93807CE2F210EBD00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */; };
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		E98AE52E2F008D9D0062F372 /* MobileVLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E98AE52C2F008D9D0062F372 /* MobileVLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E98AE9B02F009FE30062F372 /* TVVLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E98AE52F2F008DA20062F372 /* TVVLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
 		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
-		E9C449002EF3063500D2895B /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9C448FF2EF3063500D2895B /* MPVKit-GPL */; settings = {ATTRIBUTES = (Required, ); }; };
-		E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E9E487BA2EE4E664009184C1 /* MPVKit-GPL */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
@@ -190,8 +190,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9E487BB2EE4E664009184C1 /* MPVKit-GPL in Frameworks */,
 				E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */,
+				E93807CC2F20DE6D00A5C3B7 /* MPVKit-GPL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,8 +199,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9C449002EF3063500D2895B /* MPVKit-GPL in Frameworks */,
 				E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */,
+				E93807CE2F210EBD00A5C3B7 /* MPVKit-GPL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,8 +261,8 @@
 			);
 			name = "Strimr-iOS";
 			packageProductDependencies = (
-				E9E487BA2EE4E664009184C1 /* MPVKit-GPL */,
 				E9B55C4A2F18F6FE00AC81AD /* Sentry */,
+				E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */,
 			);
 			productName = Strimr;
 			productReference = E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */;
@@ -286,8 +286,8 @@
 			);
 			name = "Strimr-tvOS";
 			packageProductDependencies = (
-				E9C448FF2EF3063500D2895B /* MPVKit-GPL */,
 				E9B55C4C2F18F71100AC81AD /* Sentry */,
+				E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */,
 			);
 			productName = "Strimr-tvOS";
 			productReference = E9C448F32EF3034900D2895B /* Strimr-tvOS.app */;
@@ -321,8 +321,8 @@
 			mainGroup = E98A13B02ED8CBAD002F98B2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */,
 				E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98A13BA2ED8CBAD002F98B2 /* Products */;
@@ -688,6 +688,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/wunax/MPVKit";
+			requirement = {
+				kind = exactVersion;
+				version = 0.41.2;
+			};
+		};
 		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
@@ -696,17 +704,19 @@
 				minimumVersion = 9.1.0;
 			};
 		};
-		E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mpvkit/MPVKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.40.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			productName = "MPVKit-GPL";
+		};
+		E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			productName = "MPVKit-GPL";
+		};
 		E9B55C4A2F18F6FE00AC81AD /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
@@ -716,16 +726,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
-		};
-		E9C448FF2EF3063500D2895B /* MPVKit-GPL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
-		};
-		E9E487BA2EE4E664009184C1 /* MPVKit-GPL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E9E487B92EE4E664009184C1 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

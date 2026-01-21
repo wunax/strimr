@@ -46,15 +46,12 @@ final class MPVPlayerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        metalLayer.frame = view.frame
-        print(view.bounds)
-        print(view.frame)
-        metalLayer.contentsScale = UIScreen.main.nativeScale
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
 
         view.layer.addSublayer(metalLayer)
 
+        updateMetalLayerLayout()
         setupMpv()
 
         if let url = playUrl {
@@ -65,7 +62,15 @@ final class MPVPlayerViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        metalLayer.frame = view.frame
+        updateMetalLayerLayout()
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(
+            alongsideTransition: { _ in self.updateMetalLayerLayout() },
+            completion: { _ in self.updateMetalLayerLayout() },
+        )
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -391,6 +396,14 @@ final class MPVPlayerViewController: UIViewController {
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = isPlaying
         }
+    }
+
+    func updateMetalLayerLayout() {
+        let nativeScale = view.window?.screen.nativeScale ?? UIScreen.main.nativeScale
+        let size = view.bounds.size
+        metalLayer.contentsScale = nativeScale
+        metalLayer.frame = view.bounds
+        metalLayer.drawableSize = CGSize(width: size.width * nativeScale, height: size.height * nativeScale)
     }
 
     private func parseMap(_ map: mpv_node_list) -> [String: Any] {
