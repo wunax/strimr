@@ -2423,6 +2423,23 @@
         }
       }
     },
+    "signIn.error.pinExpired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex sign-in expired. Please try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion à Plex a expiré. Veuillez réessayer."
+          }
+        }
+      }
+    },
     "signIn.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {

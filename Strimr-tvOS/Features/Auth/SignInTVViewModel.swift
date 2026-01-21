@@ -59,6 +59,21 @@ final class SignInTVViewModel {
                         }
                     }
                 } catch {
+                    if case PlexAPIError.requestFailed(statusCode: 404) = error {
+                        do {
+                            let authRepository = AuthRepository(context: plexContext)
+                            let pinResponse = try await authRepository.requestPin()
+                            pin = pinResponse
+                            beginPolling(pinID: pinResponse.id)
+                            return
+                        } catch {
+                            errorMessage = String(localized: "signIn.error.startFailed")
+                            ErrorReporter.capture(error)
+                            cancelSignIn()
+                            return
+                        }
+                    }
+
                     errorMessage = String(localized: "signIn.error.startFailed")
                     ErrorReporter.capture(error)
                 }
