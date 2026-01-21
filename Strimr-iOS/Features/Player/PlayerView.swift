@@ -25,6 +25,7 @@ struct PlayerView: View {
     @State private var timelinePosition = 0.0
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
+    @State private var isRotationLocked = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -114,6 +115,8 @@ struct PlayerView: View {
                     onSkipMarker: activeMarker.map { marker in
                         { skipMarker(to: marker) }
                     },
+                    isRotationLocked: isRotationLocked,
+                    onToggleRotationLock: toggleRotationLock,
                 )
                 .transition(.opacity)
             }
@@ -130,6 +133,8 @@ struct PlayerView: View {
             viewModel.handleStop()
             hideControlsWorkItem?.cancel()
             playerCoordinator.destruct()
+            AppDelegate.orientationLock = .all
+            isRotationLocked = false
         }
         .task {
             await bindableViewModel.load()
@@ -210,6 +215,16 @@ struct PlayerView: View {
         refreshTracks()
         showingSettings = true
         hideControlsWorkItem?.cancel()
+    }
+
+    private func toggleRotationLock() {
+        if isRotationLocked {
+            AppDelegate.orientationLock = .all
+            isRotationLocked = false
+        } else {
+            AppDelegate.lockToCurrentOrientation()
+            isRotationLocked = true
+        }
     }
 
     private func refreshTracks() {

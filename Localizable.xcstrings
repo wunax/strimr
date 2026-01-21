@@ -1433,6 +1433,38 @@
         }
       }
     },
+    "player.controls.rotation.lock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock rotation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verrouiller la rotation"
+          }
+        }
+      }
+    },
+    "player.controls.rotation.unlock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock rotation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déverrouiller la rotation"
+          }
+        }
+      }
+    },
     "player.settings.audio" : {
       "localizations" : {
         "en" : {

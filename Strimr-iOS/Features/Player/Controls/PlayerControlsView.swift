@@ -20,6 +20,8 @@ struct PlayerControlsView: View {
     var onScrubbingChanged: (Bool) -> Void
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
+    var isRotationLocked: Bool
+    var onToggleRotationLock: () -> Void
 
     var body: some View {
         ZStack {
@@ -43,10 +45,13 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                if !isScrubbing, let skipMarkerTitle, let onSkipMarker {
+                if !isScrubbing {
                     HStack {
+                        RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
                         Spacer()
-                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                        if let skipMarkerTitle, let onSkipMarker {
+                            SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                        }
                     }
                     .padding(.horizontal, 24)
                 }

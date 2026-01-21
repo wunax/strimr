@@ -119,3 +119,23 @@ struct PlayerSettingsButton: View {
         .accessibilityLabel(String(localized: "settings.title"))
     }
 }
+
+struct RotationLockButton: View {
+    var isLocked: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isLocked ? "lock.fill" : "lock.open")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(.white.opacity(isLocked ? 0.24 : 0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1),
+                )
+        }
+        .accessibilityLabel(String(localized: isLocked ? "player.controls.rotation.unlock" : "player.controls.rotation.lock"))
+    }
+}
