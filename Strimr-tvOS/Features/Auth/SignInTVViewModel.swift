@@ -23,10 +23,7 @@ final class SignInTVViewModel {
         isAuthenticating = true
 
         do {
-            let authRepository = AuthRepository(context: plexContext)
-            let pinResponse = try await authRepository.requestPin()
-            pin = pinResponse
-            beginPolling(pinID: pinResponse.id)
+            try await requestNewPinAndBeginPolling()
         } catch {
             errorMessage = String(localized: "signIn.error.startFailed")
             ErrorReporter.capture(error)
@@ -61,10 +58,7 @@ final class SignInTVViewModel {
                 } catch {
                     if case PlexAPIError.requestFailed(statusCode: 404) = error {
                         do {
-                            let authRepository = AuthRepository(context: plexContext)
-                            let pinResponse = try await authRepository.requestPin()
-                            pin = pinResponse
-                            beginPolling(pinID: pinResponse.id)
+                            try await requestNewPinAndBeginPolling()
                             return
                         } catch {
                             errorMessage = String(localized: "signIn.error.startFailed")
@@ -81,6 +75,13 @@ final class SignInTVViewModel {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
+    }
+
+    private func requestNewPinAndBeginPolling() async throws {
+        let authRepository = AuthRepository(context: plexContext)
+        let pinResponse = try await authRepository.requestPin()
+        pin = pinResponse
+        beginPolling(pinID: pinResponse.id)
     }
 
     private func resetSignInState() {
