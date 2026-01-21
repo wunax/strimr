@@ -119,6 +119,12 @@ final class SignInViewModel {
                         }
                     }
                 } catch {
+                    if case PlexAPIError.requestFailed(statusCode: 404) = error {
+                        errorMessage = String(localized: "signIn.error.pinExpired")
+                        cancelSignIn()
+                        return
+                    }
+
                     errorMessage = String(localized: "signIn.error.startFailed")
                     ErrorReporter.capture(error)
                 }
