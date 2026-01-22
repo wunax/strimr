@@ -15,26 +15,26 @@ struct DisplayedLibrariesSectionView: View {
 
     var body: some View {
         Section {
-            if viewModel.isLoading {
-                ProgressView()
-            } else if viewModel.libraries.isEmpty {
-                Text("settings.interface.displayedLibraries.empty")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(viewModel.libraries) { library in
-                    Toggle(library.title, isOn: viewModel.displayedBinding(for: library))
-                }
-            }
+            rows
         } header: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("settings.interface.title")
-                Text("settings.interface.displayedLibraries")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+            Text("settings.interface.displayedLibraries")
         }
         .task {
             await viewModel.loadLibraries()
+        }
+    }
+
+    @ViewBuilder
+    private var rows: some View {
+        if viewModel.isLoading {
+            ProgressView()
+        } else if viewModel.libraries.isEmpty {
+            Text("settings.interface.displayedLibraries.empty")
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(viewModel.libraries) { library in
+                Toggle(library.title, isOn: viewModel.displayedBinding(for: library))
+            }
         }
     }
 }
