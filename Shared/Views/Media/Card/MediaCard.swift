@@ -28,14 +28,14 @@ struct MediaCard: View {
             if showsLabels {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(media.primaryLabel)
-                        .font(.headline)
+                        .font(.subheadline)
                         .lineLimit(1)
                     Text(media.secondaryLabel ?? "")
-                        .font(.subheadline)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Text(media.tertiaryLabel ?? "")
-                        .font(.subheadline)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
