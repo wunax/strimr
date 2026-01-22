@@ -28,14 +28,14 @@ struct MediaCard: View {
             if showsLabels {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(media.primaryLabel)
-                        .font(.headline)
+                        .font(primaryLabelFont)
                         .lineLimit(1)
                     Text(media.secondaryLabel ?? "")
-                        .font(.subheadline)
+                        .font(secondaryLabelFont)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Text(media.tertiaryLabel ?? "")
-                        .font(.subheadline)
+                        .font(secondaryLabelFont)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -86,6 +86,22 @@ struct MediaCard: View {
             16
         #else
             8
+        #endif
+    }
+
+    private var primaryLabelFont: Font {
+        #if os(tvOS)
+            size.width < 180 ? .footnote : .subheadline
+        #else
+            .subheadline
+        #endif
+    }
+
+    private var secondaryLabelFont: Font {
+        #if os(tvOS)
+            size.width < 180 ? .caption2 : .footnote
+        #else
+            .footnote
         #endif
     }
 }
