@@ -217,7 +217,7 @@ struct MediaDetailTVView: View {
                 .foregroundStyle(.secondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 28) {
+                LazyHStack(alignment: .top, spacing: 36) {
                     ForEach(viewModel.episodes) { episode in
                         EpisodeArtworkCard(
                             episode: episode,
@@ -234,6 +234,7 @@ struct MediaDetailTVView: View {
                         )
                     }
                 }
+                .padding(.vertical, 12)
                 .padding(.vertical, 4)
             }
             .focusSection()
@@ -323,11 +324,7 @@ private struct EpisodeArtworkCard: View {
         .buttonStyle(.plain)
         .focusable()
         .focused($isFocused)
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isFocused ? Color.brandSecondary : .clear, lineWidth: 4)
-        }
-        .scaleEffect(isFocused ? 1.04 : 1)
+        .scaleEffect(isFocused ? 1.12 : 1)
         .animation(.easeOut(duration: 0.15), value: isFocused)
         .onChange(of: isFocused) { _, focused in
             if focused {

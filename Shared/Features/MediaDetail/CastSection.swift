@@ -56,7 +56,13 @@ struct CastCarousel: View {
                     )
                 }
             }
+            #if os(tvOS)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            #else
+            .padding(.vertical, 0)
             .padding(.horizontal, 2)
+            #endif
         }
     }
 }
@@ -89,13 +95,7 @@ struct CastCard: View {
         #if os(tvOS)
             .focusable()
             .focused($isFocused)
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(
-                        isFocused ? Color.brandSecondary : .clear,
-                        lineWidth: 4,
-                    )
-            }
+            .animation(.easeOut(duration: 0.15), value: isFocused)
         #endif
     }
 
@@ -128,6 +128,9 @@ struct CastCard: View {
         }
         .frame(width: 120, height: 160)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        #if os(tvOS)
+            .scaleEffect(isFocused ? 1.12 : 1)
+        #endif
     }
 
     private var placeholder: some View {

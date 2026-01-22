@@ -15,7 +15,12 @@ struct MediaCarousel: View {
                     card(for: item)
                 }
             }
+            #if os(tvOS)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 8)
+            #else
             .padding(.horizontal, 2)
+            #endif
         }
         #if os(tvOS)
         .focusSection()
@@ -39,9 +44,17 @@ struct MediaCarousel: View {
     private func spacing(for layout: Layout) -> CGFloat {
         switch layout {
         case .portrait:
-            12
+            #if os(tvOS)
+                20
+            #else
+                12
+            #endif
         case .landscape:
-            16
+            #if os(tvOS)
+                24
+            #else
+                16
+            #endif
         }
     }
 }
