@@ -102,7 +102,7 @@ struct CastCard: View {
     @ViewBuilder
     private var thumbnail: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12)
+            Circle()
                 .fill(Color.white.opacity(0.08))
 
             if let imageURL {
@@ -112,7 +112,7 @@ struct CastCard: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 120, height: 160)
+                            .frame(width: 120, height: 120)
                     case .empty:
                         ProgressView()
                             .tint(.secondary)
@@ -126,8 +126,8 @@ struct CastCard: View {
                 placeholder
             }
         }
-        .frame(width: 120, height: 160)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(width: 120, height: 120)
+        .clipShape(Circle())
         #if os(tvOS)
             .scaleEffect(isFocused ? 1.12 : 1)
         #endif
