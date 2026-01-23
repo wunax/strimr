@@ -20,6 +20,12 @@
             "state" : "translated",
             "value" : "Aucun profil disponible."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用配置。"
+          }
         }
       }
     },
@@ -35,6 +41,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible de charger les profils. Veuillez réessayer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载配置，请重试。"
           }
         }
       }
@@ -52,6 +64,12 @@
             "state" : "translated",
             "value" : "Saisissez le code PIN pour ce profil."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入PIN码。"
+          }
         }
       }
     },
@@ -67,6 +85,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible de changer de profil. Vérifiez le code PIN et réessayez."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法切换配置，检查PIN并重试。"
           }
         }
       }
@@ -84,6 +108,12 @@
             "state" : "translated",
             "value" : "Choisissez un profil pour continuer"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择一个配置以继续"
+          }
         }
       }
     },
@@ -99,6 +129,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qui regarde ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "谁在看？"
           }
         }
       }
@@ -116,6 +152,12 @@
             "state" : "translated",
             "value" : "Chargement des profils…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载配置…"
+          }
         }
       }
     },
@@ -128,6 +170,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "PIN"
@@ -148,6 +196,12 @@
             "state" : "translated",
             "value" : "Saisissez le code PIN à 4 chiffres pour %@."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入 %@ 的4位PIN码。"
+          }
         }
       }
     },
@@ -163,6 +217,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Code PIN requis"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要PIN码"
           }
         }
       }
@@ -180,6 +240,12 @@
             "state" : "translated",
             "value" : "Saisir le code PIN"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入PIN码"
+          }
         }
       }
     },
@@ -195,6 +261,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionner un profil"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择用户"
           }
         }
       }
@@ -212,6 +284,12 @@
             "state" : "translated",
             "value" : "Annuler"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
         }
       }
     },
@@ -227,6 +305,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
           }
         }
       }
@@ -245,6 +329,12 @@
             "state" : "translated",
             "value" : "Masquer les détails"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏详情"
+          }
         }
       }
     },
@@ -260,6 +350,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se déconnecter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
           }
         }
       }
@@ -277,6 +373,12 @@
             "state" : "translated",
             "value" : "Pause"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停"
+          }
         }
       }
     },
@@ -292,6 +394,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lecture"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
           }
         }
       }
@@ -309,6 +417,12 @@
             "state" : "translated",
             "value" : "En savoir plus"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看更多"
+          }
         }
       }
     },
@@ -325,6 +439,12 @@
             "state" : "translated",
             "value" : "Continuer"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续播放"
+          }
         }
       }
     },
@@ -340,6 +460,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réessayer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
           }
         }
       }
@@ -358,6 +484,12 @@
             "state" : "translated",
             "value" : "Afficher les détails"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示详情"
+          }
         }
       }
     },
@@ -373,6 +505,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher moins"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起"
           }
         }
       }
@@ -390,6 +528,12 @@
             "state" : "translated",
             "value" : "Changer de profil"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换用户"
+          }
         }
       }
     },
@@ -405,6 +549,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changer de serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换服务器"
           }
         }
       }
@@ -422,6 +572,12 @@
             "state" : "translated",
             "value" : "Rien à afficher pour le moment."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无内容"
+          }
         }
       }
     },
@@ -437,6 +593,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réessayez plus tard."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请稍后重试"
           }
         }
       }
@@ -454,6 +616,12 @@
             "state" : "translated",
             "value" : "Identifiant de bibliothèque manquant."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少媒体库标识符"
+          }
         }
       }
     },
@@ -469,6 +637,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour parcourir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以浏览"
           }
         }
       }
@@ -486,6 +660,12 @@
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger le contenu."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载内容"
+          }
         }
       }
     },
@@ -501,6 +681,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger les détails."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载详情"
           }
         }
       }
@@ -518,6 +704,12 @@
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger les épisodes."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载剧集"
+          }
         }
       }
     },
@@ -533,6 +725,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger les bibliothèques."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载媒体库"
           }
         }
       }
@@ -550,6 +748,12 @@
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger les recommandations."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载推荐"
+          }
         }
       }
     },
@@ -565,6 +769,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger le contenu associé."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载相关内容"
           }
         }
       }
@@ -582,6 +792,12 @@
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour charger les saisons."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以加载季"
+          }
         }
       }
     },
@@ -597,6 +813,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour lire le média."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以播放媒体"
           }
         }
       }
@@ -614,6 +836,12 @@
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour rechercher dans votre bibliothèque."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以搜索媒体库"
+          }
         }
       }
     },
@@ -629,6 +857,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionnez un serveur pour mettre à jour l'état de lecture."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以更新观看状态"
           }
         }
       }
@@ -646,6 +880,12 @@
             "state" : "translated",
             "value" : "Chargement de l'accueil"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载首页"
+          }
         }
       }
     },
@@ -661,6 +901,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rien à parcourir pour le moment."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无可浏览内容"
           }
         }
       }
@@ -678,6 +924,12 @@
             "state" : "translated",
             "value" : "Aucun élément"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无项目"
+          }
         }
       }
     },
@@ -693,6 +945,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement de la bibliothèque"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载媒体库"
           }
         }
       }
@@ -710,6 +968,12 @@
             "state" : "translated",
             "value" : "Explorer"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览"
+          }
         }
       }
     },
@@ -725,6 +989,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommendé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
           }
         }
       }
@@ -742,6 +1012,12 @@
             "state" : "translated",
             "value" : "Onglet bibliothèque"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体库标签"
+          }
         }
       }
     },
@@ -757,6 +1033,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajoutez un serveur Plex ou tirez pour actualiser."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 Plex 服务器或下拉刷新"
           }
         }
       }
@@ -774,6 +1056,12 @@
             "state" : "translated",
             "value" : "Aucune bibliothèque pour le moment"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无媒体库"
+          }
         }
       }
     },
@@ -789,6 +1077,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Essayez d'actualiser pour charger vos bibliothèques Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试刷新以加载 Plex 媒体库"
           }
         }
       }
@@ -806,6 +1100,12 @@
             "state" : "translated",
             "value" : "Bibliothèques masquées"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏的媒体库"
+          }
         }
       }
     },
@@ -821,6 +1121,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement des bibliothèques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载媒体库"
           }
         }
       }
@@ -838,6 +1144,12 @@
             "state" : "translated",
             "value" : "Chargement des recommandations"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载推荐"
+          }
         }
       }
     },
@@ -853,6 +1165,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中…"
           }
         }
       }
@@ -870,6 +1188,12 @@
             "state" : "translated",
             "value" : "Aucune information sur la distribution."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无演员信息"
+          }
         }
       }
     },
@@ -885,6 +1209,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement de la distribution…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载演员表…"
           }
         }
       }
@@ -902,6 +1232,12 @@
             "state" : "translated",
             "value" : "Aucune photo"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无照片"
+          }
         }
       }
     },
@@ -917,6 +1253,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Distribution"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演员表"
           }
         }
       }
@@ -934,6 +1276,12 @@
             "state" : "translated",
             "value" : "%lldh %lldm"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld小时%lld分钟"
+          }
         }
       }
     },
@@ -949,6 +1297,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lldm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld分钟"
           }
         }
       }
@@ -966,6 +1320,12 @@
             "state" : "translated",
             "value" : "Épisode %lld"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 集"
+          }
         }
       }
     },
@@ -981,6 +1341,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Genres"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
           }
         }
       }
@@ -998,6 +1364,12 @@
             "state" : "translated",
             "value" : "Chargement des épisodes…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载剧集…"
+          }
         }
       }
     },
@@ -1013,6 +1385,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement du contenu associé…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载相关内容…"
           }
         }
       }
@@ -1030,6 +1408,12 @@
             "state" : "translated",
             "value" : "Chargement des saisons…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载季…"
+          }
         }
       }
     },
@@ -1045,6 +1429,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun épisode pour cette saison."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本季暂无剧集"
           }
         }
       }
@@ -1062,6 +1452,12 @@
             "state" : "translated",
             "value" : "Aucun contenu associé trouvé."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到相关内容"
+          }
         }
       }
     },
@@ -1077,6 +1473,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucune saison disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无可用季"
           }
         }
       }
@@ -1094,6 +1496,12 @@
             "state" : "translated",
             "value" : "Aucune saison disponible pour le moment."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无可用季"
+          }
         }
       }
     },
@@ -1109,6 +1517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lire depuis le début"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从头播放"
           }
         }
       }
@@ -1126,6 +1540,12 @@
             "state" : "translated",
             "value" : "Saison"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季"
+          }
         }
       }
     },
@@ -1141,6 +1561,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "S%1$lld - E%2$lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%1$lld季 第%2$lld集"
           }
         }
       }
@@ -1158,6 +1584,12 @@
             "state" : "translated",
             "value" : "Studio"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制片厂"
+          }
         }
       }
     },
@@ -1173,6 +1605,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ restant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剩余 %@"
           }
         }
       }
@@ -1190,6 +1628,12 @@
             "state" : "translated",
             "value" : "Mise à jour des détails"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新详情"
+          }
         }
       }
     },
@@ -1205,6 +1649,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Marquer comme non regardé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为未看"
           }
         }
       }
@@ -1222,6 +1672,12 @@
             "state" : "translated",
             "value" : "Marquer comme regardé"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为已看"
+          }
         }
       }
     },
@@ -1238,6 +1694,12 @@
             "state" : "translated",
             "value" : "Ajouter à la liste"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加到待看列表"
+          }
         }
       }
     },
@@ -1253,6 +1715,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retirer de la liste"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从待看列表移除"
           }
         }
       }
@@ -1294,6 +1762,18 @@
               }
             }
           }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 集"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -1309,6 +1789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "S%1$lld · E%2$lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%1$lld季 · 第%2$lld集"
           }
         }
       }
@@ -1350,6 +1836,18 @@
               }
             }
           }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 季"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -1365,6 +1863,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucune illustration"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无封面"
           }
         }
       }
@@ -1382,6 +1886,12 @@
             "state" : "translated",
             "value" : "Vous devrez vous reconnecter."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你需要重新登录"
+          }
         }
       }
     },
@@ -1394,6 +1904,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDR"
@@ -1414,21 +1930,11 @@
             "state" : "translated",
             "value" : "Reculer de %lld secondes"
           }
-        }
-      }
-    },
-    "player.controls.skipForwardSeconds %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip forward %lld seconds"
-          }
         },
-        "fr" : {
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avancer de %lld secondes"
+            "value" : "后退 %lld 秒"
           }
         }
       }
@@ -1446,6 +1952,12 @@
             "state" : "translated",
             "value" : "Verrouiller la rotation"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定旋转"
+          }
         }
       }
     },
@@ -1461,6 +1973,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déverrouiller la rotation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁旋转"
+          }
+        }
+      }
+    },
+    "player.controls.skipForwardSeconds %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip forward %lld seconds"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avancer de %lld secondes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快进 %lld 秒"
           }
         }
       }
@@ -1478,6 +2018,12 @@
             "state" : "translated",
             "value" : "Audio"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频"
+          }
         }
       }
     },
@@ -1493,6 +2039,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucune piste audio disponible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用音轨"
           }
         }
       }
@@ -1510,6 +2062,12 @@
             "state" : "translated",
             "value" : "Sous-titres"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕"
+          }
         }
       }
     },
@@ -1525,6 +2083,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Désactivés"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
           }
         }
       }
@@ -1542,6 +2106,12 @@
             "state" : "translated",
             "value" : "Désactiver les sous-titres"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭字幕"
+          }
         }
       }
     },
@@ -1557,6 +2127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Passer le générique"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过片尾"
           }
         }
       }
@@ -1574,6 +2150,12 @@
             "state" : "translated",
             "value" : "Passer l'intro"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过片头"
+          }
         }
       }
     },
@@ -1589,6 +2171,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buffering"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓冲中"
           }
         }
       }
@@ -1606,6 +2194,12 @@
             "state" : "translated",
             "value" : "OK"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
         }
       }
     },
@@ -1621,6 +2215,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lecture arrêtée"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放已停止"
           }
         }
       }
@@ -1638,6 +2238,12 @@
             "state" : "translated",
             "value" : "ÉPISODE"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
+          }
         }
       }
     },
@@ -1653,6 +2259,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "FILM"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影"
           }
         }
       }
@@ -1670,6 +2282,12 @@
             "state" : "translated",
             "value" : "SAISON"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季"
+          }
         }
       }
     },
@@ -1685,6 +2303,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SÉRIE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
           }
         }
       }
@@ -1702,6 +2326,12 @@
             "state" : "translated",
             "value" : "INCONNU"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
         }
       }
     },
@@ -1717,6 +2347,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trouvez des films, séries et épisodes dans vos bibliothèques Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Plex 媒体库中搜索电影、剧集"
           }
         }
       }
@@ -1734,6 +2370,12 @@
             "state" : "translated",
             "value" : "Rechercher dans votre bibliothèque"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索媒体库"
+          }
         }
       }
     },
@@ -1749,6 +2391,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Épisode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
           }
         }
       }
@@ -1766,6 +2414,12 @@
             "state" : "translated",
             "value" : "Film"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影"
+          }
         }
       }
     },
@@ -1781,6 +2435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Série TV"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电视剧"
           }
         }
       }
@@ -1798,6 +2458,12 @@
             "state" : "translated",
             "value" : "Épisodes"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
+          }
         }
       }
     },
@@ -1813,6 +2479,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Films"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影"
           }
         }
       }
@@ -1830,6 +2502,12 @@
             "state" : "translated",
             "value" : "Séries TV"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电视剧"
+          }
         }
       }
     },
@@ -1845,6 +2523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recherche…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索中…"
           }
         }
       }
@@ -1862,6 +2546,12 @@
             "state" : "translated",
             "value" : "Essayez une autre requête ou ajustez les filtres."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试其他关键词或调整筛选条件"
+          }
         }
       }
     },
@@ -1878,6 +2568,12 @@
             "state" : "translated",
             "value" : "Aucun résultat"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无匹配结果"
+          }
         }
       }
     },
@@ -1893,6 +2589,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rechercher des films, séries, épisodes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索电影、剧集"
           }
         }
       }
@@ -1911,6 +2613,12 @@
             "state" : "translated",
             "value" : "Local · %@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地 · %@"
+          }
         }
       }
     },
@@ -1927,6 +2635,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connexion relais"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继连接"
           }
         }
       }
@@ -1945,6 +2659,12 @@
             "state" : "translated",
             "value" : "Indisponible"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
+          }
         }
       }
     },
@@ -1961,6 +2681,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Assurez-vous que votre Plex Media Server est en ligne et lié à ce compte."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请确保 Plex 媒体服务器在线并已关联此账户"
           }
         }
       }
@@ -1979,6 +2705,12 @@
             "state" : "translated",
             "value" : "Aucun serveur trouvé"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到服务器"
+          }
         }
       }
     },
@@ -1995,6 +2727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chargement des serveurs…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载服务器…"
           }
         }
       }
@@ -2013,6 +2751,12 @@
             "state" : "translated",
             "value" : "Réessayer"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
         }
       }
     },
@@ -2029,6 +2773,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez le serveur Plex Media Server auquel vous connecter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要连接的 Plex 媒体服务器"
           }
         }
       }
@@ -2047,6 +2797,12 @@
             "state" : "translated",
             "value" : "Sélectionnez votre serveur"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择服务器"
+          }
         }
       }
     },
@@ -2062,6 +2818,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bibliothèques affichées"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示的媒体库"
           }
         }
       }
@@ -2079,6 +2841,12 @@
             "state" : "translated",
             "value" : "Aucune bibliothèque disponible"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用媒体库"
+          }
         }
       }
     },
@@ -2094,6 +2862,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bibliothèques dans la barre de navigation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导航栏中的媒体库"
           }
         }
       }
@@ -2111,6 +2885,12 @@
             "state" : "translated",
             "value" : "Interface"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "界面"
+          }
         }
       }
     },
@@ -2126,6 +2906,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lire automatiquement l'épisode suivant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动播放下一集"
           }
         }
       }
@@ -2143,6 +2929,12 @@
             "state" : "translated",
             "value" : "Avance rapide"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快进"
+          }
         }
       }
     },
@@ -2158,6 +2950,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lecteur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放器"
           }
         }
       }
@@ -2175,6 +2973,12 @@
             "state" : "translated",
             "value" : "L'utilisation d'un lecteur externe peut empêcher la reprise et la synchronisation de l'état de lecture Plex. Infuse peut nécessiter un abonnement."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用外部播放器可能导致播放进度和 Plex 观看状态无法同步。Infuse 可能需要订阅。"
+          }
         }
       }
     },
@@ -2190,6 +2994,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avertissement lecteur externe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外部播放器警告"
           }
         }
       }
@@ -2207,6 +3017,12 @@
             "state" : "translated",
             "value" : "Infuse (externe)"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Infuse（外部）"
+          }
         }
       }
     },
@@ -2219,6 +3035,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MPV"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MPV"
@@ -2239,6 +3061,12 @@
             "state" : "translated",
             "value" : "VLC"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VLC"
+          }
         }
       }
     },
@@ -2254,6 +3082,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reculer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后退"
           }
         }
       }
@@ -2271,6 +3105,12 @@
             "state" : "translated",
             "value" : "%lld %"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
         }
       }
     },
@@ -2286,6 +3126,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld secondes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 秒"
           }
         }
       }
@@ -2303,6 +3149,12 @@
             "state" : "translated",
             "value" : "Taille des sous-titres"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕大小"
+          }
         }
       }
     },
@@ -2319,6 +3171,12 @@
             "state" : "translated",
             "value" : "Lecteur vidéo"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
+          }
         }
       }
     },
@@ -2334,6 +3192,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paramètres"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
           }
         }
       }
@@ -2352,6 +3216,12 @@
             "state" : "translated",
             "value" : "Annuler"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
         }
       }
     },
@@ -2368,6 +3238,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continuer avec Plex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Plex 继续"
           }
         }
       }
@@ -2386,6 +3262,12 @@
             "state" : "translated",
             "value" : "Actualiser le code"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新验证码"
+          }
         }
       }
     },
@@ -2403,22 +3285,11 @@
             "state" : "translated",
             "value" : "En attente de Plex…"
           }
-        }
-      }
-    },
-    "signIn.error.startFailed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to start Plex sign-in."
-          }
         },
-        "fr" : {
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Échec du démarrage de la connexion à Plex."
+            "value" : "等待 Plex 响应…"
           }
         }
       }
@@ -2437,6 +3308,35 @@
             "state" : "translated",
             "value" : "La connexion à Plex a expiré. Veuillez réessayer."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 登录已过期，请重试"
+          }
+        }
+      }
+    },
+    "signIn.error.startFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to start Plex sign-in."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec du démarrage de la connexion à Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法启动 Plex 登录"
+          }
         }
       }
     },
@@ -2453,6 +3353,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connectez votre compte Plex pour accéder à vos serveurs et bibliothèques."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 Plex 账户以访问服务器和媒体库"
           }
         }
       }
@@ -2471,6 +3377,12 @@
             "state" : "translated",
             "value" : "Se connecter avec Plex"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Plex 登录"
+          }
         }
       }
     },
@@ -2486,6 +3398,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scannez ce code QR avec votre téléphone pour vous connecter à Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用手机扫描二维码登录 Plex"
           }
         }
       }
@@ -2503,6 +3421,12 @@
             "state" : "translated",
             "value" : "Accueil"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "首页"
+          }
         }
       }
     },
@@ -2518,6 +3442,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bibliothèques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体库"
           }
         }
       }
@@ -2535,6 +3465,12 @@
             "state" : "translated",
             "value" : "Plus"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多"
+          }
         }
       }
     },
@@ -2550,6 +3486,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recherche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
           }
         }
       }
