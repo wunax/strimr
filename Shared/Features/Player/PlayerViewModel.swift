@@ -29,6 +29,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var lastTimelineSentAt: Date?
     @ObservationIgnored private var lastTimelineState: PlaybackRepository.PlaybackState?
     @ObservationIgnored private let ratingKey: String
+    @ObservationIgnored private var playQueueState: PlayQueueState
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
     @ObservationIgnored private var activePartId: Int?
@@ -42,10 +43,20 @@ final class PlayerViewModel {
         return streamsByFFIndex[ffIndex]
     }
 
-    init(ratingKey: String, context: PlexAPIContext, shouldResumeFromOffset: Bool = true) {
-        self.ratingKey = ratingKey
+    init(
+        playQueue: PlayQueueState,
+        ratingKey: String? = nil,
+        context: PlexAPIContext,
+        shouldResumeFromOffset: Bool = true,
+    ) {
+        playQueueState = playQueue
+        self.ratingKey = ratingKey ?? playQueue.selectedRatingKey ?? ""
         self.context = context
         shouldResumeFromOffsetFlag = shouldResumeFromOffset
+    }
+
+    var playQueue: PlayQueueState {
+        playQueueState
     }
 
     var shouldResumeFromOffset: Bool {
@@ -53,6 +64,11 @@ final class PlayerViewModel {
     }
 
     func load() async {
+        guard !ratingKey.isEmpty else {
+            errorMessage = String(localized: "errors.selectServer.playMedia")
+            return
+        }
+
         guard let metadataRepository = try? MetadataRepository(context: context) else {
             errorMessage = String(localized: "errors.selectServer.playMedia")
             return
@@ -135,26 +151,18 @@ final class PlayerViewModel {
                 time: currentDuration,
                 duration: currentDuration,
                 sessionIdentifier: sessionIdentifier,
+                playQueueItemID: currentPlayQueueItemID(),
             )
         } catch {
             debugPrint("Failed to mark playback as finished:", error)
         }
     }
 
-    func fetchOnDeckEpisode(grandparentRatingKey: String) async -> PlexItem? {
-        do {
-            let repository = try MetadataRepository(context: context)
-            let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
-            let response = try await repository.getMetadata(
-                ratingKey: grandparentRatingKey,
-                params: params,
-            )
-
-            return response.mediaContainer.metadata?.first?.onDeck?.metadata
-        } catch {
-            debugPrint("Failed to fetch on deck metadata:", error)
-            return nil
-        }
+    func nextItemInQueue() async -> PlexItem? {
+        await refreshPlayQueue()
+        let fallbackRatingKey = ratingKey.isEmpty ? nil : ratingKey
+        guard let currentRatingKey = media?.id ?? fallbackRatingKey else { return nil }
+        return playQueueState.item(after: currentRatingKey)
     }
 
     private var playbackState: PlaybackRepository.PlaybackState {
@@ -196,6 +204,7 @@ final class PlayerViewModel {
                 time: currentTime,
                 duration: currentDuration,
                 sessionIdentifier: sessionIdentifier,
+                playQueueItemID: currentPlayQueueItemID(),
             )
             handleTerminationIfNeeded(response)
         } catch {
@@ -212,6 +221,16 @@ final class PlayerViewModel {
         }
 
         return mediaRepository.mediaURL(path: partPath)
+    }
+
+    private func refreshPlayQueue() async {
+        do {
+            let manager = try PlayQueueManager(context: context)
+            playQueueState = try await manager.fetchQueue(id: playQueueState.id)
+        } catch {
+            debugPrint("Failed to refresh play queue:", error)
+            ErrorReporter.capture(error)
+        }
     }
 
     private func resolvePreferredStreams(from metadata: PlexItem?) {
@@ -235,6 +254,12 @@ final class PlayerViewModel {
             guard let index = stream.index else { return }
             result[index] = stream
         }
+    }
+
+    private func currentPlayQueueItemID() -> Int? {
+        let currentRatingKey = media?.id ?? (ratingKey.isEmpty ? nil : ratingKey)
+        guard let currentRatingKey else { return nil }
+        return playQueueState.items.first { $0.ratingKey == currentRatingKey }?.playQueueItemID
     }
 
     private func activeMarker(where predicate: (PlexMarker) -> Bool) -> PlexMarker? {

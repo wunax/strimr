@@ -22,7 +22,7 @@ final class MainCoordinator: ObservableObject {
     @Published var morePath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
 
-    @Published var selectedRatingKey: String?
+    @Published var selectedPlayQueue: PlayQueueState?
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
 
@@ -78,14 +78,14 @@ final class MainCoordinator: ObservableObject {
         }
     }
 
-    func showPlayer(for ratingKey: String, shouldResumeFromOffset: Bool = true) {
-        selectedRatingKey = ratingKey
+    func showPlayer(for playQueue: PlayQueueState, shouldResumeFromOffset: Bool = true) {
+        selectedPlayQueue = playQueue
         self.shouldResumeFromOffset = shouldResumeFromOffset
         isPresentingPlayer = true
     }
 
     func resetPlayer() {
-        selectedRatingKey = nil
+        selectedPlayQueue = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
     }

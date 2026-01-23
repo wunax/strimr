@@ -432,7 +432,7 @@ struct PlayerView: View {
         }
     }
 
-    private func handleEpisodeCompletion(for media: MediaItem) async {
+    private func handleEpisodeCompletion(for _: MediaItem) async {
         await viewModel.markPlaybackFinished()
 
         guard settingsManager.playback.autoPlayNextEpisode else {
@@ -442,10 +442,7 @@ struct PlayerView: View {
             return
         }
 
-        guard
-            let grandparentRatingKey = media.grandparentRatingKey,
-            let nextEpisode = await viewModel.fetchOnDeckEpisode(grandparentRatingKey: grandparentRatingKey)
-        else {
+        guard let nextEpisode = await viewModel.nextItemInQueue() else {
             await MainActor.run {
                 dismissPlayer()
             }
@@ -458,6 +455,7 @@ struct PlayerView: View {
     private func startPlayback(of episode: PlexItem) async {
         await MainActor.run {
             viewModel = PlayerViewModel(
+                playQueue: viewModel.playQueue,
                 ratingKey: episode.ratingKey,
                 context: context,
             )

@@ -46,6 +46,10 @@ final class PlexAPIContext {
         authTokenCloud = token
     }
 
+    var serverIdentifier: String? {
+        resource?.clientIdentifier
+    }
+
     func selectServer(_ resource: PlexCloudResource) async throws {
         self.resource = resource
         baseURLServer = nil
