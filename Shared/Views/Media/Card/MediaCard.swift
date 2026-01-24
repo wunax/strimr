@@ -8,7 +8,7 @@ struct MediaCard: View {
     #endif
 
     let size: CGSize
-    let media: MediaItem
+    let media: MediaDisplayItem
     let artworkKind: MediaImageViewModel.ArtworkKind
     let showsLabels: Bool
     let onTap: () -> Void
@@ -46,8 +46,8 @@ struct MediaCard: View {
             .focusable()
             .focused($isFocused)
             .onChange(of: isFocused) { _, focused in
-                if focused {
-                    focusModel.focusedMedia = media
+                if focused, let playableItem = media.playableItem {
+                    focusModel.focusedMedia = playableItem
                 }
             }
             .onPlayPauseCommand(perform: onTap)

@@ -5,10 +5,20 @@ enum PlexItemType: String, Codable {
     case show
     case season
     case episode
+    case collection
     case unknown
 
     var isSupported: Bool {
         self != .unknown
+    }
+
+    var isPlayable: Bool {
+        switch self {
+        case .movie, .show, .season, .episode:
+            true
+        case .collection, .unknown:
+            false
+        }
     }
 
     init(from decoder: Decoder) throws {
@@ -277,8 +287,14 @@ struct PlexItem: Codable, Equatable {
 
     let onDeck: PlexOnDeck?
 
+    // Queue item
     let playQueueItemID: Int?
 
+    // Collection
+    let subtype: PlexItemType?
+    let minYear: Int?
+    let maxYear: Int?
+    
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, type, title, summary, thumb, art, year, viewOffset, lastViewedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
@@ -300,6 +316,7 @@ struct PlexItem: Codable, Equatable {
         case markers = "Marker"
         case onDeck = "OnDeck"
         case playQueueItemID
+        case subtype, minYear, maxYear
     }
 }
 

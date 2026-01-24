@@ -5,7 +5,7 @@ struct LibraryTVRecommendedView: View {
 
     @State var viewModel: LibraryRecommendedViewModel
     @Binding var heroMedia: MediaItem?
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     private let landscapeHubIdentifiers: [String] = [
         "inprogress",
@@ -14,7 +14,7 @@ struct LibraryTVRecommendedView: View {
     init(
         viewModel: LibraryRecommendedViewModel,
         heroMedia: Binding<MediaItem?>,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         _heroMedia = heroMedia
@@ -107,7 +107,7 @@ struct LibraryTVRecommendedView: View {
 
     private var defaultHeroMedia: MediaItem? {
         for hub in viewModel.hubs where hub.hasItems {
-            if let item = hub.items.first {
+            if let item = hub.items.compactMap(\.playableItem).first {
                 return item
             }
         }

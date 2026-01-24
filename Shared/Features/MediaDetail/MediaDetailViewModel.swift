@@ -7,7 +7,7 @@ import SwiftUI
 final class MediaDetailViewModel {
     @ObservationIgnored private let context: PlexAPIContext
 
-    var media: MediaItem
+    var media: PlayableMediaItem
     var onDeckItem: MediaItem?
     var heroImageURL: URL?
     var isLoading = false
@@ -30,7 +30,7 @@ final class MediaDetailViewModel {
     var isUpdatingWatchlistStatus = false
     private var isWatchlisted = false
 
-    init(media: MediaItem, context: PlexAPIContext) {
+    init(media: PlayableMediaItem, context: PlexAPIContext) {
         self.media = media
         self.context = context
         resolveArtwork()
@@ -59,8 +59,10 @@ final class MediaDetailViewModel {
                 ratingKey: media.metadataRatingKey,
                 params: params,
             )
-            if let item = response.mediaContainer.metadata?.first {
-                media = MediaItem(plexItem: item)
+            if let item = response.mediaContainer.metadata?.first,
+               let playable = PlayableMediaItem(plexItem: item)
+            {
+                media = playable
                 cast = castMembers(from: item)
                 resolveArtwork()
                 resolveGradient()
@@ -92,7 +94,7 @@ final class MediaDetailViewModel {
     }
 
     func toggleWatchStatus(for target: MediaItem? = nil) async {
-        let item = target ?? media
+        let item = target ?? media.mediaItem
 
         guard let scrobbleRepository = try? ScrobbleRepository(context: context) else {
             if target == nil {
@@ -163,7 +165,7 @@ final class MediaDetailViewModel {
     }
 
     private func resolveGradient() {
-        backdropGradient = MediaBackdropGradient.colors(for: media)
+        backdropGradient = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
     }
 
     private func loadWatchlistStatus() async {
@@ -229,7 +231,7 @@ final class MediaDetailViewModel {
     var primaryActionTitle: String {
         switch media.type {
         case .movie:
-            hasProgress(for: media)
+            hasProgress(for: media.mediaItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
         case .show:
@@ -237,18 +239,16 @@ final class MediaDetailViewModel {
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
         case .season, .episode:
-            hasProgress(for: media)
+            hasProgress(for: media.mediaItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
-        case .unknown:
-            String(localized: "common.actions.play")
         }
     }
 
     var primaryActionDetail: String? {
         switch media.type {
         case .movie:
-            return timeLeftText(for: media)
+            return timeLeftText(for: media.mediaItem)
         case .show:
             guard let onDeckItem else { return nil }
             let episodeLabel = seasonEpisodeLabel(for: onDeckItem)
@@ -258,36 +258,30 @@ final class MediaDetailViewModel {
             }
             return episodeLabel ?? timeLeft
         case .season, .episode:
-            return timeLeftText(for: media)
-        case .unknown:
-            return nil
+            return timeLeftText(for: media.mediaItem)
         }
     }
 
     var primaryActionProgress: Double? {
         switch media.type {
         case .movie:
-            return progressFraction(for: media)
+            return progressFraction(for: media.mediaItem)
         case .show:
             guard let onDeckItem else { return nil }
             return progressFraction(for: onDeckItem)
         case .season, .episode:
-            return progressFraction(for: media)
-        case .unknown:
-            return nil
+            return progressFraction(for: media.mediaItem)
         }
     }
 
     var shouldShowPlayFromStartButton: Bool {
         switch media.type {
         case .movie:
-            hasProgress(for: media)
+            hasProgress(for: media.mediaItem)
         case .show:
             hasProgress(for: onDeckItem)
         case .season, .episode:
-            hasProgress(for: media)
-        case .unknown:
-            false
+            hasProgress(for: media.mediaItem)
         }
     }
 
@@ -299,23 +293,21 @@ final class MediaDetailViewModel {
             onDeckItem?.id
         case .season, .episode:
             media.id
-        case .unknown:
-            nil
         }
     }
 
-    var isWatched: Bool { isWatched(media) }
+    var isWatched: Bool { isWatched(media.mediaItem) }
 
     func playbackRatingKey() async -> String? {
         primaryActionRatingKey
     }
 
     var watchActionTitle: String {
-        watchActionTitle(for: media)
+        watchActionTitle(for: media.mediaItem)
     }
 
     var watchActionIcon: String {
-        watchActionIcon(for: media)
+        watchActionIcon(for: media.mediaItem)
     }
 
     var watchlistActionTitle: String {
@@ -334,11 +326,13 @@ final class MediaDetailViewModel {
     }
 
     var isUpdatingWatchStatus: Bool {
-        isUpdatingWatchStatus(for: media)
+        isUpdatingWatchStatus(for: media.mediaItem)
     }
 
     func isWatched(_ item: MediaItem) -> Bool {
-        switch item.type {
+        guard let playableType = PlayableItemType(plexType: item.type) else { return false }
+
+        switch playableType {
         case .movie, .episode:
             return (item.viewCount ?? 0) > 0
         case .show, .season:
@@ -347,8 +341,6 @@ final class MediaDetailViewModel {
             }
             guard leafCount > 0 else { return false }
             return leafCount == viewedLeafCount
-        case .unknown:
-            return false
         }
     }
 

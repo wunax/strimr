@@ -5,7 +5,7 @@ import Observation
 @Observable
 final class LibraryBrowseViewModel {
     let library: Library
-    var items: [MediaItem] = []
+    var items: [MediaDisplayItem] = []
     var isLoading = false
     var isLoadingMore = false
     var errorMessage: String?
@@ -56,7 +56,8 @@ final class LibraryBrowseViewModel {
                 pagination: PlexPagination(start: start, size: 20),
             )
 
-            let newItems = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
+            let newItems = (response.mediaContainer.metadata ?? [])
+                .compactMap(MediaDisplayItem.init)
             let total = response.mediaContainer.totalSize ?? (start + newItems.count)
 
             if reset {

@@ -12,7 +12,7 @@ final class LibraryBrowseViewModel {
     }
 
     let library: Library
-    var itemsByIndex: [Int: MediaItem] = [:]
+    var itemsByIndex: [Int: MediaDisplayItem] = [:]
     var totalItemCount = 0
     var sectionCharacters: [SectionCharacter] = []
     var isLoading = false
@@ -116,7 +116,8 @@ final class LibraryBrowseViewModel {
                 pagination: PlexPagination(start: start, size: pageSize),
             )
 
-            let newItems = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
+            let newItems = (response.mediaContainer.metadata ?? [])
+                .compactMap(MediaDisplayItem.init)
             let total = response.mediaContainer.totalSize ?? (start + newItems.count)
 
             for (offset, item) in newItems.enumerated() {

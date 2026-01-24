@@ -8,13 +8,13 @@ struct MediaDetailView: View {
     private let heroHeight: CGFloat = 320
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
-    private let onSelectMedia: (MediaItem) -> Void
+    private let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay

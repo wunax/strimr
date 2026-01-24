@@ -7,13 +7,13 @@ struct MediaDetailTVView: View {
     @State private var focusedMedia: MediaItem?
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
-    private let onSelectMedia: (MediaItem) -> Void
+    private let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
@@ -26,11 +26,11 @@ struct MediaDetailTVView: View {
 
         GeometryReader { proxy in
             ZStack {
-                MediaHeroBackgroundView(media: bindableViewModel.media)
+                MediaHeroBackgroundView(media: bindableViewModel.media.mediaItem)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        MediaHeroContentView(media: focusedMedia ?? bindableViewModel.media)
+                        MediaHeroContentView(media: focusedMedia ?? bindableViewModel.media.mediaItem)
                             .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         buttonsRow
@@ -54,12 +54,12 @@ struct MediaDetailTVView: View {
         }
         .onAppear {
             if focusedMedia == nil {
-                focusedMedia = bindableViewModel.media
+                focusedMedia = bindableViewModel.media.mediaItem
             }
         }
         .onChange(of: bindableViewModel.media) { oldValue, newValue in
             if focusedMedia == nil || focusedMedia?.id == oldValue.id {
-                focusedMedia = newValue
+                focusedMedia = newValue.mediaItem
             }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -256,7 +256,7 @@ struct MediaDetailTVView: View {
     }
 
     private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.type
+        viewModel.onDeckItem?.type ?? viewModel.media.plexType
     }
 }
 

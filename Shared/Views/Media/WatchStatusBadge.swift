@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WatchStatusBadge: View {
-    let media: MediaItem
+    let media: MediaDisplayItem
 
     var body: some View {
         Group {

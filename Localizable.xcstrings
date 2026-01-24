@@ -2247,6 +2247,28 @@
         }
       }
     },
+    "search.badge.collection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COLLECTION"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COLLECTION"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集"
+          }
+        }
+      }
+    },
     "search.badge.movie" : {
       "localizations" : {
         "en" : {
@@ -2397,6 +2419,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "剧集"
+          }
+        }
+      }
+    },
+    "search.fallback.collection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集"
           }
         }
       }

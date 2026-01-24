@@ -3,7 +3,7 @@ import SwiftUI
 
 struct RelatedHubsSection: View {
     @Bindable var viewModel: MediaDetailViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     var body: some View {
         Section {

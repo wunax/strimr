@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryBrowseView: View {
     @State var viewModel: LibraryBrowseViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     @FocusState private var focusedCharacterId: String?
 
@@ -12,7 +12,7 @@ struct LibraryBrowseView: View {
 
     init(
         viewModel: LibraryBrowseViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia

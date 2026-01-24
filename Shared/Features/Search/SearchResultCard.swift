@@ -3,7 +3,7 @@ import SwiftUI
 
 struct SearchResultCard: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
-    let media: MediaItem
+    let media: MediaDisplayItem
     let onTap: () -> Void
 
     var body: some View {
@@ -87,6 +87,8 @@ private struct TypeBadge: View {
             String(localized: "search.badge.season")
         case .episode:
             String(localized: "search.badge.episode")
+        case .collection:
+            String(localized: "search.badge.collection")
         case .unknown:
             String(localized: "search.badge.unknown")
         }
@@ -102,6 +104,8 @@ private struct TypeBadge: View {
             .orange
         case .episode:
             .purple
+        case .collection:
+            .teal
         case .unknown:
             .gray
         }
@@ -112,7 +116,7 @@ private extension SearchResultCard {
     var subtitle: String {
         switch media.type {
         case .movie:
-            media.year.map(String.init) ?? String(localized: "search.fallback.movie")
+            media.playableItem?.year.map(String.init) ?? String(localized: "search.fallback.movie")
         case .show:
             media.secondaryLabel ?? String(localized: "search.fallback.show")
         case .season:
@@ -120,8 +124,10 @@ private extension SearchResultCard {
         case .episode:
             media.tertiaryLabel
                 ?? media.secondaryLabel
-                ?? media.parentTitle
+                ?? media.playableItem?.parentTitle
                 ?? String(localized: "search.fallback.episode")
+        case .collection:
+            media.secondaryLabel ?? String(localized: "search.fallback.collection")
         case .unknown:
             media.title
         }

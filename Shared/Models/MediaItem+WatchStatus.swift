@@ -10,7 +10,7 @@ extension MediaItem {
                 return false
             }
             return leafCount == viewedLeafCount
-        case .unknown:
+        case .unknown, .collection:
             return false
         }
     }

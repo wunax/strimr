@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryRecommendedView: View {
     @State var viewModel: LibraryRecommendedViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     private let landscapeHubIdentifiers: [String] = [
         "inprogress",

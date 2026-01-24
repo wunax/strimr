@@ -3,7 +3,7 @@ import SwiftUI
 struct LibraryDetailView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
     let library: Library
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     @State private var selectedTab: LibraryDetailTab = .recommended
 

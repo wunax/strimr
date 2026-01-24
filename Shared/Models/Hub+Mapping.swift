@@ -8,7 +8,7 @@ extension Hub {
             title: plexHub.title,
             items: (plexHub.metadata ?? [])
                 .filter(\.type.isSupported)
-                .map(MediaItem.init),
+                .compactMap(MediaDisplayItem.init),
         )
     }
 }

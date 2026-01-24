@@ -57,7 +57,7 @@ enum SearchFilter: String, CaseIterable, Identifiable {
 @Observable
 final class SearchViewModel {
     var query: String = ""
-    var items: [MediaItem] = []
+    var items: [MediaDisplayItem] = []
     var isLoading = false
     var errorMessage: String?
     var activeFilters: Set<SearchFilter> = []
@@ -73,7 +73,7 @@ final class SearchViewModel {
         searchTask?.cancel()
     }
 
-    var filteredItems: [MediaItem] {
+    var filteredItems: [MediaDisplayItem] {
         guard !activeFilters.isEmpty else { return items }
         return items.filter { item in
             activeFilters.contains { filter in
@@ -146,7 +146,9 @@ final class SearchViewModel {
             let response = try await repository.search(params: params)
             guard !Task.isCancelled else { return }
             let results = response.mediaContainer.searchResult ?? []
-            items = results.compactMap(\.metadata).map(MediaItem.init)
+            items = results
+                .compactMap(\.metadata)
+                .compactMap(MediaDisplayItem.init)
         } catch {
             guard !Task.isCancelled else { return }
             ErrorReporter.capture(error)

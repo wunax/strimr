@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryBrowseView: View {
     @State var viewModel: LibraryBrowseViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     private var gridColumns: [GridItem] {
         [

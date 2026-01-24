@@ -39,6 +39,14 @@ struct MediaItem: Identifiable, Hashable {
         guid.split(separator: "/").last.map(String.init)
     }
 
+    var preferredThumbPath: String? {
+        grandparentThumbPath ?? parentThumbPath ?? thumbPath
+    }
+
+    var preferredArtPath: String? {
+        grandparentArtPath ?? artPath
+    }
+
     var secondaryLabel: String? {
         switch type {
         case .movie:
@@ -51,7 +59,7 @@ struct MediaItem: Identifiable, Hashable {
         case .season, .episode:
             return title
 
-        case .unknown:
+        case .unknown, .collection:
             return nil
         }
     }
@@ -72,7 +80,7 @@ struct MediaItem: Identifiable, Hashable {
             parentRatingKey ?? id
         case .movie, .show:
             id
-        case .unknown:
+        case .unknown, .collection:
             id
         }
     }

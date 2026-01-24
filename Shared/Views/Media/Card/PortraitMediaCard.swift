@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PortraitMediaCard: View {
-    let media: MediaItem
+    let media: MediaDisplayItem
     let height: CGFloat?
     let width: CGFloat?
     let showsLabels: Bool
@@ -12,7 +12,7 @@ struct PortraitMediaCard: View {
     private let aspectRatio: CGFloat = 2 / 3
 
     init(
-        media: MediaItem,
+        media: MediaDisplayItem,
         height: CGFloat? = nil,
         width: CGFloat? = nil,
         showsLabels: Bool,

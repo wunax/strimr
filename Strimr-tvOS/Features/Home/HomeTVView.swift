@@ -5,11 +5,11 @@ struct HomeTVView: View {
     @Environment(MediaFocusModel.self) private var focusModel
 
     @State var viewModel: HomeViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
         viewModel: HomeViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -109,12 +109,12 @@ struct HomeTVView: View {
     }
 
     private var heroMedia: MediaItem? {
-        if let continueItem = viewModel.continueWatching?.items.first {
+        if let continueItem = viewModel.continueWatching?.items.compactMap(\.playableItem).first {
             return continueItem
         }
 
         for hub in viewModel.recentlyAdded where hub.hasItems {
-            if let item = hub.items.first {
+            if let item = hub.items.compactMap(\.playableItem).first {
                 return item
             }
         }

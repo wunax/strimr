@@ -333,7 +333,7 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.type
+        viewModel.onDeckItem?.type ?? viewModel.media.plexType
     }
 }
 

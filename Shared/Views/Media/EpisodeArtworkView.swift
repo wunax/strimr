@@ -59,7 +59,7 @@ struct EpisodeArtworkView: View {
                 .strokeBorder(.white.opacity(0.05))
         }
         .overlay(alignment: .topTrailing) {
-            WatchStatusBadge(media: episode)
+            WatchStatusBadge(media: .playable(episode))
         }
     }
 }

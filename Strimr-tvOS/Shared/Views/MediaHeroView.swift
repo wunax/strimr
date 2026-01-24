@@ -11,7 +11,7 @@ struct MediaHeroBackgroundView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: media))
+                MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: .playable(media)))
                     .ignoresSafeArea()
 
                 heroImage

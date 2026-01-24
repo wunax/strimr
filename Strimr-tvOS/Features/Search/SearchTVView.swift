@@ -3,11 +3,11 @@ import SwiftUI
 @MainActor
 struct SearchTVView: View {
     @State var viewModel: SearchViewModel
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
         viewModel: SearchViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -72,7 +72,7 @@ struct SearchTVView: View {
     }
 
     @ViewBuilder
-    private func card(for media: MediaItem) -> some View {
+    private func card(for media: MediaDisplayItem) -> some View {
         SearchResultCard(media: media) {
             onSelectMedia(media)
         }

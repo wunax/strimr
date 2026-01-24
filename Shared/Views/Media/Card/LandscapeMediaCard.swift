@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LandscapeMediaCard: View {
-    let media: MediaItem
+    let media: MediaDisplayItem
     let height: CGFloat?
     let width: CGFloat?
     let showsLabels: Bool
@@ -12,7 +12,7 @@ struct LandscapeMediaCard: View {
     private let aspectRatio: CGFloat = 16 / 9
 
     init(
-        media: MediaItem,
+        media: MediaDisplayItem,
         height: CGFloat? = nil,
         width: CGFloat? = nil,
         showsLabels: Bool,

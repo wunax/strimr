@@ -3,14 +3,14 @@ import SwiftUI
 struct LibraryTVView: View {
     @State var viewModel: LibraryViewModel
     @Environment(SettingsManager.self) private var settingsManager
-    let onSelectMedia: (MediaItem) -> Void
+    let onSelectMedia: (MediaDisplayItem) -> Void
     private let cardMinHeight: CGFloat = 240
     private let cardMaxHeight: CGFloat = 380
     @State private var isHiddenExpanded = false
 
     init(
         viewModel: LibraryViewModel,
-        onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia

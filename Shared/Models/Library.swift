@@ -14,7 +14,7 @@ struct Library: Identifiable, Equatable, Hashable {
             "tv.fill"
         case .season, .episode:
             "play.rectangle.fill"
-        case .unknown:
+        case .collection, .unknown:
             "questionmark.square.fill"
         }
     }
