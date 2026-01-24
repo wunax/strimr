@@ -41,6 +41,11 @@ struct LibraryDetailView: View {
         .onAppear {
             contentFocused = true
         }
+        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
+            if !displayCollections, selectedTab == .collections {
+                selectedTab = .recommended
+            }
+        }
     }
 
     private var contentView: some View {
@@ -64,6 +69,16 @@ struct LibraryDetailView: View {
                     ),
                     onSelectMedia: onSelectMedia,
                 )
+            case .collections:
+                LibraryCollectionsView(
+                    viewModel: LibraryBrowseViewModel(
+                        library: library,
+                        context: plexApiContext,
+                        settingsManager: settingsManager,
+                        mode: .collections
+                    ),
+                    onSelectMedia: onSelectMedia,
+                )
             }
         }
         .focused($contentFocused)
@@ -73,7 +88,7 @@ struct LibraryDetailView: View {
 
     private var sidebarView: some View {
         VStack {
-            ForEach(LibraryDetailTab.allCases) { tab in
+            ForEach(availableTabs) { tab in
                 sidebarButton(for: tab)
             }
         }
@@ -111,11 +126,18 @@ struct LibraryDetailView: View {
     private var sidebarWidth: CGFloat {
         isSidebarFocused ? 240 : 72
     }
+
+    private var availableTabs: [LibraryDetailTab] {
+        settingsManager.interface.displayCollections
+            ? LibraryDetailTab.allCases
+            : LibraryDetailTab.allCases.filter { $0 != .collections }
+    }
 }
 
 enum LibraryDetailTab: String, CaseIterable, Identifiable {
     case recommended
     case browse
+    case collections
 
     var id: String {
         rawValue
@@ -127,6 +149,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "library.detail.tab.recommended"
         case .browse:
             "library.detail.tab.browse"
+        case .collections:
+            "library.detail.tab.collections"
         }
     }
 
@@ -136,6 +160,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "sparkles"
         case .browse:
             "square.grid.2x2.fill"
+        case .collections:
+            "rectangle.stack.fill"
         }
     }
 }

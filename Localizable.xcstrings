@@ -977,6 +977,28 @@
         }
       }
     },
+    "library.detail.tab.collections" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集"
+          }
+        }
+      }
+    },
     "library.detail.tab.recommended" : {
       "localizations" : {
         "en" : {

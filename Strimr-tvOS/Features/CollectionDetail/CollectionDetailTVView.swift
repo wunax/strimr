@@ -101,6 +101,7 @@ struct CollectionDetailTVView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .focusSection()
     }
 
     private var playButton: some View {

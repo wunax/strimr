@@ -11,7 +11,7 @@ struct LibraryDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("library.detail.tabPicker", selection: $selectedTab) {
-                ForEach(LibraryDetailTab.allCases) { tab in
+                ForEach(availableTabs) { tab in
                     Text(tab.title).tag(tab)
                 }
             }
@@ -38,18 +38,38 @@ struct LibraryDetailView: View {
                         ),
                         onSelectMedia: onSelectMedia,
                     )
+                case .collections:
+                    LibraryCollectionsView(
+                        viewModel: LibraryCollectionsViewModel(
+                            library: library,
+                            context: plexApiContext,
+                        ),
+                        onSelectMedia: onSelectMedia,
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .navigationTitle(library.title)
         .toolbarTitleDisplayMode(.inline)
+        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
+            if !displayCollections, selectedTab == .collections {
+                selectedTab = .recommended
+            }
+        }
+    }
+
+    private var availableTabs: [LibraryDetailTab] {
+        settingsManager.interface.displayCollections
+            ? LibraryDetailTab.allCases
+            : LibraryDetailTab.allCases.filter { $0 != .collections }
     }
 }
 
 enum LibraryDetailTab: String, CaseIterable, Identifiable {
     case recommended
     case browse
+    case collections
 
     var id: String {
         rawValue
@@ -61,6 +81,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "library.detail.tab.recommended"
         case .browse:
             "library.detail.tab.browse"
+        case .collections:
+            "library.detail.tab.collections"
         }
     }
 }
