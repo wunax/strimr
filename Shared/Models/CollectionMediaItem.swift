@@ -9,8 +9,8 @@ struct CollectionMediaItem: Identifiable, Hashable {
     let summary: String?
     let thumbPath: String?
     let childCount: Int?
-    let minYear: Int?
-    let maxYear: Int?
+    let minYear: String?
+    let maxYear: String?
 }
 
 extension CollectionMediaItem {

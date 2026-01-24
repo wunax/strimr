@@ -21,11 +21,13 @@ final class LibraryBrowseViewModel {
     private var loadingPageStarts: Set<Int> = []
 
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let settingsManager: SettingsManager
     private let pageSize = 40
 
-    init(library: Library, context: PlexAPIContext) {
+    init(library: Library, context: PlexAPIContext, settingsManager: SettingsManager) {
         self.library = library
         self.context = context
+        self.settingsManager = settingsManager
     }
 
     func load() async {
@@ -111,8 +113,10 @@ final class LibraryBrowseViewModel {
         }
 
         do {
+            let includeCollections = settingsManager.interface.displayCollections ? true : nil
             let response = try await sectionRepository.getSectionsItems(
                 sectionId: sectionId,
+                params: SectionRepository.SectionItemsParams(includeCollections: includeCollections),
                 pagination: PlexPagination(start: start, size: pageSize),
             )
 

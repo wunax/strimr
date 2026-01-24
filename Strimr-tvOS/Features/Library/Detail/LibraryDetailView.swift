@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibraryDetailView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(SettingsManager.self) private var settingsManager
     let library: Library
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -59,6 +60,7 @@ struct LibraryDetailView: View {
                     viewModel: LibraryBrowseViewModel(
                         library: library,
                         context: plexApiContext,
+                        settingsManager: settingsManager,
                     ),
                     onSelectMedia: onSelectMedia,
                 )

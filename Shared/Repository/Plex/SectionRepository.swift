@@ -8,6 +8,7 @@ final class SectionRepository {
         var sort: String?
         var limit: Int?
         var includeMeta: Bool?
+        var includeCollections: Bool? = nil
 
         var queryItems: [URLQueryItem] {
             [
@@ -16,6 +17,7 @@ final class SectionRepository {
                 URLQueryItem.make("sort", sort),
                 URLQueryItem.make("limit", limit),
                 URLQueryItem.makeBoolFlag("includeMeta", includeMeta),
+                URLQueryItem.makeBoolFlag("includeCollections", includeCollections),
             ].compactMap(\.self)
         }
     }

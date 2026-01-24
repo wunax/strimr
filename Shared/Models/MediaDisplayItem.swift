@@ -53,7 +53,7 @@ enum MediaDisplayItem: Identifiable, Hashable {
         switch self {
         case let .playable(item):
             item.artPath
-        case let .collection(item):
+        case .collection:
             nil
         }
     }
@@ -79,9 +79,10 @@ enum MediaDisplayItem: Identifiable, Hashable {
     var secondaryLabel: String? {
         switch self {
         case let .playable(item):
-            item.secondaryLabel
-        case .collection:
-            nil
+            return item.secondaryLabel
+        case let .collection(item):
+            guard let childCount = item.childCount else { return nil }
+            return String(localized: "media.labels.elementsCount \(childCount)")
         }
     }
 
@@ -107,7 +108,7 @@ enum MediaDisplayItem: Identifiable, Hashable {
         switch self {
         case let .playable(item):
             item.preferredArtPath
-        case let .collection(item):
+        case .collection:
             nil
         }
     }

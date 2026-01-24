@@ -79,6 +79,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplayCollections(_ enabled: Bool) {
+        settings.interface.displayCollections = enabled
+        persist()
+    }
+
     private func persist() {
         guard let data = try? JSONEncoder().encode(settings) else { return }
         defaults.set(data, forKey: storageKey)

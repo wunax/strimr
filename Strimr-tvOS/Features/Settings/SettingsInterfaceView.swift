@@ -7,6 +7,16 @@ struct SettingsInterfaceView: View {
 
     var body: some View {
         List {
+            Section {
+                Toggle(
+                    "settings.interface.displayCollections",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayCollections },
+                        set: { settingsManager.setDisplayCollections($0) },
+                    ),
+                )
+            }
+
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
                 libraryStore: libraryStore,

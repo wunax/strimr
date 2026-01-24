@@ -59,7 +59,11 @@ struct MediaItem: Identifiable, Hashable {
         case .season, .episode:
             return title
 
-        case .unknown, .collection:
+        case .collection:
+            guard let childCount else { return nil }
+            return String(localized: "media.labels.elementsCount \(childCount)")
+
+        case .unknown:
             return nil
         }
     }

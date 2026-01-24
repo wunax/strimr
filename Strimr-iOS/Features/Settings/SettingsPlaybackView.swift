@@ -23,7 +23,7 @@ struct SettingsPlaybackView: View {
 
     var body: some View {
         List {
-            Section("settings.playback.title") {
+            Section {
                 Toggle("settings.playback.autoPlayNext", isOn: viewModel.autoPlayNextBinding)
 
                 Picker("settings.playback.rewind", selection: viewModel.rewindBinding) {
