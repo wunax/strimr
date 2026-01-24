@@ -39,14 +39,14 @@ struct LibraryCollectionsView: View {
                 ContentUnavailableView(
                     errorMessage,
                     systemImage: "exclamationmark.triangle.fill",
-                    description: Text("common.errors.tryAgainLater")
+                    description: Text("common.errors.tryAgainLater"),
                 )
                 .symbolRenderingMode(.multicolor)
             } else if viewModel.items.isEmpty {
                 ContentUnavailableView(
                     "library.browse.empty.title",
                     systemImage: "square.grid.2x2.fill",
-                    description: Text("library.browse.empty.description")
+                    description: Text("library.browse.empty.description"),
                 )
             }
         }

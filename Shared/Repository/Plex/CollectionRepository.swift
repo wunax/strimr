@@ -33,23 +33,23 @@ final class CollectionRepository {
 
     func getCollection(
         ratingKey: String,
-        params: PlexCollectionParams? = nil
+        params: PlexCollectionParams? = nil,
     ) async throws -> PlexItemMediaContainer {
         let resolved = params ?? PlexCollectionParams()
         return try await network.request(
             path: "/library/collections/\(ratingKey)",
-            queryItems: resolved.queryItems
+            queryItems: resolved.queryItems,
         )
     }
 
     func getCollectionChildren(
         ratingKey: String,
-        params: PlexCollectionParams? = nil
+        params: PlexCollectionParams? = nil,
     ) async throws -> PlexItemMediaContainer {
         let resolved = params ?? PlexCollectionParams()
         return try await network.request(
             path: "/library/collections/\(ratingKey)/children",
-            queryItems: resolved.queryItems
+            queryItems: resolved.queryItems,
         )
     }
 }

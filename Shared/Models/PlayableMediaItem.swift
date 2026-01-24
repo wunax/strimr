@@ -41,8 +41,8 @@ struct PlayableMediaItem: Identifiable, Hashable {
 
     init?(mediaItem: MediaItem) {
         guard let playableType = PlayableItemType(plexType: mediaItem.type) else { return nil }
-        self.item = mediaItem
-        self.type = playableType
+        item = mediaItem
+        type = playableType
     }
 
     init?(plexItem: PlexItem) {

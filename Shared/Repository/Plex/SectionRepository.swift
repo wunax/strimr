@@ -8,7 +8,7 @@ final class SectionRepository {
         var sort: String?
         var limit: Int?
         var includeMeta: Bool?
-        var includeCollections: Bool? = nil
+        var includeCollections: Bool?
 
         var queryItems: [URLQueryItem] {
             [
@@ -77,7 +77,7 @@ final class SectionRepository {
 
         return try await network.request(
             path: "/library/sections/\(sectionId)/firstCharacter",
-            queryItems: queryItems
+            queryItems: queryItems,
         )
     }
 

@@ -14,7 +14,7 @@ struct CollectionDetailTVView: View {
     init(
         viewModel: CollectionDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
-        onPlay: @escaping (String) -> Void = { _ in }
+        onPlay: @escaping (String) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -47,14 +47,14 @@ struct CollectionDetailTVView: View {
                 ContentUnavailableView(
                     errorMessage,
                     systemImage: "exclamationmark.triangle.fill",
-                    description: Text("common.errors.tryAgainLater")
+                    description: Text("common.errors.tryAgainLater"),
                 )
                 .symbolRenderingMode(.multicolor)
             } else if bindableViewModel.items.isEmpty {
                 ContentUnavailableView(
                     "library.browse.empty.title",
                     systemImage: "square.grid.2x2.fill",
-                    description: Text("library.browse.empty.description")
+                    description: Text("library.browse.empty.description"),
                 )
             }
         }
@@ -70,8 +70,8 @@ struct CollectionDetailTVView: View {
                 viewModel: MediaImageViewModel(
                     context: plexApiContext,
                     artworkKind: .thumb,
-                    media: viewModel.collectionDisplayItem
-                )
+                    media: viewModel.collectionDisplayItem,
+                ),
             )
             .frame(width: 280, height: 420)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))

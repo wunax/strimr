@@ -75,7 +75,7 @@ struct LibraryDetailView: View {
                         library: library,
                         context: plexApiContext,
                         settingsManager: settingsManager,
-                        mode: .collections
+                        mode: .collections,
                     ),
                     onSelectMedia: onSelectMedia,
                 )

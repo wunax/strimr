@@ -28,13 +28,13 @@ final class CollectionDetailViewModel {
     var yearsText: String? {
         switch (collection.minYear, collection.maxYear) {
         case let (min?, max?) where min != max:
-            return "\(min) - \(max)"
+            "\(min) - \(max)"
         case let (min?, _):
-            return min
+            min
         case let (_, max?):
-            return max
+            max
         default:
-            return nil
+            nil
         }
     }
 

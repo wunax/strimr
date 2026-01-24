@@ -294,7 +294,7 @@ struct PlexItem: Codable, Equatable {
     let subtype: PlexItemType?
     let minYear: String?
     let maxYear: String?
-    
+
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, type, title, summary, thumb, art, year, viewOffset, lastViewedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating

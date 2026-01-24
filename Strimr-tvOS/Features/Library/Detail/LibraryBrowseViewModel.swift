@@ -34,7 +34,7 @@ final class LibraryBrowseViewModel {
         library: Library,
         context: PlexAPIContext,
         settingsManager: SettingsManager,
-        mode: Mode = .all
+        mode: Mode = .all,
     ) {
         self.library = library
         self.context = context
@@ -80,7 +80,7 @@ final class LibraryBrowseViewModel {
             let response = try await sectionRepository.getSectionFirstCharacters(
                 sectionId: sectionId,
                 type: mode.characterType,
-                includeCollections: mode.includeCollections
+                includeCollections: mode.includeCollections,
             )
             let directories = response.mediaContainer.directory ?? []
             var runningIndex = 0
@@ -133,7 +133,7 @@ final class LibraryBrowseViewModel {
                 using: sectionRepository,
                 sectionId: sectionId,
                 includeCollections: settingsManager.interface.displayCollections ? true : nil,
-                pagination: PlexPagination(start: start, size: pageSize)
+                pagination: PlexPagination(start: start, size: pageSize),
             )
 
             let newItems = (response.mediaContainer.metadata ?? [])
