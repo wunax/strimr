@@ -490,7 +490,9 @@ struct PlayerTVView: View {
 
         switch media.type {
         case .movie:
-            dismissPlayer()
+            Task {
+                await handleMovieCompletion()
+            }
         case .episode:
             Task {
                 await handleEpisodeCompletion(for: media)
@@ -518,6 +520,19 @@ struct PlayerTVView: View {
         }
 
         await startPlayback(of: nextEpisode)
+    }
+
+    private func handleMovieCompletion() async {
+        await viewModel.markPlaybackFinished()
+
+        guard let nextItem = await viewModel.nextItemInQueue() else {
+            await MainActor.run {
+                dismissPlayer()
+            }
+            return
+        }
+
+        await startPlayback(of: nextItem)
     }
 
     private func startPlayback(of episode: PlexItem) async {

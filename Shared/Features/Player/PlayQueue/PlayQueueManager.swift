@@ -7,8 +7,16 @@ final class PlayQueueManager {
         repository = try PlayQueueRepository(context: context)
     }
 
-    func createQueue(for ratingKey: String, continuous: Bool = false) async throws -> PlayQueueState {
-        let response = try await repository.createQueue(for: ratingKey, continuous: continuous)
+    func createQueue(
+        for ratingKey: String,
+        itemType: PlexItemType,
+        continuous: Bool = false,
+    ) async throws -> PlayQueueState {
+        let response = try await repository.createQueue(
+            for: ratingKey,
+            itemType: itemType,
+            continuous: continuous,
+        )
         return PlayQueueState(response: response)
     }
 

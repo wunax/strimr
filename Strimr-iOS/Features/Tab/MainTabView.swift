@@ -127,6 +127,19 @@ struct MainTabView: View {
                 },
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        case let .collectionDetail(collection):
+            CollectionDetailView(
+                viewModel: CollectionDetailViewModel(
+                    collection: collection,
+                    context: plexApiContext,
+                ),
+                onSelectMedia: coordinator.showMediaDetail,
+                onPlay: { ratingKey in
+                    Task {
+                        await playbackLauncher.play(ratingKey: ratingKey, type: .collection)
+                    }
+                },
+            )
         }
     }
 

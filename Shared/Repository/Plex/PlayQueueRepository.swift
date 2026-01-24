@@ -27,16 +27,18 @@ final class PlayQueueRepository {
 
     func createQueue(
         for ratingKey: String,
+        itemType: PlexItemType,
         type: String = "video",
         shuffle: Bool = false,
         repeatMode: Int = 0,
         continuous: Bool = false,
     ) async throws -> PlexPlayQueueResponse {
-        try await network.request(
+        let uri = metadataURI(for: ratingKey, itemType: itemType)
+        return try await network.request(
             path: "/playQueues",
             queryItems: [
                 URLQueryItem(name: "type", value: type),
-                URLQueryItem(name: "uri", value: metadataURI(for: ratingKey)),
+                URLQueryItem(name: "uri", value: uri),
                 URLQueryItem(name: "own", value: "1"),
                 URLQueryItem(name: "shuffle", value: shuffle ? "1" : "0"),
                 URLQueryItem(name: "repeat", value: String(repeatMode)),
@@ -50,7 +52,12 @@ final class PlayQueueRepository {
         try await network.request(path: "/playQueues/\(id)")
     }
 
-    private func metadataURI(for ratingKey: String) -> String {
-        "server://\(serverIdentifier)/com.plexapp.plugins.library/library/metadata/\(ratingKey)"
+    private func metadataURI(for ratingKey: String, itemType: PlexItemType) -> String {
+        switch itemType {
+        case .collection:
+            "server://\(serverIdentifier)/com.plexapp.plugins.library/library/collections/\(ratingKey)"
+        default:
+            "server://\(serverIdentifier)/com.plexapp.plugins.library/library/metadata/\(ratingKey)"
+        }
     }
 }

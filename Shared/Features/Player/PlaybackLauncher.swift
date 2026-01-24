@@ -15,6 +15,7 @@ struct PlaybackLauncher {
             let manager = try PlayQueueManager(context: context)
             let playQueue = try await manager.createQueue(
                 for: ratingKey,
+                itemType: type,
                 continuous: type == .episode,
             )
 
