@@ -59,15 +59,21 @@ final class PlaybackRepository {
         time: Int,
         duration: Int,
         sessionIdentifier: String,
+        playQueueItemID: Int? = nil,
     ) async throws -> PlexTimelineResponse {
-        try await network.request(
+        var queryItems = [
+            URLQueryItem(name: "ratingKey", value: ratingKey),
+            URLQueryItem(name: "state", value: state.rawValue),
+            URLQueryItem(name: "time", value: String(time)),
+            URLQueryItem(name: "duration", value: String(duration)),
+        ]
+        if let playQueueItemID {
+            queryItems.append(URLQueryItem(name: "playQueueItemID", value: String(playQueueItemID)))
+        }
+
+        return try await network.request(
             path: "/:/timeline",
-            queryItems: [
-                URLQueryItem(name: "ratingKey", value: ratingKey),
-                URLQueryItem(name: "state", value: state.rawValue),
-                URLQueryItem(name: "time", value: String(time)),
-                URLQueryItem(name: "duration", value: String(duration)),
-            ],
+            queryItems: queryItems,
             headers: [
                 "X-Plex-Session-Identifier": sessionIdentifier,
             ],

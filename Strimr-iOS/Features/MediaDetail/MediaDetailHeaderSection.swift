@@ -5,8 +5,8 @@ struct MediaDetailHeaderSection: View {
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
-    let onPlay: (String) -> Void
-    let onPlayFromStart: (String) -> Void
+    let onPlay: (String, PlexItemType) -> Void
+    let onPlayFromStart: (String, PlexItemType) -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -321,15 +321,19 @@ struct MediaDetailHeaderSection: View {
     private func handlePlay() {
         Task {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey)
+            onPlay(ratingKey, playbackType)
         }
     }
 
     private func handlePlayFromStart() {
         Task {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlayFromStart(ratingKey)
+            onPlayFromStart(ratingKey, playbackType)
         }
+    }
+
+    private var playbackType: PlexItemType {
+        viewModel.onDeckItem?.type ?? viewModel.media.type
     }
 }
 

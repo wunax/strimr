@@ -6,14 +6,14 @@ struct MediaDetailView: View {
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false
     private let heroHeight: CGFloat = 320
-    private let onPlay: (String) -> Void
-    private let onPlayFromStart: (String) -> Void
+    private let onPlay: (String, PlexItemType) -> Void
+    private let onPlayFromStart: (String, PlexItemType) -> Void
     private let onSelectMedia: (MediaItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
-        onPlay: @escaping (String) -> Void = { _ in },
-        onPlayFromStart: @escaping (String) -> Void = { _ in },
+        onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)

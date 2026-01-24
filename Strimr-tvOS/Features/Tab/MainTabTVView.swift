@@ -93,9 +93,12 @@ struct MainTabTVView: View {
             try? await libraryStore.loadLibraries()
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
-            if let ratingKey = coordinator.selectedRatingKey {
+            if let playQueue = coordinator.selectedPlayQueue,
+               let ratingKey = playQueue.selectedRatingKey
+            {
                 PlayerTVWrapper(
                     viewModel: PlayerViewModel(
+                        playQueue: playQueue,
                         ratingKey: ratingKey,
                         context: plexApiContext,
                         shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
@@ -112,11 +115,19 @@ struct MainTabTVView: View {
         case let .mediaDetail(media):
             MediaDetailTVView(
                 viewModel: MediaDetailViewModel(media: media, context: plexApiContext),
-                onPlay: { ratingKey in
-                    handlePlay(ratingKey: ratingKey)
+                onPlay: { ratingKey, type in
+                    Task {
+                        await playbackLauncher.play(ratingKey: ratingKey, type: type)
+                    }
                 },
-                onPlayFromStart: { ratingKey in
-                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
+                onPlayFromStart: { ratingKey, type in
+                    Task {
+                        await playbackLauncher.play(
+                            ratingKey: ratingKey,
+                            type: type,
+                            shouldResumeFromOffset: false,
+                        )
+                    }
                 },
                 onSelectMedia: coordinator.showMediaDetail,
             )
@@ -126,5 +137,14 @@ struct MainTabTVView: View {
     private var navigationLibraries: [Library] {
         let libraryById = Dictionary(uniqueKeysWithValues: libraryStore.libraries.map { ($0.id, $0) })
         return settingsManager.interface.navigationLibraryIds.compactMap { libraryById[$0] }
+    }
+
+    private var playbackLauncher: PlaybackLauncher {
+        PlaybackLauncher(
+            context: plexApiContext,
+            coordinator: coordinator,
+            settingsManager: settingsManager,
+            openURL: { url in openURL(url) },
+        )
     }
 }

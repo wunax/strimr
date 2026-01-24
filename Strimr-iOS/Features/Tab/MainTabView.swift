@@ -82,9 +82,12 @@ struct MainTabView: View {
             try? await libraryStore.loadLibraries()
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
-            if let ratingKey = coordinator.selectedRatingKey {
+            if let playQueue = coordinator.selectedPlayQueue,
+               let ratingKey = playQueue.selectedRatingKey
+            {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
+                        playQueue: playQueue,
                         ratingKey: ratingKey,
                         context: plexApiContext,
                         shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
@@ -108,14 +111,31 @@ struct MainTabView: View {
                     media: media,
                     context: plexApiContext,
                 ),
-                onPlay: { ratingKey in
-                    handlePlay(ratingKey: ratingKey)
+                onPlay: { ratingKey, type in
+                    Task {
+                        await playbackLauncher.play(ratingKey: ratingKey, type: type)
+                    }
                 },
-                onPlayFromStart: { ratingKey in
-                    handlePlay(ratingKey: ratingKey, shouldResumeFromOffset: false)
+                onPlayFromStart: { ratingKey, type in
+                    Task {
+                        await playbackLauncher.play(
+                            ratingKey: ratingKey,
+                            type: type,
+                            shouldResumeFromOffset: false,
+                        )
+                    }
                 },
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }
+    }
+
+    private var playbackLauncher: PlaybackLauncher {
+        PlaybackLauncher(
+            context: plexApiContext,
+            coordinator: coordinator,
+            settingsManager: settingsManager,
+            openURL: { url in openURL(url) },
+        )
     }
 }

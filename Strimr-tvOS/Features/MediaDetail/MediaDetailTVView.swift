@@ -5,14 +5,14 @@ struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
-    private let onPlay: (String) -> Void
-    private let onPlayFromStart: (String) -> Void
+    private let onPlay: (String, PlexItemType) -> Void
+    private let onPlayFromStart: (String, PlexItemType) -> Void
     private let onSelectMedia: (MediaItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
-        onPlay: @escaping (String) -> Void = { _ in },
-        onPlayFromStart: @escaping (String) -> Void = { _ in },
+        onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
@@ -226,7 +226,7 @@ struct MediaDetailTVView: View {
                             progress: viewModel.progressFraction(for: episode),
                             width: 460,
                             onPlay: {
-                                onPlay(episode.id)
+                                onPlay(episode.id, .episode)
                             },
                             onFocus: {
                                 focusedMedia = episode
@@ -244,15 +244,19 @@ struct MediaDetailTVView: View {
     private func handlePlay() {
         Task {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey)
+            onPlay(ratingKey, playbackType)
         }
     }
 
     private func handlePlayFromStart() {
         Task {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlayFromStart(ratingKey)
+            onPlayFromStart(ratingKey, playbackType)
         }
+    }
+
+    private var playbackType: PlexItemType {
+        viewModel.onDeckItem?.type ?? viewModel.media.type
     }
 }
 

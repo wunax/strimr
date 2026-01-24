@@ -307,11 +307,7 @@ final class MediaDetailViewModel {
     var isWatched: Bool { isWatched(media) }
 
     func playbackRatingKey() async -> String? {
-        if let ratingKey = primaryActionRatingKey {
-            return ratingKey
-        }
-
-        return await firstGrandchildRatingKey()
+        primaryActionRatingKey
     }
 
     var watchActionTitle: String {
@@ -476,18 +472,6 @@ final class MediaDetailViewModel {
                 character: character,
                 thumbPath: role.thumb,
             )
-        }
-    }
-
-    private func firstGrandchildRatingKey() async -> String? {
-        guard media.type == .show else { return nil }
-        guard let metadataRepository = try? MetadataRepository(context: context) else { return nil }
-
-        do {
-            let response = try await metadataRepository.getMetadataGrandChildren(ratingKey: media.metadataRatingKey)
-            return response.mediaContainer.metadata?.first?.ratingKey
-        } catch {
-            return nil
         }
     }
 

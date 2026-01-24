@@ -277,6 +277,8 @@ struct PlexItem: Codable, Equatable {
 
     let onDeck: PlexOnDeck?
 
+    let playQueueItemID: Int?
+
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, type, title, summary, thumb, art, year, viewOffset, lastViewedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
@@ -297,6 +299,7 @@ struct PlexItem: Codable, Equatable {
         case media = "Media"
         case markers = "Marker"
         case onDeck = "OnDeck"
+        case playQueueItemID
     }
 }
 

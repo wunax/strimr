@@ -3,7 +3,7 @@ import SwiftUI
 
 struct SeasonEpisodesSection: View {
     @Bindable var viewModel: MediaDetailViewModel
-    let onPlay: (String) -> Void
+    let onPlay: (String, PlexItemType) -> Void
 
     var body: some View {
         Section {
@@ -159,7 +159,7 @@ struct SeasonEpisodesSection: View {
                         }
                     },
                     onPlay: {
-                        onPlay(episode.id)
+                        onPlay(episode.id, .episode)
                     },
                 )
                 if index < viewModel.episodes.count - 1 {
