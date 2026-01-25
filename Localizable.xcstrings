@@ -999,6 +999,28 @@
         }
       }
     },
+    "library.detail.tab.playlists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlists"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlists"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放列表"
+          }
+        }
+      }
+    },
     "library.detail.tab.recommended" : {
       "localizations" : {
         "en" : {
@@ -2343,6 +2365,28 @@
         }
       }
     },
+    "search.badge.playlist" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PLAYLIST"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PLAYLIST"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放列表"
+          }
+        }
+      }
+    },
     "search.badge.movie" : {
       "localizations" : {
         "en" : {
@@ -2515,6 +2559,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "合集"
+          }
+        }
+      }
+    },
+    "search.fallback.playlist" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放列表"
           }
         }
       }

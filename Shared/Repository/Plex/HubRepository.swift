@@ -38,7 +38,10 @@ final class HubRepository {
         return try await network.request(path: "/hubs/continueWatching", queryItems: resolved.queryItems)
     }
 
-    func getPromotedHub(params: HubParams? = nil) async throws -> PlexHubMediaContainer {
+    func getPromotedHub(
+        params: HubParams? = nil,
+        includeLibraryPlaylists: Bool? = nil,
+    ) async throws -> PlexHubMediaContainer {
         let resolved = params ?? HubParams()
         var queryItems = resolved.queryItems
         if resolved.count == nil {
@@ -52,7 +55,8 @@ final class HubRepository {
         if resolved.excludeContinueWatching == nil {
             queryItems.append(URLQueryItem(name: "excludeContinueWatching", value: "1"))
         }
-        queryItems.append(URLQueryItem(name: "includeLibraryPlaylists", value: "0"))
+        let includePlaylists = includeLibraryPlaylists ?? false
+        queryItems.append(URLQueryItem(name: "includeLibraryPlaylists", value: includePlaylists ? "1" : "0"))
         return try await network.request(path: "/hubs/promoted", queryItems: queryItems)
     }
 
