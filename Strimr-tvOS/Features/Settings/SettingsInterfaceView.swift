@@ -15,6 +15,13 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayCollections($0) },
                     ),
                 )
+                Toggle(
+                    "settings.interface.displayPlaylists",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayPlaylists },
+                        set: { settingsManager.setDisplayPlaylists($0) },
+                    ),
+                )
             }
 
             DisplayedLibrariesSectionView(

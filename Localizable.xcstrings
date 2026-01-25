@@ -2990,6 +2990,28 @@
         }
       }
     },
+    "settings.interface.displayPlaylists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display playlists"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les playlists"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示播放列表"
+          }
+        }
+      }
+    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {
