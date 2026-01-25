@@ -12,6 +12,7 @@ struct InterfaceSettings: Codable, Equatable {
     var hiddenLibraryIds: [String] = []
     var navigationLibraryIds: [String] = []
     var displayCollections = true
+    var displayPlaylists = true
 }
 
 struct AppSettings: Codable, Equatable {

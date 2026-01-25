@@ -46,6 +46,11 @@ struct LibraryDetailView: View {
                 selectedTab = .recommended
             }
         }
+        .onChange(of: settingsManager.interface.displayPlaylists) { _, displayPlaylists in
+            if !displayPlaylists, selectedTab == .playlists {
+                selectedTab = .recommended
+            }
+        }
     }
 
     private var contentView: some View {
@@ -76,6 +81,14 @@ struct LibraryDetailView: View {
                         context: plexApiContext,
                         settingsManager: settingsManager,
                         mode: .collections,
+                    ),
+                    onSelectMedia: onSelectMedia,
+                )
+            case .playlists:
+                LibraryPlaylistsView(
+                    viewModel: LibraryPlaylistsViewModel(
+                        library: library,
+                        context: plexApiContext,
                     ),
                     onSelectMedia: onSelectMedia,
                 )
@@ -128,9 +141,16 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        settingsManager.interface.displayCollections
-            ? LibraryDetailTab.allCases
-            : LibraryDetailTab.allCases.filter { $0 != .collections }
+        LibraryDetailTab.allCases.filter { tab in
+            switch tab {
+            case .collections:
+                settingsManager.interface.displayCollections
+            case .playlists:
+                settingsManager.interface.displayPlaylists
+            default:
+                true
+            }
+        }
     }
 }
 
@@ -138,6 +158,7 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
     case recommended
     case browse
     case collections
+    case playlists
 
     var id: String {
         rawValue
@@ -151,6 +172,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "library.detail.tab.browse"
         case .collections:
             "library.detail.tab.collections"
+        case .playlists:
+            "library.detail.tab.playlists"
         }
     }
 
@@ -162,6 +185,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "square.grid.2x2.fill"
         case .collections:
             "rectangle.stack.fill"
+        case .playlists:
+            "music.note.list"
         }
     }
 }

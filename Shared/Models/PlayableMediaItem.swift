@@ -16,7 +16,7 @@ enum PlayableItemType: String, Codable, Hashable {
             self = .season
         case .episode:
             self = .episode
-        case .collection, .unknown:
+        case .collection, .playlist, .unknown:
             return nil
         }
     }

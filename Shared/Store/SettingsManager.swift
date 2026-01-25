@@ -84,6 +84,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplayPlaylists(_ enabled: Bool) {
+        settings.interface.displayPlaylists = enabled
+        persist()
+    }
+
     private func persist() {
         guard let data = try? JSONEncoder().encode(settings) else { return }
         defaults.set(data, forKey: storageKey)

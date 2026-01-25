@@ -56,6 +56,8 @@ final class PlayQueueRepository {
         switch itemType {
         case .collection:
             "server://\(serverIdentifier)/com.plexapp.plugins.library/library/collections/\(ratingKey)"
+        case .playlist:
+            "server://\(serverIdentifier)/com.plexapp.plugins.library/playlists/\(ratingKey)"
         default:
             "server://\(serverIdentifier)/com.plexapp.plugins.library/library/metadata/\(ratingKey)"
         }

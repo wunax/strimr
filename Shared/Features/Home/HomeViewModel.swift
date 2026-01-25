@@ -69,7 +69,10 @@ final class HomeViewModel {
             }()
 
             async let continueResponse = hubRepository.getContinueWatchingHub(params: hubParams)
-            async let promotedResponse = hubRepository.getPromotedHub(params: hubParams)
+            async let promotedResponse = hubRepository.getPromotedHub(
+                params: hubParams,
+                includeLibraryPlaylists: settingsManager.interface.displayPlaylists,
+            )
 
             let continueHub = try await continueResponse.mediaContainer.hub?.first
             let promotedHubs = try await promotedResponse.mediaContainer.hub ?? []

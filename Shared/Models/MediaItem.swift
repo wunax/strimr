@@ -63,7 +63,7 @@ struct MediaItem: Identifiable, Hashable {
             guard let childCount else { return nil }
             return String(localized: "media.labels.elementsCount \(childCount)")
 
-        case .unknown:
+        case .playlist, .unknown:
             return nil
         }
     }
@@ -84,7 +84,7 @@ struct MediaItem: Identifiable, Hashable {
             parentRatingKey ?? id
         case .movie, .show:
             id
-        case .unknown, .collection:
+        case .collection, .playlist, .unknown:
             id
         }
     }

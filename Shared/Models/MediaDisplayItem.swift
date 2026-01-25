@@ -3,12 +3,15 @@ import Foundation
 enum MediaDisplayItem: Identifiable, Hashable {
     case playable(MediaItem)
     case collection(CollectionMediaItem)
+    case playlist(PlaylistMediaItem)
 
     var id: String {
         switch self {
         case let .playable(item):
             item.id
         case let .collection(item):
+            item.id
+        case let .playlist(item):
             item.id
         }
     }
@@ -19,6 +22,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.type
         case let .collection(item):
             item.type
+        case let .playlist(item):
+            item.type
         }
     }
 
@@ -27,6 +32,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.title
         case let .collection(item):
+            item.title
+        case let .playlist(item):
             item.title
         }
     }
@@ -37,6 +44,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.summary
         case let .collection(item):
             item.summary
+        case let .playlist(item):
+            item.summary
         }
     }
 
@@ -46,6 +55,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.thumbPath
         case let .collection(item):
             item.thumbPath
+        case let .playlist(item):
+            item.compositePath
         }
     }
 
@@ -54,6 +65,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.artPath
         case .collection:
+            nil
+        case .playlist:
             nil
         }
     }
@@ -64,6 +77,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.ultraBlurColors
         case .collection:
             nil
+        case .playlist:
+            nil
         }
     }
 
@@ -72,6 +87,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.primaryLabel
         case let .collection(item):
+            item.title
+        case let .playlist(item):
             item.title
         }
     }
@@ -83,6 +100,9 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .collection(item):
             guard let childCount = item.childCount else { return nil }
             return String(localized: "media.labels.elementsCount \(childCount)")
+        case let .playlist(item):
+            guard let leafCount = item.leafCount else { return nil }
+            return String(localized: "media.labels.elementsCount \(leafCount)")
         }
     }
 
@@ -91,6 +111,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.tertiaryLabel
         case .collection:
+            nil
+        case .playlist:
             nil
         }
     }
@@ -101,6 +123,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.preferredThumbPath
         case let .collection(item):
             item.thumbPath
+        case let .playlist(item):
+            item.compositePath
         }
     }
 
@@ -109,6 +133,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.preferredArtPath
         case .collection:
+            nil
+        case .playlist:
             nil
         }
     }
@@ -119,6 +145,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.viewProgressPercentage
         case .collection:
             nil
+        case .playlist:
+            nil
         }
     }
 
@@ -127,6 +155,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item.remainingUnwatchedLeaves
         case .collection:
+            nil
+        case .playlist:
             nil
         }
     }
@@ -137,6 +167,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
             item.isFullyWatched
         case .collection:
             false
+        case .playlist:
+            false
         }
     }
 
@@ -145,6 +177,8 @@ enum MediaDisplayItem: Identifiable, Hashable {
         case let .playable(item):
             item
         case .collection:
+            nil
+        case .playlist:
             nil
         }
     }
@@ -157,6 +191,8 @@ extension MediaDisplayItem {
             self = .playable(MediaItem(plexItem: plexItem))
         case .collection:
             self = .collection(CollectionMediaItem(plexItem: plexItem))
+        case .playlist:
+            self = .playlist(PlaylistMediaItem(plexItem: plexItem))
         case .unknown:
             return nil
         }

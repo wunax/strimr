@@ -144,6 +144,19 @@ struct MainTabTVView: View {
                     }
                 },
             )
+        case let .playlistDetail(playlist):
+            PlaylistDetailTVView(
+                viewModel: PlaylistDetailViewModel(
+                    playlist: playlist,
+                    context: plexApiContext,
+                ),
+                onSelectMedia: coordinator.showMediaDetail,
+                onPlay: { ratingKey in
+                    Task {
+                        await playbackLauncher.play(ratingKey: ratingKey, type: .playlist)
+                    }
+                },
+            )
         }
     }
 
