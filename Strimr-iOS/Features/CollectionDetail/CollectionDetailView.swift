@@ -6,6 +6,7 @@ struct CollectionDetailView: View {
     @State var viewModel: CollectionDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
+    let onShuffle: (String) -> Void
 
     private var gridColumns: [GridItem] {
         [
@@ -17,10 +18,12 @@ struct CollectionDetailView: View {
         viewModel: CollectionDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
         onPlay: @escaping (String) -> Void = { _ in },
+        onShuffle: @escaping (String) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
         self.onPlay = onPlay
+        self.onShuffle = onShuffle
     }
 
     var body: some View {
@@ -29,7 +32,7 @@ struct CollectionDetailView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
                 headerSection
-                playButton
+                playButtonsRow
 
                 LazyVGrid(columns: gridColumns, spacing: 16) {
                     ForEach(bindableViewModel.items) { media in
@@ -104,24 +107,38 @@ struct CollectionDetailView: View {
         }
     }
 
-    private var playButton: some View {
-        Button {
-            onPlay(viewModel.collection.id)
-        } label: {
-            HStack(spacing: 12) {
-                Spacer(minLength: 0)
-                Image(systemName: "play.fill")
-                    .font(.headline.weight(.semibold))
-                Text("common.actions.play")
-                    .fontWeight(.semibold)
-                Spacer(minLength: 0)
+    private var playButtonsRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                onPlay(viewModel.collection.id)
+            } label: {
+                HStack(spacing: 12) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "play.fill")
+                        .font(.headline.weight(.semibold))
+                    Text("common.actions.play")
+                        .fontWeight(.semibold)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.brandSecondary)
+            .foregroundStyle(.brandSecondaryForeground)
             .frame(maxWidth: .infinity)
+
+            Button {
+                onShuffle(viewModel.collection.id)
+            } label: {
+                Image(systemName: "shuffle")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 48)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(.brandSecondary)
+            .accessibilityLabel(Text("common.actions.shuffle"))
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .foregroundStyle(.brandSecondaryForeground)
-        .frame(maxWidth: .infinity)
     }
 }

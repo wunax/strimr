@@ -7,6 +7,7 @@ struct MediaDetailHeaderSection: View {
     let heroHeight: CGFloat
     let onPlay: (String, PlexItemType) -> Void
     let onPlayFromStart: (String, PlexItemType) -> Void
+    let onShuffle: (String, PlexItemType) -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -211,6 +212,8 @@ struct MediaDetailHeaderSection: View {
             if viewModel.shouldShowWatchlistButton {
                 watchlistToggleButton
             }
+
+            shuffleButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -256,6 +259,27 @@ struct MediaDetailHeaderSection: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .accessibilityLabel(Text("media.detail.playFromStart"))
+    }
+
+    private var shuffleButton: some View {
+        VStack(spacing: 2) {
+            Button(action: handleShuffle) {
+                Image(systemName: "shuffle")
+                    .font(.headline.weight(.semibold))
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+
+            Text("common.actions.shuffle")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 48)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .accessibilityLabel(Text("common.actions.shuffle"))
     }
 
     private var watchToggleButton: some View {
@@ -330,6 +354,10 @@ struct MediaDetailHeaderSection: View {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
+    }
+
+    private func handleShuffle() {
+        onShuffle(viewModel.media.id, viewModel.media.plexType)
     }
 
     private var playbackType: PlexItemType {

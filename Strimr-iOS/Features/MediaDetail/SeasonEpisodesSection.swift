@@ -4,6 +4,7 @@ import SwiftUI
 struct SeasonEpisodesSection: View {
     @Bindable var viewModel: MediaDetailViewModel
     let onPlay: (String, PlexItemType) -> Void
+    let onShuffle: (String, PlexItemType) -> Void
 
     var body: some View {
         Section {
@@ -53,7 +54,10 @@ struct SeasonEpisodesSection: View {
             HStack(alignment: .center, spacing: 10) {
                 seasonPickerControl
                 Spacer(minLength: 0)
-                seasonWatchToggle
+                HStack(spacing: 8) {
+                    seasonWatchToggle
+                    seasonShuffleButton
+                }
             }
         }
     }
@@ -97,6 +101,7 @@ struct SeasonEpisodesSection: View {
                     Text(viewModel.watchActionTitle(for: season))
                         .font(.subheadline)
                         .fontWeight(.semibold)
+                        .lineLimit(1)
                 }
                 .padding(.horizontal, 10)
             }
@@ -104,6 +109,27 @@ struct SeasonEpisodesSection: View {
             .controlSize(.small)
             .tint(.brandSecondary)
             .disabled(viewModel.isUpdatingWatchStatus(for: season))
+        }
+    }
+
+    @ViewBuilder
+    private var seasonShuffleButton: some View {
+        if let season = viewModel.selectedSeason ?? viewModel.seasons.first {
+            Button {
+                onShuffle(season.id, .season)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "shuffle")
+                    Text("common.actions.shuffle")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.brandSecondary)
         }
     }
 

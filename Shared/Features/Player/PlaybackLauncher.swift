@@ -9,6 +9,7 @@ struct PlaybackLauncher {
     func play(
         ratingKey: String,
         type: PlexItemType,
+        shuffle: Bool = false,
         shouldResumeFromOffset: Bool = true,
     ) async {
         do {
@@ -16,7 +17,8 @@ struct PlaybackLauncher {
             let playQueue = try await manager.createQueue(
                 for: ratingKey,
                 itemType: type,
-                continuous: type == .episode,
+                continuous: type == .episode || type == .show || type == .season,
+                shuffle: shuffle,
             )
 
             guard let selectedRatingKey = playQueue.selectedRatingKey else {
