@@ -101,7 +101,7 @@ struct MediaDetailTVView: View {
             }
 
             shuffleButton
-            
+
             watchToggleButton
 
             if viewModel.shouldShowWatchlistButton {
