@@ -7,17 +7,20 @@ struct MediaDetailTVView: View {
     @State private var focusedMedia: MediaItem?
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
+    private let onShuffle: (String, PlexItemType) -> Void
     private let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onShuffle: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
         self.onPlayFromStart = onPlayFromStart
+        self.onShuffle = onShuffle
         self.onSelectMedia = onSelectMedia
     }
 
@@ -97,6 +100,8 @@ struct MediaDetailTVView: View {
                 playFromStartButton
             }
 
+            shuffleButton
+
             watchToggleButton
 
             if viewModel.shouldShowWatchlistButton {
@@ -114,6 +119,17 @@ struct MediaDetailTVView: View {
         .controlSize(.regular)
         .tint(.secondary)
         .accessibilityLabel(Text("media.detail.playFromStart"))
+    }
+
+    private var shuffleButton: some View {
+        Button(action: handleShuffle) {
+            Image(systemName: "shuffle")
+                .font(.title2.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
+        .tint(.secondary)
+        .accessibilityLabel(Text("common.actions.shuffle"))
     }
 
     private var watchToggleButton: some View {
@@ -253,6 +269,10 @@ struct MediaDetailTVView: View {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
+    }
+
+    private func handleShuffle() {
+        onShuffle(viewModel.media.id, viewModel.media.plexType)
     }
 
     private var playbackType: PlexItemType {

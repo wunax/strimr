@@ -129,6 +129,15 @@ struct MainTabTVView: View {
                         )
                     }
                 },
+                onShuffle: { ratingKey, type in
+                    Task {
+                        await playbackLauncher.play(
+                            ratingKey: ratingKey,
+                            type: type,
+                            shuffle: true,
+                        )
+                    }
+                },
                 onSelectMedia: coordinator.showMediaDetail,
             )
         case let .collectionDetail(collection):
@@ -143,6 +152,15 @@ struct MainTabTVView: View {
                         await playbackLauncher.play(ratingKey: ratingKey, type: .collection)
                     }
                 },
+                onShuffle: { ratingKey in
+                    Task {
+                        await playbackLauncher.play(
+                            ratingKey: ratingKey,
+                            type: .collection,
+                            shuffle: true,
+                        )
+                    }
+                },
             )
         case let .playlistDetail(playlist):
             PlaylistDetailTVView(
@@ -154,6 +172,15 @@ struct MainTabTVView: View {
                 onPlay: { ratingKey in
                     Task {
                         await playbackLauncher.play(ratingKey: ratingKey, type: .playlist)
+                    }
+                },
+                onShuffle: { ratingKey in
+                    Task {
+                        await playbackLauncher.play(
+                            ratingKey: ratingKey,
+                            type: .playlist,
+                            shuffle: true,
+                        )
                     }
                 },
             )

@@ -6,6 +6,7 @@ struct PlaylistDetailTVView: View {
     @State var viewModel: PlaylistDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
+    let onShuffle: (String) -> Void
 
     private let gridColumns = [
         GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
@@ -15,10 +16,12 @@ struct PlaylistDetailTVView: View {
         viewModel: PlaylistDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
         onPlay: @escaping (String) -> Void = { _ in },
+        onShuffle: @escaping (String) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
         self.onPlay = onPlay
+        self.onShuffle = onShuffle
     }
 
     var body: some View {
@@ -103,29 +106,47 @@ struct PlaylistDetailTVView: View {
                         .foregroundStyle(.brandSecondary)
                 }
 
-                playButton
+                playButtonsRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .focusSection()
     }
 
-    private var playButton: some View {
-        Button {
-            onPlay(viewModel.playlist.id)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "play.fill")
-                    .font(.title3.weight(.semibold))
-                Text("common.actions.play")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+    private var playButtonsRow: some View {
+        HStack(spacing: 16) {
+            Button {
+                onPlay(viewModel.playlist.id)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "play.fill")
+                        .font(.title3.weight(.semibold))
+                    Text("common.actions.play")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: 520, alignment: .leading)
             }
-            .frame(maxWidth: 520, alignment: .leading)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.brandSecondary)
+            .foregroundStyle(.brandSecondaryForeground)
+
+            Button {
+                onShuffle(viewModel.playlist.id)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "shuffle")
+                        .font(.title3.weight(.semibold))
+                    Text("common.actions.shuffle")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: 260, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(.secondary)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .foregroundStyle(.brandSecondaryForeground)
     }
 }
