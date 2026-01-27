@@ -8,7 +8,13 @@ struct IntegrationsView: View {
     var body: some View {
         List {
             NavigationLink("integrations.seerr.title") {
-                SeerrView(viewModel: SeerrViewModel(store: seerrStore, sessionManager: sessionManager))
+                SeerrView(
+                    viewModel: SeerrViewModel(
+                        store: seerrStore,
+                        sessionManager: sessionManager,
+                        sessionService: SeerrSessionService()
+                    )
+                )
             }
         }
         .listStyle(.insetGrouped)
