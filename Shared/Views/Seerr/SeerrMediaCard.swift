@@ -38,7 +38,11 @@ struct SeerrMediaCard: View {
         let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
 
         VStack(alignment: .leading, spacing: labelSpacing) {
-            artwork(width: resolvedWidth, height: resolvedHeight)
+            SeerrMediaArtworkView(
+                media: media,
+                width: resolvedWidth,
+                height: resolvedHeight,
+            )
 
             if showsLabels {
                 VStack(alignment: .leading, spacing: 4) {
@@ -56,40 +60,6 @@ struct SeerrMediaCard: View {
         }
         .frame(width: resolvedWidth, alignment: .leading)
         .onTapGesture(perform: onTap)
-    }
-
-    private func artwork(width: CGFloat, height: CGFloat) -> some View {
-        let imageURL = TMDBImageService.posterURL(path: media.posterPath, width: width)
-        return AsyncImage(url: imageURL) { phase in
-            switch phase {
-            case let .success(image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .empty:
-                Color.gray.opacity(0.15)
-            case .failure:
-                placeholder
-            @unknown default:
-                placeholder
-            }
-        }
-        .frame(width: width, height: height)
-        .clipShape(
-            RoundedRectangle(cornerRadius: 14, style: .continuous),
-        )
-    }
-
-    private var placeholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "film")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text("media.placeholder.noArtwork")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var primaryLabel: String {

@@ -12,7 +12,7 @@ struct SeerrMediaSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(String(localized: .init(title)))
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.brandSecondary)

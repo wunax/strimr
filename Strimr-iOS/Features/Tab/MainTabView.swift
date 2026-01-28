@@ -4,6 +4,7 @@ struct MainTabView: View {
     @Environment(PlexAPIContext.self) var plexApiContext
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
+    @Environment(SeerrStore.self) var seerrStore
     @Environment(\.openURL) var openURL
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -30,7 +31,17 @@ struct MainTabView: View {
 
             if settingsManager.interface.displaySeerrDiscoverTab {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
-                    EmptyView()
+                    NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
+                        SeerrDiscoverView(
+                            viewModel: SeerrDiscoverViewModel(store: seerrStore),
+                            onSelectMedia: coordinator.showSeerrMediaDetail,
+                        )
+                        .navigationDestination(for: SeerrMedia.self) { media in
+                            SeerrMediaDetailView(
+                                viewModel: SeerrMediaDetailViewModel(media: media),
+                            )
+                        }
+                    }
                 }
             }
 

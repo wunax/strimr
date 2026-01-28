@@ -147,6 +147,17 @@ final class MainCoordinator: ObservableObject {
         }
     }
 
+    func showSeerrMediaDetail(_ media: SeerrMedia) {
+        switch tab {
+        case .seerrDiscover:
+            seerrDiscoverPath.append(media)
+        case .home, .search, .library, .more:
+            break
+        case .libraryDetail(_):
+            break
+        }
+    }
+
     func showPlayer(for playQueue: PlayQueueState, shouldResumeFromOffset: Bool = true) {
         selectedPlayQueue = playQueue
         self.shouldResumeFromOffset = shouldResumeFromOffset
