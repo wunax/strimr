@@ -76,8 +76,15 @@ final class SeerrDiscoverViewModel {
         do {
             let repository = SeerrDiscoverRepository(baseURL: baseURL)
             let response = try await repository.search(query: trimmedQuery, page: 1)
-            searchResults = response.results
+            guard !Task.isCancelled else { return }
+            // Person results aren't handled yet in the UI.
+            searchResults = response.results.filter { $0.mediaType != .person }
+        } catch is CancellationError {
+            return
         } catch {
+            if (error as? URLError)?.code == .cancelled {
+                return
+            }
             errorMessage = String(localized: .init("common.errors.tryAgainLater"))
         }
     }
