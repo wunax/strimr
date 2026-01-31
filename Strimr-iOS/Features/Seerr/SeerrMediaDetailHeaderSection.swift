@@ -6,6 +6,7 @@ struct SeerrMediaDetailHeaderSection: View {
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
     let onRequestTap: () -> Void
+    let onManageRequestsTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -18,6 +19,10 @@ struct SeerrMediaDetailHeaderSection: View {
                 badgesSection
                 if !viewModel.isRequestButtonHidden {
                     requestSection
+                }
+
+                if viewModel.shouldShowManageRequestsButton {
+                    manageRequestsSection
                 }
 
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
@@ -145,6 +150,19 @@ struct SeerrMediaDetailHeaderSection: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var manageRequestsSection: some View {
+        Button(action: onManageRequestsTap) {
+            Label(
+                String(localized: "seerr.manageRequests.action \(viewModel.pendingManageRequestsCount)"),
+                systemImage: "checkmark.seal.fill"
+            )
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .buttonStyle(.bordered)
+        .tint(.secondary)
     }
 
     private var requestButtonIcon: String {

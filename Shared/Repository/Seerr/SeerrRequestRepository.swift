@@ -18,4 +18,16 @@ final class SeerrRequestRepository {
     func cancelRequest(id: Int) async throws {
         try await client.send(path: "request/\(id)", method: "DELETE")
     }
+
+    func updateRequestStatus(id: Int, status: SeerrMediaRequestStatus) async throws {
+        let action = switch status {
+        case .approved:
+            "approve"
+        case .declined:
+            "decline"
+        case .pending, .failed, .completed:
+            "approve"
+        }
+        try await client.send(path: "request/\(id)/\(action)", method: "POST")
+    }
 }

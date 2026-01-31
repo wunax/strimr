@@ -5,6 +5,7 @@ struct SeerrMediaDetailView: View {
     @State var viewModel: SeerrMediaDetailViewModel
     @State private var isSummaryExpanded = false
     @State private var requestSheet: SeerrMediaRequestSheetState?
+    @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
     private let heroHeight: CGFloat = 320
 
     init(viewModel: SeerrMediaDetailViewModel) {
@@ -21,6 +22,7 @@ struct SeerrMediaDetailView: View {
                     isSummaryExpanded: $isSummaryExpanded,
                     heroHeight: heroHeight,
                     onRequestTap: presentRequestSheet,
+                    onManageRequestsTap: presentManageRequestsSheet,
                 )
 
                 if bindableViewModel.media.mediaType == .tv {
@@ -45,6 +47,15 @@ struct SeerrMediaDetailView: View {
             .presentationDetents([.medium, .large])
             .presentationBackground(.ultraThinMaterial)
         }
+        .sheet(item: $manageRequestsSheet) { sheet in
+            SeerrManageRequestsSheetView(viewModel: sheet.viewModel) {
+                Task {
+                    await viewModel.loadDetails()
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationBackground(.ultraThinMaterial)
+        }
     }
 
     private func gradientBackground(for viewModel: SeerrMediaDetailViewModel) -> some View {
@@ -56,9 +67,19 @@ struct SeerrMediaDetailView: View {
         guard let viewModel = viewModel.makeRequestViewModel() else { return }
         requestSheet = SeerrMediaRequestSheetState(viewModel: viewModel)
     }
+
+    private func presentManageRequestsSheet() {
+        guard let viewModel = viewModel.makeManageRequestsViewModel() else { return }
+        manageRequestsSheet = SeerrManageRequestsSheetState(viewModel: viewModel)
+    }
 }
 
 private struct SeerrMediaRequestSheetState: Identifiable {
     let id = UUID()
     let viewModel: SeerrMediaRequestViewModel
+}
+
+private struct SeerrManageRequestsSheetState: Identifiable {
+    let id = UUID()
+    let viewModel: SeerrManageRequestsViewModel
 }

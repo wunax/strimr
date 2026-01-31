@@ -225,6 +225,14 @@ final class SeerrMediaDetailViewModel {
         return "seerr.request.action.request"
     }
 
+    var pendingManageRequestsCount: Int {
+        pendingManageRequests.count
+    }
+
+    var shouldShowManageRequestsButton: Bool {
+        hasManageRequestsPermission && pendingManageRequestsCount > 0
+    }
+
     var requestButtonDisabledReasonKey: String? {
         guard media.mediaType == .movie || media.mediaType == .tv else { return nil }
         if pendingRequest != nil {
@@ -280,6 +288,11 @@ final class SeerrMediaDetailViewModel {
     func makeRequestViewModel() -> SeerrMediaRequestViewModel? {
         guard baseURL != nil else { return nil }
         return SeerrMediaRequestViewModel(media: media, store: store, session: session)
+    }
+
+    func makeManageRequestsViewModel() -> SeerrManageRequestsViewModel? {
+        guard baseURL != nil else { return nil }
+        return SeerrManageRequestsViewModel(media: media, store: store, session: session)
     }
 
     func castImageURL(for member: SeerrCastMember, width: CGFloat, height: CGFloat) -> URL? {
@@ -378,6 +391,14 @@ final class SeerrMediaDetailViewModel {
             permissions = []
         }
         return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var hasManageRequestsPermission: Bool {
+        permissionService.hasPermission(.manageRequests, user: store.user)
+    }
+
+    private var pendingManageRequests: [SeerrRequest] {
+        media.mediaInfo?.requests?.filter { $0.status == .pending } ?? []
     }
 
     private var is4kEnabledForMedia: Bool {
