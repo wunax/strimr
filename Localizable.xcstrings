@@ -4423,6 +4423,28 @@
         }
       }
     },
+    "seerr.request.seasons.partialDisabled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial season requests are disabled by this server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les demandes partielles sont désactivées par ce serveur."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该服务器已禁用部分季请求。"
+          }
+        }
+      }
+    },
     "seerr.request.seasons.title" : {
       "localizations" : {
         "en" : {

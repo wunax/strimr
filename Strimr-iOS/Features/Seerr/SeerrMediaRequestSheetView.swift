@@ -201,6 +201,12 @@ struct SeerrMediaRequestSheetView: View {
                     }
                 }
             }
+
+            if let messageKey = viewModel.partialRequestsDisabledMessageKey {
+                Text(LocalizedStringKey(messageKey))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 

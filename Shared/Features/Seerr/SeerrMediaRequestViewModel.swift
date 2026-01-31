@@ -153,6 +153,7 @@ final class SeerrMediaRequestViewModel {
 
     func isSeasonSelectable(_ seasonNumber: Int) -> Bool {
         guard let requestType = selectedRequestType else { return false }
+        guard allowsPartialRequests else { return false }
         let requestable = SeerrMediaRequestAvailability.isSeasonRequestable(
             media: media,
             seasonNumber: seasonNumber,
@@ -165,6 +166,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     func toggleSeason(_ seasonNumber: Int, isSelected: Bool) {
+        guard allowsPartialRequests else { return }
         hasManualSeasonSelection = true
         if isSelected {
             selectedSeasons.insert(seasonNumber)
@@ -291,6 +293,16 @@ final class SeerrMediaRequestViewModel {
 
     private func seedSelectedSeasonsIfNeeded() {
         guard isTV else { return }
+        guard let requestType = selectedRequestType else { return }
+
+        if !allowsPartialRequests {
+            let requestable = SeerrMediaRequestAvailability.requestableSeasons(media: media, is4k: requestType.is4k)
+            var selection = Set(requestable.compactMap(\.seasonNumber))
+            selection.formUnion(existingRequestSeasonNumbers)
+            selectedSeasons = selection
+            return
+        }
+
         if let existingRequest {
             if let requestSeasons = existingRequest.seasons, !requestSeasons.isEmpty {
                 selectedSeasons = Set(requestSeasons.compactMap(\.seasonNumber))
@@ -300,7 +312,6 @@ final class SeerrMediaRequestViewModel {
             return
         }
 
-        guard let requestType = selectedRequestType else { return }
         selectedSeasons = Set(
             SeerrMediaRequestAvailability.requestableSeasons(media: media, is4k: requestType.is4k)
                 .compactMap(\.seasonNumber)
@@ -445,6 +456,14 @@ final class SeerrMediaRequestViewModel {
             return settings.series4kEnabled
         }
         return false
+    }
+
+    private var allowsPartialRequests: Bool {
+        store.settings?.partialRequestsEnabled ?? true
+    }
+
+    var partialRequestsDisabledMessageKey: String? {
+        allowsPartialRequests ? nil : "seerr.request.seasons.partialDisabled"
     }
 
     var requiresAdvancedConfiguration: Bool {
