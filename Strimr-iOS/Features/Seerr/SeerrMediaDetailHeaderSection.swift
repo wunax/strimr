@@ -5,6 +5,7 @@ struct SeerrMediaDetailHeaderSection: View {
     @Bindable var viewModel: SeerrMediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
+    let onRequestTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -15,6 +16,9 @@ struct SeerrMediaDetailHeaderSection: View {
 
                 headerSection
                 badgesSection
+                if !viewModel.isRequestButtonHidden {
+                    requestSection
+                }
 
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
                     Text(tagline)
@@ -122,6 +126,29 @@ struct SeerrMediaDetailHeaderSection: View {
                 badge(text: episodes, systemImage: "tv")
             }
         }
+    }
+
+    private var requestSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: onRequestTap) {
+                Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.brandSecondary)
+            .disabled(viewModel.isRequestButtonDisabled)
+
+            if let reasonKey = viewModel.requestButtonDisabledReasonKey {
+                Text(LocalizedStringKey(reasonKey))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var requestButtonIcon: String {
+        viewModel.pendingRequest == nil ? "paperplane.fill" : "square.and.pencil"
     }
 
     private var genresSection: some View {

@@ -4,6 +4,7 @@ import SwiftUI
 struct SeerrMediaDetailView: View {
     @State var viewModel: SeerrMediaDetailViewModel
     @State private var isSummaryExpanded = false
+    @State private var requestSheet: SeerrMediaRequestSheetState?
     private let heroHeight: CGFloat = 320
 
     init(viewModel: SeerrMediaDetailViewModel) {
@@ -19,6 +20,7 @@ struct SeerrMediaDetailView: View {
                     viewModel: bindableViewModel,
                     isSummaryExpanded: $isSummaryExpanded,
                     heroHeight: heroHeight,
+                    onRequestTap: presentRequestSheet,
                 )
 
                 if bindableViewModel.media.mediaType == .tv {
@@ -34,10 +36,29 @@ struct SeerrMediaDetailView: View {
             await bindableViewModel.loadDetails()
         }
         .background(gradientBackground(for: bindableViewModel))
+        .sheet(item: $requestSheet) { sheet in
+            SeerrMediaRequestSheetView(viewModel: sheet.viewModel) {
+                Task {
+                    await viewModel.loadDetails()
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationBackground(.ultraThinMaterial)
+        }
     }
 
     private func gradientBackground(for viewModel: SeerrMediaDetailViewModel) -> some View {
         MediaBackdropGradient(colors: viewModel.backdropGradient)
             .ignoresSafeArea()
     }
+
+    private func presentRequestSheet() {
+        guard let viewModel = viewModel.makeRequestViewModel() else { return }
+        requestSheet = SeerrMediaRequestSheetState(viewModel: viewModel)
+    }
+}
+
+private struct SeerrMediaRequestSheetState: Identifiable {
+    let id = UUID()
+    let viewModel: SeerrMediaRequestViewModel
 }

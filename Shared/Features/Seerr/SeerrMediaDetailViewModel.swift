@@ -13,6 +13,7 @@ final class SeerrMediaDetailViewModel {
     @ObservationIgnored private let store: SeerrStore
     @ObservationIgnored private let session: URLSession
     @ObservationIgnored private var backdropSourceURL: URL?
+    @ObservationIgnored private let permissionService = SeerrPermissionService()
 
     var media: SeerrMedia
     var isLoading = false
@@ -210,33 +211,75 @@ final class SeerrMediaDetailViewModel {
 
     func seasonAvailabilityBadge(for season: SeerrSeason) -> SeerrSeasonAvailabilityBadge? {
         guard let seasonNumber = season.seasonNumber else { return nil }
-        // Prefer direct media info when the season availability is known.
-        if let seasonStatus = media.mediaInfo?.seasons?.first(where: { $0.seasonNumber == seasonNumber })?.status,
-           seasonStatus != .unknown {
-            return .media(seasonStatus)
+        return SeerrMediaRequestAvailability.seasonAvailabilityBadge(
+            media: media,
+            seasonNumber: seasonNumber,
+            is4k: false,
+        )
+    }
+
+    var requestButtonTitleKey: String {
+        if pendingRequest != nil {
+            return "seerr.request.action.modify"
         }
+        return "seerr.request.action.request"
+    }
 
-        // Fall back to request data for the season, ignoring declined/completed requests (classic only, not 4K).
-        let matchingStatuses = media.mediaInfo?.requests?.compactMap { request -> SeerrMediaRequestStatus? in
-            guard request.is4k != true else { return nil }
-            guard let requestStatus = request.status, requestStatus != .declined, requestStatus != .completed else {
-                return nil
-            }
-            guard let requestSeasons = request.seasons else { return requestStatus }
-            guard requestSeasons.contains(where: { $0.seasonNumber == seasonNumber }) else { return nil }
-            if let seasonStatus = requestSeasons.first(where: { $0.seasonNumber == seasonNumber })?.status,
-               seasonStatus != .declined, seasonStatus != .completed {
-                return seasonStatus
-            }
-            return requestStatus
-        } ?? []
-
-        // Pick the highest-priority request badge we support.
-        let requestBadgePriority: [SeerrMediaRequestStatus] = [.pending, .approved]
-        if let status = requestBadgePriority.first(where: { matchingStatuses.contains($0) }) {
-            return .request(status)
+    var requestButtonDisabledReasonKey: String? {
+        guard media.mediaType == .movie || media.mediaType == .tv else { return nil }
+        if pendingRequest != nil {
+            return nil
+        }
+        if !hasQuotaForMedia {
+            return "seerr.request.disabled.noQuota"
+        }
+        if !canRequestStandard && !canRequest4K {
+            return "seerr.request.disabled.noPermission"
+        }
+        if media.mediaType == .tv, media.externalIds?.tvdbId == nil {
+            return "seerr.request.disabled.missingTvdb"
         }
         return nil
+    }
+
+    var isRequestButtonDisabled: Bool {
+        requestButtonDisabledReasonKey != nil
+    }
+
+    var isRequestButtonHidden: Bool {
+        guard media.mediaType == .movie || media.mediaType == .tv else { return true }
+        if pendingRequest != nil {
+            return false
+        }
+        let requestTypes = availableRequestTypes
+        guard !requestTypes.isEmpty else {
+            return false
+        }
+
+        switch media.mediaType {
+        case .movie:
+            return requestTypes.allSatisfy { isMediaAvailable(is4k: $0.is4k) }
+        case .tv:
+            return requestTypes.allSatisfy { type in
+                let available = isMediaAvailable(is4k: type.is4k)
+                let hasSeasons = SeerrMediaRequestAvailability.hasRequestableSeasons(
+                    media: media,
+                    is4k: type.is4k,
+                )
+                return available || !hasSeasons
+            }
+        case .person, .none:
+            return true
+        }
+    }
+
+    var pendingRequest: SeerrRequest? {
+        SeerrMediaRequestAvailability.pendingRequest(in: media, for: store.user)
+    }
+
+    func makeRequestViewModel() -> SeerrMediaRequestViewModel? {
+        guard baseURL != nil else { return nil }
+        return SeerrMediaRequestViewModel(media: media, store: store, session: session)
     }
 
     func castImageURL(for member: SeerrCastMember, width: CGFloat, height: CGFloat) -> URL? {
@@ -295,6 +338,65 @@ final class SeerrMediaDetailViewModel {
         } catch {
             backdropGradient = []
         }
+    }
+
+    private var availableRequestTypes: [SeerrMediaRequestType] {
+        var types: [SeerrMediaRequestType] = []
+        if canRequestStandard {
+            types.append(.standard)
+        }
+        if canRequest4K {
+            types.append(.fourK)
+        }
+        return types
+    }
+
+    private var canRequestStandard: Bool {
+        guard media.mediaType == .movie || media.mediaType == .tv else { return false }
+        let permissions: [SeerrPermission]
+        switch media.mediaType {
+        case .tv:
+            permissions = [.request, .requestTV]
+        case .movie:
+            permissions = [.request, .requestMovie]
+        case .person, .none:
+            permissions = []
+        }
+        return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var canRequest4K: Bool {
+        guard media.mediaType == .movie || media.mediaType == .tv else { return false }
+        let permissions: [SeerrPermission]
+        switch media.mediaType {
+        case .tv:
+            permissions = [.request4K, .request4KTV]
+        case .movie:
+            permissions = [.request4K, .request4KMovie]
+        case .person, .none:
+            permissions = []
+        }
+        return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var hasQuotaForMedia: Bool {
+        quotaRestriction != nil
+    }
+
+    private var quotaRestriction: SeerrQuotaRestriction? {
+        switch media.mediaType {
+        case .movie:
+            store.quota?.movie
+        case .tv:
+            store.quota?.tv
+        case .person, .none:
+            nil
+        }
+    }
+
+    private func isMediaAvailable(is4k: Bool) -> Bool {
+        let status = is4k ? media.mediaInfo?.status4k : media.mediaInfo?.status
+        return status == .available
     }
 
     private var baseURL: URL? {

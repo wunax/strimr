@@ -12,7 +12,7 @@ struct SeerrRequest: Identifiable, Hashable, Decodable {
     let id: Int
     let is4k: Bool?
     let status: SeerrMediaRequestStatus?
-    let createdBy: SeerrUser?
+    let requestedBy: SeerrUser?
     let seasons: [SeerrRequestSeasonInfo]?
 }
 

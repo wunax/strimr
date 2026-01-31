@@ -7,13 +7,16 @@ struct SeerrAvailabilityBadgeView: View {
     var body: some View {
         if let configuration {
             if showsLabel {
-                Label(configuration.labelKey, systemImage: configuration.systemName)
-                    .font(.caption2.weight(.semibold))
-                    .lineLimit(1)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(configuration.color.opacity(0.9), in: Capsule())
+                HStack(spacing: 4) {
+                    Image(systemName: configuration.systemName)
+                    Text(configuration.labelKey)
+                }
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(configuration.color.opacity(0.9), in: Capsule())
             } else {
                 Image(systemName: configuration.systemName)
                     .font(.caption.weight(.bold))

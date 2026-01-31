@@ -1,6 +1,6 @@
 import Foundation
 
-enum SeerrMediaType: String, Hashable, Decodable {
+enum SeerrMediaType: String, Hashable, Codable {
     case movie
     case tv
     case person
