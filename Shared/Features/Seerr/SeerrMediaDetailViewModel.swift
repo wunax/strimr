@@ -216,8 +216,9 @@ final class SeerrMediaDetailViewModel {
             return .media(seasonStatus)
         }
 
-        // Fall back to request data for the season, ignoring declined/completed requests.
+        // Fall back to request data for the season, ignoring declined/completed requests (classic only, not 4K).
         let matchingStatuses = media.mediaInfo?.requests?.compactMap { request -> SeerrMediaRequestStatus? in
+            guard request.is4k != true else { return nil }
             guard let requestStatus = request.status, requestStatus != .declined, requestStatus != .completed else {
                 return nil
             }
