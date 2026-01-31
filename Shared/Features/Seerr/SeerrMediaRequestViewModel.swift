@@ -416,8 +416,20 @@ final class SeerrMediaRequestViewModel {
 
     private var canRequest4K: Bool {
         guard isMovie || isTV else { return false }
+        guard is4kEnabledForMedia else { return false }
         let permissions: [SeerrPermission] = isTV ? [.request4K, .request4KTV] : [.request4K, .request4KMovie]
         return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var is4kEnabledForMedia: Bool {
+        guard let settings = store.settings else { return false }
+        if isMovie {
+            return settings.movie4kEnabled
+        }
+        if isTV {
+            return settings.series4kEnabled
+        }
+        return false
     }
 
     var requiresAdvancedConfiguration: Bool {

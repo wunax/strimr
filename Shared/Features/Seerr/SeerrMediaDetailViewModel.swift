@@ -367,6 +367,7 @@ final class SeerrMediaDetailViewModel {
 
     private var canRequest4K: Bool {
         guard media.mediaType == .movie || media.mediaType == .tv else { return false }
+        guard is4kEnabledForMedia else { return false }
         let permissions: [SeerrPermission]
         switch media.mediaType {
         case .tv:
@@ -377,6 +378,18 @@ final class SeerrMediaDetailViewModel {
             permissions = []
         }
         return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var is4kEnabledForMedia: Bool {
+        guard let settings = store.settings else { return false }
+        switch media.mediaType {
+        case .movie:
+            return settings.movie4kEnabled
+        case .tv:
+            return settings.series4kEnabled
+        case .person, .none:
+            return false
+        }
     }
 
     private var hasQuotaForMedia: Bool {
