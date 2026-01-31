@@ -278,8 +278,10 @@ final class SeerrMediaRequestViewModel {
                 serviceProfiles = detail.profiles
                 serviceRootFolders = detail.rootFolders
                 serviceTags = detail.tags
-                selectedProfileId = selectProfileId(defaultID: detail.server.activeProfileId, profiles: detail.profiles)
-                selectedRootFolder = selectRootFolder(defaultPath: detail.server.activeDirectory, rootFolders: detail.rootFolders)
+                let defaultProfileId = isAnimeRequest ? detail.server.activeAnimeProfileId : detail.server.activeProfileId
+                let defaultRootFolder = isAnimeRequest ? detail.server.activeAnimeDirectory : detail.server.activeDirectory
+                selectedProfileId = selectProfileId(defaultID: defaultProfileId, profiles: detail.profiles)
+                selectedRootFolder = selectRootFolder(defaultPath: defaultRootFolder, rootFolders: detail.rootFolders)
                 selectedTags = []
             }
         } catch {
@@ -427,6 +429,11 @@ final class SeerrMediaRequestViewModel {
         guard is4kEnabledForMedia else { return false }
         let permissions: [SeerrPermission] = isTV ? [.request4K, .request4KTV] : [.request4K, .request4KMovie]
         return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
+    }
+
+    private var isAnimeRequest: Bool {
+        guard isTV else { return false }
+        return media.keywords?.contains(where: { $0.name?.lowercased() == "anime" }) ?? false
     }
 
     private var is4kEnabledForMedia: Bool {
