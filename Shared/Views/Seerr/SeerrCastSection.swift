@@ -87,7 +87,6 @@ private struct SeerrCastCard: View {
         .frame(width: 140, alignment: .leading)
     }
 
-    @ViewBuilder
     private var thumbnail: some View {
         ZStack {
             Circle()

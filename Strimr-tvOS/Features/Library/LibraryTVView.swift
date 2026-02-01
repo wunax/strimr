@@ -108,7 +108,6 @@ struct LibraryTVView: View {
         ]
     }
 
-    @ViewBuilder
     private func libraryCard(for library: Library) -> some View {
         ZStack(alignment: .bottomLeading) {
             if let artwork = viewModel.artworkURL(for: library) {

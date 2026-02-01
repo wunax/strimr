@@ -76,7 +76,6 @@ struct SearchView: View {
         }
     }
 
-    @ViewBuilder
     private func card(for media: MediaDisplayItem) -> some View {
         SearchResultCard(media: media) {
             onSelectMedia(media)

@@ -288,7 +288,7 @@ struct PlexItem: Codable, Equatable {
 
     let onDeck: PlexOnDeck?
 
-    // Queue item
+    /// Queue item
     let playQueueItemID: Int?
 
     // Collection

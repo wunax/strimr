@@ -51,7 +51,6 @@ struct SeerrManageRequestsSheetView: View {
         }
     }
 
-    @ViewBuilder
     private func requestHeader(for request: SeerrRequest) -> some View {
         HStack(alignment: .top, spacing: 12) {
             if let avatarURL = viewModel.avatarURL(for: request.requestedBy) {

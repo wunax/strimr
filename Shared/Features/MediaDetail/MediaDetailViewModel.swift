@@ -296,7 +296,9 @@ final class MediaDetailViewModel {
         }
     }
 
-    var isWatched: Bool { isWatched(media.mediaItem) }
+    var isWatched: Bool {
+        isWatched(media.mediaItem)
+    }
 
     func playbackRatingKey() async -> String? {
         primaryActionRatingKey

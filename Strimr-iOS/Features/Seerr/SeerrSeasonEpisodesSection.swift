@@ -98,7 +98,6 @@ struct SeerrSeasonEpisodesSection: View {
         )
     }
 
-    @ViewBuilder
     private func episodesContent(for season: SeerrSeason) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let error = viewModel.episodesErrorMessage {
@@ -124,7 +123,6 @@ struct SeerrSeasonEpisodesSection: View {
         .padding(.top, 8)
     }
 
-    @ViewBuilder
     private var episodeList: some View {
         LazyVStack(alignment: .leading, spacing: 8) {
             ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in

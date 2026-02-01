@@ -64,7 +64,6 @@ struct SeerrManageRequestsTVView: View {
         .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 8)
     }
 
-    @ViewBuilder
     private func requestHeader(for request: SeerrRequest) -> some View {
         HStack(alignment: .top, spacing: 16) {
             if let avatarURL = viewModel.avatarURL(for: request.requestedBy) {

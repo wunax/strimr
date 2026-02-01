@@ -62,7 +62,6 @@ struct SeasonEpisodesSection: View {
         }
     }
 
-    @ViewBuilder
     private var seasonPickerControl: some View {
         Picker("media.detail.season", selection: Binding(
             get: { viewModel.selectedSeasonId ?? viewModel.seasons.first?.id ?? "" },
@@ -168,7 +167,6 @@ struct SeasonEpisodesSection: View {
         }
     }
 
-    @ViewBuilder
     private var episodeList: some View {
         LazyVStack(alignment: .leading, spacing: 8) {
             ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
