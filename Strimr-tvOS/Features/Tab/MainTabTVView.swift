@@ -25,6 +25,14 @@ struct MainTabTVView: View {
                 }
             }
 
+            if settingsManager.interface.displaySeerrDiscoverTab {
+                Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
+                    NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
+                        SeerrDiscoverTVView()
+                    }
+                }
+            }
+
             Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchTVView(
