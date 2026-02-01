@@ -48,8 +48,15 @@ struct SeerrMediaDetailTVView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 16) {
-            if !viewModel.isRequestButtonHidden {
-                Button {} label: {
+            if !viewModel.isRequestButtonHidden,
+               let requestViewModel = viewModel.makeRequestViewModel() {
+                NavigationLink {
+                    SeerrMediaRequestTVView(viewModel: requestViewModel) {
+                        Task {
+                            await viewModel.loadDetails()
+                        }
+                    }
+                } label: {
                     Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
                         .frame(maxWidth: 520, alignment: .leading)
                 }
@@ -58,8 +65,15 @@ struct SeerrMediaDetailTVView: View {
                 .tint(.brandPrimary)
             }
 
-            if viewModel.shouldShowManageRequestsButton {
-                Button {} label: {
+            if viewModel.shouldShowManageRequestsButton,
+               let manageViewModel = viewModel.makeManageRequestsViewModel() {
+                NavigationLink {
+                    SeerrManageRequestsTVView(viewModel: manageViewModel) {
+                        Task {
+                            await viewModel.loadDetails()
+                        }
+                    }
+                } label: {
                     Label(
                         String(localized: "seerr.manageRequests.short \(viewModel.pendingManageRequestsCount)"),
                         systemImage: "checkmark.seal.fill"

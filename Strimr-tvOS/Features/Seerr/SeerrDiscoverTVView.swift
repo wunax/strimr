@@ -68,13 +68,16 @@ struct SeerrDiscoverTVView: View {
             .buttonStyle(.borderedProminent)
             .tint(.primary)
 
-            if viewModel.canManageRequests {
-                Button {} label: {
+            if viewModel.canManageRequests,
+               let manageViewModel = viewModel.makePendingRequestsViewModel() {
+                NavigationLink {
+                    SeerrPendingRequestsTVView(viewModel: manageViewModel)
+                } label: {
                     Label(
                         String(localized: "seerr.manageRequests.short \(viewModel.pendingRequestsCount)"),
                         systemImage: "checkmark.seal.fill"
                     )
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
                 .tint(.secondary)
