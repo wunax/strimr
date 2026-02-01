@@ -101,7 +101,13 @@ struct SeerrHeroContentView: View {
         if !items.isEmpty {
             HStack(spacing: 16) {
                 ForEach(items.indices, id: \.self) { index in
-                    Text(items[index])
+                    let item = items[index]
+                    HStack(spacing: 6) {
+                        if let systemImage = item.systemImage {
+                            Image(systemName: systemImage)
+                        }
+                        Text(item.text)
+                    }
                 }
             }
             .font(.subheadline)
@@ -178,28 +184,38 @@ struct SeerrHeroContentView: View {
         return String(localized: "media.labels.countEpisode \(count)")
     }
 
-    private var metadataItems: [String] {
-        var items: [String] = []
+    private var metadataItems: [MetadataItem] {
+        var items: [MetadataItem] = []
         if let year = yearText {
-            items.append(year)
+            items.append(.init(text: year))
         }
         if let runtime = runtimeText {
-            items.append(runtime)
+            items.append(.init(text: runtime))
         }
         if let rating = ratingText {
-            items.append(rating)
+            items.append(.init(text: rating, systemImage: "star.fill"))
         }
         if let seasons = seasonCountText {
-            items.append(seasons)
+            items.append(.init(text: seasons))
         }
         if let episodes = episodesCountText {
-            items.append(episodes)
+            items.append(.init(text: episodes))
         }
         return items
     }
 
     private var genreNames: [String] {
         media.genres?.compactMap(\.name).filter { !$0.isEmpty } ?? []
+    }
+
+    private struct MetadataItem: Hashable {
+        let text: String
+        let systemImage: String?
+
+        init(text: String, systemImage: String? = nil) {
+            self.text = text
+            self.systemImage = systemImage
+        }
     }
 
     private func year(from dateString: String?) -> String? {

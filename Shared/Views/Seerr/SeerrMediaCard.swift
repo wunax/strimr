@@ -8,6 +8,10 @@ struct SeerrMediaCard: View {
     let onTap: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    #if os(tvOS)
+        @Environment(SeerrFocusModel.self) private var focusModel
+        @FocusState private var isFocused: Bool
+    #endif
 
     private let aspectRatio: CGFloat = 2 / 3
 
@@ -43,6 +47,10 @@ struct SeerrMediaCard: View {
                 width: resolvedWidth,
                 height: resolvedHeight,
             )
+            #if os(tvOS)
+            .scaleEffect(isFocused ? 1.12 : 1)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+            #endif
 
             if showsLabels {
                 VStack(alignment: .leading, spacing: 4) {
@@ -59,6 +67,16 @@ struct SeerrMediaCard: View {
             }
         }
         .frame(width: resolvedWidth, alignment: .leading)
+        #if os(tvOS)
+            .focusable()
+            .focused($isFocused)
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    focusModel.focusedMedia = media
+                }
+            }
+            .onPlayPauseCommand(perform: onTap)
+        #endif
         .onTapGesture(perform: onTap)
     }
 

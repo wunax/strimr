@@ -4,6 +4,7 @@ struct MainTabTVView: View {
     @Environment(PlexAPIContext.self) var plexApiContext
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
+    @Environment(SeerrStore.self) var seerrStore
     @Environment(\.openURL) var openURL
     @StateObject var coordinator = MainCoordinator()
 
@@ -28,7 +29,9 @@ struct MainTabTVView: View {
             if settingsManager.interface.displaySeerrDiscoverTab {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
-                        SeerrDiscoverTVView()
+                        SeerrDiscoverTVView(
+                            viewModel: SeerrDiscoverViewModel(store: seerrStore)
+                        )
                     }
                 }
             }
