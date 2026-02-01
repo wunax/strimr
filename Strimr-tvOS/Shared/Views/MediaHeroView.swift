@@ -14,14 +14,14 @@ struct MediaHeroBackgroundView: View {
                 MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: .playable(media)))
                     .ignoresSafeArea()
 
-                heroImage
+                HeroImageView(imageURL: imageURL)
                     .frame(
                         width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
                         height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
                     )
                     .clipped()
                     .overlay(Color.black.opacity(0.2))
-                    .mask(heroMask)
+                    .mask(HeroMaskView())
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .ignoresSafeArea()
             }
@@ -29,69 +29,6 @@ struct MediaHeroBackgroundView: View {
         .task(id: media.id) {
             await loadImage()
         }
-    }
-
-    private var heroImage: some View {
-        Group {
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        placeholder
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-            } else {
-                placeholder
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var placeholder: some View {
-        ZStack {
-            Color.black.opacity(0.35)
-
-            VStack(spacing: 8) {
-                Image(systemName: "film")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-                Text("media.placeholder.noArtwork")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var heroMask: some View {
-        LinearGradient(
-            stops: [
-                .init(color: .black, location: 0.0),
-                .init(color: .black, location: 0.25),
-                .init(color: .clear, location: 1.0),
-            ],
-            startPoint: .top,
-            endPoint: .bottom,
-        )
-        .mask(
-            LinearGradient(
-                stops: [
-                    .init(color: .black, location: 0.0),
-                    .init(color: .black, location: 0.25),
-                    .init(color: .clear, location: 1.0),
-                ],
-                startPoint: .trailing,
-                endPoint: .leading,
-            ),
-        )
     }
 
     private func loadImage() async {

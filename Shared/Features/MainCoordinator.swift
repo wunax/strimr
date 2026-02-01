@@ -8,6 +8,7 @@ final class MainCoordinator: ObservableObject {
         case search
         case library
         case more
+        case seerrDiscover
         case libraryDetail(String)
     }
 
@@ -22,6 +23,7 @@ final class MainCoordinator: ObservableObject {
     @Published var searchPath = NavigationPath()
     @Published var libraryPath = NavigationPath()
     @Published var morePath = NavigationPath()
+    @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
 
     @Published var selectedPlayQueue: PlayQueueState?
@@ -40,6 +42,8 @@ final class MainCoordinator: ObservableObject {
                     self.libraryPath
                 case .more:
                     self.morePath
+                case .seerrDiscover:
+                    self.seerrDiscoverPath
                 case let .libraryDetail(libraryId):
                     self.libraryDetailPaths[libraryId] ?? NavigationPath()
                 }
@@ -54,6 +58,8 @@ final class MainCoordinator: ObservableObject {
                     self.libraryPath = newValue
                 case .more:
                     self.morePath = newValue
+                case .seerrDiscover:
+                    self.seerrDiscoverPath = newValue
                 case let .libraryDetail(libraryId):
                     self.libraryDetailPaths[libraryId] = newValue
                 }
@@ -72,6 +78,8 @@ final class MainCoordinator: ObservableObject {
         case .library:
             libraryPath.append(route)
         case .more:
+            break
+        case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
@@ -109,6 +117,8 @@ final class MainCoordinator: ObservableObject {
             libraryPath.append(route)
         case .more:
             break
+        case .seerrDiscover:
+            break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
             path.append(route)
@@ -128,10 +138,23 @@ final class MainCoordinator: ObservableObject {
             libraryPath.append(route)
         case .more:
             break
+        case .seerrDiscover:
+            break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
             path.append(route)
             libraryDetailPaths[libraryId] = path
+        }
+    }
+
+    func showSeerrMediaDetail(_ media: SeerrMedia) {
+        switch tab {
+        case .seerrDiscover:
+            seerrDiscoverPath.append(media)
+        case .home, .search, .library, .more:
+            break
+        case .libraryDetail:
+            break
         }
     }
 

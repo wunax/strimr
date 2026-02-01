@@ -7,15 +7,23 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            NavigationLink("settings.playback.title") {
-                SettingsPlaybackView()
+            Section {
+                NavigationLink("settings.playback.title") {
+                    SettingsPlaybackView()
+                }
+
+                NavigationLink("settings.interface.title") {
+                    SettingsInterfaceView(
+                        settingsManager: settingsManager,
+                        libraryStore: libraryStore,
+                    )
+                }
             }
 
-            NavigationLink("settings.interface.title") {
-                SettingsInterfaceView(
-                    settingsManager: settingsManager,
-                    libraryStore: libraryStore,
-                )
+            Section("settings.integrations.title") {
+                NavigationLink("settings.integrations.manage") {
+                    IntegrationsView()
+                }
             }
         }
         .listStyle(.insetGrouped)

@@ -73,7 +73,6 @@ struct LibraryView: View {
         viewModel.libraries.filter { hiddenLibraryIds.contains($0.id) }
     }
 
-    @ViewBuilder
     private func libraryRow(for library: Library) -> some View {
         NavigationLink(value: library) {
             ZStack(alignment: .bottomLeading) {

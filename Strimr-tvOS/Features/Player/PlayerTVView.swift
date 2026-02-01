@@ -552,7 +552,9 @@ private enum TrackSettingsSheet: String, Identifiable {
     case audio
     case subtitle
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var titleKey: LocalizedStringKey {
         switch self {

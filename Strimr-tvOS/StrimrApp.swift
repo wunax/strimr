@@ -7,6 +7,8 @@ struct StrimrApp: App {
     @State private var settingsManager: SettingsManager
     @State private var libraryStore: LibraryStore
     @State private var mediaFocusModel: MediaFocusModel
+    @State private var seerrStore: SeerrStore
+    @State private var seerrFocusModel: SeerrFocusModel
 
     init() {
         let context = PlexAPIContext()
@@ -16,6 +18,8 @@ struct StrimrApp: App {
         _settingsManager = State(initialValue: SettingsManager())
         _libraryStore = State(initialValue: store)
         _mediaFocusModel = State(initialValue: MediaFocusModel())
+        _seerrStore = State(initialValue: SeerrStore())
+        _seerrFocusModel = State(initialValue: SeerrFocusModel())
     }
 
     var body: some Scene {
@@ -26,6 +30,8 @@ struct StrimrApp: App {
                 .environment(settingsManager)
                 .environment(libraryStore)
                 .environment(mediaFocusModel)
+                .environment(seerrStore)
+                .environment(seerrFocusModel)
                 .preferredColorScheme(.dark)
         }
     }

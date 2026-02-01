@@ -4,6 +4,7 @@ struct MainTabView: View {
     @Environment(PlexAPIContext.self) var plexApiContext
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
+    @Environment(SeerrStore.self) var seerrStore
     @Environment(\.openURL) var openURL
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -24,6 +25,23 @@ struct MainTabView: View {
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) {
                         destination(for: $0)
+                    }
+                }
+            }
+
+            if settingsManager.interface.displaySeerrDiscoverTab {
+                Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
+                    NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
+                        SeerrDiscoverView(
+                            viewModel: SeerrDiscoverViewModel(store: seerrStore),
+                            searchViewModel: SeerrSearchViewModel(store: seerrStore),
+                            onSelectMedia: coordinator.showSeerrMediaDetail,
+                        )
+                        .navigationDestination(for: SeerrMedia.self) { media in
+                            SeerrMediaDetailView(
+                                viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                            )
+                        }
                     }
                 }
             }
@@ -58,19 +76,21 @@ struct MainTabView: View {
                 }
             }
 
-            ForEach(navigationLibraries) { library in
-                Tab(
-                    library.title,
-                    systemImage: library.iconName,
-                    value: MainCoordinator.Tab.libraryDetail(library.id),
-                ) {
-                    NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
-                        LibraryDetailView(
-                            library: library,
-                            onSelectMedia: coordinator.showMediaDetail,
-                        )
-                        .navigationDestination(for: MainCoordinator.Route.self) {
-                            destination(for: $0)
+            TabSection {
+                ForEach(navigationLibraries) { library in
+                    Tab(
+                        library.title,
+                        systemImage: library.iconName,
+                        value: MainCoordinator.Tab.libraryDetail(library.id),
+                    ) {
+                        NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
+                            LibraryDetailView(
+                                library: library,
+                                onSelectMedia: coordinator.showMediaDetail,
+                            )
+                            .navigationDestination(for: MainCoordinator.Route.self) {
+                                destination(for: $0)
+                            }
                         }
                     }
                 }

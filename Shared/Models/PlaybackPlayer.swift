@@ -5,7 +5,9 @@ enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
     case mpv
     case infuse
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var localizationKey: String {
         switch self {
@@ -27,7 +29,9 @@ enum InternalPlaybackPlayer: String, CaseIterable, Identifiable {
     case vlc
     case mpv
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     init?(player: PlaybackPlayer) {
         switch player {

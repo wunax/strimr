@@ -8,6 +8,7 @@ struct StrimrApp: App {
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var libraryStore: LibraryStore
+    @State private var seerrStore: SeerrStore
 
     init() {
         let context = PlexAPIContext()
@@ -16,6 +17,7 @@ struct StrimrApp: App {
         _sessionManager = State(initialValue: SessionManager(context: context, libraryStore: store))
         _settingsManager = State(initialValue: SettingsManager())
         _libraryStore = State(initialValue: store)
+        _seerrStore = State(initialValue: SeerrStore())
     }
 
     var body: some Scene {
@@ -25,6 +27,7 @@ struct StrimrApp: App {
                 .environment(sessionManager)
                 .environment(settingsManager)
                 .environment(libraryStore)
+                .environment(seerrStore)
                 .preferredColorScheme(.dark)
         }
     }

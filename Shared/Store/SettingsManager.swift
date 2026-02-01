@@ -89,6 +89,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplaySeerrDiscoverTab(_ enabled: Bool) {
+        settings.interface.displaySeerrDiscoverTab = enabled
+        persist()
+    }
+
     private func persist() {
         guard let data = try? JSONEncoder().encode(settings) else { return }
         defaults.set(data, forKey: storageKey)

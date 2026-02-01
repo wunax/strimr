@@ -2,9 +2,9 @@ import Foundation
 import Libmpv
 import UIKit
 
-// warning: metal API validation has been disabled to ignore crash when playing HDR videos.
-// Edit Scheme -> Run -> Diagnostics -> Metal API Validation -> Turn it off
-// https://github.com/KhronosGroup/MoltenVK/issues/2226
+/// warning: metal API validation has been disabled to ignore crash when playing HDR videos.
+/// Edit Scheme -> Run -> Diagnostics -> Metal API Validation -> Turn it off
+/// https://github.com/KhronosGroup/MoltenVK/issues/2226
 final class MPVPlayerViewController: UIViewController {
     var metalLayer = MetalLayer()
     var mpv: OpaquePointer?

@@ -6,6 +6,17 @@ struct PlaybackSettings: Codable, Equatable {
     var seekForwardSeconds = 10
     var player = PlaybackPlayer.mpv
     var subtitleScale = 100
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        autoPlayNextEpisode = try container.decodeIfPresent(Bool.self, forKey: .autoPlayNextEpisode) ?? true
+        seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
+        seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
+        player = try container.decodeIfPresent(PlaybackPlayer.self, forKey: .player) ?? .mpv
+        subtitleScale = try container.decodeIfPresent(Int.self, forKey: .subtitleScale) ?? 100
+    }
 }
 
 struct InterfaceSettings: Codable, Equatable {
@@ -13,6 +24,18 @@ struct InterfaceSettings: Codable, Equatable {
     var navigationLibraryIds: [String] = []
     var displayCollections = true
     var displayPlaylists = true
+    var displaySeerrDiscoverTab = true
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hiddenLibraryIds = try container.decodeIfPresent([String].self, forKey: .hiddenLibraryIds) ?? []
+        navigationLibraryIds = try container.decodeIfPresent([String].self, forKey: .navigationLibraryIds) ?? []
+        displayCollections = try container.decodeIfPresent(Bool.self, forKey: .displayCollections) ?? true
+        displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
+        displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
+    }
 }
 
 struct AppSettings: Codable, Equatable {

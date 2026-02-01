@@ -77,7 +77,6 @@ struct ProfileSwitcherTVView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    @ViewBuilder
     private var profilesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 42)], spacing: 46) {
             if viewModel.users.isEmpty {
@@ -144,7 +143,6 @@ struct ProfileSwitcherTVView: View {
         .focused($focusedUserID, equals: user.uuid)
     }
 
-    @ViewBuilder
     private func avatar(for user: PlexHomeUser) -> some View {
         ZStack {
             if let url = user.thumb {

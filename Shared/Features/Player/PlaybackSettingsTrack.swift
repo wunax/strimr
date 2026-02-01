@@ -4,8 +4,13 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
     let track: PlayerTrack
     let plexStream: PlexPartStream?
 
-    var id: Int { track.id }
-    private var plexCodec: String? { plexStream?.codec.uppercased() }
+    var id: Int {
+        track.id
+    }
+
+    private var plexCodec: String? {
+        plexStream?.codec.uppercased()
+    }
 
     var title: String {
         guard plexStream != nil else { return track.displayName }
