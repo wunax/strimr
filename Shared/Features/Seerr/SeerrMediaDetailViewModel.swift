@@ -28,7 +28,11 @@ final class SeerrMediaDetailViewModel {
     var seasonsErrorMessage: String?
     var episodesErrorMessage: String?
 
-    init(media: SeerrMedia, store: SeerrStore, session: URLSession = .shared) {
+    init(
+        media: SeerrMedia,
+        store: SeerrStore,
+        session: URLSession = .shared
+    ) {
         self.media = media
         self.store = store
         self.session = session
@@ -305,13 +309,6 @@ final class SeerrMediaDetailViewModel {
         } else {
             seasons = (media.seasons ?? []).filter { $0.seasonNumber != nil }
         }
-        if selectedSeasonNumber == nil {
-            selectedSeasonNumber = defaultSeasonNumber
-        }
-    }
-
-    private var defaultSeasonNumber: Int? {
-        seasons.first(where: { ($0.seasonNumber ?? 0) > 0 })?.seasonNumber ?? seasons.first?.seasonNumber
     }
 
     private func loadSeasonIfNeeded() async {
@@ -332,8 +329,10 @@ final class SeerrMediaDetailViewModel {
         do {
             let repository = SeerrMediaRepository(baseURL: baseURL)
             let season = try await repository.getTVSeason(id: media.id, seasonNumber: number)
+            guard selectedSeasonNumber == number else { return }
             episodes = season.episodes ?? []
         } catch {
+            guard selectedSeasonNumber == number else { return }
             episodesErrorMessage = errorMessage(for: error)
         }
     }

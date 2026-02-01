@@ -3631,6 +3631,28 @@
         }
       }
     },
+    "seerr.detail.selectSeason" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a season to view episodes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionnez une saison pour voir les épisodes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择一季以查看剧集。"
+          }
+        }
+      }
+    },
     "seerr.detail.production" : {
       "localizations" : {
         "en" : {

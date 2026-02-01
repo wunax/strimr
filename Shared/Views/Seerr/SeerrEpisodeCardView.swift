@@ -8,7 +8,11 @@ struct SeerrEpisodeCardView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isRegularWidth: Bool {
-        horizontalSizeClass == .regular
+        #if os(tvOS)
+            false
+        #else
+            horizontalSizeClass == .regular
+        #endif
     }
 
     private var regularImageWidth: CGFloat {
@@ -50,7 +54,7 @@ struct SeerrEpisodeCardView: View {
             HStack(alignment: .center, spacing: 8) {
                 if let label {
                     Text(label)
-                        .font(.callout)
+                        .font(labelFont)
                         .foregroundStyle(.secondary)
                 }
 
@@ -58,25 +62,49 @@ struct SeerrEpisodeCardView: View {
 
                 if let airDateText {
                     Text(airDateText)
-                        .font(.callout)
+                        .font(labelFont)
                         .foregroundStyle(.secondary)
                 }
             }
 
             if !episodeTitle.isEmpty {
                 Text(episodeTitle)
-                    .font(.title3)
+                    .font(titleFont)
                     .fontWeight(.semibold)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
 
             if let summary = episode.overview, !summary.isEmpty {
                 Text(summary)
-                    .font(.callout)
+                    .font(summaryFont)
                     .foregroundStyle(.secondary)
                     .lineLimit(3)
             }
         }
+    }
+
+    private var labelFont: Font {
+        #if os(tvOS)
+            .caption2
+        #else
+            .callout
+        #endif
+    }
+
+    private var titleFont: Font {
+        #if os(tvOS)
+            .subheadline
+        #else
+            .title3
+        #endif
+    }
+
+    private var summaryFont: Font {
+        #if os(tvOS)
+            .caption
+        #else
+            .callout
+        #endif
     }
 
     private var episodeTitle: String {
@@ -115,9 +143,9 @@ private struct SeerrEpisodeArtworkView: View {
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(.white.opacity(0.05))
         }
     }

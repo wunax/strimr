@@ -30,8 +30,17 @@ struct MainTabTVView: View {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
                         SeerrDiscoverTVView(
-                            viewModel: SeerrDiscoverViewModel(store: seerrStore)
+                            viewModel: SeerrDiscoverViewModel(store: seerrStore),
+                            onSelectMedia: coordinator.showSeerrMediaDetail
                         )
+                        .navigationDestination(for: SeerrMedia.self) { media in
+                            SeerrMediaDetailTVView(
+                                viewModel: SeerrMediaDetailViewModel(
+                                    media: media,
+                                    store: seerrStore
+                                )
+                            )
+                        }
                     }
                 }
             }

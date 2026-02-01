@@ -72,6 +72,7 @@ struct SeerrSearchTVView: View {
                     }
                 }
             }
+            .focusSection()
         }
     }
 
