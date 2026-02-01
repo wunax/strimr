@@ -56,8 +56,8 @@ struct PlaybackSettingsView: View {
                         "player.settings.speed",
                         selection: Binding(
                             get: { playbackRate },
-                            set: { onSelectPlaybackRate($0) }
-                        )
+                            set: { onSelectPlaybackRate($0) },
+                        ),
                     ) {
                         ForEach(PlaybackSpeedOptions.all) { option in
                             Text("player.settings.speed.value \(option.valueText)")
