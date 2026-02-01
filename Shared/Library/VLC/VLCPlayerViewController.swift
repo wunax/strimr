@@ -78,6 +78,10 @@ final class VLCPlayerViewController: UIViewController, VLCMediaPlayerDelegate {
         seek(to: nextTime)
     }
 
+    func setPlaybackRate(_ rate: Float) {
+        mediaPlayer.rate = max(0.1, rate)
+    }
+
     func setAudioTrack(id: Int?) {
         let trackID = id ?? -1
         mediaPlayer.currentAudioTrackIndex = Int32(trackID)

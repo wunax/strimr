@@ -8,6 +8,7 @@ protocol PlayerCoordinating: AnyObject {
     func resume()
     func seek(to time: Double)
     func seek(by delta: Double)
+    func setPlaybackRate(_ rate: Float)
     func selectAudioTrack(id: Int?)
     func selectSubtitleTrack(id: Int?)
     func trackList() -> [PlayerTrack]

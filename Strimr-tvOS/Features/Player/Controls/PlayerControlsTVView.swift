@@ -11,6 +11,7 @@ struct PlayerControlsTVView: View {
     var isScrubbing: Bool
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
+    var onShowSpeedSettings: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -65,6 +66,11 @@ struct PlayerControlsTVView: View {
 
             ZStack {
                 HStack(spacing: 36) {
+                    PlayerSettingButton(
+                        systemImage: "speedometer",
+                        action: onShowSpeedSettings,
+                    )
+
                     PlayerSettingButton(
                         systemImage: "speaker.wave.2",
                         action: onShowAudioSettings,

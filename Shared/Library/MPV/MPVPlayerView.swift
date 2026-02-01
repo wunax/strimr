@@ -8,6 +8,7 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         let mpv = MPVPlayerViewController(options: coordinator.options)
         mpv.playDelegate = coordinator
         mpv.playUrl = coordinator.playUrl
+        mpv.setPlaybackRate(coordinator.playbackRate)
 
         context.coordinator.player = mpv
         return mpv
@@ -48,6 +49,7 @@ struct MPVPlayerView: UIViewControllerRepresentable {
 
         @ObservationIgnored var playUrl: URL?
         @ObservationIgnored var options = PlayerOptions()
+        @ObservationIgnored var playbackRate: Float = 1.0
         @ObservationIgnored var onPropertyChange: ((MPVPlayerViewController, PlayerProperty, Any?) -> Void)?
         @ObservationIgnored var onPlaybackEnded: (() -> Void)?
         @ObservationIgnored var onMediaLoaded: (() -> Void)?
@@ -74,6 +76,11 @@ struct MPVPlayerView: UIViewControllerRepresentable {
 
         func seek(by delta: Double) {
             player?.seek(by: delta)
+        }
+
+        func setPlaybackRate(_ rate: Float) {
+            playbackRate = rate
+            player?.setPlaybackRate(rate)
         }
 
         func selectAudioTrack(id: Int?) {
@@ -107,6 +114,7 @@ struct MPVPlayerView: UIViewControllerRepresentable {
         }
 
         func fileLoaded() {
+            player?.setPlaybackRate(playbackRate)
             onMediaLoaded?()
         }
     }

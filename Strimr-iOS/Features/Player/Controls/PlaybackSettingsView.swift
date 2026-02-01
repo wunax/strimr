@@ -5,8 +5,10 @@ struct PlaybackSettingsView: View {
     var subtitleTracks: [PlaybackSettingsTrack]
     var selectedAudioTrackID: Int?
     var selectedSubtitleTrackID: Int?
+    var playbackRate: Float
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
+    var onSelectPlaybackRate: (Float) -> Void
     var onClose: () -> Void
 
     var body: some View {
@@ -47,6 +49,22 @@ struct PlaybackSettingsView: View {
                             onSelectSubtitle(track.track.id)
                         }
                     }
+                }
+
+                Section {
+                    Picker(
+                        "player.settings.speed",
+                        selection: Binding(
+                            get: { playbackRate },
+                            set: { onSelectPlaybackRate($0) }
+                        )
+                    ) {
+                        ForEach(PlaybackSpeedOptions.all) { option in
+                            Text("player.settings.speed.value \(option.valueText)")
+                                .tag(option.rate)
+                        }
+                    }
+                    .pickerStyle(.menu)
                 }
             }
             .listStyle(.insetGrouped)

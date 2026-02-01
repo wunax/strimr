@@ -18,6 +18,7 @@ struct PlayerView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    @State private var playbackRate: Float = 1.0
     @State private var appliedPreferredAudio = false
     @State private var appliedPreferredSubtitle = false
     @State private var appliedResumeOffset = false
@@ -128,6 +129,7 @@ struct PlayerView: View {
         .statusBarHidden()
         .onAppear {
             showControls(temporarily: true)
+            playerCoordinator.setPlaybackRate(playbackRate)
         }
         .onDisappear {
             viewModel.handleStop()
@@ -148,6 +150,7 @@ struct PlayerView: View {
             appliedResumeOffset = false
             awaitingMediaLoad = true
             playerCoordinator.play(url)
+            playerCoordinator.setPlaybackRate(playbackRate)
             showControls(temporarily: true)
         }
         .onChange(of: bindableViewModel.position) { _, newValue in
@@ -166,8 +169,10 @@ struct PlayerView: View {
                 subtitleTracks: settingsSubtitleTracks,
                 selectedAudioTrackID: selectedAudioTrackID,
                 selectedSubtitleTrackID: selectedSubtitleTrackID,
+                playbackRate: playbackRate,
                 onSelectAudio: selectAudioTrack(_:),
                 onSelectSubtitle: selectSubtitleTrack(_:),
+                onSelectPlaybackRate: selectPlaybackRate(_:),
                 onClose: { showingSettings = false },
             )
             .presentationDetents([.medium])
@@ -299,6 +304,12 @@ struct PlayerView: View {
         Task {
             await viewModel.persistStreamSelection(for: track)
         }
+    }
+
+    private func selectPlaybackRate(_ rate: Float) {
+        playbackRate = rate
+        playerCoordinator.setPlaybackRate(rate)
+        showControls(temporarily: true)
     }
 
     private func jump(by seconds: Double) {

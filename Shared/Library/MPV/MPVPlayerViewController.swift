@@ -190,6 +190,11 @@ final class MPVPlayerViewController: UIViewController {
         )
     }
 
+    func setPlaybackRate(_ rate: Float) {
+        let clamped = max(0.1, Double(rate))
+        setDouble("speed", clamped)
+    }
+
     func setAudioTrack(id: Int?) {
         setTrackProperty("aid", trackID: id)
     }

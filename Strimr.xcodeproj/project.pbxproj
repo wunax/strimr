@@ -84,6 +84,7 @@
 				Features/Player/ExternalPlaybackLauncher.swift,
 				Features/Player/PlaybackLauncher.swift,
 				Features/Player/PlaybackSettingsTrack.swift,
+				Features/Player/PlaybackSpeedOption.swift,
 				Features/Player/PlayerViewModel.swift,
 				Features/Player/PlayQueue/PlayQueueManager.swift,
 				Features/Player/PlayQueue/PlayQueueState.swift,

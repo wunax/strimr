@@ -17,12 +17,13 @@ struct PlayerTVView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    @State private var playbackRate: Float = 1.0
     @State private var appliedPreferredAudio = false
     @State private var appliedPreferredSubtitle = false
     @State private var appliedResumeOffset = false
     @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
-    @State private var activeSettingsSheet: TrackSettingsSheet?
+    @State private var activeSettingsSheet: PlayerSettingsSheet?
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
@@ -116,6 +117,7 @@ struct PlayerTVView: View {
                     isScrubbing: isScrubbing,
                     onShowAudioSettings: showAudioSettings,
                     onShowSubtitleSettings: showSubtitleSettings,
+                    onShowSpeedSettings: showSpeedSettings,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekForwardInterval) },
@@ -141,6 +143,7 @@ struct PlayerTVView: View {
         }
         .onAppear {
             showControls(temporarily: true)
+            playerCoordinator.setPlaybackRate(playbackRate)
         }
         .onDisappear {
             viewModel.handleStop()
@@ -166,6 +169,7 @@ struct PlayerTVView: View {
             appliedResumeOffset = false
             awaitingMediaLoad = true
             playerCoordinator.play(url)
+            playerCoordinator.setPlaybackRate(playbackRate)
             showControls(temporarily: true)
         }
         .onChange(of: bindableViewModel.position) { _, newValue in
@@ -179,21 +183,32 @@ struct PlayerTVView: View {
             playerCoordinator.pause()
         }
         .sheet(item: $activeSettingsSheet) { sheet in
-            PlayerTrackSelectionView(
-                titleKey: sheet.titleKey,
-                tracks: sheet == .audio ? settingsAudioTracks : settingsSubtitleTracks,
-                selectedTrackID: sheet == .audio ? selectedAudioTrackID : selectedSubtitleTrackID,
-                showOffOption: sheet == .subtitle,
-                onSelect: { id in
-                    switch sheet {
-                    case .audio:
-                        selectAudioTrack(id)
-                    case .subtitle:
-                        selectSubtitleTrack(id)
-                    }
-                },
-                onClose: { activeSettingsSheet = nil },
-            )
+            switch sheet {
+            case .audio:
+                PlayerTrackSelectionView(
+                    titleKey: sheet.titleKey,
+                    tracks: settingsAudioTracks,
+                    selectedTrackID: selectedAudioTrackID,
+                    showOffOption: false,
+                    onSelect: selectAudioTrack(_:),
+                    onClose: { activeSettingsSheet = nil },
+                )
+            case .subtitle:
+                PlayerTrackSelectionView(
+                    titleKey: sheet.titleKey,
+                    tracks: settingsSubtitleTracks,
+                    selectedTrackID: selectedSubtitleTrackID,
+                    showOffOption: true,
+                    onSelect: selectSubtitleTrack(_:),
+                    onClose: { activeSettingsSheet = nil },
+                )
+            case .speed:
+                PlayerSpeedSelectionView(
+                    selectedRate: playbackRate,
+                    onSelect: selectPlaybackRate(_:),
+                    onClose: { activeSettingsSheet = nil },
+                )
+            }
         }
         .alert("player.termination.title", isPresented: $showingTerminationAlert) {
             Button("player.termination.dismiss") {
@@ -242,6 +257,11 @@ struct PlayerTVView: View {
     private func showSubtitleSettings() {
         refreshTracks()
         activeSettingsSheet = .subtitle
+        showControls(temporarily: true)
+    }
+
+    private func showSpeedSettings() {
+        activeSettingsSheet = .speed
         showControls(temporarily: true)
     }
 
@@ -317,6 +337,12 @@ struct PlayerTVView: View {
         Task {
             await viewModel.persistStreamSelection(for: track)
         }
+    }
+
+    private func selectPlaybackRate(_ rate: Float) {
+        playbackRate = rate
+        playerCoordinator.setPlaybackRate(rate)
+        showControls(temporarily: true)
     }
 
     private func jump(by seconds: Double) {
@@ -548,9 +574,10 @@ struct PlayerTVView: View {
     }
 }
 
-private enum TrackSettingsSheet: String, Identifiable {
+private enum PlayerSettingsSheet: String, Identifiable {
     case audio
     case subtitle
+    case speed
 
     var id: String {
         rawValue
@@ -562,6 +589,8 @@ private enum TrackSettingsSheet: String, Identifiable {
             "player.settings.audio"
         case .subtitle:
             "player.settings.subtitles"
+        case .speed:
+            "player.settings.speed"
         }
     }
 }
