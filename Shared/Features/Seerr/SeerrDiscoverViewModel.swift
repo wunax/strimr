@@ -10,6 +10,8 @@ final class SeerrDiscoverViewModel {
     var trending: [SeerrMedia] = []
     var popularMovies: [SeerrMedia] = []
     var popularTV: [SeerrMedia] = []
+    var upcomingMovies: [SeerrMedia] = []
+    var upcomingTV: [SeerrMedia] = []
     var isLoading = false
     var errorMessage: String?
     var pendingRequestsCount = 0
@@ -23,7 +25,11 @@ final class SeerrDiscoverViewModel {
     }
 
     var hasContent: Bool {
-        !trending.isEmpty || !popularMovies.isEmpty || !popularTV.isEmpty
+        !trending.isEmpty
+            || !popularMovies.isEmpty
+            || !popularTV.isEmpty
+            || !upcomingMovies.isEmpty
+            || !upcomingTV.isEmpty
     }
 
     var canManageRequests: Bool {
@@ -47,10 +53,21 @@ final class SeerrDiscoverViewModel {
             let trendingPage = try await repository.getTrending(page: 1)
             let moviesPage = try await repository.discoverMovies(page: 1)
             let tvPage = try await repository.discoverTV(page: 1)
+            let upcomingDate = Self.upcomingDateFormatter.string(from: Date())
+            let upcomingMoviesPage = try await repository.discoverMovies(
+                page: 1,
+                primaryReleaseDateGte: upcomingDate
+            )
+            let upcomingTVPage = try await repository.discoverTV(
+                page: 1,
+                firstAirDateGte: upcomingDate
+            )
 
             trending = trendingPage.results
             popularMovies = moviesPage.results
             popularTV = tvPage.results
+            upcomingMovies = upcomingMoviesPage.results
+            upcomingTV = upcomingTVPage.results
         } catch {
             errorMessage = String(localized: .init("common.errors.tryAgainLater"))
         }
@@ -62,6 +79,8 @@ final class SeerrDiscoverViewModel {
         trending = []
         popularMovies = []
         popularTV = []
+        upcomingMovies = []
+        upcomingTV = []
         await load()
     }
 
@@ -90,4 +109,12 @@ final class SeerrDiscoverViewModel {
             pendingRequestsCount = 0
         }
     }
+
+    private static let upcomingDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 }

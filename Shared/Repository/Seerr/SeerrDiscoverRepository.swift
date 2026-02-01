@@ -16,15 +16,22 @@ final class SeerrDiscoverRepository {
         page: Int,
         primaryReleaseDateGte: String? = nil,
     ) async throws -> SeerrPaginatedResponse<SeerrMedia> {
-        let queryItems = paginationQueryItems(page: page, primaryReleaseDateGte: primaryReleaseDateGte)
+        let queryItems = paginationQueryItems(
+            page: page,
+            primaryReleaseDateGte: primaryReleaseDateGte
+        )
         return try await client.request(path: "discover/movies", queryItems: queryItems)
     }
 
     func discoverTV(
         page: Int,
-        primaryReleaseDateGte: String? = nil,
+        firstAirDateGte: String? = nil,
     ) async throws -> SeerrPaginatedResponse<SeerrMedia> {
-        let queryItems = paginationQueryItems(page: page, primaryReleaseDateGte: primaryReleaseDateGte)
+        let queryItems = paginationQueryItems(
+            page: page,
+            primaryReleaseDateGte: nil,
+            firstAirDateGte: firstAirDateGte
+        )
         return try await client.request(path: "discover/tv", queryItems: queryItems)
     }
 
@@ -37,11 +44,19 @@ final class SeerrDiscoverRepository {
         return try await client.request(path: "search", queryItems: queryItems)
     }
 
-    private func paginationQueryItems(page: Int, primaryReleaseDateGte: String?) -> [URLQueryItem] {
+    private func paginationQueryItems(
+        page: Int,
+        primaryReleaseDateGte: String?,
+        firstAirDateGte: String? = nil
+    ) -> [URLQueryItem] {
         var items = [URLQueryItem(name: "page", value: String(page))]
 
         if let primaryReleaseDateGte, !primaryReleaseDateGte.isEmpty {
             items.append(URLQueryItem(name: "primaryReleaseDateGte", value: primaryReleaseDateGte))
+        }
+
+        if let firstAirDateGte, !firstAirDateGte.isEmpty {
+            items.append(URLQueryItem(name: "firstAirDateGte", value: firstAirDateGte))
         }
 
         return items

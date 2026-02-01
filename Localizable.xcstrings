@@ -975,6 +975,28 @@
         }
       }
     },
+    "integrations.seerr.discover.upcomingMovies" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming Movies"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Films à venir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将上映的电影"
+          }
+        }
+      }
+    },
     "integrations.seerr.discover.popularTV" : {
       "localizations" : {
         "en" : {
@@ -993,6 +1015,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "热门电视剧"
+          }
+        }
+      }
+    },
+    "integrations.seerr.discover.upcomingTV" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming Series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Séries à venir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将播出的剧集"
           }
         }
       }

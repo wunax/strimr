@@ -84,6 +84,7 @@ struct SeerrDiscoverTVView: View {
             }
         }
         .frame(maxWidth: 720, alignment: .leading)
+        .focusSection()
     }
 
     private var discoverContent: some View {
@@ -109,10 +110,30 @@ struct SeerrDiscoverTVView: View {
                     }
                 }
 
+                if !viewModel.upcomingMovies.isEmpty {
+                    SeerrMediaSection(title: "integrations.seerr.discover.upcomingMovies") {
+                        SeerrMediaCarousel(
+                            items: viewModel.upcomingMovies,
+                            showsLabels: true,
+                            onSelectMedia: onSelectMedia,
+                        )
+                    }
+                }
+
                 if !viewModel.popularTV.isEmpty {
                     SeerrMediaSection(title: "integrations.seerr.discover.popularTV") {
                         SeerrMediaCarousel(
                             items: viewModel.popularTV,
+                            showsLabels: true,
+                            onSelectMedia: onSelectMedia,
+                        )
+                    }
+                }
+
+                if !viewModel.upcomingTV.isEmpty {
+                    SeerrMediaSection(title: "integrations.seerr.discover.upcomingTV") {
+                        SeerrMediaCarousel(
+                            items: viewModel.upcomingTV,
                             showsLabels: true,
                             onSelectMedia: onSelectMedia,
                         )
