@@ -26,7 +26,7 @@ struct MainTabTVView: View {
                 }
             }
 
-            if settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn {
+            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
                         SeerrDiscoverTVView(
