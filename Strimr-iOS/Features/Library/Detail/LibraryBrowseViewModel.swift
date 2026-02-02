@@ -55,6 +55,32 @@ final class LibraryBrowseViewModel {
         let selectedOption: FilterOption?
     }
 
+    struct FolderItem: Identifiable, Equatable {
+        let id: String
+        let key: String
+        let title: String
+    }
+
+    enum BrowseItem: Identifiable, Equatable {
+        case media(MediaDisplayItem)
+        case folder(FolderItem)
+
+        var id: String {
+            switch self {
+            case let .media(item):
+                item.id
+            case let .folder(item):
+                item.id
+            }
+        }
+    }
+
+    private struct FolderBreadcrumb: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let endpoint: PlexEndpoint
+    }
+
     struct FilterSheetState: Identifiable, Equatable {
         let filter: PlexSectionItemFilter
 
@@ -64,7 +90,7 @@ final class LibraryBrowseViewModel {
     }
 
     let library: Library
-    var items: [MediaDisplayItem] = []
+    var browseItems: [BrowseItem] = []
     var isLoading = false
     var isLoadingMore = false
     var errorMessage: String?
@@ -77,6 +103,7 @@ final class LibraryBrowseViewModel {
     var filterOptions: [String: [FilterOption]] = [:]
     var filterOptionsLoading: Set<String> = []
     var filterOptionsError: [String: String] = [:]
+    private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
     private var hasLoadedMeta = false
@@ -92,6 +119,10 @@ final class LibraryBrowseViewModel {
 
     var hasDisplayTypes: Bool {
         !displayTypes.isEmpty
+    }
+
+    var canNavigateBack: Bool {
+        !folderStack.isEmpty
     }
 
     var availableFilters: [PlexSectionItemFilter] {
@@ -132,7 +163,7 @@ final class LibraryBrowseViewModel {
     }
 
     func load() async {
-        guard items.isEmpty else { return }
+        guard browseItems.isEmpty else { return }
         await fetch(reset: true)
     }
 
@@ -153,6 +184,25 @@ final class LibraryBrowseViewModel {
         guard type.key != selectedDisplayType?.key else { return }
         selectedDisplayType = type
         normalizeSelections(for: type)
+        folderStack = []
+        Task { await refresh() }
+    }
+
+    func enterFolder(_ folder: FolderItem) {
+        guard let endpoint = endpoint(from: folder.key) else { return }
+        folderStack.append(
+            FolderBreadcrumb(
+                id: folder.key,
+                title: folder.title,
+                endpoint: endpoint,
+            ),
+        )
+        Task { await refresh() }
+    }
+
+    func navigateBack() {
+        guard !folderStack.isEmpty else { return }
+        folderStack.removeLast()
         Task { await refresh() }
     }
 
@@ -211,7 +261,7 @@ final class LibraryBrowseViewModel {
 
     func refresh() async {
         reachedEnd = false
-        items = []
+        browseItems = []
         await fetch(reset: true)
     }
 
@@ -261,7 +311,7 @@ final class LibraryBrowseViewModel {
         }
 
         do {
-            let start = reset ? 0 : items.count
+            let start = reset ? 0 : browseItems.count
             let endpoint = resolvedEndpoint(sectionId: sectionId)
             let includeCollections = settingsManager.interface.displayCollections ? true : nil
             let includeMeta = !hasLoadedMeta
@@ -271,7 +321,7 @@ final class LibraryBrowseViewModel {
                 includeMeta: includeMeta,
             )
 
-            let response = try await sectionRepository.getSectionItems(
+            let response = try await sectionRepository.getSectionBrowseItems(
                 path: endpoint.path,
                 queryItems: queryItems,
                 pagination: PlexPagination(start: start, size: 20),
@@ -282,16 +332,16 @@ final class LibraryBrowseViewModel {
             }
 
             let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(MediaDisplayItem.init)
+                .compactMap(mapBrowseItem)
             let total = response.mediaContainer.totalSize ?? (start + newItems.count)
 
             if reset {
-                items = newItems
+                browseItems = newItems
             } else {
-                items.append(contentsOf: newItems)
+                browseItems.append(contentsOf: newItems)
             }
 
-            reachedEnd = items.count >= total || newItems.isEmpty
+            reachedEnd = browseItems.count >= total || newItems.isEmpty
         } catch {
             if reset {
                 resetState(error: error.localizedDescription)
@@ -341,6 +391,9 @@ final class LibraryBrowseViewModel {
     }
 
     private func resolvedEndpoint(sectionId: Int) -> PlexEndpoint {
+        if let currentFolderEndpoint {
+            return currentFolderEndpoint
+        }
         if let selectedDisplayType, let endpoint = endpoint(from: selectedDisplayType.key) {
             return endpoint
         }
@@ -349,6 +402,10 @@ final class LibraryBrowseViewModel {
         let typeValue = defaultTypeQueryValue
         let queryItems = [URLQueryItem.make("type", typeValue)].compactMap(\.self)
         return PlexEndpoint(path: path, queryItems: queryItems)
+    }
+
+    private var currentFolderEndpoint: PlexEndpoint? {
+        folderStack.last?.endpoint
     }
 
     private var defaultTypeQueryValue: String? {
@@ -431,8 +488,24 @@ final class LibraryBrowseViewModel {
         }
     }
 
+    private func mapBrowseItem(_ metadata: PlexBrowseMetadata) -> BrowseItem? {
+        switch metadata {
+        case let .item(plexItem):
+            guard let mediaItem = MediaDisplayItem(plexItem: plexItem) else { return nil }
+            return .media(mediaItem)
+        case let .folder(folder):
+            return .folder(
+                FolderItem(
+                    id: folder.key,
+                    key: folder.key,
+                    title: folder.title,
+                ),
+            )
+        }
+    }
+
     private func resetState(error: String? = nil) {
-        items = []
+        browseItems = []
         errorMessage = error
         isLoading = false
         isLoadingMore = false
@@ -454,7 +527,7 @@ final class LibraryBrowseViewModel {
     }
 }
 
-private struct PlexEndpoint {
+private struct PlexEndpoint: Equatable {
     let path: String
     let queryItems: [URLQueryItem]
 }

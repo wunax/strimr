@@ -54,6 +54,19 @@ final class SectionRepository {
         )
     }
 
+    func getSectionBrowseItems(
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        pagination: PlexPagination? = nil,
+    ) async throws -> PlexBrowseMediaContainer {
+        let resolvedPagination = pagination ?? PlexPagination()
+        return try await network.request(
+            path: path,
+            queryItems: queryItems,
+            headers: resolvedPagination.headers,
+        )
+    }
+
     func getSectionItems(
         path: String,
         queryItems: [URLQueryItem] = [],

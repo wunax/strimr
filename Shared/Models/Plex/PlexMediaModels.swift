@@ -382,6 +382,65 @@ struct PlexItemMediaContainer: Codable, Equatable {
     }
 }
 
+struct PlexBrowseMediaContainer: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let size: Int?
+        let totalSize: Int?
+        let metadata: [PlexBrowseMetadata]?
+        let meta: PlexSectionItemMeta?
+
+        private enum CodingKeys: String, CodingKey {
+            case size
+            case totalSize
+            case metadata = "Metadata"
+            case meta = "Meta"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+enum PlexBrowseMetadata: Codable, Equatable {
+    case item(PlexItem)
+    case folder(PlexFolderItem)
+
+    init(from decoder: Decoder) throws {
+        if let item = try? PlexItem(from: decoder) {
+            self = .item(item)
+            return
+        }
+        if let folder = try? PlexFolderItem(from: decoder) {
+            self = .folder(folder)
+            return
+        }
+        throw DecodingError.typeMismatch(
+            PlexBrowseMetadata.self,
+            DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unsupported Plex browse metadata payload.",
+            ),
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case let .item(item):
+            try item.encode(to: encoder)
+        case let .folder(folder):
+            try folder.encode(to: encoder)
+        }
+    }
+}
+
+struct PlexFolderItem: Codable, Equatable {
+    let key: String
+    let title: String
+}
+
 struct PlexFilterMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?

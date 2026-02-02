@@ -19,6 +19,16 @@ struct LibraryBrowseControlsView: View {
     private var topRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                if viewModel.canNavigateBack {
+                    LibraryBrowsePillButton(
+                        title: String(localized: "library.browse.folders.back"),
+                        systemImage: "chevron.left",
+                        isSelected: false,
+                        showsDisclosure: false,
+                    ) {
+                        viewModel.navigateBack()
+                    }
+                }
                 LibraryBrowsePillButton(
                     title: viewModel.typePillTitle,
                     systemImage: "square.grid.2x2",
@@ -129,7 +139,10 @@ struct LibraryBrowseControlsView: View {
         }
     }
 
-    private func filterLabel(for filter: PlexSectionItemFilter, selection: LibraryBrowseViewModel.FilterSelection?) -> String {
+    private func filterLabel(
+        for filter: PlexSectionItemFilter,
+        selection: LibraryBrowseViewModel.FilterSelection?,
+    ) -> String {
         guard let selection else { return filter.title }
         guard let option = selection.selectedOption else { return filter.title }
         return filter.title + ": " + option.title
