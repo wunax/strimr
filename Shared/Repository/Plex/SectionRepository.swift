@@ -9,11 +9,12 @@ final class SectionRepository {
         var limit: Int?
         var includeMeta: Bool?
         var includeCollections: Bool?
+        var type: String? = "1,2"
 
         var queryItems: [URLQueryItem] {
             [
                 // "1,2" maps to movie and show.
-                URLQueryItem(name: "type", value: "1,2"),
+                URLQueryItem.make("type", type),
                 URLQueryItem.make("sort", sort),
                 URLQueryItem.make("limit", limit),
                 URLQueryItem.makeBoolFlag("includeMeta", includeMeta),
@@ -53,16 +54,27 @@ final class SectionRepository {
         )
     }
 
-    func getSectionsItemsMeta(sectionId: Int) async throws -> PlexSectionMetaMediaContainer {
-        try await network.request(
-            path: "/library/sections/\(sectionId)/all",
-            queryItems: SectionItemsParams(includeMeta: true).queryItems,
-            headers: PlexPagination(start: 0, size: 0).headers,
+    func getSectionItems(
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        pagination: PlexPagination? = nil,
+    ) async throws -> PlexItemMediaContainer {
+        let resolvedPagination = pagination ?? PlexPagination()
+        return try await network.request(
+            path: path,
+            queryItems: queryItems,
+            headers: resolvedPagination.headers,
         )
     }
 
-    func getSectionsItemsMetaInfo(sectionId: Int, filter: String) async throws -> PlexDirectoryMediaContainer {
-        try await network.request(path: "/library/sections/\(sectionId)/\(filter)")
+    func getFilterOptions(
+        path: String,
+        queryItems: [URLQueryItem] = [],
+    ) async throws -> PlexFilterMediaContainer {
+        try await network.request(
+            path: path,
+            queryItems: queryItems,
+        )
     }
 
     func getSectionFirstCharacters(

@@ -12,24 +12,31 @@ struct LibraryBrowseView: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: 16) {
-                ForEach(viewModel.items) { media in
-                    PortraitMediaCard(media: media, width: 112, showsLabels: true) {
-                        onSelectMedia(media)
-                    }
-                    .task {
-                        if media == viewModel.items.last {
-                            await viewModel.loadMore()
-                        }
-                    }
+            VStack(alignment: .leading, spacing: 16) {
+                if viewModel.hasDisplayTypes {
+                    LibraryBrowseControlsView(viewModel: viewModel)
+                        .padding(.horizontal, 16)
                 }
 
-                if viewModel.isLoadingMore {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
+                LazyVGrid(columns: gridColumns, spacing: 16) {
+                    ForEach(viewModel.items) { media in
+                        PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+                            onSelectMedia(media)
+                        }
+                        .task {
+                            if media == viewModel.items.last {
+                                await viewModel.loadMore()
+                            }
+                        }
+                    }
+
+                    if viewModel.isLoadingMore {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    }
                 }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
             .padding(.top, 16)
         }
         .overlay {

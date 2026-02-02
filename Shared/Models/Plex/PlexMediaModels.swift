@@ -365,11 +365,13 @@ struct PlexItemMediaContainer: Codable, Equatable {
         let size: Int?
         let totalSize: Int?
         let metadata: [PlexItem]?
+        let meta: PlexSectionItemMeta?
 
         private enum CodingKeys: String, CodingKey {
             case size
             case totalSize
             case metadata = "Metadata"
+            case meta = "Meta"
         }
     }
 
@@ -378,6 +380,31 @@ struct PlexItemMediaContainer: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case mediaContainer = "MediaContainer"
     }
+}
+
+struct PlexFilterMediaContainer: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let size: Int?
+        let directory: [PlexFilterDirectory]?
+
+        private enum CodingKeys: String, CodingKey {
+            case size
+            case directory = "Directory"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+struct PlexFilterDirectory: Codable, Equatable {
+    let fastKey: String?
+    let key: String
+    let title: String
+    let type: String?
 }
 
 struct PlexSearchResult: Codable, Equatable {
@@ -412,42 +439,6 @@ struct PlexSectionMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let directory: [PlexSection]?
-
-        private enum CodingKeys: String, CodingKey {
-            case size
-            case directory = "Directory"
-        }
-    }
-
-    let mediaContainer: MediaContainer
-
-    private enum CodingKeys: String, CodingKey {
-        case mediaContainer = "MediaContainer"
-    }
-}
-
-struct PlexSectionMetaMediaContainer: Codable, Equatable {
-    struct MediaContainer: Codable, Equatable {
-        let size: Int?
-        let meta: PlexSectionItemMeta?
-
-        private enum CodingKeys: String, CodingKey {
-            case size
-            case meta = "Meta"
-        }
-    }
-
-    let mediaContainer: MediaContainer
-
-    private enum CodingKeys: String, CodingKey {
-        case mediaContainer = "MediaContainer"
-    }
-}
-
-struct PlexDirectoryMediaContainer: Codable, Equatable {
-    struct MediaContainer: Codable, Equatable {
-        let size: Int?
-        let directory: [PlexItem]?
 
         private enum CodingKeys: String, CodingKey {
             case size
