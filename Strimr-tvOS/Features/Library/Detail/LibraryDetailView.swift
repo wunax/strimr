@@ -110,22 +110,23 @@ struct LibraryDetailView: View {
     }
 
     private func sidebarButton(for tab: LibraryDetailTab) -> some View {
-        let isFocused = focusedSidebarItem == tab
         return Button {
             selectedTab = tab
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: tab.systemImageName)
+                    .font(.caption)
+                    .fontWeight(.semibold)
                 if isSidebarFocused {
                     Text(tab.title)
+                        .font(.caption)
+                        .fontWeight(.semibold)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .foregroundStyle(selectedTab == tab ? .brandPrimary : .secondary)
-            .background(isFocused ? Color.white.opacity(0.2) : Color.clear)
-            .clipShape(Capsule())
         }
         .focused($focusedSidebarItem, equals: tab)
         .buttonStyle(.plain)
