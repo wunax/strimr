@@ -71,7 +71,7 @@ struct LibraryBrowseControlsView: View {
                     }
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(rowPadding)
         }
     }
 
@@ -101,7 +101,7 @@ struct LibraryBrowseControlsView: View {
                     }
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(rowPadding)
         }
     }
 
@@ -123,7 +123,7 @@ struct LibraryBrowseControlsView: View {
                     }
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(rowPadding)
         }
     }
 
@@ -145,7 +145,7 @@ struct LibraryBrowseControlsView: View {
                     }
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(rowPadding)
         }
     }
 
@@ -173,9 +173,17 @@ struct LibraryBrowseControlsView: View {
 
     private var pillSpacing: CGFloat {
         #if os(tvOS)
-        16
+        36
         #else
         8
+        #endif
+    }
+
+    private var rowPadding: EdgeInsets {
+        #if os(tvOS)
+        EdgeInsets(top: 20, leading: 36, bottom: 20, trailing: 36)
+        #else
+        EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
         #endif
     }
 }
