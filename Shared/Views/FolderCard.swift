@@ -45,10 +45,7 @@ struct FolderCard: View {
                 VStack(spacing: 8) {
                     Image(systemName: "folder.fill")
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(Color.brandPrimary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.gray)
                 }
             }
             .frame(width: resolvedWidth, height: resolvedHeight)

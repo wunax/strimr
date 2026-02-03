@@ -6,7 +6,7 @@ struct LibraryBrowseView: View {
 
     private var gridColumns: [GridItem] {
         [
-            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12),
+            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12, alignment: .top),
         ]
     }
 
