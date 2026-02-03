@@ -48,7 +48,7 @@ final class LibraryBrowseViewModel {
         }
         controls.onDisplayTypeChanged = { [weak self] in
             guard let self else { return }
-            self.folderStack = []
+            folderStack = []
             Task { await self.refresh() }
         }
     }

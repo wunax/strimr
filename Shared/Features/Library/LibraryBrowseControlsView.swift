@@ -173,17 +173,17 @@ struct LibraryBrowseControlsView: View {
 
     private var pillSpacing: CGFloat {
         #if os(tvOS)
-        36
+            36
         #else
-        8
+            8
         #endif
     }
 
     private var rowPadding: EdgeInsets {
         #if os(tvOS)
-        EdgeInsets(top: 20, leading: 36, bottom: 20, trailing: 36)
+            EdgeInsets(top: 20, leading: 36, bottom: 20, trailing: 36)
         #else
-        EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+            EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
         #endif
     }
 }
@@ -235,23 +235,23 @@ private struct LibraryBrowseFilterSheetView: View {
     var body: some View {
         NavigationStack {
             content
-            .navigationTitle(filter.title)
+                .navigationTitle(filter.title)
             #if !os(tvOS)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if viewModel.filterSelection(for: filter) != nil {
-                        Button("library.browse.filters.clear") {
-                            viewModel.clearFilter(filter)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        if viewModel.filterSelection(for: filter) != nil {
+                            Button("library.browse.filters.clear") {
+                                viewModel.clearFilter(filter)
+                                dismiss()
+                            }
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("common.actions.done") {
                             dismiss()
                         }
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.actions.done") {
-                        dismiss()
-                    }
-                }
-            }
             #endif
         }
     }
@@ -259,13 +259,13 @@ private struct LibraryBrowseFilterSheetView: View {
     @ViewBuilder
     private var content: some View {
         #if os(tvOS)
-        VStack(alignment: .leading, spacing: 16) {
-            headerRow
-            contentBody
-        }
-        .padding(.top, 12)
+            VStack(alignment: .leading, spacing: 16) {
+                headerRow
+                contentBody
+            }
+            .padding(.top, 12)
         #else
-        contentBody
+            contentBody
         #endif
     }
 
@@ -309,8 +309,8 @@ private struct LibraryBrowseFilterSheetView: View {
                     }
                     .buttonStyle(.plain)
                     #if os(tvOS)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     #endif
                 }
             }
