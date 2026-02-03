@@ -226,50 +226,9 @@ private struct LibraryBrowseFilterSheetView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoadingOptions(for: filter) {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text("library.browse.filters.loading")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let errorMessage = viewModel.optionsError(for: filter) {
-                    ContentUnavailableView(
-                        errorMessage,
-                        systemImage: "exclamationmark.triangle.fill",
-                        description: Text("common.errors.tryAgainLater"),
-                    )
-                    .symbolRenderingMode(.multicolor)
-                } else if viewModel.options(for: filter).isEmpty {
-                    ContentUnavailableView(
-                        "common.empty.nothingToShow",
-                        systemImage: "line.3.horizontal.decrease.circle",
-                    )
-                } else {
-                    List {
-                        ForEach(viewModel.options(for: filter)) { option in
-                            Button {
-                                viewModel.selectFilterOption(option, for: filter)
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Text(option.title)
-                                    Spacer()
-                                    if viewModel.filterSelection(for: filter)?.selectedOption?.id == option.id {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(Color.brandPrimary)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .listStyle(.plain)
-                }
-            }
+            content
             .navigationTitle(filter.title)
+            #if !os(tvOS)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if viewModel.filterSelection(for: filter) != nil {
@@ -285,6 +244,88 @@ private struct LibraryBrowseFilterSheetView: View {
                     }
                 }
             }
+            #endif
         }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        #if os(tvOS)
+        VStack(alignment: .leading, spacing: 16) {
+            headerRow
+            contentBody
+        }
+        .padding(.top, 12)
+        #else
+        contentBody
+        #endif
+    }
+
+    @ViewBuilder
+    private var contentBody: some View {
+        if viewModel.isLoadingOptions(for: filter) {
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("library.browse.filters.loading")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let errorMessage = viewModel.optionsError(for: filter) {
+            ContentUnavailableView(
+                errorMessage,
+                systemImage: "exclamationmark.triangle.fill",
+                description: Text("common.errors.tryAgainLater"),
+            )
+            .symbolRenderingMode(.multicolor)
+        } else if viewModel.options(for: filter).isEmpty {
+            ContentUnavailableView(
+                "common.empty.nothingToShow",
+                systemImage: "line.3.horizontal.decrease.circle",
+            )
+        } else {
+            List {
+                ForEach(viewModel.options(for: filter)) { option in
+                    Button {
+                        viewModel.selectFilterOption(option, for: filter)
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(option.title)
+                            Spacer()
+                            if viewModel.filterSelection(for: filter)?.selectedOption?.id == option.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.brandPrimary)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    #if os(tvOS)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    #endif
+                }
+            }
+            #if os(tvOS)
+            .padding(.horizontal, 16)
+            #endif
+            .listStyle(.plain)
+        }
+    }
+
+    private var headerRow: some View {
+        HStack {
+            if viewModel.filterSelection(for: filter) != nil {
+                Button("library.browse.filters.clear") {
+                    viewModel.clearFilter(filter)
+                    dismiss()
+                }
+            }
+            Spacer()
+            Button("common.actions.done") {
+                dismiss()
+            }
+        }
+        .padding(.horizontal, 24)
     }
 }
