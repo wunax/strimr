@@ -79,11 +79,24 @@ struct PlexSectionItemFilter: Codable, Equatable {
     let key: String
     let title: String
     let type: String
+    
+    var isBoolean: Bool {
+        filterType.lowercased() == "boolean"
+    }
 }
 
 enum PlexSortDirection: String, Codable {
     case asc
     case desc
+    
+    var opposite: PlexSortDirection {
+        switch self {
+        case .asc:
+            .desc
+        case .desc:
+            .asc
+        }
+    }
 }
 
 struct PlexSectionItemSort: Codable, Equatable {

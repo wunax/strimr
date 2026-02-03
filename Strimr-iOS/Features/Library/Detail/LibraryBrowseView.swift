@@ -11,11 +11,17 @@ struct LibraryBrowseView: View {
     }
 
     var body: some View {
+        @Bindable var controls = viewModel.controls
+
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if viewModel.hasDisplayTypes {
-                    LibraryBrowseControlsView(viewModel: viewModel)
-                        .padding(.horizontal, 16)
+                if controls.hasDisplayTypes {
+                    LibraryBrowseControlsView(
+                        viewModel: controls,
+                        showsBackButton: viewModel.canNavigateBack,
+                        onNavigateBack: viewModel.navigateBack,
+                    )
+                    .padding(.horizontal, 16)
                 }
 
                 LazyVGrid(columns: gridColumns, spacing: 16) {

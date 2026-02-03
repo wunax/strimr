@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LibraryCollectionsView: View {
-    @State var viewModel: LibraryBrowseViewModel
+    @State var viewModel: LibraryCollectionsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @FocusState private var focusedCharacterId: String?
@@ -11,7 +11,7 @@ struct LibraryCollectionsView: View {
     ]
 
     init(
-        viewModel: LibraryBrowseViewModel,
+        viewModel: LibraryCollectionsViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
@@ -85,7 +85,7 @@ struct LibraryCollectionsView: View {
     }
 
     private func characterButton(
-        _ character: LibraryBrowseViewModel.SectionCharacter,
+        _ character: LibraryCollectionsViewModel.SectionCharacter,
         proxy: ScrollViewProxy,
     ) -> some View {
         let isFocused = focusedCharacterId == character.id

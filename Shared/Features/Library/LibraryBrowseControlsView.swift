@@ -1,7 +1,19 @@
 import SwiftUI
 
 struct LibraryBrowseControlsView: View {
-    @Bindable var viewModel: LibraryBrowseViewModel
+    @Bindable var viewModel: LibraryBrowseControlsViewModel
+    let showsBackButton: Bool
+    let onNavigateBack: () -> Void
+
+    init(
+        viewModel: LibraryBrowseControlsViewModel,
+        showsBackButton: Bool = false,
+        onNavigateBack: @escaping () -> Void = {},
+    ) {
+        self.viewModel = viewModel
+        self.showsBackButton = showsBackButton
+        self.onNavigateBack = onNavigateBack
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -18,16 +30,15 @@ struct LibraryBrowseControlsView: View {
 
     private var topRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                if viewModel.canNavigateBack {
+            HStack(spacing: pillSpacing) {
+                if showsBackButton {
                     LibraryBrowsePillButton(
                         title: String(localized: "library.browse.folders.back"),
                         systemImage: "chevron.left",
                         isSelected: false,
                         showsDisclosure: false,
-                    ) {
-                        viewModel.navigateBack()
-                    }
+                        action: onNavigateBack,
+                    )
                 }
                 LibraryBrowsePillButton(
                     title: viewModel.typePillTitle,
@@ -65,7 +76,7 @@ struct LibraryBrowseControlsView: View {
     }
 
     @ViewBuilder
-    private func optionsRow(for panel: LibraryBrowseViewModel.Panel) -> some View {
+    private func optionsRow(for panel: LibraryBrowseControlsViewModel.Panel) -> some View {
         switch panel {
         case .type:
             typeOptions
@@ -78,7 +89,7 @@ struct LibraryBrowseControlsView: View {
 
     private var typeOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: pillSpacing) {
                 ForEach(viewModel.displayTypes) { type in
                     LibraryBrowsePillButton(
                         title: type.title,
@@ -96,18 +107,17 @@ struct LibraryBrowseControlsView: View {
 
     private var filterOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(viewModel.availableFilters, id: \ .filter) { filter in
+            HStack(spacing: pillSpacing) {
+                ForEach(viewModel.availableFilters, id: \.filter) { filter in
                     let selection = viewModel.filterSelection(for: filter)
                     let isSelected = selection?.isEnabled == true
                     let label = filterLabel(for: filter, selection: selection)
 
-                    let isBoolean = filter.filterType.lowercased() == "boolean"
                     LibraryBrowsePillButton(
                         title: label,
                         systemImage: isSelected ? "checkmark" : nil,
                         isSelected: isSelected,
-                        showsDisclosure: !isBoolean,
+                        showsDisclosure: !filter.isBoolean,
                     ) {
                         viewModel.toggleFilter(filter)
                     }
@@ -119,8 +129,8 @@ struct LibraryBrowseControlsView: View {
 
     private var sortOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(viewModel.availableSorts, id: \ .key) { sort in
+            HStack(spacing: pillSpacing) {
+                ForEach(viewModel.availableSorts, id: \.key) { sort in
                     let selection = viewModel.selectedSort
                     let isSelected = selection?.sort.key == sort.key
                     let systemImage = sortDirectionImage(for: selection, sort: sort)
@@ -141,7 +151,7 @@ struct LibraryBrowseControlsView: View {
 
     private func filterLabel(
         for filter: PlexSectionItemFilter,
-        selection: LibraryBrowseViewModel.FilterSelection?,
+        selection: LibraryBrowseControlsViewModel.FilterSelection?,
     ) -> String {
         guard let selection else { return filter.title }
         guard let option = selection.selectedOption else { return filter.title }
@@ -149,7 +159,7 @@ struct LibraryBrowseControlsView: View {
     }
 
     private func sortDirectionImage(
-        for selection: LibraryBrowseViewModel.SortSelection?,
+        for selection: LibraryBrowseControlsViewModel.SortSelection?,
         sort: PlexSectionItemSort,
     ) -> String? {
         guard let selection, selection.sort.key == sort.key else { return nil }
@@ -159,6 +169,14 @@ struct LibraryBrowseControlsView: View {
         case .desc:
             return "arrow.down"
         }
+    }
+
+    private var pillSpacing: CGFloat {
+        #if os(tvOS)
+        16
+        #else
+        8
+        #endif
     }
 }
 
@@ -202,8 +220,8 @@ private struct LibraryBrowsePillButton: View {
 }
 
 private struct LibraryBrowseFilterSheetView: View {
-    @Environment(\ .dismiss) private var dismiss
-    @Bindable var viewModel: LibraryBrowseViewModel
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var viewModel: LibraryBrowseControlsViewModel
     let filter: PlexSectionItemFilter
 
     var body: some View {

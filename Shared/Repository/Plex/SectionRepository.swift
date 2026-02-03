@@ -100,8 +100,18 @@ final class SectionRepository {
             URLQueryItem.makeBoolFlag("includeCollections", includeCollections),
         ].compactMap(\.self)
 
-        return try await network.request(
+        return try await getSectionFirstCharacters(
             path: "/library/sections/\(sectionId)/firstCharacter",
+            queryItems: queryItems,
+        )
+    }
+
+    func getSectionFirstCharacters(
+        path: String,
+        queryItems: [URLQueryItem] = [],
+    ) async throws -> PlexFirstCharacterMediaContainer {
+        try await network.request(
+            path: path,
             queryItems: queryItems,
         )
     }

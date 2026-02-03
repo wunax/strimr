@@ -76,11 +76,10 @@ struct LibraryDetailView: View {
                 )
             case .collections:
                 LibraryCollectionsView(
-                    viewModel: LibraryBrowseViewModel(
+                    viewModel: LibraryCollectionsViewModel(
                         library: library,
                         context: plexApiContext,
                         settingsManager: settingsManager,
-                        mode: .collections,
                     ),
                     onSelectMedia: onSelectMedia,
                 )

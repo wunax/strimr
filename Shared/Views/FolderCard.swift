@@ -37,26 +37,28 @@ struct FolderCard: View {
         let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
         let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
 
-        VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.gray.opacity(0.15))
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.gray.opacity(0.15))
 
-                VStack(spacing: 8) {
-                    Image(systemName: "folder.fill")
-                        .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(.gray)
+                    VStack(spacing: 8) {
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: 32, weight: .semibold))
+                            .foregroundStyle(.gray)
+                    }
+                }
+                .frame(width: resolvedWidth, height: resolvedHeight)
+
+                if showsLabels {
+                    Text(title)
+                        .font(.subheadline)
+                        .lineLimit(1)
                 }
             }
-            .frame(width: resolvedWidth, height: resolvedHeight)
-
-            if showsLabels {
-                Text(title)
-                    .font(.subheadline)
-                    .lineLimit(1)
-            }
+            .frame(width: resolvedWidth, alignment: .leading)
         }
-        .frame(width: resolvedWidth, alignment: .leading)
-        .onTapGesture(perform: onTap)
+        .buttonStyle(.plain)
     }
 }

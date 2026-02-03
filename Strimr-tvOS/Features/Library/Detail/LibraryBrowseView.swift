@@ -19,24 +19,43 @@ struct LibraryBrowseView: View {
     }
 
     var body: some View {
+        @Bindable var controls = viewModel.controls
+
         ScrollViewReader { proxy in
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
-                    LazyVGrid(columns: gridColumns, spacing: 32) {
-                        ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
-                            Group {
-                                if let media = viewModel.itemsByIndex[index] {
-                                    PortraitMediaCard(media: media, width: 200, showsLabels: true) {
-                                        onSelectMedia(media)
+                    VStack(alignment: .leading, spacing: 32) {
+                        if controls.hasDisplayTypes {
+                            LibraryBrowseControlsView(
+                                viewModel: controls,
+                                showsBackButton: viewModel.canNavigateBack,
+                                onNavigateBack: viewModel.navigateBack,
+                            )
+                        }
+
+                        LazyVGrid(columns: gridColumns, spacing: 32) {
+                            ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
+                                Group {
+                                    if let item = viewModel.itemsByIndex[index] {
+                                        switch item {
+                                        case let .media(media):
+                                            PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+                                                onSelectMedia(media)
+                                            }
+                                        case let .folder(folder):
+                                            FolderCard(title: folder.title, width: 200, showsLabels: true) {
+                                                viewModel.enterFolder(folder)
+                                            }
+                                        }
+                                    } else {
+                                        ProgressView()
                                     }
-                                } else {
-                                    ProgressView()
                                 }
-                            }
-                            .id(index)
-                            .onAppear {
-                                Task {
-                                    await viewModel.loadPagesAround(index: index)
+                                .id(index)
+                                .onAppear {
+                                    Task {
+                                        await viewModel.loadPagesAround(index: index)
+                                    }
                                 }
                             }
                         }
@@ -47,7 +66,9 @@ struct LibraryBrowseView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                characterColumn(proxy: proxy)
+                if viewModel.showsCharacterColumn {
+                    characterColumn(proxy: proxy)
+                }
             }
             .overlay {
                 if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
