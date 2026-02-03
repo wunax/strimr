@@ -110,7 +110,7 @@ struct LibraryDetailView: View {
     }
 
     private func sidebarButton(for tab: LibraryDetailTab) -> some View {
-        return Button {
+        Button {
             selectedTab = tab
         } label: {
             HStack(spacing: 12) {
