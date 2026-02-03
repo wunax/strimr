@@ -83,7 +83,7 @@ struct MediaCard: View {
 
     private var labelSpacing: CGFloat {
         #if os(tvOS)
-            16
+            20
         #else
             8
         #endif

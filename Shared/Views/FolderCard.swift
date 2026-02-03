@@ -7,7 +7,10 @@ struct FolderCard: View {
     let showsLabels: Bool
     let onTap: () -> Void
 
-    @Environment(\ .horizontalSizeClass) private var sizeClass
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    #if os(tvOS)
+        @FocusState private var isFocused: Bool
+    #endif
 
     private let aspectRatio: CGFloat = 2 / 3
 
@@ -37,28 +40,43 @@ struct FolderCard: View {
         let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
         let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
 
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.gray.opacity(0.15))
+        VStack(alignment: .leading, spacing: labelSpacing) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.gray.opacity(0.15))
 
-                    VStack(spacing: 8) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 32, weight: .semibold))
-                            .foregroundStyle(.gray)
-                    }
-                }
-                .frame(width: resolvedWidth, height: resolvedHeight)
-
-                if showsLabels {
-                    Text(title)
-                        .font(.subheadline)
-                        .lineLimit(1)
+                VStack(spacing: 8) {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(.gray)
                 }
             }
-            .frame(width: resolvedWidth, alignment: .leading)
+            .frame(width: resolvedWidth, height: resolvedHeight)
+            #if os(tvOS)
+                .scaleEffect(isFocused ? 1.12 : 1)
+                .animation(.easeOut(duration: 0.15), value: isFocused)
+            #endif
+
+            if showsLabels {
+                Text(title)
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
         }
-        .buttonStyle(.plain)
+        .frame(width: resolvedWidth, alignment: .leading)
+        #if os(tvOS)
+            .focusable()
+            .focused($isFocused)
+            .onPlayPauseCommand(perform: onTap)
+        #endif
+            .onTapGesture(perform: onTap)
+    }
+
+    private var labelSpacing: CGFloat {
+        #if os(tvOS)
+            20
+        #else
+            8
+        #endif
     }
 }
