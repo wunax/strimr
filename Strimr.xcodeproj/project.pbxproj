@@ -107,6 +107,12 @@
 				Features/Settings/NavigationLibrariesSectionView.swift,
 				Features/Settings/NavigationLibrariesViewModel.swift,
 				Features/Settings/SettingsViewModel.swift,
+				Features/WatchTogether/Playback/WatchTogetherPlaybackSyncEngine.swift,
+				Features/WatchTogether/Playback/WatchTogetherPlayerEvent.swift,
+				Features/WatchTogether/WatchTogetherModels.swift,
+				Features/WatchTogether/WatchTogetherProtocol.swift,
+				Features/WatchTogether/WatchTogetherViewModel.swift,
+				Features/WatchTogether/WatchTogetherWebSocketClient.swift,
 				Library/MPV/MetalLayer.swift,
 				Library/MPV/MPVPlayerDelegate.swift,
 				Library/MPV/MPVPlayerView.swift,
@@ -204,6 +210,7 @@
 				Views/Seerr/SeerrRelatedSection.swift,
 				Views/Seerr/SeerrSearchCard.swift,
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
+				Views/Toast/ToastOverlay.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
 		};

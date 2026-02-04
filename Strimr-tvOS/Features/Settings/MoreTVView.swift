@@ -2,6 +2,7 @@ import SwiftUI
 
 enum MoreTVRoute: Hashable {
     case settings
+    case watchTogether
 }
 
 @MainActor
@@ -19,6 +20,13 @@ struct MoreTVView: View {
 
                     NavigationLink(value: MoreTVRoute.settings) {
                         Label("settings.title", systemImage: "gearshape.fill")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    NavigationLink(value: MoreTVRoute.watchTogether) {
+                        Label("watchTogether.title", systemImage: "person.2.fill")
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
                     }

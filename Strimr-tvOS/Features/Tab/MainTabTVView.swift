@@ -6,6 +6,7 @@ struct MainTabTVView: View {
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
     @Environment(\.openURL) var openURL
+    @Environment(WatchTogetherViewModel.self) var watchTogetherViewModel
     @StateObject var coordinator = MainCoordinator()
 
     var body: some View {
@@ -103,6 +104,8 @@ struct MainTabTVView: View {
                             switch route {
                             case .settings:
                                 SettingsView()
+                            case .watchTogether:
+                                WatchTogetherView()
                             }
                         }
                 }
@@ -111,6 +114,14 @@ struct MainTabTVView: View {
         .environmentObject(coordinator)
         .task {
             try? await libraryStore.loadLibraries()
+            watchTogetherViewModel.configurePlaybackLauncher(
+                PlaybackLauncher(
+                    context: plexApiContext,
+                    coordinator: coordinator,
+                    settingsManager: settingsManager,
+                    openURL: { url in openURL(url) },
+                )
+            )
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let playQueue = coordinator.selectedPlayQueue,

@@ -21,6 +21,7 @@ struct PlayerControlsTVView: View {
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
     var onUserInteraction: () -> Void
+    var isWatchTogether: Bool
     @FocusState private var focusedControl: FocusTarget?
 
     var body: some View {
@@ -39,6 +40,18 @@ struct PlayerControlsTVView: View {
                             .font(.callout)
                             .foregroundStyle(.white.opacity(0.8))
                             .lineLimit(2)
+                    }
+
+                    if isWatchTogether {
+                        Text("watchTogether.badge")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.white.opacity(0.15)),
+                            )
+                            .foregroundStyle(.white.opacity(0.9))
                     }
                 }
 

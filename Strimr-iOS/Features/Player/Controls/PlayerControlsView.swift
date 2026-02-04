@@ -22,6 +22,7 @@ struct PlayerControlsView: View {
     var onSkipMarker: (() -> Void)?
     var isRotationLocked: Bool
     var onToggleRotationLock: () -> Void
+    var isWatchTogether: Bool
 
     var body: some View {
         ZStack {
@@ -30,6 +31,7 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
+                    isWatchTogether: isWatchTogether,
                 )
 
                 Spacer()
@@ -78,6 +80,7 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var isWatchTogether: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -106,6 +109,18 @@ private struct PlayerControlsHeader: View {
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.8))
                         .lineLimit(2)
+                }
+
+                if isWatchTogether {
+                    Text("watchTogether.badge")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.15)),
+                        )
+                        .foregroundStyle(.white.opacity(0.9))
                 }
             }
 

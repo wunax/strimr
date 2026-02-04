@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "pino": "^10.3.0",
+    "ws": "^8.19.0"
+  }
+}

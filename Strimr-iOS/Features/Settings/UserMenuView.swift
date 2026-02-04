@@ -14,6 +14,12 @@ struct UserMenuView: View {
                     Label("settings.title", systemImage: "gearshape.fill")
                 }
 
+                NavigationLink {
+                    WatchTogetherView()
+                } label: {
+                    Label("watchTogether.title", systemImage: "person.2.fill")
+                }
+
                 Button {
                     Task { await sessionManager.requestProfileSelection() }
                 } label: {
