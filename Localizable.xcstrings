@@ -7000,6 +7000,50 @@
         }
       }
     },
+    "watchTogether.toast.left %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left the session"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ a quitté la session"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 离开了房间"
+          }
+        }
+      }
+    },
+    "watchTogether.toast.newHost %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is now the host"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est maintenant l'hôte"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 现在是主持人"
+          }
+        }
+      }
+    },
     "watchTogether.toast.noAccess" : {
       "localizations" : {
         "en" : {
@@ -7040,6 +7084,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 已暂停"
+          }
+        }
+      }
+    },
+    "watchTogether.toast.playbackStopped" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch Together playback stopped."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture Watch Together est arretee."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起观看播放已停止。"
           }
         }
       }

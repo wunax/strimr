@@ -38,6 +38,7 @@ final class WatchTogetherViewModel {
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
     @ObservationIgnored private var playbackLauncher: PlaybackLauncher?
     @ObservationIgnored private var lastMediaAccessRatingKey: String?
+    @ObservationIgnored private var lastKnownHostId: String?
     @ObservationIgnored private lazy var playbackSyncEngine: WatchTogetherPlaybackSyncEngine = {
         WatchTogetherPlaybackSyncEngine(
             sendEvent: { [weak self] event in
@@ -232,11 +233,13 @@ final class WatchTogetherViewModel {
             code = payload.code
             participantId = payload.participantId
             role = payload.hostId == payload.participantId ? .host : .guest
+            lastKnownHostId = payload.hostId
             showToast(String(localized: "watchTogether.toast.created \(payload.code)"))
         case let .joined(payload):
             code = payload.code
             participantId = payload.participantId
             role = payload.hostId == payload.participantId ? .host : .guest
+            lastKnownHostId = payload.hostId
             showToast(String(localized: "watchTogether.toast.joined \(payload.code)"))
         case let .lobbySnapshot(snapshot):
             apply(snapshot: snapshot)
@@ -297,6 +300,9 @@ final class WatchTogetherViewModel {
     }
 
     private func apply(snapshot: WatchTogetherLobbySnapshot) {
+        let previousParticipantsById = Dictionary(uniqueKeysWithValues: participants.map { ($0.id, $0) })
+        let previousHostId = lastKnownHostId
+
         code = snapshot.code
         role = snapshot.hostId == currentParticipantId ? .host : .guest
         participants = snapshot.participants
@@ -306,6 +312,19 @@ final class WatchTogetherViewModel {
 
         readyMap = Dictionary(uniqueKeysWithValues: participants.map { ($0.id, $0.isReady) })
         mediaAccessMap = Dictionary(uniqueKeysWithValues: participants.map { ($0.id, $0.hasMediaAccess) })
+        lastKnownHostId = snapshot.hostId
+
+        let participantIds = Set(snapshot.participants.map(\.id))
+        let departedParticipants = previousParticipantsById.values.filter { !participantIds.contains($0.id) }
+        for participant in departedParticipants where participant.id != currentParticipantId {
+            showToast(String(localized: "watchTogether.toast.left \(participant.displayName)"))
+        }
+
+        if let previousHostId, previousHostId != snapshot.hostId,
+            let newHost = snapshot.participants.first(where: { $0.id == snapshot.hostId })
+        {
+            showToast(String(localized: "watchTogether.toast.newHost \(newHost.displayName)"))
+        }
 
         handleSelectedMediaChange(snapshot.selectedMedia)
     }
@@ -355,9 +374,13 @@ final class WatchTogetherViewModel {
         isSessionStarted = false
         playbackSyncEngine.setEnabled(false)
         playbackStoppedSignal = UUID()
-        if let reason = payload.reason {
+        let reason = payload.reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let reason, !reason.isEmpty {
             showToast(reason)
+            return
         }
+
+        showToast(String(localized: "watchTogether.toast.playbackStopped"))
     }
 
     private func resetSessionState(clearJoinCode: Bool) {
@@ -377,6 +400,7 @@ final class WatchTogetherViewModel {
         participantId = nil
         playbackSyncEngine.setEnabled(false)
         lastMediaAccessRatingKey = nil
+        lastKnownHostId = nil
     }
 
     private func verifyMediaAccess(for media: WatchTogetherSelectedMedia) async -> Bool {
