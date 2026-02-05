@@ -1,7 +1,7 @@
-import loggerBase from "./logger.js";
-import type { Client, Session } from "./types.js";
+import loggerBase from './logger.js';
+import type { Client, Session } from './types.js';
 
-const logger = loggerBase.child({ module: "messaging" });
+const logger = loggerBase.child({ module: 'messaging' });
 
 export function sendJson(client: Client | null | undefined, type: string, payload: unknown) {
   if (!client || client.isClosed) return;
@@ -9,7 +9,7 @@ export function sendJson(client: Client | null | undefined, type: string, payloa
   try {
     client.sendText(message);
   } catch (error) {
-    logger.warn({ err: error, type }, "Failed to send message");
+    logger.warn({ err: error, type }, 'Failed to send message');
   }
 }
 

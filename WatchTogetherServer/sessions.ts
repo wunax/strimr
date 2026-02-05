@@ -1,20 +1,20 @@
-import * as crypto from "crypto";
+import * as crypto from 'crypto';
 
-import { broadcast } from "./messaging.js";
-import loggerBase from "./logger.js";
-import { sessions } from "./state.js";
-import type { Client, LobbySnapshot, Participant, Session } from "./types.js";
+import { broadcast } from './messaging.js';
+import loggerBase from './logger.js';
+import { sessions } from './state.js';
+import type { Client, LobbySnapshot, Participant, Session } from './types.js';
 
-const logger = loggerBase.child({ module: "sessions" });
+const logger = loggerBase.child({ module: 'sessions' });
 
 export function nowMs(): number {
   return Date.now();
 }
 
 function generateCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const length = 6 + Math.floor(Math.random() * 3);
-  let code = "";
+  let code = '';
   for (let i = 0; i < length; i += 1) {
     code += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
@@ -72,12 +72,7 @@ export function createSession({
 
 export function addParticipant(
   session: Session,
-  {
-    userId,
-    displayName,
-    isHost,
-    client,
-  }: { userId: string; displayName: string; isHost: boolean; client: Client }
+  { userId, displayName, isHost, client }: { userId: string; displayName: string; isHost: boolean; client: Client },
 ): Participant {
   const participantId = createParticipantId(session, userId);
   const participant: Participant = {
@@ -127,19 +122,19 @@ export function sessionForClient(client: Client): Session | null {
 }
 
 export function endSession(session: Session, reason: string): void {
-  broadcast(session, "sessionEnded", { reason });
+  broadcast(session, 'sessionEnded', { reason });
   session.participants.forEach((participant) => {
     participant.client.sessionCode = null;
     participant.client.participantId = null;
   });
   sessions.delete(session.code);
-  logger.info({ code: session.code, reason }, "Session ended");
+  logger.info({ code: session.code, reason }, 'Session ended');
 }
 
 function createParticipantId(session: Session, userId: string): string {
-  let participantId = `${userId}-${crypto.randomBytes(3).toString("hex")}`;
+  let participantId = `${userId}-${crypto.randomBytes(3).toString('hex')}`;
   while (session.participants.some((participant) => participant.id === participantId)) {
-    participantId = `${userId}-${crypto.randomBytes(3).toString("hex")}`;
+    participantId = `${userId}-${crypto.randomBytes(3).toString('hex')}`;
   }
   return participantId;
 }
