@@ -67,3 +67,4 @@ Config/Config.xcconfig
 
 node_modules/
 .env
+WatchTogetherServer/dist/

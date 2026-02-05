@@ -1,17 +1,17 @@
-const http = require("http");
+import * as http from "http";
 
-const { PORT } = require("./config");
-const {
-  SESSION_TTL_MS,
+import { PORT } from "./config.js";
+import {
   CLEANUP_INTERVAL_MS,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
-} = require("./constants");
-const logger = require("./logger");
-const { clients, sessions } = require("./state");
-const { createWebSocketServer } = require("./websocket");
-const { handleMessage, handleClientDisconnect } = require("./handlers");
-const { endSession, nowMs } = require("./sessions");
+  SESSION_TTL_MS,
+} from "./constants.js";
+import { handleClientDisconnect, handleMessage } from "./handlers.js";
+import logger from "./logger.js";
+import { endSession, nowMs } from "./sessions.js";
+import { clients, sessions } from "./state.js";
+import { createWebSocketServer } from "./websocket.js";
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });

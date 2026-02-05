@@ -1,53 +1,79 @@
-const { sessions } = require("./state");
-const {
-  createSession,
+import { broadcast, sendJson } from "./messaging.js";
+import loggerBase from "./logger.js";
+import {
   addParticipant,
-  removeParticipant,
-  snapshotFor,
-  sessionForClient,
+  createSession,
   endSession,
   nowMs,
-} = require("./sessions");
-const { sendJson, broadcast } = require("./messaging");
-const logger = require("./logger").child({ module: "handlers" });
+  removeParticipant,
+  sessionForClient,
+  snapshotFor,
+} from "./sessions.js";
+import { sessions } from "./state.js";
+import type { Client, ProtocolMessage, SelectedMedia, Session } from "./types.js";
 
-function handleMessage(client, message) {
+const logger = loggerBase.child({ module: "handlers" });
+
+type Payload = Record<string, unknown>;
+
+function asPayload(value: unknown): Payload {
+  if (!value || typeof value !== "object") return {};
+  return value as Payload;
+}
+
+function getString(payload: Payload, key: string): string | null {
+  const value = payload[key];
+  return typeof value === "string" ? value : null;
+}
+
+function getNumber(payload: Payload, key: string): number | null {
+  const value = payload[key];
+  return typeof value === "number" ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function handleMessage(client: Client, message: ProtocolMessage): void {
   if (!message || message.v !== 1 || !message.type) {
     logger.warn({ messageType: message?.type }, "Unsupported protocol version");
     sendJson(client, "error", { message: "Unsupported protocol version.", code: "bad_version" });
     return;
   }
 
+  const payload = asPayload(message.payload);
+
   switch (message.type) {
     case "createSession":
-      handleCreateSession(client, message.payload || {});
+      handleCreateSession(client, payload);
       break;
     case "joinSession":
-      handleJoinSession(client, message.payload || {});
+      handleJoinSession(client, payload);
       break;
     case "leaveSession":
-      handleLeaveSession(client, message.payload || {});
+      handleLeaveSession(client, payload);
       break;
     case "setReady":
-      handleSetReady(client, message.payload || {});
+      handleSetReady(client, payload);
       break;
     case "setSelectedMedia":
-      handleSetSelectedMedia(client, message.payload || {});
+      handleSetSelectedMedia(client, payload);
       break;
     case "mediaAccess":
-      handleMediaAccess(client, message.payload || {});
+      handleMediaAccess(client, payload);
       break;
     case "startPlayback":
-      handleStartPlayback(client, message.payload || {});
+      handleStartPlayback(client, payload);
       break;
     case "stopPlayback":
-      handleStopPlayback(client, message.payload || {});
+      handleStopPlayback(client, payload);
       break;
     case "playerEvent":
-      handlePlayerEvent(client, message.payload || {});
+      handlePlayerEvent(client, payload);
       break;
     case "ping":
-      handlePing(client, message.payload || {});
+      handlePing(client, payload);
       break;
     default:
       logger.warn({ messageType: message.type }, "Unknown message type");
@@ -55,8 +81,10 @@ function handleMessage(client, message) {
   }
 }
 
-function handleCreateSession(client, payload) {
-  const { plexServerId, participantId: userId, displayName } = payload;
+function handleCreateSession(client: Client, payload: Payload): void {
+  const plexServerId = getString(payload, "plexServerId");
+  const userId = getString(payload, "participantId");
+  const displayName = getString(payload, "displayName");
   if (!plexServerId || !userId || !displayName) {
     sendJson(client, "error", { message: "Missing identity payload.", code: "missing_identity" });
     return;
@@ -83,8 +111,11 @@ function handleCreateSession(client, payload) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleJoinSession(client, payload) {
-  const { code, plexServerId, participantId: userId, displayName } = payload;
+function handleJoinSession(client: Client, payload: Payload): void {
+  const code = getString(payload, "code");
+  const plexServerId = getString(payload, "plexServerId");
+  const userId = getString(payload, "participantId");
+  const displayName = getString(payload, "displayName");
   if (!code || !plexServerId || !userId || !displayName) {
     sendJson(client, "error", { message: "Missing identity payload.", code: "missing_identity" });
     return;
@@ -126,7 +157,7 @@ function handleJoinSession(client, payload) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleLeaveSession(client, payload) {
+function handleLeaveSession(client: Client, payload: Payload): void {
   if (!client.sessionCode || !client.participantId) return;
   const session = sessions.get(client.sessionCode);
   if (!session) return;
@@ -139,10 +170,7 @@ function handleLeaveSession(client, payload) {
   client.sessionCode = null;
   client.participantId = null;
 
-  logger.info(
-    { code: session.code, participantId, endForAll, isHost },
-    "Participant left"
-  );
+  logger.info({ code: session.code, participantId, endForAll, isHost }, "Participant left");
 
   if (endForAll) {
     endSession(session, "Session ended by host.");
@@ -161,15 +189,15 @@ function handleLeaveSession(client, payload) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleSetReady(client, payload) {
+function handleSetReady(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
-  if (!session) return;
+  if (!session || !client.participantId) return;
   session.readiness.set(client.participantId, payload.isReady === true);
   logger.debug({ code: session.code, participantId: client.participantId }, "Participant readiness updated");
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleSetSelectedMedia(client, payload) {
+function handleSetSelectedMedia(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
   if (!session) return;
 
@@ -182,7 +210,7 @@ function handleSetSelectedMedia(client, payload) {
     return;
   }
 
-  session.selectedMedia = payload.media;
+  session.selectedMedia = payload.media as SelectedMedia;
   session.started = false;
   session.startAtEpochMs = null;
   session.mediaAccess = new Map();
@@ -195,15 +223,15 @@ function handleSetSelectedMedia(client, payload) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleMediaAccess(client, payload) {
+function handleMediaAccess(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
-  if (!session) return;
+  if (!session || !client.participantId) return;
   session.mediaAccess.set(client.participantId, payload.hasAccess === true);
   logger.debug({ code: session.code, participantId: client.participantId }, "Media access updated");
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleStartPlayback(client, payload) {
+function handleStartPlayback(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
   if (!session) return;
 
@@ -212,7 +240,9 @@ function handleStartPlayback(client, payload) {
     return;
   }
 
-  if (!payload.ratingKey || !payload.type) {
+  const ratingKey = getString(payload, "ratingKey");
+  const mediaType = getString(payload, "type");
+  if (!ratingKey || !mediaType) {
     return;
   }
 
@@ -220,8 +250,8 @@ function handleStartPlayback(client, payload) {
   session.startAtEpochMs = nowMs() + 2000;
 
   const startPayload = {
-    ratingKey: payload.ratingKey,
-    type: payload.type,
+    ratingKey,
+    type: mediaType,
     startAtEpochMs: session.startAtEpochMs,
   };
 
@@ -231,7 +261,7 @@ function handleStartPlayback(client, payload) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handleStopPlayback(client, payload) {
+function handleStopPlayback(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
   if (!session) return;
 
@@ -243,36 +273,38 @@ function handleStopPlayback(client, payload) {
   session.started = false;
   session.startAtEpochMs = null;
 
-  broadcast(session, "playbackStopped", { reason: payload.reason || null });
+  const reason = typeof payload.reason === "string" ? payload.reason : null;
+  broadcast(session, "playbackStopped", { reason });
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function handlePlayerEvent(client, payload) {
+function handlePlayerEvent(client: Client, payload: Payload): void {
   const session = sessionForClient(client);
-  if (!session) return;
-  if (!session.started) return;
+  if (!session || !session.started || !client.participantId) return;
 
-  if (!payload.event) return;
+  if (!isRecord(payload.event)) return;
 
+  const eventType = typeof payload.event.type === "string" ? payload.event.type : "unknown";
   const event = {
     ...payload.event,
     senderId: client.participantId,
     serverReceivedAtMs: nowMs(),
   };
 
-  logger.debug({ code: session.code, eventType: payload.event.type }, "Player event received");
+  logger.debug({ code: session.code, eventType }, "Player event received");
 
   broadcast(session, "playerEvent", event);
 }
 
-function handlePing(client, payload) {
+function handlePing(client: Client, payload: Payload): void {
+  const sentAtMs = getNumber(payload, "sentAtMs") ?? 0;
   sendJson(client, "pong", {
-    sentAtMs: payload.sentAtMs || 0,
+    sentAtMs,
     receivedAtMs: nowMs(),
   });
 }
 
-function handleClientDisconnect(client) {
+export function handleClientDisconnect(client: Client): void {
   if (!client.sessionCode || !client.participantId) return;
   const session = sessions.get(client.sessionCode);
   if (!session) return;
@@ -297,7 +329,7 @@ function handleClientDisconnect(client) {
   broadcast(session, "lobbySnapshot", snapshotFor(session));
 }
 
-function assignNewHost(session) {
+function assignNewHost(session: Session): void {
   session.participants.forEach((participant) => {
     participant.isHost = false;
   });
@@ -309,8 +341,3 @@ function assignNewHost(session) {
   session.hostId = nextHost.id;
   session.hostUserId = nextHost.userId;
 }
-
-module.exports = {
-  handleMessage,
-  handleClientDisconnect,
-};

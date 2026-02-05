@@ -1,6 +1,9 @@
-const logger = require("./logger").child({ module: "messaging" });
+import loggerBase from "./logger.js";
+import type { Client, Session } from "./types.js";
 
-function sendJson(client, type, payload) {
+const logger = loggerBase.child({ module: "messaging" });
+
+export function sendJson(client: Client | null | undefined, type: string, payload: unknown) {
   if (!client || client.isClosed) return;
   const message = JSON.stringify({ v: 1, type, payload });
   try {
@@ -10,13 +13,8 @@ function sendJson(client, type, payload) {
   }
 }
 
-function broadcast(session, type, payload) {
+export function broadcast(session: Session, type: string, payload: unknown) {
   session.participants.forEach((participant) => {
     sendJson(participant.client, type, payload);
   });
 }
-
-module.exports = {
-  sendJson,
-  broadcast,
-};

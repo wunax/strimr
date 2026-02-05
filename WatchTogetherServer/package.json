@@ -1,14 +1,21 @@
 {
+  "type": "module",
   "devDependencies": {
+    "@types/node": "^22.19.8",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "start": "node server.js"
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
+    "@types/ws": "^8.18.1",
     "dotenv": "^17.2.3",
     "pino": "^10.3.0",
     "ws": "^8.19.0"

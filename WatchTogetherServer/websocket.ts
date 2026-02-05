@@ -1,21 +1,37 @@
-const WebSocket = require("ws");
+import type { IncomingMessage, Server } from "http";
 
-const { clients } = require("./state");
-const { sendJson } = require("./messaging");
-const { nowMs } = require("./sessions");
-const logger = require("./logger").child({ module: "websocket" });
+import WebSocket, { WebSocketServer } from "ws";
 
-function createClient(ws, req) {
-  const client = {
+import { sendJson } from "./messaging.js";
+import loggerBase from "./logger.js";
+import { nowMs } from "./sessions.js";
+import { clients } from "./state.js";
+import type { Client, OnClose, OnMessage, ProtocolMessage } from "./types.js";
+
+const logger = loggerBase.child({ module: "websocket" });
+
+function rawDataToString(data: WebSocket.RawData): string {
+  if (typeof data === "string") return data;
+  if (Buffer.isBuffer(data)) return data.toString("utf8");
+  if (Array.isArray(data)) return Buffer.concat(data).toString("utf8");
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(new Uint8Array(data)).toString("utf8");
+  }
+  return Buffer.from(data as Uint8Array).toString("utf8");
+}
+
+function createClient(ws: WebSocket, req: IncomingMessage): Client {
+  const client: Client = {
     ws,
     isClosed: false,
     lastSeenAt: nowMs(),
     lastPongAt: nowMs(),
     sessionCode: null,
     participantId: null,
+    userId: null,
     displayName: null,
     plexServerId: null,
-    remoteAddress: req.socket?.remoteAddress || null,
+    remoteAddress: req.socket?.remoteAddress ?? null,
     closeNotified: false,
     sendText(text) {
       if (this.isClosed || this.ws.readyState !== WebSocket.OPEN) return;
@@ -30,29 +46,34 @@ function createClient(ws, req) {
       this.isClosed = true;
       try {
         this.ws.close();
-      } catch (error) {}
+      } catch (error) {
+        // Ignore close errors; connection is already closing.
+      }
     },
   };
 
   return client;
 }
 
-function createWebSocketServer(server, { onMessage, onClose }) {
-  const wss = new WebSocket.Server({ server });
+export function createWebSocketServer(
+  server: Server,
+  { onMessage, onClose }: { onMessage?: OnMessage; onClose?: OnClose }
+): WebSocketServer {
+  const wss = new WebSocketServer({ server });
 
-  wss.on("connection", (ws, req) => {
+  wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
     const client = createClient(ws, req);
     clients.add(client);
 
     logger.info({ remoteAddress: client.remoteAddress }, "WebSocket connected");
 
-    ws.on("message", (data) => {
+    ws.on("message", (data: WebSocket.RawData) => {
       client.lastSeenAt = nowMs();
 
-      let message;
+      let message: ProtocolMessage;
       try {
-        const text = typeof data === "string" ? data : data.toString("utf8");
-        message = JSON.parse(text);
+        const text = rawDataToString(data);
+        message = JSON.parse(text) as ProtocolMessage;
       } catch (error) {
         logger.warn({ err: error, remoteAddress: client.remoteAddress }, "Invalid JSON payload");
         sendJson(client, "error", { message: "Invalid JSON payload.", code: "invalid_json" });
@@ -81,7 +102,7 @@ function createWebSocketServer(server, { onMessage, onClose }) {
   return wss;
 }
 
-function handleClose(client, onClose, reason) {
+function handleClose(client: Client, onClose: OnClose | undefined, reason: "close" | "error") {
   if (client.closeNotified) return;
   client.closeNotified = true;
   client.isClosed = true;
@@ -91,7 +112,3 @@ function handleClose(client, onClose, reason) {
     onClose(client);
   }
 }
-
-module.exports = {
-  createWebSocketServer,
-};

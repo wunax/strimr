@@ -1,14 +1,17 @@
-const crypto = require("crypto");
+import * as crypto from "crypto";
 
-const { sessions } = require("./state");
-const { broadcast } = require("./messaging");
-const logger = require("./logger").child({ module: "sessions" });
+import { broadcast } from "./messaging.js";
+import loggerBase from "./logger.js";
+import { sessions } from "./state.js";
+import type { Client, LobbySnapshot, Participant, Session } from "./types.js";
 
-function nowMs() {
+const logger = loggerBase.child({ module: "sessions" });
+
+export function nowMs(): number {
   return Date.now();
 }
 
-function generateCode() {
+function generateCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const length = 6 + Math.floor(Math.random() * 3);
   let code = "";
@@ -18,7 +21,7 @@ function generateCode() {
   return code;
 }
 
-function createSessionCode() {
+function createSessionCode(): string {
   let code = generateCode();
   let attempts = 0;
   while (sessions.has(code) && attempts < 10) {
@@ -28,9 +31,19 @@ function createSessionCode() {
   return code;
 }
 
-function createSession({ plexServerId, hostUserId, hostName, client }) {
+export function createSession({
+  plexServerId,
+  hostUserId,
+  hostName,
+  client,
+}: {
+  plexServerId: string;
+  hostUserId: string;
+  hostName: string;
+  client: Client;
+}): Session {
   const code = createSessionCode();
-  const session = {
+  const session: Session = {
     code,
     plexServerId,
     hostId: null,
@@ -57,9 +70,17 @@ function createSession({ plexServerId, hostUserId, hostName, client }) {
   return session;
 }
 
-function addParticipant(session, { userId, displayName, isHost, client }) {
+export function addParticipant(
+  session: Session,
+  {
+    userId,
+    displayName,
+    isHost,
+    client,
+  }: { userId: string; displayName: string; isHost: boolean; client: Client }
+): Participant {
   const participantId = createParticipantId(session, userId);
-  const participant = {
+  const participant: Participant = {
     id: participantId,
     userId,
     displayName,
@@ -74,13 +95,13 @@ function addParticipant(session, { userId, displayName, isHost, client }) {
   return participant;
 }
 
-function removeParticipant(session, participantId) {
+export function removeParticipant(session: Session, participantId: string): void {
   session.participants = session.participants.filter((participant) => participant.id !== participantId);
   session.readiness.delete(participantId);
   session.mediaAccess.delete(participantId);
 }
 
-function snapshotFor(session) {
+export function snapshotFor(session: Session): LobbySnapshot {
   return {
     code: session.code,
     hostId: session.hostId,
@@ -98,39 +119,27 @@ function snapshotFor(session) {
   };
 }
 
-function sessionForClient(client) {
+export function sessionForClient(client: Client): Session | null {
   if (!client.sessionCode || !client.participantId) return null;
   const session = sessions.get(client.sessionCode);
   if (!session) return null;
   return session;
 }
 
-function endSession(session, reason) {
+export function endSession(session: Session, reason: string): void {
   broadcast(session, "sessionEnded", { reason });
   session.participants.forEach((participant) => {
-    if (participant.client) {
-      participant.client.sessionCode = null;
-      participant.client.participantId = null;
-    }
+    participant.client.sessionCode = null;
+    participant.client.participantId = null;
   });
   sessions.delete(session.code);
   logger.info({ code: session.code, reason }, "Session ended");
 }
 
-function createParticipantId(session, userId) {
+function createParticipantId(session: Session, userId: string): string {
   let participantId = `${userId}-${crypto.randomBytes(3).toString("hex")}`;
   while (session.participants.some((participant) => participant.id === participantId)) {
     participantId = `${userId}-${crypto.randomBytes(3).toString("hex")}`;
   }
   return participantId;
 }
-
-module.exports = {
-  nowMs,
-  createSession,
-  addParticipant,
-  removeParticipant,
-  snapshotFor,
-  sessionForClient,
-  endSession,
-};
