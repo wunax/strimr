@@ -143,7 +143,6 @@ struct PlayerTVView: View {
             if let seekFeedback {
                 seekFeedbackOverlay(seekFeedback)
             }
-
         }
         .overlay(alignment: .top) {
             ToastOverlay(toasts: watchTogetherViewModel.toasts)
@@ -403,7 +402,7 @@ struct PlayerTVView: View {
         applyResumeOffsetIfNeeded()
     }
 
-    private func dismissPlayer(force: Bool = false) {
+    private func dismissPlayer(force _: Bool = false) {
         hideControlsWorkItem?.cancel()
         onExit()
     }

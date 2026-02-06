@@ -77,7 +77,7 @@ final class WatchTogetherWebSocketClient {
                     let decoded = try decoder.decode(WatchTogetherServerMessage.self, from: data)
                     onMessage?(decoded)
                 } catch {
-                    if Task.isCancelled || self.state == .disconnected {
+                    if Task.isCancelled || state == .disconnected {
                         return
                     }
                     guard let currentTask = self.task, currentTask === task else {

@@ -129,7 +129,6 @@ struct PlayerView: View {
             if !controlsVisible, let activeMarker, let skipTitle {
                 skipOverlay(marker: activeMarker, title: skipTitle)
             }
-
         }
         .statusBarHidden()
         .overlay(alignment: .top) {

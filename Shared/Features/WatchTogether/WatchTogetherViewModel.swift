@@ -39,19 +39,17 @@ final class WatchTogetherViewModel {
     @ObservationIgnored private var playbackLauncher: PlaybackLauncher?
     @ObservationIgnored private var lastMediaAccessRatingKey: String?
     @ObservationIgnored private var lastKnownHostId: String?
-    @ObservationIgnored private lazy var playbackSyncEngine: WatchTogetherPlaybackSyncEngine = {
-        WatchTogetherPlaybackSyncEngine(
-            sendEvent: { [weak self] event in
-                Task { await self?.sendPlayerEvent(event) }
-            },
-            showToast: { [weak self] message in
-                self?.showToast(message)
-            },
-            currentParticipantId: { [weak self] in
-                self?.currentParticipantId
-            },
-        )
-    }()
+    @ObservationIgnored private lazy var playbackSyncEngine: WatchTogetherPlaybackSyncEngine = .init(
+        sendEvent: { [weak self] event in
+            Task { await self?.sendPlayerEvent(event) }
+        },
+        showToast: { [weak self] message in
+            self?.showToast(message)
+        },
+        currentParticipantId: { [weak self] in
+            self?.currentParticipantId
+        },
+    )
 
     init(sessionManager: SessionManager, context: PlexAPIContext) {
         self.sessionManager = sessionManager
@@ -168,8 +166,8 @@ final class WatchTogetherViewModel {
                     StartPlaybackRequest(
                         ratingKey: selectedMedia.ratingKey,
                         type: selectedMedia.type,
-                    )
-                )
+                    ),
+                ),
             )
         }
     }
@@ -267,7 +265,7 @@ final class WatchTogetherViewModel {
         }
     }
 
-    private func handleDisconnect(_ error: Error?) {
+    private func handleDisconnect(_: Error?) {
         guard isInSession else {
             connectionState = .disconnected
             return
@@ -326,7 +324,7 @@ final class WatchTogetherViewModel {
         }
 
         if let previousHostId, previousHostId != snapshot.hostId,
-            let newHost = snapshot.participants.first(where: { $0.id == snapshot.hostId })
+           let newHost = snapshot.participants.first(where: { $0.id == snapshot.hostId })
         {
             showToast(String(localized: "watchTogether.toast.newHost \(newHost.displayName)"))
         }

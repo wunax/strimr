@@ -157,7 +157,6 @@ struct WatchTogetherView: View {
         }
     }
 
-    @ViewBuilder
     private var participantsList: some View {
         ForEach(viewModel.participants) { participant in
             WatchTogetherParticipantRow(
@@ -205,7 +204,6 @@ struct WatchTogetherView: View {
         .frame(maxWidth: .infinity)
         .disabled(!viewModel.canStartPlayback)
     }
-
 }
 
 private struct WatchTogetherParticipantRow: View {

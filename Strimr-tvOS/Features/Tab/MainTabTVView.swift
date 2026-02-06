@@ -120,7 +120,7 @@ struct MainTabTVView: View {
                     coordinator: coordinator,
                     settingsManager: settingsManager,
                     openURL: { url in openURL(url) },
-                )
+                ),
             )
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {

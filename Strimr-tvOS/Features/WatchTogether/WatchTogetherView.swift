@@ -44,11 +44,11 @@ struct WatchTogetherView: View {
     private func entryView() -> some View {
         let joinCodeBinding = Binding(
             get: { viewModel.joinCode },
-            set: { viewModel.joinCode = $0 }
+            set: { viewModel.joinCode = $0 },
         )
 
         return GeometryReader { proxy in
-            let usesTwoColumns = proxy.size.width >= 1_280
+            let usesTwoColumns = proxy.size.width >= 1280
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -79,7 +79,7 @@ struct WatchTogetherView: View {
 
     private func lobbyView() -> some View {
         GeometryReader { proxy in
-            let usesTwoColumns = proxy.size.width >= 1_480
+            let usesTwoColumns = proxy.size.width >= 1480
             let sideColumnWidth = min(max(proxy.size.width * 0.33, 360), 500)
 
             ScrollView {
@@ -131,7 +131,7 @@ struct WatchTogetherView: View {
     private var createSessionPanel: some View {
         WatchTogetherPanel(
             titleKey: "watchTogether.create.title",
-            systemImage: "sparkles.tv"
+            systemImage: "sparkles.tv",
         ) {
             Button("watchTogether.create.action") {
                 viewModel.createSession()
@@ -146,7 +146,7 @@ struct WatchTogetherView: View {
     private func joinSessionPanel(joinCodeBinding: Binding<String>) -> some View {
         WatchTogetherPanel(
             titleKey: "watchTogether.join.title",
-            systemImage: "rectangle.and.text.magnifyingglass"
+            systemImage: "rectangle.and.text.magnifyingglass",
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 TextField("watchTogether.join.placeholder", text: joinCodeBinding)
@@ -166,7 +166,7 @@ struct WatchTogetherView: View {
     private var sessionInfoPanel: some View {
         WatchTogetherPanel(
             titleKey: "watchTogether.session.code",
-            systemImage: "link"
+            systemImage: "link",
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 connectionStatusBadge
@@ -188,7 +188,7 @@ struct WatchTogetherView: View {
                 Text("\(readyParticipantsCount)/\(viewModel.participants.count)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-            }
+            },
         ) {
             if viewModel.participants.isEmpty {
                 Text("common.empty.nothingToShow")
@@ -198,7 +198,7 @@ struct WatchTogetherView: View {
                     ForEach(viewModel.participants) { participant in
                         WatchTogetherParticipantRow(
                             participant: participant,
-                            hasSelectedMedia: viewModel.selectedMedia != nil
+                            hasSelectedMedia: viewModel.selectedMedia != nil,
                         )
                     }
                 }
@@ -209,7 +209,7 @@ struct WatchTogetherView: View {
     private var selectedMediaSection: some View {
         WatchTogetherPanel(
             titleKey: "watchTogether.selectedMedia.title",
-            systemImage: "film.fill"
+            systemImage: "film.fill",
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 if let selectedMedia = viewModel.selectedMedia {
@@ -236,7 +236,7 @@ struct WatchTogetherView: View {
     private var actionsSection: some View {
         WatchTogetherPanel(
             titleKey: "watchTogether.actions.title",
-            systemImage: "play.circle.fill"
+            systemImage: "play.circle.fill",
         ) {
             let isReady = viewModel.readyMap[viewModel.currentParticipantId ?? ""] == true
 
@@ -284,7 +284,7 @@ struct WatchTogetherView: View {
         .padding(.vertical, 8)
         .background(
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.08))
+                .fill(Color.white.opacity(0.08)),
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -316,7 +316,7 @@ struct WatchTogetherView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.red.opacity(0.30))
+                .fill(Color.red.opacity(0.30)),
         )
     }
 
@@ -334,7 +334,7 @@ private struct WatchTogetherPanel<Content: View, Trailing: View>: View {
     init(
         titleKey: LocalizedStringKey,
         systemImage: String,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> Content,
     ) where Trailing == EmptyView {
         self.titleKey = titleKey
         self.systemImage = systemImage
@@ -346,7 +346,7 @@ private struct WatchTogetherPanel<Content: View, Trailing: View>: View {
         titleKey: LocalizedStringKey,
         systemImage: String,
         @ViewBuilder trailing: () -> Trailing,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> Content,
     ) {
         self.titleKey = titleKey
         self.systemImage = systemImage
@@ -368,7 +368,7 @@ private struct WatchTogetherPanel<Content: View, Trailing: View>: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.06))
+                .fill(Color.white.opacity(0.06)),
         )
         .focusSection()
     }
@@ -396,7 +396,7 @@ private struct WatchTogetherParticipantRow: View {
                             .padding(.vertical, 4)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(Color.brandPrimary.opacity(0.2))
+                                    .fill(Color.brandPrimary.opacity(0.2)),
                             )
                     }
                 }
@@ -415,7 +415,7 @@ private struct WatchTogetherParticipantRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.white.opacity(0.04)),
         )
     }
 }
@@ -464,7 +464,7 @@ private struct WatchTogetherSelectedMediaCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Color.white.opacity(0.05)),
         )
         .task(id: media.ratingKey) {
             await loadImage()
@@ -477,7 +477,7 @@ private struct WatchTogetherSelectedMediaCard: View {
             .overlay(
                 Image(systemName: "film")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.gray.opacity(0.6))
+                    .foregroundStyle(.gray.opacity(0.6)),
             )
     }
 

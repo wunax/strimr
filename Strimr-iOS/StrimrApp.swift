@@ -20,7 +20,10 @@ struct StrimrApp: App {
         _settingsManager = State(initialValue: SettingsManager())
         _libraryStore = State(initialValue: store)
         _seerrStore = State(initialValue: SeerrStore())
-        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(sessionManager: sessionManager, context: context))
+        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(
+            sessionManager: sessionManager,
+            context: context,
+        ))
     }
 
     var body: some Scene {

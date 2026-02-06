@@ -22,7 +22,10 @@ struct StrimrApp: App {
         _mediaFocusModel = State(initialValue: MediaFocusModel())
         _seerrStore = State(initialValue: SeerrStore())
         _seerrFocusModel = State(initialValue: SeerrFocusModel())
-        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(sessionManager: sessionManager, context: context))
+        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(
+            sessionManager: sessionManager,
+            context: context,
+        ))
     }
 
     var body: some Scene {

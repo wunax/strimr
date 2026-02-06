@@ -16,7 +16,9 @@ struct WatchTogetherPlayerEvent: Codable, Hashable, Identifiable {
     let clientSentAtMs: Int64
     let serverReceivedAtMs: Int64?
 
-    var id: UUID { eventId }
+    var id: UUID {
+        eventId
+    }
 
     private enum CodingKeys: String, CodingKey {
         case eventId
