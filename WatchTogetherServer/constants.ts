@@ -1,0 +1,4 @@
+export const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
+export const CLEANUP_INTERVAL_MS = 60 * 1000;
+export const HEARTBEAT_INTERVAL_MS = 15 * 1000;
+export const HEARTBEAT_TIMEOUT_MS = 45 * 1000;

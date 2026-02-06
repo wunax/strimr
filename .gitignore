@@ -64,3 +64,7 @@ fastlane/test_output
 .idea/
 .DS_Store
 Config/Config.xcconfig
+
+node_modules/
+.env
+WatchTogetherServer/dist/

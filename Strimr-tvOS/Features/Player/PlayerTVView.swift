@@ -3,6 +3,7 @@ import SwiftUI
 struct PlayerTVView: View {
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
     let activePlayer: InternalPlaybackPlayer
@@ -28,6 +29,7 @@ struct PlayerTVView: View {
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
+    @State private var wasInWatchTogetherSession = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private let seekFeedbackDelay: TimeInterval = 1.2
@@ -129,6 +131,7 @@ struct PlayerTVView: View {
                         { skipMarker(to: marker) }
                     },
                     onUserInteraction: { showControls(temporarily: true) },
+                    isWatchTogether: watchTogetherViewModel.isInSession,
                 )
                 .transition(.opacity)
             }
@@ -141,21 +144,34 @@ struct PlayerTVView: View {
                 seekFeedbackOverlay(seekFeedback)
             }
         }
+        .overlay(alignment: .top) {
+            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+        }
         .onAppear {
             showControls(temporarily: true)
             playerCoordinator.setPlaybackRate(playbackRate)
+            if watchTogetherViewModel.isInSession {
+                watchTogetherViewModel.attachPlayerCoordinator(playerCoordinator)
+                wasInWatchTogetherSession = true
+            }
         }
         .onDisappear {
             viewModel.handleStop()
             hideControlsWorkItem?.cancel()
             seekFeedbackWorkItem?.cancel()
             playerCoordinator.destruct()
+            if wasInWatchTogetherSession {
+                watchTogetherViewModel.detachPlayerCoordinator()
+            }
         }
         .onPlayPauseCommand {
             togglePlayPause()
         }
         .onExitCommand {
-            dismissPlayer()
+            if watchTogetherViewModel.isInSession {
+                watchTogetherViewModel.leaveSession(endForAll: false)
+            }
+            dismissPlayer(force: true)
         }
         .task {
             await bindableViewModel.load()
@@ -181,6 +197,18 @@ struct PlayerTVView: View {
             terminationAlertMessage = newValue
             showingTerminationAlert = true
             playerCoordinator.pause()
+        }
+        .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
+            guard wasInWatchTogetherSession, !newValue else { return }
+            watchTogetherViewModel.detachPlayerCoordinator()
+        }
+        .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
+            guard wasInWatchTogetherSession else { return }
+            dismissPlayer(force: true)
+        }
+        .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
+            guard wasInWatchTogetherSession else { return }
+            dismissPlayer(force: true)
         }
         .sheet(item: $activeSettingsSheet) { sheet in
             switch sheet {
@@ -244,8 +272,10 @@ struct PlayerTVView: View {
     }
 
     private func togglePlayPause() {
+        let wasPaused = viewModel.isPaused
         playerCoordinator.togglePlayback()
         showControls(temporarily: true)
+        watchTogetherViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
     }
 
     private func showAudioSettings() {
@@ -343,11 +373,14 @@ struct PlayerTVView: View {
         playbackRate = rate
         playerCoordinator.setPlaybackRate(rate)
         showControls(temporarily: true)
+        watchTogetherViewModel.sendRateChange(rate)
     }
 
     private func jump(by seconds: Double) {
         playerCoordinator.seek(by: seconds)
         showControls(temporarily: true)
+        let newPosition = max(0, viewModel.position + seconds)
+        watchTogetherViewModel.sendSeek(to: newPosition)
     }
 
     private func quickSeek(by seconds: Double) {
@@ -369,7 +402,7 @@ struct PlayerTVView: View {
         applyResumeOffsetIfNeeded()
     }
 
-    private func dismissPlayer() {
+    private func dismissPlayer(force _: Bool = false) {
         hideControlsWorkItem?.cancel()
         onExit()
     }
@@ -387,6 +420,7 @@ struct PlayerTVView: View {
             playerCoordinator.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
+            watchTogetherViewModel.sendSeek(to: timelinePosition)
         }
     }
 
@@ -440,6 +474,7 @@ struct PlayerTVView: View {
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
+        watchTogetherViewModel.sendSeek(to: marker.endTime)
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {

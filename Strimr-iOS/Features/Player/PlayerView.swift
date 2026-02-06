@@ -4,6 +4,7 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
     @State var viewModel: PlayerViewModel
     let activePlayer: InternalPlaybackPlayer
     @State private var playerCoordinator: any PlayerCoordinating
@@ -27,6 +28,8 @@ struct PlayerView: View {
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
     @State private var isRotationLocked = false
+    @State private var isShowingWatchTogetherExitPrompt = false
+    @State private var wasInWatchTogetherSession = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -104,7 +107,7 @@ struct PlayerView: View {
                     bufferedAhead: bindableViewModel.bufferedAhead,
                     bufferBasePosition: bindableViewModel.position,
                     isScrubbing: isScrubbing,
-                    onDismiss: dismissPlayer,
+                    onDismiss: { dismissPlayer() },
                     onShowSettings: showSettings,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
@@ -118,6 +121,7 @@ struct PlayerView: View {
                     },
                     isRotationLocked: isRotationLocked,
                     onToggleRotationLock: toggleRotationLock,
+                    isWatchTogether: watchTogetherViewModel.isInSession,
                 )
                 .transition(.opacity)
             }
@@ -127,9 +131,16 @@ struct PlayerView: View {
             }
         }
         .statusBarHidden()
+        .overlay(alignment: .top) {
+            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+        }
         .onAppear {
             showControls(temporarily: true)
             playerCoordinator.setPlaybackRate(playbackRate)
+            if watchTogetherViewModel.isInSession {
+                watchTogetherViewModel.attachPlayerCoordinator(playerCoordinator)
+                wasInWatchTogetherSession = true
+            }
         }
         .onDisappear {
             viewModel.handleStop()
@@ -137,6 +148,9 @@ struct PlayerView: View {
             playerCoordinator.destruct()
             AppDelegate.orientationLock = .all
             isRotationLocked = false
+            if wasInWatchTogetherSession {
+                watchTogetherViewModel.detachPlayerCoordinator()
+            }
         }
         .task {
             await bindableViewModel.load()
@@ -163,6 +177,18 @@ struct PlayerView: View {
             showingTerminationAlert = true
             playerCoordinator.pause()
         }
+        .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
+            guard wasInWatchTogetherSession, !newValue else { return }
+            watchTogetherViewModel.detachPlayerCoordinator()
+        }
+        .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
+            guard wasInWatchTogetherSession else { return }
+            dismissPlayer(force: true)
+        }
+        .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
+            guard wasInWatchTogetherSession else { return }
+            dismissPlayer(force: true)
+        }
         .sheet(isPresented: $showingSettings) {
             PlaybackSettingsView(
                 audioTracks: settingsAudioTracks,
@@ -180,10 +206,32 @@ struct PlayerView: View {
         }
         .alert("player.termination.title", isPresented: $showingTerminationAlert) {
             Button("player.termination.dismiss") {
-                dismissPlayer()
+                dismissPlayer(force: true)
             }
         } message: {
             Text(terminationAlertMessage)
+        }
+        .confirmationDialog("watchTogether.exit.title", isPresented: $isShowingWatchTogetherExitPrompt) {
+            if watchTogetherViewModel.isHost {
+                Button("watchTogether.exit.stopForAll") {
+                    watchTogetherViewModel.stopPlaybackForEveryone()
+                    dismissPlayer(force: true)
+                }
+
+                Button("watchTogether.exit.endForAll", role: .destructive) {
+                    watchTogetherViewModel.leaveSession(endForAll: true)
+                    dismissPlayer(force: true)
+                }
+            }
+
+            Button("watchTogether.exit.leave") {
+                watchTogetherViewModel.leaveSession(endForAll: false)
+                dismissPlayer(force: true)
+            }
+
+            Button("common.actions.cancel", role: .cancel) {}
+        } message: {
+            Text("watchTogether.exit.message")
         }
     }
 
@@ -212,8 +260,10 @@ struct PlayerView: View {
     }
 
     private func togglePlayPause() {
+        let wasPaused = viewModel.isPaused
         playerCoordinator.togglePlayback()
         showControls(temporarily: true)
+        watchTogetherViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
     }
 
     private func showSettings() {
@@ -310,11 +360,14 @@ struct PlayerView: View {
         playbackRate = rate
         playerCoordinator.setPlaybackRate(rate)
         showControls(temporarily: true)
+        watchTogetherViewModel.sendRateChange(rate)
     }
 
     private func jump(by seconds: Double) {
         playerCoordinator.seek(by: seconds)
         showControls(temporarily: true)
+        let newPosition = max(0, viewModel.position + seconds)
+        watchTogetherViewModel.sendSeek(to: newPosition)
     }
 
     private func applyResumeOffsetIfNeeded() {
@@ -331,9 +384,13 @@ struct PlayerView: View {
         applyResumeOffsetIfNeeded()
     }
 
-    private func dismissPlayer() {
+    private func dismissPlayer(force: Bool = false) {
         hideControlsWorkItem?.cancel()
-        dismiss()
+        if watchTogetherViewModel.isInSession, !force {
+            isShowingWatchTogetherExitPrompt = true
+        } else {
+            dismiss()
+        }
     }
 
     private func handleScrubbing(editing: Bool) {
@@ -349,6 +406,7 @@ struct PlayerView: View {
             playerCoordinator.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
+            watchTogetherViewModel.sendSeek(to: timelinePosition)
         }
     }
 
@@ -409,6 +467,7 @@ struct PlayerView: View {
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
+        watchTogetherViewModel.sendSeek(to: marker.endTime)
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {
@@ -427,7 +486,7 @@ struct PlayerView: View {
 
     private func handlePlaybackEnded() {
         guard let media = viewModel.media else {
-            dismissPlayer()
+            dismissPlayer(force: true)
             return
         }
 
@@ -441,7 +500,7 @@ struct PlayerView: View {
                 await handleEpisodeCompletion(for: media)
             }
         default:
-            dismissPlayer()
+            dismissPlayer(force: true)
         }
     }
 
@@ -450,14 +509,14 @@ struct PlayerView: View {
 
         guard settingsManager.playback.autoPlayNextEpisode else {
             await MainActor.run {
-                dismissPlayer()
+                dismissPlayer(force: true)
             }
             return
         }
 
         guard let nextItem = await viewModel.nextItemInQueue() else {
             await MainActor.run {
-                dismissPlayer()
+                dismissPlayer(force: true)
             }
             return
         }
@@ -470,7 +529,7 @@ struct PlayerView: View {
 
         guard let nextItem = await viewModel.nextItemInQueue() else {
             await MainActor.run {
-                dismissPlayer()
+                dismissPlayer(force: true)
             }
             return
         }

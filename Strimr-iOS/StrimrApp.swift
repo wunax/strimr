@@ -9,15 +9,21 @@ struct StrimrApp: App {
     @State private var settingsManager: SettingsManager
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
+    @State private var watchTogetherViewModel: WatchTogetherViewModel
 
     init() {
         let context = PlexAPIContext()
         let store = LibraryStore(context: context)
+        let sessionManager = SessionManager(context: context, libraryStore: store)
         _plexApiContext = State(initialValue: context)
-        _sessionManager = State(initialValue: SessionManager(context: context, libraryStore: store))
+        _sessionManager = State(initialValue: sessionManager)
         _settingsManager = State(initialValue: SettingsManager())
         _libraryStore = State(initialValue: store)
         _seerrStore = State(initialValue: SeerrStore())
+        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(
+            sessionManager: sessionManager,
+            context: context,
+        ))
     }
 
     var body: some Scene {
@@ -28,6 +34,7 @@ struct StrimrApp: App {
                 .environment(settingsManager)
                 .environment(libraryStore)
                 .environment(seerrStore)
+                .environment(watchTogetherViewModel)
                 .preferredColorScheme(.dark)
         }
     }
