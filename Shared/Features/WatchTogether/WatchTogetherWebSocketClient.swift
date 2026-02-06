@@ -44,8 +44,9 @@ final class WatchTogetherWebSocketClient {
         state = .disconnected
         pingTask?.cancel()
         receiveTask?.cancel()
-        task?.cancel(with: .goingAway, reason: nil)
+        let currentTask = task
         task = nil
+        currentTask?.cancel(with: .goingAway, reason: nil)
     }
 
     func send(_ message: WatchTogetherClientMessage) async throws {
@@ -76,6 +77,12 @@ final class WatchTogetherWebSocketClient {
                     let decoded = try decoder.decode(WatchTogetherServerMessage.self, from: data)
                     onMessage?(decoded)
                 } catch {
+                    if Task.isCancelled || self.state == .disconnected {
+                        return
+                    }
+                    guard let currentTask = self.task, currentTask === task else {
+                        return
+                    }
                     await handleDisconnect(error)
                     return
                 }
