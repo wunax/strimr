@@ -6802,6 +6802,28 @@
         }
       }
     },
+    "watchTogether.session.copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy session code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le code de session"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制房间代码"
+          }
+        }
+      }
+    },
     "watchTogether.startPlayback" : {
       "localizations" : {
         "en" : {

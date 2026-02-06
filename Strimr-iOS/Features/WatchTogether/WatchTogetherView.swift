@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @MainActor
 struct WatchTogetherView: View {
@@ -139,8 +140,20 @@ struct WatchTogetherView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            Text(viewModel.code)
-                .font(.title2.weight(.bold))
+            HStack(spacing: 8) {
+                Text(viewModel.code)
+                    .font(.title2.weight(.bold))
+
+                Button {
+                    UIPasteboard.general.string = viewModel.code
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .tint(.secondary)
+                .accessibilityLabel(Text("watchTogether.session.copy"))
+            }
         }
     }
 
