@@ -1,5 +1,6 @@
 import { broadcast, sendJson } from './messaging.js';
 import loggerBase from './logger.js';
+import { MAX_SUPPORTED_PROTOCOL_VERSION, MIN_SUPPORTED_PROTOCOL_VERSION, PROTOCOL_VERSION } from './config.js';
 import {
   addParticipant,
   createSession,
@@ -36,9 +37,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function handleMessage(client: Client, message: ProtocolMessage): void {
-  if (!message || message.v !== 1 || !message.type) {
-    logger.warn({ messageType: message?.type }, 'Unsupported protocol version');
-    sendJson(client, 'error', { message: 'Unsupported protocol version.', code: 'bad_version' });
+  if (!message || !message.type) {
+    logger.warn({ messageType: message?.type }, 'Unsupported protocol payload');
+    sendJson(client, 'error', { message: 'Unsupported protocol payload.', code: 'bad_payload' });
+    return;
+  }
+
+  const version = typeof message.v === 'number' ? message.v : NaN;
+  if (!Number.isInteger(version) || version < MIN_SUPPORTED_PROTOCOL_VERSION || version > MAX_SUPPORTED_PROTOCOL_VERSION) {
+    logger.warn({ messageType: message.type, version }, 'Unsupported protocol version');
+    sendJson(client, 'error', {
+      message: 'Incompatible Watch Together protocol version. Please update the app.',
+      code: 'unsupported_protocol_version',
+      currentVersion: PROTOCOL_VERSION,
+      minimumVersion: MIN_SUPPORTED_PROTOCOL_VERSION,
+      maximumVersion: MAX_SUPPORTED_PROTOCOL_VERSION,
+    });
     return;
   }
 

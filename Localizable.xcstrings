@@ -6340,6 +6340,28 @@
         }
       }
     },
+    "watchTogether.error.updateRequired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Strimr to use this Watch Together server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettez Strimr a jour pour utiliser ce serveur Watch Together."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请更新 Strimr 以使用此一起观看服务器。"
+          }
+        }
+      }
+    },
     "watchTogether.exit.endForAll" : {
       "localizations" : {
         "en" : {

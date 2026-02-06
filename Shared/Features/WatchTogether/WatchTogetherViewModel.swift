@@ -248,8 +248,9 @@ final class WatchTogetherViewModel {
         case let .sessionEnded(payload):
             handleSessionEnded(reason: payload.reason)
         case let .error(payload):
-            errorMessage = payload.message
-            showToast(payload.message)
+            let message = serverErrorMessage(for: payload)
+            errorMessage = message
+            showToast(message)
         case .pong:
             break
         case let .startPlayback(payload):
@@ -381,6 +382,14 @@ final class WatchTogetherViewModel {
         }
 
         showToast(String(localized: "watchTogether.toast.playbackStopped"))
+    }
+
+    private func serverErrorMessage(for payload: WatchTogetherServerError) -> String {
+        if payload.code == "unsupported_protocol_version" {
+            return String(localized: "watchTogether.error.updateRequired")
+        }
+
+        return payload.message
     }
 
     private func resetSessionState(clearJoinCode: Bool) {

@@ -1,11 +1,12 @@
 import loggerBase from './logger.js';
+import { PROTOCOL_VERSION } from './config.js';
 import type { Client, Session } from './types.js';
 
 const logger = loggerBase.child({ module: 'messaging' });
 
 export function sendJson(client: Client | null | undefined, type: string, payload: unknown) {
   if (!client || client.isClosed) return;
-  const message = JSON.stringify({ v: 1, type, payload });
+  const message = JSON.stringify({ v: PROTOCOL_VERSION, type, payload });
   try {
     client.sendText(message);
   } catch (error) {

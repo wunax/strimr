@@ -43,4 +43,7 @@ struct WatchTogetherStartPlayback: Codable, Hashable {
 struct WatchTogetherServerError: Codable, Hashable {
     let message: String
     let code: String?
+    let currentVersion: Int?
+    let minimumVersion: Int?
+    let maximumVersion: Int?
 }
