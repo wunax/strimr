@@ -270,7 +270,7 @@ private struct WatchTogetherSelectedMediaCard: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.gray.opacity(0.12)),
         )
-        .task {
+        .task(id: media.ratingKey) {
             await loadImage()
         }
     }
@@ -305,6 +305,8 @@ private struct WatchTogetherSelectedMediaCard: View {
     }
 
     private func loadImage() async {
+        imageURL = nil
+
         guard let path = media.thumbPath else {
             imageURL = nil
             return
