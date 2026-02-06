@@ -23,6 +23,6 @@
 	<key>SENTRY_DSN_IOS</key>
 	<string>https://$(SENTRY_DSN_IOS)</string>
 	<key>WATCH_TOGETHER_URL</key>
-	<string>ws://localhost:8080</string>
+	<string>wss://$(WATCH_TOGETHER_URL)</string>
 </dict>
 </plist>

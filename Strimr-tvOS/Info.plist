@@ -23,6 +23,6 @@
 	<key>SENTRY_DSN_TVOS</key>
 	<string>https://$(SENTRY_DSN_TVOS)</string>
 	<key>WATCH_TOGETHER_URL</key>
-	<string>ws://localhost:8080</string>
+	<string>wss://$(WATCH_TOGETHER_URL)</string>
 </dict>
 </plist>
