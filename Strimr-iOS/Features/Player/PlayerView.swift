@@ -130,9 +130,11 @@ struct PlayerView: View {
                 skipOverlay(marker: activeMarker, title: skipTitle)
             }
 
-            ToastOverlay(toasts: watchTogetherViewModel.toasts)
         }
         .statusBarHidden()
+        .overlay(alignment: .top) {
+            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+        }
         .onAppear {
             showControls(temporarily: true)
             playerCoordinator.setPlaybackRate(playbackRate)

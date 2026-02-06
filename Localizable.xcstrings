@@ -6153,7 +6153,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regarder ensemble"
+            "value" : "Watch Together"
           }
         },
         "zh-Hans" : {
@@ -6461,7 +6461,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regarder ensemble"
+            "value" : "Watch Together"
           }
         },
         "zh-Hans" : {
@@ -6967,7 +6967,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regarder ensemble"
+            "value" : "Watch Together"
           }
         },
         "zh-Hans" : {
@@ -7143,7 +7143,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La lecture Watch Together est arretee."
+            "value" : "La lecture Watch Together a été arrêtée."
           }
         },
         "zh-Hans" : {

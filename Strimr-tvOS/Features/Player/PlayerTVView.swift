@@ -144,6 +144,8 @@ struct PlayerTVView: View {
                 seekFeedbackOverlay(seekFeedback)
             }
 
+        }
+        .overlay(alignment: .top) {
             ToastOverlay(toasts: watchTogetherViewModel.toasts)
         }
         .onAppear {
