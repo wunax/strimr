@@ -38,9 +38,21 @@ struct InterfaceSettings: Codable, Equatable {
     }
 }
 
+struct DownloadSettings: Codable, Equatable {
+    var wifiOnly = true
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        wifiOnly = try container.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+    }
+}
+
 struct AppSettings: Codable, Equatable {
     var playback = PlaybackSettings()
     var interface = InterfaceSettings()
+    var downloads = DownloadSettings()
 
     init() {}
 
@@ -48,5 +60,6 @@ struct AppSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         playback = try container.decodeIfPresent(PlaybackSettings.self, forKey: .playback) ?? PlaybackSettings()
         interface = try container.decodeIfPresent(InterfaceSettings.self, forKey: .interface) ?? InterfaceSettings()
+        downloads = try container.decodeIfPresent(DownloadSettings.self, forKey: .downloads) ?? DownloadSettings()
     }
 }

@@ -32,6 +32,9 @@ final class PlayerViewModel {
     @ObservationIgnored private var playQueueState: PlayQueueState
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
+    @ObservationIgnored private let localMedia: MediaItem?
+    @ObservationIgnored private let localPlaybackURL: URL?
+    @ObservationIgnored private let shouldReportPlaybackToServer: Bool
     @ObservationIgnored private var activePartId: Int?
     @ObservationIgnored private var streamsByFFIndex: [Int: PlexPartStream] = [:]
     @ObservationIgnored private let sessionIdentifier = UUID().uuidString
@@ -53,6 +56,21 @@ final class PlayerViewModel {
         self.ratingKey = ratingKey ?? playQueue.selectedRatingKey ?? ""
         self.context = context
         shouldResumeFromOffsetFlag = shouldResumeFromOffset
+        localMedia = nil
+        localPlaybackURL = nil
+        shouldReportPlaybackToServer = true
+    }
+
+    init(localMedia: MediaItem, localPlaybackURL: URL, context: PlexAPIContext) {
+        playQueueState = PlayQueueState(localRatingKey: localMedia.id)
+        ratingKey = localMedia.id
+        self.context = context
+        shouldResumeFromOffsetFlag = false
+        self.localMedia = localMedia
+        self.localPlaybackURL = localPlaybackURL
+        shouldReportPlaybackToServer = false
+        media = localMedia
+        playbackURL = localPlaybackURL
     }
 
     var playQueue: PlayQueueState {
@@ -64,6 +82,13 @@ final class PlayerViewModel {
     }
 
     func load() async {
+        if let localPlaybackURL, let localMedia {
+            media = localMedia
+            playbackURL = localPlaybackURL
+            errorMessage = nil
+            return
+        }
+
         guard !ratingKey.isEmpty else {
             errorMessage = String(localized: "errors.selectServer.playMedia")
             return
@@ -141,6 +166,7 @@ final class PlayerViewModel {
     }
 
     func markPlaybackFinished() async {
+        guard shouldReportPlaybackToServer else { return }
         let currentDuration = max(0, Int((media?.duration ?? duration ?? position) * 1000))
 
         do {
@@ -159,6 +185,7 @@ final class PlayerViewModel {
     }
 
     func nextItemInQueue() async -> PlexItem? {
+        guard shouldReportPlaybackToServer else { return nil }
         await refreshPlayQueue()
         let fallbackRatingKey = ratingKey.isEmpty ? nil : ratingKey
         guard let currentRatingKey = media?.id ?? fallbackRatingKey else { return nil }
@@ -176,6 +203,7 @@ final class PlayerViewModel {
         state: PlaybackRepository.PlaybackState,
         force: Bool = false,
     ) {
+        guard shouldReportPlaybackToServer else { return }
         guard !didReceiveTermination else { return }
         let now = Date()
         let stateChanged = lastTimelineState != state
@@ -193,6 +221,7 @@ final class PlayerViewModel {
     }
 
     private func sendTimeline(state: PlaybackRepository.PlaybackState) async {
+        guard shouldReportPlaybackToServer else { return }
         let currentTime = max(0, Int(position * 1000))
         let currentDuration = max(0, Int((duration ?? 0) * 1000))
 
@@ -224,6 +253,7 @@ final class PlayerViewModel {
     }
 
     private func refreshPlayQueue() async {
+        guard shouldReportPlaybackToServer else { return }
         do {
             let manager = try PlayQueueManager(context: context)
             playQueueState = try await manager.fetchQueue(id: playQueueState.id)
@@ -267,6 +297,7 @@ final class PlayerViewModel {
     }
 
     private func handleTerminationIfNeeded(_ response: PlexTimelineResponse) {
+        guard shouldReportPlaybackToServer else { return }
         guard
             !didReceiveTermination,
             let terminationText = response.mediaContainer.terminationText,
@@ -283,6 +314,7 @@ final class PlayerViewModel {
     }
 
     private func sendStoppedAfterTermination() async {
+        guard shouldReportPlaybackToServer else { return }
         let currentTime = max(0, Int(position * 1000))
         let currentDuration = max(0, Int((duration ?? 0) * 1000))
 
@@ -301,6 +333,7 @@ final class PlayerViewModel {
     }
 
     func persistStreamSelection(for track: PlayerTrack) async {
+        guard shouldReportPlaybackToServer else { return }
         guard
             let ffIndex = track.ffIndex,
             let stream = streamsByFFIndex[ffIndex],

@@ -38,4 +38,19 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_: UIApplication, supportedInterfaceOrientationsFor _: UIWindow?) -> UIInterfaceOrientationMask {
         Self.orientationLock
     }
+
+    func application(
+        _: UIApplication,
+        handleEventsForBackgroundURLSession identifier: String,
+        completionHandler: @escaping () -> Void,
+    ) {
+        guard identifier == DownloadManager.backgroundSessionIdentifier else {
+            completionHandler()
+            return
+        }
+
+        Task { @MainActor in
+            DownloadManager.shared?.setBackgroundEventsCompletionHandler(completionHandler)
+        }
+    }
 }

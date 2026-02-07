@@ -22,6 +22,17 @@ struct PlayQueueState: Equatable {
         items = container.metadata ?? []
     }
 
+    init(localRatingKey: String) {
+        id = -1
+        selectedItemID = nil
+        selectedMetadataItemID = localRatingKey
+        totalCount = 1
+        version = nil
+        shuffled = false
+        sourceURI = nil
+        items = []
+    }
+
     var selectedRatingKey: String? {
         if let selectedMetadataItemID {
             return selectedMetadataItemID

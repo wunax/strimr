@@ -15,6 +15,12 @@ struct UserMenuView: View {
                 }
 
                 NavigationLink {
+                    DownloadsView()
+                } label: {
+                    Label("downloads.title", systemImage: "arrow.down.circle.fill")
+                }
+
+                NavigationLink {
                     WatchTogetherView()
                 } label: {
                     Label("watchTogether.title", systemImage: "person.2.fill")

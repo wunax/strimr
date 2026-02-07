@@ -28,6 +28,10 @@ final class SettingsManager {
         settings.interface
     }
 
+    var downloads: DownloadSettings {
+        settings.downloads
+    }
+
     func setAutoPlayNextEpisode(_ enabled: Bool) {
         settings.playback.autoPlayNextEpisode = enabled
         persist()
@@ -91,6 +95,11 @@ final class SettingsManager {
 
     func setDisplaySeerrDiscoverTab(_ enabled: Bool) {
         settings.interface.displaySeerrDiscoverTab = enabled
+        persist()
+    }
+
+    func setDownloadWiFiOnly(_ enabled: Bool) {
+        settings.downloads.wifiOnly = enabled
         persist()
     }
 

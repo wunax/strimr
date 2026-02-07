@@ -2,12 +2,15 @@ import Observation
 import SwiftUI
 
 struct MediaDetailHeaderSection: View {
+    @Environment(DownloadManager.self) private var downloadManager
+    @Environment(PlexAPIContext.self) private var context
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
     let onPlay: (String, PlexItemType) -> Void
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
+    @State private var isShowingShowDownloadSheet = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -69,6 +72,21 @@ struct MediaDetailHeaderSection: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .sheet(isPresented: $isShowingShowDownloadSheet) {
+            NavigationStack {
+                ShowDownloadSelectionSheet(
+                    viewModel: viewModel,
+                    onSubmitSelection: { episodeIDs in
+                        for episodeID in episodeIDs {
+                            await downloadManager.enqueueItem(ratingKey: episodeID, context: context)
+                        }
+                    },
+                    statusForRatingKey: { ratingKey in
+                        downloadManager.status(for: ratingKey)
+                    },
+                )
+            }
         }
     }
 
@@ -213,6 +231,7 @@ struct MediaDetailHeaderSection: View {
                 watchlistToggleButton
             }
 
+            downloadButton
             shuffleButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -342,6 +361,34 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
+    private var downloadButton: some View {
+        VStack(spacing: 2) {
+            Button {
+                handleDownloadTap()
+            } label: {
+                if isDownloadInProgress {
+                    ProgressView()
+                        .tint(.brandSecondaryForeground)
+                } else {
+                    Image(systemName: downloadIconName)
+                        .font(.headline.weight(.semibold))
+                }
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+            .disabled(viewModel.isLoading)
+
+            Text("downloads.action")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 52)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+    }
+
     private func handlePlay() {
         Task {
             guard let ratingKey = await viewModel.playbackRatingKey() else { return }
@@ -358,6 +405,44 @@ struct MediaDetailHeaderSection: View {
 
     private func handleShuffle() {
         onShuffle(viewModel.media.id, viewModel.media.plexType)
+    }
+
+    private func handleDownloadTap() {
+        switch viewModel.media.plexType {
+        case .show:
+            isShowingShowDownloadSheet = true
+        case .season:
+            Task {
+                await downloadManager.enqueueSeason(ratingKey: viewModel.media.id, context: context)
+            }
+        case .movie, .episode:
+            Task {
+                await downloadManager.enqueueItem(ratingKey: viewModel.media.id, context: context)
+            }
+        case .collection, .playlist, .unknown:
+            break
+        }
+    }
+
+    private var downloadStatus: DownloadStatus? {
+        downloadManager.status(for: viewModel.media.id)
+    }
+
+    private var isDownloadInProgress: Bool {
+        downloadStatus == .queued || downloadStatus == .downloading
+    }
+
+    private var downloadIconName: String {
+        switch downloadStatus {
+        case .completed:
+            "checkmark.circle.fill"
+        case .failed:
+            "exclamationmark.circle"
+        case .queued, .downloading:
+            "arrow.down.circle.fill"
+        case nil:
+            "arrow.down.circle"
+        }
     }
 
     private var playbackType: PlexItemType {

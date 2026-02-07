@@ -30,6 +30,7 @@ struct PlayerView: View {
     @State private var isRotationLocked = false
     @State private var isShowingWatchTogetherExitPrompt = false
     @State private var wasInWatchTogetherSession = false
+    @State private var activePlaybackURL: URL?
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -137,6 +138,7 @@ struct PlayerView: View {
         .onAppear {
             showControls(temporarily: true)
             playerCoordinator.setPlaybackRate(playbackRate)
+            startPlaybackIfNeeded(url: bindableViewModel.playbackURL)
             if watchTogetherViewModel.isInSession {
                 watchTogetherViewModel.attachPlayerCoordinator(playerCoordinator)
                 wasInWatchTogetherSession = true
@@ -156,16 +158,7 @@ struct PlayerView: View {
             await bindableViewModel.load()
         }
         .onChange(of: bindableViewModel.playbackURL) { _, newURL in
-            guard let url = newURL else { return }
-            appliedPreferredAudio = false
-            appliedPreferredSubtitle = false
-            selectedAudioTrackID = nil
-            selectedSubtitleTrackID = nil
-            appliedResumeOffset = false
-            awaitingMediaLoad = true
-            playerCoordinator.play(url)
-            playerCoordinator.setPlaybackRate(playbackRate)
-            showControls(temporarily: true)
+            startPlaybackIfNeeded(url: newURL)
         }
         .onChange(of: bindableViewModel.position) { _, newValue in
             guard !isScrubbing else { return }
@@ -408,6 +401,22 @@ struct PlayerView: View {
             scheduleControlsHide()
             watchTogetherViewModel.sendSeek(to: timelinePosition)
         }
+    }
+
+    private func startPlaybackIfNeeded(url: URL?) {
+        guard let url else { return }
+        guard activePlaybackURL != url else { return }
+
+        activePlaybackURL = url
+        appliedPreferredAudio = false
+        appliedPreferredSubtitle = false
+        selectedAudioTrackID = nil
+        selectedSubtitleTrackID = nil
+        appliedResumeOffset = false
+        awaitingMediaLoad = true
+        playerCoordinator.play(url)
+        playerCoordinator.setPlaybackRate(playbackRate)
+        showControls(temporarily: true)
     }
 
     private func showControls(temporarily: Bool) {
