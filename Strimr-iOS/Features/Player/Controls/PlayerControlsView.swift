@@ -47,16 +47,16 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                if !isScrubbing {
-                    HStack {
-                        RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
-                        Spacer()
-                        if let skipMarkerTitle, let onSkipMarker {
-                            SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
-                        }
+                HStack {
+                    RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
+                    Spacer()
+                    if let skipMarkerTitle, let onSkipMarker {
+                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
                     }
-                    .padding(.horizontal, 24)
                 }
+                .padding(.horizontal, 24)
+                .opacity(isScrubbing ? 0 : 1)
+                .allowsHitTesting(!isScrubbing)
 
                 PlayerTimelineView(
                     position: $position,

@@ -85,55 +85,60 @@ struct PlayerView: View {
                 showControls(temporarily: true)
             }
             .ignoresSafeArea()
-
-            Color.clear
-                .contentShape(Rectangle())
-                .ignoresSafeArea()
-                .onTapGesture {
-                    controlsVisible ? hideControls() : showControls(temporarily: true)
-                }
-
-            if bindableViewModel.isBuffering {
-                bufferingOverlay
-            }
-
-            if controlsVisible {
-                PlayerControlsView(
-                    media: bindableViewModel.media,
-                    isPaused: bindableViewModel.isPaused,
-                    isBuffering: bindableViewModel.isBuffering,
-                    supportsHDR: supportsHDR,
-                    position: timelineBinding,
-                    duration: bindableViewModel.duration,
-                    bufferedAhead: bindableViewModel.bufferedAhead,
-                    bufferBasePosition: bindableViewModel.position,
-                    isScrubbing: isScrubbing,
-                    onDismiss: { dismissPlayer() },
-                    onShowSettings: showSettings,
-                    onSeekBackward: { jump(by: -seekBackwardInterval) },
-                    onPlayPause: togglePlayPause,
-                    onSeekForward: { jump(by: seekForwardInterval) },
-                    seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
-                    seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
-                    onScrubbingChanged: handleScrubbing(editing:),
-                    skipMarkerTitle: skipTitle,
-                    onSkipMarker: activeMarker.map { marker in
-                        { skipMarker(to: marker) }
-                    },
-                    isRotationLocked: isRotationLocked,
-                    onToggleRotationLock: toggleRotationLock,
-                    isWatchTogether: watchTogetherViewModel.isInSession,
-                )
-                .transition(.opacity)
-            }
-
-            if !controlsVisible, let activeMarker, let skipTitle {
-                skipOverlay(marker: activeMarker, title: skipTitle)
-            }
         }
         .statusBarHidden()
-        .overlay(alignment: .top) {
-            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+        .overlay {
+            ZStack {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        controlsVisible ? hideControls() : showControls(temporarily: true)
+                    }
+
+                if bindableViewModel.isBuffering {
+                    bufferingOverlay
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+
+                if controlsVisible {
+                    PlayerControlsView(
+                        media: bindableViewModel.media,
+                        isPaused: bindableViewModel.isPaused,
+                        isBuffering: bindableViewModel.isBuffering,
+                        supportsHDR: supportsHDR,
+                        position: timelineBinding,
+                        duration: bindableViewModel.duration,
+                        bufferedAhead: bindableViewModel.bufferedAhead,
+                        bufferBasePosition: bindableViewModel.position,
+                        isScrubbing: isScrubbing,
+                        onDismiss: { dismissPlayer() },
+                        onShowSettings: showSettings,
+                        onSeekBackward: { jump(by: -seekBackwardInterval) },
+                        onPlayPause: togglePlayPause,
+                        onSeekForward: { jump(by: seekForwardInterval) },
+                        seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+                        seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+                        onScrubbingChanged: handleScrubbing(editing:),
+                        skipMarkerTitle: skipTitle,
+                        onSkipMarker: activeMarker.map { marker in
+                            { skipMarker(to: marker) }
+                        },
+                        isRotationLocked: isRotationLocked,
+                        onToggleRotationLock: toggleRotationLock,
+                        isWatchTogether: watchTogetherViewModel.isInSession,
+                    )
+                    .transition(.opacity)
+                }
+
+                if !controlsVisible, let activeMarker, let skipTitle {
+                    skipOverlay(marker: activeMarker, title: skipTitle)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                }
+
+                ToastOverlay(toasts: watchTogetherViewModel.toasts)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
         .onAppear {
             showControls(temporarily: true)
@@ -229,18 +234,14 @@ struct PlayerView: View {
     }
 
     private var bufferingOverlay: some View {
-        VStack {
-            Spacer()
+        HStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
 
-            HStack(spacing: 8) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(.white)
-
-                Text("player.status.buffering")
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
+            Text("player.status.buffering")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.9))
         }
         .padding(.bottom, 20)
     }
@@ -480,17 +481,11 @@ struct PlayerView: View {
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                SkipMarkerButton(title: title) {
-                    skipMarker(to: marker)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+        SkipMarkerButton(title: title) {
+            skipMarker(to: marker)
         }
+        .padding(.trailing, 20)
+        .padding(.bottom, 24)
     }
 
     private func handlePlaybackEnded() {

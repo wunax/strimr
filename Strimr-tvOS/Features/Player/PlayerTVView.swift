@@ -90,62 +90,65 @@ struct PlayerTVView: View {
             )
             .ignoresSafeArea()
             .contentShape(Rectangle())
-
-            if !controlsVisible {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .focusable()
-                    .onTapGesture {
-                        showControls(temporarily: true)
-                    }
-                    .onMoveCommand { direction in
-                        handleMoveCommand(direction)
-                    }
-            }
-
-            if bindableViewModel.isBuffering {
-                bufferingOverlay
-            }
-
-            if controlsVisible {
-                PlayerControlsTVView(
-                    media: bindableViewModel.media,
-                    isPaused: bindableViewModel.isPaused,
-                    supportsHDR: supportsHDR,
-                    position: timelineBinding,
-                    duration: bindableViewModel.duration,
-                    bufferedAhead: bindableViewModel.bufferedAhead,
-                    bufferBasePosition: bindableViewModel.position,
-                    isScrubbing: isScrubbing,
-                    onShowAudioSettings: showAudioSettings,
-                    onShowSubtitleSettings: showSubtitleSettings,
-                    onShowSpeedSettings: showSpeedSettings,
-                    onSeekBackward: { jump(by: -seekBackwardInterval) },
-                    onPlayPause: togglePlayPause,
-                    onSeekForward: { jump(by: seekForwardInterval) },
-                    seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
-                    seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
-                    onScrubbingChanged: handleScrubbing(editing:),
-                    skipMarkerTitle: skipTitle,
-                    onSkipMarker: activeMarker.map { marker in
-                        { skipMarker(to: marker) }
-                    },
-                    onUserInteraction: { showControls(temporarily: true) },
-                    isWatchTogether: watchTogetherViewModel.isInSession,
-                )
-                .transition(.opacity)
-            }
-
-            if !controlsVisible, let activeMarker, let skipTitle {
-                skipOverlay(marker: activeMarker, title: skipTitle)
-            }
-
-            if let seekFeedback {
-                seekFeedbackOverlay(seekFeedback)
-            }
         }
-        .overlay(alignment: .top) {
-            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+        .overlay {
+            ZStack {
+                if !controlsVisible {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .focusable()
+                        .onTapGesture {
+                            showControls(temporarily: true)
+                        }
+                        .onMoveCommand { direction in
+                            handleMoveCommand(direction)
+                        }
+                }
+
+                if bindableViewModel.isBuffering {
+                    bufferingOverlay
+                }
+
+                if controlsVisible {
+                    PlayerControlsTVView(
+                        media: bindableViewModel.media,
+                        isPaused: bindableViewModel.isPaused,
+                        supportsHDR: supportsHDR,
+                        position: timelineBinding,
+                        duration: bindableViewModel.duration,
+                        bufferedAhead: bindableViewModel.bufferedAhead,
+                        bufferBasePosition: bindableViewModel.position,
+                        isScrubbing: isScrubbing,
+                        onShowAudioSettings: showAudioSettings,
+                        onShowSubtitleSettings: showSubtitleSettings,
+                        onShowSpeedSettings: showSpeedSettings,
+                        onSeekBackward: { jump(by: -seekBackwardInterval) },
+                        onPlayPause: togglePlayPause,
+                        onSeekForward: { jump(by: seekForwardInterval) },
+                        seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+                        seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+                        onScrubbingChanged: handleScrubbing(editing:),
+                        skipMarkerTitle: skipTitle,
+                        onSkipMarker: activeMarker.map { marker in
+                            { skipMarker(to: marker) }
+                        },
+                        onUserInteraction: { showControls(temporarily: true) },
+                        isWatchTogether: watchTogetherViewModel.isInSession,
+                    )
+                    .transition(.opacity)
+                }
+
+                if !controlsVisible, let activeMarker, let skipTitle {
+                    skipOverlay(marker: activeMarker, title: skipTitle)
+                }
+
+                if let seekFeedback {
+                    seekFeedbackOverlay(seekFeedback)
+                }
+
+                ToastOverlay(toasts: watchTogetherViewModel.toasts)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
         .onAppear {
             showControls(temporarily: true)
