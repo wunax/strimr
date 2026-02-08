@@ -7,6 +7,7 @@ import UIKit
 /// https://github.com/KhronosGroup/MoltenVK/issues/2226
 final class MPVPlayerViewController: UIViewController {
     var metalLayer = MetalLayer()
+    private var lastDrawableSize: CGSize?
     var mpv: OpaquePointer?
     var playDelegate: MPVPlayerDelegate?
     lazy var queue = DispatchQueue(label: "mpv", qos: .userInitiated)
@@ -61,16 +62,8 @@ final class MPVPlayerViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-
+        
         updateMetalLayerLayout()
-    }
-
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        coordinator.animate(
-            alongsideTransition: { _ in self.updateMetalLayerLayout() },
-            completion: { _ in self.updateMetalLayerLayout() },
-        )
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -404,11 +397,19 @@ final class MPVPlayerViewController: UIViewController {
     }
 
     func updateMetalLayerLayout() {
+        debugPrint("updateMetalLayerLayout: \(view.bounds.size)")
         let nativeScale = view.window?.screen.nativeScale ?? UIScreen.main.nativeScale
         let size = view.bounds.size
+        let roundedDrawableSize = CGSize(
+            width: (size.width * nativeScale).rounded(),
+            height: (size.height * nativeScale).rounded(),
+        )
         metalLayer.contentsScale = nativeScale
         metalLayer.frame = view.bounds
-        metalLayer.drawableSize = CGSize(width: size.width * nativeScale, height: size.height * nativeScale)
+
+        guard roundedDrawableSize != lastDrawableSize else { return }
+        metalLayer.drawableSize = roundedDrawableSize
+        lastDrawableSize = roundedDrawableSize
     }
 
     private func parseMap(_ map: mpv_node_list) -> [String: Any] {
