@@ -62,7 +62,7 @@ final class MPVPlayerViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        
+
         updateMetalLayerLayout()
     }
 
