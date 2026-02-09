@@ -336,16 +336,13 @@ private struct EpisodeArtworkCard: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        Button(action: onPlay) {
-            EpisodeArtworkView(
-                episode: episode,
-                imageURL: imageURL,
-                width: width,
-                runtime: runtime,
-                progress: progress,
-            )
-        }
-        .buttonStyle(.plain)
+        EpisodeArtworkView(
+            episode: episode,
+            imageURL: imageURL,
+            width: width,
+            runtime: runtime,
+            progress: progress,
+        )
         .focusable()
         .focused($isFocused)
         .scaleEffect(isFocused ? 1.12 : 1)
@@ -355,5 +352,7 @@ private struct EpisodeArtworkCard: View {
                 onFocus()
             }
         }
+        .onPlayPauseCommand(perform: onPlay)
+        .onTapGesture(perform: onPlay)
     }
 }
