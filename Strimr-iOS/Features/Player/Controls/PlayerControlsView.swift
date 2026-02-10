@@ -26,7 +26,7 @@ struct PlayerControlsView: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 18) {
+            VStack(spacing: 0) {
                 PlayerControlsHeader(
                     media: media,
                     onDismiss: onDismiss,
@@ -34,41 +34,43 @@ struct PlayerControlsView: View {
                     isWatchTogether: isWatchTogether,
                 )
 
-                Spacer()
+                Spacer(minLength: 0)
 
-                PrimaryControls(
-                    isPaused: isPaused,
-                    onSeekBackward: onSeekBackward,
-                    onPlayPause: onPlayPause,
-                    onSeekForward: onSeekForward,
-                    seekBackwardSeconds: seekBackwardSeconds,
-                    seekForwardSeconds: seekForwardSeconds,
-                )
-
-                Spacer()
-
-                HStack {
-                    RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
-                    Spacer()
-                    if let skipMarkerTitle, let onSkipMarker {
-                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                VStack(spacing: 18) {
+                    HStack {
+                        RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
+                        Spacer()
+                        if let skipMarkerTitle, let onSkipMarker {
+                            SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                        }
                     }
-                }
-                .padding(.horizontal, 24)
-                .opacity(isScrubbing ? 0 : 1)
-                .allowsHitTesting(!isScrubbing)
+                    .padding(.horizontal, 24)
+                    .opacity(isScrubbing ? 0 : 1)
+                    .allowsHitTesting(!isScrubbing)
 
-                PlayerTimelineView(
-                    position: $position,
-                    duration: duration,
-                    bufferedAhead: bufferedAhead,
-                    playbackPosition: bufferBasePosition,
-                    supportsHDR: supportsHDR,
-                    onEditingChanged: onScrubbingChanged,
-                )
+                    PlayerTimelineView(
+                        position: $position,
+                        duration: duration,
+                        bufferedAhead: bufferedAhead,
+                        playbackPosition: bufferBasePosition,
+                        supportsHDR: supportsHDR,
+                        onEditingChanged: onScrubbingChanged,
+                    )
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+
+            PrimaryControls(
+                isPaused: isPaused,
+                onSeekBackward: onSeekBackward,
+                onPlayPause: onPlayPause,
+                onSeekForward: onSeekForward,
+                seekBackwardSeconds: seekBackwardSeconds,
+                seekForwardSeconds: seekForwardSeconds,
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .background {
             PlayerControlsBackground()
