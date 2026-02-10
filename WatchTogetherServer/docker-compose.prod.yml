@@ -1,0 +1,54 @@
+services:
+  watchtogether:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: ${PORT:-8080}
+      WATCH_TOGETHER_PROTOCOL_VERSION: ${WATCH_TOGETHER_PROTOCOL_VERSION:-1}
+      WATCH_TOGETHER_MIN_PROTOCOL_VERSION: ${WATCH_TOGETHER_MIN_PROTOCOL_VERSION:-1}
+      WATCH_TOGETHER_MAX_PROTOCOL_VERSION: ${WATCH_TOGETHER_MAX_PROTOCOL_VERSION:-1}
+    expose:
+      - "8080"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.watchtogether.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.watchtogether.entrypoints=websecure
+      - traefik.http.routers.watchtogether.tls=true
+      - traefik.http.routers.watchtogether.tls.certresolver=letsencrypt
+      - traefik.http.services.watchtogether.loadbalancer.server.port=8080
+    networks:
+      - edge
+
+  traefik:
+    image: traefik:v2.11
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.caserver=${TRAEFIK_ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - edge
+
+volumes:
+  letsencrypt:
+
+networks:
+  edge:
