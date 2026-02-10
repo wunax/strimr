@@ -7,7 +7,9 @@ final class ServerSelectionViewModel {
     var servers: [PlexCloudResource] = []
     var isLoading = false
     var selectingServerID: String?
-    var isSelecting: Bool { selectingServerID != nil }
+    var isSelecting: Bool {
+        selectingServerID != nil
+    }
 
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let context: PlexAPIContext
