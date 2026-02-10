@@ -44,7 +44,11 @@ export function handleMessage(client: Client, message: ProtocolMessage): void {
   }
 
   const version = typeof message.v === 'number' ? message.v : NaN;
-  if (!Number.isInteger(version) || version < MIN_SUPPORTED_PROTOCOL_VERSION || version > MAX_SUPPORTED_PROTOCOL_VERSION) {
+  if (
+    !Number.isInteger(version) ||
+    version < MIN_SUPPORTED_PROTOCOL_VERSION ||
+    version > MAX_SUPPORTED_PROTOCOL_VERSION
+  ) {
     logger.warn({ messageType: message.type, version }, 'Unsupported protocol version');
     sendJson(client, 'error', {
       message: 'Incompatible Watch Together protocol version. Please update the app.',
