@@ -114,15 +114,26 @@ struct SelectServerView: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(Color(.tertiaryLabel))
+                if viewModel.selectingServerID == server.clientIdentifier {
+                    ProgressView()
+                        .tint(.brandPrimary)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
             }
+            .opacity(
+                viewModel.isSelecting && viewModel.selectingServerID != server.clientIdentifier
+                    ? 0.6
+                    : 1,
+            )
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(viewModel.isSelecting)
     }
 
     private func connectionSummary(for server: PlexCloudResource) -> some View {

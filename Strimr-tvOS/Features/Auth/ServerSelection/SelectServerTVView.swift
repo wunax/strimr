@@ -124,9 +124,20 @@ struct SelectServerTVView: View {
                 }
 
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
+                if viewModel.selectingServerID == server.clientIdentifier {
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(.brandPrimary)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
             }
+            .opacity(
+                viewModel.isSelecting && viewModel.selectingServerID != server.clientIdentifier
+                    ? 0.6
+                    : 1,
+            )
             .padding(32)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.06))
@@ -134,6 +145,7 @@ struct SelectServerTVView: View {
         }
         .buttonStyle(.plain)
         .focused($focusedServerID, equals: server.clientIdentifier)
+        .disabled(viewModel.isSelecting)
     }
 
     private func connectionSummary(for server: PlexCloudResource) -> some View {

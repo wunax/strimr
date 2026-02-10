@@ -6,6 +6,8 @@ import Foundation
 final class ServerSelectionViewModel {
     var servers: [PlexCloudResource] = []
     var isLoading = false
+    var selectingServerID: String?
+    var isSelecting: Bool { selectingServerID != nil }
 
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let context: PlexAPIContext
@@ -29,6 +31,10 @@ final class ServerSelectionViewModel {
     }
 
     func select(server: PlexCloudResource) async {
+        guard selectingServerID == nil else { return }
+        selectingServerID = server.clientIdentifier
+        defer { selectingServerID = nil }
+
         await sessionManager.selectServer(server)
     }
 }
