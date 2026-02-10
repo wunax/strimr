@@ -75,20 +75,6 @@ struct ProfileSwitcherView: View {
                         .background(.gray.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                    Button {
-                        let enteredPin = pinInput
-                        Task {
-                            await viewModel.switchToUser(user, pin: enteredPin)
-                        }
-                        resetPinPrompt()
-                    } label: {
-                        Text("common.actions.switchProfile")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.brandPrimary)
-                    .disabled(pinInput.count < 4)
-
                     Button("common.actions.cancel", role: .cancel) {
                         resetPinPrompt()
                     }
@@ -105,7 +91,13 @@ struct ProfileSwitcherView: View {
             }
         }
         .onChange(of: pinInput) { _, newValue in
-            pinInput = String(newValue.filter(\.isNumber).prefix(4))
+            let sanitizedValue = String(newValue.filter(\.isNumber).prefix(4))
+            if sanitizedValue != pinInput {
+                pinInput = sanitizedValue
+                return
+            }
+
+            submitPinIfComplete()
         }
     }
 
@@ -270,5 +262,16 @@ struct ProfileSwitcherView: View {
         pinPromptUser = nil
         pinInput = ""
         isPinFieldFocused = false
+    }
+
+    private func submitPinIfComplete() {
+        guard pinInput.count == 4 else { return }
+        guard let user = pinPromptUser else { return }
+
+        let enteredPin = pinInput
+        Task {
+            await viewModel.switchToUser(user, pin: enteredPin)
+        }
+        resetPinPrompt()
     }
 }
