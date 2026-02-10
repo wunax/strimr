@@ -63,7 +63,13 @@ struct ProfileSwitcherTVView: View {
             pinEntrySheet(for: user)
         }
         .onChange(of: pinInput) { _, newValue in
-            pinInput = String(newValue.filter(\.isNumber).prefix(4))
+            let sanitizedValue = String(newValue.filter(\.isNumber).prefix(4))
+            if sanitizedValue != pinInput {
+                pinInput = sanitizedValue
+                return
+            }
+
+            submitPinIfComplete()
         }
     }
 
@@ -242,24 +248,10 @@ struct ProfileSwitcherTVView: View {
 
             keypad
 
-            HStack(spacing: 16) {
-                Button("common.actions.cancel", role: .cancel) {
-                    resetPinPrompt()
-                }
-                .frame(maxWidth: .infinity)
-
-                Button {
-                    let enteredPin = pinInput
-                    Task { await viewModel.switchToUser(user, pin: enteredPin) }
-                    resetPinPrompt()
-                } label: {
-                    Text("common.actions.switchProfile")
-                        .frame(maxWidth: .infinity)
-                }
-                .tint(.brandSecondary)
-                .foregroundStyle(.brandSecondaryForeground)
-                .disabled(pinInput.count < 4)
+            Button("common.actions.cancel", role: .cancel) {
+                resetPinPrompt()
             }
+            .frame(maxWidth: .infinity)
             .focusSection()
 
             Spacer()
@@ -360,5 +352,14 @@ struct ProfileSwitcherTVView: View {
     private func resetPinPrompt() {
         pinPromptUser = nil
         pinInput = ""
+    }
+
+    private func submitPinIfComplete() {
+        guard pinInput.count == 4 else { return }
+        guard let user = pinPromptUser else { return }
+
+        let enteredPin = pinInput
+        Task { await viewModel.switchToUser(user, pin: enteredPin) }
+        resetPinPrompt()
     }
 }
