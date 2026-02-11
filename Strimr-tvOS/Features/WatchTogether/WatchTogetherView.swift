@@ -256,6 +256,13 @@ struct WatchTogetherView: View {
                     .tint(.brandPrimary)
                     .controlSize(.regular)
                     .disabled(!viewModel.canStartPlayback)
+
+                    if viewModel.requiresMoreParticipantsToStartPlayback {
+                        Text("watchTogether.error.minimumParticipants")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Button("watchTogether.leave.title", role: .destructive) {

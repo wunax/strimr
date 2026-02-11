@@ -6945,6 +6945,28 @@
         }
       }
     },
+    "watchTogether.error.minimumParticipants" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least 2 participants are required to start playback."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Au moins 2 participants sont requis pour lancer la lecture."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "至少需要 2 位参与者才能开始播放。"
+          }
+        }
+      }
+    },
     "watchTogether.error.missingCode" : {
       "localizations" : {
         "en" : {

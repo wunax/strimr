@@ -4,6 +4,8 @@ import Observation
 @MainActor
 @Observable
 final class WatchTogetherViewModel {
+    private static let minimumParticipantsToStartPlayback = 2
+
     enum ConnectionState {
         case disconnected
         case connecting
@@ -92,8 +94,12 @@ final class WatchTogetherViewModel {
 
     var canStartPlayback: Bool {
         guard isHost, selectedMedia != nil else { return false }
-        guard !participants.isEmpty else { return false }
+        guard participants.count >= Self.minimumParticipantsToStartPlayback else { return false }
         return participants.allSatisfy { $0.isReady && $0.hasMediaAccess }
+    }
+
+    var requiresMoreParticipantsToStartPlayback: Bool {
+        participants.count < Self.minimumParticipantsToStartPlayback
     }
 
     func configurePlaybackLauncher(_ launcher: PlaybackLauncher) {
@@ -158,7 +164,7 @@ final class WatchTogetherViewModel {
     }
 
     func startPlayback() {
-        guard isHost else { return }
+        guard canStartPlayback else { return }
         guard let selectedMedia else { return }
         Task {
             await sendMessage(
@@ -389,6 +395,10 @@ final class WatchTogetherViewModel {
     private func serverErrorMessage(for payload: WatchTogetherServerError) -> String {
         if payload.code == "unsupported_protocol_version" {
             return String(localized: "watchTogether.error.updateRequired")
+        }
+
+        if payload.code == "not_enough_participants" {
+            return String(localized: "watchTogether.error.minimumParticipants")
         }
 
         return payload.message
