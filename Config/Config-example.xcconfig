@@ -6,9 +6,10 @@
 // Configuration settings file format documentation can be found at:
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 
-
 DEVELOPMENT_TEAM = 
 PRODUCT_BUNDLE_IDENTIFIER =
 
 SENTRY_DSN_IOS =
 SENTRY_DSN_TVOS =
+
+WATCH_TOGETHER_URL = localhost:8080
