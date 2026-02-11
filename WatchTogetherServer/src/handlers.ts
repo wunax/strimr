@@ -1,6 +1,7 @@
 import { broadcast, sendJson } from './messaging.js';
 import loggerBase from './logger.js';
 import { MAX_SUPPORTED_PROTOCOL_VERSION, MIN_SUPPORTED_PROTOCOL_VERSION, PROTOCOL_VERSION } from './config.js';
+import { MIN_PARTICIPANTS_TO_START_PLAYBACK } from './constants.js';
 import {
   addParticipant,
   createSession,
@@ -255,6 +256,14 @@ function handleStartPlayback(client: Client, payload: Payload): void {
 
   if (session.hostId !== client.participantId) {
     sendJson(client, 'error', { message: 'Host only action.', code: 'forbidden' });
+    return;
+  }
+
+  if (session.participants.length < MIN_PARTICIPANTS_TO_START_PLAYBACK) {
+    sendJson(client, 'error', {
+      message: `At least ${MIN_PARTICIPANTS_TO_START_PLAYBACK} participants are required to start playback.`,
+      code: 'not_enough_participants',
+    });
     return;
   }
 

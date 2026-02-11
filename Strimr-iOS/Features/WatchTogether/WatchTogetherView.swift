@@ -196,13 +196,24 @@ struct WatchTogetherView: View {
     }
 
     private var startPlaybackButton: some View {
-        Button("watchTogether.startPlayback") {
-            viewModel.startPlayback()
+        VStack(alignment: .leading, spacing: 8) {
+            Button("watchTogether.startPlayback") {
+                viewModel.startPlayback()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .frame(maxWidth: .infinity)
+            .disabled(!viewModel.canStartPlayback)
+
+            if viewModel.requiresMoreParticipantsToStartPlayback {
+                Text("watchTogether.error.minimumParticipants")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .frame(maxWidth: .infinity)
-        .disabled(!viewModel.canStartPlayback)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
