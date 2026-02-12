@@ -23,6 +23,21 @@ struct PlayerControlsTVView: View {
     var onUserInteraction: () -> Void
     var isWatchTogether: Bool
     @FocusState private var focusedControl: FocusTarget?
+    private var playbackBadges: [PlayerControlBadge] {
+        var badges: [PlayerControlBadge] = []
+
+        if supportsHDR {
+            badges.append(
+                PlayerControlBadge(
+                    id: "hdr",
+                    title: String(localized: "player.badge.hdr"),
+                    systemImage: "sparkles",
+                ),
+            )
+        }
+
+        return badges
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -60,11 +75,12 @@ struct PlayerControlsTVView: View {
 
             Spacer()
 
-            if !isScrubbing, let skipMarkerTitle, let onSkipMarker {
-                HStack {
-                    Spacer()
-                    SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
-                }
+            if !isScrubbing {
+                PlayerAuxiliaryControlsTVRow(
+                    skipMarkerTitle: skipMarkerTitle,
+                    onSkipMarker: onSkipMarker,
+                    badges: playbackBadges,
+                )
                 .padding(.horizontal, 24)
             }
 
@@ -73,7 +89,6 @@ struct PlayerControlsTVView: View {
                 duration: duration,
                 bufferedAhead: bufferedAhead,
                 playbackPosition: bufferBasePosition,
-                supportsHDR: supportsHDR,
                 onEditingChanged: onScrubbingChanged,
             )
 
@@ -134,6 +149,48 @@ struct PlayerControlsTVView: View {
         let supported = [5, 10, 15, 30, 45, 60]
         guard supported.contains(seconds) else { return prefix }
         return "\(prefix).\(seconds)"
+    }
+}
+
+private struct PlayerControlBadge: Identifiable {
+    var id: String
+    var title: String
+    var systemImage: String?
+}
+
+private struct PlayerAuxiliaryControlsTVRow: View {
+    var skipMarkerTitle: String?
+    var onSkipMarker: (() -> Void)?
+    var badges: [PlayerControlBadge]
+
+    var body: some View {
+        HStack {
+            Spacer()
+            VStack(alignment: .trailing, spacing: 8) {
+                if hasSkipMarker {
+                    if !badges.isEmpty {
+                        badgesRow
+                    }
+                    if let skipMarkerTitle, let onSkipMarker {
+                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                    }
+                } else if !badges.isEmpty {
+                    badgesRow
+                }
+            }
+        }
+    }
+
+    private var hasSkipMarker: Bool {
+        skipMarkerTitle != nil && onSkipMarker != nil
+    }
+
+    private var badgesRow: some View {
+        HStack(spacing: 8) {
+            ForEach(badges) { badge in
+                PlayerBadge(badge.title, systemImage: badge.systemImage)
+            }
+        }
     }
 }
 

@@ -23,6 +23,21 @@ struct PlayerControlsView: View {
     var isRotationLocked: Bool
     var onToggleRotationLock: () -> Void
     var isWatchTogether: Bool
+    private var playbackBadges: [PlayerControlBadge] {
+        var badges: [PlayerControlBadge] = []
+
+        if supportsHDR {
+            badges.append(
+                PlayerControlBadge(
+                    id: "hdr",
+                    title: String(localized: "player.badge.hdr"),
+                    systemImage: "sparkles",
+                ),
+            )
+        }
+
+        return badges
+    }
 
     var body: some View {
         ZStack {
@@ -37,13 +52,13 @@ struct PlayerControlsView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 18) {
-                    HStack {
-                        RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
-                        Spacer()
-                        if let skipMarkerTitle, let onSkipMarker {
-                            SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
-                        }
-                    }
+                    PlayerAuxiliaryControlsRow(
+                        isRotationLocked: isRotationLocked,
+                        onToggleRotationLock: onToggleRotationLock,
+                        skipMarkerTitle: skipMarkerTitle,
+                        onSkipMarker: onSkipMarker,
+                        badges: playbackBadges,
+                    )
                     .padding(.horizontal, 24)
                     .opacity(isScrubbing ? 0 : 1)
                     .allowsHitTesting(!isScrubbing)
@@ -53,7 +68,6 @@ struct PlayerControlsView: View {
                         duration: duration,
                         bufferedAhead: bufferedAhead,
                         playbackPosition: bufferBasePosition,
-                        supportsHDR: supportsHDR,
                         onEditingChanged: onScrubbingChanged,
                     )
                 }
@@ -74,6 +88,54 @@ struct PlayerControlsView: View {
         }
         .background {
             PlayerControlsBackground()
+        }
+    }
+}
+
+private struct PlayerControlBadge: Identifiable {
+    var id: String
+    var title: String
+    var systemImage: String?
+}
+
+private struct PlayerAuxiliaryControlsRow: View {
+    var isRotationLocked: Bool
+    var onToggleRotationLock: () -> Void
+    var skipMarkerTitle: String?
+    var onSkipMarker: (() -> Void)?
+    var badges: [PlayerControlBadge]
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 16) {
+            RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
+
+            Spacer(minLength: 12)
+
+            VStack(alignment: .trailing, spacing: 8) {
+                if hasSkipMarker {
+                    if !badges.isEmpty {
+                        badgesRow
+                    }
+                    if let skipMarkerTitle, let onSkipMarker {
+                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                    }
+                } else if !badges.isEmpty {
+                    badgesRow
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    private var hasSkipMarker: Bool {
+        skipMarkerTitle != nil && onSkipMarker != nil
+    }
+
+    private var badgesRow: some View {
+        HStack(spacing: 8) {
+            ForEach(badges) { badge in
+                PlayerBadge(badge.title, systemImage: badge.systemImage)
+            }
         }
     }
 }

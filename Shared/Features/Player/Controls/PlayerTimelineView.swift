@@ -5,7 +5,6 @@ struct PlayerTimelineView: View {
     var duration: Double?
     var bufferedAhead: Double
     var playbackPosition: Double
-    var supportsHDR: Bool
     var onEditingChanged: (Bool) -> Void
 
     private var sliderUpperBound: Double {
@@ -36,13 +35,6 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if supportsHDR {
-                HStack {
-                    Spacer()
-                    PlayerBadge(String(localized: "player.badge.hdr"), systemImage: "sparkles")
-                }
-            }
-
             #if os(tvOS)
                 PlayerTimelineScrubberTVView(
                     position: $position,
