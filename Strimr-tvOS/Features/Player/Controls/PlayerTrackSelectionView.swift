@@ -37,12 +37,13 @@ struct PlayerTrackSelectionView: View {
                             ) {
                                 onSelect(track.track.id)
                             }
+                            .padding(.horizontal, 24)
                         }
                     }
-                    .padding(.horizontal, 24)
                 }
             }
             .listStyle(.automatic)
+            .navigationTitle(titleKey)
         }
     }
 }
