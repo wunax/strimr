@@ -15,7 +15,7 @@ struct EpisodeArtworkView: View {
                 case let .success(image):
                     image
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                 case .empty:
                     Color.gray.opacity(0.15)
                 case .failure:
@@ -26,6 +26,7 @@ struct EpisodeArtworkView: View {
             }
             .frame(width: width)
             .aspectRatio(aspectRatio, contentMode: .fit)
+            .background(Color.black)
 
             if let runtime {
                 Label {
