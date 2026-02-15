@@ -223,10 +223,11 @@ struct PlexPart: Codable, Equatable {
 
 struct PlexMedia: Codable, Equatable {
     let id: Int
+    let videoResolution: String?
     let parts: [PlexPart]
 
     private enum CodingKeys: String, CodingKey {
-        case id
+        case id, videoResolution
         case parts = "Part"
     }
 }

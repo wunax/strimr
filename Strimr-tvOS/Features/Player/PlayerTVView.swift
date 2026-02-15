@@ -113,6 +113,7 @@ struct PlayerTVView: View {
                     PlayerControlsTVView(
                         media: bindableViewModel.media,
                         isPaused: bindableViewModel.isPaused,
+                        videoResolution: bindableViewModel.media?.playbackResolutionLabel,
                         supportsHDR: supportsHDR,
                         position: timelineBinding,
                         duration: bindableViewModel.duration,

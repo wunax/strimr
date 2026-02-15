@@ -4,6 +4,7 @@ struct PlayerControlsView: View {
     var media: MediaItem?
     var isPaused: Bool
     var isBuffering: Bool
+    var videoResolution: String?
     var supportsHDR: Bool
     @Binding var position: Double
     var duration: Double?
@@ -25,6 +26,16 @@ struct PlayerControlsView: View {
     var isWatchTogether: Bool
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
+
+        if let videoResolution {
+            badges.append(
+                PlayerControlBadge(
+                    id: "resolution",
+                    title: videoResolution,
+                    systemImage: nil,
+                ),
+            )
+        }
 
         if supportsHDR {
             badges.append(

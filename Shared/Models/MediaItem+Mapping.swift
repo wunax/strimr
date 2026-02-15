@@ -13,6 +13,7 @@ extension MediaItem {
             genres: plexItem.genres?.map(\.tag) ?? [],
             year: plexItem.year,
             duration: plexItem.duration.map { TimeInterval($0) / 1000 },
+            videoResolution: plexItem.media?.first?.videoResolution,
             rating: plexItem.rating ?? plexItem.audienceRating,
             contentRating: plexItem.contentRating,
             studio: plexItem.studio,

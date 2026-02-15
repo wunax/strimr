@@ -11,6 +11,7 @@ struct MediaItem: Identifiable, Hashable {
     let genres: [String]
     let year: Int?
     let duration: TimeInterval?
+    let videoResolution: String?
     let rating: Double?
     let contentRating: String?
     let studio: String?
@@ -95,5 +96,23 @@ struct MediaItem: Identifiable, Hashable {
         }
 
         return min(100, (viewOffset / duration) * 100)
+    }
+
+    var playbackResolutionLabel: String? {
+        guard var value = videoResolution?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+
+        value = value.lowercased()
+
+        if Int(value) != nil {
+            return "\(value)p"
+        }
+
+        if value.hasSuffix("k") || value == "sd" || value == "uhd" {
+            return value.uppercased()
+        }
+
+        return value
     }
 }

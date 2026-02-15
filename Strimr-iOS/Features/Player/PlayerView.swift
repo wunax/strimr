@@ -106,6 +106,7 @@ struct PlayerView: View {
                         media: bindableViewModel.media,
                         isPaused: bindableViewModel.isPaused,
                         isBuffering: bindableViewModel.isBuffering,
+                        videoResolution: bindableViewModel.media?.playbackResolutionLabel,
                         supportsHDR: supportsHDR,
                         position: timelineBinding,
                         duration: bindableViewModel.duration,

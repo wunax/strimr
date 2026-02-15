@@ -3,6 +3,7 @@ import SwiftUI
 struct PlayerControlsTVView: View {
     var media: MediaItem?
     var isPaused: Bool
+    var videoResolution: String?
     var supportsHDR: Bool
     @Binding var position: Double
     var duration: Double?
@@ -25,6 +26,16 @@ struct PlayerControlsTVView: View {
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
+
+        if let videoResolution {
+            badges.append(
+                PlayerControlBadge(
+                    id: "resolution",
+                    title: videoResolution,
+                    systemImage: nil,
+                ),
+            )
+        }
 
         if supportsHDR {
             badges.append(
