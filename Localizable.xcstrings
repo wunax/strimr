@@ -6475,6 +6475,36 @@
         }
       }
     },
+    "SharePlay" : {
+
+    },
+    "sharePlay.error.activate" : {
+
+    },
+    "sharePlay.error.noAccess" : {
+
+    },
+    "sharePlay.error.playbackLauncher" : {
+
+    },
+    "sharePlay.error.send" : {
+
+    },
+    "sharePlay.toast.ended" : {
+
+    },
+    "sharePlay.toast.paused" : {
+
+    },
+    "sharePlay.toast.played" : {
+
+    },
+    "sharePlay.toast.rate" : {
+
+    },
+    "sharePlay.toast.seeked" : {
+
+    },
     "signIn.button.cancel" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(SharePlayViewModel.self) private var sharePlayViewModel
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
     private let onPlay: (String, PlexItemType) -> Void
@@ -107,6 +108,8 @@ struct MediaDetailTVView: View {
             if viewModel.shouldShowWatchlistButton {
                 watchlistToggleButton
             }
+
+            sharePlayButton
         }
     }
 
@@ -255,6 +258,24 @@ struct MediaDetailTVView: View {
             }
             .focusSection()
         }
+    }
+
+    private var sharePlayButton: some View {
+        Button {
+            sharePlayViewModel.startSharePlay(
+                ratingKey: viewModel.media.id,
+                type: viewModel.media.plexType,
+                title: viewModel.media.title,
+                thumbPath: viewModel.media.thumbPath
+            )
+        } label: {
+            Image(systemName: "shareplay")
+                .font(.title2.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
+        .tint(.secondary)
+        .accessibilityLabel(Text("SharePlay"))
     }
 
     private func handlePlay() {
