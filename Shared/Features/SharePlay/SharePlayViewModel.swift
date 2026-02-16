@@ -15,7 +15,10 @@ final class SharePlayViewModel {
     var sessionState: SessionState = .idle
     var toasts: [ToastMessage] = []
     var sessionEndedSignal: UUID?
+    var isEligibleForGroupSession = false
 
+    @ObservationIgnored private let groupStateObserver = GroupStateObserver()
+    @ObservationIgnored private var groupStateCancellable: AnyCancellable?
     @ObservationIgnored private var groupSession: GroupSession<StrimrSharePlayActivity>?
     @ObservationIgnored private var messenger: GroupSessionMessenger?
     @ObservationIgnored private var sessionTask: Task<Void, Never>?
@@ -41,6 +44,12 @@ final class SharePlayViewModel {
 
     init(context: PlexAPIContext) {
         self.context = context
+        isEligibleForGroupSession = groupStateObserver.isEligibleForGroupSession
+        groupStateCancellable = groupStateObserver.$isEligibleForGroupSession
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] eligible in
+                self?.isEligibleForGroupSession = eligible
+            }
     }
 
     func configurePlaybackLauncher(_ launcher: PlaybackLauncher) {

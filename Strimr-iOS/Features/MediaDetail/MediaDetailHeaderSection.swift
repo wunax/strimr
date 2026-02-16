@@ -234,7 +234,10 @@ struct MediaDetailHeaderSection: View {
 
             downloadButton
             shuffleButton
-            sharePlayButton
+
+            if sharePlayViewModel.isEligibleForGroupSession {
+                sharePlayButton
+            }
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }

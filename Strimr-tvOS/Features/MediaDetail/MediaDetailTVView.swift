@@ -109,7 +109,9 @@ struct MediaDetailTVView: View {
                 watchlistToggleButton
             }
 
-            sharePlayButton
+            if sharePlayViewModel.isEligibleForGroupSession {
+                sharePlayButton
+            }
         }
     }
 
