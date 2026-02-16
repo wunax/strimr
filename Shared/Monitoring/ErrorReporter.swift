@@ -8,6 +8,8 @@ enum ErrorReporter {
                     options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_IOS") as? String
                 #elseif os(tvOS)
                     options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_TVOS") as? String
+                #elseif os(visionOS)
+                    options.dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN_VISIONOS") as? String
                 #endif
                 options.enableLogs = true
             }

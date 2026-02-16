@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3C8BC2372F437271009EDB9A /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 3C8BC2362F437271009EDB9A /* RealityKitContent */; };
+		3C8BC2882F43733F009EDB9A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C8BC2872F43733F009EDB9A /* Sentry */; };
+		3C8BC28A2F43733F009EDB9A /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 3C8BC2892F43733F009EDB9A /* MPVKit-GPL */; };
+		3C8BC3302F43811B009EDB9A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		E93807CC2F20DE6D00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */; };
 		E93807CE2F210EBD00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */; };
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -43,6 +47,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3C8BC2322F437271009EDB9A /* Strimr-visionOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-visionOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C8BC2352F437271009EDB9A /* RealityKitContent */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = RealityKitContent; sourceTree = "<group>"; };
 		E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E98AE52C2F008D9D0062F372 /* MobileVLCKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = MobileVLCKit.xcframework; path = Carthage/Build/MobileVLCKit.xcframework; sourceTree = "<group>"; };
@@ -51,6 +57,22 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3C8BC23F2F437272009EDB9A /* Exceptions for "Strimr-visionOS" folder in "Strimr-visionOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3C8BC2312F437271009EDB9A /* Strimr-visionOS */;
+		};
+		3C8BC3252F43746F009EDB9A /* Exceptions for "Shared" folder in "Strimr-visionOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Library/VLC/VLCPlayerDelegate.swift,
+				Library/VLC/VLCPlayerView.swift,
+				Library/VLC/VLCPlayerViewController.swift,
+			);
+			target = 3C8BC2312F437271009EDB9A /* Strimr-visionOS */;
+		};
 		E99DFD972EEB02E800BCC566 /* Exceptions for "Strimr-iOS" folder in "Strimr-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -94,10 +116,6 @@
 				Features/PlaylistDetail/PlaylistDetailViewModel.swift,
 				Features/Search/SearchResultCard.swift,
 				Features/Search/SearchViewModel.swift,
-				Features/SharePlay/SharePlayPlaybackMessage.swift,
-				Features/SharePlay/SharePlayPlaybackSyncEngine.swift,
-				Features/SharePlay/SharePlayViewModel.swift,
-				Features/SharePlay/StrimrSharePlayActivity.swift,
 				Features/Seerr/SeerrDiscoverViewModel.swift,
 				Features/Seerr/SeerrManageRequestsViewModel.swift,
 				Features/Seerr/SeerrMediaDetailViewModel.swift,
@@ -111,6 +129,10 @@
 				Features/Settings/NavigationLibrariesSectionView.swift,
 				Features/Settings/NavigationLibrariesViewModel.swift,
 				Features/Settings/SettingsViewModel.swift,
+				Features/SharePlay/SharePlayPlaybackMessage.swift,
+				Features/SharePlay/SharePlayPlaybackSyncEngine.swift,
+				Features/SharePlay/SharePlayViewModel.swift,
+				Features/SharePlay/StrimrSharePlayActivity.swift,
 				Features/WatchTogether/Playback/WatchTogetherPlaybackSyncEngine.swift,
 				Features/WatchTogether/Playback/WatchTogetherPlayerEvent.swift,
 				Features/WatchTogether/WatchTogetherModels.swift,
@@ -228,6 +250,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3C8BC2332F437271009EDB9A /* Strimr-visionOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3C8BC23F2F437272009EDB9A /* Exceptions for "Strimr-visionOS" folder in "Strimr-visionOS" target */,
+			);
+			path = "Strimr-visionOS";
+			sourceTree = "<group>";
+		};
 		E98A13BB2ED8CBAD002F98B2 /* Strimr-iOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -248,6 +278,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */,
+				3C8BC3252F43746F009EDB9A /* Exceptions for "Shared" folder in "Strimr-visionOS" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -260,6 +291,16 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3C8BC22F2F437271009EDB9A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C8BC28A2F43733F009EDB9A /* MPVKit-GPL in Frameworks */,
+				3C8BC2372F437271009EDB9A /* RealityKitContent in Frameworks */,
+				3C8BC2882F43733F009EDB9A /* Sentry in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B62ED8CBAD002F98B2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -281,6 +322,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3C8BC2342F437271009EDB9A /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				3C8BC2352F437271009EDB9A /* RealityKitContent */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
 		E98A13B02ED8CBAD002F98B2 = {
 			isa = PBXGroup;
 			children = (
@@ -289,7 +338,9 @@
 				E9C449012EF30A9500D2895B /* Shared */,
 				E98A13BB2ED8CBAD002F98B2 /* Strimr-iOS */,
 				E9C448F42EF3034900D2895B /* Strimr-tvOS */,
+				3C8BC2332F437271009EDB9A /* Strimr-visionOS */,
 				E9C448FE2EF3063500D2895B /* Frameworks */,
+				3C8BC2342F437271009EDB9A /* Packages */,
 				E98A13BA2ED8CBAD002F98B2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -299,6 +350,7 @@
 			children = (
 				E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */,
 				E9C448F32EF3034900D2895B /* Strimr-tvOS.app */,
+				3C8BC2322F437271009EDB9A /* Strimr-visionOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -315,6 +367,32 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3C8BC2312F437271009EDB9A /* Strimr-visionOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3C8BC2402F437272009EDB9A /* Build configuration list for PBXNativeTarget "Strimr-visionOS" */;
+			buildPhases = (
+				3C8BC22E2F437271009EDB9A /* Sources */,
+				3C8BC22F2F437271009EDB9A /* Frameworks */,
+				3C8BC2302F437271009EDB9A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3C8BC2332F437271009EDB9A /* Strimr-visionOS */,
+				E9C449012EF30A9500D2895B /* Shared */,
+			);
+			name = "Strimr-visionOS";
+			packageProductDependencies = (
+				3C8BC2362F437271009EDB9A /* RealityKitContent */,
+				3C8BC2872F43733F009EDB9A /* Sentry */,
+				3C8BC2892F43733F009EDB9A /* MPVKit-GPL */,
+			);
+			productName = "Strimr-visionOS";
+			productReference = 3C8BC2322F437271009EDB9A /* Strimr-visionOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E98A13C42ED8CBAE002F98B2 /* Build configuration list for PBXNativeTarget "Strimr-iOS" */;
@@ -374,9 +452,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					3C8BC2312F437271009EDB9A = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					E98A13B82ED8CBAD002F98B2 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -406,11 +487,20 @@
 			targets = (
 				E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */,
 				E9C448F22EF3034900D2895B /* Strimr-tvOS */,
+				3C8BC2312F437271009EDB9A /* Strimr-visionOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3C8BC2302F437271009EDB9A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C8BC3302F43811B009EDB9A /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B72ED8CBAD002F98B2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -430,6 +520,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3C8BC22E2F437271009EDB9A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B52ED8CBAD002F98B2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -447,6 +544,69 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		3C8BC2412F437272009EDB9A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U93CMC97HL;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.birdbrain.Strimr-visionOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = xros;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				XROS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		3C8BC2422F437272009EDB9A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U93CMC97HL;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.birdbrain.Strimr-visionOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = xros;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				VALIDATE_PRODUCT = YES;
+				XROS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
 		E98A13C22ED8CBAE002F98B2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -572,6 +732,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = U93CMC97HL;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -595,6 +756,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.roegames.strimr-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -620,6 +782,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = U93CMC97HL;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -643,6 +806,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.roegames.strimr-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -733,6 +897,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3C8BC2402F437272009EDB9A /* Build configuration list for PBXNativeTarget "Strimr-visionOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C8BC2412F437272009EDB9A /* Debug */,
+				3C8BC2422F437272009EDB9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E98A13B42ED8CBAD002F98B2 /* Build configuration list for PBXProject "Strimr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -765,7 +938,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/wunax/MPVKit";
+			repositoryURL = "git@github.com:wunax/MPVKit.git";
 			requirement = {
 				kind = exactVersion;
 				version = 0.41.2;
@@ -773,7 +946,7 @@
 		};
 		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			repositoryURL = "git@github.com:getsentry/sentry-cocoa.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.1.0;
@@ -782,6 +955,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		3C8BC2362F437271009EDB9A /* RealityKitContent */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RealityKitContent;
+		};
+		3C8BC2872F43733F009EDB9A /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+		3C8BC2892F43733F009EDB9A /* MPVKit-GPL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			productName = "MPVKit-GPL";
+		};
 		E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
