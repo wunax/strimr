@@ -26,7 +26,9 @@ enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
 }
 
 enum InternalPlaybackPlayer: String, CaseIterable, Identifiable {
+    #if !os(visionOS)
     case vlc
+    #endif
     case mpv
 
     var id: String {
@@ -35,12 +37,18 @@ enum InternalPlaybackPlayer: String, CaseIterable, Identifiable {
 
     init?(player: PlaybackPlayer) {
         switch player {
+        #if !os(visionOS)
         case .vlc:
             self = .vlc
+        #endif
         case .mpv:
             self = .mpv
         case .infuse:
             return nil
+        #if os(visionOS)
+        default:
+            return nil
+        #endif
         }
     }
 }

@@ -15,6 +15,12 @@
       },
       "shouldTranslate" : false
     },
+    "%lld%%" : {
+
+    },
+    "%llds" : {
+
+    },
     "•" : {
       "shouldTranslate" : false
     },
@@ -282,6 +288,9 @@
         }
       }
     },
+    "collection.detail.itemCount %lld" : {
+
+    },
     "common.actions.cancel" : {
       "localizations" : {
         "en" : {
@@ -303,6 +312,9 @@
           }
         }
       }
+    },
+    "common.actions.close" : {
+
     },
     "common.actions.delete" : {
       "localizations" : {
@@ -3628,6 +3640,12 @@
         }
       }
     },
+    "more.switchProfile" : {
+
+    },
+    "more.switchServer" : {
+
+    },
     "player.badge.hdr" : {
       "localizations" : {
         "en" : {
@@ -4001,6 +4019,9 @@
           }
         }
       }
+    },
+    "playlist.detail.itemCount %lld" : {
+
     },
     "search.badge.collection" : {
       "localizations" : {
@@ -4618,6 +4639,9 @@
         }
       }
     },
+    "seerr.discover.viewDetails" : {
+
+    },
     "seerr.manageRequests.action %lld" : {
       "localizations" : {
         "en" : {
@@ -5190,6 +5214,9 @@
         }
       }
     },
+    "seerr.request.description" : {
+
+    },
     "seerr.request.disabled.missingTvdb" : {
       "localizations" : {
         "en" : {
@@ -5542,6 +5569,15 @@
         }
       }
     },
+    "seerr.request.submit" : {
+
+    },
+    "seerr.request.submitting" : {
+
+    },
+    "seerr.request.success" : {
+
+    },
     "seerr.request.title" : {
       "localizations" : {
         "en" : {
@@ -5695,6 +5731,12 @@
           }
         }
       }
+    },
+    "seerr.requests.pending" : {
+
+    },
+    "seerr.search.prompt" : {
+
     },
     "serverSelection.connection.localFormat %@" : {
       "extractionState" : "manual",
@@ -5991,6 +6033,9 @@
         }
       }
     },
+    "settings.integrations.connected" : {
+
+    },
     "settings.integrations.manage" : {
       "localizations" : {
         "en" : {
@@ -6013,6 +6058,9 @@
         }
       }
     },
+    "settings.integrations.seerr" : {
+
+    },
     "settings.integrations.title" : {
       "localizations" : {
         "en" : {
@@ -6034,6 +6082,9 @@
           }
         }
       }
+    },
+    "settings.interface.display" : {
+
     },
     "settings.interface.displayCollections" : {
       "localizations" : {
@@ -6123,6 +6174,18 @@
         }
       }
     },
+    "settings.interface.displaySeerrTab" : {
+
+    },
+    "settings.interface.hiddenLibraries" : {
+
+    },
+    "settings.interface.manageHiddenLibraries" : {
+
+    },
+    "settings.interface.manageNavigationLibraries" : {
+
+    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {
@@ -6189,6 +6252,9 @@
         }
       }
     },
+    "settings.playback.autoPlayNextEpisode" : {
+
+    },
     "settings.playback.fastForward" : {
       "localizations" : {
         "en" : {
@@ -6210,6 +6276,9 @@
           }
         }
       }
+    },
+    "settings.playback.general" : {
+
     },
     "settings.playback.player" : {
       "localizations" : {
@@ -6409,6 +6478,18 @@
         }
       }
     },
+    "settings.playback.seekBackward" : {
+
+    },
+    "settings.playback.seekForward" : {
+
+    },
+    "settings.playback.seeking" : {
+
+    },
+    "settings.playback.subtitles" : {
+
+    },
     "settings.playback.subtitleScale" : {
       "localizations" : {
         "en" : {
@@ -6453,6 +6534,21 @@
         }
       }
     },
+    "settings.seerr.disconnect" : {
+
+    },
+    "settings.seerr.server" : {
+
+    },
+    "settings.seerr.setup.description" : {
+
+    },
+    "settings.seerr.setup.instructions" : {
+
+    },
+    "settings.seerr.user" : {
+
+    },
     "settings.title" : {
       "localizations" : {
         "en" : {
@@ -6474,6 +6570,36 @@
           }
         }
       }
+    },
+    "SharePlay" : {
+
+    },
+    "sharePlay.error.activate" : {
+
+    },
+    "sharePlay.error.noAccess" : {
+
+    },
+    "sharePlay.error.playbackLauncher" : {
+
+    },
+    "sharePlay.error.send" : {
+
+    },
+    "sharePlay.toast.ended" : {
+
+    },
+    "sharePlay.toast.paused" : {
+
+    },
+    "sharePlay.toast.played" : {
+
+    },
+    "sharePlay.toast.rate" : {
+
+    },
+    "sharePlay.toast.seeked" : {
+
     },
     "signIn.button.cancel" : {
       "extractionState" : "manual",
@@ -6857,6 +6983,12 @@
         }
       }
     },
+    "watchTogether.create.button" : {
+
+    },
+    "watchTogether.create.description" : {
+
+    },
     "watchTogether.create.title" : {
       "localizations" : {
         "en" : {
@@ -7209,6 +7341,15 @@
         }
       }
     },
+    "watchTogether.join.button" : {
+
+    },
+    "watchTogether.join.codePlaceholder" : {
+
+    },
+    "watchTogether.join.description" : {
+
+    },
     "watchTogether.join.placeholder" : {
       "localizations" : {
         "en" : {
@@ -7252,6 +7393,9 @@
           }
         }
       }
+    },
+    "watchTogether.leave.confirm" : {
+
     },
     "watchTogether.leave.endAll" : {
       "localizations" : {
@@ -7340,6 +7484,18 @@
           }
         }
       }
+    },
+    "watchTogether.lobby.code" : {
+
+    },
+    "watchTogether.lobby.leave" : {
+
+    },
+    "watchTogether.lobby.participants" : {
+
+    },
+    "watchTogether.lobby.start" : {
+
     },
     "watchTogether.participants.title" : {
       "localizations" : {

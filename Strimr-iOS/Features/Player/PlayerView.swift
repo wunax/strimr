@@ -5,6 +5,7 @@ struct PlayerView: View {
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
+    @Environment(SharePlayViewModel.self) private var sharePlayViewModel
     @State var viewModel: PlayerViewModel
     let activePlayer: InternalPlaybackPlayer
     @State private var playerCoordinator: any PlayerCoordinating
@@ -30,6 +31,7 @@ struct PlayerView: View {
     @State private var isRotationLocked = false
     @State private var isShowingWatchTogetherExitPrompt = false
     @State private var wasInWatchTogetherSession = false
+    @State private var wasInSharePlaySession = false
     @State private var activePlaybackURL: URL?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -127,7 +129,7 @@ struct PlayerView: View {
                         },
                         isRotationLocked: isRotationLocked,
                         onToggleRotationLock: toggleRotationLock,
-                        isWatchTogether: watchTogetherViewModel.isInSession,
+                        isWatchTogether: watchTogetherViewModel.isInSession || sharePlayViewModel.isInSession,
                     )
                     .transition(.opacity)
                 }
@@ -137,7 +139,7 @@ struct PlayerView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 }
 
-                ToastOverlay(toasts: watchTogetherViewModel.toasts)
+                ToastOverlay(toasts: watchTogetherViewModel.toasts + sharePlayViewModel.toasts)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         }
@@ -149,6 +151,10 @@ struct PlayerView: View {
                 watchTogetherViewModel.attachPlayerCoordinator(playerCoordinator)
                 wasInWatchTogetherSession = true
             }
+            if sharePlayViewModel.isInSession {
+                sharePlayViewModel.attachPlayerCoordinator(playerCoordinator)
+                wasInSharePlaySession = true
+            }
         }
         .onDisappear {
             viewModel.handleStop()
@@ -158,6 +164,9 @@ struct PlayerView: View {
             isRotationLocked = false
             if wasInWatchTogetherSession {
                 watchTogetherViewModel.detachPlayerCoordinator()
+            }
+            if wasInSharePlaySession {
+                sharePlayViewModel.detachPlayerCoordinator()
             }
         }
         .task {
@@ -186,6 +195,10 @@ struct PlayerView: View {
         }
         .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
             guard wasInWatchTogetherSession else { return }
+            dismissPlayer(force: true)
+        }
+        .onChange(of: sharePlayViewModel.sessionEndedSignal) { _, _ in
+            guard wasInSharePlaySession else { return }
             dismissPlayer(force: true)
         }
         .sheet(isPresented: $showingSettings) {
@@ -259,6 +272,7 @@ struct PlayerView: View {
         playerCoordinator.togglePlayback()
         showControls(temporarily: true)
         watchTogetherViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
+        sharePlayViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
     }
 
     private func showSettings() {
@@ -356,6 +370,7 @@ struct PlayerView: View {
         playerCoordinator.setPlaybackRate(rate)
         showControls(temporarily: true)
         watchTogetherViewModel.sendRateChange(rate)
+        sharePlayViewModel.sendRateChange(rate)
     }
 
     private func jump(by seconds: Double) {
@@ -363,6 +378,7 @@ struct PlayerView: View {
         showControls(temporarily: true)
         let newPosition = max(0, viewModel.position + seconds)
         watchTogetherViewModel.sendSeek(to: newPosition)
+        sharePlayViewModel.sendSeek(to: newPosition)
     }
 
     private func applyResumeOffsetIfNeeded() {
@@ -402,6 +418,7 @@ struct PlayerView: View {
             viewModel.position = timelinePosition
             scheduleControlsHide()
             watchTogetherViewModel.sendSeek(to: timelinePosition)
+            sharePlayViewModel.sendSeek(to: timelinePosition)
         }
     }
 
@@ -479,6 +496,7 @@ struct PlayerView: View {
         timelinePosition = marker.endTime
         showControls(temporarily: true)
         watchTogetherViewModel.sendSeek(to: marker.endTime)
+        sharePlayViewModel.sendSeek(to: marker.endTime)
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {

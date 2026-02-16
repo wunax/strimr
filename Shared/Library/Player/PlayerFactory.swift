@@ -11,10 +11,12 @@ enum PlayerFactory {
             let coordinator = MPVPlayerView.Coordinator()
             coordinator.options = options
             return coordinator
+        #if !os(visionOS)
         case .vlc:
             let coordinator = VLCPlayerView.Coordinator()
             coordinator.options = options
             return coordinator
+        #endif
         }
     }
 
@@ -39,6 +41,7 @@ enum PlayerFactory {
                     .onPlaybackEnded(onPlaybackEnded)
                     .onMediaLoaded(onMediaLoaded),
             )
+        #if !os(visionOS)
         case .vlc:
             guard let vlcCoordinator = coordinator as? VLCPlayerView.Coordinator else {
                 assertionFailure("VLC coordinator expected")
@@ -52,6 +55,7 @@ enum PlayerFactory {
                     .onPlaybackEnded(onPlaybackEnded)
                     .onMediaLoaded(onMediaLoaded),
             )
+        #endif
         }
     }
 }
