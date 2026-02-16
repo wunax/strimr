@@ -4,6 +4,7 @@ import SwiftUI
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(PlexAPIContext.self) private var context
+    @Environment(SharePlayViewModel.self) private var sharePlayViewModel
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
@@ -233,6 +234,7 @@ struct MediaDetailHeaderSection: View {
 
             downloadButton
             shuffleButton
+            sharePlayButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -384,6 +386,33 @@ struct MediaDetailHeaderSection: View {
                 .font(.caption2)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: 52)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+    }
+
+    private var sharePlayButton: some View {
+        VStack(spacing: 2) {
+            Button {
+                sharePlayViewModel.startSharePlay(
+                    ratingKey: viewModel.media.id,
+                    type: viewModel.media.plexType,
+                    title: viewModel.media.title,
+                    thumbPath: viewModel.media.thumbPath
+                )
+            } label: {
+                Image(systemName: "shareplay")
+                    .font(.headline.weight(.semibold))
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+
+            Text("SharePlay")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 48)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
