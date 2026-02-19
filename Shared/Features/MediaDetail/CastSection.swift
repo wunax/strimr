@@ -80,12 +80,12 @@ struct CastCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name)
-                    .font(.callout)
+                    .font(nameFont)
                     .fontWeight(.semibold)
                     .lineLimit(2)
                 if let character = member.character {
                     Text(character)
-                        .font(.caption)
+                        .font(characterFont)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -142,5 +142,21 @@ struct CastCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var nameFont: Font {
+        #if os(tvOS)
+            .footnote
+        #else
+            .callout
+        #endif
+    }
+
+    private var characterFont: Font {
+        #if os(tvOS)
+            .caption2
+        #else
+            .caption
+        #endif
     }
 }

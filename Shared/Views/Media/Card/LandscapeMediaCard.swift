@@ -26,11 +26,15 @@ struct LandscapeMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
-        if sizeClass == .compact {
-            90
-        } else {
-            124
-        }
+        #if os(tvOS)
+            180
+        #else
+            if sizeClass == .compact {
+                90
+            } else {
+                124
+            }
+        #endif
     }
 
     var body: some View {

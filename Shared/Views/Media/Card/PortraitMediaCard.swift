@@ -26,11 +26,15 @@ struct PortraitMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
-        if sizeClass == .compact {
-            180
-        } else {
-            240
-        }
+        #if os(tvOS)
+            320
+        #else
+            if sizeClass == .compact {
+                180
+            } else {
+                240
+            }
+        #endif
     }
 
     var body: some View {
