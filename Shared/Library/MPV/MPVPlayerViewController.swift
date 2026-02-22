@@ -318,7 +318,11 @@ final class MPVPlayerViewController: UIViewController {
                         case .videoParamsSigPeak:
                             if let sigPeak = UnsafePointer<Double>(OpaquePointer(eventProperty.data))?.pointee {
                                 DispatchQueue.main.async {
+                                    #if os(visionOS)
+                                    let maxEDRRange: CGFloat = 1.0
+                                    #else
                                     let maxEDRRange = self.view.window?.screen.potentialEDRHeadroom ?? 1.0
+                                    #endif
                                     // display screen support HDR and current playing HDR video
                                     self.hdrAvailable = maxEDRRange > 1.0 && sigPeak > 1.0
                                     self.playDelegate?.propertyChange(mpv: mpv, property: playerProperty, data: sigPeak)
@@ -398,7 +402,11 @@ final class MPVPlayerViewController: UIViewController {
 
     func updateMetalLayerLayout() {
         debugPrint("updateMetalLayerLayout: \(view.bounds.size)")
+        #if os(visionOS)
+        let nativeScale: CGFloat = view.window?.traitCollection.displayScale ?? 2.0
+        #else
         let nativeScale = view.window?.screen.nativeScale ?? UIScreen.main.nativeScale
+        #endif
         let size = view.bounds.size
         let roundedDrawableSize = CGSize(
             width: (size.width * nativeScale).rounded(),
