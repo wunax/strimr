@@ -30,6 +30,7 @@ struct PlayerTVView: View {
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
     @State private var wasInWatchTogetherSession = false
+    @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
     private let seekFeedbackDelay: TimeInterval = 1.2
@@ -62,6 +63,7 @@ struct PlayerTVView: View {
                 ? String(localized: "player.skip.credits")
                 : String(localized: "player.skip.intro")
         }
+        let hasSkipOverlay = activeMarker != nil
 
         ZStack {
             Color.black.ignoresSafeArea()
@@ -93,10 +95,11 @@ struct PlayerTVView: View {
         }
         .overlay {
             ZStack {
-                if !controlsVisible {
+                if !controlsVisible, !hasSkipOverlay {
                     Color.clear
                         .contentShape(Rectangle())
                         .focusable()
+                        .focused($focusedPlayerSurface, equals: .controlsProxy)
                         .onTapGesture {
                             showControls(temporarily: true)
                         }
@@ -141,6 +144,9 @@ struct PlayerTVView: View {
 
                 if !controlsVisible, let activeMarker, let skipTitle {
                     skipOverlay(marker: activeMarker, title: skipTitle)
+                        .onMoveCommand { direction in
+                            handleSkipOverlayMoveCommand(direction)
+                        }
                 }
 
                 if let seekFeedback {
@@ -191,6 +197,18 @@ struct PlayerTVView: View {
             playerCoordinator.play(url)
             playerCoordinator.setPlaybackRate(playbackRate)
             showControls(temporarily: true)
+        }
+        .onChange(of: controlsVisible) { _, isVisible in
+            if isVisible {
+                focusedPlayerSurface = nil
+                return
+            }
+
+            focusHiddenControlsTarget(hasSkipOverlay: bindableViewModel.activeSkipMarker != nil)
+        }
+        .onChange(of: bindableViewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
+            guard !controlsVisible else { return }
+            focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
         }
         .onChange(of: bindableViewModel.position) { _, newValue in
             guard !isScrubbing else { return }
@@ -429,6 +447,8 @@ struct PlayerTVView: View {
     }
 
     private func showControls(temporarily: Bool) {
+        focusedPlayerSurface = nil
+
         withAnimation(.easeInOut) {
             controlsVisible = true
         }
@@ -489,9 +509,18 @@ struct PlayerTVView: View {
                 SkipMarkerButton(title: title) {
                     skipMarker(to: marker)
                 }
+                .focused($focusedPlayerSurface, equals: .skipOverlay)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
+        }
+    }
+
+    private func focusHiddenControlsTarget(hasSkipOverlay: Bool) {
+        let target: PlayerFocusTarget = hasSkipOverlay ? .skipOverlay : .controlsProxy
+        DispatchQueue.main.async {
+            guard !controlsVisible else { return }
+            focusedPlayerSurface = target
         }
     }
 
@@ -529,6 +558,17 @@ struct PlayerTVView: View {
             quickSeek(by: seekForwardInterval)
         default:
             break
+        }
+    }
+
+    private func handleSkipOverlayMoveCommand(_ direction: MoveCommandDirection) {
+        handleMoveCommand(direction)
+
+        guard !controlsVisible, viewModel.activeSkipMarker != nil else { return }
+
+        DispatchQueue.main.async {
+            guard !controlsVisible, viewModel.activeSkipMarker != nil else { return }
+            focusedPlayerSurface = .skipOverlay
         }
     }
 
@@ -648,4 +688,9 @@ private struct SeekFeedback: Equatable {
     var systemImage: String {
         forward ? "goforward" : "gobackward"
     }
+}
+
+private enum PlayerFocusTarget: Hashable {
+    case controlsProxy
+    case skipOverlay
 }
