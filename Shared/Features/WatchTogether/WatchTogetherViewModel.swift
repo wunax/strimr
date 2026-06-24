@@ -83,9 +83,11 @@ final class WatchTogetherViewModel {
     }
 
     var currentDisplayName: String? {
-        sessionManager.user?.friendlyName
-            ?? sessionManager.user?.title
-            ?? sessionManager.user?.username
+        firstNonBlank([
+            sessionManager.user?.friendlyName,
+            sessionManager.user?.title,
+            sessionManager.user?.username,
+        ])
     }
 
     var plexServerId: String? {
@@ -490,6 +492,12 @@ final class WatchTogetherViewModel {
             participantId: participantId,
             displayName: displayName,
         )
+    }
+
+    private func firstNonBlank(_ values: [String?]) -> String? {
+        values
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
     }
 
     private func showToast(_ message: String) {
