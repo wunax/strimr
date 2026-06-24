@@ -13,7 +13,7 @@ Strimr is a third-party Plex client built in Swift with a native interface for i
 - Media browsing with hubs
 - Search with filters for movies, shows, and episodes
 - Rich media details
-- Playback engines: VLC, MPV, and external Infuse (limited)
+- Playback engines: MPV and external Infuse (limited)
 - Watch together
 - Audio/subtitle track selection
 - Resume playback

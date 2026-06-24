@@ -1,7 +1,6 @@
 import Foundation
 
 enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
-    case vlc
     case mpv
     case infuse
 
@@ -13,8 +12,6 @@ enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .mpv:
             "settings.playback.player.mpv"
-        case .vlc:
-            "settings.playback.player.vlc"
         case .infuse:
             "settings.playback.player.infuse"
         }
@@ -26,7 +23,6 @@ enum PlaybackPlayer: String, Codable, CaseIterable, Identifiable {
 }
 
 enum InternalPlaybackPlayer: String, CaseIterable, Identifiable {
-    case vlc
     case mpv
 
     var id: String {
@@ -35,8 +31,6 @@ enum InternalPlaybackPlayer: String, CaseIterable, Identifiable {
 
     init?(player: PlaybackPlayer) {
         switch player {
-        case .vlc:
-            self = .vlc
         case .mpv:
             self = .mpv
         case .infuse:

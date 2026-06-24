@@ -14,7 +14,11 @@ struct PlaybackSettings: Codable, Equatable {
         autoPlayNextEpisode = try container.decodeIfPresent(Bool.self, forKey: .autoPlayNextEpisode) ?? true
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
-        player = try container.decodeIfPresent(PlaybackPlayer.self, forKey: .player) ?? .mpv
+        if let playerRawValue = try container.decodeIfPresent(String.self, forKey: .player) {
+            player = PlaybackPlayer(rawValue: playerRawValue) ?? .mpv
+        } else {
+            player = .mpv
+        }
         subtitleScale = try container.decodeIfPresent(Int.self, forKey: .subtitleScale) ?? 100
     }
 }
