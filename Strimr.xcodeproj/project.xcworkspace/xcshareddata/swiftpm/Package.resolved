@@ -1,13 +1,40 @@
 {
-  "originHash" : "8ba1a3667a4c89c272bd3aba302df911ac8eac7b035cc3936fdd204824db04c4",
+  "originHash" : "6aa9b9285e847a881c485c12e32982187caf61fdd59080b907bf1cbdd7d1b726",
   "pins" : [
     {
-      "identity" : "mpvkit",
+      "identity" : "aetherengine",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/wunax/MPVKit",
+      "location" : "https://github.com/superuser404notfound/AetherEngine",
       "state" : {
-        "revision" : "5e10c5a69e0fd94043087ef28fa24addf603f41e",
-        "version" : "0.41.2"
+        "revision" : "c01b4c9a26b368fd66c98cd4355f55a5ae796540",
+        "version" : "3.13.3"
+      }
+    },
+    {
+      "identity" : "amsmb2",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/amosavian/AMSMB2",
+      "state" : {
+        "revision" : "1726aaaf7adf63d7d1d2a0c5d1b0e635028215c0",
+        "version" : "4.0.3"
+      }
+    },
+    {
+      "identity" : "ffmpegbuild",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/superuser404notfound/FFmpegBuild",
+      "state" : {
+        "revision" : "fd344331e3fa706510ca2a72511d3ce681a33daf",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "libdovi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/superuser404notfound/LibDovi",
+      "state" : {
+        "revision" : "bebab0af0e3633b0002fcc7106ea6fc7ceea8277",
+        "version" : "1.0.2"
       }
     },
     {

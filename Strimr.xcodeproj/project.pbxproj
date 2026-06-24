@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E93807CC2F20DE6D00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */; };
-		E93807CE2F210EBD00A5C3B7 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */; };
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
+		E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBC2FEC3CCF00C94B4A /* AetherEngine */; };
+		E981BEBF2FEC3CD700C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBE2FEC3CD700C94B4A /* AetherEngine */; };
 		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
 		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -55,7 +55,7 @@
 				Features/MediaDetail/RelatedHubsSection.swift,
 				Features/Player/Controls/PlayerBadge.swift,
 				Features/Player/Controls/PlayerTimelineView.swift,
-				Features/Player/ExternalPlaybackLauncher.swift,
+				Features/Player/Controls/SubtitleOverlayView.swift,
 				Features/Player/PlaybackLauncher.swift,
 				Features/Player/PlaybackSettingsTrack.swift,
 				Features/Player/PlaybackSpeedOption.swift,
@@ -84,15 +84,7 @@
 				Features/WatchTogether/WatchTogetherProtocol.swift,
 				Features/WatchTogether/WatchTogetherViewModel.swift,
 				Features/WatchTogether/WatchTogetherWebSocketClient.swift,
-				Library/MPV/MetalLayer.swift,
-				Library/MPV/MPVPlayerDelegate.swift,
-				Library/MPV/MPVPlayerView.swift,
-				Library/MPV/MPVPlayerViewController.swift,
-				Library/MPV/MPVProperty.swift,
-				Library/Player/PlayerCoordinating.swift,
-				Library/Player/PlayerFactory.swift,
-				Library/Player/PlayerOptions.swift,
-				Library/Player/PlayerProperty.swift,
+				Library/Player/AetherPlayerController.swift,
 				Library/Player/PlayerTrack.swift,
 				Models/AppSettings.swift,
 				Models/CollectionMediaItem.swift,
@@ -104,7 +96,6 @@
 				"Models/MediaItem+Mapping.swift",
 				"Models/MediaItem+WatchStatus.swift",
 				Models/PlayableMediaItem.swift,
-				Models/PlaybackPlayer.swift,
 				Models/PlaylistMediaItem.swift,
 				Models/Plex/PlexCloudModels.swift,
 				Models/Plex/PlexDiscoverModels.swift,
@@ -229,7 +220,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */,
-				E93807CC2F20DE6D00A5C3B7 /* MPVKit-GPL in Frameworks */,
+				E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,7 +229,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */,
-				E93807CE2F210EBD00A5C3B7 /* MPVKit-GPL in Frameworks */,
+				E981BEBF2FEC3CD700C94B4A /* AetherEngine in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -297,7 +288,7 @@
 			name = "Strimr-iOS";
 			packageProductDependencies = (
 				E9B55C4A2F18F6FE00AC81AD /* Sentry */,
-				E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */,
+				E981BEBC2FEC3CCF00C94B4A /* AetherEngine */,
 			);
 			productName = Strimr;
 			productReference = E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */;
@@ -321,7 +312,7 @@
 			name = "Strimr-tvOS";
 			packageProductDependencies = (
 				E9B55C4C2F18F71100AC81AD /* Sentry */,
-				E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */,
+				E981BEBE2FEC3CD700C94B4A /* AetherEngine */,
 			);
 			productName = "Strimr-tvOS";
 			productReference = E9C448F32EF3034900D2895B /* Strimr-tvOS.app */;
@@ -357,7 +348,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
-				E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */,
+				E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98A13BA2ED8CBAD002F98B2 /* Products */;
@@ -723,12 +714,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
+		E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/wunax/MPVKit";
+			repositoryURL = "https://github.com/superuser404notfound/AetherEngine";
 			requirement = {
-				kind = exactVersion;
-				version = 0.41.2;
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.13.3;
 			};
 		};
 		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
@@ -742,15 +733,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E93807CB2F20DE6D00A5C3B7 /* MPVKit-GPL */ = {
+		E981BEBC2FEC3CCF00C94B4A /* AetherEngine */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
+			package = E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */;
+			productName = AetherEngine;
 		};
-		E93807CD2F210EBD00A5C3B7 /* MPVKit-GPL */ = {
+		E981BEBE2FEC3CD700C94B4A /* AetherEngine */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E93807CA2F20DE6D00A5C3B7 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
+			package = E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */;
+			productName = AetherEngine;
 		};
 		E9B55C4A2F18F6FE00AC81AD /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;

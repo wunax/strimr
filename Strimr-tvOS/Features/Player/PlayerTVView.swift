@@ -1,3 +1,4 @@
+import AetherEngine
 import SwiftUI
 
 struct PlayerTVView: View {
@@ -6,8 +7,7 @@ struct PlayerTVView: View {
     @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
-    let activePlayer: InternalPlaybackPlayer
-    @State private var playerCoordinator: any PlayerCoordinating
+    @State private var playerController = AetherPlayerController()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
@@ -30,6 +30,7 @@ struct PlayerTVView: View {
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
     @State private var wasInWatchTogetherSession = false
+    @State private var activePlaybackURL: URL?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -45,227 +46,257 @@ struct PlayerTVView: View {
 
     init(
         viewModel: PlayerViewModel,
-        initialPlayer: InternalPlaybackPlayer,
-        options: PlayerOptions,
         onExit: @escaping () -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
-        activePlayer = initialPlayer
-        _playerCoordinator = State(initialValue: PlayerFactory.makeCoordinator(for: initialPlayer, options: options))
         self.onExit = onExit
     }
 
     var body: some View {
-        @Bindable var bindableViewModel = viewModel
-        let activeMarker = bindableViewModel.activeSkipMarker
-        let skipTitle = activeMarker.flatMap { marker in
-            marker.isCredits
-                ? String(localized: "player.skip.credits")
-                : String(localized: "player.skip.intro")
-        }
-        let hasSkipOverlay = activeMarker != nil
+        configuredPlayerView
+    }
 
+    private var configuredPlayerView: some View {
+        let base = AnyView(
+            playerScene
+            .overlay {
+                playerOverlay
+            },
+        )
+
+        let lifecycle = AnyView(
+            base
+            .onAppear {
+                playerController.onMediaLoaded = handleMediaLoaded
+                playerController.onPlaybackEnded = handlePlaybackEnded
+                showControls(temporarily: true)
+                playerController.setPlaybackRate(playbackRate)
+                startPlaybackIfNeeded(url: viewModel.playbackURL)
+                if watchTogetherViewModel.isInSession {
+                    watchTogetherViewModel.attachPlayerController(playerController)
+                    wasInWatchTogetherSession = true
+                }
+            }
+            .onDisappear {
+                viewModel.handleStop()
+                hideControlsWorkItem?.cancel()
+                seekFeedbackWorkItem?.cancel()
+                playerController.stop()
+                if wasInWatchTogetherSession {
+                    watchTogetherViewModel.detachPlayerController()
+                }
+            }
+            .onPlayPauseCommand {
+                togglePlayPause()
+            }
+            .onExitCommand {
+                if watchTogetherViewModel.isInSession {
+                    watchTogetherViewModel.leaveSession(endForAll: false)
+                }
+                dismissPlayer(force: true)
+            }
+            .task {
+                await viewModel.load()
+            },
+        )
+
+        let playbackObservers = AnyView(
+            lifecycle
+            .onChange(of: viewModel.playbackURL) { _, newURL in
+                startPlaybackIfNeeded(url: newURL)
+            }
+            .onChange(of: playerController.isPaused) { _, _ in
+                syncPlaybackState()
+            }
+            .onChange(of: playerController.isBuffering) { _, _ in
+                syncPlaybackState()
+            }
+            .onChange(of: playerController.position) { _, newValue in
+                viewModel.handlePlaybackPosition(newValue, isScrubbing: isScrubbing)
+            }
+            .onChange(of: playerController.duration) { _, newValue in
+                viewModel.handlePlaybackDuration(newValue)
+            }
+            .onChange(of: playerController.bufferedAhead) { _, newValue in
+                viewModel.handleBufferedAhead(newValue)
+            }
+            .onChange(of: playerController.supportsHDR) { _, newValue in
+                supportsHDR = newValue
+            }
+            .onChange(of: playerController.errorMessage) { _, newValue in
+                guard let newValue else { return }
+                terminationAlertMessage = newValue
+                showingTerminationAlert = true
+                playerController.pause()
+            }
+            .onChange(of: controlsVisible) { _, isVisible in
+                if isVisible {
+                    focusedPlayerSurface = nil
+                    return
+                }
+
+                focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
+            }
+            .onChange(of: viewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
+                guard !controlsVisible else { return }
+                focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
+            }
+            .onChange(of: viewModel.position) { _, newValue in
+                guard !isScrubbing else { return }
+                timelinePosition = newValue
+            }
+            .onChange(of: viewModel.terminationMessage) { _, newValue in
+                guard let newValue else { return }
+                terminationAlertMessage = newValue
+                showingTerminationAlert = true
+                playerController.pause()
+            },
+        )
+
+        let sessionObservers = AnyView(
+            playbackObservers
+            .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
+                guard wasInWatchTogetherSession, !newValue else { return }
+                watchTogetherViewModel.detachPlayerController()
+            }
+            .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
+                guard wasInWatchTogetherSession else { return }
+                dismissPlayer(force: true)
+            }
+            .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
+                guard wasInWatchTogetherSession else { return }
+                dismissPlayer(force: true)
+            },
+        )
+
+        return sessionObservers
+            .sheet(item: $activeSettingsSheet) { sheet in
+                playbackSettingsSheet(sheet)
+            }
+            .alert("player.termination.title", isPresented: $showingTerminationAlert) {
+                Button("player.termination.dismiss") {
+                    dismissPlayer()
+                }
+            } message: {
+                Text(terminationAlertMessage)
+            }
+    }
+
+    private var playerScene: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerFactory.makeView(
-                selection: activePlayer,
-                coordinator: playerCoordinator,
-                onPropertyChange: { propertyName, data in
-                    bindableViewModel.handlePropertyChange(
-                        property: propertyName,
-                        data: data,
-                        isScrubbing: isScrubbing,
-                    )
+            AetherPlayerSurface(engine: playerController.engine)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
 
-                    if propertyName == .videoParamsSigPeak {
-                        let supportsHdr = (data as? Double ?? 1.0) > 1.0
-                        supportsHDR = supportsHdr
-                    }
-                },
-                onPlaybackEnded: {
-                    handlePlaybackEnded()
-                },
-                onMediaLoaded: {
-                    handleMediaLoaded()
-                },
+            SubtitleOverlayView(
+                cues: playerController.subtitleCues,
+                currentTime: playerController.sourcePosition,
+                maxCueDuration: playerController.subtitleMaxCueDuration,
+                subtitleScale: settingsManager.playback.subtitleScale,
+                controlsVisible: controlsVisible,
             )
             .ignoresSafeArea()
-            .contentShape(Rectangle())
         }
-        .overlay {
-            ZStack {
-                if !controlsVisible, !hasSkipOverlay {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .focusable()
-                        .focused($focusedPlayerSurface, equals: .controlsProxy)
-                        .onTapGesture {
-                            showControls(temporarily: true)
-                        }
-                        .onMoveCommand { direction in
-                            handleMoveCommand(direction)
-                        }
-                }
+    }
 
-                if bindableViewModel.isBuffering {
-                    bufferingOverlay
-                }
+    private var playerOverlay: some View {
+        let activeMarker = viewModel.activeSkipMarker
+        let skipTitle = skipTitle(for: activeMarker)
+        let hasSkipOverlay = activeMarker != nil
 
-                if controlsVisible {
-                    PlayerControlsTVView(
-                        media: bindableViewModel.media,
-                        isPaused: bindableViewModel.isPaused,
-                        videoResolution: bindableViewModel.media?.playbackResolutionLabel,
-                        supportsHDR: supportsHDR,
-                        position: timelineBinding,
-                        duration: bindableViewModel.duration,
-                        bufferedAhead: bindableViewModel.bufferedAhead,
-                        bufferBasePosition: bindableViewModel.position,
-                        isScrubbing: isScrubbing,
-                        onShowAudioSettings: showAudioSettings,
-                        onShowSubtitleSettings: showSubtitleSettings,
-                        onShowSpeedSettings: showSpeedSettings,
-                        onSeekBackward: { jump(by: -seekBackwardInterval) },
-                        onPlayPause: togglePlayPause,
-                        onSeekForward: { jump(by: seekForwardInterval) },
-                        seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
-                        seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
-                        onScrubbingChanged: handleScrubbing(editing:),
-                        skipMarkerTitle: skipTitle,
-                        onSkipMarker: activeMarker.map { marker in
-                            { skipMarker(to: marker) }
-                        },
-                        onUserInteraction: { showControls(temporarily: true) },
-                        isWatchTogether: watchTogetherViewModel.isInSession,
-                    )
-                    .transition(.opacity)
-                }
-
-                if !controlsVisible, let activeMarker, let skipTitle {
-                    skipOverlay(marker: activeMarker, title: skipTitle)
-                        .onMoveCommand { direction in
-                            handleSkipOverlayMoveCommand(direction)
-                        }
-                }
-
-                if let seekFeedback {
-                    seekFeedbackOverlay(seekFeedback)
-                }
-
-                ToastOverlay(toasts: watchTogetherViewModel.toasts)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-        }
-        .onAppear {
-            showControls(temporarily: true)
-            playerCoordinator.setPlaybackRate(playbackRate)
-            if watchTogetherViewModel.isInSession {
-                watchTogetherViewModel.attachPlayerCoordinator(playerCoordinator)
-                wasInWatchTogetherSession = true
-            }
-        }
-        .onDisappear {
-            viewModel.handleStop()
-            hideControlsWorkItem?.cancel()
-            seekFeedbackWorkItem?.cancel()
-            playerCoordinator.destruct()
-            if wasInWatchTogetherSession {
-                watchTogetherViewModel.detachPlayerCoordinator()
-            }
-        }
-        .onPlayPauseCommand {
-            togglePlayPause()
-        }
-        .onExitCommand {
-            if watchTogetherViewModel.isInSession {
-                watchTogetherViewModel.leaveSession(endForAll: false)
-            }
-            dismissPlayer(force: true)
-        }
-        .task {
-            await bindableViewModel.load()
-        }
-        .onChange(of: bindableViewModel.playbackURL) { _, newURL in
-            guard let url = newURL else { return }
-            appliedPreferredAudio = false
-            appliedPreferredSubtitle = false
-            selectedAudioTrackID = nil
-            selectedSubtitleTrackID = nil
-            appliedResumeOffset = false
-            awaitingMediaLoad = true
-            playerCoordinator.play(url)
-            playerCoordinator.setPlaybackRate(playbackRate)
-            showControls(temporarily: true)
-        }
-        .onChange(of: controlsVisible) { _, isVisible in
-            if isVisible {
-                focusedPlayerSurface = nil
-                return
+        return ZStack {
+            if !controlsVisible, !hasSkipOverlay {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .focusable()
+                    .focused($focusedPlayerSurface, equals: .controlsProxy)
+                    .onTapGesture {
+                        showControls(temporarily: true)
+                    }
+                    .onMoveCommand { direction in
+                        handleMoveCommand(direction)
+                    }
             }
 
-            focusHiddenControlsTarget(hasSkipOverlay: bindableViewModel.activeSkipMarker != nil)
-        }
-        .onChange(of: bindableViewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
-            guard !controlsVisible else { return }
-            focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
-        }
-        .onChange(of: bindableViewModel.position) { _, newValue in
-            guard !isScrubbing else { return }
-            timelinePosition = newValue
-        }
-        .onChange(of: bindableViewModel.terminationMessage) { _, newValue in
-            guard let newValue else { return }
-            terminationAlertMessage = newValue
-            showingTerminationAlert = true
-            playerCoordinator.pause()
-        }
-        .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
-            guard wasInWatchTogetherSession, !newValue else { return }
-            watchTogetherViewModel.detachPlayerCoordinator()
-        }
-        .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
-            guard wasInWatchTogetherSession else { return }
-            dismissPlayer(force: true)
-        }
-        .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
-            guard wasInWatchTogetherSession else { return }
-            dismissPlayer(force: true)
-        }
-        .sheet(item: $activeSettingsSheet) { sheet in
-            switch sheet {
-            case .audio:
-                PlayerTrackSelectionView(
-                    titleKey: sheet.titleKey,
-                    tracks: settingsAudioTracks,
-                    selectedTrackID: selectedAudioTrackID,
-                    showOffOption: false,
-                    onSelect: selectAudioTrack(_:),
-                    onClose: { activeSettingsSheet = nil },
+            if viewModel.isBuffering {
+                bufferingOverlay
+            }
+
+            if controlsVisible {
+                PlayerControlsTVView(
+                    media: viewModel.media,
+                    isPaused: viewModel.isPaused,
+                    videoResolution: viewModel.media?.playbackResolutionLabel,
+                    supportsHDR: supportsHDR,
+                    position: timelineBinding,
+                    duration: viewModel.duration,
+                    bufferedAhead: viewModel.bufferedAhead,
+                    bufferBasePosition: viewModel.position,
+                    isScrubbing: isScrubbing,
+                    onShowAudioSettings: showAudioSettings,
+                    onShowSubtitleSettings: showSubtitleSettings,
+                    onShowSpeedSettings: showSpeedSettings,
+                    onSeekBackward: { jump(by: -seekBackwardInterval) },
+                    onPlayPause: togglePlayPause,
+                    onSeekForward: { jump(by: seekForwardInterval) },
+                    seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+                    seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+                    onScrubbingChanged: handleScrubbing(editing:),
+                    skipMarkerTitle: skipTitle,
+                    onSkipMarker: activeMarker.map { marker in
+                        { skipMarker(to: marker) }
+                    },
+                    onUserInteraction: { showControls(temporarily: true) },
+                    isWatchTogether: watchTogetherViewModel.isInSession,
                 )
-            case .subtitle:
-                PlayerTrackSelectionView(
-                    titleKey: sheet.titleKey,
-                    tracks: settingsSubtitleTracks,
-                    selectedTrackID: selectedSubtitleTrackID,
-                    showOffOption: true,
-                    onSelect: selectSubtitleTrack(_:),
-                    onClose: { activeSettingsSheet = nil },
-                )
-            case .speed:
-                PlayerSpeedSelectionView(
-                    selectedRate: playbackRate,
-                    onSelect: selectPlaybackRate(_:),
-                    onClose: { activeSettingsSheet = nil },
-                )
+                .transition(.opacity)
             }
+
+            if !controlsVisible, let activeMarker, let skipTitle {
+                skipOverlay(marker: activeMarker, title: skipTitle)
+                    .onMoveCommand { direction in
+                        handleSkipOverlayMoveCommand(direction)
+                    }
+            }
+
+            if let seekFeedback {
+                seekFeedbackOverlay(seekFeedback)
+            }
+
+            ToastOverlay(toasts: watchTogetherViewModel.toasts)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .alert("player.termination.title", isPresented: $showingTerminationAlert) {
-            Button("player.termination.dismiss") {
-                dismissPlayer()
-            }
-        } message: {
-            Text(terminationAlertMessage)
+    }
+
+    @ViewBuilder
+    private func playbackSettingsSheet(_ sheet: PlayerSettingsSheet) -> some View {
+        switch sheet {
+        case .audio:
+            PlayerTrackSelectionView(
+                titleKey: sheet.titleKey,
+                tracks: settingsAudioTracks,
+                selectedTrackID: selectedAudioTrackID,
+                showOffOption: false,
+                onSelect: selectAudioTrack(_:),
+                onClose: { activeSettingsSheet = nil },
+            )
+        case .subtitle:
+            PlayerTrackSelectionView(
+                titleKey: sheet.titleKey,
+                tracks: settingsSubtitleTracks,
+                selectedTrackID: selectedSubtitleTrackID,
+                showOffOption: true,
+                onSelect: selectSubtitleTrack(_:),
+                onClose: { activeSettingsSheet = nil },
+            )
+        case .speed:
+            PlayerSpeedSelectionView(
+                selectedRate: playbackRate,
+                onSelect: selectPlaybackRate(_:),
+                onClose: { activeSettingsSheet = nil },
+            )
         }
     }
 
@@ -293,9 +324,17 @@ struct PlayerTVView: View {
         )
     }
 
+    private func skipTitle(for marker: PlexMarker?) -> String? {
+        marker.map {
+            $0.isCredits
+                ? String(localized: "player.skip.credits")
+                : String(localized: "player.skip.intro")
+        }
+    }
+
     private func togglePlayPause() {
         let wasPaused = viewModel.isPaused
-        playerCoordinator.togglePlayback()
+        playerController.togglePlayback()
         showControls(temporarily: true)
         watchTogetherViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
     }
@@ -319,7 +358,7 @@ struct PlayerTVView: View {
 
     private func refreshTracks() {
         Task {
-            let tracks = playerCoordinator.trackList()
+            let tracks = playerController.trackList()
 
             let audio = tracks.filter { $0.type == .audio }
             let subtitles = tracks.filter { $0.type == .subtitle }
@@ -361,7 +400,7 @@ struct PlayerTVView: View {
 
     private func selectAudioTrack(_ id: Int?) {
         selectedAudioTrackID = id
-        playerCoordinator.selectAudioTrack(id: id)
+        playerController.selectAudioTrack(id: id)
 
         guard
             let id,
@@ -377,7 +416,7 @@ struct PlayerTVView: View {
 
     private func selectSubtitleTrack(_ id: Int?) {
         selectedSubtitleTrackID = id
-        playerCoordinator.selectSubtitleTrack(id: id)
+        playerController.selectSubtitleTrack(id: id)
 
         guard
             let id,
@@ -393,20 +432,20 @@ struct PlayerTVView: View {
 
     private func selectPlaybackRate(_ rate: Float) {
         playbackRate = rate
-        playerCoordinator.setPlaybackRate(rate)
+        playerController.setPlaybackRate(rate)
         showControls(temporarily: true)
         watchTogetherViewModel.sendRateChange(rate)
     }
 
     private func jump(by seconds: Double) {
-        playerCoordinator.seek(by: seconds)
+        playerController.seek(by: seconds)
         showControls(temporarily: true)
         let newPosition = max(0, viewModel.position + seconds)
         watchTogetherViewModel.sendSeek(to: newPosition)
     }
 
     private func quickSeek(by seconds: Double) {
-        playerCoordinator.seek(by: seconds)
+        playerController.seek(by: seconds)
         showSeekFeedback(forward: seconds > 0, seconds: Int(abs(seconds)))
     }
 
@@ -414,7 +453,7 @@ struct PlayerTVView: View {
         guard viewModel.shouldResumeFromOffset else { return }
         guard !appliedResumeOffset, let offset = viewModel.resumePosition, offset > 0 else { return }
         appliedResumeOffset = true
-        playerCoordinator.seek(to: offset)
+        playerController.seek(to: offset)
     }
 
     private func handleMediaLoaded() {
@@ -439,11 +478,32 @@ struct PlayerTVView: View {
                 controlsVisible = true
             }
         } else {
-            playerCoordinator.seek(to: timelinePosition)
+            playerController.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
             watchTogetherViewModel.sendSeek(to: timelinePosition)
         }
+    }
+
+    private func startPlaybackIfNeeded(url: URL?) {
+        guard let url else { return }
+        guard activePlaybackURL != url else { return }
+
+        activePlaybackURL = url
+        appliedPreferredAudio = false
+        appliedPreferredSubtitle = false
+        selectedAudioTrackID = nil
+        selectedSubtitleTrackID = nil
+        let startPosition = viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil
+        appliedResumeOffset = startPosition != nil
+        awaitingMediaLoad = true
+        playerController.load(
+            url: url,
+            startPosition: startPosition,
+            preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
+        )
+        playerController.setPlaybackRate(playbackRate)
+        showControls(temporarily: true)
     }
 
     private func showControls(temporarily: Bool) {
@@ -479,7 +539,7 @@ struct PlayerTVView: View {
            let track = audioTracks.first(where: { $0.ffIndex == preferredAudioIndex })
         {
             selectedAudioTrackID = track.id
-            playerCoordinator.selectAudioTrack(id: track.id)
+            playerController.selectAudioTrack(id: track.id)
             appliedPreferredAudio = true
         }
 
@@ -488,13 +548,13 @@ struct PlayerTVView: View {
            let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitleIndex })
         {
             selectedSubtitleTrackID = track.id
-            playerCoordinator.selectSubtitleTrack(id: track.id)
+            playerController.selectSubtitleTrack(id: track.id)
             appliedPreferredSubtitle = true
         }
     }
 
     private func skipMarker(to marker: PlexMarker) {
-        playerCoordinator.seek(to: marker.endTime)
+        playerController.seek(to: marker.endTime)
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
@@ -642,6 +702,7 @@ struct PlayerTVView: View {
 
     private func startPlayback(of episode: PlexItem) async {
         await MainActor.run {
+            activePlaybackURL = nil
             viewModel = PlayerViewModel(
                 playQueue: viewModel.playQueue,
                 ratingKey: episode.ratingKey,
@@ -650,6 +711,13 @@ struct PlayerTVView: View {
         }
 
         await viewModel.load()
+    }
+
+    private func syncPlaybackState() {
+        viewModel.handlePlaybackState(
+            isPaused: playerController.isPaused,
+            isBuffering: playerController.isBuffering,
+        )
     }
 }
 

@@ -7,7 +7,6 @@ final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
     let subtitleScaleOptions = [50, 60, 70, 80, 90, 100, 110, 120, 130, 150]
-    let playerOptions = PlaybackPlayer.allCases
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -31,13 +30,6 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.seekForwardSeconds },
             set: { self.settingsManager.setSeekForwardSeconds($0) },
-        )
-    }
-
-    var playerBinding: Binding<PlaybackPlayer> {
-        Binding(
-            get: { self.settingsManager.playback.player },
-            set: { self.settingsManager.setPlaybackPlayer($0) },
         )
     }
 
