@@ -6321,28 +6321,6 @@
         }
       }
     },
-    "settings.playback.player.vlc" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VLC"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VLC"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VLC"
-          }
-        }
-      }
-    },
     "settings.playback.rewind" : {
       "localizations" : {
         "en" : {

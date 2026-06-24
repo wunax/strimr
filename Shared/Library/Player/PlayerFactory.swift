@@ -11,10 +11,6 @@ enum PlayerFactory {
             let coordinator = MPVPlayerView.Coordinator()
             coordinator.options = options
             return coordinator
-        case .vlc:
-            let coordinator = VLCPlayerView.Coordinator()
-            coordinator.options = options
-            return coordinator
         }
     }
 
@@ -33,19 +29,6 @@ enum PlayerFactory {
             }
             return AnyView(
                 MPVPlayerView(coordinator: mpvCoordinator)
-                    .onPropertyChange { _, property, data in
-                        onPropertyChange(property, data)
-                    }
-                    .onPlaybackEnded(onPlaybackEnded)
-                    .onMediaLoaded(onMediaLoaded),
-            )
-        case .vlc:
-            guard let vlcCoordinator = coordinator as? VLCPlayerView.Coordinator else {
-                assertionFailure("VLC coordinator expected")
-                return AnyView(EmptyView())
-            }
-            return AnyView(
-                VLCPlayerView(coordinator: vlcCoordinator)
                     .onPropertyChange { _, property, data in
                         onPropertyChange(property, data)
                     }
