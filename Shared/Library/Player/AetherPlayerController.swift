@@ -14,7 +14,7 @@ final class AetherPlayerController {
     var position = 0.0
     var sourcePosition = 0.0
     var bufferedAhead = 0.0
-    var supportsHDR = false
+    var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
     var errorMessage: String?
@@ -187,7 +187,7 @@ final class AetherPlayerController {
         engine.$videoFormat
             .receive(on: DispatchQueue.main)
             .sink { [weak self] format in
-                self?.supportsHDR = format != .sdr
+                self?.videoFormatBadge = Self.videoFormatBadge(for: format)
             }
             .store(in: &cancellables)
 
@@ -221,6 +221,21 @@ final class AetherPlayerController {
             onPlaybackEnded?()
         case .idle:
             isPaused = false
+        }
+    }
+
+    private static func videoFormatBadge(for format: VideoFormat) -> PlayerVideoFormatBadge? {
+        switch format {
+        case .sdr:
+            nil
+        case .hdr10:
+            .hdr10
+        case .hdr10Plus:
+            .hdr10Plus
+        case .dolbyVision:
+            .dolbyVision
+        case .hlg:
+            .hlg
         }
     }
 }

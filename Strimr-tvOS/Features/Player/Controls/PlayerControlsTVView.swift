@@ -4,7 +4,7 @@ struct PlayerControlsTVView: View {
     var media: MediaItem?
     var isPaused: Bool
     var videoResolution: String?
-    var supportsHDR: Bool
+    var videoFormatBadge: PlayerVideoFormatBadge?
     @Binding var position: Double
     var duration: Double?
     var bufferedAhead: Double
@@ -37,11 +37,11 @@ struct PlayerControlsTVView: View {
             )
         }
 
-        if supportsHDR {
+        if let videoFormatBadge {
             badges.append(
                 PlayerControlBadge(
-                    id: "hdr",
-                    title: String(localized: "player.badge.hdr"),
+                    id: videoFormatBadge.id,
+                    title: videoFormatBadge.title,
                     systemImage: "sparkles",
                 ),
             )

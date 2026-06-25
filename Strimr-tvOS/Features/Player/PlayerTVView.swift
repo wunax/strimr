@@ -11,7 +11,7 @@ struct PlayerTVView: View {
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
-    @State private var supportsHDR = false
+    @State private var videoFormatBadge: PlayerVideoFormatBadge?
     @State private var audioTracks: [PlayerTrack] = []
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var settingsAudioTracks: [PlaybackSettingsTrack] = []
@@ -120,8 +120,8 @@ struct PlayerTVView: View {
             .onChange(of: playerController.bufferedAhead) { _, newValue in
                 viewModel.handleBufferedAhead(newValue)
             }
-            .onChange(of: playerController.supportsHDR) { _, newValue in
-                supportsHDR = newValue
+            .onChange(of: playerController.videoFormatBadge) { _, newValue in
+                videoFormatBadge = newValue
             }
             .onChange(of: playerController.errorMessage) { _, newValue in
                 guard let newValue else { return }
@@ -229,7 +229,7 @@ struct PlayerTVView: View {
                     media: viewModel.media,
                     isPaused: viewModel.isPaused,
                     videoResolution: viewModel.media?.playbackResolutionLabel,
-                    supportsHDR: supportsHDR,
+                    videoFormatBadge: videoFormatBadge,
                     position: timelineBinding,
                     duration: viewModel.duration,
                     bufferedAhead: viewModel.bufferedAhead,

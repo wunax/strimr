@@ -86,6 +86,7 @@
 				Features/WatchTogether/WatchTogetherWebSocketClient.swift,
 				Library/Player/AetherPlayerController.swift,
 				Library/Player/PlayerTrack.swift,
+				Library/Player/PlayerVideoFormatBadge.swift,
 				Models/AppSettings.swift,
 				Models/CollectionMediaItem.swift,
 				Models/Hub.swift,
