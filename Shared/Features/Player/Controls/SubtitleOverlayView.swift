@@ -40,7 +40,7 @@ struct SubtitleOverlayView: View {
                                 }
                             }
                             .frame(maxWidth: max(0, geometry.size.width - 48))
-                            .padding(.bottom, controlsVisible ? 160 : 48)
+                            .padding(.bottom, controlsVisible ? 96 : 48)
                         }
                     }
             }
