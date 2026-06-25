@@ -5,7 +5,7 @@ struct SubtitleOverlayView: View {
     let cues: [SubtitleCue]
     let currentTime: Double
     let maxCueDuration: Double
-    let subtitleScale: Int
+    let subtitleFontSize: Int
     let controlsVisible: Bool
 
     var body: some View {
@@ -49,7 +49,7 @@ struct SubtitleOverlayView: View {
     }
 
     private var pointSize: CGFloat {
-        26 * CGFloat(subtitleScale) / 100
+        CGFloat(subtitleFontSize)
     }
 
     private var activeTextLines: [String] {

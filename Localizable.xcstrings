@@ -6322,24 +6322,24 @@
         }
       }
     },
-    "settings.playback.scale %lld" : {
+    "settings.playback.fontSize %lld" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld%"
+            "value" : "%lld pt"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %"
+            "value" : "%lld pt"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld%%"
+            "value" : "%lld 点"
           }
         }
       }
@@ -6366,12 +6366,12 @@
         }
       }
     },
-    "settings.playback.subtitleScale" : {
+    "settings.playback.subtitleFontSize" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Subtitle scale"
+            "value" : "Subtitle font size"
           }
         },
         "fr" : {

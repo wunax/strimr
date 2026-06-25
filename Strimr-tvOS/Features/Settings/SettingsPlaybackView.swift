@@ -27,9 +27,9 @@ struct SettingsPlaybackView: View {
                 }
                 .pickerStyle(.navigationLink)
 
-                Picker("settings.playback.subtitleScale", selection: viewModel.subtitleScaleBinding) {
-                    ForEach(viewModel.subtitleScaleOptions, id: \.self) { scale in
-                        Text("settings.playback.scale \(scale)").tag(scale)
+                Picker("settings.playback.subtitleFontSize", selection: viewModel.subtitleFontSizeBinding) {
+                    ForEach(viewModel.subtitleFontSizeOptions, id: \.self) { fontSize in
+                        Text("settings.playback.fontSize \(fontSize)").tag(fontSize)
                     }
                 }
                 .pickerStyle(.navigationLink)

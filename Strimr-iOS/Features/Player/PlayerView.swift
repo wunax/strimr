@@ -201,7 +201,7 @@ struct PlayerView: View {
                 cues: playerController.subtitleCues,
                 currentTime: playerController.sourcePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
-                subtitleScale: settingsManager.playback.subtitleScale,
+                subtitleFontSize: settingsManager.playback.subtitleFontSize,
                 controlsVisible: controlsVisible,
             )
             .ignoresSafeArea()
