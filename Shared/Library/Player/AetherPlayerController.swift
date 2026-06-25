@@ -214,11 +214,13 @@ final class AetherPlayerController {
             break
         case .error(let message):
             errorMessage = message
-        case .idle:
+        case .ended:
             isPaused = false
             guard hasStartedPlayback, !isStopping else { return }
             hasStartedPlayback = false
             onPlaybackEnded?()
+        case .idle:
+            isPaused = false
         }
     }
 }

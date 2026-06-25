@@ -719,7 +719,7 @@
 			repositoryURL = "https://github.com/superuser404notfound/AetherEngine";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 3.13.3;
+				minimumVersion = 4.0.3;
 			};
 		};
 		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {

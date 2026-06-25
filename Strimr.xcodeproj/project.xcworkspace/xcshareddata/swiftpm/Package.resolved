@@ -1,13 +1,13 @@
 {
-  "originHash" : "6aa9b9285e847a881c485c12e32982187caf61fdd59080b907bf1cbdd7d1b726",
+  "originHash" : "5f08eed2847ec1f3e0a8f42d3120cedeb89d7807f1c221b2337f9157be469ec0",
   "pins" : [
     {
       "identity" : "aetherengine",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/AetherEngine",
       "state" : {
-        "revision" : "c01b4c9a26b368fd66c98cd4355f55a5ae796540",
-        "version" : "3.13.3"
+        "revision" : "35462dbe2fa2f170ac6fc7e289d9ec9c88d540ea",
+        "version" : "4.0.3"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/FFmpegBuild",
       "state" : {
-        "revision" : "fd344331e3fa706510ca2a72511d3ce681a33daf",
-        "version" : "1.0.1"
+        "revision" : "4d5a9a1185b190a560a0adc335a24898164fc519",
+        "version" : "1.0.2"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/getsentry/sentry-cocoa.git",
       "state" : {
-        "revision" : "0041fe6374a0557747d3c7f19888510a30684dfa",
-        "version" : "9.1.0"
+        "revision" : "00a2fec32ea665b81e406419e078bb713238e23f",
+        "version" : "9.19.0"
       }
     }
   ],
