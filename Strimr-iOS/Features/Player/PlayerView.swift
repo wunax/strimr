@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
@@ -31,6 +32,11 @@ struct PlayerView: View {
     @State private var isShowingWatchTogetherExitPrompt = false
     @State private var wasInWatchTogetherSession = false
     @State private var activePlaybackURL: URL?
+    @State private var needsPlaybackReloadAfterBackground = false
+    @State private var backgroundPlaybackPosition: Double?
+    @State private var wasPlayingBeforeBackground = false
+    @State private var shouldResumeAfterMediaLoad = false
+    @State private var shouldPauseAfterMediaLoad = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -124,6 +130,9 @@ struct PlayerView: View {
                 terminationAlertMessage = newValue
                 showingTerminationAlert = true
                 playerController.pause()
+            }
+            .onChange(of: scenePhase) { _, newValue in
+                handleScenePhaseChange(newValue)
             },
         )
 
@@ -424,6 +433,14 @@ struct PlayerView: View {
         awaitingMediaLoad = false
         refreshTracks()
         applyResumeOffsetIfNeeded()
+        if shouldPauseAfterMediaLoad {
+            shouldPauseAfterMediaLoad = false
+            shouldResumeAfterMediaLoad = false
+            playerController.pause()
+        } else if shouldResumeAfterMediaLoad {
+            shouldResumeAfterMediaLoad = false
+            playerController.resume()
+        }
     }
 
     private func dismissPlayer(force: Bool = false) {
@@ -456,12 +473,24 @@ struct PlayerView: View {
         guard let url else { return }
         guard activePlaybackURL != url else { return }
 
-        activePlaybackURL = url
-        appliedPreferredAudio = false
-        appliedPreferredSubtitle = false
-        selectedAudioTrackID = nil
-        selectedSubtitleTrackID = nil
         let startPosition = viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil
+        startPlayback(url: url, startPosition: startPosition, resetTrackSelection: true)
+    }
+
+    private func startPlayback(
+        url: URL,
+        startPosition: Double?,
+        resetTrackSelection: Bool,
+        shouldResumeAfterLoad: Bool = false,
+        shouldPauseAfterLoad: Bool = false,
+    ) {
+        activePlaybackURL = url
+        if resetTrackSelection {
+            appliedPreferredAudio = false
+            appliedPreferredSubtitle = false
+            selectedAudioTrackID = nil
+            selectedSubtitleTrackID = nil
+        }
         appliedResumeOffset = startPosition != nil
         awaitingMediaLoad = true
         playerController.load(
@@ -470,7 +499,49 @@ struct PlayerView: View {
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
         )
         playerController.setPlaybackRate(playbackRate)
+        shouldResumeAfterMediaLoad = shouldResumeAfterLoad
+        shouldPauseAfterMediaLoad = shouldPauseAfterLoad
         showControls(temporarily: true)
+    }
+
+    private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
+        switch scenePhase {
+        case .background:
+            preparePlaybackForBackground()
+        case .active:
+            reloadPlaybackAfterBackgroundIfNeeded()
+        case .inactive:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    private func preparePlaybackForBackground() {
+        guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground else { return }
+
+        backgroundPlaybackPosition = max(playerController.position, viewModel.position)
+        wasPlayingBeforeBackground = !viewModel.isPaused
+        needsPlaybackReloadAfterBackground = true
+        playerController.stop()
+        viewModel.handlePlaybackState(isPaused: true, isBuffering: false)
+    }
+
+    private func reloadPlaybackAfterBackgroundIfNeeded() {
+        guard needsPlaybackReloadAfterBackground, let url = activePlaybackURL else { return }
+
+        needsPlaybackReloadAfterBackground = false
+        activePlaybackURL = nil
+        let startPosition = backgroundPlaybackPosition ?? viewModel.position
+        backgroundPlaybackPosition = nil
+        startPlayback(
+            url: url,
+            startPosition: startPosition,
+            resetTrackSelection: false,
+            shouldResumeAfterLoad: wasPlayingBeforeBackground,
+            shouldPauseAfterLoad: !wasPlayingBeforeBackground,
+        )
+        wasPlayingBeforeBackground = false
     }
 
     private func showControls(temporarily: Bool) {

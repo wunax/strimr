@@ -3628,28 +3628,6 @@
         }
       }
     },
-    "player.badge.hdr" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR"
-          }
-        }
-      }
-    },
     "player.badge.dolbyVision" : {
       "localizations" : {
         "en" : {
@@ -3668,6 +3646,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dolby Vision"
+          }
+        }
+      }
+    },
+    "player.badge.hdr" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR"
           }
         }
       }

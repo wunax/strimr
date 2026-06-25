@@ -137,6 +137,8 @@ final class AetherPlayerController {
 
     func stop() {
         isStopping = true
+        isPaused = true
+        isBuffering = false
         engine.stop()
     }
 
@@ -220,7 +222,7 @@ final class AetherPlayerController {
             hasStartedPlayback = false
             onPlaybackEnded?()
         case .idle:
-            isPaused = false
+            isPaused = isStopping
         }
     }
 
