@@ -14,6 +14,10 @@ struct PlayerTrack: Identifiable, Hashable {
     let language: String?
     let codec: String?
     let isDefault: Bool
+    let isForced: Bool
+    let isHearingImpaired: Bool
+    let isCommentary: Bool
+    let isExternal: Bool
     let isSelected: Bool
 
     var displayName: String {

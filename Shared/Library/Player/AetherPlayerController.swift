@@ -115,6 +115,10 @@ final class AetherPlayerController {
                 language: track.language,
                 codec: track.codec,
                 isDefault: track.isDefault,
+                isForced: track.isForced,
+                isHearingImpaired: track.isHearingImpaired,
+                isCommentary: track.isCommentary,
+                isExternal: track.isExternal,
                 isSelected: engine.activeAudioTrackIndex == track.id,
             )
         }
@@ -128,6 +132,10 @@ final class AetherPlayerController {
                 language: track.language,
                 codec: track.codec,
                 isDefault: track.isDefault,
+                isForced: track.isForced,
+                isHearingImpaired: track.isHearingImpaired,
+                isCommentary: track.isCommentary,
+                isExternal: track.isExternal,
                 isSelected: selectedSubtitleTrackID == track.id,
             )
         }

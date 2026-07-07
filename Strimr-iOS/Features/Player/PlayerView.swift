@@ -582,7 +582,6 @@ struct PlayerView: View {
            let track = audioTracks.first(where: { $0.ffIndex == preferredAudioIndex })
         {
             selectedAudioTrackID = track.id
-            playerController.selectAudioTrack(id: track.id)
             appliedPreferredAudio = true
         }
 

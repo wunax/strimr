@@ -12,6 +12,26 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
         plexStream?.codec.uppercased()
     }
 
+    private var metadataLabels: [String] {
+        var labels: [String] = []
+        if track.isDefault {
+            labels.append(String(localized: "player.settings.track.default"))
+        }
+        if track.isForced {
+            labels.append(String(localized: "player.settings.track.forced"))
+        }
+        if track.isHearingImpaired {
+            labels.append(String(localized: "player.settings.track.sdh"))
+        }
+        if track.isCommentary {
+            labels.append(String(localized: "player.settings.track.commentary"))
+        }
+        if track.isExternal {
+            labels.append(String(localized: "player.settings.track.external"))
+        }
+        return labels
+    }
+
     var title: String {
         guard plexStream != nil else { return track.displayName }
 
@@ -31,13 +51,25 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
     }
 
     var subtitle: String? {
-        guard plexStream != nil else { return track.codec?.uppercased() }
-
-        if let plexTitle = plexStream?.title, !plexTitle.isEmpty {
-            return plexTitle
+        guard plexStream != nil else {
+            return combinedSubtitle(track.codec?.uppercased())
         }
 
-        return plexCodec ?? track.codec?.uppercased()
+        if let plexTitle = plexStream?.title, !plexTitle.isEmpty {
+            return combinedSubtitle(plexTitle)
+        }
+
+        return combinedSubtitle(plexCodec ?? track.codec?.uppercased())
+    }
+
+    private func combinedSubtitle(_ primary: String?) -> String? {
+        let values = [primary].compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        } + metadataLabels
+
+        guard !values.isEmpty else { return nil }
+        return values.joined(separator: " • ")
     }
 }
 
