@@ -657,20 +657,16 @@ struct PlayerTVView: View {
     private func seekFeedbackOverlay(_ feedback: SeekFeedback) -> some View {
         VStack {
             Spacer()
-            HStack(spacing: 12) {
-                Image(systemName: feedback.systemImage)
-                    .font(.title2.weight(.semibold))
-                Text(feedback.text)
-                    .font(.title3.weight(.semibold))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(.black.opacity(0.7), in: Capsule(style: .continuous))
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1),
-            )
+            Image(systemName: feedback.systemImage)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 48)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1),
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(feedback.accessibilityText)
             Spacer()
         }
         .padding(.bottom, 120)
@@ -816,7 +812,7 @@ private struct SeekFeedback: Equatable {
     let forward: Bool
     let seconds: Int
 
-    var text: String {
+    var accessibilityText: String {
         if forward {
             return String(localized: "player.controls.skipForwardSeconds \(seconds)")
         }
@@ -824,7 +820,10 @@ private struct SeekFeedback: Equatable {
     }
 
     var systemImage: String {
-        forward ? "goforward" : "gobackward"
+        let supported = [5, 10, 15, 30, 45, 60]
+        let prefix = forward ? "goforward" : "gobackward"
+        guard supported.contains(seconds) else { return prefix }
+        return "\(prefix).\(seconds)"
     }
 }
 
