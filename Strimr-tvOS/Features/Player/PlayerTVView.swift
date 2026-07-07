@@ -659,14 +659,14 @@ struct PlayerTVView: View {
             Spacer()
             Image(systemName: feedback.systemImage)
                 .font(.title2.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(width: 56, height: 48)
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1),
-            )
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(feedback.accessibilityText)
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 48)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1),
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(feedback.accessibilityText)
             Spacer()
         }
         .padding(.bottom, 120)
