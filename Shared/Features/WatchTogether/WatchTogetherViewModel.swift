@@ -187,12 +187,12 @@ final class WatchTogetherViewModel {
         }
     }
 
-    func attachPlayerCoordinator(_ coordinator: any PlayerCoordinating) {
-        playbackSyncEngine.attachCoordinator(coordinator)
+    func attachPlayerController(_ controller: AetherPlayerController) {
+        playbackSyncEngine.attachPlayerController(controller)
     }
 
-    func detachPlayerCoordinator() {
-        playbackSyncEngine.detachCoordinator()
+    func detachPlayerController() {
+        playbackSyncEngine.detachPlayerController()
     }
 
     func sendPlayPause(isCurrentlyPaused: Bool) {

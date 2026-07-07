@@ -6,8 +6,7 @@ import SwiftUI
 final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
-    let subtitleScaleOptions = [50, 60, 70, 80, 90, 100, 110, 120, 130, 150]
-    let playerOptions = PlaybackPlayer.allCases
+    let subtitleFontSizeOptions = [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40]
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -34,17 +33,10 @@ final class SettingsViewModel {
         )
     }
 
-    var playerBinding: Binding<PlaybackPlayer> {
+    var subtitleFontSizeBinding: Binding<Int> {
         Binding(
-            get: { self.settingsManager.playback.player },
-            set: { self.settingsManager.setPlaybackPlayer($0) },
-        )
-    }
-
-    var subtitleScaleBinding: Binding<Int> {
-        Binding(
-            get: { self.settingsManager.playback.subtitleScale },
-            set: { self.settingsManager.setSubtitleScale($0) },
+            get: { self.settingsManager.playback.subtitleFontSize },
+            set: { self.settingsManager.setSubtitleFontSize($0) },
         )
     }
 }

@@ -129,36 +129,28 @@ final class PlayerViewModel {
         }
     }
 
-    func handlePropertyChange(
-        property: PlayerProperty,
-        data: Any?,
-        isScrubbing: Bool,
-    ) {
+    func handlePlaybackState(isPaused: Bool, isBuffering: Bool) {
         let previousState = playbackState
-        var stateChanged = false
+        self.isPaused = isPaused
+        self.isBuffering = isBuffering
 
-        switch property {
-        case .pause:
-            isPaused = (data as? Bool) ?? false
-            stateChanged = previousState != playbackState
-        case .pausedForCache:
-            isBuffering = (data as? Bool) ?? false
-            stateChanged = previousState != playbackState
-        case .timePos:
-            guard !isScrubbing else { return }
-            position = data as? Double ?? 0.0
-            reportTimeline(state: playbackState)
-        case .duration:
-            duration = data as? Double
-        case .demuxerCacheDuration:
-            bufferedAhead = data as? Double ?? 0.0
-        default:
-            break
-        }
-
-        if stateChanged {
+        if previousState != playbackState {
             reportTimeline(state: playbackState, force: true)
         }
+    }
+
+    func handlePlaybackPosition(_ position: Double, isScrubbing: Bool) {
+        guard !isScrubbing else { return }
+        self.position = position
+        reportTimeline(state: playbackState)
+    }
+
+    func handlePlaybackDuration(_ duration: Double?) {
+        self.duration = duration
+    }
+
+    func handleBufferedAhead(_ bufferedAhead: Double) {
+        self.bufferedAhead = bufferedAhead
     }
 
     func handleStop() {

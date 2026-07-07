@@ -9,7 +9,7 @@ final class WatchTogetherPlaybackSyncEngine {
     private var seenEventIds: Set<UUID> = []
     private var suppressOutboundEvents = false
     private var isEnabled = false
-    private weak var playerCoordinator: (any PlayerCoordinating)?
+    private weak var playerController: AetherPlayerController?
 
     init(
         sendEvent: @escaping (WatchTogetherPlayerEvent) -> Void,
@@ -28,12 +28,12 @@ final class WatchTogetherPlaybackSyncEngine {
         }
     }
 
-    func attachCoordinator(_ coordinator: any PlayerCoordinating) {
-        playerCoordinator = coordinator
+    func attachPlayerController(_ controller: AetherPlayerController) {
+        playerController = controller
     }
 
-    func detachCoordinator() {
-        playerCoordinator = nil
+    func detachPlayerController() {
+        playerController = nil
     }
 
     func emitPlayPause(isCurrentlyPaused: Bool) {
@@ -74,7 +74,7 @@ final class WatchTogetherPlaybackSyncEngine {
 
     func handleRemoteEvent(_ event: WatchTogetherPlayerEvent, senderName: String?) {
         guard isEnabled else { return }
-        guard let coordinator = playerCoordinator else { return }
+        guard let controller = playerController else { return }
         guard seenEventIds.insert(event.id).inserted else { return }
 
         if let senderId = currentParticipantId(), senderId == event.senderId {
@@ -86,25 +86,25 @@ final class WatchTogetherPlaybackSyncEngine {
 
         switch event.type {
         case .play:
-            coordinator.resume()
+            controller.resume()
             if let senderName {
                 showToast(String(localized: "watchTogether.toast.played \(senderName)"))
             }
         case .pause:
-            coordinator.pause()
+            controller.pause()
             if let senderName {
                 showToast(String(localized: "watchTogether.toast.paused \(senderName)"))
             }
         case .seek:
             if let positionSeconds = event.positionSeconds {
-                coordinator.seek(to: positionSeconds)
+                controller.seek(to: positionSeconds)
                 if let senderName {
                     showToast(String(localized: "watchTogether.toast.seeked \(senderName)"))
                 }
             }
         case .setRate:
             if let rate = event.rate {
-                coordinator.setPlaybackRate(rate)
+                controller.setPlaybackRate(rate)
                 if let senderName {
                     showToast(String(localized: "watchTogether.toast.rate \(senderName)"))
                 }

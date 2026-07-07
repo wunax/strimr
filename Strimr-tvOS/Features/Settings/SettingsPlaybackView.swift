@@ -3,22 +3,9 @@ import SwiftUI
 @MainActor
 struct SettingsPlaybackView: View {
     @Environment(SettingsManager.self) private var settingsManager
-    @State private var showingExternalPlayerWarning = false
 
     private var viewModel: SettingsViewModel {
         SettingsViewModel(settingsManager: settingsManager)
-    }
-
-    private var playerSelectionBinding: Binding<PlaybackPlayer> {
-        Binding(
-            get: { viewModel.playerBinding.wrappedValue },
-            set: { newValue in
-                viewModel.playerBinding.wrappedValue = newValue
-                if newValue == .infuse {
-                    showingExternalPlayerWarning = true
-                }
-            },
-        )
     }
 
     var body: some View {
@@ -40,26 +27,14 @@ struct SettingsPlaybackView: View {
                 }
                 .pickerStyle(.navigationLink)
 
-                Picker("settings.playback.player", selection: playerSelectionBinding) {
-                    ForEach(viewModel.playerOptions) { player in
-                        Text(LocalizedStringKey(player.localizationKey)).tag(player)
-                    }
-                }
-                .pickerStyle(.navigationLink)
-
-                Picker("settings.playback.subtitleScale", selection: viewModel.subtitleScaleBinding) {
-                    ForEach(viewModel.subtitleScaleOptions, id: \.self) { scale in
-                        Text("settings.playback.scale \(scale)").tag(scale)
+                Picker("settings.playback.subtitleFontSize", selection: viewModel.subtitleFontSizeBinding) {
+                    ForEach(viewModel.subtitleFontSizeOptions, id: \.self) { fontSize in
+                        Text("settings.playback.fontSize \(fontSize)").tag(fontSize)
                     }
                 }
                 .pickerStyle(.navigationLink)
             }
         }
         .navigationTitle("settings.playback.title")
-        .alert("settings.playback.player.externalWarning.title", isPresented: $showingExternalPlayerWarning) {
-            Button("common.actions.done", role: .cancel) {}
-        } message: {
-            Text("settings.playback.player.externalWarning.message")
-        }
     }
 }

@@ -5,7 +5,6 @@ struct MainTabView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
-    @Environment(\.openURL) var openURL
     @Environment(WatchTogetherViewModel.self) var watchTogetherViewModel
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -104,8 +103,6 @@ struct MainTabView: View {
                 PlaybackLauncher(
                     context: plexApiContext,
                     coordinator: coordinator,
-                    settingsManager: settingsManager,
-                    openURL: { url in openURL(url) },
                 ),
             )
         }
@@ -215,8 +212,6 @@ struct MainTabView: View {
         PlaybackLauncher(
             context: plexApiContext,
             coordinator: coordinator,
-            settingsManager: settingsManager,
-            openURL: { url in openURL(url) },
         )
     }
 }
