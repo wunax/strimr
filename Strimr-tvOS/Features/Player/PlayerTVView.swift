@@ -65,117 +65,117 @@ struct PlayerTVView: View {
     private var configuredPlayerView: some View {
         let base = AnyView(
             playerScene
-            .overlay {
-                playerOverlay
-            },
+                .overlay {
+                    playerOverlay
+                },
         )
 
         let lifecycle = AnyView(
             base
-            .onAppear {
-                playerController.onMediaLoaded = handleMediaLoaded
-                playerController.onPlaybackEnded = handlePlaybackEnded
-                showControls(temporarily: true)
-                playerController.setPlaybackRate(playbackRate)
-                startPlaybackIfNeeded(url: viewModel.playbackURL)
-                if watchTogetherViewModel.isInSession {
-                    watchTogetherViewModel.attachPlayerController(playerController)
-                    wasInWatchTogetherSession = true
+                .onAppear {
+                    playerController.onMediaLoaded = handleMediaLoaded
+                    playerController.onPlaybackEnded = handlePlaybackEnded
+                    showControls(temporarily: true)
+                    playerController.setPlaybackRate(playbackRate)
+                    startPlaybackIfNeeded(url: viewModel.playbackURL)
+                    if watchTogetherViewModel.isInSession {
+                        watchTogetherViewModel.attachPlayerController(playerController)
+                        wasInWatchTogetherSession = true
+                    }
                 }
-            }
-            .onDisappear {
-                viewModel.handleStop()
-                hideControlsWorkItem?.cancel()
-                seekFeedbackWorkItem?.cancel()
-                playerController.stop()
-                if wasInWatchTogetherSession {
-                    watchTogetherViewModel.detachPlayerController()
+                .onDisappear {
+                    viewModel.handleStop()
+                    hideControlsWorkItem?.cancel()
+                    seekFeedbackWorkItem?.cancel()
+                    playerController.stop()
+                    if wasInWatchTogetherSession {
+                        watchTogetherViewModel.detachPlayerController()
+                    }
                 }
-            }
-            .onPlayPauseCommand {
-                togglePlayPause()
-            }
-            .onExitCommand {
-                if watchTogetherViewModel.isInSession {
-                    watchTogetherViewModel.leaveSession(endForAll: false)
+                .onPlayPauseCommand {
+                    togglePlayPause()
                 }
-                dismissPlayer(force: true)
-            }
-            .task {
-                await viewModel.load()
-            },
+                .onExitCommand {
+                    if watchTogetherViewModel.isInSession {
+                        watchTogetherViewModel.leaveSession(endForAll: false)
+                    }
+                    dismissPlayer(force: true)
+                }
+                .task {
+                    await viewModel.load()
+                },
         )
 
         let playbackObservers = AnyView(
             lifecycle
-            .onChange(of: viewModel.playbackURL) { _, newURL in
-                startPlaybackIfNeeded(url: newURL)
-            }
-            .onChange(of: playerController.isPaused) { _, _ in
-                syncPlaybackState()
-            }
-            .onChange(of: playerController.isBuffering) { _, _ in
-                syncPlaybackState()
-            }
-            .onChange(of: playerController.position) { _, newValue in
-                viewModel.handlePlaybackPosition(newValue, isScrubbing: isScrubbing)
-            }
-            .onChange(of: playerController.duration) { _, newValue in
-                viewModel.handlePlaybackDuration(newValue)
-            }
-            .onChange(of: playerController.bufferedAhead) { _, newValue in
-                viewModel.handleBufferedAhead(newValue)
-            }
-            .onChange(of: playerController.videoFormatBadge) { _, newValue in
-                videoFormatBadge = newValue
-            }
-            .onChange(of: playerController.errorMessage) { _, newValue in
-                guard let newValue else { return }
-                terminationAlertMessage = newValue
-                showingTerminationAlert = true
-                playerController.pause()
-            }
-            .onChange(of: controlsVisible) { _, isVisible in
-                if isVisible {
-                    focusedPlayerSurface = nil
-                    return
+                .onChange(of: viewModel.playbackURL) { _, newURL in
+                    startPlaybackIfNeeded(url: newURL)
                 }
+                .onChange(of: playerController.isPaused) { _, _ in
+                    syncPlaybackState()
+                }
+                .onChange(of: playerController.isBuffering) { _, _ in
+                    syncPlaybackState()
+                }
+                .onChange(of: playerController.position) { _, newValue in
+                    viewModel.handlePlaybackPosition(newValue, isScrubbing: isScrubbing)
+                }
+                .onChange(of: playerController.duration) { _, newValue in
+                    viewModel.handlePlaybackDuration(newValue)
+                }
+                .onChange(of: playerController.bufferedAhead) { _, newValue in
+                    viewModel.handleBufferedAhead(newValue)
+                }
+                .onChange(of: playerController.videoFormatBadge) { _, newValue in
+                    videoFormatBadge = newValue
+                }
+                .onChange(of: playerController.errorMessage) { _, newValue in
+                    guard let newValue else { return }
+                    terminationAlertMessage = newValue
+                    showingTerminationAlert = true
+                    playerController.pause()
+                }
+                .onChange(of: controlsVisible) { _, isVisible in
+                    if isVisible {
+                        focusedPlayerSurface = nil
+                        return
+                    }
 
-                focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
-            }
-            .onChange(of: viewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
-                guard !controlsVisible else { return }
-                focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
-            }
-            .onChange(of: viewModel.position) { _, newValue in
-                guard !isScrubbing else { return }
-                timelinePosition = newValue
-            }
-            .onChange(of: viewModel.terminationMessage) { _, newValue in
-                guard let newValue else { return }
-                terminationAlertMessage = newValue
-                showingTerminationAlert = true
-                playerController.pause()
-            }
-            .onChange(of: scenePhase) { _, newValue in
-                handleScenePhaseChange(newValue)
-            },
+                    focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
+                }
+                .onChange(of: viewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
+                    guard !controlsVisible else { return }
+                    focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
+                }
+                .onChange(of: viewModel.position) { _, newValue in
+                    guard !isScrubbing else { return }
+                    timelinePosition = newValue
+                }
+                .onChange(of: viewModel.terminationMessage) { _, newValue in
+                    guard let newValue else { return }
+                    terminationAlertMessage = newValue
+                    showingTerminationAlert = true
+                    playerController.pause()
+                }
+                .onChange(of: scenePhase) { _, newValue in
+                    handleScenePhaseChange(newValue)
+                },
         )
 
         let sessionObservers = AnyView(
             playbackObservers
-            .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
-                guard wasInWatchTogetherSession, !newValue else { return }
-                watchTogetherViewModel.detachPlayerController()
-            }
-            .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
-                guard wasInWatchTogetherSession else { return }
-                dismissPlayer(force: true)
-            }
-            .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
-                guard wasInWatchTogetherSession else { return }
-                dismissPlayer(force: true)
-            },
+                .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
+                    guard wasInWatchTogetherSession, !newValue else { return }
+                    watchTogetherViewModel.detachPlayerController()
+                }
+                .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
+                    guard wasInWatchTogetherSession else { return }
+                    dismissPlayer(force: true)
+                }
+                .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
+                    guard wasInWatchTogetherSession else { return }
+                    dismissPlayer(force: true)
+                },
         )
 
         return sessionObservers

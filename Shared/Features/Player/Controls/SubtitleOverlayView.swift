@@ -14,7 +14,7 @@ struct SubtitleOverlayView: View {
                 Color.clear
                     .overlay(alignment: .topLeading) {
                         ForEach(activeCues, id: \.id) { cue in
-                            if case .image(let image) = cue.body {
+                            if case let .image(image) = cue.body {
                                 imageView(image, in: geometry.size)
                             }
                         }
@@ -54,7 +54,7 @@ struct SubtitleOverlayView: View {
 
     private var activeTextLines: [String] {
         activeCues.compactMap { cue in
-            guard case .text(let text) = cue.body else { return nil }
+            guard case let .text(text) = cue.body else { return nil }
             let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
             return cleaned.isEmpty ? nil : cleaned
         }

@@ -222,7 +222,7 @@ final class AetherPlayerController {
             isPaused = true
         case .loading, .seeking:
             break
-        case .error(let message):
+        case let .error(message):
             errorMessage = message
         case .ended:
             isPaused = false

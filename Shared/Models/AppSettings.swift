@@ -19,9 +19,9 @@ struct PlaybackSettings: Codable, Equatable {
 
     private static var defaultSubtitleFontSize: Int {
         #if os(tvOS)
-        32
+            32
         #else
-        20
+            20
         #endif
     }
 }
