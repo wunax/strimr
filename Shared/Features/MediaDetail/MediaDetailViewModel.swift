@@ -414,7 +414,7 @@ final class MediaDetailViewModel {
                 return
             }
 
-            let nextSeasonId = selectedSeasonId ?? fetchedSeasons.first?.id
+            let nextSeasonId = preferredSeasonId(in: fetchedSeasons)
             selectedSeasonId = nextSeasonId
 
             if let seasonId = nextSeasonId {
@@ -428,6 +428,22 @@ final class MediaDetailViewModel {
             episodes = []
             seasonsErrorMessage = error.localizedDescription
         }
+    }
+
+    private func preferredSeasonId(in fetchedSeasons: [MediaItem]) -> String? {
+        if let selectedSeasonId,
+           fetchedSeasons.contains(where: { $0.id == selectedSeasonId })
+        {
+            return selectedSeasonId
+        }
+
+        if let onDeckSeasonIndex = onDeckItem?.parentIndex,
+           let onDeckSeason = fetchedSeasons.first(where: { $0.index == onDeckSeasonIndex })
+        {
+            return onDeckSeason.id
+        }
+
+        return fetchedSeasons.first?.id
     }
 
     private func fetchEpisodes(for seasonId: String) async {
