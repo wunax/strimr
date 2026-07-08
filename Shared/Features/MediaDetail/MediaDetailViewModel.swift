@@ -29,6 +29,10 @@ final class MediaDetailViewModel {
     var isLoadingWatchlistStatus = false
     var isUpdatingWatchlistStatus = false
     private var isWatchlisted = false
+    @ObservationIgnored private var hasStartedInitialLoad = false
+    @ObservationIgnored private var lastRefreshStartedAt: Date?
+
+    private static let automaticRefreshDebounceInterval: TimeInterval = 90
 
     init(media: PlayableMediaItem, context: PlexAPIContext) {
         self.media = media
@@ -37,21 +41,41 @@ final class MediaDetailViewModel {
     }
 
     func loadDetails() async {
-        cast = []
-        relatedHubs = []
+        hasStartedInitialLoad = true
+        await loadDetails(preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard hasStartedInitialLoad, !isLoading else { return }
+
+        if let lastRefreshStartedAt,
+           now.timeIntervalSince(lastRefreshStartedAt) < Self.automaticRefreshDebounceInterval
+        {
+            return
+        }
+
+        await loadDetails(preservingExistingContent: true)
+    }
+
+    private func loadDetails(preservingExistingContent: Bool) async {
+        lastRefreshStartedAt = Date()
+
+        if !preservingExistingContent {
+            cast = []
+            relatedHubs = []
+        }
+
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            errorMessage = String(localized: "errors.selectServer.loadDetails")
-            if media.type == .show {
-                seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
-            }
-            relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
+            handleDetailLoadError(preservingExistingContent: preservingExistingContent)
             return
         }
 
         isLoading = true
         errorMessage = nil
-        onDeckItem = nil
-        watchActionErrorMessage = nil
+        if !preservingExistingContent {
+            onDeckItem = nil
+            watchActionErrorMessage = nil
+        }
 
         do {
             let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
@@ -70,19 +94,23 @@ final class MediaDetailViewModel {
             onDeckItem = response.mediaContainer.metadata?.first?.onDeck?.metadata.map { MediaItem(plexItem: $0) }
             await loadWatchlistStatus()
         } catch {
-            errorMessage = error.localizedDescription
+            if preservingExistingContent {
+                errorMessage = nil
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
 
         isLoading = false
-        async let relatedHubsTask: Void = loadRelatedHubs()
-        await loadSeasonsIfNeeded(forceReload: true)
+        async let relatedHubsTask: Void = loadRelatedHubs(preservingExistingContent: preservingExistingContent)
+        await loadSeasonsIfNeeded(forceReload: true, preservingExistingContent: preservingExistingContent)
         await relatedHubsTask
     }
 
-    func loadSeasonsIfNeeded(forceReload: Bool = false) async {
+    func loadSeasonsIfNeeded(forceReload: Bool = false, preservingExistingContent: Bool = false) async {
         guard media.type == .show else { return }
         guard forceReload || seasons.isEmpty else { return }
-        await fetchSeasons()
+        await fetchSeasons(preservingExistingContent: preservingExistingContent)
     }
 
     func selectSeason(id: String) async {
@@ -391,9 +419,11 @@ final class MediaDetailViewModel {
         return String(localized: "media.detail.seasonEpisode \(season) \(episode)")
     }
 
-    private func fetchSeasons() async {
+    private func fetchSeasons(preservingExistingContent: Bool) async {
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
+            if !preservingExistingContent || seasons.isEmpty {
+                seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
+            }
             return
         }
 
@@ -418,15 +448,19 @@ final class MediaDetailViewModel {
             selectedSeasonId = nextSeasonId
 
             if let seasonId = nextSeasonId {
-                await fetchEpisodes(for: seasonId)
+                await fetchEpisodes(for: seasonId, preservingExistingContent: preservingExistingContent)
             } else {
                 episodes = []
             }
         } catch {
-            seasons = []
-            selectedSeasonId = nil
-            episodes = []
-            seasonsErrorMessage = error.localizedDescription
+            if preservingExistingContent, !seasons.isEmpty {
+                seasonsErrorMessage = nil
+            } else {
+                seasons = []
+                selectedSeasonId = nil
+                episodes = []
+                seasonsErrorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -446,9 +480,11 @@ final class MediaDetailViewModel {
         return fetchedSeasons.first?.id
     }
 
-    private func fetchEpisodes(for seasonId: String) async {
+    private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
         guard let metadataRepository = try? MetadataRepository(context: context) else {
-            episodesErrorMessage = String(localized: "errors.selectServer.loadEpisodes")
+            if !preservingExistingContent || episodes.isEmpty {
+                episodesErrorMessage = String(localized: "errors.selectServer.loadEpisodes")
+            }
             return
         }
 
@@ -464,8 +500,12 @@ final class MediaDetailViewModel {
             episodes = fetchedEpisodes
         } catch {
             if selectedSeasonId == seasonId {
-                episodes = []
-                episodesErrorMessage = error.localizedDescription
+                if preservingExistingContent, !episodes.isEmpty {
+                    episodesErrorMessage = nil
+                } else {
+                    episodes = []
+                    episodesErrorMessage = error.localizedDescription
+                }
             }
         }
     }
@@ -485,9 +525,11 @@ final class MediaDetailViewModel {
         }
     }
 
-    func loadRelatedHubs() async {
+    func loadRelatedHubs(preservingExistingContent: Bool = false) async {
         guard let hubRepository = try? HubRepository(context: context) else {
-            relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
+            if !preservingExistingContent || relatedHubs.isEmpty {
+                relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
+            }
             return
         }
 
@@ -499,8 +541,25 @@ final class MediaDetailViewModel {
             let response = try await hubRepository.getRelatedMediaHubs(ratingKey: media.metadataRatingKey)
             relatedHubs = (response.mediaContainer.hub ?? []).map(Hub.init)
         } catch {
-            relatedHubs = []
-            relatedHubsErrorMessage = error.localizedDescription
+            if preservingExistingContent, !relatedHubs.isEmpty {
+                relatedHubsErrorMessage = nil
+            } else {
+                relatedHubs = []
+                relatedHubsErrorMessage = error.localizedDescription
+            }
         }
+    }
+
+    private func handleDetailLoadError(preservingExistingContent: Bool) {
+        if preservingExistingContent {
+            errorMessage = nil
+            return
+        }
+
+        errorMessage = String(localized: "errors.selectServer.loadDetails")
+        if media.type == .show {
+            seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
+        }
+        relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
     }
 }

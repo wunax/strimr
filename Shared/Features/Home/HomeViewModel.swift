@@ -13,6 +13,10 @@ final class HomeViewModel {
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private let libraryStore: LibraryStore
     @ObservationIgnored private var loadTask: Task<Void, Never>?
+    @ObservationIgnored private var hasStartedInitialLoad = false
+    @ObservationIgnored private var lastRefreshStartedAt: Date?
+
+    private static let automaticRefreshDebounceInterval: TimeInterval = 90
 
     init(context: PlexAPIContext, settingsManager: SettingsManager, libraryStore: LibraryStore) {
         self.context = context
@@ -25,24 +29,45 @@ final class HomeViewModel {
     }
 
     func load() async {
-        guard continueWatching == nil, recentlyAdded.isEmpty else { return }
+        guard !hasStartedInitialLoad else { return }
+        hasStartedInitialLoad = true
         await reload()
     }
 
     func reload() async {
+        await reload(preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard hasStartedInitialLoad, !isLoading else { return }
+
+        if let lastRefreshStartedAt,
+           now.timeIntervalSince(lastRefreshStartedAt) < Self.automaticRefreshDebounceInterval
+        {
+            return
+        }
+
+        await reload(preservingExistingContent: true)
+    }
+
+    private func reload(preservingExistingContent: Bool) async {
         loadTask?.cancel()
+        lastRefreshStartedAt = Date()
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await fetchHubs()
+            await fetchHubs(preservingExistingContent: preservingExistingContent)
         }
         loadTask = task
         await task.value
     }
 
-    private func fetchHubs() async {
+    private func fetchHubs(preservingExistingContent: Bool) async {
         guard let hubRepository = try? HubRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.loadContent"))
+            handleLoadError(
+                String(localized: "errors.selectServer.loadContent"),
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
 
@@ -86,7 +111,7 @@ final class HomeViewModel {
         } catch {
             guard !Task.isCancelled else { return }
             ErrorReporter.capture(error)
-            resetState(error: error.localizedDescription)
+            handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }
     }
 
@@ -99,5 +124,14 @@ final class HomeViewModel {
         recentlyAdded = []
         errorMessage = error
         isLoading = false
+    }
+
+    private func handleLoadError(_ message: String, preservingExistingContent: Bool) {
+        if preservingExistingContent, hasContent {
+            errorMessage = nil
+            isLoading = false
+        } else {
+            resetState(error: message)
+        }
     }
 }

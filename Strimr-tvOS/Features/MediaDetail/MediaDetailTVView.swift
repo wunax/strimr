@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
     private let onPlay: (String, PlexItemType) -> Void
@@ -55,10 +56,15 @@ struct MediaDetailTVView: View {
             guard !isPresenting else { return }
             Task { await bindableViewModel.loadDetails() }
         }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await bindableViewModel.refreshIfNeeded() }
+        }
         .onAppear {
             if focusedMedia == nil {
                 focusedMedia = bindableViewModel.media.mediaItem
             }
+            Task { await bindableViewModel.refreshIfNeeded() }
         }
         .onChange(of: bindableViewModel.media) { oldValue, newValue in
             if focusedMedia == nil || focusedMedia?.id == oldValue.id {
