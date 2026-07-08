@@ -17,7 +17,7 @@ struct MediaCarousel: View {
             }
             #if os(tvOS)
             .padding(.vertical, 18)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             #else
             .padding(.horizontal, 2)
             #endif
