@@ -22,6 +22,7 @@ final class LibraryCollectionsViewModel {
 
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
     private let pageSize = 40
 
     init(
@@ -35,11 +36,25 @@ final class LibraryCollectionsViewModel {
     }
 
     func load() async {
-        guard itemsByIndex.isEmpty else { return }
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
+        await reload()
+    }
+
+    func reload() async {
+        resetState()
         isLoading = true
         defer { isLoading = false }
-        await fetchCharactersIfNeeded()
-        await loadPage(start: 0)
+        await fetchCharactersIfNeeded(preservingExistingContent: false)
+        await loadPage(start: 0, reset: true, preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        await fetchCharactersIfNeeded(preservingExistingContent: true, forceReload: true)
+        await loadPage(start: 0, reset: true, preservingExistingContent: true)
     }
 
     func loadPagesAround(index: Int) async {
@@ -63,8 +78,11 @@ final class LibraryCollectionsViewModel {
         }
     }
 
-    private func fetchCharactersIfNeeded() async {
-        guard sectionCharacters.isEmpty else { return }
+    private func fetchCharactersIfNeeded(
+        preservingExistingContent: Bool,
+        forceReload: Bool = false,
+    ) async {
+        guard forceReload || sectionCharacters.isEmpty else { return }
         guard let sectionId = library.sectionId else { return }
         guard let sectionRepository = try? SectionRepository(context: context) else { return }
 
@@ -97,23 +115,41 @@ final class LibraryCollectionsViewModel {
             sectionCharacters = characters
             totalItemCount = max(totalItemCount, runningIndex)
         } catch {
-            if itemsByIndex.isEmpty {
+            if preservingExistingContent, !itemsByIndex.isEmpty {
+                errorMessage = nil
+            } else if itemsByIndex.isEmpty {
                 errorMessage = error.localizedDescription
             }
         }
     }
 
-    private func loadPage(start: Int) async {
-        guard !loadedPageStarts.contains(start), !loadingPageStarts.contains(start) else { return }
+    private func loadPage(
+        start: Int,
+        reset: Bool = false,
+        preservingExistingContent: Bool = false,
+    ) async {
+        guard reset || !loadedPageStarts.contains(start) else { return }
+        guard !loadingPageStarts.contains(start) else { return }
         guard let sectionId = library.sectionId else {
-            resetState(error: String(localized: "errors.missingLibraryIdentifier"))
+            handleLoadError(
+                String(localized: "errors.missingLibraryIdentifier"),
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
         guard let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.browseLibrary"))
+            handleLoadError(
+                String(localized: "errors.selectServer.browseLibrary"),
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
 
+        if reset {
+            loadedPageStarts.remove(start)
+        }
         errorMessage = nil
         loadingPageStarts.insert(start)
         defer {
@@ -131,13 +167,21 @@ final class LibraryCollectionsViewModel {
                 .compactMap(MediaDisplayItem.init)
             let total = response.mediaContainer.totalSize ?? (start + newItems.count)
 
+            if reset {
+                itemsByIndex = [:]
+                loadedPageStarts = []
+            }
             for (offset, item) in newItems.enumerated() {
                 itemsByIndex[start + offset] = item
             }
             loadedPageStarts.insert(start)
-            totalItemCount = max(totalItemCount, total)
+            totalItemCount = reset ? total : max(totalItemCount, total)
         } catch {
-            errorMessage = error.localizedDescription
+            handleLoadError(
+                error.localizedDescription,
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
         }
     }
 
@@ -149,5 +193,15 @@ final class LibraryCollectionsViewModel {
         isLoading = false
         loadedPageStarts = []
         loadingPageStarts = []
+    }
+
+    private func handleLoadError(_ message: String, reset: Bool, preservingExistingContent: Bool) {
+        if preservingExistingContent, !itemsByIndex.isEmpty {
+            errorMessage = nil
+        } else if reset {
+            resetState(error: message)
+        } else {
+            errorMessage = message
+        }
     }
 }

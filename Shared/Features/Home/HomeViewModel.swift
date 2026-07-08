@@ -13,10 +13,7 @@ final class HomeViewModel {
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private let libraryStore: LibraryStore
     @ObservationIgnored private var loadTask: Task<Void, Never>?
-    @ObservationIgnored private var hasStartedInitialLoad = false
-    @ObservationIgnored private var lastRefreshStartedAt: Date?
-
-    private static let automaticRefreshDebounceInterval: TimeInterval = 90
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(context: PlexAPIContext, settingsManager: SettingsManager, libraryStore: LibraryStore) {
         self.context = context
@@ -29,8 +26,7 @@ final class HomeViewModel {
     }
 
     func load() async {
-        guard !hasStartedInitialLoad else { return }
-        hasStartedInitialLoad = true
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
         await reload()
     }
 
@@ -39,20 +35,12 @@ final class HomeViewModel {
     }
 
     func refreshIfNeeded(now: Date = Date()) async {
-        guard hasStartedInitialLoad, !isLoading else { return }
-
-        if let lastRefreshStartedAt,
-           now.timeIntervalSince(lastRefreshStartedAt) < Self.automaticRefreshDebounceInterval
-        {
-            return
-        }
-
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await reload(preservingExistingContent: true)
     }
 
     private func reload(preservingExistingContent: Bool) async {
         loadTask?.cancel()
-        lastRefreshStartedAt = Date()
 
         let task = Task { [weak self] in
             guard let self else { return }

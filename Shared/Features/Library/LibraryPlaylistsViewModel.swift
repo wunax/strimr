@@ -12,6 +12,7 @@ final class LibraryPlaylistsViewModel {
     private var reachedEnd = false
 
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(library: Library, context: PlexAPIContext) {
         self.library = library
@@ -19,22 +20,39 @@ final class LibraryPlaylistsViewModel {
     }
 
     func load() async {
-        guard items.isEmpty else { return }
-        await fetch(reset: true)
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
+        await reload()
+    }
+
+    func reload() async {
+        await fetch(reset: true, preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading || isLoadingMore) else { return }
+        await fetch(reset: true, preservingExistingContent: true)
     }
 
     func loadMore() async {
         guard !isLoading, !isLoadingMore, !reachedEnd else { return }
-        await fetch(reset: false)
+        await fetch(reset: false, preservingExistingContent: false)
     }
 
-    private func fetch(reset: Bool) async {
+    private func fetch(reset: Bool, preservingExistingContent: Bool) async {
         guard let sectionId = library.sectionId else {
-            resetState(error: String(localized: "errors.missingLibraryIdentifier"))
+            handleLoadError(
+                String(localized: "errors.missingLibraryIdentifier"),
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
         guard let playlistRepository = try? PlaylistRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.browseLibrary"))
+            handleLoadError(
+                String(localized: "errors.selectServer.browseLibrary"),
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
 
@@ -68,11 +86,11 @@ final class LibraryPlaylistsViewModel {
 
             reachedEnd = items.count >= total || newItems.isEmpty
         } catch {
-            if reset {
-                resetState(error: error.localizedDescription)
-            } else {
-                errorMessage = error.localizedDescription
-            }
+            handleLoadError(
+                error.localizedDescription,
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
         }
     }
 
@@ -82,5 +100,18 @@ final class LibraryPlaylistsViewModel {
         isLoading = false
         isLoadingMore = false
         reachedEnd = false
+    }
+
+    private func handleLoadError(_ message: String, reset: Bool, preservingExistingContent: Bool) {
+        if preservingExistingContent, !items.isEmpty {
+            errorMessage = nil
+            isLoading = false
+            isLoadingMore = false
+        } else if reset {
+            resetState(error: message)
+        } else {
+            errorMessage = message
+            isLoadingMore = false
+        }
     }
 }

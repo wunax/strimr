@@ -29,10 +29,7 @@ final class MediaDetailViewModel {
     var isLoadingWatchlistStatus = false
     var isUpdatingWatchlistStatus = false
     private var isWatchlisted = false
-    @ObservationIgnored private var hasStartedInitialLoad = false
-    @ObservationIgnored private var lastRefreshStartedAt: Date?
-
-    private static let automaticRefreshDebounceInterval: TimeInterval = 90
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(media: PlayableMediaItem, context: PlexAPIContext) {
         self.media = media
@@ -41,25 +38,16 @@ final class MediaDetailViewModel {
     }
 
     func loadDetails() async {
-        hasStartedInitialLoad = true
+        _ = refreshGate.startInitialLoadIfNeeded()
         await loadDetails(preservingExistingContent: false)
     }
 
     func refreshIfNeeded(now: Date = Date()) async {
-        guard hasStartedInitialLoad, !isLoading else { return }
-
-        if let lastRefreshStartedAt,
-           now.timeIntervalSince(lastRefreshStartedAt) < Self.automaticRefreshDebounceInterval
-        {
-            return
-        }
-
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await loadDetails(preservingExistingContent: true)
     }
 
     private func loadDetails(preservingExistingContent: Bool) async {
-        lastRefreshStartedAt = Date()
-
         if !preservingExistingContent {
             cast = []
             relatedHubs = []

@@ -10,6 +10,7 @@ final class CollectionDetailViewModel {
     var items: [MediaDisplayItem] = []
     var isLoading = false
     var errorMessage: String?
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(collection: CollectionMediaItem, context: PlexAPIContext) {
         self.collection = collection
@@ -39,13 +40,25 @@ final class CollectionDetailViewModel {
     }
 
     func load() async {
-        guard items.isEmpty else { return }
-        await fetch()
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
+        await reload()
     }
 
-    private func fetch() async {
+    func reload() async {
+        await fetch(preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
+        await fetch(preservingExistingContent: true)
+    }
+
+    private func fetch(preservingExistingContent: Bool) async {
         guard let collectionsRepository = try? CollectionRepository(context: context) else {
-            errorMessage = String(localized: "errors.selectServer.loadDetails")
+            handleLoadError(
+                String(localized: "errors.selectServer.loadDetails"),
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
 
@@ -57,8 +70,18 @@ final class CollectionDetailViewModel {
             let response = try await collectionsRepository.getCollectionChildren(ratingKey: collection.id)
             items = (response.mediaContainer.metadata ?? []).compactMap(MediaDisplayItem.init)
         } catch {
+            handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
+        }
+    }
+
+    private func handleLoadError(_ message: String, preservingExistingContent: Bool) {
+        if preservingExistingContent, !items.isEmpty {
+            errorMessage = nil
+            isLoading = false
+        } else {
             items = []
-            errorMessage = error.localizedDescription
+            errorMessage = message
+            isLoading = false
         }
     }
 }
