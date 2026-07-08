@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct SeerrDiscoverTVView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(SeerrFocusModel.self) private var focusModel
     @Environment(SeerrStore.self) private var seerrStore
     @State var viewModel: SeerrDiscoverViewModel
@@ -51,6 +52,11 @@ struct SeerrDiscoverTVView: View {
         }
         .onAppear {
             updateInitialFocus()
+            Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await viewModel.refreshIfNeeded() }
         }
     }
 

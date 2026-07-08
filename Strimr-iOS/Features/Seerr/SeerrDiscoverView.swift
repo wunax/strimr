@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct SeerrDiscoverView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: SeerrDiscoverViewModel
     @State var searchViewModel: SeerrSearchViewModel
     let onSelectMedia: (SeerrMedia) -> Void
@@ -122,6 +123,13 @@ struct SeerrDiscoverView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load()
+        }
+        .onAppear {
+            Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await viewModel.refreshIfNeeded() }
         }
         .task(id: searchViewModel.searchQuery) {
             await searchViewModel.search()

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PlaylistDetailTVView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: PlaylistDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
@@ -64,6 +65,13 @@ struct PlaylistDetailTVView: View {
         .toolbar(.hidden, for: .tabBar)
         .task {
             await bindableViewModel.load()
+        }
+        .onAppear {
+            Task { await bindableViewModel.refreshIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await bindableViewModel.refreshIfNeeded() }
         }
     }
 

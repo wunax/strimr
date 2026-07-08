@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false
     private let heroHeight: CGFloat = 320
@@ -60,9 +61,16 @@ struct MediaDetailView: View {
         .task {
             await bindableViewModel.loadDetails()
         }
+        .onAppear {
+            Task { await bindableViewModel.refreshIfNeeded() }
+        }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
             Task { await bindableViewModel.loadDetails() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await bindableViewModel.refreshIfNeeded() }
         }
         .background(gradientBackground(for: bindableViewModel))
     }

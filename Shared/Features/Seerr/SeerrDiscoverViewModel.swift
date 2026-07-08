@@ -6,6 +6,7 @@ import Observation
 final class SeerrDiscoverViewModel {
     @ObservationIgnored private let store: SeerrStore
     @ObservationIgnored private let permissionService = SeerrPermissionService()
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     var trending: [SeerrMedia] = []
     var popularMovies: [SeerrMedia] = []
@@ -41,6 +42,25 @@ final class SeerrDiscoverViewModel {
     }
 
     func load() async {
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
+        await fetch(preservingExistingContent: false)
+    }
+
+    func reload() async {
+        trending = []
+        popularMovies = []
+        popularTV = []
+        upcomingMovies = []
+        upcomingTV = []
+        await fetch(preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
+        await fetch(preservingExistingContent: true)
+    }
+
+    private func fetch(preservingExistingContent: Bool) async {
         guard !isLoading else { return }
         guard let baseURL else { return }
 
@@ -69,19 +89,10 @@ final class SeerrDiscoverViewModel {
             upcomingMovies = upcomingMoviesPage.results
             upcomingTV = upcomingTVPage.results
         } catch {
-            errorMessage = String(localized: .init("common.errors.tryAgainLater"))
+            handleLoadError(preservingExistingContent: preservingExistingContent)
         }
 
         await loadRequestCount()
-    }
-
-    func reload() async {
-        trending = []
-        popularMovies = []
-        popularTV = []
-        upcomingMovies = []
-        upcomingTV = []
-        await load()
     }
 
     func makePendingRequestsViewModel() -> SeerrPendingRequestsViewModel? {
@@ -117,4 +128,12 @@ final class SeerrDiscoverViewModel {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
+
+    private func handleLoadError(preservingExistingContent: Bool) {
+        if preservingExistingContent, hasContent {
+            errorMessage = nil
+        } else {
+            errorMessage = String(localized: .init("common.errors.tryAgainLater"))
+        }
+    }
 }

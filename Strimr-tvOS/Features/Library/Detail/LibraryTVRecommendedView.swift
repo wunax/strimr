@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryTVRecommendedView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
 
     @State var viewModel: LibraryRecommendedViewModel
@@ -50,6 +51,11 @@ struct LibraryTVRecommendedView: View {
         .onAppear {
             updateHeroMedia()
             updateInitialFocus()
+            Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await viewModel.refreshIfNeeded() }
         }
     }
 

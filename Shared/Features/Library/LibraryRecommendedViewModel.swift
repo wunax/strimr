@@ -10,6 +10,7 @@ final class LibraryRecommendedViewModel {
     var errorMessage: String?
 
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(library: Library, context: PlexAPIContext) {
         self.library = library
@@ -21,17 +22,32 @@ final class LibraryRecommendedViewModel {
     }
 
     func load() async {
-        guard hubs.isEmpty else { return }
-        await fetchHubs()
+        guard refreshGate.startInitialLoadIfNeeded() else { return }
+        await reload()
     }
 
-    private func fetchHubs() async {
+    func reload() async {
+        await fetchHubs(preservingExistingContent: false)
+    }
+
+    func refreshIfNeeded(now: Date = Date()) async {
+        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
+        await fetchHubs(preservingExistingContent: true)
+    }
+
+    private func fetchHubs(preservingExistingContent: Bool) async {
         guard let sectionId = library.sectionId else {
-            resetState(error: String(localized: "errors.missingLibraryIdentifier"))
+            handleLoadError(
+                String(localized: "errors.missingLibraryIdentifier"),
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
         guard let hubRepository = try? HubRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.loadRecommendations"))
+            handleLoadError(
+                String(localized: "errors.selectServer.loadRecommendations"),
+                preservingExistingContent: preservingExistingContent,
+            )
             return
         }
 
@@ -45,7 +61,7 @@ final class LibraryRecommendedViewModel {
             hubs = plexHubs.map(Hub.init)
         } catch {
             ErrorReporter.capture(error)
-            resetState(error: error.localizedDescription)
+            handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }
     }
 
@@ -53,5 +69,14 @@ final class LibraryRecommendedViewModel {
         hubs = []
         errorMessage = error
         isLoading = false
+    }
+
+    private func handleLoadError(_ message: String, preservingExistingContent: Bool) {
+        if preservingExistingContent, hasContent {
+            errorMessage = nil
+            isLoading = false
+        } else {
+            resetState(error: message)
+        }
     }
 }

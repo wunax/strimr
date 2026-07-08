@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: HomeViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -64,8 +65,15 @@ struct HomeView: View {
         .task {
             await viewModel.load()
         }
+        .onAppear {
+            Task { await viewModel.refreshIfNeeded() }
+        }
         .refreshable {
             await viewModel.reload()
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await viewModel.refreshIfNeeded() }
         }
     }
 }

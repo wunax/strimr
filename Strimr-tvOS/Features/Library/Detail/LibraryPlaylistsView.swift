@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryPlaylistsView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryPlaylistsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -61,6 +62,13 @@ struct LibraryPlaylistsView: View {
         }
         .task {
             await viewModel.load()
+        }
+        .onAppear {
+            Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await viewModel.refreshIfNeeded() }
         }
     }
 }
