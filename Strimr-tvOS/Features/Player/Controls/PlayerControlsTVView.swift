@@ -136,10 +136,10 @@ struct PlayerControlsTVView: View {
                         action: onSeekForward,
                     )
                 }
-                
+
                 HStack(spacing: 42) {
                     Spacer()
-                    
+
                     PlayerSettingButton(
                         systemImage: "speedometer",
                         action: onShowSpeedSettings,
