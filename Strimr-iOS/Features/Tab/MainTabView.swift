@@ -205,6 +205,11 @@ struct MainTabView: View {
                     }
                 },
             )
+        case let .hubDetail(hub):
+            HubDetailView(
+                viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                onSelectMedia: coordinator.showMediaDetail,
+            )
         }
     }
 

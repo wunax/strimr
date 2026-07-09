@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct LibraryRecommendedView: View {
+    @Environment(PlexAPIContext.self) private var plexApiContext
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryRecommendedViewModel
+    @State private var selectedHub: Hub?
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     private let landscapeHubIdentifiers: [String] = [
@@ -14,7 +16,10 @@ struct LibraryRecommendedView: View {
             VStack(alignment: .leading, spacing: 24) {
                 ForEach(viewModel.hubs) { hub in
                     if hub.hasItems {
-                        MediaHubSection(title: hub.title) {
+                        MediaHubSection(
+                            title: hub.title,
+                            onViewAll: hub.canOpenDetail ? { selectedHub = hub } : nil,
+                        ) {
                             carousel(for: hub)
                         }
                     }
@@ -41,6 +46,24 @@ struct LibraryRecommendedView: View {
         }
         .onAppear {
             Task { await viewModel.refreshIfNeeded() }
+        }
+        .sheet(item: $selectedHub) { hub in
+            NavigationStack {
+                HubDetailView(
+                    viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                    onSelectMedia: { media in
+                        selectedHub = nil
+                        onSelectMedia(media)
+                    },
+                )
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("hub.close") {
+                            selectedHub = nil
+                        }
+                    }
+                }
+            }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }

@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryTVRecommendedView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
+    @EnvironmentObject private var coordinator: MainCoordinator
 
     @State var viewModel: LibraryRecommendedViewModel
     @Binding var heroMedia: MediaItem?
@@ -94,6 +95,7 @@ struct LibraryTVRecommendedView: View {
                 layout: .landscape,
                 items: hub.items,
                 showsLabels: false,
+                onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                 onSelectMedia: onSelectMedia,
             )
         } else {
@@ -101,6 +103,7 @@ struct LibraryTVRecommendedView: View {
                 layout: .portrait,
                 items: hub.items,
                 showsLabels: false,
+                onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                 onSelectMedia: onSelectMedia,
             )
         }

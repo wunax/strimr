@@ -73,4 +73,16 @@ final class HubRepository {
     func getRelatedMediaHubs(ratingKey: String) async throws -> PlexHubMediaContainer {
         try await network.request(path: "/library/metadata/\(ratingKey)/related")
     }
+
+    func getHubItems(
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        pagination: PlexPagination,
+    ) async throws -> PlexItemMediaContainer {
+        try await network.request(
+            path: path,
+            queryItems: queryItems,
+            headers: pagination.headers,
+        )
+    }
 }

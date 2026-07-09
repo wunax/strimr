@@ -2,7 +2,14 @@ import Observation
 import SwiftUI
 
 struct RelatedHubsSection: View {
+    @Environment(PlexAPIContext.self) private var plexApiContext
+    #if os(tvOS)
+        @EnvironmentObject private var coordinator: MainCoordinator
+    #endif
     @Bindable var viewModel: MediaDetailViewModel
+    #if os(iOS)
+        @State private var selectedHub: Hub?
+    #endif
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     var body: some View {
@@ -17,6 +24,26 @@ struct RelatedHubsSection: View {
             .padding(.bottom, 32)
         }
         .textCase(nil)
+        #if os(iOS)
+            .sheet(item: $selectedHub) { hub in
+                NavigationStack {
+                    HubDetailView(
+                        viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                        onSelectMedia: { media in
+                            selectedHub = nil
+                            onSelectMedia(media)
+                        },
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("hub.close") {
+                                selectedHub = nil
+                            }
+                        }
+                    }
+                }
+            }
+        #endif
     }
 
     @ViewBuilder
@@ -40,20 +67,38 @@ struct RelatedHubsSection: View {
         } else {
             VStack(alignment: .leading, spacing: 20) {
                 ForEach(viewModel.relatedHubs) { hub in
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(hub.title)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-
+                    MediaHubSection(
+                        title: hub.title,
+                        onViewAll: headerViewAllAction(for: hub),
+                    ) {
                         MediaCarousel(
                             layout: .portrait,
                             items: hub.items,
                             showsLabels: true,
+                            onViewAll: carouselViewAllAction(for: hub),
                             onSelectMedia: onSelectMedia,
                         )
                     }
                 }
             }
         }
+    }
+
+    private func headerViewAllAction(for hub: Hub) -> (() -> Void)? {
+        #if os(iOS)
+            guard hub.canOpenDetail else { return nil }
+            return { selectedHub = hub }
+        #else
+            return nil
+        #endif
+    }
+
+    private func carouselViewAllAction(for hub: Hub) -> (() -> Void)? {
+        guard hub.canShowViewAll else { return nil }
+        #if os(tvOS)
+            return { coordinator.showHubDetail(hub) }
+        #else
+            return nil
+        #endif
     }
 }
