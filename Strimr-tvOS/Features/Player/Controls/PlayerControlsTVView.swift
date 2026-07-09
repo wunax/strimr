@@ -104,12 +104,7 @@ struct PlayerControlsTVView: View {
             )
 
             ZStack {
-                HStack(spacing: 36) {
-                    PlayerSettingButton(
-                        systemImage: "speedometer",
-                        action: onShowSpeedSettings,
-                    )
-
+                HStack(spacing: 42) {
                     PlayerSettingButton(
                         systemImage: "speaker.wave.2",
                         action: onShowAudioSettings,
@@ -123,7 +118,7 @@ struct PlayerControlsTVView: View {
                     Spacer()
                 }
 
-                HStack(spacing: 30) {
+                HStack(spacing: 48) {
                     PlayerIconButton(
                         systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
                         accessibilityLabel: String(localized: "player.controls.rewindSeconds \(seekBackwardSeconds)"),
@@ -139,6 +134,15 @@ struct PlayerControlsTVView: View {
                             localized: "player.controls.skipForwardSeconds \(seekForwardSeconds)",
                         ),
                         action: onSeekForward,
+                    )
+                }
+
+                HStack(spacing: 42) {
+                    Spacer()
+
+                    PlayerSettingButton(
+                        systemImage: "speedometer",
+                        action: onShowSpeedSettings,
                     )
                 }
             }

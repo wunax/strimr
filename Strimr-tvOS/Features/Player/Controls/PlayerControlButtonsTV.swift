@@ -10,7 +10,7 @@ struct PlayerIconButton: View {
             Image(systemName: systemName)
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.foreground)
-                .frame(width: 88, height: 88)
+                .frame(width: 72, height: 72)
         }
         .accessibilityLabel(accessibilityLabel ?? systemName)
     }
@@ -63,8 +63,7 @@ struct PlayerSettingButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .foregroundStyle(.foreground)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .frame(width: 52, height: 52)
         }
     }
 }
