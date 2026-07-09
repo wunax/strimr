@@ -16,6 +16,7 @@ final class MainCoordinator: ObservableObject {
         case mediaDetail(PlayableMediaItem)
         case collectionDetail(CollectionMediaItem)
         case playlistDetail(PlaylistMediaItem)
+        case hubDetail(Hub)
     }
 
     @Published var tab: Tab = .home
@@ -128,6 +129,27 @@ final class MainCoordinator: ObservableObject {
 
     func showPlaylistDetail(_ playlist: PlaylistMediaItem) {
         let route = Route.playlistDetail(playlist)
+
+        switch tab {
+        case .home:
+            homePath.append(route)
+        case .search:
+            searchPath.append(route)
+        case .library:
+            libraryPath.append(route)
+        case .more:
+            break
+        case .seerrDiscover:
+            break
+        case let .libraryDetail(libraryId):
+            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+            path.append(route)
+            libraryDetailPaths[libraryId] = path
+        }
+    }
+
+    func showHubDetail(_ hub: Hub) {
+        let route = Route.hubDetail(hub)
 
         switch tab {
         case .home:

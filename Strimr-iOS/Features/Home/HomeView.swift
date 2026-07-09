@@ -2,8 +2,10 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
+    @Environment(PlexAPIContext.self) private var plexApiContext
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: HomeViewModel
+    @State private var selectedHub: Hub?
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
@@ -18,7 +20,10 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 if let hub = viewModel.continueWatching, hub.hasItems {
-                    MediaHubSection(title: hub.title) {
+                    MediaHubSection(
+                        title: hub.title,
+                        onViewAll: hub.canOpenDetail ? { selectedHub = hub } : nil,
+                    ) {
                         MediaCarousel(
                             layout: .landscape,
                             items: hub.items,
@@ -31,7 +36,10 @@ struct HomeView: View {
                 if !viewModel.recentlyAdded.isEmpty {
                     ForEach(viewModel.recentlyAdded) { hub in
                         if hub.hasItems {
-                            MediaHubSection(title: hub.title) {
+                            MediaHubSection(
+                                title: hub.title,
+                                onViewAll: hub.canOpenDetail ? { selectedHub = hub } : nil,
+                            ) {
                                 MediaCarousel(
                                     layout: .portrait,
                                     items: hub.items,
@@ -70,6 +78,24 @@ struct HomeView: View {
         }
         .refreshable {
             await viewModel.reload()
+        }
+        .sheet(item: $selectedHub) { hub in
+            NavigationStack {
+                HubDetailView(
+                    viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                    onSelectMedia: { media in
+                        selectedHub = nil
+                        onSelectMedia(media)
+                    },
+                )
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("hub.close") {
+                            selectedHub = nil
+                        }
+                    }
+                }
+            }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }

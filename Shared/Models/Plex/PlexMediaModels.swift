@@ -35,10 +35,11 @@ struct PlexHub: Codable, Equatable {
     let title: String
     let hubIdentifier: String
     let size: Int
+    let more: Bool?
     let metadata: [PlexItem]?
 
     private enum CodingKeys: String, CodingKey {
-        case hubKey, key, title, hubIdentifier, size
+        case hubKey, key, title, hubIdentifier, size, more
         case metadata = "Metadata"
     }
 }

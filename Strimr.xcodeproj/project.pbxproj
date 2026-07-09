@@ -40,6 +40,8 @@
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
 				Features/CollectionDetail/CollectionDetailViewModel.swift,
 				Features/Home/HomeViewModel.swift,
+				Features/HubDetail/HubDetailView.swift,
+				Features/HubDetail/HubDetailViewModel.swift,
 				Features/Integrations/SeerrPermissionService.swift,
 				Features/Integrations/SeerrSessionService.swift,
 				Features/Integrations/SeerrViewModel.swift,

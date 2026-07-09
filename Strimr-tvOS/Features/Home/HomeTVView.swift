@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeTVView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
+    @EnvironmentObject private var coordinator: MainCoordinator
 
     @State var viewModel: HomeViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -63,6 +64,7 @@ struct HomeTVView: View {
                             layout: .landscape,
                             items: hub.items,
                             showsLabels: false,
+                            onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                             onSelectMedia: onSelectMedia,
                         )
                     }
@@ -76,6 +78,7 @@ struct HomeTVView: View {
                                     layout: .portrait,
                                     items: hub.items,
                                     showsLabels: false,
+                                    onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                                     onSelectMedia: onSelectMedia,
                                 )
                             }
