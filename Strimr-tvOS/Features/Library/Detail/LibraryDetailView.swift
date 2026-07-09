@@ -99,7 +99,7 @@ struct LibraryDetailView: View {
     }
 
     private var sidebarView: some View {
-        VStack {
+        VStack(spacing: 36) {
             ForEach(availableTabs) { tab in
                 sidebarButton(for: tab)
             }
