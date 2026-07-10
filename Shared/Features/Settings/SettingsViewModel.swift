@@ -19,6 +19,13 @@ final class SettingsViewModel {
         )
     }
 
+    var losslessAudioBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.losslessAudio },
+            set: { self.settingsManager.setLosslessAudio($0) },
+        )
+    }
+
     var rewindBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.seekBackwardSeconds },

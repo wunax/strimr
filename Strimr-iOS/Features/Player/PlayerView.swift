@@ -497,6 +497,7 @@ struct PlayerView: View {
             url: url,
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
+            losslessAudio: settingsManager.playback.losslessAudio,
         )
         playerController.setPlaybackRate(playbackRate)
         shouldResumeAfterMediaLoad = shouldResumeAfterLoad

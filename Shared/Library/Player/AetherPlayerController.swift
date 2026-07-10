@@ -38,7 +38,12 @@ final class AetherPlayerController {
         observeEngine()
     }
 
-    func load(url: URL, startPosition: Double?, preferredAudioTrackID: Int?) {
+    func load(
+        url: URL,
+        startPosition: Double?,
+        preferredAudioTrackID: Int?,
+        losslessAudio: Bool,
+    ) {
         isStopping = false
         hasStartedPlayback = false
         selectedSubtitleTrackID = nil
@@ -51,7 +56,9 @@ final class AetherPlayerController {
                 _ = try await engine.load(
                     url: url,
                     startPosition: startPosition,
-                    options: LoadOptions(),
+                    options: LoadOptions(
+                        audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
+                    ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
                 engine.setRate(playbackRate)
