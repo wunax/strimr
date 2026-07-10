@@ -31,6 +31,14 @@ struct SettingsPlaybackView: View {
                     }
                 }
             }
+
+            Section {
+                Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
+            } header: {
+                Text("settings.playback.audio.title")
+            } footer: {
+                Text("settings.playback.losslessAudio.footer")
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("settings.playback.title")

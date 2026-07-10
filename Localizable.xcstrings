@@ -6476,6 +6476,28 @@
         }
       }
     },
+    "settings.playback.audio.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频"
+          }
+        }
+      }
+    },
     "settings.playback.autoPlayNext" : {
       "localizations" : {
         "en" : {
@@ -6538,6 +6560,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 点"
+          }
+        }
+      }
+    },
+    "settings.playback.losslessAudio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lossless audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio sans perte"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无损音频"
+          }
+        }
+      }
+    },
+    "settings.playback.losslessAudio.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable this when your receiver supports multichannel LPCM for lossless audio up to 7.1. Leave it off for soundbars and broader surround compatibility; stereo-only routes may downmix."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez cette option si votre ampli prend en charge le LPCM multicanal pour profiter d’un son sans perte jusqu’en 7.1. Laissez-la désactivée pour les barres de son et une compatibilité surround plus large ; les sorties stéréo peuvent réduire le son en stéréo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当接收器支持多声道 LPCM 时启用，可获得最高 7.1 声道的无损音频。使用条形音箱或需要更广泛的环绕声兼容性时请保持关闭；仅支持立体声的输出可能会降混为立体声。"
           }
         }
       }

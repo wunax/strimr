@@ -37,6 +37,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setLosslessAudio(_ enabled: Bool) {
+        settings.playback.losslessAudio = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()
