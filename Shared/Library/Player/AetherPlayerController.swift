@@ -1,5 +1,6 @@
 import AetherEngine
 import Combine
+import CoreGraphics
 import Foundation
 import Observation
 
@@ -14,6 +15,7 @@ final class AetherPlayerController {
     var position = 0.0
     var sourcePosition = 0.0
     var bufferedAhead = 0.0
+    var sourceVideoSize: CGSize?
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
@@ -48,12 +50,13 @@ final class AetherPlayerController {
         hasStartedPlayback = false
         selectedSubtitleTrackID = nil
         subtitleCues = []
+        sourceVideoSize = nil
         errorMessage = nil
 
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                _ = try await engine.load(
+                let sourceProbe = try await engine.load(
                     url: url,
                     startPosition: startPosition,
                     options: LoadOptions(
@@ -61,6 +64,15 @@ final class AetherPlayerController {
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
+                if let sourceProbe,
+                   sourceProbe.videoWidth > 0,
+                   sourceProbe.videoHeight > 0
+                {
+                    sourceVideoSize = CGSize(
+                        width: Int(sourceProbe.videoWidth),
+                        height: Int(sourceProbe.videoHeight),
+                    )
+                }
                 engine.setRate(playbackRate)
                 onMediaLoaded?()
             } catch {
@@ -154,6 +166,7 @@ final class AetherPlayerController {
         isStopping = true
         isPaused = true
         isBuffering = false
+        sourceVideoSize = nil
         engine.stop()
     }
 
