@@ -205,6 +205,7 @@ struct PlayerTVView: View {
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 subtitleFontSize: settingsManager.playback.subtitleFontSize,
                 controlsVisible: controlsVisible,
+                videoSize: playerController.sourceVideoSize,
             )
             .ignoresSafeArea()
         }
