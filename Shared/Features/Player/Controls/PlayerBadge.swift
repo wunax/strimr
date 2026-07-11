@@ -15,8 +15,8 @@ struct PlayerBadge: View {
                 Image(systemName: systemImage)
             }
             Text(title)
-                .font(.footnote.weight(.semibold))
         }
+        .font(.footnote.weight(.semibold))
         .foregroundStyle(.white)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
