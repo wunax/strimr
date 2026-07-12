@@ -8,18 +8,23 @@ enum KeychainError: Error {
 
 struct Keychain {
     private let service: String
+    private let accessGroup: String?
 
-    init(service: String) {
+    init(service: String, accessGroup: String? = nil) {
         self.service = service
+        self.accessGroup = accessGroup
     }
 
     func setString(_ value: String, forKey key: String) throws {
         let data = Data(value.utf8)
-        let query: [String: Any] = [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
         ]
+        if let accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
         SecItemDelete(query as CFDictionary)
 
         let attributes: [String: Any] = query.merging([kSecValueData as String: data]) { $1 }
@@ -30,13 +35,16 @@ struct Keychain {
     }
 
     func string(forKey key: String) throws -> String? {
-        let query: [String: Any] = [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
+        if let accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
 
@@ -53,11 +61,14 @@ struct Keychain {
     }
 
     func deleteValue(forKey key: String) throws {
-        let query: [String: Any] = [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
         ]
+        if let accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.unexpectedStatus(status)

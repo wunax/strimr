@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+#if os(tvOS)
+    import TVServices
+#endif
 
 @MainActor
 @Observable
@@ -20,6 +23,9 @@ final class SessionManager {
     private(set) var plexServer: PlexCloudResource?
 
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
+    #if os(tvOS)
+        @ObservationIgnored private let topShelfSessionStore = TopShelfSessionStore()
+    #endif
     @ObservationIgnored private let tokenKey = "strimr.plex.authToken"
     @ObservationIgnored private let serverIdDefaultsKey = "strimr.plex.serverIdentifier"
 
@@ -74,6 +80,10 @@ final class SessionManager {
         await clearSession()
         try? keychain.deleteValue(forKey: tokenKey)
         UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+        #if os(tvOS)
+            topShelfSessionStore.clear()
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        #endif
         status = .signedOut
     }
 
@@ -107,6 +117,12 @@ final class SessionManager {
             try await context.selectServer(server)
             plexServer = server
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
+            #if os(tvOS)
+                if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
+                    try? topShelfSessionStore.save(serverURL: serverURL, token: serverToken)
+                    TVTopShelfContentProvider.topShelfContentDidChange()
+                }
+            #endif
             if authToken != nil {
                 try? await libraryStore.reloadLibraries()
                 status = .ready
@@ -115,6 +131,10 @@ final class SessionManager {
             plexServer = nil
             context.removeServer()
             UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+            #if os(tvOS)
+                topShelfSessionStore.clear()
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            #endif
             status = .needsServerSelection
         }
     }
@@ -123,6 +143,10 @@ final class SessionManager {
         status = .needsProfileSelection
         plexServer = nil
         context.removeServer()
+        #if os(tvOS)
+            topShelfSessionStore.clear()
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        #endif
     }
 
     func requestServerSelection() async {
@@ -130,6 +154,10 @@ final class SessionManager {
         plexServer = nil
         context.removeServer()
         UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+        #if os(tvOS)
+            topShelfSessionStore.clear()
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        #endif
     }
 
     private func bootstrapAuthenticatedSession(
@@ -150,6 +178,10 @@ final class SessionManager {
                     status = .needsProfileSelection
                     context.removeServer()
                     plexServer = nil
+                    #if os(tvOS)
+                        topShelfSessionStore.clear()
+                        TVTopShelfContentProvider.topShelfContentDidChange()
+                    #endif
                     return
                 }
             } catch {}

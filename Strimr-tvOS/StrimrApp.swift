@@ -10,6 +10,7 @@ struct StrimrApp: App {
     @State private var seerrStore: SeerrStore
     @State private var seerrFocusModel: SeerrFocusModel
     @State private var watchTogetherViewModel: WatchTogetherViewModel
+    @State private var topShelfDeepLinkRouter = TopShelfDeepLinkRouter()
 
     init() {
         let context = PlexAPIContext()
@@ -39,7 +40,9 @@ struct StrimrApp: App {
                 .environment(seerrStore)
                 .environment(seerrFocusModel)
                 .environment(watchTogetherViewModel)
+                .environment(topShelfDeepLinkRouter)
                 .preferredColorScheme(.dark)
+                .onOpenURL(perform: topShelfDeepLinkRouter.receive)
         }
     }
 }
