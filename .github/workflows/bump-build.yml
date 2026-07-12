@@ -1,0 +1,32 @@
+name: Bump Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update build number
+        id: bump
+        run: ruby .github/scripts/bump-project-version.rb build
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/bump-build
+          commit-message: "chore: bump build number to ${{ steps.bump.outputs.build }}"
+          title: "chore: bump build number to ${{ steps.bump.outputs.build }}"
+          body: |
+            Bumps the shared iOS, tvOS, and Top Shelf build number to `${{ steps.bump.outputs.build }}`.
+
+            The marketing version remains `${{ steps.bump.outputs.version }}`.
+          add-paths: Strimr.xcodeproj/project.pbxproj
+          delete-branch: true
