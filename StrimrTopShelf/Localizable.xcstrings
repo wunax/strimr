@@ -1,0 +1,27 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "topshelf.continueWatching" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue Watching" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Continuer à regarder" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续观看" } }
+      }
+    },
+    "topshelf.recentlyAddedMovies" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recently Added Movies" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Films récemment ajoutés" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最近添加的电影" } }
+      }
+    },
+    "topshelf.recentlyAddedShows" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recently Added Shows" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Séries récemment ajoutées" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最近添加的剧集" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

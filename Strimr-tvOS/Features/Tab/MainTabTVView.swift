@@ -6,6 +6,7 @@ struct MainTabTVView: View {
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
     @Environment(WatchTogetherViewModel.self) var watchTogetherViewModel
+    @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
     @StateObject var coordinator = MainCoordinator()
 
     var body: some View {
@@ -119,6 +120,25 @@ struct MainTabTVView: View {
                     coordinator: coordinator,
                 ),
             )
+        }
+        .task(id: topShelfDeepLinkRouter.pendingAction) {
+            guard let action = topShelfDeepLinkRouter.pendingAction else { return }
+            defer { topShelfDeepLinkRouter.clear(action) }
+
+            switch action.kind {
+            case .display:
+                do {
+                    let repository = try MetadataRepository(context: plexApiContext)
+                    let response = try await repository.getMetadata(ratingKey: action.ratingKey)
+                    guard let item = response.mediaContainer.metadata?.first else { return }
+                    coordinator.tab = .home
+                    coordinator.showMediaDetail(MediaItem(plexItem: item))
+                } catch {
+                    ErrorReporter.capture(error)
+                }
+            case .play:
+                await playbackLauncher.play(ratingKey: action.ratingKey, type: action.type)
+            }
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let playQueue = coordinator.selectedPlayQueue,

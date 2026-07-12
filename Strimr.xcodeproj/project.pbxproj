@@ -10,18 +10,53 @@
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBC2FEC3CCF00C94B4A /* AetherEngine */; };
 		E981BEBF2FEC3CD700C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBE2FEC3CD700C94B4A /* AetherEngine */; };
+		E984D56D30039AD10077A7EA /* TVServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E984D56C30039AD10077A7EA /* TVServices.framework */; };
+		E984D57430039AD10077A7EA /* StrimrTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
 		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		E984D57230039AD10077A7EA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E98A13B12ED8CBAD002F98B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E984D56A30039AD10077A7EA;
+			remoteInfo = StrimrTopShelf;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E984D57530039AD10077A7EA /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E984D57430039AD10077A7EA /* StrimrTopShelf.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StrimrTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E984D56C30039AD10077A7EA /* TVServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = TVServices.framework; path = Library/Frameworks/TVServices.framework; sourceTree = DEVELOPER_DIR; };
 		E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9C448F32EF3034900D2895B /* Strimr-tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E984D57930039AD10077A7EA /* Exceptions for "StrimrTopShelf" folder in "StrimrTopShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E984D56A30039AD10077A7EA /* StrimrTopShelf */;
+		};
 		E99DFD972EEB02E800BCC566 /* Exceptions for "Strimr-iOS" folder in "Strimr-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -149,6 +184,7 @@
 				Repository/Seerr/SeerrSettingsRepository.swift,
 				Session/SessionManager.swift,
 				Storage/Keychain.swift,
+				Storage/TopShelfSessionStore.swift,
 				Store/LibraryStore.swift,
 				Store/SeerrStore.swift,
 				Store/SettingsManager.swift,
@@ -187,6 +223,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		E984D56E30039AD10077A7EA /* StrimrTopShelf */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E984D57930039AD10077A7EA /* Exceptions for "StrimrTopShelf" folder in "StrimrTopShelf" target */,
+			);
+			path = StrimrTopShelf;
+			sourceTree = "<group>";
+		};
 		E98A13BB2ED8CBAD002F98B2 /* Strimr-iOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -219,6 +263,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		E984D56830039AD10077A7EA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E984D56D30039AD10077A7EA /* TVServices.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B62ED8CBAD002F98B2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -248,6 +300,7 @@
 				E9C449012EF30A9500D2895B /* Shared */,
 				E98A13BB2ED8CBAD002F98B2 /* Strimr-iOS */,
 				E9C448F42EF3034900D2895B /* Strimr-tvOS */,
+				E984D56E30039AD10077A7EA /* StrimrTopShelf */,
 				E9C448FE2EF3063500D2895B /* Frameworks */,
 				E98A13BA2ED8CBAD002F98B2 /* Products */,
 			);
@@ -258,6 +311,7 @@
 			children = (
 				E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */,
 				E9C448F32EF3034900D2895B /* Strimr-tvOS.app */,
+				E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -265,6 +319,7 @@
 		E9C448FE2EF3063500D2895B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E984D56C30039AD10077A7EA /* TVServices.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -272,6 +327,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		E984D56A30039AD10077A7EA /* StrimrTopShelf */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E984D57830039AD10077A7EA /* Build configuration list for PBXNativeTarget "StrimrTopShelf" */;
+			buildPhases = (
+				E984D56730039AD10077A7EA /* Sources */,
+				E984D56830039AD10077A7EA /* Frameworks */,
+				E984D56930039AD10077A7EA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E984D56E30039AD10077A7EA /* StrimrTopShelf */,
+			);
+			name = StrimrTopShelf;
+			packageProductDependencies = (
+			);
+			productName = StrimrTopShelf;
+			productReference = E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E98A13C42ED8CBAE002F98B2 /* Build configuration list for PBXNativeTarget "Strimr-iOS" */;
@@ -305,10 +382,12 @@
 				E9C448EF2EF3034900D2895B /* Sources */,
 				E9C448F02EF3034900D2895B /* Frameworks */,
 				E9C448F12EF3034900D2895B /* Resources */,
+				E984D57530039AD10077A7EA /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E984D57330039AD10077A7EA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E9C448F42EF3034900D2895B /* Strimr-tvOS */,
@@ -329,9 +408,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					E984D56A30039AD10077A7EA = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					E98A13B82ED8CBAD002F98B2 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -361,11 +443,19 @@
 			targets = (
 				E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */,
 				E9C448F22EF3034900D2895B /* Strimr-tvOS */,
+				E984D56A30039AD10077A7EA /* StrimrTopShelf */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		E984D56930039AD10077A7EA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B72ED8CBAD002F98B2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -385,6 +475,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		E984D56730039AD10077A7EA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98A13B52ED8CBAD002F98B2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -401,7 +498,78 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E984D57330039AD10077A7EA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E984D56A30039AD10077A7EA /* StrimrTopShelf */;
+			targetProxy = E984D57230039AD10077A7EA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		E984D57630039AD10077A7EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = E9E70EF02F0D6FD7009C62B3 /* Config */;
+			baseConfigurationReferenceRelativePath = "Config-TopShelf.xcconfig";
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = StrimrTopShelf/StrimrTopShelf.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StrimrTopShelf/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StrimrTopShelf;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		E984D57730039AD10077A7EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = E9E70EF02F0D6FD7009C62B3 /* Config */;
+			baseConfigurationReferenceRelativePath = "Config-TopShelf.xcconfig";
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = StrimrTopShelf/StrimrTopShelf.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StrimrTopShelf/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StrimrTopShelf;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		E98A13C22ED8CBAE002F98B2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -621,6 +789,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Strimr-tvOS/Strimr-tvOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_PREVIEWS = YES;
@@ -656,6 +825,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Strimr-tvOS/Strimr-tvOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_PREVIEWS = YES;
@@ -688,6 +858,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E984D57830039AD10077A7EA /* Build configuration list for PBXNativeTarget "StrimrTopShelf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E984D57630039AD10077A7EA /* Debug */,
+				E984D57730039AD10077A7EA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E98A13B42ED8CBAD002F98B2 /* Build configuration list for PBXProject "Strimr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
