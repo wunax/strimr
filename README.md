@@ -48,6 +48,8 @@ Strimr is a third-party Plex client built in Swift with a native interface for i
   </a>
 </p>
 
+Beta versions are available through [TestFlight](https://testflight.apple.com/join/nayaffkP).
+
 ## Screenshots
 <details>
   <summary>iPhone</summary>
