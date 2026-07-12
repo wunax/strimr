@@ -1,0 +1,41 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version component to increment
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update project version
+        id: bump
+        run: ruby .github/scripts/bump-project-version.rb "${{ inputs.bump }}"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/bump-version
+          commit-message: "chore: bump version to ${{ steps.bump.outputs.version }}"
+          title: "chore: bump version to ${{ steps.bump.outputs.version }}"
+          body: |
+            Bumps the shared iOS, tvOS, and Top Shelf marketing version to `${{ steps.bump.outputs.version }}`.
+
+            Resets the shared build number to `${{ steps.bump.outputs.build }}`.
+          add-paths: Strimr.xcodeproj/project.pbxproj
+          delete-branch: true
