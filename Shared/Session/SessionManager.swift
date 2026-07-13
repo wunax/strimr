@@ -55,6 +55,7 @@ final class SessionManager {
                 status = .signedOut
             }
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             await clearSession()
             status = .signedOut
         }
@@ -70,6 +71,9 @@ final class SessionManager {
                 allowProfileSelection: true,
             )
         } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
+            }
             await clearSession()
             status = .signedOut
             throw error
@@ -112,7 +116,7 @@ final class SessionManager {
         }
     }
 
-    func selectServer(_ server: PlexCloudResource) async {
+    func selectServer(_ server: PlexCloudResource) async throws {
         do {
             try await context.selectServer(server)
             plexServer = server
@@ -124,10 +128,21 @@ final class SessionManager {
                 }
             #endif
             if authToken != nil {
-                try? await libraryStore.reloadLibraries()
+                do {
+                    try await libraryStore.reloadLibraries()
+                } catch {
+                    if Task.isCancelled || error.isCancellation {
+                        throw error
+                    }
+                }
                 status = .ready
             }
         } catch {
+            if Task.isCancelled || error.isCancellation {
+                context.removeServer()
+                throw error
+            }
+
             plexServer = nil
             context.removeServer()
             UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
@@ -136,6 +151,7 @@ final class SessionManager {
                 TVTopShelfContentProvider.topShelfContentDidChange()
             #endif
             status = .needsServerSelection
+            throw error
         }
     }
 
@@ -192,13 +208,24 @@ final class SessionManager {
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId })
         {
-            await selectServer(server)
+            try await selectAutomatically(server)
         } else if resources.count == 1, let server = resources.first {
-            await selectServer(server)
+            try await selectAutomatically(server)
         } else {
             plexServer = nil
             context.removeServer()
             status = .needsServerSelection
+        }
+    }
+
+    private func selectAutomatically(_ server: PlexCloudResource) async throws {
+        do {
+            try await selectServer(server)
+        } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
+            }
+            ErrorReporter.capture(error)
         }
     }
 

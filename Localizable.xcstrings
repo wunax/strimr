@@ -6005,6 +6005,52 @@
         }
       }
     },
+    "serverSelection.error.connection.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If this device is on the same network as the server, make sure Local Network access is allowed for Strimr. Otherwise, enable Remote Access in Plex."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cet appareil est sur le même réseau que le serveur, vérifiez que l’accès au réseau local est autorisé pour Strimr. Sinon, activez l’accès à distance dans Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果此设备与服务器位于同一网络，请确保已允许 Strimr 访问本地网络。否则，请在 Plex 中启用远程访问。"
+          }
+        }
+      }
+    },
+    "serverSelection.error.connection.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t connect to this server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de se connecter à ce serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到此服务器"
+          }
+        }
+      }
+    },
     "serverSelection.connection.localFormat %@" : {
       "extractionState" : "manual",
       "localizations" : {
