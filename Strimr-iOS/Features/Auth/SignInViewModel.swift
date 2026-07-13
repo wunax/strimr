@@ -39,6 +39,7 @@ final class SignInViewModel {
             beginPolling(pinID: pinResponse.id)
 
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             errorMessage = String(localized: "signIn.error.startFailed")
             ErrorReporter.capture(error)
             cancelSignIn()
@@ -113,6 +114,7 @@ final class SignInViewModel {
                             cancelSignIn()
                             return
                         } catch {
+                            guard !Task.isCancelled, !error.isCancellation else { return }
                             errorMessage = String(localized: "signIn.error.startFailed")
                             ErrorReporter.capture(error)
                             cancelSignIn()
@@ -125,6 +127,7 @@ final class SignInViewModel {
                         return
                     }
 
+                    guard !Task.isCancelled, !error.isCancellation else { return }
                     errorMessage = String(localized: "signIn.error.startFailed")
                     ErrorReporter.capture(error)
                 }

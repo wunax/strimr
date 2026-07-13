@@ -250,6 +250,7 @@ final class PlayerViewModel {
             let manager = try PlayQueueManager(context: context)
             playQueueState = try await manager.fetchQueue(id: playQueueState.id)
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             debugPrint("Failed to refresh play queue:", error)
             ErrorReporter.capture(error)
         }

@@ -98,6 +98,7 @@ final class HubDetailViewModel {
                 reachedEnd = items.count >= totalItemCount
             }
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             errorMessage = String(localized: "hub.error.loadFailed")
             if isInitialLoad {

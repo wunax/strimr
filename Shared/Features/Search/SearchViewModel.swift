@@ -150,7 +150,7 @@ final class SearchViewModel {
                 .compactMap(\.metadata)
                 .compactMap(MediaDisplayItem.init)
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             items = []
             errorMessage = error.localizedDescription

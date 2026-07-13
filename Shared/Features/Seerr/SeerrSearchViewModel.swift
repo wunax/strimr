@@ -40,12 +40,8 @@ final class SeerrSearchViewModel {
             guard !Task.isCancelled else { return }
             // Person results aren't handled yet in the UI.
             searchResults = response.results.filter { $0.mediaType != .person }
-        } catch is CancellationError {
-            return
         } catch {
-            if (error as? URLError)?.code == .cancelled {
-                return
-            }
+            guard !Task.isCancelled, !error.isCancellation else { return }
             errorMessage = String(localized: .init("common.errors.tryAgainLater"))
         }
     }

@@ -32,6 +32,7 @@ final class ProfileSwitcherViewModel {
             let home = try await userRepository.getHomeUsers()
             users = home.users
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             users = []
             errorMessage = String(localized: "auth.profile.error.loadFailed")
             ErrorReporter.capture(error)
@@ -54,6 +55,7 @@ final class ProfileSwitcherViewModel {
             let switchedUser = try await userRepository.switchUser(uuid: user.uuid, pin: pin)
             try await sessionManager.switchProfile(to: switchedUser)
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             errorMessage = String(localized: "auth.profile.error.switchFailed")
             ErrorReporter.capture(error)
         }

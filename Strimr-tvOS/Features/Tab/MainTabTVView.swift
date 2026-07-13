@@ -134,6 +134,7 @@ struct MainTabTVView: View {
                     coordinator.tab = .home
                     coordinator.showMediaDetail(MediaItem(plexItem: item))
                 } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { return }
                     ErrorReporter.capture(error)
                 }
             case .play:

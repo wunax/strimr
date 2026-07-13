@@ -97,7 +97,7 @@ final class HomeViewModel {
                 .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
                 .map(mapHub)
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }

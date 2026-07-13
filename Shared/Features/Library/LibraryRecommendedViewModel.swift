@@ -60,6 +60,7 @@ final class LibraryRecommendedViewModel {
             let plexHubs = response.mediaContainer.hub ?? []
             hubs = plexHubs.map(Hub.init)
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }
