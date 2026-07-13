@@ -130,6 +130,9 @@ final class PlexAPIContext {
             }
             return httpResponse.statusCode < 500
         } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
+            }
             return false
         }
     }

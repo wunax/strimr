@@ -29,8 +29,25 @@ struct SelectServerView: View {
         } message: {
             Text("more.logout.message")
         }
+        .alert(
+            "serverSelection.error.connection.title",
+            isPresented: $viewModel.isShowingSelectionError,
+        ) {
+            Button("common.actions.retry") {
+                viewModel.requestSelectionRetry()
+            }
+            Button("common.actions.cancel", role: .cancel) {
+                viewModel.dismissSelectionError()
+            }
+        } message: {
+            Text("serverSelection.error.connection.message")
+        }
         .task {
             await viewModel.load()
+        }
+        .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
+            guard !isPresented else { return }
+            Task { await viewModel.retrySelectionAfterAlertDismissal() }
         }
     }
 
