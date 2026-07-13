@@ -27,6 +27,7 @@ struct PlaybackLauncher {
                 coordinator.showPlayer(for: playQueue, shouldResumeFromOffset: shouldResumeFromOffset)
             }
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             debugPrint("Failed to create play queue:", error)
             ErrorReporter.capture(error)
         }

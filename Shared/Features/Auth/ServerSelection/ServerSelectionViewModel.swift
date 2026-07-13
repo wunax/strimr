@@ -27,6 +27,7 @@ final class ServerSelectionViewModel {
             let repository = ResourceRepository(context: context)
             servers = try await repository.getAvailableResources()
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             servers = []
         }

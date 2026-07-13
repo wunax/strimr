@@ -15,9 +15,18 @@ enum ErrorReporter {
     }
 
     static func capture(_ error: Error) {
+        guard !error.isCancellation else { return }
+
         #if canImport(Sentry)
             SentrySDK.capture(error: error)
         #endif
+    }
+}
+
+extension Error {
+    var isCancellation: Bool {
+        self is CancellationError
+            || (self as? URLError)?.code == .cancelled
     }
 }
 

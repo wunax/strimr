@@ -34,6 +34,7 @@ final class LibraryViewModel {
         do {
             try await libraryStore.loadLibraries()
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             if case PlexAPIError.missingConnection = error {
                 errorMessage = String(localized: "errors.selectServer.loadLibraries")
@@ -72,6 +73,7 @@ final class LibraryViewModel {
                 }
             }
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             await MainActor.run {
                 self.artworkURLs[library.id] = nil

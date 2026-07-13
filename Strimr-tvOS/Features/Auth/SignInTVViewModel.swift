@@ -25,6 +25,10 @@ final class SignInTVViewModel {
         do {
             try await requestNewPinAndBeginPolling()
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else {
+                cancelSignIn()
+                return
+            }
             errorMessage = String(localized: "signIn.error.startFailed")
             ErrorReporter.capture(error)
             isAuthenticating = false
@@ -50,6 +54,7 @@ final class SignInTVViewModel {
                             cancelSignIn()
                             return
                         } catch {
+                            guard !Task.isCancelled, !error.isCancellation else { return }
                             errorMessage = String(localized: "signIn.error.startFailed")
                             ErrorReporter.capture(error)
                             cancelSignIn()
@@ -61,6 +66,7 @@ final class SignInTVViewModel {
                             try await requestNewPinAndBeginPolling()
                             return
                         } catch {
+                            guard !Task.isCancelled, !error.isCancellation else { return }
                             errorMessage = String(localized: "signIn.error.startFailed")
                             ErrorReporter.capture(error)
                             cancelSignIn()
@@ -68,6 +74,7 @@ final class SignInTVViewModel {
                         }
                     }
 
+                    guard !Task.isCancelled, !error.isCancellation else { return }
                     errorMessage = String(localized: "signIn.error.startFailed")
                     ErrorReporter.capture(error)
                 }
