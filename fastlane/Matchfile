@@ -1,0 +1,4 @@
+git_url("git@github.com:wunax/strimr-signing.git")
+git_branch("main")
+storage_mode("git")
+type("appstore")

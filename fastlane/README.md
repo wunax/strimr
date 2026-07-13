@@ -15,6 +15,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## iOS
 
+### ios prepare_match
+
+```sh
+[bundle exec] fastlane ios prepare_match
+```
+
+Create or update Match profiles for iOS, tvOS, and Top Shelf
+
 ### ios verify_app_store_connect
 
 ```sh
