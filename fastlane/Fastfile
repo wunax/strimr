@@ -1,0 +1,163 @@
+require "shellwords"
+
+default_platform(:ios)
+
+def xcodebuild_authentication_args
+    key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+    return nil if key_path.nil? || key_path.empty?
+
+    [
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath #{Shellwords.escape(key_path)}",
+        "-authenticationKeyID #{Shellwords.escape(ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"))}",
+        "-authenticationKeyIssuerID #{Shellwords.escape(ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"))}"
+    ].join(" ")
+end
+
+def archive_xcargs(build_number)
+    [
+        "CURRENT_PROJECT_VERSION=#{build_number}",
+        xcodebuild_authentication_args
+    ].compact.join(" ")
+end
+
+platform :ios do
+    private_lane :app_store_connect_key do
+        app_store_connect_api_key(
+            key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+            issuer_id: ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"),
+            key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
+            is_key_content_base64: true
+        )
+    end
+
+    private_lane :latest_platform_build_number do |options|
+        latest_testflight_build_number(
+            api_key: options[:api_key],
+            platform: options[:platform]
+        )
+    end
+
+    private_lane :next_shared_build_number do |options|
+        ios_build_number = latest_platform_build_number(
+            api_key: options[:api_key],
+            platform: "ios"
+        )
+        tvos_build_number = latest_platform_build_number(
+            api_key: options[:api_key],
+            platform: "appletvos"
+        )
+
+        [ios_build_number, tvos_build_number].max + 1
+    end
+
+    private_lane :build_ios_ipa do |options|
+        build_app(
+            project: "Strimr.xcodeproj",
+            scheme: "Strimr",
+            export_method: "app-store",
+            output_name: "Strimr-iOS.ipa",
+            xcargs: archive_xcargs(options[:build_number]),
+            export_xcargs: xcodebuild_authentication_args
+        )
+    end
+
+    private_lane :build_tvos_ipa do |options|
+        build_app(
+            project: "Strimr.xcodeproj",
+            scheme: "Strimr-tvOS",
+            export_method: "app-store",
+            output_name: "Strimr-tvOS.ipa",
+            xcargs: archive_xcargs(options[:build_number]),
+            export_xcargs: xcodebuild_authentication_args
+        )
+    end
+
+    desc "Verify App Store Connect API access for iOS and tvOS"
+    lane :verify_app_store_connect do
+        api_key = app_store_connect_key
+        ios_build_number = latest_platform_build_number(
+            api_key: api_key,
+            platform: "ios"
+        )
+        tvos_build_number = latest_platform_build_number(
+            api_key: api_key,
+            platform: "appletvos"
+        )
+
+        UI.success("Latest TestFlight builds — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}")
+    end
+
+    desc "Build a signed iOS TestFlight IPA without uploading it"
+    lane :build_ios_testflight do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+        build_ios_ipa(build_number: build_number)
+    end
+
+    desc "Build a signed tvOS TestFlight IPA without uploading it"
+    lane :build_tvos_testflight do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+        build_tvos_ipa(build_number: build_number)
+    end
+
+    desc "Build signed iOS and tvOS TestFlight IPAs without uploading them"
+    lane :build_testflight do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+
+        build_ios_ipa(build_number: build_number)
+        build_tvos_ipa(build_number: build_number)
+    end
+
+    desc "Build and upload the iOS app to TestFlight"
+    lane :ios_beta do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+        ipa = build_ios_ipa(build_number: build_number)
+
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "ios",
+            ipa: ipa,
+            skip_waiting_for_build_processing: true
+        )
+    end
+
+    desc "Build and upload the tvOS app to TestFlight"
+    lane :tvos_beta do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+        ipa = build_tvos_ipa(build_number: build_number)
+
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "appletvos",
+            ipa: ipa,
+            skip_waiting_for_build_processing: true
+        )
+    end
+
+    desc "Build and upload the iOS and tvOS apps to TestFlight"
+    lane :beta do
+        api_key = app_store_connect_key
+        build_number = next_shared_build_number(api_key: api_key)
+
+        ios_ipa = build_ios_ipa(build_number: build_number)
+        tvos_ipa = build_tvos_ipa(build_number: build_number)
+
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "ios",
+            ipa: ios_ipa,
+            skip_waiting_for_build_processing: true
+        )
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "appletvos",
+            ipa: tvos_ipa,
+            skip_waiting_for_build_processing: true
+        )
+    end
+end

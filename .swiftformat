@@ -11,7 +11,7 @@
 --strip-unused-args always
 --semicolons inline
 --self remove
---exclude Carthage,Strimr.xcodeproj,Strimr.xcworkspace
+--exclude Strimr.xcodeproj,Strimr.xcworkspace
 
 # rules
 
