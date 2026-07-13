@@ -1,24 +1,14 @@
-require "shellwords"
-
 default_platform(:ios)
 
-def xcodebuild_authentication_args
-    key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"]
-    return nil if key_path.nil? || key_path.empty?
-
-    [
-        "-allowProvisioningUpdates",
-        "-authenticationKeyPath #{Shellwords.escape(key_path)}",
-        "-authenticationKeyID #{Shellwords.escape(ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"))}",
-        "-authenticationKeyIssuerID #{Shellwords.escape(ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"))}"
-    ].join(" ")
+def archive_xcargs(build_number)
+    "CURRENT_PROJECT_VERSION=#{build_number}"
 end
 
-def archive_xcargs(build_number)
-    [
-        "CURRENT_PROJECT_VERSION=#{build_number}",
-        xcodebuild_authentication_args
-    ].compact.join(" ")
+def strimr_app_identifier
+    identifier = ENV["FASTLANE_APP_IDENTIFIER"] || CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    FastlaneCore::UI.user_error!("Missing FASTLANE_APP_IDENTIFIER") if identifier.nil? || identifier.empty?
+
+    identifier
 end
 
 platform :ios do
@@ -51,6 +41,31 @@ platform :ios do
         [ios_build_number, tvos_build_number].max + 1
     end
 
+    private_lane :install_match_signing do |options|
+        setup_ci if ENV["CI"]
+        app_identifier = strimr_app_identifier
+
+        if options[:ios]
+            sync_code_signing(
+                type: "appstore",
+                platform: "ios",
+                app_identifier: [app_identifier],
+                api_key: options[:api_key],
+                readonly: true
+            )
+        end
+
+        if options[:tvos]
+            sync_code_signing(
+                type: "appstore",
+                platform: "tvos",
+                app_identifier: [app_identifier, "#{app_identifier}.topshelf"],
+                api_key: options[:api_key],
+                readonly: true
+            )
+        end
+    end
+
     private_lane :build_ios_ipa do |options|
         build_app(
             project: "Strimr.xcodeproj",
@@ -68,6 +83,27 @@ platform :ios do
             export_method: "app-store",
             output_name: "Strimr-tvOS.ipa",
             xcargs: archive_xcargs(options[:build_number])
+        )
+    end
+
+    desc "Create or update Match profiles for iOS, tvOS, and Top Shelf"
+    lane :prepare_match do
+        api_key = app_store_connect_key
+        app_identifier = strimr_app_identifier
+
+        sync_code_signing(
+            type: "appstore",
+            platform: "ios",
+            app_identifier: [app_identifier],
+            api_key: api_key,
+            readonly: false
+        )
+        sync_code_signing(
+            type: "appstore",
+            platform: "tvos",
+            app_identifier: [app_identifier, "#{app_identifier}.topshelf"],
+            api_key: api_key,
+            readonly: false
         )
     end
 
@@ -89,6 +125,7 @@ platform :ios do
     desc "Build a signed iOS TestFlight IPA without uploading it"
     lane :build_ios_testflight do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, ios: true)
         build_number = next_shared_build_number(api_key: api_key)
         build_ios_ipa(build_number: build_number)
     end
@@ -96,6 +133,7 @@ platform :ios do
     desc "Build a signed tvOS TestFlight IPA without uploading it"
     lane :build_tvos_testflight do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, tvos: true)
         build_number = next_shared_build_number(api_key: api_key)
         build_tvos_ipa(build_number: build_number)
     end
@@ -103,6 +141,7 @@ platform :ios do
     desc "Build signed iOS and tvOS TestFlight IPAs without uploading them"
     lane :build_testflight do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, ios: true, tvos: true)
         build_number = next_shared_build_number(api_key: api_key)
 
         build_ios_ipa(build_number: build_number)
@@ -112,6 +151,7 @@ platform :ios do
     desc "Build and upload the iOS app to TestFlight"
     lane :ios_beta do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, ios: true)
         build_number = next_shared_build_number(api_key: api_key)
         ipa = build_ios_ipa(build_number: build_number)
 
@@ -126,6 +166,7 @@ platform :ios do
     desc "Build and upload the tvOS app to TestFlight"
     lane :tvos_beta do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, tvos: true)
         build_number = next_shared_build_number(api_key: api_key)
         ipa = build_tvos_ipa(build_number: build_number)
 
@@ -140,6 +181,7 @@ platform :ios do
     desc "Build and upload the iOS and tvOS apps to TestFlight"
     lane :beta do
         api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, ios: true, tvos: true)
         build_number = next_shared_build_number(api_key: api_key)
 
         ios_ipa = build_ios_ipa(build_number: build_number)
