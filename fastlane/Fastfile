@@ -11,6 +11,14 @@ def strimr_app_identifier
     identifier
 end
 
+def ios_app_store_profile(identifier)
+    "match AppStore #{identifier}"
+end
+
+def tvos_app_store_profile(identifier)
+    "match AppStore #{identifier} tvos"
+end
+
 platform :ios do
     private_lane :app_store_connect_key do
         app_store_connect_api_key(
@@ -67,20 +75,38 @@ platform :ios do
     end
 
     private_lane :build_ios_ipa do |options|
+        app_identifier = strimr_app_identifier
+
         build_app(
             project: "Strimr.xcodeproj",
             scheme: "Strimr",
             export_method: "app-store",
+            export_options: {
+                signingStyle: "manual",
+                provisioningProfiles: {
+                    app_identifier => ios_app_store_profile(app_identifier)
+                }
+            },
             output_name: "Strimr-iOS.ipa",
             xcargs: archive_xcargs(options[:build_number])
         )
     end
 
     private_lane :build_tvos_ipa do |options|
+        app_identifier = strimr_app_identifier
+        top_shelf_identifier = "#{app_identifier}.topshelf"
+
         build_app(
             project: "Strimr.xcodeproj",
             scheme: "Strimr-tvOS",
             export_method: "app-store",
+            export_options: {
+                signingStyle: "manual",
+                provisioningProfiles: {
+                    app_identifier => tvos_app_store_profile(app_identifier),
+                    top_shelf_identifier => tvos_app_store_profile(top_shelf_identifier)
+                }
+            },
             output_name: "Strimr-tvOS.ipa",
             xcargs: archive_xcargs(options[:build_number])
         )
