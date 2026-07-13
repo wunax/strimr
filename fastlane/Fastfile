@@ -57,8 +57,7 @@ platform :ios do
             scheme: "Strimr",
             export_method: "app-store",
             output_name: "Strimr-iOS.ipa",
-            xcargs: archive_xcargs(options[:build_number]),
-            export_xcargs: xcodebuild_authentication_args
+            xcargs: archive_xcargs(options[:build_number])
         )
     end
 
@@ -68,8 +67,7 @@ platform :ios do
             scheme: "Strimr-tvOS",
             export_method: "app-store",
             output_name: "Strimr-tvOS.ipa",
-            xcargs: archive_xcargs(options[:build_number]),
-            export_xcargs: xcodebuild_authentication_args
+            xcargs: archive_xcargs(options[:build_number])
         )
     end
 
