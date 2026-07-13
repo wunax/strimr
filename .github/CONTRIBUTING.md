@@ -10,16 +10,10 @@ Before reporting a bug, please check that it does not already exist.
 1. Install dependencies:
 
    ```sh
-   brew install carthage swiftformat
+   brew install swiftformat
    ```
 
-2. Download the Carthage binaries:
-
-   ```sh
-   carthage bootstrap --use-xcframeworks --platform iOS,tvOS
-   ```
-
-3. Create your local config file in `Config/`:
+2. Create your local config file in `Config/`:
 
    ```sh
    cp Config/Config-example.xcconfig Config/Config.xcconfig
@@ -27,7 +21,7 @@ Before reporting a bug, please check that it does not already exist.
 
    Update `DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER`.
 
-4. Open `Strimr.xcworkspace` in Xcode.
+3. Open `Strimr.xcodeproj` in Xcode.
 
 ## Architecture
 

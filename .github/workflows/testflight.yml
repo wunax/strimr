@@ -41,12 +41,6 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
 
-      - name: Install Carthage
-        run: brew install carthage
-
-      - name: Bootstrap Carthage dependencies
-        run: carthage bootstrap --use-xcframeworks --platform iOS,tvOS
-
       - name: Restore private configuration
         env:
           CONFIG_XCCONFIG_BASE64: ${{ secrets.CONFIG_XCCONFIG_BASE64 }}

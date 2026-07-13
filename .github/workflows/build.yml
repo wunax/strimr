@@ -12,12 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Carthage
-        run: brew install carthage
-
-      - name: Carthage bootstrap
-        run: carthage bootstrap --use-xcframeworks --platform iOS,tvOS
-
       - name: iOS build
         run: |
           xcodebuild \
