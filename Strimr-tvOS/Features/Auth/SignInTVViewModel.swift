@@ -25,7 +25,10 @@ final class SignInTVViewModel {
         do {
             try await requestNewPinAndBeginPolling()
         } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
+            guard !Task.isCancelled, !error.isCancellation else {
+                cancelSignIn()
+                return
+            }
             errorMessage = String(localized: "signIn.error.startFailed")
             ErrorReporter.capture(error)
             isAuthenticating = false
