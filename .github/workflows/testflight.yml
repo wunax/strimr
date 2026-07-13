@@ -28,7 +28,6 @@ jobs:
       APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
       APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
       APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-      APP_STORE_CONNECT_API_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
       FASTLANE_APP_IDENTIFIER: ${{ secrets.FASTLANE_APP_IDENTIFIER }}
       FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
 
@@ -56,8 +55,10 @@ jobs:
           printf '%s' "$CONFIG_XCCONFIG_BASE64" | /usr/bin/base64 -D > Config/Config.xcconfig
           printf '%s' "$CONFIG_TOPSHELF_XCCONFIG_BASE64" | /usr/bin/base64 -D > Config/Config-TopShelf.xcconfig
           printf 'app_identifier("%s")\nteam_id("%s")\n' "$FASTLANE_APP_IDENTIFIER" "$FASTLANE_TEAM_ID" > fastlane/Appfile
-          printf '%s' "$APP_STORE_CONNECT_API_KEY_CONTENT" | /usr/bin/base64 -D > "$APP_STORE_CONNECT_API_KEY_PATH"
-          chmod 600 "$APP_STORE_CONNECT_API_KEY_PATH"
+          api_key_path="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_CONTENT" | /usr/bin/base64 -D > "$api_key_path"
+          chmod 600 "$api_key_path"
+          printf 'APP_STORE_CONNECT_API_KEY_PATH=%s\n' "$api_key_path" >> "$GITHUB_ENV"
 
       - name: Deploy iOS and tvOS
         if: inputs.platform == 'all'
