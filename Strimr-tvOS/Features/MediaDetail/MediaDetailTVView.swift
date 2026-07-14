@@ -6,6 +6,8 @@ struct MediaDetailTVView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
+    @State private var hasHandledInitialEpisodePosition = false
+    @State private var hasUserSelectedSeason = false
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
     private let onShuffle: (String, PlexItemType) -> Void
@@ -208,6 +210,9 @@ struct MediaDetailTVView: View {
                             title: season.title,
                             isSelected: season.id == viewModel.selectedSeasonId,
                             onSelect: {
+                                if season.id != viewModel.selectedSeasonId {
+                                    hasUserSelectedSeason = true
+                                }
                                 Task { await viewModel.selectSeason(id: season.id) }
                             },
                             onFocus: {
@@ -238,29 +243,53 @@ struct MediaDetailTVView: View {
             Text("media.detail.noEpisodes")
                 .foregroundStyle(.secondary)
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 36) {
-                    ForEach(viewModel.episodes) { episode in
-                        EpisodeArtworkCard(
-                            episode: episode,
-                            imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
-                            runtime: viewModel.runtimeText(for: episode),
-                            progress: viewModel.progressFraction(for: episode),
-                            width: 460,
-                            onPlay: {
-                                onPlay(episode.id, .episode)
-                            },
-                            onFocus: {
-                                focusedMedia = episode
-                            },
-                        )
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 36) {
+                        ForEach(viewModel.episodes) { episode in
+                            EpisodeArtworkCard(
+                                episode: episode,
+                                imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
+                                runtime: viewModel.runtimeText(for: episode),
+                                progress: viewModel.progressFraction(for: episode),
+                                width: 460,
+                                onPlay: {
+                                    onPlay(episode.id, .episode)
+                                },
+                                onFocus: {
+                                    focusedMedia = episode
+                                },
+                            )
+                            .id(episode.id)
+                        }
                     }
+                    .padding(.vertical, 12)
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 12)
-                .padding(.vertical, 4)
+                .task(id: viewModel.episodes.map(\.id)) {
+                    await positionOnDeckEpisodeIfNeeded(using: scrollProxy)
+                }
+                .focusSection()
             }
-            .focusSection()
         }
+    }
+
+    @MainActor
+    private func positionOnDeckEpisodeIfNeeded(using scrollProxy: ScrollViewProxy) async {
+        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
+        hasHandledInitialEpisodePosition = true
+
+        guard let onDeckEpisodeID = viewModel.onDeckItem?.id else { return }
+        guard viewModel.episodes.contains(where: { $0.id == onDeckEpisodeID }) else { return }
+
+        await Task.yield()
+
+        guard !Task.isCancelled else { return }
+        guard !hasUserSelectedSeason else { return }
+        guard viewModel.onDeckItem?.id == onDeckEpisodeID else { return }
+        guard viewModel.episodes.contains(where: { $0.id == onDeckEpisodeID }) else { return }
+
+        scrollProxy.scrollTo(onDeckEpisodeID, anchor: .leading)
     }
 
     private func handlePlay() {
