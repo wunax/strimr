@@ -31,6 +31,10 @@ jobs:
       FASTLANE_APP_IDENTIFIER: ${{ secrets.FASTLANE_APP_IDENTIFIER }}
       FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG_SLUG: ${{ secrets.SENTRY_ORG_SLUG }}
+      SENTRY_IOS_PROJECT_SLUG: ${{ secrets.SENTRY_IOS_PROJECT_SLUG }}
+      SENTRY_TVOS_PROJECT_SLUG: ${{ secrets.SENTRY_TVOS_PROJECT_SLUG }}
 
     steps:
       - name: Checkout
