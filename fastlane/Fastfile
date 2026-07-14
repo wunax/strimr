@@ -49,6 +49,15 @@ platform :ios do
         [ios_build_number, tvos_build_number].max + 1
     end
 
+    private_lane :upload_sentry_debug_files do |options|
+        sentry_debug_files_upload(
+            auth_token: ENV.fetch("SENTRY_AUTH_TOKEN"),
+            org_slug: ENV.fetch("SENTRY_ORG_SLUG"),
+            project_slug: ENV.fetch(options[:project_slug_env]),
+            include_sources: true
+        )
+    end
+
     private_lane :install_match_signing do |options|
         setup_ci if ENV["CI"]
         app_identifier = strimr_app_identifier
@@ -181,6 +190,8 @@ platform :ios do
         build_number = next_shared_build_number(api_key: api_key)
         ipa = build_ios_ipa(build_number: build_number)
 
+        upload_sentry_debug_files(project_slug_env: "SENTRY_IOS_PROJECT_SLUG")
+
         upload_to_testflight(
             api_key: api_key,
             app_platform: "ios",
@@ -195,6 +206,8 @@ platform :ios do
         install_match_signing(api_key: api_key, tvos: true)
         build_number = next_shared_build_number(api_key: api_key)
         ipa = build_tvos_ipa(build_number: build_number)
+
+        upload_sentry_debug_files(project_slug_env: "SENTRY_TVOS_PROJECT_SLUG")
 
         upload_to_testflight(
             api_key: api_key,
@@ -211,7 +224,10 @@ platform :ios do
         build_number = next_shared_build_number(api_key: api_key)
 
         ios_ipa = build_ios_ipa(build_number: build_number)
+        upload_sentry_debug_files(project_slug_env: "SENTRY_IOS_PROJECT_SLUG")
+
         tvos_ipa = build_tvos_ipa(build_number: build_number)
+        upload_sentry_debug_files(project_slug_env: "SENTRY_TVOS_PROJECT_SLUG")
 
         upload_to_testflight(
             api_key: api_key,
