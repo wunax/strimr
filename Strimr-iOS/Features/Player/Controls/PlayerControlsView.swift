@@ -23,7 +23,7 @@ struct PlayerControlsView: View {
     var onSkipMarker: (() -> Void)?
     var isRotationLocked: Bool
     var onToggleRotationLock: () -> Void
-    var isWatchTogether: Bool
+    var isSharePlay: Bool
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -57,7 +57,7 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
-                    isWatchTogether: isWatchTogether,
+                    isSharePlay: isSharePlay,
                 )
 
                 Spacer(minLength: 0)
@@ -155,7 +155,7 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
-    var isWatchTogether: Bool
+    var isSharePlay: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -186,8 +186,8 @@ private struct PlayerControlsHeader: View {
                         .lineLimit(2)
                 }
 
-                if isWatchTogether {
-                    Text("watchTogether.badge")
+                if isSharePlay {
+                    Text("sharePlay.badge")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
@@ -74,6 +75,19 @@ struct MediaDetailTVView: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
+        .alert(
+            "sharePlay.error.title",
+            isPresented: Binding(
+                get: { sharePlayCoordinator.errorMessage != nil },
+                set: { if !$0 { sharePlayCoordinator.errorMessage = nil } },
+            ),
+        ) {
+            Button("common.actions.done") {
+                sharePlayCoordinator.errorMessage = nil
+            }
+        } message: {
+            Text(sharePlayCoordinator.errorMessage ?? "")
+        }
     }
 
     private var playButton: some View {
@@ -110,12 +124,27 @@ struct MediaDetailTVView: View {
 
             shuffleButton
 
+            sharePlayButton
+
             watchToggleButton
 
             if viewModel.shouldShowWatchlistButton {
                 watchlistToggleButton
             }
         }
+    }
+
+    private var sharePlayButton: some View {
+        Button {
+            Task { await activateSharePlay() }
+        } label: {
+            Image(systemName: "shareplay")
+                .font(.title2.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
+        .tint(.secondary)
+        .accessibilityLabel(Text("sharePlay.action"))
     }
 
     private var playFromStartButton: some View {
@@ -312,6 +341,17 @@ struct MediaDetailTVView: View {
 
     private var playbackType: PlexItemType {
         viewModel.onDeckItem?.type ?? viewModel.media.plexType
+    }
+
+    private func activateSharePlay() async {
+        guard let ratingKey = viewModel.primaryActionRatingKey else { return }
+        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
+        await sharePlayCoordinator.activate(
+            ratingKey: ratingKey,
+            type: playbackType,
+            title: item.primaryLabel,
+            initialPosition: item.viewOffset ?? 0,
+        )
     }
 }
 

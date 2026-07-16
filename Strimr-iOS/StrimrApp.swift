@@ -10,7 +10,7 @@ struct StrimrApp: App {
     @State private var downloadManager: DownloadManager
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
-    @State private var watchTogetherViewModel: WatchTogetherViewModel
+    @State private var sharePlayCoordinator: SharePlayCoordinator
 
     init() {
         let context = PlexAPIContext()
@@ -24,7 +24,7 @@ struct StrimrApp: App {
         _downloadManager = State(initialValue: downloadManager)
         _libraryStore = State(initialValue: store)
         _seerrStore = State(initialValue: SeerrStore())
-        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(
+        _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
             context: context,
         ))
@@ -39,7 +39,7 @@ struct StrimrApp: App {
                 .environment(downloadManager)
                 .environment(libraryStore)
                 .environment(seerrStore)
-                .environment(watchTogetherViewModel)
+                .environment(sharePlayCoordinator)
                 .preferredColorScheme(.dark)
         }
     }

@@ -116,12 +116,8 @@
 				Features/Settings/NavigationLibrariesSectionView.swift,
 				Features/Settings/NavigationLibrariesViewModel.swift,
 				Features/Settings/SettingsViewModel.swift,
-				Features/WatchTogether/Playback/WatchTogetherPlaybackSyncEngine.swift,
-				Features/WatchTogether/Playback/WatchTogetherPlayerEvent.swift,
-				Features/WatchTogether/WatchTogetherModels.swift,
-				Features/WatchTogether/WatchTogetherProtocol.swift,
-				Features/WatchTogether/WatchTogetherViewModel.swift,
-				Features/WatchTogether/WatchTogetherWebSocketClient.swift,
+				Features/SharePlay/SharePlayCoordinator.swift,
+				Features/SharePlay/StrimrWatchActivity.swift,
 				Library/Player/PlayerController.swift,
 				Library/Player/PlayerTrack.swift,
 				Library/Player/PlayerVideoFormatBadge.swift,
@@ -695,6 +691,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Strimr-iOS/Strimr-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 25;
 				ENABLE_APP_SANDBOX = YES;
@@ -743,6 +740,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Strimr-iOS/Strimr-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 25;

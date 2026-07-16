@@ -20,12 +20,6 @@ struct UserMenuView: View {
                     Label("downloads.title", systemImage: "arrow.down.circle.fill")
                 }
 
-                NavigationLink {
-                    WatchTogetherView()
-                } label: {
-                    Label("watchTogether.title", systemImage: "person.2.fill")
-                }
-
                 Button {
                     Task { await sessionManager.requestProfileSelection() }
                 } label: {

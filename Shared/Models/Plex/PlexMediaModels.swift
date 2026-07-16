@@ -1,6 +1,6 @@
 import Foundation
 
-enum PlexItemType: String, Codable {
+enum PlexItemType: String, Codable, Hashable, Sendable {
     case movie
     case show
     case season

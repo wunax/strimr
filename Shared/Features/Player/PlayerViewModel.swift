@@ -77,6 +77,10 @@ final class PlayerViewModel {
         playQueueState
     }
 
+    var currentRatingKey: String {
+        ratingKey
+    }
+
     var shouldResumeFromOffset: Bool {
         shouldResumeFromOffsetFlag
     }

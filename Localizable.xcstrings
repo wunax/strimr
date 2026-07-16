@@ -4,17 +4,6 @@
     "%lld" : {
       "shouldTranslate" : false
     },
-    "%lld/%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld/%2$lld"
-          }
-        }
-      },
-      "shouldTranslate" : false
-    },
     "•" : {
       "shouldTranslate" : false
     },
@@ -6005,52 +5994,6 @@
         }
       }
     },
-    "serverSelection.error.connection.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If this device is on the same network as the server, make sure Local Network access is allowed for Strimr. Otherwise, enable Remote Access in Plex."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si cet appareil est sur le même réseau que le serveur, vérifiez que l’accès au réseau local est autorisé pour Strimr. Sinon, activez l’accès à distance dans Plex."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "如果此设备与服务器位于同一网络，请确保已允许 Strimr 访问本地网络。否则，请在 Plex 中启用远程访问。"
-          }
-        }
-      }
-    },
-    "serverSelection.error.connection.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t connect to this server"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de se connecter à ce serveur"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法连接到此服务器"
-          }
-        }
-      }
-    },
     "serverSelection.connection.localFormat %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6162,6 +6105,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到服务器"
+          }
+        }
+      }
+    },
+    "serverSelection.error.connection.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If this device is on the same network as the server, make sure Local Network access is allowed for Strimr. Otherwise, enable Remote Access in Plex."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cet appareil est sur le même réseau que le serveur, vérifiez que l’accès au réseau local est autorisé pour Strimr. Sinon, activez l’accès à distance dans Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果此设备与服务器位于同一网络，请确保已允许 Strimr 访问本地网络。否则，请在 Plex 中启用远程访问。"
+          }
+        }
+      }
+    },
+    "serverSelection.error.connection.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t connect to this server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de se connecter à ce serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到此服务器"
           }
         }
       }
@@ -6764,6 +6753,248 @@
         }
       }
     },
+    "sharePlay.action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同播共享"
+          }
+        }
+      }
+    },
+    "sharePlay.activity.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch together in Strimr"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regarder ensemble dans Strimr"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Strimr 中一起观看"
+          }
+        }
+      }
+    },
+    "sharePlay.badge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        }
+      }
+    },
+    "sharePlay.error.mediaUnavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This media is not available on your Plex server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce média n’est pas disponible sur votre serveur Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此媒体在您的 Plex 服务器上不可用。"
+          }
+        }
+      }
+    },
+    "sharePlay.error.serverUnavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a Plex server before starting SharePlay."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionnez un serveur Plex avant de lancer SharePlay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始 SharePlay 前请选择 Plex 服务器。"
+          }
+        }
+      }
+    },
+    "sharePlay.error.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay"
+          }
+        }
+      }
+    },
+    "sharePlay.error.unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay is not available right now."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay n’est pas disponible pour le moment."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SharePlay 当前不可用。"
+          }
+        }
+      }
+    },
+    "sharePlay.leave.action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave SharePlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter SharePlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开 SharePlay"
+          }
+        }
+      }
+    },
+    "sharePlay.leave.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback will stop on this device."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture s’arrêtera sur cet appareil."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备上的播放将停止。"
+          }
+        }
+      }
+    },
+    "sharePlay.leave.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave SharePlay?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter SharePlay ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开 SharePlay？"
+          }
+        }
+      }
+    },
+    "sharePlay.tv.guidance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start or join a FaceTime call, then try SharePlay again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrez ou rejoignez un appel FaceTime, puis réessayez SharePlay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发起或加入 FaceTime 通话，然后再次尝试 SharePlay。"
+          }
+        }
+      }
+    },
     "signIn.button.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7081,6 +7312,7 @@
       }
     },
     "watchTogether.actions.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7103,6 +7335,7 @@
       }
     },
     "watchTogether.badge" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7125,6 +7358,7 @@
       }
     },
     "watchTogether.create.action" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7147,6 +7381,7 @@
       }
     },
     "watchTogether.create.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7169,6 +7404,7 @@
       }
     },
     "watchTogether.error.connection" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7191,6 +7427,7 @@
       }
     },
     "watchTogether.error.identity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7213,6 +7450,7 @@
       }
     },
     "watchTogether.error.mediaUnavailable" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7235,6 +7473,7 @@
       }
     },
     "watchTogether.error.minimumParticipants" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7257,6 +7496,7 @@
       }
     },
     "watchTogether.error.missingCode" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7279,6 +7519,7 @@
       }
     },
     "watchTogether.error.playbackLauncher" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7301,6 +7542,7 @@
       }
     },
     "watchTogether.error.send" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7323,6 +7565,7 @@
       }
     },
     "watchTogether.error.updateRequired" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7345,6 +7588,7 @@
       }
     },
     "watchTogether.exit.endForAll" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7367,6 +7611,7 @@
       }
     },
     "watchTogether.exit.leave" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7389,6 +7634,7 @@
       }
     },
     "watchTogether.exit.message" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7411,6 +7657,7 @@
       }
     },
     "watchTogether.exit.stopForAll" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7433,6 +7680,7 @@
       }
     },
     "watchTogether.exit.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7455,6 +7703,7 @@
       }
     },
     "watchTogether.host.badge" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7477,6 +7726,7 @@
       }
     },
     "watchTogether.join.action" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7499,6 +7749,7 @@
       }
     },
     "watchTogether.join.placeholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7521,6 +7772,7 @@
       }
     },
     "watchTogether.join.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7543,6 +7795,7 @@
       }
     },
     "watchTogether.leave.endAll" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7565,6 +7818,7 @@
       }
     },
     "watchTogether.leave.justMe" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7587,6 +7841,7 @@
       }
     },
     "watchTogether.leave.message" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7609,6 +7864,7 @@
       }
     },
     "watchTogether.leave.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7631,6 +7887,7 @@
       }
     },
     "watchTogether.participants.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7653,6 +7910,7 @@
       }
     },
     "watchTogether.ready.off" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7675,6 +7933,7 @@
       }
     },
     "watchTogether.ready.on" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7697,6 +7956,7 @@
       }
     },
     "watchTogether.ready.toggle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7719,6 +7979,7 @@
       }
     },
     "watchTogether.selectedMedia.empty" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7741,6 +8002,7 @@
       }
     },
     "watchTogether.selectedMedia.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7763,6 +8025,7 @@
       }
     },
     "watchTogether.selectMedia" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7785,6 +8048,7 @@
       }
     },
     "watchTogether.session.code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7807,6 +8071,7 @@
       }
     },
     "watchTogether.session.copy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7829,6 +8094,7 @@
       }
     },
     "watchTogether.startPlayback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7851,6 +8117,7 @@
       }
     },
     "watchTogether.status.connected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7873,6 +8140,7 @@
       }
     },
     "watchTogether.status.connecting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7895,6 +8163,7 @@
       }
     },
     "watchTogether.status.disconnected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7917,6 +8186,7 @@
       }
     },
     "watchTogether.status.reconnecting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7939,6 +8209,7 @@
       }
     },
     "watchTogether.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7961,6 +8232,7 @@
       }
     },
     "watchTogether.toast.created %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7983,6 +8255,7 @@
       }
     },
     "watchTogether.toast.ended" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8005,6 +8278,7 @@
       }
     },
     "watchTogether.toast.joined %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8027,6 +8301,7 @@
       }
     },
     "watchTogether.toast.left %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8049,6 +8324,7 @@
       }
     },
     "watchTogether.toast.newHost %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8071,6 +8347,7 @@
       }
     },
     "watchTogether.toast.noAccess" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8093,6 +8370,7 @@
       }
     },
     "watchTogether.toast.paused %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8115,6 +8393,7 @@
       }
     },
     "watchTogether.toast.playbackStopped" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8137,6 +8416,7 @@
       }
     },
     "watchTogether.toast.played %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8159,6 +8439,7 @@
       }
     },
     "watchTogether.toast.rate %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8181,6 +8462,7 @@
       }
     },
     "watchTogether.toast.reconnecting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8203,6 +8485,7 @@
       }
     },
     "watchTogether.toast.seeked %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

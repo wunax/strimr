@@ -1,9 +1,11 @@
 import Observation
+import CoreTransferable
 import SwiftUI
 
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(PlexAPIContext.self) private var context
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
@@ -11,6 +13,7 @@ struct MediaDetailHeaderSection: View {
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
     @State private var isShowingShowDownloadSheet = false
+    @State private var sharePlayActivity: StrimrWatchActivity?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -87,6 +90,22 @@ struct MediaDetailHeaderSection: View {
                     },
                 )
             }
+        }
+        .task(id: sharePlayPreparationID) {
+            sharePlayActivity = makeSharePlayActivity()
+        }
+        .alert(
+            "sharePlay.error.title",
+            isPresented: Binding(
+                get: { sharePlayCoordinator.errorMessage != nil },
+                set: { if !$0 { sharePlayCoordinator.errorMessage = nil } },
+            ),
+        ) {
+            Button("common.actions.done") {
+                sharePlayCoordinator.errorMessage = nil
+            }
+        } message: {
+            Text(sharePlayCoordinator.errorMessage ?? "")
         }
     }
 
@@ -233,8 +252,35 @@ struct MediaDetailHeaderSection: View {
 
             downloadButton
             shuffleButton
+            sharePlayButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var sharePlayButton: some View {
+        if let sharePlayActivity {
+            VStack(spacing: 2) {
+                ShareLink(
+                    item: sharePlayActivity,
+                    preview: SharePreview(sharePlayActivity.title),
+                ) {
+                    Image(systemName: "shareplay")
+                        .font(.headline.weight(.semibold))
+                }
+                .frame(width: 48, height: 44)
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .tint(.brandSecondary)
+
+                Text("sharePlay.action")
+                    .font(.caption2)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: 56)
+                    .lineLimit(2)
+            }
+            .accessibilityLabel(Text("sharePlay.action"))
+        }
     }
 
     private var playButtonsRow: some View {
@@ -447,6 +493,23 @@ struct MediaDetailHeaderSection: View {
 
     private var playbackType: PlexItemType {
         viewModel.onDeckItem?.type ?? viewModel.media.plexType
+    }
+
+    private var sharePlayPreparationID: String {
+        [viewModel.primaryActionRatingKey, viewModel.onDeckItem?.id, viewModel.media.id]
+            .compactMap(\.self)
+            .joined(separator: ":")
+    }
+
+    private func makeSharePlayActivity() -> StrimrWatchActivity? {
+        guard let ratingKey = viewModel.primaryActionRatingKey else { return nil }
+        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
+        return sharePlayCoordinator.makeActivity(
+            ratingKey: ratingKey,
+            type: playbackType,
+            title: item.primaryLabel,
+            initialPosition: item.viewOffset ?? 0,
+        )
     }
 }
 
