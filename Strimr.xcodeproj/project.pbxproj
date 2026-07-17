@@ -905,10 +905,10 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/superuser404notfound/AetherEngine";
+			repositoryURL = "https://github.com/wunax/AetherEngine";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.0.1;
+				branch = main;
+				kind = branch;
 			};
 		};
 		E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
