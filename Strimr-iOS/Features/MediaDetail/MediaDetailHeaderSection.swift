@@ -1,5 +1,5 @@
-import Observation
 import CoreTransferable
+import Observation
 import SwiftUI
 
 struct MediaDetailHeaderSection: View {

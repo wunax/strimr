@@ -243,7 +243,6 @@ struct PlayerView: View {
                 skipOverlay(marker: activeMarker, title: skipTitle)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
-
         }
     }
 

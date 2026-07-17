@@ -268,7 +268,6 @@ struct PlayerTVView: View {
             if let seekFeedback {
                 seekFeedbackOverlay(seekFeedback)
             }
-
         }
     }
 
