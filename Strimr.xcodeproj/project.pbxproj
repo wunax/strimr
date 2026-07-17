@@ -122,7 +122,7 @@
 				Features/WatchTogether/WatchTogetherProtocol.swift,
 				Features/WatchTogether/WatchTogetherViewModel.swift,
 				Features/WatchTogether/WatchTogetherWebSocketClient.swift,
-				Library/Player/AetherPlayerController.swift,
+				Library/Player/PlayerController.swift,
 				Library/Player/PlayerTrack.swift,
 				Library/Player/PlayerVideoFormatBadge.swift,
 				Models/AppSettings.swift,

@@ -187,7 +187,7 @@ final class WatchTogetherViewModel {
         }
     }
 
-    func attachPlayerController(_ controller: AetherPlayerController) {
+    func attachPlayerController(_ controller: PlayerController) {
         playbackSyncEngine.attachPlayerController(controller)
     }
 

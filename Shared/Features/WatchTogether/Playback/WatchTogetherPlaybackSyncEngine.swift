@@ -9,7 +9,7 @@ final class WatchTogetherPlaybackSyncEngine {
     private var seenEventIds: Set<UUID> = []
     private var suppressOutboundEvents = false
     private var isEnabled = false
-    private weak var playerController: AetherPlayerController?
+    private weak var playerController: PlayerController?
 
     init(
         sendEvent: @escaping (WatchTogetherPlayerEvent) -> Void,
@@ -28,7 +28,7 @@ final class WatchTogetherPlaybackSyncEngine {
         }
     }
 
-    func attachPlayerController(_ controller: AetherPlayerController) {
+    func attachPlayerController(_ controller: PlayerController) {
         playerController = controller
     }
 

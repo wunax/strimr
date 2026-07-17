@@ -3,11 +3,12 @@ import Combine
 import CoreGraphics
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
-final class AetherPlayerController {
-    let engine: AetherEngine
+final class PlayerController {
+    fileprivate let engine: AetherEngine
 
     var isPaused = false
     var isBuffering = false
@@ -34,7 +35,7 @@ final class AetherPlayerController {
         do {
             engine = try AetherEngine()
         } catch {
-            fatalError("Failed to initialize AetherEngine: \(error)")
+            fatalError("Failed to initialize player engine: \(error)")
         }
 
         observeEngine()
@@ -267,5 +268,13 @@ final class AetherPlayerController {
         case .hlg:
             .hlg
         }
+    }
+}
+
+struct PlayerSurfaceView: View {
+    let controller: PlayerController
+
+    var body: some View {
+        AetherPlayerSurface(engine: controller.engine)
     }
 }

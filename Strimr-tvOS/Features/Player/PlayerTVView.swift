@@ -1,4 +1,3 @@
-import AetherEngine
 import SwiftUI
 
 struct PlayerTVView: View {
@@ -8,7 +7,7 @@ struct PlayerTVView: View {
     @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
-    @State private var playerController = AetherPlayerController()
+    @State private var playerController = PlayerController()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
@@ -195,7 +194,7 @@ struct PlayerTVView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            AetherPlayerSurface(engine: playerController.engine)
+            PlayerSurfaceView(controller: playerController)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
 
