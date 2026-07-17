@@ -30,11 +30,15 @@ struct SeerrMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
+        #if os(macOS)
+            260
+        #else
         if sizeClass == .compact {
             180
         } else {
             240
         }
+        #endif
     }
 
     var body: some View {

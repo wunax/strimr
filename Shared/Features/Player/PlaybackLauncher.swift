@@ -1,8 +1,13 @@
 import Foundation
 
+@MainActor
+protocol PlaybackPresenting: AnyObject {
+    func showPlayer(for playQueue: PlayQueueState, shouldResumeFromOffset: Bool)
+}
+
 struct PlaybackLauncher {
     let context: PlexAPIContext
-    let coordinator: MainCoordinator
+    let coordinator: any PlaybackPresenting
 
     func play(
         ratingKey: String,

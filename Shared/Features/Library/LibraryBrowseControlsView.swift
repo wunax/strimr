@@ -238,7 +238,7 @@ private struct LibraryBrowseFilterSheetView: View {
                 .navigationTitle(filter.title)
             #if !os(tvOS)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: leadingToolbarPlacement) {
                         if viewModel.filterSelection(for: filter) != nil {
                             Button("library.browse.filters.clear") {
                                 viewModel.clearFilter(filter)
@@ -246,7 +246,7 @@ private struct LibraryBrowseFilterSheetView: View {
                             }
                         }
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: trailingToolbarPlacement) {
                         Button("common.actions.done") {
                             dismiss()
                         }
@@ -254,6 +254,22 @@ private struct LibraryBrowseFilterSheetView: View {
                 }
             #endif
         }
+    }
+
+    private var leadingToolbarPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .cancellationAction
+        #else
+            .topBarLeading
+        #endif
+    }
+
+    private var trailingToolbarPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .confirmationAction
+        #else
+            .topBarTrailing
+        #endif
     }
 
     @ViewBuilder

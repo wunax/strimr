@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 
 @MainActor
-final class MainCoordinator: ObservableObject {
+final class MainCoordinator: ObservableObject, PlaybackPresenting {
     enum Tab: Hashable {
         case home
         case search
