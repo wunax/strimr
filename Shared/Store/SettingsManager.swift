@@ -57,6 +57,36 @@ final class SettingsManager {
         persist()
     }
 
+    func setSubtitleTextColor(_ color: SubtitleTextColor) {
+        settings.playback.subtitleTextColor = color
+        persist()
+    }
+
+    func setSubtitleFontWeight(_ weight: SubtitleFontWeight) {
+        settings.playback.subtitleFontWeight = weight
+        persist()
+    }
+
+    func setSubtitleBackgroundStrength(_ strength: SubtitleBackgroundStrength) {
+        settings.playback.subtitleBackgroundStrength = strength
+        persist()
+    }
+
+    func setSubtitleEdgeStyle(_ style: SubtitleEdgeStyle) {
+        settings.playback.subtitleEdgeStyle = style
+        persist()
+    }
+
+    func setSubtitleVerticalPosition(_ position: SubtitleVerticalPosition) {
+        settings.playback.subtitleVerticalPosition = position
+        persist()
+    }
+
+    func resetSubtitleAppearance() {
+        settings.playback.resetSubtitleAppearance()
+        persist()
+    }
+
     func updatePlayback(_ transform: (inout PlaybackSettings) -> Void) {
         transform(&settings.playback)
         persist()
@@ -104,7 +134,11 @@ final class SettingsManager {
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(settings) else { return }
-        defaults.set(data, forKey: storageKey)
+        do {
+            let data = try JSONEncoder().encode(settings)
+            defaults.set(data, forKey: storageKey)
+        } catch {
+            ErrorReporter.capture(error)
+        }
     }
 }
