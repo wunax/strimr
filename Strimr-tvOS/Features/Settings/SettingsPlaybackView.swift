@@ -26,13 +26,12 @@ struct SettingsPlaybackView: View {
                     }
                 }
                 .pickerStyle(.navigationLink)
+            }
 
-                Picker("settings.playback.subtitleFontSize", selection: viewModel.subtitleFontSizeBinding) {
-                    ForEach(viewModel.subtitleFontSizeOptions, id: \.self) { fontSize in
-                        Text("settings.playback.fontSize \(fontSize)").tag(fontSize)
-                    }
+            Section("settings.playback.subtitles.title") {
+                NavigationLink("settings.playback.subtitles.customize") {
+                    SettingsSubtitlesView()
                 }
-                .pickerStyle(.navigationLink)
             }
 
             Section {

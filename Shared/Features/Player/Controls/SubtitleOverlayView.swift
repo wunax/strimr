@@ -5,7 +5,7 @@ struct SubtitleOverlayView: View {
     let cues: [SubtitleCue]
     let currentTime: Double
     let maxCueDuration: Double
-    let subtitleFontSize: Int
+    let appearance: SubtitleAppearance
     let controlsVisible: Bool
     let videoSize: CGSize?
 
@@ -25,32 +25,27 @@ struct SubtitleOverlayView: View {
 
             GeometryReader { geometry in
                 Color.clear
-                    .overlay(alignment: .bottom) {
+                    .overlay(alignment: appearance.verticalPosition.alignment) {
                         let lines = activeTextLines
                         if !lines.isEmpty {
                             VStack(spacing: 8) {
                                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                                    Text(line)
-                                        .font(.system(size: pointSize, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .multilineTextAlignment(.center)
-                                        .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 5)
-                                        .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                                    SubtitleTextView(text: line, appearance: appearance)
                                 }
                             }
                             .frame(maxWidth: max(0, geometry.size.width - 48))
-                            .padding(.bottom, controlsVisible ? 96 : 48)
+                            .padding(.top, appearance.verticalPosition == .top ? 48 : 0)
+                            .padding(
+                                .bottom,
+                                appearance.verticalPosition == .bottom
+                                    ? (controlsVisible ? 96 : 48)
+                                    : 0,
+                            )
                         }
                     }
             }
         }
         .allowsHitTesting(false)
-    }
-
-    private var pointSize: CGFloat {
-        CGFloat(subtitleFontSize)
     }
 
     private var activeTextLines: [String] {
@@ -153,5 +148,211 @@ struct SubtitleOverlayView: View {
             width: image.position.width * canvasRect.width,
             height: image.position.height * canvasRect.height,
         )
+    }
+}
+
+struct SubtitleTextView: View {
+    let text: String
+    let appearance: SubtitleAppearance
+
+    var body: some View {
+        edgedText
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
+            .background(
+                .black.opacity(appearance.backgroundStrength.opacity),
+                in: RoundedRectangle(cornerRadius: 6),
+            )
+    }
+
+    @ViewBuilder
+    private var edgedText: some View {
+        switch appearance.edgeStyle {
+        case .shadow:
+            styledText(color: appearance.textColor.swiftUIColor)
+                .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
+        case .outline:
+            ZStack {
+                ForEach(Array(outlineOffsets.enumerated()), id: \.offset) { _, offset in
+                    styledText(color: .black)
+                        .offset(x: offset.width, y: offset.height)
+                        .accessibilityHidden(true)
+                }
+
+                styledText(color: appearance.textColor.swiftUIColor)
+            }
+        case .none:
+            styledText(color: appearance.textColor.swiftUIColor)
+        }
+    }
+
+    private func styledText(color: Color) -> some View {
+        Text(text)
+            .font(
+                .system(
+                    size: CGFloat(appearance.fontSize),
+                    weight: appearance.fontWeight.swiftUIWeight,
+                ),
+            )
+            .foregroundStyle(color)
+            .multilineTextAlignment(.center)
+    }
+
+    private var outlineOffsets: [CGSize] {
+        let width: CGFloat = 1.5
+        return [
+            CGSize(width: -width, height: -width),
+            CGSize(width: 0, height: -width),
+            CGSize(width: width, height: -width),
+            CGSize(width: -width, height: 0),
+            CGSize(width: width, height: 0),
+            CGSize(width: -width, height: width),
+            CGSize(width: 0, height: width),
+            CGSize(width: width, height: width),
+        ]
+    }
+}
+
+struct SubtitleAppearancePreview: View {
+    let appearance: SubtitleAppearance
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [.indigo.opacity(0.8), .black],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing,
+            )
+
+            SubtitleTextView(
+                text: String(localized: "settings.playback.subtitles.preview.sample"),
+                appearance: appearance,
+            )
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: appearance.verticalPosition.alignment,
+            )
+            .padding(20)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityLabel("settings.playback.subtitles.preview.title")
+    }
+}
+
+extension SubtitleTextColor {
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .white:
+            "settings.playback.subtitles.color.white"
+        case .yellow:
+            "settings.playback.subtitles.color.yellow"
+        case .cyan:
+            "settings.playback.subtitles.color.cyan"
+        }
+    }
+
+    var swiftUIColor: Color {
+        switch self {
+        case .white:
+            .white
+        case .yellow:
+            .yellow
+        case .cyan:
+            .cyan
+        }
+    }
+}
+
+extension SubtitleFontWeight {
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .regular:
+            "settings.playback.subtitles.weight.regular"
+        case .medium:
+            "settings.playback.subtitles.weight.medium"
+        case .semibold:
+            "settings.playback.subtitles.weight.semibold"
+        case .bold:
+            "settings.playback.subtitles.weight.bold"
+        }
+    }
+
+    var swiftUIWeight: Font.Weight {
+        switch self {
+        case .regular:
+            .regular
+        case .medium:
+            .medium
+        case .semibold:
+            .semibold
+        case .bold:
+            .bold
+        }
+    }
+}
+
+extension SubtitleBackgroundStrength {
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .none:
+            "settings.playback.subtitles.background.none"
+        case .subtle:
+            "settings.playback.subtitles.background.subtle"
+        case .standard:
+            "settings.playback.subtitles.background.standard"
+        case .strong:
+            "settings.playback.subtitles.background.strong"
+        }
+    }
+
+    var opacity: Double {
+        switch self {
+        case .none:
+            0
+        case .subtle:
+            0.2
+        case .standard:
+            0.35
+        case .strong:
+            0.65
+        }
+    }
+}
+
+extension SubtitleEdgeStyle {
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .shadow:
+            "settings.playback.subtitles.edge.shadow"
+        case .outline:
+            "settings.playback.subtitles.edge.outline"
+        case .none:
+            "settings.playback.subtitles.edge.none"
+        }
+    }
+}
+
+extension SubtitleVerticalPosition {
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .bottom:
+            "settings.playback.subtitles.position.bottom"
+        case .middle:
+            "settings.playback.subtitles.position.middle"
+        case .top:
+            "settings.playback.subtitles.position.top"
+        }
+    }
+
+    var alignment: Alignment {
+        switch self {
+        case .bottom:
+            .bottom
+        case .middle:
+            .center
+        case .top:
+            .top
+        }
     }
 }
