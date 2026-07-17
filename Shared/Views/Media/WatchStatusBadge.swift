@@ -4,15 +4,13 @@ struct WatchStatusBadge: View {
     let media: MediaDisplayItem
 
     var body: some View {
-        Group {
-            if let remaining = media.remainingUnwatchedLeaves {
-                badge {
-                    Text("\(remaining)")
-                }
-            } else if media.isFullyWatched {
-                badge {
-                    Image(systemName: "checkmark")
-                }
+        if let remaining = media.remainingUnwatchedLeaves {
+            badge {
+                Text("\(remaining)")
+            }
+        } else if media.isFullyWatched {
+            badge {
+                Image(systemName: "checkmark")
             }
         }
     }

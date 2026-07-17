@@ -29,7 +29,9 @@ struct SignInView: View {
                 Task { await viewModel.startSignIn() }
             } label: {
                 HStack {
-                    if viewModel.isAuthenticating { ProgressView().tint(.white) }
+                    if viewModel.isAuthenticating {
+                        ProgressView().tint(.white)
+                    }
                     Text(viewModel.isAuthenticating ? "signIn.button.waiting" : "signIn.button.continue")
                         .fontWeight(.semibold)
                 }

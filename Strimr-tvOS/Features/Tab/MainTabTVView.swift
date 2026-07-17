@@ -5,7 +5,7 @@ struct MainTabTVView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
-    @Environment(WatchTogetherViewModel.self) var watchTogetherViewModel
+    @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
     @StateObject var coordinator = MainCoordinator()
 
@@ -104,8 +104,6 @@ struct MainTabTVView: View {
                             switch route {
                             case .settings:
                                 SettingsView()
-                            case .watchTogether:
-                                WatchTogetherView()
                             }
                         }
                 }
@@ -114,7 +112,7 @@ struct MainTabTVView: View {
         .environmentObject(coordinator)
         .task {
             try? await libraryStore.loadLibraries()
-            watchTogetherViewModel.configurePlaybackLauncher(
+            sharePlayCoordinator.configurePlaybackLauncher(
                 PlaybackLauncher(
                     context: plexApiContext,
                     coordinator: coordinator,

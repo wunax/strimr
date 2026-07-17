@@ -22,7 +22,7 @@ struct PlayerControlsTVView: View {
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
     var onUserInteraction: () -> Void
-    var isWatchTogether: Bool
+    var isSharePlay: Bool
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -68,8 +68,8 @@ struct PlayerControlsTVView: View {
                             .lineLimit(2)
                     }
 
-                    if isWatchTogether {
-                        Text("watchTogether.badge")
+                    if isSharePlay {
+                        Text("sharePlay.badge")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)

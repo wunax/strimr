@@ -1,4 +1,5 @@
 import AetherEngine
+import AVFoundation
 import Combine
 import CoreGraphics
 import Foundation
@@ -21,6 +22,7 @@ final class PlayerController {
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
     var errorMessage: String?
+    private(set) var isCoordinatedPlayback = false
 
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
@@ -46,6 +48,7 @@ final class PlayerController {
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
+        autoplay: Bool = true,
     ) {
         isStopping = false
         hasStartedPlayback = false
@@ -62,6 +65,7 @@ final class PlayerController {
                     startPosition: startPosition,
                     options: LoadOptions(
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
+                        autoplay: autoplay,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
@@ -77,24 +81,48 @@ final class PlayerController {
                 engine.setRate(playbackRate)
                 onMediaLoaded?()
             } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
                 errorMessage = error.localizedDescription
             }
         }
     }
 
     func togglePlayback() {
-        engine.togglePlayPause()
+        if isCoordinatedPlayback {
+            engine.playbackCoordinator.coordinateRateChange(
+                to: isPaused ? playbackRate : 0,
+                options: [],
+            )
+        } else {
+            engine.togglePlayPause()
+        }
     }
 
     func pause() {
-        engine.pause()
+        if isCoordinatedPlayback {
+            engine.playbackCoordinator.coordinateRateChange(to: 0, options: [])
+        } else {
+            engine.pause()
+        }
     }
 
     func resume() {
-        engine.play()
+        if isCoordinatedPlayback {
+            engine.playbackCoordinator.coordinateRateChange(to: playbackRate, options: [])
+        } else {
+            engine.play()
+        }
     }
 
     func seek(to time: Double) {
+        if isCoordinatedPlayback {
+            engine.playbackCoordinator.coordinateSeek(
+                to: CMTime(seconds: time, preferredTimescale: 600),
+                options: [],
+            )
+            return
+        }
         Task { @MainActor [weak self] in
             await self?.engine.seek(to: time)
         }
@@ -106,7 +134,42 @@ final class PlayerController {
 
     func setPlaybackRate(_ rate: Float) {
         playbackRate = rate
-        engine.setRate(rate)
+        if isCoordinatedPlayback {
+            engine.playbackCoordinator.coordinateRateChange(to: rate, options: [])
+        } else {
+            engine.setRate(rate)
+        }
+    }
+
+    var playbackCoordinator: AVDelegatingPlaybackCoordinator {
+        engine.playbackCoordinator
+    }
+
+    func beginCoordinatedPlayback(
+        identifier: String,
+        initialTime: Double,
+        initialRate: Float = 0,
+    ) {
+        isCoordinatedPlayback = true
+        engine.transitionToCoordinatedPlaybackItem(
+            identifier: identifier,
+            initialTime: initialTime,
+            initialRate: initialRate,
+        )
+    }
+
+    func endCoordinatedPlayback(continueLocally: Bool) {
+        let intendedRate = engine.coordinatedPlaybackIntendedRate
+        engine.endCoordinatedPlayback()
+        isCoordinatedPlayback = false
+        guard continueLocally else { return }
+        if intendedRate > 0 {
+            playbackRate = intendedRate
+            engine.setRate(intendedRate)
+            engine.play()
+        } else {
+            engine.pause()
+        }
     }
 
     func selectAudioTrack(id: Int?) {
@@ -182,7 +245,16 @@ final class PlayerController {
         engine.$isBuffering
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isBuffering in
-                self?.isBuffering = isBuffering
+                guard let self else { return }
+                self.isBuffering = isBuffering || engine.isWaitingForCoordinatedPlayback
+            }
+            .store(in: &cancellables)
+
+        engine.$isWaitingForCoordinatedPlayback
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isWaiting in
+                guard let self else { return }
+                isBuffering = engine.isBuffering || isWaiting
             }
             .store(in: &cancellables)
 

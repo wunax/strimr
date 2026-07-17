@@ -9,7 +9,7 @@ struct StrimrApp: App {
     @State private var mediaFocusModel: MediaFocusModel
     @State private var seerrStore: SeerrStore
     @State private var seerrFocusModel: SeerrFocusModel
-    @State private var watchTogetherViewModel: WatchTogetherViewModel
+    @State private var sharePlayCoordinator: SharePlayCoordinator
     @State private var topShelfDeepLinkRouter = TopShelfDeepLinkRouter()
 
     init() {
@@ -23,7 +23,7 @@ struct StrimrApp: App {
         _mediaFocusModel = State(initialValue: MediaFocusModel())
         _seerrStore = State(initialValue: SeerrStore())
         _seerrFocusModel = State(initialValue: SeerrFocusModel())
-        _watchTogetherViewModel = State(initialValue: WatchTogetherViewModel(
+        _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
             context: context,
         ))
@@ -39,7 +39,7 @@ struct StrimrApp: App {
                 .environment(mediaFocusModel)
                 .environment(seerrStore)
                 .environment(seerrFocusModel)
-                .environment(watchTogetherViewModel)
+                .environment(sharePlayCoordinator)
                 .environment(topShelfDeepLinkRouter)
                 .preferredColorScheme(.dark)
                 .onOpenURL(perform: topShelfDeepLinkRouter.receive)

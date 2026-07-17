@@ -305,9 +305,9 @@ final class MediaDetailViewModel {
         switch media.type {
         case .movie:
             media.id
-        case .show:
+        case .show, .season:
             onDeckItem?.id
-        case .season, .episode:
+        case .episode:
             media.id
         }
     }

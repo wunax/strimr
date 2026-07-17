@@ -1,6 +1,6 @@
 import Foundation
 
-enum PlexItemType: String, Codable {
+enum PlexItemType: String, Codable, Hashable, Sendable {
     case movie
     case show
     case season
@@ -175,12 +175,16 @@ struct PlexMarker: Codable, Equatable {
     }
 
     var isIntro: Bool {
-        if case .intro = type { return true }
+        if case .intro = type {
+            return true
+        }
         return false
     }
 
     var isCredits: Bool {
-        if case .credits = type { return true }
+        if case .credits = type {
+            return true
+        }
         return false
     }
 

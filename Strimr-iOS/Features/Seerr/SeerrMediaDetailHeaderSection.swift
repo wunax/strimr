@@ -169,17 +169,16 @@ struct SeerrMediaDetailHeaderSection: View {
         viewModel.pendingRequest == nil ? "paperplane.fill" : "square.and.pencil"
     }
 
+    @ViewBuilder
     private var genresSection: some View {
-        Group {
-            if !viewModel.genres.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("media.detail.genres")
-                        .font(.headline)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(viewModel.genres, id: \.self) { genre in
-                                badge(text: genre)
-                            }
+        if !viewModel.genres.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("media.detail.genres")
+                    .font(.headline)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.genres, id: \.self) { genre in
+                            badge(text: genre)
                         }
                     }
                 }

@@ -4,7 +4,7 @@ struct PlayerTVView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(WatchTogetherViewModel.self) private var watchTogetherViewModel
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
     @State private var playerController = PlayerController()
@@ -29,7 +29,6 @@ struct PlayerTVView: View {
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
-    @State private var wasInWatchTogetherSession = false
     @State private var activePlaybackURL: URL?
     @State private var needsPlaybackReloadAfterBackground = false
     @State private var backgroundPlaybackPosition: Double?
@@ -76,27 +75,29 @@ struct PlayerTVView: View {
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     showControls(temporarily: true)
                     playerController.setPlaybackRate(playbackRate)
-                    startPlaybackIfNeeded(url: viewModel.playbackURL)
-                    if watchTogetherViewModel.isInSession {
-                        watchTogetherViewModel.attachPlayerController(playerController)
-                        wasInWatchTogetherSession = true
+                    if sharePlayCoordinator.isInSession {
+                        sharePlayCoordinator.attachPlayer(
+                            playerController,
+                            ratingKey: viewModel.currentRatingKey,
+                        )
                     }
+                    startPlaybackIfNeeded(url: viewModel.playbackURL)
                 }
                 .onDisappear {
                     viewModel.handleStop()
                     hideControlsWorkItem?.cancel()
                     seekFeedbackWorkItem?.cancel()
                     playerController.stop()
-                    if wasInWatchTogetherSession {
-                        watchTogetherViewModel.detachPlayerController()
+                    if sharePlayCoordinator.isInSession {
+                        sharePlayCoordinator.leave()
                     }
                 }
                 .onPlayPauseCommand {
                     togglePlayPause()
                 }
                 .onExitCommand {
-                    if watchTogetherViewModel.isInSession {
-                        watchTogetherViewModel.leaveSession(endForAll: false)
+                    if sharePlayCoordinator.isInSession {
+                        sharePlayCoordinator.leave()
                     }
                     dismissPlayer(force: true)
                 }
@@ -163,17 +164,11 @@ struct PlayerTVView: View {
 
         let sessionObservers = AnyView(
             playbackObservers
-                .onChange(of: watchTogetherViewModel.isInSession) { _, newValue in
-                    guard wasInWatchTogetherSession, !newValue else { return }
-                    watchTogetherViewModel.detachPlayerController()
-                }
-                .onChange(of: watchTogetherViewModel.sessionEndedSignal) { _, _ in
-                    guard wasInWatchTogetherSession else { return }
-                    dismissPlayer(force: true)
-                }
-                .onChange(of: watchTogetherViewModel.playbackStoppedSignal) { _, _ in
-                    guard wasInWatchTogetherSession else { return }
-                    dismissPlayer(force: true)
+                .onChange(of: sharePlayCoordinator.activityChangeID) { _, _ in
+                    guard let activity = sharePlayCoordinator.activity,
+                          activity.ratingKey != viewModel.currentRatingKey
+                    else { return }
+                    Task { await startPlayback(for: activity) }
                 },
         )
 
@@ -258,7 +253,7 @@ struct PlayerTVView: View {
                         { skipMarker(to: marker) }
                     },
                     onUserInteraction: { showControls(temporarily: true) },
-                    isWatchTogether: watchTogetherViewModel.isInSession,
+                    isSharePlay: sharePlayCoordinator.isInSession,
                 )
                 .transition(.opacity)
             }
@@ -273,9 +268,6 @@ struct PlayerTVView: View {
             if let seekFeedback {
                 seekFeedbackOverlay(seekFeedback)
             }
-
-            ToastOverlay(toasts: watchTogetherViewModel.toasts)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -342,10 +334,8 @@ struct PlayerTVView: View {
     }
 
     private func togglePlayPause() {
-        let wasPaused = viewModel.isPaused
         playerController.togglePlayback()
         showControls(temporarily: true)
-        watchTogetherViewModel.sendPlayPause(isCurrentlyPaused: wasPaused)
     }
 
     private func showAudioSettings() {
@@ -443,14 +433,11 @@ struct PlayerTVView: View {
         playbackRate = rate
         playerController.setPlaybackRate(rate)
         showControls(temporarily: true)
-        watchTogetherViewModel.sendRateChange(rate)
     }
 
     private func jump(by seconds: Double) {
         playerController.seek(by: seconds)
         showControls(temporarily: true)
-        let newPosition = max(0, viewModel.position + seconds)
-        watchTogetherViewModel.sendSeek(to: newPosition)
     }
 
     private func quickSeek(by seconds: Double) {
@@ -459,6 +446,7 @@ struct PlayerTVView: View {
     }
 
     private func applyResumeOffsetIfNeeded() {
+        guard !sharePlayCoordinator.isInSession else { return }
         guard viewModel.shouldResumeFromOffset else { return }
         guard !appliedResumeOffset, let offset = viewModel.resumePosition, offset > 0 else { return }
         appliedResumeOffset = true
@@ -469,6 +457,9 @@ struct PlayerTVView: View {
         guard awaitingMediaLoad else { return }
         awaitingMediaLoad = false
         refreshTracks()
+        if sharePlayCoordinator.isInSession {
+            sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
+        }
         applyResumeOffsetIfNeeded()
         if shouldPauseAfterMediaLoad {
             shouldPauseAfterMediaLoad = false
@@ -498,7 +489,6 @@ struct PlayerTVView: View {
             playerController.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
-            watchTogetherViewModel.sendSeek(to: timelinePosition)
         }
     }
 
@@ -506,7 +496,8 @@ struct PlayerTVView: View {
         guard let url else { return }
         guard activePlaybackURL != url else { return }
 
-        let startPosition = viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil
+        let startPosition = sharePlayCoordinator.activity?.initialPosition
+            ?? (viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil)
         startPlayback(url: url, startPosition: startPosition, resetTrackSelection: true)
     }
 
@@ -531,6 +522,7 @@ struct PlayerTVView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)
         shouldResumeAfterMediaLoad = shouldResumeAfterLoad
@@ -629,7 +621,6 @@ struct PlayerTVView: View {
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
-        watchTogetherViewModel.sendSeek(to: marker.endTime)
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {
@@ -737,7 +728,7 @@ struct PlayerTVView: View {
     private func handleEpisodeCompletion(for _: MediaItem) async {
         await viewModel.markPlaybackFinished()
 
-        guard settingsManager.playback.autoPlayNextEpisode else {
+        guard sharePlayCoordinator.isInSession || settingsManager.playback.autoPlayNextEpisode else {
             await MainActor.run {
                 dismissPlayer()
             }
@@ -747,6 +738,13 @@ struct PlayerTVView: View {
         guard let nextEpisode = await viewModel.nextItemInQueue() else {
             await MainActor.run {
                 dismissPlayer()
+            }
+            return
+        }
+
+        if sharePlayCoordinator.isInSession {
+            await MainActor.run {
+                sharePlayCoordinator.updateToNextEpisode(nextEpisode)
             }
             return
         }
@@ -777,6 +775,19 @@ struct PlayerTVView: View {
             )
         }
 
+        await viewModel.load()
+    }
+
+    private func startPlayback(for activity: StrimrWatchActivity) async {
+        await MainActor.run {
+            activePlaybackURL = nil
+            viewModel = PlayerViewModel(
+                playQueue: viewModel.playQueue,
+                ratingKey: activity.ratingKey,
+                context: context,
+                shouldResumeFromOffset: false,
+            )
+        }
         await viewModel.load()
     }
 

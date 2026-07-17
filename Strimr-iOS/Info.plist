@@ -24,7 +24,5 @@
 	<string>Strimr needs local network access to connect to your Plex Media Server.</string>
 	<key>SENTRY_DSN_IOS</key>
 	<string>https://$(SENTRY_DSN_IOS)</string>
-	<key>WATCH_TOGETHER_URL</key>
-	<string>wss://$(WATCH_TOGETHER_URL)</string>
 </dict>
 </plist>
