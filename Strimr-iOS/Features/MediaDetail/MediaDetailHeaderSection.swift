@@ -98,7 +98,11 @@ struct MediaDetailHeaderSection: View {
             "sharePlay.error.title",
             isPresented: Binding(
                 get: { sharePlayCoordinator.errorMessage != nil },
-                set: { if !$0 { sharePlayCoordinator.errorMessage = nil } },
+                set: {
+                    if !$0 {
+                        sharePlayCoordinator.errorMessage = nil
+                    }
+                },
             ),
         ) {
             Button("common.actions.done") {
@@ -151,17 +155,16 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
+    @ViewBuilder
     private var genresSection: some View {
-        Group {
-            if !viewModel.media.genres.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("media.detail.genres")
-                        .font(.headline)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(viewModel.media.genres, id: \.self) { genre in
-                                badge(text: genre)
-                            }
+        if !viewModel.media.genres.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("media.detail.genres")
+                    .font(.headline)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.media.genres, id: \.self) { genre in
+                            badge(text: genre)
                         }
                     }
                 }

@@ -79,7 +79,11 @@ struct MediaDetailTVView: View {
             "sharePlay.error.title",
             isPresented: Binding(
                 get: { sharePlayCoordinator.errorMessage != nil },
-                set: { if !$0 { sharePlayCoordinator.errorMessage = nil } },
+                set: {
+                    if !$0 {
+                        sharePlayCoordinator.errorMessage = nil
+                    }
+                },
             ),
         ) {
             Button("common.actions.done") {
