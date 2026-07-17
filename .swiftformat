@@ -11,7 +11,7 @@
 --strip-unused-args always
 --semicolons inline
 --self remove
---exclude Strimr.xcodeproj,Strimr.xcworkspace
+--exclude Strimr.xcodeproj,Strimr.xcworkspace,AetherEngine
 
 # rules
 
@@ -22,5 +22,5 @@
 --enable redundantAsync
 --enable redundantEquatable
 --enable redundantMemberwiseInit
---enable redundantProperty
+--enable redundantVariable
 --enable redundantThrows
