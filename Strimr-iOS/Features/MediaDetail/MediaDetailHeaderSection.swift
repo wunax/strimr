@@ -1,4 +1,3 @@
-import CoreTransferable
 import Observation
 import SwiftUI
 
@@ -13,7 +12,6 @@ struct MediaDetailHeaderSection: View {
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
     @State private var isShowingShowDownloadSheet = false
-    @State private var sharePlayActivity: StrimrWatchActivity?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -90,9 +88,6 @@ struct MediaDetailHeaderSection: View {
                     },
                 )
             }
-        }
-        .task(id: sharePlayPreparationID) {
-            sharePlayActivity = makeSharePlayActivity()
         }
         .alert(
             "sharePlay.error.title",
@@ -262,19 +257,23 @@ struct MediaDetailHeaderSection: View {
 
     @ViewBuilder
     private var sharePlayButton: some View {
-        if let sharePlayActivity {
+        if viewModel.primaryActionRatingKey != nil {
             VStack(spacing: 2) {
-                ShareLink(
-                    item: sharePlayActivity,
-                    preview: SharePreview(sharePlayActivity.title),
-                ) {
-                    Image(systemName: "shareplay")
-                        .font(.headline.weight(.semibold))
+                Button {
+                    Task { await activateSharePlay() }
+                } label: {
+                    if sharePlayCoordinator.isActivating {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "shareplay")
+                            .font(.headline.weight(.semibold))
+                    }
                 }
                 .frame(width: 48, height: 44)
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
                 .tint(.brandSecondary)
+                .disabled(sharePlayCoordinator.isActivating)
 
                 Text("sharePlay.action")
                     .font(.caption2)
@@ -498,16 +497,10 @@ struct MediaDetailHeaderSection: View {
         viewModel.onDeckItem?.type ?? viewModel.media.plexType
     }
 
-    private var sharePlayPreparationID: String {
-        [viewModel.primaryActionRatingKey, viewModel.onDeckItem?.id, viewModel.media.id]
-            .compactMap(\.self)
-            .joined(separator: ":")
-    }
-
-    private func makeSharePlayActivity() -> StrimrWatchActivity? {
-        guard let ratingKey = viewModel.primaryActionRatingKey else { return nil }
+    private func activateSharePlay() async {
+        guard let ratingKey = viewModel.primaryActionRatingKey else { return }
         let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
-        return sharePlayCoordinator.makeActivity(
+        await sharePlayCoordinator.activate(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,

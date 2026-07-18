@@ -11,6 +11,7 @@ final class SharePlayCoordinator {
     private(set) var isInSession = false
     private(set) var activityChangeID = UUID()
     private(set) var participantCount = 0
+    private(set) var isActivating = false
     var errorMessage: String?
 
     @ObservationIgnored private let sessionManager: SessionManager
@@ -61,41 +62,54 @@ final class SharePlayCoordinator {
         return activity
     }
 
-    #if os(tvOS)
-        func activate(
-            ratingKey: String,
-            type: PlexItemType,
-            title: String,
-            initialPosition: Double,
-        ) async {
+    func activate(
+        ratingKey: String,
+        type: PlexItemType,
+        title: String,
+        initialPosition: Double,
+    ) async {
+        guard !isActivating else { return }
+        #if os(tvOS)
             guard groupStateObserver.isEligibleForGroupSession else {
                 errorMessage = String(localized: "sharePlay.tv.guidance")
                 return
             }
-            guard let activity = makeActivity(
-                ratingKey: ratingKey,
-                type: type,
-                title: title,
-                initialPosition: initialPosition,
-            ) else { return }
-            do {
-                switch await activity.prepareForActivation() {
-                case .activationPreferred:
-                    _ = try await activity.activate()
-                case .activationDisabled:
-                    errorMessage = String(localized: "sharePlay.error.unavailable")
-                case .cancelled:
+        #endif
+        guard let activity = makeActivity(
+            ratingKey: ratingKey,
+            type: type,
+            title: title,
+            initialPosition: initialPosition,
+        ) else { return }
+
+        isActivating = true
+        defer { isActivating = false }
+
+        do {
+            let preparationResult = await activity.prepareForActivation()
+            switch preparationResult {
+            case .activationPreferred:
+                let activated = try await activity.activate()
+                if !activated {
                     locallyPreparedActivityIDs.remove(activity.activityID)
-                @unknown default:
                     errorMessage = String(localized: "sharePlay.error.unavailable")
                 }
-            } catch {
-                guard !Task.isCancelled, !error.isCancellation else { return }
-                ErrorReporter.capture(error)
-                errorMessage = error.localizedDescription
+            case .activationDisabled:
+                locallyPreparedActivityIDs.remove(activity.activityID)
+                errorMessage = String(localized: "sharePlay.error.unavailable")
+            case .cancelled:
+                locallyPreparedActivityIDs.remove(activity.activityID)
+            @unknown default:
+                locallyPreparedActivityIDs.remove(activity.activityID)
+                errorMessage = String(localized: "sharePlay.error.unavailable")
             }
+        } catch {
+            locallyPreparedActivityIDs.remove(activity.activityID)
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            errorMessage = error.localizedDescription
         }
-    #endif
+    }
 
     func attachPlayer(_ controller: PlayerController, ratingKey: String) {
         playerController = controller
