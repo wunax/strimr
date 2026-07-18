@@ -56,7 +56,7 @@ final class SharePlayCoordinator {
             errorMessage = String(localized: "sharePlay.error.serverUnavailable")
             return nil
         }
-        let activity = StrimrWatchActivity(
+        return StrimrWatchActivity(
             activityID: UUID(),
             serverIdentifier: serverIdentifier,
             ratingKey: ratingKey,
@@ -64,7 +64,6 @@ final class SharePlayCoordinator {
             title: title,
             initialPosition: max(0, initialPosition),
         )
-        return activity
     }
 
     func activate(

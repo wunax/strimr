@@ -557,7 +557,9 @@ private struct SharePlaySharingRequest: Identifiable {
     let activity: StrimrWatchActivity
     let controller: GroupActivitySharingController
 
-    var id: UUID { activity.activityID }
+    var id: UUID {
+        activity.activityID
+    }
 }
 
 private struct PlayProgressIcon: View {
