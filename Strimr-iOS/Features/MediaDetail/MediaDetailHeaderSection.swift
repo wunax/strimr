@@ -452,14 +452,25 @@ struct MediaDetailHeaderSection: View {
 
     private func handlePlay() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey, playbackType)
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+
+            if viewModel.shouldPlayPrimaryActionFromStart {
+                onPlayFromStart(ratingKey, playbackType)
+            } else {
+                onPlay(ratingKey, playbackType)
+            }
         }
     }
 
     private func handlePlayFromStart() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
     }
@@ -506,18 +517,17 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
-    private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.plexType
-    }
-
     private func activateSharePlay() async {
-        guard let ratingKey = viewModel.primaryActionRatingKey else { return }
-        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
         await sharePlayCoordinator.activate(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,
-            initialPosition: item.viewOffset ?? 0,
+            initialPosition: viewModel.primaryActionInitialPosition,
         )
     }
 }

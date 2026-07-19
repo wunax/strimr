@@ -7,6 +7,12 @@ enum MediaDetailResolutionMode {
     case selectedMedia
 }
 
+struct MediaDetailPlaybackTarget {
+    let item: MediaItem
+    let type: PlexItemType
+    let shouldResumeFromOffset: Bool
+}
+
 @MainActor
 @Observable
 final class MediaDetailViewModel {
@@ -16,6 +22,7 @@ final class MediaDetailViewModel {
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
     var onDeckItem: MediaItem?
+    private var fallbackPlaybackTarget: MediaDetailPlaybackTarget?
     var heroImageURL: URL?
     var isLoading = false
     var errorMessage: String?
@@ -74,6 +81,7 @@ final class MediaDetailViewModel {
         errorMessage = nil
         if !preservingExistingContent {
             onDeckItem = nil
+            fallbackPlaybackTarget = nil
             watchActionErrorMessage = nil
         }
 
@@ -110,6 +118,10 @@ final class MediaDetailViewModel {
         isLoading = false
         async let relatedHubsTask: Void = loadRelatedHubs(preservingExistingContent: preservingExistingContent)
         await loadSeriesChildren(preservingExistingContent: preservingExistingContent)
+        await resolveFallbackPlaybackTarget(
+            using: metadataRepository,
+            preservingExistingContent: preservingExistingContent,
+        )
         await relatedHubsTask
     }
 
@@ -367,71 +379,61 @@ final class MediaDetailViewModel {
     }
 
     var primaryActionTitle: String {
-        switch media.type {
-        case .movie:
-            hasProgress(for: media.mediaItem)
-                ? String(localized: "common.actions.resume")
-                : String(localized: "common.actions.play")
-        case .show, .season:
-            hasProgress(for: onDeckItem)
-                ? String(localized: "common.actions.resume")
-                : String(localized: "common.actions.play")
-        case .episode:
-            hasProgress(for: media.mediaItem)
-                ? String(localized: "common.actions.resume")
-                : String(localized: "common.actions.play")
+        guard let target = primaryPlaybackTarget else {
+            return String(localized: "common.actions.play")
         }
+
+        return target.shouldResumeFromOffset && hasProgress(for: target.item)
+            ? String(localized: "common.actions.resume")
+            : String(localized: "common.actions.play")
     }
 
     var primaryActionDetail: String? {
+        guard let target = primaryPlaybackTarget else { return nil }
+        let timeLeft = target.shouldResumeFromOffset ? timeLeftText(for: target.item) : nil
+
         switch media.type {
-        case .movie:
-            return timeLeftText(for: media.mediaItem)
+        case .movie, .episode:
+            return timeLeft
         case .show, .season:
-            guard let onDeckItem else { return nil }
-            let episodeLabel = seasonEpisodeLabel(for: onDeckItem)
-            let timeLeft = timeLeftText(for: onDeckItem)
+            let episodeLabel = seasonEpisodeLabel(for: target.item)
             if let timeLeft, let episodeLabel {
                 return "\(episodeLabel) • \(timeLeft)"
             }
             return episodeLabel ?? timeLeft
-        case .episode:
-            return timeLeftText(for: media.mediaItem)
         }
     }
 
     var primaryActionProgress: Double? {
-        switch media.type {
-        case .movie:
-            return progressFraction(for: media.mediaItem)
-        case .show, .season:
-            guard let onDeckItem else { return nil }
-            return progressFraction(for: onDeckItem)
-        case .episode:
-            return progressFraction(for: media.mediaItem)
-        }
+        guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return nil }
+        return progressFraction(for: target.item)
     }
 
     var shouldShowPlayFromStartButton: Bool {
-        switch media.type {
-        case .movie:
-            hasProgress(for: media.mediaItem)
-        case .show, .season:
-            hasProgress(for: onDeckItem)
-        case .episode:
-            hasProgress(for: media.mediaItem)
-        }
+        guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return false }
+        return hasProgress(for: target.item)
     }
 
     var primaryActionRatingKey: String? {
-        switch media.type {
-        case .movie:
-            media.id
-        case .show, .season:
-            onDeckItem?.id
-        case .episode:
-            media.id
-        }
+        primaryPlaybackTarget?.item.id
+    }
+
+    var primaryActionType: PlexItemType? {
+        primaryPlaybackTarget?.type
+    }
+
+    var primaryActionItem: MediaItem? {
+        primaryPlaybackTarget?.item
+    }
+
+    var primaryActionInitialPosition: Double {
+        guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return 0 }
+        return Double(target.item.viewOffset ?? 0)
+    }
+
+    var shouldPlayPrimaryActionFromStart: Bool {
+        guard let target = primaryPlaybackTarget else { return false }
+        return !target.shouldResumeFromOffset
     }
 
     var isWatched: Bool {
@@ -440,6 +442,26 @@ final class MediaDetailViewModel {
 
     func playbackRatingKey() async -> String? {
         primaryActionRatingKey
+    }
+
+    private var primaryPlaybackTarget: MediaDetailPlaybackTarget? {
+        switch media.type {
+        case .movie, .episode:
+            return MediaDetailPlaybackTarget(
+                item: media.mediaItem,
+                type: media.plexType,
+                shouldResumeFromOffset: true,
+            )
+        case .show, .season:
+            if let onDeckItem {
+                return MediaDetailPlaybackTarget(
+                    item: onDeckItem,
+                    type: onDeckItem.type,
+                    shouldResumeFromOffset: true,
+                )
+            }
+            return fallbackPlaybackTarget
+        }
     }
 
     var watchActionTitle: String {
@@ -589,7 +611,8 @@ final class MediaDetailViewModel {
             return onDeckSeason.id
         }
 
-        return fetchedSeasons.first?.id
+        return fetchedSeasons.first(where: { ($0.index ?? 0) > 0 })?.id
+            ?? fetchedSeasons.first?.id
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
@@ -622,6 +645,71 @@ final class MediaDetailViewModel {
                 }
             }
         }
+    }
+
+    private func resolveFallbackPlaybackTarget(
+        using metadataRepository: MetadataRepository,
+        preservingExistingContent: Bool,
+    ) async {
+        guard onDeckItem == nil else {
+            fallbackPlaybackTarget = nil
+            return
+        }
+
+        switch media.type {
+        case .movie, .episode:
+            fallbackPlaybackTarget = nil
+        case .season:
+            fallbackPlaybackTarget = playbackFallback(from: episodes, sortBySeason: false)
+        case .show:
+            do {
+                let response = try await metadataRepository.getMetadataGrandChildren(ratingKey: detailRatingKey)
+                let allEpisodes = (response.mediaContainer.metadata ?? [])
+                    .map(MediaItem.init)
+                    .filter { $0.type == .episode }
+                let regularEpisodes = allEpisodes.filter { ($0.parentIndex ?? 0) > 0 }
+                let eligibleEpisodes = regularEpisodes.isEmpty ? allEpisodes : regularEpisodes
+                fallbackPlaybackTarget = playbackFallback(from: eligibleEpisodes, sortBySeason: true)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                if !preservingExistingContent {
+                    fallbackPlaybackTarget = nil
+                }
+            }
+        }
+    }
+
+    private func playbackFallback(
+        from episodes: [MediaItem],
+        sortBySeason: Bool,
+    ) -> MediaDetailPlaybackTarget? {
+        let sortedEpisodes = episodes.sorted { lhs, rhs in
+            if sortBySeason {
+                let lhsSeason = lhs.parentIndex ?? Int.max
+                let rhsSeason = rhs.parentIndex ?? Int.max
+                if lhsSeason != rhsSeason {
+                    return lhsSeason < rhsSeason
+                }
+            }
+
+            let lhsEpisode = lhs.index ?? Int.max
+            let rhsEpisode = rhs.index ?? Int.max
+            if lhsEpisode != rhsEpisode {
+                return lhsEpisode < rhsEpisode
+            }
+            return lhs.id < rhs.id
+        }
+
+        guard let item = sortedEpisodes.first(where: { !$0.isFullyWatched }) ?? sortedEpisodes.first else {
+            return nil
+        }
+
+        return MediaDetailPlaybackTarget(
+            item: item,
+            type: item.type,
+            shouldResumeFromOffset: !item.isFullyWatched,
+        )
     }
 
     private func castMembers(from item: PlexItem?) -> [CastMember] {
