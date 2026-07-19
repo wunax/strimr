@@ -116,6 +116,7 @@ struct MediaDetailTVView: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .foregroundStyle(.brandSecondaryForeground)
+        .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
     private var buttonsRow: some View {
@@ -312,29 +313,40 @@ struct MediaDetailTVView: View {
         guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
         hasHandledInitialEpisodePosition = true
 
-        guard let onDeckEpisodeID = viewModel.onDeckItem?.id else { return }
-        guard viewModel.episodes.contains(where: { $0.id == onDeckEpisodeID }) else { return }
+        guard let primaryEpisodeID = viewModel.primaryActionItem?.id else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
         await Task.yield()
 
         guard !Task.isCancelled else { return }
         guard !hasUserSelectedSeason else { return }
-        guard viewModel.onDeckItem?.id == onDeckEpisodeID else { return }
-        guard viewModel.episodes.contains(where: { $0.id == onDeckEpisodeID }) else { return }
+        guard viewModel.primaryActionItem?.id == primaryEpisodeID else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
-        scrollProxy.scrollTo(onDeckEpisodeID, anchor: .leading)
+        scrollProxy.scrollTo(primaryEpisodeID, anchor: .leading)
     }
 
     private func handlePlay() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey, playbackType)
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+
+            if viewModel.shouldPlayPrimaryActionFromStart {
+                onPlayFromStart(ratingKey, playbackType)
+            } else {
+                onPlay(ratingKey, playbackType)
+            }
         }
     }
 
     private func handlePlayFromStart() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
     }
@@ -343,18 +355,17 @@ struct MediaDetailTVView: View {
         onShuffle(viewModel.media.id, viewModel.media.plexType)
     }
 
-    private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.plexType
-    }
-
     private func activateSharePlay() async {
-        guard let ratingKey = viewModel.primaryActionRatingKey else { return }
-        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
         await sharePlayCoordinator.activate(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,
-            initialPosition: item.viewOffset ?? 0,
+            initialPosition: viewModel.primaryActionInitialPosition,
         )
     }
 }

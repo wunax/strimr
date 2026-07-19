@@ -135,6 +135,7 @@ struct MainTabView: View {
                 viewModel: MediaDetailViewModel(
                     media: media,
                     context: plexApiContext,
+                    resolutionMode: .selectedMedia,
                 ),
                 onPlay: { ratingKey, type in
                     Task {
@@ -160,6 +161,7 @@ struct MainTabView: View {
                     }
                 },
                 onSelectMedia: coordinator.showMediaDetail,
+                onSelectParentSeries: coordinator.returnToSeries,
             )
         case let .collectionDetail(collection):
             CollectionDetailView(

@@ -3,8 +3,8 @@ import SwiftUI
 
 struct SeasonEpisodesSection: View {
     @Bindable var viewModel: MediaDetailViewModel
-    let onPlay: (String, PlexItemType) -> Void
-    let onShuffle: (String, PlexItemType) -> Void
+    let onSelectSeason: (MediaItem) -> Void
+    let onSelectEpisode: (MediaItem) -> Void
 
     var body: some View {
         Section {
@@ -17,7 +17,9 @@ struct SeasonEpisodesSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
             VStack(alignment: .leading, spacing: 12) {
-                seasonSelector
+                if viewModel.media.type == .show {
+                    seasonSelector
+                }
                 episodesCountTitle
                 episodesContent
             }
@@ -51,98 +53,60 @@ struct SeasonEpisodesSection: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
-            HStack(alignment: .center, spacing: 10) {
-                seasonPickerControl
-                Spacer(minLength: 0)
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    seasonWatchToggle
-                    seasonShuffleButton
-                }
-            }
-        }
-    }
-
-    private var seasonPickerControl: some View {
-        Picker("media.detail.season", selection: Binding(
-            get: { viewModel.selectedSeasonId ?? viewModel.seasons.first?.id ?? "" },
-            set: { seasonId in
-                guard !seasonId.isEmpty else { return }
-                Task {
-                    await viewModel.selectSeason(id: seasonId)
-                }
-            },
-        )) {
-            ForEach(viewModel.seasons, id: \.id) { season in
-                Text(season.title)
-                    .tag(season.id)
-            }
-        }
-        .pickerStyle(.menu)
-        .tint(.brandSecondaryForeground)
-        .background(.brandSecondary)
-        .cornerRadius(12)
-    }
-
-    @ViewBuilder
-    private var seasonWatchToggle: some View {
-        if let season = viewModel.selectedSeason ?? viewModel.seasons.first {
-            Button {
-                Task {
-                    await viewModel.toggleWatchStatus(for: season)
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    if viewModel.isUpdatingWatchStatus(for: season) {
-                        ProgressView()
-                    } else {
-                        Image(systemName: viewModel.watchActionIcon(for: season))
+                    ForEach(viewModel.seasons) { season in
+                        Button {
+                            if season.id == viewModel.selectedSeasonId {
+                                onSelectSeason(season)
+                            } else {
+                                Task { await viewModel.selectSeason(id: season.id) }
+                            }
+                        } label: {
+                            Text(season.title)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .foregroundStyle(
+                                    season.id == viewModel.selectedSeasonId
+                                        ? Color.brandSecondaryForeground
+                                        : Color.primary,
+                                )
+                                .background {
+                                    Capsule()
+                                        .fill(
+                                            season.id == viewModel.selectedSeasonId
+                                                ? Color.brandSecondary
+                                                : Color.brandSecondary.opacity(0.12),
+                                        )
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(
+                            season.id == viewModel.selectedSeasonId ? .isSelected : [],
+                        )
                     }
-                    Text(viewModel.watchActionTitle(for: season))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
                 }
-                .padding(.horizontal, 10)
+                .padding(.vertical, 2)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isUpdatingWatchStatus(for: season))
-        }
-    }
-
-    @ViewBuilder
-    private var seasonShuffleButton: some View {
-        if let season = viewModel.selectedSeason ?? viewModel.seasons.first {
-            Button {
-                onShuffle(season.id, .season)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "shuffle")
-                    Text("common.actions.shuffle")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 10)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(.brandSecondary)
         }
     }
 
     @ViewBuilder
     private var episodesContent: some View {
-        if let error = viewModel.seasonsErrorMessage {
+        if viewModel.media.type == .show, let error = viewModel.seasonsErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .padding(.vertical, 8)
-        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
+        } else if viewModel.media.type == .show,
+                  viewModel.isLoadingSeasons || viewModel.isLoading,
+                  viewModel.seasons.isEmpty
+        {
             ProgressView("media.detail.loadingSeasons")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
-        } else if viewModel.seasons.isEmpty {
+        } else if viewModel.media.type == .show, viewModel.seasons.isEmpty {
             Text("media.detail.noSeasonsYet")
                 .foregroundStyle(.secondary)
                 .padding(.vertical, 8)
@@ -175,16 +139,7 @@ struct SeasonEpisodesSection: View {
                     imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
                     runtime: viewModel.runtimeText(for: episode),
                     progress: viewModel.progressFraction(for: episode),
-                    isWatched: viewModel.isWatched(episode),
-                    isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
-                    onToggleWatch: {
-                        Task {
-                            await viewModel.toggleWatchStatus(for: episode)
-                        }
-                    },
-                    onPlay: {
-                        onPlay(episode.id, .episode)
-                    },
+                    onSelect: { onSelectEpisode(episode) },
                 )
                 if index < viewModel.episodes.count - 1 {
                     Divider()

@@ -3285,6 +3285,28 @@
         }
       }
     },
+    "media.detail.openSeries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la série"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开剧集"
+          }
+        }
+      }
+    },
     "media.detail.playFromStart" : {
       "localizations" : {
         "en" : {

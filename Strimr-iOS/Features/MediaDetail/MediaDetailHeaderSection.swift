@@ -13,6 +13,7 @@ struct MediaDetailHeaderSection: View {
     let onPlay: (String, PlexItemType) -> Void
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
+    let onSelectParentSeries: () -> Void
     @State private var isShowingShowDownloadSheet = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
@@ -122,19 +123,19 @@ struct MediaDetailHeaderSection: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.media.primaryLabel)
+            Text(viewModel.detailPrimaryLabel)
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
 
-            if let secondary = viewModel.media.secondaryLabel {
+            if let secondary = viewModel.detailSecondaryLabel {
                 Text(secondary)
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
 
-            if let tertiary = viewModel.media.tertiaryLabel {
+            if let tertiary = viewModel.detailTertiaryLabel {
                 Text(tertiary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -214,6 +215,17 @@ struct MediaDetailHeaderSection: View {
         }
         .frame(maxWidth: .infinity, minHeight: heroHeight, maxHeight: heroHeight)
         .ignoresSafeArea(edges: .horizontal)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard viewModel.parentSeries != nil else { return }
+            onSelectParentSeries()
+        }
+        .accessibilityAddTraits(viewModel.parentSeries == nil ? [] : .isButton)
+        .accessibilityHint(
+            viewModel.parentSeries == nil
+                ? Text(verbatim: "")
+                : Text("media.detail.openSeries"),
+        )
     }
 
     private func badge(text: String, systemImage: String? = nil) -> some View {
@@ -327,6 +339,7 @@ struct MediaDetailHeaderSection: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .foregroundStyle(.brandSecondaryForeground)
+        .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
     private var playFromStartButton: some View {
@@ -451,14 +464,25 @@ struct MediaDetailHeaderSection: View {
 
     private func handlePlay() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey, playbackType)
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+
+            if viewModel.shouldPlayPrimaryActionFromStart {
+                onPlayFromStart(ratingKey, playbackType)
+            } else {
+                onPlay(ratingKey, playbackType)
+            }
         }
     }
 
     private func handlePlayFromStart() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
     }
@@ -505,22 +529,21 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
-    private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.plexType
-    }
-
     private var isStartingSharePlay: Bool {
         sharePlayCoordinator.isActivating || sharePlaySharingRequest != nil
     }
 
     private func startSharePlay() {
-        guard let ratingKey = viewModel.primaryActionRatingKey else { return }
-        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
         guard let activity = sharePlayCoordinator.makeActivity(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,
-            initialPosition: item.viewOffset ?? 0,
+            initialPosition: viewModel.primaryActionInitialPosition,
         ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {
