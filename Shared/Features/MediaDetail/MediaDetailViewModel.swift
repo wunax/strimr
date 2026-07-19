@@ -155,14 +155,13 @@ final class MediaDetailViewModel {
             return
         }
 
-        let seriesRatingKey: String?
-        switch media.type {
+        let seriesRatingKey: String? = switch media.type {
         case .season:
-            seriesRatingKey = media.mediaItem.parentRatingKey
+            media.mediaItem.parentRatingKey
         case .episode:
-            seriesRatingKey = await resolveEpisodeSeriesRatingKey(using: metadataRepository)
+            await resolveEpisodeSeriesRatingKey(using: metadataRepository)
         case .movie, .show:
-            seriesRatingKey = nil
+            nil
         }
 
         guard let seriesRatingKey else {
@@ -275,11 +274,10 @@ final class MediaDetailViewModel {
             return
         }
 
-        let artPath: String?
-        if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
-            artPath = media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
+        let artPath: String? = if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
+            media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
         } else {
-            artPath = media.artPath
+            media.artPath
         }
 
         heroImageURL = artPath.flatMap {
