@@ -2,12 +2,19 @@ import Foundation
 import Observation
 import SwiftUI
 
+enum MediaDetailResolutionMode {
+    case seriesRoot
+    case selectedMedia
+}
+
 @MainActor
 @Observable
 final class MediaDetailViewModel {
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
 
     var media: PlayableMediaItem
+    var parentSeries: PlayableMediaItem?
     var onDeckItem: MediaItem?
     var heroImageURL: URL?
     var isLoading = false
@@ -31,9 +38,14 @@ final class MediaDetailViewModel {
     private var isWatchlisted = false
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(media: PlayableMediaItem, context: PlexAPIContext) {
+    init(
+        media: PlayableMediaItem,
+        context: PlexAPIContext,
+        resolutionMode: MediaDetailResolutionMode = .seriesRoot,
+    ) {
         self.media = media
         self.context = context
+        self.resolutionMode = resolutionMode
         resolveArtwork()
     }
 
@@ -68,7 +80,7 @@ final class MediaDetailViewModel {
         do {
             let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
             let response = try await metadataRepository.getMetadata(
-                ratingKey: media.metadataRatingKey,
+                ratingKey: detailRatingKey,
                 params: params,
             )
             if let item = response.mediaContainer.metadata?.first,
@@ -80,8 +92,14 @@ final class MediaDetailViewModel {
                 resolveGradient()
             }
             onDeckItem = response.mediaContainer.metadata?.first?.onDeck?.metadata.map { MediaItem(plexItem: $0) }
+            await loadParentSeries(using: metadataRepository)
             await loadWatchlistStatus()
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else {
+                isLoading = false
+                return
+            }
+            ErrorReporter.capture(error)
             if preservingExistingContent {
                 errorMessage = nil
             } else {
@@ -91,8 +109,81 @@ final class MediaDetailViewModel {
 
         isLoading = false
         async let relatedHubsTask: Void = loadRelatedHubs(preservingExistingContent: preservingExistingContent)
-        await loadSeasonsIfNeeded(forceReload: true, preservingExistingContent: preservingExistingContent)
+        await loadSeriesChildren(preservingExistingContent: preservingExistingContent)
         await relatedHubsTask
+    }
+
+    private var detailRatingKey: String {
+        switch resolutionMode {
+        case .seriesRoot:
+            media.metadataRatingKey
+        case .selectedMedia:
+            media.id
+        }
+    }
+
+    private func loadSeriesChildren(preservingExistingContent: Bool) async {
+        switch media.type {
+        case .show:
+            await loadSeasonsIfNeeded(forceReload: true, preservingExistingContent: preservingExistingContent)
+        case .season where resolutionMode == .selectedMedia:
+            seasons = []
+            selectedSeasonId = media.id
+            await fetchEpisodes(for: media.id, preservingExistingContent: preservingExistingContent)
+        case .movie, .episode, .season:
+            seasons = []
+            episodes = []
+            selectedSeasonId = nil
+        }
+    }
+
+    private func loadParentSeries(using metadataRepository: MetadataRepository) async {
+        guard resolutionMode == .selectedMedia else {
+            parentSeries = nil
+            return
+        }
+
+        let seriesRatingKey: String?
+        switch media.type {
+        case .season:
+            seriesRatingKey = media.mediaItem.parentRatingKey
+        case .episode:
+            seriesRatingKey = await resolveEpisodeSeriesRatingKey(using: metadataRepository)
+        case .movie, .show:
+            seriesRatingKey = nil
+        }
+
+        guard let seriesRatingKey else {
+            parentSeries = nil
+            return
+        }
+
+        do {
+            let response = try await metadataRepository.getMetadata(ratingKey: seriesRatingKey)
+            parentSeries = response.mediaContainer.metadata?.first.flatMap(PlayableMediaItem.init)
+            resolveArtwork()
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            parentSeries = nil
+            ErrorReporter.capture(error)
+        }
+    }
+
+    private func resolveEpisodeSeriesRatingKey(using metadataRepository: MetadataRepository) async -> String? {
+        if let grandparentRatingKey = media.mediaItem.grandparentRatingKey {
+            return grandparentRatingKey
+        }
+
+        guard let seasonRatingKey = media.mediaItem.parentRatingKey else { return nil }
+
+        do {
+            let response = try await metadataRepository.getMetadata(ratingKey: seasonRatingKey)
+            return response.mediaContainer.metadata?.first?.parentRatingKey
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return nil }
+            ErrorReporter.capture(error)
+            return nil
+        }
     }
 
     func loadSeasonsIfNeeded(forceReload: Bool = false, preservingExistingContent: Bool = false) async {
@@ -172,7 +263,14 @@ final class MediaDetailViewModel {
             return
         }
 
-        heroImageURL = media.artPath.flatMap {
+        let artPath: String?
+        if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
+            artPath = media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
+        } else {
+            artPath = media.artPath
+        }
+
+        heroImageURL = artPath.flatMap {
             imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
         } ?? media.thumbPath.flatMap {
             imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
@@ -233,6 +331,30 @@ final class MediaDetailViewModel {
         selectedSeason?.title ?? String(localized: "media.detail.season")
     }
 
+    var detailPrimaryLabel: String {
+        guard resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) else {
+            return media.primaryLabel
+        }
+        return media.title
+    }
+
+    var detailSecondaryLabel: String? {
+        guard resolutionMode == .selectedMedia else { return media.secondaryLabel }
+
+        switch media.type {
+        case .season:
+            return media.mediaItem.parentTitle
+        case .episode:
+            return media.mediaItem.grandparentTitle ?? media.mediaItem.parentTitle
+        case .movie, .show:
+            return media.secondaryLabel
+        }
+    }
+
+    var detailTertiaryLabel: String? {
+        media.tertiaryLabel
+    }
+
     func runtimeText(for item: MediaItem) -> String? {
         guard let duration = item.duration else { return nil }
         return duration.mediaDurationText()
@@ -250,11 +372,11 @@ final class MediaDetailViewModel {
             hasProgress(for: media.mediaItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
-        case .show:
+        case .show, .season:
             hasProgress(for: onDeckItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
-        case .season, .episode:
+        case .episode:
             hasProgress(for: media.mediaItem)
                 ? String(localized: "common.actions.resume")
                 : String(localized: "common.actions.play")
@@ -265,7 +387,7 @@ final class MediaDetailViewModel {
         switch media.type {
         case .movie:
             return timeLeftText(for: media.mediaItem)
-        case .show:
+        case .show, .season:
             guard let onDeckItem else { return nil }
             let episodeLabel = seasonEpisodeLabel(for: onDeckItem)
             let timeLeft = timeLeftText(for: onDeckItem)
@@ -273,7 +395,7 @@ final class MediaDetailViewModel {
                 return "\(episodeLabel) • \(timeLeft)"
             }
             return episodeLabel ?? timeLeft
-        case .season, .episode:
+        case .episode:
             return timeLeftText(for: media.mediaItem)
         }
     }
@@ -282,10 +404,10 @@ final class MediaDetailViewModel {
         switch media.type {
         case .movie:
             return progressFraction(for: media.mediaItem)
-        case .show:
+        case .show, .season:
             guard let onDeckItem else { return nil }
             return progressFraction(for: onDeckItem)
-        case .season, .episode:
+        case .episode:
             return progressFraction(for: media.mediaItem)
         }
     }
@@ -294,9 +416,9 @@ final class MediaDetailViewModel {
         switch media.type {
         case .movie:
             hasProgress(for: media.mediaItem)
-        case .show:
+        case .show, .season:
             hasProgress(for: onDeckItem)
-        case .season, .episode:
+        case .episode:
             hasProgress(for: media.mediaItem)
         }
     }
@@ -421,7 +543,7 @@ final class MediaDetailViewModel {
         defer { isLoadingSeasons = false }
 
         do {
-            let response = try await metadataRepository.getMetadataChildren(ratingKey: media.metadataRatingKey)
+            let response = try await metadataRepository.getMetadataChildren(ratingKey: detailRatingKey)
             let fetchedSeasons = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
             seasons = fetchedSeasons
             episodes = []
@@ -441,6 +563,8 @@ final class MediaDetailViewModel {
                 episodes = []
             }
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             if preservingExistingContent, !seasons.isEmpty {
                 seasonsErrorMessage = nil
             } else {
@@ -487,6 +611,8 @@ final class MediaDetailViewModel {
             guard selectedSeasonId == seasonId else { return }
             episodes = fetchedEpisodes
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             if selectedSeasonId == seasonId {
                 if preservingExistingContent, !episodes.isEmpty {
                     episodesErrorMessage = nil
@@ -526,9 +652,11 @@ final class MediaDetailViewModel {
         defer { isLoadingRelatedHubs = false }
 
         do {
-            let response = try await hubRepository.getRelatedMediaHubs(ratingKey: media.metadataRatingKey)
+            let response = try await hubRepository.getRelatedMediaHubs(ratingKey: detailRatingKey)
             relatedHubs = (response.mediaContainer.hub ?? []).map(Hub.init)
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             if preservingExistingContent, !relatedHubs.isEmpty {
                 relatedHubsErrorMessage = nil
             } else {

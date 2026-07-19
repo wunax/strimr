@@ -11,6 +11,7 @@ struct MediaDetailHeaderSection: View {
     let onPlay: (String, PlexItemType) -> Void
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
+    let onSelectParentSeries: () -> Void
     @State private var isShowingShowDownloadSheet = false
 
     var body: some View {
@@ -110,19 +111,19 @@ struct MediaDetailHeaderSection: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.media.primaryLabel)
+            Text(viewModel.detailPrimaryLabel)
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
 
-            if let secondary = viewModel.media.secondaryLabel {
+            if let secondary = viewModel.detailSecondaryLabel {
                 Text(secondary)
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
 
-            if let tertiary = viewModel.media.tertiaryLabel {
+            if let tertiary = viewModel.detailTertiaryLabel {
                 Text(tertiary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -202,6 +203,17 @@ struct MediaDetailHeaderSection: View {
         }
         .frame(maxWidth: .infinity, minHeight: heroHeight, maxHeight: heroHeight)
         .ignoresSafeArea(edges: .horizontal)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard viewModel.parentSeries != nil else { return }
+            onSelectParentSeries()
+        }
+        .accessibilityAddTraits(viewModel.parentSeries == nil ? [] : .isButton)
+        .accessibilityHint(
+            viewModel.parentSeries == nil
+                ? Text(verbatim: "")
+                : Text("media.detail.openSeries"),
+        )
     }
 
     private func badge(text: String, systemImage: String? = nil) -> some View {
@@ -315,6 +327,7 @@ struct MediaDetailHeaderSection: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .foregroundStyle(.brandSecondaryForeground)
+        .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
     private var playFromStartButton: some View {
