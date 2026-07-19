@@ -14,6 +14,10 @@ final class SharePlayCoordinator {
     private(set) var isActivating = false
     var errorMessage: String?
 
+    var isEligibleForGroupSession: Bool {
+        groupStateObserver.isEligibleForGroupSession
+    }
+
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let groupStateObserver = GroupStateObserver()
@@ -24,6 +28,8 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var sessionListener: Task<Void, Never>?
     @ObservationIgnored private var locallyPreparedActivityIDs: Set<UUID> = []
     @ObservationIgnored private var pendingNextItem: PlexItem?
+    @ObservationIgnored private var lastLaunchedActivityID: UUID?
+    @ObservationIgnored private var sharingPresentationActivityID: UUID?
 
     init(sessionManager: SessionManager, context: PlexAPIContext) {
         self.sessionManager = sessionManager
@@ -50,7 +56,7 @@ final class SharePlayCoordinator {
             errorMessage = String(localized: "sharePlay.error.serverUnavailable")
             return nil
         }
-        let activity = StrimrWatchActivity(
+        return StrimrWatchActivity(
             activityID: UUID(),
             serverIdentifier: serverIdentifier,
             ratingKey: ratingKey,
@@ -58,8 +64,6 @@ final class SharePlayCoordinator {
             title: title,
             initialPosition: max(0, initialPosition),
         )
-        locallyPreparedActivityIDs.insert(activity.activityID)
-        return activity
     }
 
     func activate(
@@ -82,7 +86,14 @@ final class SharePlayCoordinator {
             initialPosition: initialPosition,
         ) else { return }
 
+        await activate(activity)
+    }
+
+    func activate(_ activity: StrimrWatchActivity) async {
+        guard !isActivating else { return }
+
         isActivating = true
+        locallyPreparedActivityIDs.insert(activity.activityID)
         defer { isActivating = false }
 
         do {
@@ -109,6 +120,25 @@ final class SharePlayCoordinator {
             ErrorReporter.capture(error)
             errorMessage = error.localizedDescription
         }
+    }
+
+    func sharingDidStart(_ activity: StrimrWatchActivity) {
+        locallyPreparedActivityIDs.insert(activity.activityID)
+        sharingPresentationActivityID = activity.activityID
+    }
+
+    func sharingDidCancel(_ activity: StrimrWatchActivity) {
+        locallyPreparedActivityIDs.remove(activity.activityID)
+    }
+
+    func sharingPresentationDidEnd() async {
+        guard let activityID = sharingPresentationActivityID else { return }
+        sharingPresentationActivityID = nil
+        guard playerController == nil,
+              let activity,
+              activity.activityID == activityID
+        else { return }
+        await launchPlaybackIfNeeded(for: activity)
     }
 
     func attachPlayer(_ controller: PlayerController, ratingKey: String) {
@@ -169,6 +199,7 @@ final class SharePlayCoordinator {
         do {
             try await ensureAccess(to: newSession.activity)
         } catch {
+            locallyPreparedActivityIDs.remove(newSession.activity.activityID)
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
@@ -211,13 +242,21 @@ final class SharePlayCoordinator {
                 identifier: activity.ratingKey,
                 initialTime: activity.initialPosition,
             )
-        } else {
-            await playbackLauncher?.play(
-                ratingKey: newSession.activity.ratingKey,
-                type: newSession.activity.mediaType,
-                shouldResumeFromOffset: false,
-            )
+        } else if sharingPresentationActivityID != newSession.activity.activityID {
+            await launchPlaybackIfNeeded(for: newSession.activity)
         }
+    }
+
+    private func launchPlaybackIfNeeded(for activity: StrimrWatchActivity) async {
+        guard lastLaunchedActivityID != activity.activityID,
+              let playbackLauncher
+        else { return }
+        lastLaunchedActivityID = activity.activityID
+        await playbackLauncher.play(
+            ratingKey: activity.ratingKey,
+            type: activity.mediaType,
+            shouldResumeFromOffset: false,
+        )
     }
 
     private func ensureAccess(to activity: StrimrWatchActivity) async throws {

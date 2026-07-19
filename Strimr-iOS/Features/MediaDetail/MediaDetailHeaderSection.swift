@@ -1,5 +1,7 @@
+import GroupActivities
 import Observation
 import SwiftUI
+import UIKit
 
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
@@ -13,6 +15,7 @@ struct MediaDetailHeaderSection: View {
     let onShuffle: (String, PlexItemType) -> Void
     let onSelectParentSeries: () -> Void
     @State private var isShowingShowDownloadSheet = false
+    @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -89,6 +92,15 @@ struct MediaDetailHeaderSection: View {
                     },
                 )
             }
+        }
+        .sheet(item: $sharePlaySharingRequest, onDismiss: {
+            Task { await sharePlayCoordinator.sharingPresentationDidEnd() }
+        }) { request in
+            SharePlaySharingControllerView(controller: request.controller)
+                .task {
+                    let result = await request.controller.result
+                    handleSharingResult(result, for: request.activity)
+                }
         }
         .alert(
             "sharePlay.error.title",
@@ -272,9 +284,9 @@ struct MediaDetailHeaderSection: View {
         if viewModel.primaryActionRatingKey != nil {
             VStack(spacing: 2) {
                 Button {
-                    Task { await activateSharePlay() }
+                    startSharePlay()
                 } label: {
-                    if sharePlayCoordinator.isActivating {
+                    if isStartingSharePlay {
                         ProgressView()
                     } else {
                         Image(systemName: "shareplay")
@@ -285,7 +297,7 @@ struct MediaDetailHeaderSection: View {
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
                 .tint(.brandSecondary)
-                .disabled(sharePlayCoordinator.isActivating)
+                .disabled(isStartingSharePlay)
 
                 Text("sharePlay.action")
                     .font(.caption2)
@@ -517,18 +529,59 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
-    private func activateSharePlay() async {
+    private var isStartingSharePlay: Bool {
+        sharePlayCoordinator.isActivating || sharePlaySharingRequest != nil
+    }
+
+    private func startSharePlay() {
         guard
             let ratingKey = viewModel.primaryActionRatingKey,
             let playbackType = viewModel.primaryActionType,
             let item = viewModel.primaryActionItem
         else { return }
-        await sharePlayCoordinator.activate(
+        guard let activity = sharePlayCoordinator.makeActivity(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
-        )
+        ) else { return }
+
+        if sharePlayCoordinator.isEligibleForGroupSession {
+            Task { await sharePlayCoordinator.activate(activity) }
+            return
+        }
+
+        do {
+            let controller = try GroupActivitySharingController(activity)
+            sharePlayCoordinator.sharingDidStart(activity)
+            sharePlaySharingRequest = SharePlaySharingRequest(
+                activity: activity,
+                controller: controller,
+            )
+        } catch {
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.unavailable")
+        }
+    }
+
+    private func handleSharingResult(
+        _ result: GroupActivitySharingResult,
+        for activity: StrimrWatchActivity,
+    ) {
+        if result == .cancelled {
+            sharePlayCoordinator.sharingDidCancel(activity)
+        }
+        sharePlaySharingRequest = nil
+    }
+}
+
+private struct SharePlaySharingRequest: Identifiable {
+    let activity: StrimrWatchActivity
+    let controller: GroupActivitySharingController
+
+    var id: UUID {
+        activity.activityID
     }
 }
 
