@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct MacPlayerWindowView: View {
@@ -34,6 +35,8 @@ struct MacPlayerView: View {
     @State private var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
+    @State private var hideControlsWorkItem: DispatchWorkItem?
+    @State private var isPointerInsidePlayer = false
     @State private var isScrubbing = false
     @State private var scrubPosition = 0.0
     @State private var audioTracks: [PlayerTrack] = []
@@ -44,6 +47,8 @@ struct MacPlayerView: View {
     @State private var loadedURL: URL?
     @State private var isShowingError = false
     @State private var errorMessage = ""
+
+    private let controlsHideDelay: TimeInterval = 3
 
     init(viewModel: PlayerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -68,7 +73,7 @@ struct MacPlayerView: View {
 
             Color.clear
                 .contentShape(Rectangle())
-                .onTapGesture { controlsVisible.toggle() }
+                .onTapGesture { toggleControlsVisibility() }
 
             if viewModel.isLoading || viewModel.isBuffering {
                 ProgressView()
@@ -84,6 +89,9 @@ struct MacPlayerView: View {
             keyboardCommands
         }
         .background(.black)
+        .onContinuousHover { phase in
+            handlePointerMovement(phase)
+        }
         .task {
             configureController()
             await viewModel.load()
@@ -94,6 +102,11 @@ struct MacPlayerView: View {
         }
         .onChange(of: playerController.isPaused) { _, isPaused in
             viewModel.handlePlaybackState(isPaused: isPaused, isBuffering: playerController.isBuffering)
+            if isPaused {
+                showControls(temporarily: false)
+            } else {
+                showControls(temporarily: true)
+            }
         }
         .onChange(of: playerController.isBuffering) { _, isBuffering in
             viewModel.handlePlaybackState(isPaused: playerController.isPaused, isBuffering: isBuffering)
@@ -119,6 +132,8 @@ struct MacPlayerView: View {
             showError(error)
         }
         .onDisappear {
+            hideControlsWorkItem?.cancel()
+            restoreCursor()
             stopPlayback()
             appModel.resetPlayer()
         }
@@ -174,9 +189,13 @@ struct MacPlayerView: View {
                         in: 0 ... max(viewModel.duration ?? 1, 1),
                         onEditingChanged: { editing in
                             isScrubbing = editing
+                            if editing {
+                                showControls(temporarily: false)
+                            }
                             if !editing {
                                 playerController.seek(to: scrubPosition)
                                 viewModel.handlePlaybackPosition(scrubPosition, isScrubbing: false)
+                                showControls(temporarily: true)
                             }
                         },
                     )
@@ -211,6 +230,7 @@ struct MacPlayerView: View {
 
                     Spacer()
 
+                    volumeControl
                     audioMenu
                     subtitleMenu
                     speedMenu
@@ -228,6 +248,52 @@ struct MacPlayerView: View {
                 endPoint: .bottom,
             ),
         )
+    }
+
+    private var volumeControl: some View {
+        HStack(spacing: 8) {
+            Button {
+                playerController.toggleMute()
+                showControls(temporarily: true)
+            } label: {
+                Image(systemName: volumeSystemImage)
+            }
+            .accessibilityLabel(
+                playerController.isMuted
+                    ? Text("player.controls.volume.unmute")
+                    : Text("player.controls.volume.mute"),
+            )
+
+            Slider(
+                value: Binding(
+                    get: { playerController.volume },
+                    set: { playerController.setVolume($0) },
+                ),
+                in: 0 ... 1,
+                onEditingChanged: { editing in
+                    if editing {
+                        showControls(temporarily: false)
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                },
+            )
+            .frame(width: 100)
+            .accessibilityLabel(Text("player.controls.volume"))
+        }
+    }
+
+    private var volumeSystemImage: String {
+        switch playerController.volume {
+        case 0:
+            "speaker.slash.fill"
+        case ..<0.34:
+            "speaker.wave.1.fill"
+        case ..<0.67:
+            "speaker.wave.2.fill"
+        default:
+            "speaker.wave.3.fill"
+        }
     }
 
     private var audioMenu: some View {
@@ -303,7 +369,7 @@ struct MacPlayerView: View {
 
     private var keyboardCommands: some View {
         HStack {
-            Button(action: { controlsVisible.toggle() }) { EmptyView() }
+            Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
         }
         .frame(width: 0, height: 0)
@@ -323,6 +389,7 @@ struct MacPlayerView: View {
                 selectedSubtitleTrackID = track.id
                 playerController.selectSubtitleTrack(id: track.id)
             }
+            showControls(temporarily: true)
         }
         playerController.onPlaybackEnded = {
             Task { await handlePlaybackEnded() }
@@ -370,6 +437,7 @@ struct MacPlayerView: View {
     private func showError(_ message: String) {
         errorMessage = message
         isShowingError = true
+        showControls(temporarily: false)
         playerController.pause()
     }
 
@@ -379,9 +447,69 @@ struct MacPlayerView: View {
     }
 
     private func closePlayer() {
+        hideControlsWorkItem?.cancel()
+        restoreCursor()
         stopPlayback()
         appModel.resetPlayer()
         dismissWindow(id: MacAppModel.playerWindowID)
+    }
+
+    private func handlePointerMovement(_ phase: HoverPhase) {
+        switch phase {
+        case .active:
+            isPointerInsidePlayer = true
+            showControls(temporarily: true)
+        case .ended:
+            isPointerInsidePlayer = false
+            restoreCursor()
+        }
+    }
+
+    private func toggleControlsVisibility() {
+        if controlsVisible {
+            hideControls(force: true)
+        } else {
+            showControls(temporarily: true)
+        }
+    }
+
+    private func showControls(temporarily: Bool) {
+        hideControlsWorkItem?.cancel()
+        restoreCursor()
+        withAnimation(.easeInOut) {
+            controlsVisible = true
+        }
+
+        if temporarily {
+            scheduleControlsHide()
+        }
+    }
+
+    private func scheduleControlsHide() {
+        hideControlsWorkItem?.cancel()
+        guard !playerController.isPaused, !isScrubbing, !isShowingError else { return }
+
+        let workItem = DispatchWorkItem {
+            hideControls(force: false)
+        }
+        hideControlsWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + controlsHideDelay, execute: workItem)
+    }
+
+    private func hideControls(force: Bool) {
+        hideControlsWorkItem?.cancel()
+        guard force || (!playerController.isPaused && !isScrubbing && !isShowingError) else { return }
+
+        withAnimation(.easeInOut) {
+            controlsVisible = false
+        }
+        if isPointerInsidePlayer {
+            NSCursor.setHiddenUntilMouseMoves(true)
+        }
+    }
+
+    private func restoreCursor() {
+        NSCursor.setHiddenUntilMouseMoves(false)
     }
 
     private func formatTime(_ value: Double) -> String {

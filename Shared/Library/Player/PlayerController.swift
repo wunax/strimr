@@ -22,7 +22,12 @@ final class PlayerController {
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
     var errorMessage: String?
+    private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
+
+    var isMuted: Bool {
+        volume == 0
+    }
 
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
@@ -32,6 +37,7 @@ final class PlayerController {
     @ObservationIgnored private var hasStartedPlayback = false
     @ObservationIgnored private var isStopping = false
     @ObservationIgnored private var playbackRate: Float = 1.0
+    @ObservationIgnored private var lastAudibleVolume: Float = 1.0
 
     init() {
         do {
@@ -138,6 +144,24 @@ final class PlayerController {
             engine.playbackCoordinator.coordinateRateChange(to: rate, options: [])
         } else {
             engine.setRate(rate)
+        }
+    }
+
+    func setVolume(_ newVolume: Float) {
+        let clampedVolume = min(max(newVolume, 0), 1)
+        volume = clampedVolume
+        if clampedVolume > 0 {
+            lastAudibleVolume = clampedVolume
+        }
+        engine.volume = clampedVolume
+    }
+
+    func toggleMute() {
+        if isMuted {
+            setVolume(lastAudibleVolume)
+        } else {
+            lastAudibleVolume = volume
+            setVolume(0)
         }
     }
 
