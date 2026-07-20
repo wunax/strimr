@@ -28,6 +28,7 @@ struct MediaDetailHeaderSection: View {
                 playButtonsRow
                 secondaryButtonsRow
                 badgesSection
+                ratingsSection
 
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
                     Text(tagline)
@@ -144,22 +145,36 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var badgesSection: some View {
-        HStack(spacing: 8) {
-            if let year = viewModel.yearText {
-                badge(text: year)
-            }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                if let year = viewModel.yearText {
+                    badge(text: year)
+                }
 
-            if let runtime = viewModel.runtimeText {
-                badge(text: runtime, systemImage: "clock")
-            }
+                if let runtime = viewModel.runtimeText {
+                    badge(text: runtime, systemImage: "clock")
+                }
 
-            if let rating = viewModel.ratingText {
-                badge(text: rating, systemImage: "star.fill")
+                if let contentRating = viewModel.media.contentRating {
+                    badge(text: contentRating)
+                }
             }
+        }
+        .scrollClipDisabled()
+    }
 
-            if let contentRating = viewModel.media.contentRating {
-                badge(text: contentRating)
+    @ViewBuilder
+    private var ratingsSection: some View {
+        if !viewModel.media.ratings.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(viewModel.media.ratings.indices, id: \.self) { index in
+                        MediaRatingLabel(rating: viewModel.media.ratings[index], iconHeight: 16)
+                            .font(.footnote)
+                    }
+                }
             }
+            .scrollClipDisabled()
         }
     }
 

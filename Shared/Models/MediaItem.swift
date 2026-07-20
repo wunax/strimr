@@ -13,6 +13,7 @@ struct MediaItem: Identifiable, Hashable {
     let duration: TimeInterval?
     let videoResolution: String?
     let rating: Double?
+    let ratings: [MediaRating]
     let contentRating: String?
     let studio: String?
     let tagline: String?

@@ -77,6 +77,10 @@ struct PlayableMediaItem: Identifiable, Hashable {
         item.rating
     }
 
+    var ratings: [MediaRating] {
+        item.ratings
+    }
+
     var genres: [String] {
         item.genres
     }

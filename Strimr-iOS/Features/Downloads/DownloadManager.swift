@@ -113,6 +113,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             duration: item.metadata.duration,
             videoResolution: nil,
             rating: nil,
+            ratings: [],
             contentRating: item.metadata.contentRating,
             studio: item.metadata.studio,
             tagline: item.metadata.tagline,
