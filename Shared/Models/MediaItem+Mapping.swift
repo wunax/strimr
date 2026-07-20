@@ -15,6 +15,9 @@ extension MediaItem {
             duration: plexItem.duration.map { TimeInterval($0) / 1000 },
             videoResolution: plexItem.media?.first?.videoResolution,
             rating: plexItem.rating ?? plexItem.audienceRating,
+            ratings: plexItem.ratings?.compactMap {
+                MediaRating(imageIdentifier: $0.image, value: $0.value)
+            } ?? [],
             contentRating: plexItem.contentRating,
             studio: plexItem.studio,
             tagline: plexItem.tagline,

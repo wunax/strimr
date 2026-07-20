@@ -1,8 +1,5 @@
 import Foundation
 import GroupActivities
-#if os(iOS)
-    import CoreTransferable
-#endif
 
 struct StrimrWatchActivity: GroupActivity, Hashable, Sendable {
     static let activityIdentifier = "com.github.wunax.strimr.watch"
@@ -25,13 +22,3 @@ struct StrimrWatchActivity: GroupActivity, Hashable, Sendable {
         }
     }
 }
-
-#if os(iOS)
-    extension StrimrWatchActivity: Transferable {
-        static var transferRepresentation: some TransferRepresentation {
-            GroupActivityTransferRepresentation { activity in
-                activity
-            }
-        }
-    }
-#endif

@@ -100,7 +100,10 @@ struct MacMainView: View {
                 isShowingLogoutConfirmation = true
             }
         } label: {
-            Label(sessionManager.user?.friendlyName ?? sessionManager.user?.title ?? "Strimr", systemImage: "person.crop.circle")
+            Label(
+                sessionManager.user?.friendlyName ?? sessionManager.user?.title ?? "Strimr",
+                systemImage: "person.crop.circle",
+            )
         }
         .menuStyle(.button)
     }
@@ -147,8 +150,13 @@ struct MacMainView: View {
         switch route {
         case let .media(media):
             MacMediaDetailView(
-                viewModel: MediaDetailViewModel(media: media, context: context),
+                viewModel: MediaDetailViewModel(
+                    media: media,
+                    context: context,
+                    resolutionMode: .selectedMedia,
+                ),
                 onSelectMedia: appModel.showMedia,
+                onSelectParentSeries: appModel.returnToSeries,
                 onPlay: play,
             )
         case let .collection(collection):

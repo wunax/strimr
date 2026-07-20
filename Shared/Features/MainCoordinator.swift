@@ -3,6 +3,11 @@ import SwiftUI
 
 @MainActor
 final class MainCoordinator: ObservableObject, PlaybackPresenting {
+    private struct MediaRouteEntry {
+        let mediaID: String
+        let depth: Int
+    }
+
     enum Tab: Hashable {
         case home
         case search
@@ -26,6 +31,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var morePath = NavigationPath()
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
+    private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
 
     @Published var selectedPlayQueue: PlayQueueState?
     @Published var isPresentingPlayer = false
@@ -64,6 +70,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                 case let .libraryDetail(libraryId):
                     self.libraryDetailPaths[libraryId] = newValue
                 }
+                self.pruneMediaRouteEntries(for: tab, maximumDepth: newValue.count)
             },
         )
     }
@@ -74,10 +81,13 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         switch tab {
         case .home:
             homePath.append(route)
+            recordMediaRoute(media, depth: homePath.count, tab: tab)
         case .search:
             searchPath.append(route)
+            recordMediaRoute(media, depth: searchPath.count, tab: tab)
         case .library:
             libraryPath.append(route)
+            recordMediaRoute(media, depth: libraryPath.count, tab: tab)
         case .more:
             break
         case .seerrDiscover:
@@ -86,7 +96,51 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
             path.append(route)
             libraryDetailPaths[libraryId] = path
+            recordMediaRoute(media, depth: path.count, tab: tab)
         }
+    }
+
+    func returnToSeries(_ series: PlayableMediaItem) {
+        guard let destinationDepth = mediaRouteEntries[tab]?
+            .last(where: { $0.mediaID == series.id })?
+            .depth
+        else {
+            showMediaDetail(series)
+            return
+        }
+
+        switch tab {
+        case .home:
+            pop(path: &homePath, to: destinationDepth, tab: tab)
+        case .search:
+            pop(path: &searchPath, to: destinationDepth, tab: tab)
+        case .library:
+            pop(path: &libraryPath, to: destinationDepth, tab: tab)
+        case .more, .seerrDiscover:
+            break
+        case let .libraryDetail(libraryId):
+            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+            pop(path: &path, to: destinationDepth, tab: tab)
+            libraryDetailPaths[libraryId] = path
+        }
+    }
+
+    private func recordMediaRoute(_ media: PlayableMediaItem, depth: Int, tab: Tab) {
+        pruneMediaRouteEntries(for: tab, maximumDepth: depth - 1)
+        mediaRouteEntries[tab, default: []].append(
+            MediaRouteEntry(mediaID: media.id, depth: depth),
+        )
+    }
+
+    private func pruneMediaRouteEntries(for tab: Tab, maximumDepth: Int) {
+        mediaRouteEntries[tab]?.removeAll { $0.depth > maximumDepth }
+    }
+
+    private func pop(path: inout NavigationPath, to depth: Int, tab: Tab) {
+        let numberOfRoutes = path.count - depth
+        guard numberOfRoutes > 0 else { return }
+        path.removeLast(numberOfRoutes)
+        pruneMediaRouteEntries(for: tab, maximumDepth: depth)
     }
 
     func showMediaDetail(_ media: MediaItem) {

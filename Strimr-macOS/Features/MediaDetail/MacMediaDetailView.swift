@@ -4,15 +4,18 @@ struct MacMediaDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: MediaDetailViewModel
     let onSelectMedia: (MediaItem) -> Void
+    let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onPlay: (String, PlexItemType, Bool, Bool) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onSelectMedia: @escaping (MediaItem) -> Void,
+        onSelectParentSeries: @escaping (PlayableMediaItem) -> Void,
         onPlay: @escaping (String, PlexItemType, Bool, Bool) -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
+        self.onSelectParentSeries = onSelectParentSeries
         self.onPlay = onPlay
     }
 
@@ -24,7 +27,7 @@ struct MacMediaDetailView: View {
                 hero
                 details
 
-                if viewModel.media.type == .show {
+                if [.show, .season].contains(viewModel.media.type) {
                     episodesSection
                 }
 
@@ -38,7 +41,7 @@ struct MacMediaDetailView: View {
             .padding(.bottom, 32)
         }
         .background(MediaBackdropGradient(colors: viewModel.backdropGradient).ignoresSafeArea())
-        .navigationTitle(viewModel.media.title)
+        .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -68,9 +71,27 @@ struct MacMediaDetailView: View {
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
                     Text(tagline).font(.headline).foregroundStyle(.secondary)
                 }
-                Text(viewModel.media.title)
+                Text(viewModel.detailPrimaryLabel)
                     .font(.system(size: 36, weight: .bold))
+                if let secondary = viewModel.detailSecondaryLabel {
+                    Text(secondary)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
+                if let tertiary = viewModel.detailTertiaryLabel {
+                    Text(tertiary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 metadataRow
+                ratingsRow
+
+                if let parentSeries = viewModel.parentSeries {
+                    Button("media.detail.openSeries", systemImage: "rectangle.stack.fill") {
+                        onSelectParentSeries(parentSeries)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
             .padding(28)
         }
@@ -79,9 +100,15 @@ struct MacMediaDetailView: View {
 
     private var metadataRow: some View {
         HStack(spacing: 10) {
-            if let year = viewModel.yearText { Text(year) }
-            if let runtime = viewModel.runtimeText { Text(runtime) }
-            if let contentRating = viewModel.media.contentRating { Text(contentRating) }
+            if let year = viewModel.yearText {
+                Text(year)
+            }
+            if let runtime = viewModel.runtimeText {
+                Text(runtime)
+            }
+            if let contentRating = viewModel.media.contentRating {
+                Text(contentRating)
+            }
             if let rating = viewModel.ratingText {
                 Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)
             }
@@ -90,9 +117,34 @@ struct MacMediaDetailView: View {
         .foregroundStyle(.secondary)
     }
 
+    @ViewBuilder
+    private var ratingsRow: some View {
+        if !viewModel.media.ratings.isEmpty {
+            HStack(spacing: 14) {
+                ForEach(viewModel.media.ratings.indices, id: \.self) { index in
+                    MediaRatingLabel(rating: viewModel.media.ratings[index], iconHeight: 16)
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+    }
+
     private var details: some View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
+
+            if let actionDetail = viewModel.primaryActionDetail {
+                Text(actionDetail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let progress = viewModel.primaryActionProgress {
+                ProgressView(value: progress)
+                    .frame(maxWidth: 320)
+                    .accessibilityLabel(Text(viewModel.primaryActionTitle))
+            }
 
             if let summary = viewModel.media.summary, !summary.isEmpty {
                 Text(summary)
@@ -119,8 +171,16 @@ struct MacMediaDetailView: View {
     private var actionButtons: some View {
         HStack(spacing: 12) {
             Button {
-                guard let ratingKey = viewModel.primaryActionRatingKey else { return }
-                onPlay(ratingKey, viewModel.media.plexType, false, true)
+                guard
+                    let ratingKey = viewModel.primaryActionRatingKey,
+                    let type = viewModel.primaryActionType
+                else { return }
+                onPlay(
+                    ratingKey,
+                    type,
+                    false,
+                    !viewModel.shouldPlayPrimaryActionFromStart,
+                )
             } label: {
                 Label(viewModel.primaryActionTitle, systemImage: "play.fill")
             }
@@ -129,10 +189,11 @@ struct MacMediaDetailView: View {
             .disabled(viewModel.primaryActionRatingKey == nil)
 
             if viewModel.shouldShowPlayFromStartButton,
-               let ratingKey = viewModel.primaryActionRatingKey
+               let ratingKey = viewModel.primaryActionRatingKey,
+               let type = viewModel.primaryActionType
             {
                 Button("common.actions.playFromStart", systemImage: "backward.end.fill") {
-                    onPlay(ratingKey, viewModel.media.plexType, false, false)
+                    onPlay(ratingKey, type, false, false)
                 }
                 .controlSize(.large)
             }
@@ -163,20 +224,43 @@ struct MacMediaDetailView: View {
             HStack {
                 Text("media.detail.episodes.title").font(.title2.bold())
                 Spacer()
-                if !viewModel.seasons.isEmpty {
-                    Picker("media.detail.season", selection: seasonBinding) {
+                if viewModel.media.type == .show, !viewModel.seasons.isEmpty {
+                    Menu {
                         ForEach(viewModel.seasons) { season in
-                            Text(season.title).tag(season.id)
+                            Button {
+                                if season.id == viewModel.selectedSeasonId {
+                                    onSelectMedia(season)
+                                } else {
+                                    Task { await viewModel.selectSeason(id: season.id) }
+                                }
+                            } label: {
+                                if season.id == viewModel.selectedSeasonId {
+                                    Label(season.title, systemImage: "checkmark")
+                                } else {
+                                    Text(season.title)
+                                }
+                            }
                         }
+                    } label: {
+                        Label(viewModel.selectedSeasonTitle, systemImage: "chevron.down")
                     }
-                    .frame(width: 220)
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                 }
             }
 
-            if viewModel.isLoadingSeasons || viewModel.isLoadingEpisodes {
+            if viewModel.media.type == .show,
+               viewModel.isLoadingSeasons || viewModel.isLoading,
+               viewModel.seasons.isEmpty
+            {
+                ProgressView("media.detail.loadingSeasons")
+            } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
                 ProgressView()
             } else if let error = viewModel.seasonsErrorMessage ?? viewModel.episodesErrorMessage {
                 Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            } else if viewModel.episodes.isEmpty {
+                Text("media.detail.noEpisodes")
+                    .foregroundStyle(.secondary)
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(viewModel.episodes) { episode in
@@ -186,13 +270,6 @@ struct MacMediaDetailView: View {
             }
         }
         .padding(.horizontal, 28)
-    }
-
-    private var seasonBinding: Binding<String> {
-        Binding(
-            get: { viewModel.selectedSeasonId ?? "" },
-            set: { id in Task { await viewModel.selectSeason(id: id) } },
-        )
     }
 
     private func episodeRow(_ episode: MediaItem) -> some View {

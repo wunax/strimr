@@ -137,6 +137,12 @@ struct PlexImage: Codable, Equatable {
     let url: URL
 }
 
+struct PlexRating: Codable, Equatable {
+    let image: String
+    let value: Double
+    let type: String
+}
+
 struct PlexGuid: Codable, Equatable {
     let id: String
 }
@@ -266,6 +272,7 @@ struct PlexItem: Codable, Equatable {
     let directors: [PlexTagPerson]?
     let writers: [PlexTagPerson]?
     let roles: [PlexTagPerson]?
+    let ratings: [PlexRating]?
     let media: [PlexMedia]?
     let markers: [PlexMarker]?
 
@@ -337,6 +344,7 @@ struct PlexItem: Codable, Equatable {
         case directors = "Director"
         case writers = "Writer"
         case roles = "Role"
+        case ratings = "Rating"
         case media = "Media"
         case markers = "Marker"
         case onDeck = "OnDeck"

@@ -78,6 +78,7 @@ struct MediaHeroContentView: View {
             }
 
             metadataLine
+            ratingsLine
             genresLine
 
             if let summary = media.summary, !summary.isEmpty {
@@ -101,6 +102,19 @@ struct MediaHeroContentView: View {
             HStack(spacing: 16) {
                 ForEach(items.indices, id: \.self) { index in
                     Text(items[index])
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.brandSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private var ratingsLine: some View {
+        if !media.ratings.isEmpty {
+            HStack(spacing: 16) {
+                ForEach(media.ratings.indices, id: \.self) { index in
+                    MediaRatingLabel(rating: media.ratings[index])
                 }
             }
             .font(.subheadline)

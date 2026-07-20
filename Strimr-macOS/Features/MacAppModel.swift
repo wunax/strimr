@@ -6,6 +6,11 @@ import SwiftUI
 final class MacAppModel: PlaybackPresenting {
     static let playerWindowID = "player"
 
+    private struct MediaRouteEntry {
+        let mediaID: String
+        let depth: Int
+    }
+
     enum SidebarItem: Hashable, Identifiable {
         case home
         case discover
@@ -44,11 +49,15 @@ final class MacAppModel: PlaybackPresenting {
     var selection: SidebarItem = .home
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
+    private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
 
     func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
         Binding(
             get: { self.paths[item] ?? NavigationPath() },
-            set: { self.paths[item] = $0 },
+            set: { newValue in
+                self.paths[item] = newValue
+                self.pruneMediaRouteEntries(for: item, maximumDepth: newValue.count)
+            },
         )
     }
 
@@ -67,6 +76,23 @@ final class MacAppModel: PlaybackPresenting {
     func showMedia(_ media: MediaItem) {
         guard let playable = PlayableMediaItem(mediaItem: media) else { return }
         append(.media(playable))
+    }
+
+    func returnToSeries(_ series: PlayableMediaItem) {
+        guard let destinationDepth = mediaRouteEntries[selection]?
+            .last(where: { $0.mediaID == series.id })?
+            .depth
+        else {
+            append(.media(series))
+            return
+        }
+
+        var path = paths[selection] ?? NavigationPath()
+        let numberOfRoutes = path.count - destinationDepth
+        guard numberOfRoutes > 0 else { return }
+        path.removeLast(numberOfRoutes)
+        paths[selection] = path
+        pruneMediaRouteEntries(for: selection, maximumDepth: destinationDepth)
     }
 
     func showHub(_ hub: Hub) {
@@ -96,5 +122,16 @@ final class MacAppModel: PlaybackPresenting {
         var path = paths[selection] ?? NavigationPath()
         path.append(route)
         paths[selection] = path
+
+        if case let .media(media) = route {
+            pruneMediaRouteEntries(for: selection, maximumDepth: path.count - 1)
+            mediaRouteEntries[selection, default: []].append(
+                MediaRouteEntry(mediaID: media.id, depth: path.count),
+            )
+        }
+    }
+
+    private func pruneMediaRouteEntries(for item: SidebarItem, maximumDepth: Int) {
+        mediaRouteEntries[item]?.removeAll { $0.depth > maximumDepth }
     }
 }

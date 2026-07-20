@@ -11,6 +11,7 @@ struct MediaDetailView: View {
     private let onPlayFromStart: (String, PlexItemType) -> Void
     private let onShuffle: (String, PlexItemType) -> Void
     private let onSelectMedia: (MediaDisplayItem) -> Void
+    private let onSelectParentSeries: (PlayableMediaItem) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
@@ -18,12 +19,14 @@ struct MediaDetailView: View {
         onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onShuffle: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
+        onSelectParentSeries: @escaping (PlayableMediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
         self.onPlayFromStart = onPlayFromStart
         self.onShuffle = onShuffle
         self.onSelectMedia = onSelectMedia
+        self.onSelectParentSeries = onSelectParentSeries
     }
 
     var body: some View {
@@ -38,13 +41,17 @@ struct MediaDetailView: View {
                     onPlay: onPlay,
                     onPlayFromStart: onPlayFromStart,
                     onShuffle: onShuffle,
+                    onSelectParentSeries: {
+                        guard let parentSeries = bindableViewModel.parentSeries else { return }
+                        onSelectParentSeries(parentSeries)
+                    },
                 )
 
-                if bindableViewModel.media.type == .show {
+                if [.show, .season].contains(bindableViewModel.media.type) {
                     SeasonEpisodesSection(
                         viewModel: bindableViewModel,
-                        onPlay: onPlay,
-                        onShuffle: onShuffle,
+                        onSelectSeason: { onSelectMedia(.playable($0)) },
+                        onSelectEpisode: { onSelectMedia(.playable($0)) },
                     )
                 }
 

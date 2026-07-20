@@ -1,6 +1,7 @@
-import CoreTransferable
+import GroupActivities
 import Observation
 import SwiftUI
+import UIKit
 
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
@@ -12,8 +13,9 @@ struct MediaDetailHeaderSection: View {
     let onPlay: (String, PlexItemType) -> Void
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
+    let onSelectParentSeries: () -> Void
     @State private var isShowingShowDownloadSheet = false
-    @State private var sharePlayActivity: StrimrWatchActivity?
+    @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -26,6 +28,7 @@ struct MediaDetailHeaderSection: View {
                 playButtonsRow
                 secondaryButtonsRow
                 badgesSection
+                ratingsSection
 
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
                     Text(tagline)
@@ -91,8 +94,14 @@ struct MediaDetailHeaderSection: View {
                 )
             }
         }
-        .task(id: sharePlayPreparationID) {
-            sharePlayActivity = makeSharePlayActivity()
+        .sheet(item: $sharePlaySharingRequest, onDismiss: {
+            Task { await sharePlayCoordinator.sharingPresentationDidEnd() }
+        }) { request in
+            SharePlaySharingControllerView(controller: request.controller)
+                .task {
+                    let result = await request.controller.result
+                    handleSharingResult(result, for: request.activity)
+                }
         }
         .alert(
             "sharePlay.error.title",
@@ -115,19 +124,19 @@ struct MediaDetailHeaderSection: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.media.primaryLabel)
+            Text(viewModel.detailPrimaryLabel)
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
 
-            if let secondary = viewModel.media.secondaryLabel {
+            if let secondary = viewModel.detailSecondaryLabel {
                 Text(secondary)
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
 
-            if let tertiary = viewModel.media.tertiaryLabel {
+            if let tertiary = viewModel.detailTertiaryLabel {
                 Text(tertiary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -136,22 +145,36 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var badgesSection: some View {
-        HStack(spacing: 8) {
-            if let year = viewModel.yearText {
-                badge(text: year)
-            }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                if let year = viewModel.yearText {
+                    badge(text: year)
+                }
 
-            if let runtime = viewModel.runtimeText {
-                badge(text: runtime, systemImage: "clock")
-            }
+                if let runtime = viewModel.runtimeText {
+                    badge(text: runtime, systemImage: "clock")
+                }
 
-            if let rating = viewModel.ratingText {
-                badge(text: rating, systemImage: "star.fill")
+                if let contentRating = viewModel.media.contentRating {
+                    badge(text: contentRating)
+                }
             }
+        }
+        .scrollClipDisabled()
+    }
 
-            if let contentRating = viewModel.media.contentRating {
-                badge(text: contentRating)
+    @ViewBuilder
+    private var ratingsSection: some View {
+        if !viewModel.media.ratings.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(viewModel.media.ratings.indices, id: \.self) { index in
+                        MediaRatingLabel(rating: viewModel.media.ratings[index], iconHeight: 16)
+                            .font(.footnote)
+                    }
+                }
             }
+            .scrollClipDisabled()
         }
     }
 
@@ -207,6 +230,17 @@ struct MediaDetailHeaderSection: View {
         }
         .frame(maxWidth: .infinity, minHeight: heroHeight, maxHeight: heroHeight)
         .ignoresSafeArea(edges: .horizontal)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard viewModel.parentSeries != nil else { return }
+            onSelectParentSeries()
+        }
+        .accessibilityAddTraits(viewModel.parentSeries == nil ? [] : .isButton)
+        .accessibilityHint(
+            viewModel.parentSeries == nil
+                ? Text(verbatim: "")
+                : Text("media.detail.openSeries"),
+        )
     }
 
     private func badge(text: String, systemImage: String? = nil) -> some View {
@@ -262,19 +296,23 @@ struct MediaDetailHeaderSection: View {
 
     @ViewBuilder
     private var sharePlayButton: some View {
-        if let sharePlayActivity {
+        if viewModel.primaryActionRatingKey != nil {
             VStack(spacing: 2) {
-                ShareLink(
-                    item: sharePlayActivity,
-                    preview: SharePreview(sharePlayActivity.title),
-                ) {
-                    Image(systemName: "shareplay")
-                        .font(.headline.weight(.semibold))
+                Button {
+                    startSharePlay()
+                } label: {
+                    if isStartingSharePlay {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "shareplay")
+                            .font(.headline.weight(.semibold))
+                    }
                 }
                 .frame(width: 48, height: 44)
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
                 .tint(.brandSecondary)
+                .disabled(isStartingSharePlay)
 
                 Text("sharePlay.action")
                     .font(.caption2)
@@ -316,6 +354,7 @@ struct MediaDetailHeaderSection: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .foregroundStyle(.brandSecondaryForeground)
+        .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
     private var playFromStartButton: some View {
@@ -440,14 +479,25 @@ struct MediaDetailHeaderSection: View {
 
     private func handlePlay() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
-            onPlay(ratingKey, playbackType)
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+
+            if viewModel.shouldPlayPrimaryActionFromStart {
+                onPlayFromStart(ratingKey, playbackType)
+            } else {
+                onPlay(ratingKey, playbackType)
+            }
         }
     }
 
     private func handlePlayFromStart() {
         Task {
-            guard let ratingKey = await viewModel.playbackRatingKey() else { return }
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
             onPlayFromStart(ratingKey, playbackType)
         }
     }
@@ -494,25 +544,59 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
-    private var playbackType: PlexItemType {
-        viewModel.onDeckItem?.type ?? viewModel.media.plexType
+    private var isStartingSharePlay: Bool {
+        sharePlayCoordinator.isActivating || sharePlaySharingRequest != nil
     }
 
-    private var sharePlayPreparationID: String {
-        [viewModel.primaryActionRatingKey, viewModel.onDeckItem?.id, viewModel.media.id]
-            .compactMap(\.self)
-            .joined(separator: ":")
-    }
-
-    private func makeSharePlayActivity() -> StrimrWatchActivity? {
-        guard let ratingKey = viewModel.primaryActionRatingKey else { return nil }
-        let item = viewModel.onDeckItem ?? viewModel.media.mediaItem
-        return sharePlayCoordinator.makeActivity(
+    private func startSharePlay() {
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
+        guard let activity = sharePlayCoordinator.makeActivity(
             ratingKey: ratingKey,
             type: playbackType,
             title: item.primaryLabel,
-            initialPosition: item.viewOffset ?? 0,
-        )
+            initialPosition: viewModel.primaryActionInitialPosition,
+        ) else { return }
+
+        if sharePlayCoordinator.isEligibleForGroupSession {
+            Task { await sharePlayCoordinator.activate(activity) }
+            return
+        }
+
+        do {
+            let controller = try GroupActivitySharingController(activity)
+            sharePlayCoordinator.sharingDidStart(activity)
+            sharePlaySharingRequest = SharePlaySharingRequest(
+                activity: activity,
+                controller: controller,
+            )
+        } catch {
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.unavailable")
+        }
+    }
+
+    private func handleSharingResult(
+        _ result: GroupActivitySharingResult,
+        for activity: StrimrWatchActivity,
+    ) {
+        if result == .cancelled {
+            sharePlayCoordinator.sharingDidCancel(activity)
+        }
+        sharePlaySharingRequest = nil
+    }
+}
+
+private struct SharePlaySharingRequest: Identifiable {
+    let activity: StrimrWatchActivity
+    let controller: GroupActivitySharingController
+
+    var id: UUID {
+        activity.activityID
     }
 }
 
