@@ -22,25 +22,29 @@ struct MacMediaDetailView: View {
     var body: some View {
         @Bindable var viewModel = viewModel
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
-                hero
-                details
+        ZStack {
+            MediaBackdropGradient(colors: viewModel.backdropGradient)
+                .ignoresSafeArea()
 
-                if [.show, .season].contains(viewModel.media.type) {
-                    episodesSection
-                }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 24) {
+                    hero
+                    details
 
-                CastSection(viewModel: viewModel)
-                RelatedHubsSection(viewModel: viewModel) { media in
-                    if case let .playable(item) = media {
-                        onSelectMedia(item)
+                    if [.show, .season].contains(viewModel.media.type) {
+                        episodesSection
+                    }
+
+                    CastSection(viewModel: viewModel)
+                    RelatedHubsSection(viewModel: viewModel) { media in
+                        if case let .playable(item) = media {
+                            onSelectMedia(item)
+                        }
                     }
                 }
+                .padding(.bottom, 32)
             }
-            .padding(.bottom, 32)
         }
-        .background(MediaBackdropGradient(colors: viewModel.backdropGradient).ignoresSafeArea())
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
         .onChange(of: scenePhase) { _, phase in
@@ -51,21 +55,24 @@ struct MacMediaDetailView: View {
 
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: viewModel.heroImageURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    Color.black.opacity(0.25)
+            GeometryReader { proxy in
+                AsyncImage(url: viewModel.heroImageURL) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .clipped()
+                            .overlay(Color.black.opacity(0.2))
+                            .mask(heroMask)
+                    } else {
+                        Color.black.opacity(0.25)
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .mask(heroMask)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 340, maxHeight: 440)
-            .clipped()
-
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.9)],
-                startPoint: .center,
-                endPoint: .bottom,
-            )
+            .frame(maxWidth: .infinity, minHeight: 380, maxHeight: 480)
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
@@ -95,7 +102,19 @@ struct MacMediaDetailView: View {
             }
             .padding(28)
         }
-        .frame(maxWidth: .infinity, minHeight: 340, maxHeight: 440)
+        .frame(maxWidth: .infinity, minHeight: 380, maxHeight: 480)
+    }
+
+    private var heroMask: some View {
+        LinearGradient(
+            colors: [
+                .white,
+                .white,
+                .clear,
+            ],
+            startPoint: .top,
+            endPoint: .bottom,
+        )
     }
 
     private var metadataRow: some View {
