@@ -309,7 +309,8 @@ struct MacMediaDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(episode.tertiaryLabel ?? episode.title).font(.headline)
+                    Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
+                        .font(.headline)
                     if let summary = episode.summary {
                         Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                     }
