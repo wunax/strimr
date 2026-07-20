@@ -280,7 +280,7 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var secondaryButtonsRow: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             watchToggleButton
 
             if viewModel.shouldShowWatchlistButton {
