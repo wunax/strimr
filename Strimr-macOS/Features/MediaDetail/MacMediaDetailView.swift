@@ -153,18 +153,6 @@ struct MacMediaDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
 
-            if let actionDetail = viewModel.primaryActionDetail {
-                Text(actionDetail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let progress = viewModel.primaryActionProgress {
-                ProgressView(value: progress)
-                    .frame(maxWidth: 320)
-                    .accessibilityLabel(Text(viewModel.primaryActionTitle))
-            }
-
             if let summary = viewModel.media.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.body)
@@ -201,10 +189,24 @@ struct MacMediaDetailView: View {
                     !viewModel.shouldPlayPrimaryActionFromStart,
                 )
             } label: {
-                Label(viewModel.primaryActionTitle, systemImage: "play.fill")
+                HStack(spacing: 12) {
+                    PlayProgressIcon(progress: viewModel.primaryActionProgress)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(viewModel.primaryActionTitle)
+                            .fontWeight(.semibold)
+                        if let detail = viewModel.primaryActionDetail {
+                            Text(detail)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .frame(minWidth: 240, alignment: .leading)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .tint(.brandSecondary)
+            .foregroundStyle(.brandSecondaryForeground)
             .disabled(viewModel.primaryActionRatingKey == nil)
 
             if viewModel.shouldShowPlayFromStartButton,
@@ -322,5 +324,29 @@ struct MacMediaDetailView: View {
             .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct PlayProgressIcon: View {
+    let progress: Double?
+
+    var body: some View {
+        ZStack {
+            if let progress {
+                Circle()
+                    .stroke(Color.brandSecondaryForeground.opacity(0.25), lineWidth: 4)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        Color.brandSecondaryForeground,
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round),
+                    )
+                    .rotationEffect(.degrees(-90))
+            }
+
+            Image(systemName: "play.fill")
+                .font(.title3.weight(.semibold))
+        }
+        .frame(width: 30, height: 30)
     }
 }
