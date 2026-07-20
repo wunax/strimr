@@ -56,17 +56,11 @@ struct EpisodeCardView: View {
     }
 
     private var detailStack: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let index = episode.index {
-                Text("media.detail.episodeNumber \(index)")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text(episode.title)
+        VStack(alignment: .leading, spacing: 5) {
+            Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
                 .font(.title3)
                 .fontWeight(.semibold)
-                .lineLimit(2)
+                .lineLimit(1)
 
             if let summary = episode.summary, !summary.isEmpty {
                 Text(summary)
