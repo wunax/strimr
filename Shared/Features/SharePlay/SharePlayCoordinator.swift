@@ -281,12 +281,12 @@ final class SharePlayCoordinator {
             .sink { [weak self] state in
                 guard case .invalidated = state else { return }
                 guard let self else { return }
-                guard self.session === newSession else { return }
-                if self.pendingSessionAcceptanceActivityID != nil {
-                    self.deferredSessionInvalidation = true
+                guard session === newSession else { return }
+                if pendingSessionAcceptanceActivityID != nil {
+                    deferredSessionInvalidation = true
                     return
                 }
-                self.detach(continueLocally: true)
+                detach(continueLocally: true)
             }
             .store(in: &sessionSubscriptions)
 
