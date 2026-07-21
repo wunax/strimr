@@ -34,6 +34,7 @@ struct NavigationLibrariesSectionView: View {
         } else {
             ForEach(viewModel.libraries) { library in
                 Toggle(library.title, isOn: viewModel.navigationBinding(for: library))
+                    .id("navigation-library-\(library.id)")
                     .moveDisabled(!viewModel.isSelected(library))
             }
             .onMove(perform: viewModel.moveLibraries)
