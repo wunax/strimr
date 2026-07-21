@@ -55,6 +55,7 @@ struct MacMainView: View {
                         destination(for: route)
                     }
             }
+            .id(appModel.selection)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     accountMenu
