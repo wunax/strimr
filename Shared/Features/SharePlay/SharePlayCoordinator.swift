@@ -167,7 +167,7 @@ final class SharePlayCoordinator {
     func playerDidLoad(ratingKey: String) {
         guard let activity, activity.ratingKey == ratingKey else { return }
         if participantCount > 1 {
-            playerController?.beginCoordinatedPlayback(
+            playerController?.reconcileCoordinatedPlaybackAfterLoad(
                 identifier: ratingKey,
                 initialTime: activity.initialPosition,
             )

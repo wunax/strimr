@@ -28,6 +28,7 @@ final class PlayerController {
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
 
     @ObservationIgnored private var cancellables: Set<AnyCancellable> = []
+    @ObservationIgnored private var coordinatedPlaybackIdentifier: String?
     @ObservationIgnored private var selectedSubtitleTrackID: Int?
     @ObservationIgnored private var hasStartedPlayback = false
     @ObservationIgnored private var isStopping = false
@@ -78,7 +79,9 @@ final class PlayerController {
                         height: Int(sourceProbe.videoHeight),
                     )
                 }
-                engine.setRate(playbackRate)
+                if !isCoordinatedPlayback {
+                    engine.setRate(playbackRate)
+                }
                 onMediaLoaded?()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
@@ -151,11 +154,32 @@ final class PlayerController {
         initialRate: Float = 0,
     ) {
         isCoordinatedPlayback = true
+        coordinatedPlaybackIdentifier = identifier
         engine.transitionToCoordinatedPlaybackItem(
             identifier: identifier,
             initialTime: initialTime,
             initialRate: initialRate,
         )
+    }
+
+    func reconcileCoordinatedPlaybackAfterLoad(
+        identifier: String,
+        initialTime: Double,
+    ) {
+        guard isCoordinatedPlayback,
+              coordinatedPlaybackIdentifier == identifier
+        else {
+            beginCoordinatedPlayback(
+                identifier: identifier,
+                initialTime: initialTime,
+            )
+            return
+        }
+
+        // The item was already registered when the player attached. Re-registering it here with
+        // an initial rate of zero can overwrite a play command that arrived while media loaded.
+        // Ask the coordinator to replay its latest session state onto the now-loaded transport.
+        engine.playbackCoordinator.reapplyCurrentItemStateToPlaybackControlDelegate()
     }
 
     func beginCoordinatedPlaybackFromCurrentState(identifier: String) {
@@ -170,6 +194,7 @@ final class PlayerController {
         let intendedRate = engine.coordinatedPlaybackIntendedRate
         engine.endCoordinatedPlayback()
         isCoordinatedPlayback = false
+        coordinatedPlaybackIdentifier = nil
         guard continueLocally else { return }
         if intendedRate > 0 {
             playbackRate = intendedRate
