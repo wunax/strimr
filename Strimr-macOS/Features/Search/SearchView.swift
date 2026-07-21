@@ -109,5 +109,6 @@ struct SearchView: View {
             }
             .padding(.horizontal, 2)
         }
+        .mouseDragScrolling()
     }
 }

@@ -45,6 +45,7 @@ struct MediaCarousel: View {
             .padding(.horizontal, 2)
             #endif
         }
+        .mouseDragScrolling()
         #if os(tvOS)
         .focusSection()
         #endif

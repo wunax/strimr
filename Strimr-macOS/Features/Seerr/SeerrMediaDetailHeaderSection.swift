@@ -182,6 +182,7 @@ struct SeerrMediaDetailHeaderSection: View {
                         }
                     }
                 }
+                .mouseDragScrolling()
             }
         }
     }

@@ -73,6 +73,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     @ViewBuilder
@@ -103,6 +104,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private var filterOptions: some View {
@@ -125,6 +127,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private var sortOptions: some View {
@@ -147,6 +150,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private func filterLabel(
