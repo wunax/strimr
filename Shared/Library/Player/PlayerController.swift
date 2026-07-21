@@ -158,6 +158,14 @@ final class PlayerController {
         )
     }
 
+    func beginCoordinatedPlaybackFromCurrentState(identifier: String) {
+        beginCoordinatedPlayback(
+            identifier: identifier,
+            initialTime: position,
+            initialRate: isPaused ? 0 : playbackRate,
+        )
+    }
+
     func endCoordinatedPlayback(continueLocally: Bool) {
         let intendedRate = engine.coordinatedPlaybackIntendedRate
         engine.endCoordinatedPlayback()

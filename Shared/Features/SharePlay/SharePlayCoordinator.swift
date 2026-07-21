@@ -96,6 +96,15 @@ final class SharePlayCoordinator {
         locallyPreparedActivityIDs.insert(activity.activityID)
         defer { isActivating = false }
 
+        if let session {
+            handleActivityChange(activity)
+            session.activity = activity
+            if playerController == nil {
+                await launchPlaybackIfNeeded(for: activity)
+            }
+            return
+        }
+
         do {
             let preparationResult = await activity.prepareForActivation()
             switch preparationResult {
@@ -143,7 +152,11 @@ final class SharePlayCoordinator {
 
     func attachPlayer(_ controller: PlayerController, ratingKey: String) {
         playerController = controller
-        guard let session, let activity, activity.ratingKey == ratingKey else { return }
+        guard participantCount > 1,
+              let session,
+              let activity,
+              activity.ratingKey == ratingKey
+        else { return }
         controller.playbackCoordinator.coordinateWithSession(session)
         controller.beginCoordinatedPlayback(
             identifier: activity.ratingKey,
@@ -153,10 +166,12 @@ final class SharePlayCoordinator {
 
     func playerDidLoad(ratingKey: String) {
         guard let activity, activity.ratingKey == ratingKey else { return }
-        playerController?.beginCoordinatedPlayback(
-            identifier: ratingKey,
-            initialTime: activity.initialPosition,
-        )
+        if participantCount > 1 {
+            playerController?.beginCoordinatedPlayback(
+                identifier: ratingKey,
+                initialTime: activity.initialPosition,
+            )
+        }
         if locallyPreparedActivityIDs.remove(activity.activityID) != nil {
             playerController?.resume()
         }
@@ -222,8 +237,11 @@ final class SharePlayCoordinator {
         newSession.$activeParticipants
             .receive(on: DispatchQueue.main)
             .sink { [weak self] participants in
-                self?.participantCount = participants.count
-                self?.publishPendingNextItemIfLeader()
+                guard let self else { return }
+                let previousCount = participantCount
+                participantCount = participants.count
+                handleParticipantCountChange(previousCount: previousCount)
+                publishPendingNextItemIfLeader()
             }
             .store(in: &sessionSubscriptions)
 
@@ -237,11 +255,13 @@ final class SharePlayCoordinator {
 
         newSession.join()
         if let playerController, let activity {
-            playerController.playbackCoordinator.coordinateWithSession(newSession)
-            playerController.beginCoordinatedPlayback(
-                identifier: activity.ratingKey,
-                initialTime: activity.initialPosition,
-            )
+            if participantCount > 1 {
+                playerController.playbackCoordinator.coordinateWithSession(newSession)
+                playerController.beginCoordinatedPlayback(
+                    identifier: activity.ratingKey,
+                    initialTime: activity.initialPosition,
+                )
+            }
         } else if sharingPresentationActivityID != newSession.activity.activityID {
             await launchPlaybackIfNeeded(for: newSession.activity)
         }
@@ -281,6 +301,27 @@ final class SharePlayCoordinator {
         activity = newActivity
         pendingNextItem = nil
         activityChangeID = UUID()
+    }
+
+    private func handleParticipantCountChange(previousCount: Int) {
+        guard let playerController else { return }
+
+        if participantCount <= 1 {
+            if playerController.isCoordinatedPlayback {
+                playerController.endCoordinatedPlayback(continueLocally: true)
+            }
+            return
+        }
+
+        guard previousCount <= 1,
+              !playerController.isCoordinatedPlayback,
+              let session,
+              let activity
+        else { return }
+        playerController.playbackCoordinator.coordinateWithSession(session)
+        playerController.beginCoordinatedPlaybackFromCurrentState(
+            identifier: activity.ratingKey,
+        )
     }
 
     private func detach(continueLocally: Bool) {
