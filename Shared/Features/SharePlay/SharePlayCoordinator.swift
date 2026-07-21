@@ -30,6 +30,9 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var pendingNextItem: PlexItem?
     @ObservationIgnored private var lastLaunchedActivityID: UUID?
     @ObservationIgnored private var sharingPresentationActivityID: UUID?
+    @ObservationIgnored private var pendingSessionAcceptanceActivityID: UUID?
+    @ObservationIgnored private var deferredSessionInvalidation = false
+    @ObservationIgnored private var pendingInitialResumeActivityID: UUID?
 
     init(sessionManager: SessionManager, context: PlexAPIContext) {
         self.sessionManager = sessionManager
@@ -173,7 +176,11 @@ final class SharePlayCoordinator {
             )
         }
         if locallyPreparedActivityIDs.remove(activity.activityID) != nil {
-            playerController?.resume()
+            if participantCount > 1 {
+                playerController?.resume()
+            } else {
+                pendingInitialResumeActivityID = activity.activityID
+            }
         }
     }
 
@@ -211,23 +218,47 @@ final class SharePlayCoordinator {
     }
 
     private func accept(_ newSession: GroupSession<StrimrWatchActivity>) async {
+        let acceptanceActivityID = newSession.activity.activityID
+        pendingSessionAcceptanceActivityID = acceptanceActivityID
         do {
             try await ensureAccess(to: newSession.activity)
+            guard pendingSessionAcceptanceActivityID == acceptanceActivityID else {
+                newSession.leave()
+                return
+            }
         } catch {
+            guard pendingSessionAcceptanceActivityID == acceptanceActivityID else {
+                newSession.leave()
+                return
+            }
+            pendingSessionAcceptanceActivityID = nil
             locallyPreparedActivityIDs.remove(newSession.activity.activityID)
-            guard !Task.isCancelled, !error.isCancellation else { return }
+            if Task.isCancelled || error.isCancellation {
+                if deferredSessionInvalidation {
+                    deferredSessionInvalidation = false
+                    detach(continueLocally: true)
+                }
+                return
+            }
             ErrorReporter.capture(error)
             errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
             newSession.leave()
+            if deferredSessionInvalidation {
+                deferredSessionInvalidation = false
+                detach(continueLocally: true)
+            }
             return
         }
 
-        session?.leave()
+        let previousSession = session
         sessionSubscriptions.removeAll()
+        previousSession?.leave()
         session = newSession
-        activity = newSession.activity
+        handleActivityChange(newSession.activity)
         isInSession = true
         participantCount = newSession.activeParticipants.count
+        pendingSessionAcceptanceActivityID = nil
+        deferredSessionInvalidation = false
 
         newSession.$activity
             .receive(on: DispatchQueue.main)
@@ -249,7 +280,13 @@ final class SharePlayCoordinator {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 guard case .invalidated = state else { return }
-                self?.detach(continueLocally: true)
+                guard let self else { return }
+                guard self.session === newSession else { return }
+                if self.pendingSessionAcceptanceActivityID != nil {
+                    self.deferredSessionInvalidation = true
+                    return
+                }
+                self.detach(continueLocally: true)
             }
             .store(in: &sessionSubscriptions)
 
@@ -318,16 +355,28 @@ final class SharePlayCoordinator {
               let session,
               let activity
         else { return }
+        let shouldResumeInitialPlayback = pendingInitialResumeActivityID == activity.activityID
         playerController.playbackCoordinator.coordinateWithSession(session)
-        playerController.beginCoordinatedPlaybackFromCurrentState(
-            identifier: activity.ratingKey,
-        )
+        if shouldResumeInitialPlayback {
+            pendingInitialResumeActivityID = nil
+            playerController.beginCoordinatedPlayback(
+                identifier: activity.ratingKey,
+                initialTime: playerController.position,
+                initialRate: 0,
+            )
+            playerController.resume()
+        } else {
+            playerController.beginCoordinatedPlaybackFromCurrentState(
+                identifier: activity.ratingKey,
+            )
+        }
     }
 
     private func detach(continueLocally: Bool) {
         playerController?.endCoordinatedPlayback(continueLocally: continueLocally)
         playerController = nil
         pendingNextItem = nil
+        pendingInitialResumeActivityID = nil
         session = nil
         activity = nil
         isInSession = false
