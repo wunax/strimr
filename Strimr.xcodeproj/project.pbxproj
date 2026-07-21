@@ -81,6 +81,7 @@
 				"Extensions/Color+Hex.swift",
 				Extensions/ImageCornerColorSampler.swift,
 				"Extensions/TimeInterval+MediaFormat.swift",
+				"Extensions/View+MouseDragScrolling.swift",
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
 				Features/AutomaticRefreshGate.swift,
