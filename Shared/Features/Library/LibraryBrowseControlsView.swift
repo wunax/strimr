@@ -258,6 +258,9 @@ private struct LibraryBrowseFilterSheetView: View {
                 }
             #endif
         }
+        #if os(macOS)
+            .frame(minWidth: 420, minHeight: 360)
+        #endif
     }
 
     private var leadingToolbarPlacement: ToolbarItemPlacement {

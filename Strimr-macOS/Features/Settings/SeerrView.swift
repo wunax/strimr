@@ -160,6 +160,7 @@ private struct SeerrSetupView: View {
                 }
             }
         }
+        .frame(minWidth: 420, minHeight: 360)
         .onChange(of: viewModel.isLoggedIn) { _, newValue in
             if newValue {
                 onClose()

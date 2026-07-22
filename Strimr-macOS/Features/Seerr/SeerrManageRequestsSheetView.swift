@@ -35,6 +35,7 @@ struct SeerrManageRequestsSheetView: View {
                 }
             }
         }
+        .frame(minWidth: 420, minHeight: 360)
         .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
             Button("common.actions.done") {}
         } message: {
