@@ -45,7 +45,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E95F5853300A95A000D50438 /* Strimr-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E95F5853300A95A000D50438 /* Strimr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Strimr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StrimrTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E984D56C30039AD10077A7EA /* TVServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = TVServices.framework; path = Library/Frameworks/TVServices.framework; sourceTree = DEVELOPER_DIR; };
@@ -340,7 +340,7 @@
 				E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */,
 				E9C448F32EF3034900D2895B /* Strimr-tvOS.app */,
 				E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */,
-				E95F5853300A95A000D50438 /* Strimr-macOS.app */,
+				E95F5853300A95A000D50438 /* Strimr.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -379,7 +379,7 @@
 				E95F5860300A964900D50438 /* Sentry */,
 			);
 			productName = "Strimr-macOS";
-			productReference = E95F5853300A95A000D50438 /* Strimr-macOS.app */;
+			productReference = E95F5853300A95A000D50438 /* Strimr.app */;
 			productType = "com.apple.product-type.application";
 		};
 		E984D56A30039AD10077A7EA /* StrimrTopShelf */ = {
@@ -609,7 +609,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Strimr;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -649,7 +649,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Strimr;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
