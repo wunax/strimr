@@ -7,6 +7,7 @@ struct MacMainView: View {
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(SeerrStore.self) private var seerrStore
     @Environment(MacAppModel.self) private var appModel
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -64,6 +65,9 @@ struct MacMainView: View {
             }
         }
         .task {
+            sharePlayCoordinator.configurePlaybackLauncher(
+                PlaybackLauncher(context: context, coordinator: appModel),
+            )
             do {
                 try await libraryStore.loadLibraries()
             } catch {

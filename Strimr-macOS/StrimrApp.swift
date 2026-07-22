@@ -9,6 +9,7 @@ struct StrimrMacApp: App {
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
     @State private var appModel: MacAppModel
+    @State private var sharePlayCoordinator: SharePlayCoordinator
 
     init() {
         let context = PlexAPIContext()
@@ -23,6 +24,10 @@ struct StrimrMacApp: App {
         _libraryStore = State(initialValue: libraryStore)
         _seerrStore = State(initialValue: SeerrStore())
         _appModel = State(initialValue: MacAppModel())
+        _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
+            sessionManager: sessionManager,
+            context: context,
+        ))
     }
 
     var body: some Scene {
@@ -51,5 +56,6 @@ struct StrimrMacApp: App {
             .environment(libraryStore)
             .environment(seerrStore)
             .environment(appModel)
+            .environment(sharePlayCoordinator)
     }
 }

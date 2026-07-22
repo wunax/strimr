@@ -1,11 +1,15 @@
+import AppKit
+import GroupActivities
 import SwiftUI
 
 struct MacMediaDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(PlexAPIContext.self) private var context
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @State private var viewModel: MediaDetailViewModel
     @State private var isShowingShowDownloadSheet = false
+    @State private var sharePlaySharingRequest: MacSharePlaySharingRequest?
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onPlay: (String, PlexItemType, Bool, Bool) -> Void
@@ -61,6 +65,33 @@ struct MacMediaDetailView: View {
                 statusForRatingKey: downloadManager.status,
             )
             .frame(minWidth: 520, minHeight: 600)
+        }
+        .sheet(item: $sharePlaySharingRequest, onDismiss: {
+            Task { await sharePlayCoordinator.sharingPresentationDidEnd() }
+        }) { request in
+            MacSharePlaySharingControllerView(controller: request.controller)
+                .frame(minWidth: 420, minHeight: 420)
+                .task {
+                    let result = await request.controller.result
+                    handleSharingResult(result, for: request.activity)
+                }
+        }
+        .alert(
+            "sharePlay.error.title",
+            isPresented: Binding(
+                get: { sharePlayCoordinator.errorMessage != nil },
+                set: {
+                    if !$0 {
+                        sharePlayCoordinator.errorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                sharePlayCoordinator.errorMessage = nil
+            }
+        } message: {
+            Text(sharePlayCoordinator.errorMessage ?? "")
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -260,8 +291,68 @@ struct MacMediaDetailView: View {
                     }
                     .disabled(viewModel.isLoading || isDownloadInProgress)
                 }
+
+                if viewModel.primaryActionRatingKey != nil {
+                    Button {
+                        startSharePlay()
+                    } label: {
+                        if isStartingSharePlay {
+                            ProgressView()
+                        } else {
+                            Label("sharePlay.action", systemImage: "shareplay")
+                        }
+                    }
+                    .disabled(isStartingSharePlay)
+                    .accessibilityLabel(Text("sharePlay.action"))
+                }
             }
         }
+    }
+
+    private var isStartingSharePlay: Bool {
+        sharePlayCoordinator.isActivating || sharePlaySharingRequest != nil
+    }
+
+    private func startSharePlay() {
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
+        guard let activity = sharePlayCoordinator.makeActivity(
+            ratingKey: ratingKey,
+            type: playbackType,
+            title: item.primaryLabel,
+            initialPosition: viewModel.primaryActionInitialPosition,
+        ) else { return }
+
+        if sharePlayCoordinator.isEligibleForGroupSession {
+            Task { await sharePlayCoordinator.activate(activity) }
+            return
+        }
+
+        do {
+            let controller = try GroupActivitySharingController(activity)
+            sharePlayCoordinator.sharingDidStart(activity)
+            sharePlaySharingRequest = MacSharePlaySharingRequest(
+                activity: activity,
+                controller: controller,
+            )
+        } catch {
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.unavailable")
+        }
+    }
+
+    private func handleSharingResult(
+        _ result: GroupActivitySharingResult,
+        for activity: StrimrWatchActivity,
+    ) {
+        if result == .cancelled {
+            sharePlayCoordinator.sharingDidCancel(activity)
+        }
+        sharePlaySharingRequest = nil
     }
 
     private func handleDownload() {
@@ -377,6 +468,15 @@ struct MacMediaDetailView: View {
             .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct MacSharePlaySharingRequest: Identifiable {
+    let activity: StrimrWatchActivity
+    let controller: GroupActivitySharingController
+
+    var id: UUID {
+        activity.activityID
     }
 }
 

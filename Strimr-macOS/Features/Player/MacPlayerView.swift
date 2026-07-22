@@ -41,6 +41,7 @@ struct MacPlayerView: View {
     @Environment(PlexAPIContext.self) private var context
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(MacAppModel.self) private var appModel
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
 
     @State private var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
@@ -57,6 +58,8 @@ struct MacPlayerView: View {
     @State private var loadedURL: URL?
     @State private var isShowingError = false
     @State private var errorMessage = ""
+    @State private var isShowingSharePlayExitPrompt = false
+    @State private var participatesInSharePlay = false
 
     private let controlsHideDelay: TimeInterval = 3
 
@@ -104,6 +107,13 @@ struct MacPlayerView: View {
         }
         .task {
             configureController()
+            if sharePlayCoordinator.isInSession {
+                participatesInSharePlay = true
+                sharePlayCoordinator.attachPlayer(
+                    playerController,
+                    ratingKey: viewModel.currentRatingKey,
+                )
+            }
             await viewModel.load()
             startPlaybackIfNeeded(viewModel.playbackURL)
         }
@@ -141,16 +151,38 @@ struct MacPlayerView: View {
             guard let error else { return }
             showError(error)
         }
+        .onChange(of: sharePlayCoordinator.activityChangeID) { _, _ in
+            guard participatesInSharePlay,
+                  let activity = sharePlayCoordinator.activity,
+                  activity.ratingKey != viewModel.currentRatingKey
+            else { return }
+            Task { await startPlayback(for: activity) }
+        }
         .onDisappear {
             hideControlsWorkItem?.cancel()
             restoreCursor()
             stopPlayback()
             appModel.resetPlayer()
+            if participatesInSharePlay, sharePlayCoordinator.isInSession {
+                sharePlayCoordinator.leave()
+            }
+            participatesInSharePlay = false
         }
         .alert("player.termination.title", isPresented: $isShowingError) {
-            Button("player.termination.dismiss") { closePlayer() }
+            Button("player.termination.dismiss") { closePlayer(force: true) }
         } message: {
             Text(errorMessage)
+        }
+        .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
+            Button("sharePlay.leave.action", role: .destructive) {
+                sharePlayCoordinator.leave()
+                participatesInSharePlay = false
+                closePlayer(force: true)
+            }
+
+            Button("common.actions.cancel", role: .cancel) {}
+        } message: {
+            Text("sharePlay.leave.message")
         }
     }
 
@@ -168,6 +200,9 @@ struct MacPlayerView: View {
                 Spacer()
                 if let badge = playerController.videoFormatBadge {
                     PlayerBadge(badge.title)
+                }
+                if participatesInSharePlay, sharePlayCoordinator.isInSession {
+                    PlayerBadge(String(localized: "sharePlay.badge"))
                 }
                 Button("common.actions.close", systemImage: "xmark") {
                     closePlayer()
@@ -399,6 +434,9 @@ struct MacPlayerView: View {
                 selectedSubtitleTrackID = track.id
                 playerController.selectSubtitleTrack(id: track.id)
             }
+            if participatesInSharePlay, sharePlayCoordinator.isInSession {
+                sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
+            }
             showControls(temporarily: true)
         }
         playerController.onPlaybackEnded = {
@@ -409,21 +447,41 @@ struct MacPlayerView: View {
     private func startPlaybackIfNeeded(_ url: URL?) {
         guard let url, loadedURL != url else { return }
         loadedURL = url
+        let isSharePlayPlayback = participatesInSharePlay && sharePlayCoordinator.isInSession
+        let startPosition = isSharePlayPlayback
+            ? sharePlayCoordinator.activity?.initialPosition
+            : (viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil)
         playerController.load(
             url: url,
-            startPosition: viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil,
+            startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)
     }
 
     private func handlePlaybackEnded() async {
         await viewModel.markPlaybackFinished()
-        guard settingsManager.playback.autoPlayNextEpisode,
-              let next = await viewModel.nextItemInQueue()
-        else {
+        let isSharePlayPlayback = participatesInSharePlay && sharePlayCoordinator.isInSession
+        guard isSharePlayPlayback || settingsManager.playback.autoPlayNextEpisode else {
             playerController.pause()
+            return
+        }
+
+        guard let next = await viewModel.nextItemInQueue() else {
+            if isSharePlayPlayback {
+                sharePlayCoordinator.leave()
+                participatesInSharePlay = false
+                closePlayer(force: true)
+            } else {
+                playerController.pause()
+            }
+            return
+        }
+
+        if isSharePlayPlayback {
+            sharePlayCoordinator.updateToNextEpisode(next)
             return
         }
 
@@ -456,12 +514,33 @@ struct MacPlayerView: View {
         playerController.stop()
     }
 
-    private func closePlayer() {
+    private func closePlayer(force: Bool = false) {
         hideControlsWorkItem?.cancel()
+        if participatesInSharePlay, sharePlayCoordinator.isInSession, !force {
+            isShowingSharePlayExitPrompt = true
+            return
+        }
         restoreCursor()
         stopPlayback()
         appModel.resetPlayer()
         dismissWindow(id: MacAppModel.playerWindowID)
+    }
+
+    private func startPlayback(for activity: StrimrWatchActivity) async {
+        playerController.stop()
+        loadedURL = nil
+        audioTracks = []
+        subtitleTracks = []
+        selectedAudioTrackID = nil
+        selectedSubtitleTrackID = nil
+        viewModel = PlayerViewModel(
+            playQueue: viewModel.playQueue,
+            ratingKey: activity.ratingKey,
+            context: context,
+            shouldResumeFromOffset: false,
+        )
+        await viewModel.load()
+        startPlaybackIfNeeded(viewModel.playbackURL)
     }
 
     private func handlePointerMovement(_ phase: HoverPhase) {
