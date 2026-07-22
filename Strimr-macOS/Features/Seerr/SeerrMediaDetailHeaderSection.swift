@@ -138,9 +138,9 @@ struct SeerrMediaDetailHeaderSection: View {
             Button(action: onRequestTap) {
                 Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
                     .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .tint(.purple)
             .disabled(viewModel.isRequestButtonDisabled)
 
