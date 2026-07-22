@@ -176,7 +176,7 @@ struct MacMediaDetailView: View {
     }
 
     private var actionButtons: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             Button {
                 guard
                     let ratingKey = viewModel.primaryActionRatingKey,
@@ -209,33 +209,35 @@ struct MacMediaDetailView: View {
             .foregroundStyle(.brandSecondaryForeground)
             .disabled(viewModel.primaryActionRatingKey == nil)
 
-            if viewModel.shouldShowPlayFromStartButton,
-               let ratingKey = viewModel.primaryActionRatingKey,
-               let type = viewModel.primaryActionType
-            {
-                Button("common.actions.playFromStart", systemImage: "backward.end.fill") {
-                    onPlay(ratingKey, type, false, false)
+            HStack(spacing: 12) {
+                if viewModel.shouldShowPlayFromStartButton,
+                   let ratingKey = viewModel.primaryActionRatingKey,
+                   let type = viewModel.primaryActionType
+                {
+                    Button("common.actions.playFromStart", systemImage: "backward.end.fill") {
+                        onPlay(ratingKey, type, false, false)
+                    }
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
-            }
 
-            if viewModel.media.type == .show || viewModel.media.type == .season {
-                Button("common.actions.shuffle", systemImage: "shuffle") {
-                    onPlay(viewModel.media.id, viewModel.media.plexType, true, true)
+                if viewModel.media.type == .show || viewModel.media.type == .season {
+                    Button("common.actions.shuffle", systemImage: "shuffle") {
+                        onPlay(viewModel.media.id, viewModel.media.plexType, true, true)
+                    }
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
-            }
 
-            Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
-                Task { await viewModel.toggleWatchStatus() }
-            }
-            .disabled(viewModel.isUpdatingWatchStatus)
-
-            if viewModel.shouldShowWatchlistButton {
-                Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
-                    Task { await viewModel.toggleWatchlistStatus() }
+                Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
+                    Task { await viewModel.toggleWatchStatus() }
                 }
-                .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+                .disabled(viewModel.isUpdatingWatchStatus)
+
+                if viewModel.shouldShowWatchlistButton {
+                    Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
+                        Task { await viewModel.toggleWatchlistStatus() }
+                    }
+                    .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+                }
             }
         }
     }
