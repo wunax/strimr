@@ -11,18 +11,28 @@ struct MacPlayerWindowView: View {
                let ratingKey = presentation.playQueue.selectedRatingKey
             {
                 MacPlayerView(
-                    viewModel: PlayerViewModel(
-                        playQueue: presentation.playQueue,
-                        ratingKey: ratingKey,
-                        context: context,
-                        shouldResumeFromOffset: presentation.shouldResumeFromOffset,
-                    ),
+                    viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
                 )
                 .id(presentation.id)
             } else {
                 ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
             }
         }
+    }
+
+    private func playerViewModel(
+        for presentation: MacAppModel.PlayerPresentation,
+        ratingKey: String,
+    ) -> PlayerViewModel {
+        if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
+            return PlayerViewModel(localMedia: media, localPlaybackURL: url, context: context)
+        }
+        return PlayerViewModel(
+            playQueue: presentation.playQueue,
+            ratingKey: ratingKey,
+            context: context,
+            shouldResumeFromOffset: presentation.shouldResumeFromOffset,
+        )
     }
 }
 

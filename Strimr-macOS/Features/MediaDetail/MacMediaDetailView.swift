@@ -2,7 +2,10 @@ import SwiftUI
 
 struct MacMediaDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(PlexAPIContext.self) private var context
+    @Environment(DownloadManager.self) private var downloadManager
     @State private var viewModel: MediaDetailViewModel
+    @State private var isShowingShowDownloadSheet = false
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onPlay: (String, PlexItemType, Bool, Bool) -> Void
@@ -47,6 +50,18 @@ struct MacMediaDetailView: View {
         }
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
+        .sheet(isPresented: $isShowingShowDownloadSheet) {
+            MacShowDownloadSelectionSheet(
+                viewModel: viewModel,
+                onSubmitSelection: { episodeIDs in
+                    for episodeID in episodeIDs {
+                        await downloadManager.enqueueItem(ratingKey: episodeID, context: context)
+                    }
+                },
+                statusForRatingKey: downloadManager.status,
+            )
+            .frame(minWidth: 520, minHeight: 600)
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task { await viewModel.refreshIfNeeded() }
@@ -238,7 +253,42 @@ struct MacMediaDetailView: View {
                     }
                     .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
                 }
+
+                if [.movie, .episode, .season, .show].contains(viewModel.media.type) {
+                    Button("downloads.action", systemImage: downloadIconName) {
+                        handleDownload()
+                    }
+                    .disabled(viewModel.isLoading || isDownloadInProgress)
+                }
             }
+        }
+    }
+
+    private func handleDownload() {
+        switch viewModel.media.type {
+        case .show:
+            isShowingShowDownloadSheet = true
+        case .season:
+            Task { await downloadManager.enqueueSeason(ratingKey: viewModel.media.id, context: context) }
+        case .movie, .episode:
+            Task { await downloadManager.enqueueItem(ratingKey: viewModel.media.id, context: context) }
+        }
+    }
+
+    private var downloadStatus: DownloadStatus? {
+        downloadManager.status(for: viewModel.media.id)
+    }
+
+    private var isDownloadInProgress: Bool {
+        downloadStatus == .queued || downloadStatus == .downloading
+    }
+
+    private var downloadIconName: String {
+        switch downloadStatus {
+        case .completed: "checkmark.circle.fill"
+        case .failed: "exclamationmark.circle"
+        case .queued, .downloading: "arrow.down.circle.fill"
+        case nil: "arrow.down.circle"
         }
     }
 

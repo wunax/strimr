@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E9000001300B000000000001 /* Strimr-iOS/Features/Downloads/DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000003300B000000000003 /* Strimr-iOS/Features/Downloads/DownloadManager.swift */; };
+		E9000002300B000000000002 /* Strimr-iOS/Features/Downloads/DownloadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000004300B000000000004 /* Strimr-iOS/Features/Downloads/DownloadModels.swift */; };
 		E95F585F300A964500D50438 /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E95F585E300A964500D50438 /* AetherEngine */; };
 		E95F5861300A964900D50438 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E95F5860300A964900D50438 /* Sentry */; };
 		E95F5862300A970000D50438 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -45,6 +47,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E9000003300B000000000003 /* Strimr-iOS/Features/Downloads/DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strimr-iOS/Features/Downloads/DownloadManager.swift"; sourceTree = SOURCE_ROOT; };
+		E9000004300B000000000004 /* Strimr-iOS/Features/Downloads/DownloadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strimr-iOS/Features/Downloads/DownloadModels.swift"; sourceTree = SOURCE_ROOT; };
 		E95F5853300A95A000D50438 /* Strimr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Strimr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StrimrTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -322,6 +326,8 @@
 		E98A13B02ED8CBAD002F98B2 = {
 			isa = PBXGroup;
 			children = (
+				E9000003300B000000000003 /* Strimr-iOS/Features/Downloads/DownloadManager.swift */,
+				E9000004300B000000000004 /* Strimr-iOS/Features/Downloads/DownloadModels.swift */,
 				E9E70EF02F0D6FD7009C62B3 /* Config */,
 				E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */,
 				E9C449012EF30A9500D2895B /* Shared */,
@@ -546,6 +552,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9000001300B000000000001 /* Strimr-iOS/Features/Downloads/DownloadManager.swift in Sources */,
+				E9000002300B000000000002 /* Strimr-iOS/Features/Downloads/DownloadModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

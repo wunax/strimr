@@ -30,6 +30,7 @@ struct MacMainView: View {
                     }
 
                     sidebarLabel("tabs.search", systemImage: "magnifyingglass", item: .search)
+                    sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                 }
 
@@ -130,6 +131,8 @@ struct MacMainView: View {
                 viewModel: SearchViewModel(context: context),
                 onSelectMedia: appModel.showMedia,
             )
+        case .downloads:
+            MacDownloadsView()
         case .libraries:
             LibraryView(viewModel: libraryViewModel, onSelectMedia: appModel.showMedia)
                 .navigationDestination(for: Library.self) { library in

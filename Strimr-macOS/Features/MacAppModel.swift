@@ -15,6 +15,7 @@ final class MacAppModel: PlaybackPresenting {
         case home
         case discover
         case search
+        case downloads
         case libraries
         case library(String)
         case settings
@@ -24,6 +25,7 @@ final class MacAppModel: PlaybackPresenting {
             case .home: "home"
             case .discover: "discover"
             case .search: "search"
+            case .downloads: "downloads"
             case .libraries: "libraries"
             case let .library(id): "library-\(id)"
             case .settings: "settings"
@@ -44,6 +46,22 @@ final class MacAppModel: PlaybackPresenting {
         let id = UUID()
         let playQueue: PlayQueueState
         let shouldResumeFromOffset: Bool
+        let localMedia: MediaItem?
+        let localPlaybackURL: URL?
+
+        init(playQueue: PlayQueueState, shouldResumeFromOffset: Bool) {
+            self.playQueue = playQueue
+            self.shouldResumeFromOffset = shouldResumeFromOffset
+            localMedia = nil
+            localPlaybackURL = nil
+        }
+
+        init(localMedia: MediaItem, localPlaybackURL: URL) {
+            playQueue = PlayQueueState(localRatingKey: localMedia.id)
+            shouldResumeFromOffset = false
+            self.localMedia = localMedia
+            self.localPlaybackURL = localPlaybackURL
+        }
     }
 
     var selection: SidebarItem = .home
@@ -112,6 +130,10 @@ final class MacAppModel: PlaybackPresenting {
             playQueue: playQueue,
             shouldResumeFromOffset: shouldResumeFromOffset,
         )
+    }
+
+    func showDownloadedPlayer(media: MediaItem, url: URL) {
+        playerPresentation = PlayerPresentation(localMedia: media, localPlaybackURL: url)
     }
 
     func resetPlayer() {

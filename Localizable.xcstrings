@@ -1112,19 +1112,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone storage used: %@ / %@"
+            "value" : "Device storage used: %@ / %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stockage iPhone utilisé : %@ / %@"
+            "value" : "Stockage utilisé sur l’appareil : %@ / %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone 已用存储：%@ / %@"
+            "value" : "设备已用存储：%@ / %@"
           }
         }
       }

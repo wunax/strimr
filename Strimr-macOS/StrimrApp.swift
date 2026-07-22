@@ -5,6 +5,7 @@ struct StrimrMacApp: App {
     @State private var plexAPIContext: PlexAPIContext
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
+    @State private var downloadManager: DownloadManager
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
     @State private var appModel: MacAppModel
@@ -16,7 +17,9 @@ struct StrimrMacApp: App {
 
         _plexAPIContext = State(initialValue: context)
         _sessionManager = State(initialValue: sessionManager)
-        _settingsManager = State(initialValue: SettingsManager())
+        let settingsManager = SettingsManager()
+        _settingsManager = State(initialValue: settingsManager)
+        _downloadManager = State(initialValue: DownloadManager(settingsManager: settingsManager))
         _libraryStore = State(initialValue: libraryStore)
         _seerrStore = State(initialValue: SeerrStore())
         _appModel = State(initialValue: MacAppModel())
@@ -39,11 +42,12 @@ struct StrimrMacApp: App {
         .windowResizability(.contentMinSize)
     }
 
-    private func configured<Content: View>(_ content: Content) -> some View {
+    private func configured(_ content: some View) -> some View {
         content
             .environment(plexAPIContext)
             .environment(sessionManager)
             .environment(settingsManager)
+            .environment(downloadManager)
             .environment(libraryStore)
             .environment(seerrStore)
             .environment(appModel)
