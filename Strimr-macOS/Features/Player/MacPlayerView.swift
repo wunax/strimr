@@ -12,6 +12,7 @@ struct MacPlayerWindowView: View {
             {
                 MacPlayerView(
                     viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
+                    presentationID: presentation.id,
                 )
                 .id(presentation.id)
             } else {
@@ -61,10 +62,12 @@ struct MacPlayerView: View {
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
 
+    private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
 
-    init(viewModel: PlayerViewModel) {
+    init(viewModel: PlayerViewModel, presentationID: UUID) {
         _viewModel = State(initialValue: viewModel)
+        self.presentationID = presentationID
     }
 
     var body: some View {
@@ -162,7 +165,7 @@ struct MacPlayerView: View {
             hideControlsWorkItem?.cancel()
             restoreCursor()
             stopPlayback()
-            appModel.resetPlayer()
+            appModel.resetPlayer(ifPresenting: presentationID)
             if participatesInSharePlay, sharePlayCoordinator.isInSession {
                 sharePlayCoordinator.leave()
             }

@@ -136,7 +136,10 @@ final class MacAppModel: PlaybackPresenting {
         playerPresentation = PlayerPresentation(localMedia: media, localPlaybackURL: url)
     }
 
-    func resetPlayer() {
+    func resetPlayer(ifPresenting presentationID: UUID? = nil) {
+        if let presentationID, playerPresentation?.id != presentationID {
+            return
+        }
         playerPresentation = nil
     }
 
