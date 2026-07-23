@@ -12,6 +12,7 @@ on:
           - all
           - ios
           - tvos
+          - macos
 
 permissions:
   contents: read
@@ -35,6 +36,7 @@ jobs:
       SENTRY_ORG_SLUG: ${{ secrets.SENTRY_ORG_SLUG }}
       SENTRY_IOS_PROJECT_SLUG: ${{ secrets.SENTRY_IOS_PROJECT_SLUG }}
       SENTRY_TVOS_PROJECT_SLUG: ${{ secrets.SENTRY_TVOS_PROJECT_SLUG }}
+      SENTRY_MACOS_PROJECT_SLUG: ${{ secrets.SENTRY_MACOS_PROJECT_SLUG }}
 
     steps:
       - name: Checkout
@@ -60,7 +62,7 @@ jobs:
           chmod 600 "$match_key_path"
           printf 'MATCH_GIT_PRIVATE_KEY=%s\n' "$match_key_path" >> "$GITHUB_ENV"
 
-      - name: Deploy iOS and tvOS
+      - name: Deploy iOS, tvOS, and macOS
         if: inputs.platform == 'all'
         run: bundle exec fastlane ios beta
 
@@ -71,3 +73,7 @@ jobs:
       - name: Deploy tvOS
         if: inputs.platform == 'tvos'
         run: bundle exec fastlane ios tvos_beta
+
+      - name: Deploy macOS
+        if: inputs.platform == 'macos'
+        run: bundle exec fastlane ios macos_beta
