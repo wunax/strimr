@@ -96,6 +96,7 @@ platform :ios do
                 platform: "macos",
                 app_identifier: [app_identifier],
                 api_key: options[:api_key],
+                additional_cert_types: ["mac_installer_distribution"],
                 readonly: true
             )
         end
@@ -181,6 +182,7 @@ platform :ios do
             platform: "macos",
             app_identifier: [app_identifier],
             api_key: api_key,
+            additional_cert_types: ["mac_installer_distribution"],
             readonly: false
         )
     end
