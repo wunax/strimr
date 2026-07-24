@@ -153,7 +153,7 @@ platform :ios do
                 }
             },
             output_name: "Strimr-macOS",
-            xcargs: "#{archive_xcargs(options[:build_number])} CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='#{macos_app_store_profile(app_identifier)}'"
+            xcargs: archive_xcargs(options[:build_number])
         )
     end
 
