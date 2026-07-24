@@ -34,6 +34,7 @@ struct DisplayedLibrariesSectionView: View {
         } else {
             ForEach(viewModel.libraries) { library in
                 Toggle(library.title, isOn: viewModel.displayedBinding(for: library))
+                    .id("displayed-library-\(library.id)")
             }
         }
     }

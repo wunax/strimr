@@ -73,6 +73,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     @ViewBuilder
@@ -103,6 +104,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private var filterOptions: some View {
@@ -125,6 +127,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private var sortOptions: some View {
@@ -147,6 +150,7 @@ struct LibraryBrowseControlsView: View {
             }
             .padding(rowPadding)
         }
+        .mouseDragScrolling()
     }
 
     private func filterLabel(
@@ -238,7 +242,7 @@ private struct LibraryBrowseFilterSheetView: View {
                 .navigationTitle(filter.title)
             #if !os(tvOS)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: leadingToolbarPlacement) {
                         if viewModel.filterSelection(for: filter) != nil {
                             Button("library.browse.filters.clear") {
                                 viewModel.clearFilter(filter)
@@ -246,7 +250,7 @@ private struct LibraryBrowseFilterSheetView: View {
                             }
                         }
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: trailingToolbarPlacement) {
                         Button("common.actions.done") {
                             dismiss()
                         }
@@ -254,6 +258,25 @@ private struct LibraryBrowseFilterSheetView: View {
                 }
             #endif
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 360)
+        #endif
+    }
+
+    private var leadingToolbarPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .cancellationAction
+        #else
+            .topBarLeading
+        #endif
+    }
+
+    private var trailingToolbarPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .confirmationAction
+        #else
+            .topBarTrailing
+        #endif
     }
 
     @ViewBuilder

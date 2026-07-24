@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 
 @MainActor
-final class MainCoordinator: ObservableObject {
+final class MainCoordinator: ObservableObject, PlaybackPresenting {
     private struct MediaRouteEntry {
         let mediaID: String
         let depth: Int

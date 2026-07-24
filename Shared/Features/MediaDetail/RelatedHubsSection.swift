@@ -7,7 +7,7 @@ struct RelatedHubsSection: View {
         @EnvironmentObject private var coordinator: MainCoordinator
     #endif
     @Bindable var viewModel: MediaDetailViewModel
-    #if os(iOS)
+    #if !os(tvOS)
         @State private var selectedHub: Hub?
     #endif
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -24,7 +24,7 @@ struct RelatedHubsSection: View {
             .padding(.bottom, 32)
         }
         .textCase(nil)
-        #if os(iOS)
+        #if !os(tvOS)
             .sheet(item: $selectedHub) { hub in
                 NavigationStack {
                     HubDetailView(
@@ -85,7 +85,7 @@ struct RelatedHubsSection: View {
     }
 
     private func headerViewAllAction(for hub: Hub) -> (() -> Void)? {
-        #if os(iOS)
+        #if !os(tvOS)
             guard hub.canOpenDetail else { return nil }
             return { selectedHub = hub }
         #else

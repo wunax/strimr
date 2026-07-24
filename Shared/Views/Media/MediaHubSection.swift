@@ -31,7 +31,7 @@ struct MediaHubSection<Content: View>: View {
 
     @ViewBuilder
     private var titleView: some View {
-        #if os(iOS)
+        #if !os(tvOS)
             if let onViewAll {
                 Button(action: onViewAll) {
                     HStack(spacing: 4) {

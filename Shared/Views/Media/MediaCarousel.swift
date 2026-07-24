@@ -45,8 +45,9 @@ struct MediaCarousel: View {
             .padding(.horizontal, 2)
             #endif
         }
+        .mouseDragScrolling()
         #if os(tvOS)
-        .focusSection()
+            .focusSection()
         #endif
     }
 
@@ -113,6 +114,8 @@ struct MediaCarousel: View {
             let height: CGFloat
             #if os(tvOS)
                 height = 320
+            #elseif os(macOS)
+                height = 260
             #else
                 height = sizeClass == .compact ? 180 : 240
             #endif
@@ -121,6 +124,8 @@ struct MediaCarousel: View {
             let height: CGFloat
             #if os(tvOS)
                 height = 180
+            #elseif os(macOS)
+                height = 140
             #else
                 height = sizeClass == .compact ? 90 : 124
             #endif

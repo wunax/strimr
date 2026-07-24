@@ -19,6 +19,10 @@ def tvos_app_store_profile(identifier)
     "match AppStore #{identifier} tvos"
 end
 
+def macos_app_store_profile(identifier)
+    "match AppStore #{identifier} macos"
+end
+
 platform :ios do
     private_lane :app_store_connect_key do
         app_store_connect_api_key(
@@ -45,8 +49,12 @@ platform :ios do
             api_key: options[:api_key],
             platform: "appletvos"
         )
+        macos_build_number = latest_platform_build_number(
+            api_key: options[:api_key],
+            platform: "osx"
+        )
 
-        [ios_build_number, tvos_build_number].max + 1
+        [ios_build_number, tvos_build_number, macos_build_number].max + 1
     end
 
     private_lane :upload_sentry_debug_files do |options|
@@ -77,6 +85,16 @@ platform :ios do
                 type: "appstore",
                 platform: "tvos",
                 app_identifier: [app_identifier, "#{app_identifier}.topshelf"],
+                api_key: options[:api_key],
+                readonly: true
+            )
+        end
+
+        if options[:macos]
+            sync_code_signing(
+                type: "appstore",
+                platform: "macos",
+                app_identifier: [app_identifier],
                 api_key: options[:api_key],
                 readonly: true
             )
@@ -121,7 +139,25 @@ platform :ios do
         )
     end
 
-    desc "Create or update Match profiles for iOS, tvOS, and Top Shelf"
+    private_lane :build_macos_pkg do |options|
+        app_identifier = strimr_app_identifier
+
+        build_mac_app(
+            project: "Strimr.xcodeproj",
+            scheme: "Strimr-macOS",
+            export_method: "app-store",
+            export_options: {
+                signingStyle: "manual",
+                provisioningProfiles: {
+                    app_identifier => macos_app_store_profile(app_identifier)
+                }
+            },
+            output_name: "Strimr-macOS",
+            xcargs: "#{archive_xcargs(options[:build_number])} CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='#{macos_app_store_profile(app_identifier)}'"
+        )
+    end
+
+    desc "Create or update Match profiles for iOS, tvOS, macOS, and Top Shelf"
     lane :prepare_match do
         api_key = app_store_connect_key
         app_identifier = strimr_app_identifier
@@ -140,9 +176,16 @@ platform :ios do
             api_key: api_key,
             readonly: false
         )
+        sync_code_signing(
+            type: "appstore",
+            platform: "macos",
+            app_identifier: [app_identifier],
+            api_key: api_key,
+            readonly: false
+        )
     end
 
-    desc "Verify App Store Connect API access for iOS and tvOS"
+    desc "Verify App Store Connect API access for iOS, tvOS, and macOS"
     lane :verify_app_store_connect do
         api_key = app_store_connect_key
         ios_build_number = latest_platform_build_number(
@@ -153,8 +196,12 @@ platform :ios do
             api_key: api_key,
             platform: "appletvos"
         )
+        macos_build_number = latest_platform_build_number(
+            api_key: api_key,
+            platform: "osx"
+        )
 
-        UI.success("Latest TestFlight builds — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}")
+        UI.success("Latest TestFlight builds — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}, macOS: #{macos_build_number}")
     end
 
     desc "Build a signed iOS TestFlight IPA without uploading it"
@@ -173,14 +220,23 @@ platform :ios do
         build_tvos_ipa(build_number: build_number)
     end
 
-    desc "Build signed iOS and tvOS TestFlight IPAs without uploading them"
+    desc "Build a signed macOS TestFlight package without uploading it"
+    lane :build_macos_testflight do
+        api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, macos: true)
+        build_number = next_shared_build_number(api_key: api_key)
+        build_macos_pkg(build_number: build_number)
+    end
+
+    desc "Build signed iOS, tvOS, and macOS TestFlight artifacts without uploading them"
     lane :build_testflight do
         api_key = app_store_connect_key
-        install_match_signing(api_key: api_key, ios: true, tvos: true)
+        install_match_signing(api_key: api_key, ios: true, tvos: true, macos: true)
         build_number = next_shared_build_number(api_key: api_key)
 
         build_ios_ipa(build_number: build_number)
         build_tvos_ipa(build_number: build_number)
+        build_macos_pkg(build_number: build_number)
     end
 
     desc "Build and upload the iOS app to TestFlight"
@@ -217,10 +273,27 @@ platform :ios do
         )
     end
 
-    desc "Build and upload the iOS and tvOS apps to TestFlight"
+    desc "Build and upload the macOS app to TestFlight"
+    lane :macos_beta do
+        api_key = app_store_connect_key
+        install_match_signing(api_key: api_key, macos: true)
+        build_number = next_shared_build_number(api_key: api_key)
+        pkg = build_macos_pkg(build_number: build_number)
+
+        upload_sentry_debug_files(project_slug_env: "SENTRY_MACOS_PROJECT_SLUG")
+
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "osx",
+            pkg: pkg,
+            skip_waiting_for_build_processing: true
+        )
+    end
+
+    desc "Build and upload the iOS, tvOS, and macOS apps to TestFlight"
     lane :beta do
         api_key = app_store_connect_key
-        install_match_signing(api_key: api_key, ios: true, tvos: true)
+        install_match_signing(api_key: api_key, ios: true, tvos: true, macos: true)
         build_number = next_shared_build_number(api_key: api_key)
 
         ios_ipa = build_ios_ipa(build_number: build_number)
@@ -228,6 +301,9 @@ platform :ios do
 
         tvos_ipa = build_tvos_ipa(build_number: build_number)
         upload_sentry_debug_files(project_slug_env: "SENTRY_TVOS_PROJECT_SLUG")
+
+        macos_pkg = build_macos_pkg(build_number: build_number)
+        upload_sentry_debug_files(project_slug_env: "SENTRY_MACOS_PROJECT_SLUG")
 
         upload_to_testflight(
             api_key: api_key,
@@ -239,6 +315,12 @@ platform :ios do
             api_key: api_key,
             app_platform: "appletvos",
             ipa: tvos_ipa,
+            skip_waiting_for_build_processing: true
+        )
+        upload_to_testflight(
+            api_key: api_key,
+            app_platform: "osx",
+            pkg: macos_pkg,
             skip_waiting_for_build_processing: true
         )
     end

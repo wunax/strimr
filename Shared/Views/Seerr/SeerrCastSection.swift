@@ -60,6 +60,7 @@ private struct SeerrCastCarousel: View {
             .padding(.vertical, 0)
             .padding(.horizontal, 2)
         }
+        .mouseDragScrolling()
     }
 }
 

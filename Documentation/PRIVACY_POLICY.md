@@ -2,7 +2,7 @@
 
 Effective date: 16 January 2026
 
-This Privacy Policy explains how Strimr ("Strimr", "we", "us", or "our") handles information when you use the Strimr mobile application (the "App"). Strimr is a third-party client for Plex and is not affiliated with Plex, Inc.
+This Privacy Policy explains how Strimr ("Strimr", "we", "us", or "our") handles information when you use the Strimr application on iOS, macOS, or tvOS (the "App"). Strimr is a third-party client for Plex and is not affiliated with Plex, Inc.
 
 ## Summary
 

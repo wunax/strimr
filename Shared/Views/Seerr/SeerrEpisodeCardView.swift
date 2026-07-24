@@ -16,7 +16,11 @@ struct SeerrEpisodeCardView: View {
     }
 
     private var regularImageWidth: CGFloat {
-        UIScreen.main.bounds.width / 3
+        #if os(macOS)
+            280
+        #else
+            UIScreen.main.bounds.width / 3
+        #endif
     }
 
     var body: some View {
