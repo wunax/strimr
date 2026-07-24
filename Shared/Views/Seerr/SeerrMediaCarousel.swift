@@ -23,7 +23,7 @@ struct SeerrMediaCarousel: View {
         }
         .mouseDragScrolling()
         #if os(tvOS)
-        .focusSection()
+            .focusSection()
         #endif
     }
 

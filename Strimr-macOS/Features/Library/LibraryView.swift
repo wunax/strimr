@@ -182,7 +182,7 @@ private struct LibraryCard: View {
         .shadow(
             color: .black.opacity(isHovering ? 0.18 : 0.08),
             radius: isHovering ? 14 : 6,
-            y: isHovering ? 7 : 3
+            y: isHovering ? 7 : 3,
         )
         .scaleEffect(isHovering ? 1.015 : 1)
         .animation(.easeOut(duration: 0.16), value: isHovering)

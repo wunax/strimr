@@ -90,7 +90,11 @@ struct MacShowDownloadSelectionSheet: View {
         let downloaded = statusForRatingKey(episode.id) == .completed
         let selected = selectedEpisodeIDs.contains(episode.id) && !downloaded
         return Button {
-            if selected { selectedEpisodeIDs.remove(episode.id) } else { selectedEpisodeIDs.insert(episode.id) }
+            if selected {
+                selectedEpisodeIDs.remove(episode.id)
+            } else {
+                selectedEpisodeIDs.insert(episode.id)
+            }
         } label: {
             HStack {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
@@ -102,8 +106,11 @@ struct MacShowDownloadSelectionSheet: View {
                     Text(episode.title).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if downloaded { Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green) }
-                else if statusForRatingKey(episode.id)?.isActive == true { ProgressView().controlSize(.small) }
+                if downloaded {
+                    Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
+                } else if statusForRatingKey(episode.id)?.isActive == true {
+                    ProgressView().controlSize(.small)
+                }
             }
         }
         .buttonStyle(.plain)

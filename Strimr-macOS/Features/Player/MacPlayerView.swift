@@ -6,18 +6,16 @@ struct MacPlayerWindowView: View {
     @Environment(MacAppModel.self) private var appModel
 
     var body: some View {
-        Group {
-            if let presentation = appModel.playerPresentation,
-               let ratingKey = presentation.playQueue.selectedRatingKey
-            {
-                MacPlayerView(
-                    viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
-                    presentationID: presentation.id,
-                )
-                .id(presentation.id)
-            } else {
-                ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
-            }
+        if let presentation = appModel.playerPresentation,
+           let ratingKey = presentation.playQueue.selectedRatingKey
+        {
+            MacPlayerView(
+                viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
+                presentationID: presentation.id,
+            )
+            .id(presentation.id)
+        } else {
+            ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
         }
     }
 
