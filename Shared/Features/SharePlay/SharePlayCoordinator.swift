@@ -252,6 +252,12 @@ final class SharePlayCoordinator {
 
         let previousSession = session
         sessionSubscriptions.removeAll()
+        if previousSession != nil,
+           previousSession !== newSession,
+           playerController?.isCoordinatedPlayback == true
+        {
+            playerController?.endCoordinatedPlayback(continueLocally: true)
+        }
         previousSession?.leave()
         session = newSession
         handleActivityChange(newSession.activity)
@@ -351,20 +357,19 @@ final class SharePlayCoordinator {
         }
 
         guard previousCount <= 1,
-              !playerController.isCoordinatedPlayback,
               let session,
               let activity
         else { return }
+        if playerController.isCoordinatedPlayback {
+            playerController.endCoordinatedPlayback(continueLocally: true)
+        }
         let shouldResumeInitialPlayback = pendingInitialResumeActivityID == activity.activityID
         playerController.playbackCoordinator.coordinateWithSession(session)
         if shouldResumeInitialPlayback {
             pendingInitialResumeActivityID = nil
-            playerController.beginCoordinatedPlayback(
+            playerController.beginCoordinatedPlaybackResumingFromCurrentState(
                 identifier: activity.ratingKey,
-                initialTime: playerController.position,
-                initialRate: 0,
             )
-            playerController.resume()
         } else {
             playerController.beginCoordinatedPlaybackFromCurrentState(
                 identifier: activity.ratingKey,

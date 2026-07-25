@@ -214,6 +214,14 @@ final class PlayerController {
         )
     }
 
+    func beginCoordinatedPlaybackResumingFromCurrentState(identifier: String) {
+        beginCoordinatedPlayback(
+            identifier: identifier,
+            initialTime: position,
+            initialRate: playbackRate,
+        )
+    }
+
     func endCoordinatedPlayback(continueLocally: Bool) {
         let intendedRate = engine.coordinatedPlaybackIntendedRate
         engine.endCoordinatedPlayback()
