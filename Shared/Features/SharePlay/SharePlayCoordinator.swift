@@ -100,8 +100,8 @@ final class SharePlayCoordinator {
         defer { isActivating = false }
 
         if let session {
-            handleActivityChange(activity)
             session.activity = activity
+            handleActivityChange(activity)
             if playerController == nil {
                 await launchPlaybackIfNeeded(for: activity)
             }
@@ -162,7 +162,7 @@ final class SharePlayCoordinator {
         else { return }
         controller.playbackCoordinator.coordinateWithSession(session)
         controller.beginCoordinatedPlayback(
-            identifier: activity.ratingKey,
+            identifier: playbackIdentifier(for: activity),
             initialTime: activity.initialPosition,
         )
     }
@@ -171,7 +171,7 @@ final class SharePlayCoordinator {
         guard let activity, activity.ratingKey == ratingKey else { return }
         if participantCount > 1 {
             playerController?.reconcileCoordinatedPlaybackAfterLoad(
-                identifier: ratingKey,
+                identifier: playbackIdentifier(for: activity),
                 initialTime: activity.initialPosition,
             )
         }
@@ -301,7 +301,7 @@ final class SharePlayCoordinator {
             if participantCount > 1 {
                 playerController.playbackCoordinator.coordinateWithSession(newSession)
                 playerController.beginCoordinatedPlayback(
-                    identifier: activity.ratingKey,
+                    identifier: playbackIdentifier(for: activity),
                     initialTime: activity.initialPosition,
                 )
             }
@@ -341,9 +341,29 @@ final class SharePlayCoordinator {
 
     private func handleActivityChange(_ newActivity: StrimrWatchActivity) {
         guard activity != newActivity else { return }
+        let isReplacingActivity = activity != nil
         activity = newActivity
         pendingNextItem = nil
         activityChangeID = UUID()
+
+        // Publish the new coordinated item as soon as the GroupActivity changes. Waiting for the
+        // replacement media to finish loading leaves each participant coordinated against the old
+        // item, so a seek can be applied locally while peers reject it for an identifier mismatch.
+        // AetherEngine retains commands for this item until the replacement transport is ready.
+        if isReplacingActivity,
+           participantCount > 1,
+           let playerController,
+           playerController.isCoordinatedPlayback
+        {
+            playerController.beginCoordinatedPlayback(
+                identifier: playbackIdentifier(for: newActivity),
+                initialTime: newActivity.initialPosition,
+            )
+        }
+    }
+
+    private func playbackIdentifier(for activity: StrimrWatchActivity) -> String {
+        activity.activityID.uuidString
     }
 
     private func handleParticipantCountChange(previousCount: Int) {
@@ -368,11 +388,11 @@ final class SharePlayCoordinator {
         if shouldResumeInitialPlayback {
             pendingInitialResumeActivityID = nil
             playerController.beginCoordinatedPlaybackResumingFromCurrentState(
-                identifier: activity.ratingKey,
+                identifier: playbackIdentifier(for: activity),
             )
         } else {
             playerController.beginCoordinatedPlaybackFromCurrentState(
-                identifier: activity.ratingKey,
+                identifier: playbackIdentifier(for: activity),
             )
         }
     }
