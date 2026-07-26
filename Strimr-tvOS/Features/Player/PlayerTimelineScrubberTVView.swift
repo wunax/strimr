@@ -5,6 +5,7 @@ struct PlayerTimelineScrubberTVView: View {
     var upperBound: Double
     var duration: Double?
     var bufferedProgress: Double
+    var chapters: [PlexChapter]
     var onEditingChanged: (Bool) -> Void
 
     @State private var consecutiveMoves = 0
@@ -45,6 +46,12 @@ struct PlayerTimelineScrubberTVView: View {
                     .fill(Color.white)
                     .frame(width: progressWidth)
                     .frame(height: 8, alignment: .center)
+
+                PlayerChapterTicksView(
+                    chapters: chapters,
+                    duration: duration,
+                    horizontalInset: 0,
+                )
 
                 Circle()
                     .fill(Color.white)

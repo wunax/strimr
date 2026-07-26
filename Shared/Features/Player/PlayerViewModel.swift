@@ -20,9 +20,32 @@ final class PlayerViewModel {
     }
 
     var markers: [PlexMarker] = []
+    var chapters: [PlexChapter] = []
     var activeSkipMarker: PlexMarker? {
         activeMarker(where: \.isIntro)
             ?? activeMarker(where: \.isCredits)
+    }
+
+    var hasNavigableChapters: Bool {
+        chapters.count >= 2
+    }
+
+    func chapter(at time: Double) -> PlexChapter? {
+        chapters.first { $0.contains(time: time) }
+    }
+
+    func chapterImageURL(
+        for chapter: PlexChapter,
+        width: Int,
+        height: Int,
+    ) -> URL? {
+        guard let thumb = chapter.thumb else { return nil }
+        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+        return imageRepository.transcodeImageURL(
+            path: thumb,
+            width: width,
+            height: height,
+        )
     }
 
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
@@ -110,6 +133,7 @@ final class PlayerViewModel {
         activePartId = nil
         streamsByFFIndex = [:]
         markers = []
+        chapters = []
         defer { isLoading = false }
 
         do {
@@ -125,6 +149,14 @@ final class PlayerViewModel {
             let metadata = response.mediaContainer.metadata?.first
             media = metadata.map(MediaItem.init)
             markers = metadata?.markers ?? []
+            chapters = (metadata?.chapters ?? [])
+                .filter(\.isValid)
+                .sorted {
+                    if $0.startTimeOffset == $1.startTimeOffset {
+                        return $0.index < $1.index
+                    }
+                    return $0.startTimeOffset < $1.startTimeOffset
+                }
             updatePartContext(from: metadata)
             resolvePreferredStreams(from: metadata)
             playbackURL = resolvePlaybackURL(from: metadata)

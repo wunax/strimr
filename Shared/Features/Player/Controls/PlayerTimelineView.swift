@@ -5,7 +5,9 @@ struct PlayerTimelineView: View {
     var duration: Double?
     var bufferedAhead: Double
     var playbackPosition: Double
+    var chapters: [PlexChapter]
     var onEditingChanged: (Bool) -> Void
+    @State private var isEditing = false
 
     private var sliderUpperBound: Double {
         max(duration ?? 0, position, playbackPosition, 1)
@@ -35,18 +37,36 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if isEditing, let chapter = chapter(at: position) {
+                Text(chapter.displayTitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .transition(.opacity)
+            }
+
             #if os(tvOS)
                 PlayerTimelineScrubberTVView(
                     position: $position,
                     upperBound: sliderUpperBound,
                     duration: duration,
                     bufferedProgress: bufferedProgress,
-                    onEditingChanged: onEditingChanged,
+                    chapters: chapters,
+                    onEditingChanged: handleEditingChanged(_:),
                 )
             #else
                 ZStack {
                     bufferTrack
-                    Slider(value: sliderBinding, in: 0 ... sliderUpperBound, onEditingChanged: onEditingChanged)
+                    PlayerChapterTicksView(
+                        chapters: chapters,
+                        duration: duration,
+                    )
+                    .frame(maxHeight: 28)
+                    Slider(
+                        value: sliderBinding,
+                        in: 0 ... sliderUpperBound,
+                        onEditingChanged: handleEditingChanged(_:),
+                    )
                         .tint(.white)
                         .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 8)
                 }
@@ -104,5 +124,16 @@ struct PlayerTimelineView: View {
         } else {
             return String(format: "%02d:%02d", minutes, secs)
         }
+    }
+
+    private func chapter(at time: Double) -> PlexChapter? {
+        chapters.first { $0.contains(time: time) }
+    }
+
+    private func handleEditingChanged(_ editing: Bool) {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            isEditing = editing
+        }
+        onEditingChanged(editing)
     }
 }

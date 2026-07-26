@@ -12,7 +12,7 @@ struct PlayerView: View {
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var isScrubbing = false
     @State private var videoFormatBadge: PlayerVideoFormatBadge?
-    @State private var showingSettings = false
+    @State private var activeSheet: PlayerSheet?
     @State private var audioTracks: [PlayerTrack] = []
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var settingsAudioTracks: [PlaybackSettingsTrack] = []
@@ -148,8 +148,20 @@ struct PlayerView: View {
         )
 
         return sessionObservers
-            .sheet(isPresented: $showingSettings) {
-                playbackSettingsSheet
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .settings:
+                    playbackSettingsSheet
+                        .presentationDetents([.medium])
+                case .chapters:
+                    chapterSelectionSheet
+                        .presentationDetents([.medium, .large])
+                }
+            }
+            .onChange(of: activeSheet) { _, sheet in
+                if sheet == nil {
+                    showControls(temporarily: true)
+                }
             }
             .alert("player.termination.title", isPresented: $showingTerminationAlert) {
                 Button("player.termination.dismiss") {
@@ -223,6 +235,8 @@ struct PlayerView: View {
                     isScrubbing: isScrubbing,
                     onDismiss: { dismissPlayer() },
                     onShowSettings: showSettings,
+                    chapters: viewModel.chapters,
+                    onShowChapters: showChapters,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekForwardInterval) },
@@ -257,9 +271,21 @@ struct PlayerView: View {
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
             onSelectPlaybackRate: selectPlaybackRate(_:),
-            onClose: { showingSettings = false },
+            onClose: { activeSheet = nil },
         )
-        .presentationDetents([.medium])
+        .presentationBackground(.ultraThinMaterial)
+    }
+
+    private var chapterSelectionSheet: some View {
+        PlayerChapterSelectionView(
+            chapters: viewModel.chapters,
+            currentPosition: viewModel.position,
+            imageURL: { chapter in
+                viewModel.chapterImageURL(for: chapter, width: 320, height: 180)
+            },
+            onSelect: selectChapter(_:),
+            onClose: { activeSheet = nil },
+        )
         .presentationBackground(.ultraThinMaterial)
     }
 
@@ -298,8 +324,21 @@ struct PlayerView: View {
 
     private func showSettings() {
         refreshTracks()
-        showingSettings = true
+        activeSheet = .settings
         hideControlsWorkItem?.cancel()
+    }
+
+    private func showChapters() {
+        guard viewModel.hasNavigableChapters else { return }
+        activeSheet = .chapters
+        hideControlsWorkItem?.cancel()
+    }
+
+    private func selectChapter(_ chapter: PlexChapter) {
+        playerController.seek(to: chapter.startTime)
+        viewModel.position = chapter.startTime
+        timelinePosition = chapter.startTime
+        activeSheet = nil
     }
 
     private func toggleRotationLock() {
@@ -683,5 +722,14 @@ struct PlayerView: View {
             isPaused: playerController.isPaused,
             isBuffering: playerController.isBuffering,
         )
+    }
+}
+
+private enum PlayerSheet: String, Identifiable {
+    case settings
+    case chapters
+
+    var id: String {
+        rawValue
     }
 }

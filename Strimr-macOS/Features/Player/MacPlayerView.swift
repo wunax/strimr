@@ -59,6 +59,7 @@ struct MacPlayerView: View {
     @State private var errorMessage = ""
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
+    @State private var isShowingChapterPopover = false
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -69,6 +70,10 @@ struct MacPlayerView: View {
     }
 
     var body: some View {
+        configuredPlayerView
+    }
+
+    private var playerScene: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
@@ -103,89 +108,117 @@ struct MacPlayerView: View {
             keyboardCommands
         }
         .background(.black)
-        .onContinuousHover { phase in
-            handlePointerMovement(phase)
-        }
-        .task {
-            configureController()
-            if sharePlayCoordinator.isInSession {
-                participatesInSharePlay = true
-                sharePlayCoordinator.attachPlayer(
-                    playerController,
-                    ratingKey: viewModel.currentRatingKey,
-                )
-            }
-            await viewModel.load()
-            startPlaybackIfNeeded(viewModel.playbackURL)
-        }
-        .onChange(of: viewModel.playbackURL) { _, url in
-            startPlaybackIfNeeded(url)
-        }
-        .onChange(of: playerController.isPaused) { _, isPaused in
-            viewModel.handlePlaybackState(isPaused: isPaused, isBuffering: playerController.isBuffering)
-            if isPaused {
-                showControls(temporarily: false)
-            } else {
-                showControls(temporarily: true)
-            }
-        }
-        .onChange(of: playerController.isBuffering) { _, isBuffering in
-            viewModel.handlePlaybackState(isPaused: playerController.isPaused, isBuffering: isBuffering)
-        }
-        .onChange(of: playerController.position) { _, position in
-            if !isScrubbing {
-                scrubPosition = position
-            }
-            viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
-        }
-        .onChange(of: playerController.duration) { _, duration in
-            viewModel.handlePlaybackDuration(duration)
-        }
-        .onChange(of: playerController.bufferedAhead) { _, bufferedAhead in
-            viewModel.handleBufferedAhead(bufferedAhead)
-        }
-        .onChange(of: playerController.errorMessage) { _, error in
-            guard let error else { return }
-            showError(error)
-        }
-        .onChange(of: viewModel.terminationMessage) { _, error in
-            guard let error else { return }
-            showError(error)
-        }
-        .onChange(of: sharePlayCoordinator.activityChangeID) { _, _ in
-            guard participatesInSharePlay,
-                  let activity = sharePlayCoordinator.activity,
-                  activity.ratingKey != viewModel.currentRatingKey
-            else { return }
-            Task { await startPlayback(for: activity) }
-        }
-        .onDisappear {
-            hideControlsWorkItem?.cancel()
-            restoreCursor()
-            stopPlayback()
-            appModel.resetPlayer(ifPresenting: presentationID)
-            if participatesInSharePlay, sharePlayCoordinator.isInSession {
-                sharePlayCoordinator.leave()
-            }
-            sharePlayCoordinator.detachPlayer(playerController)
-            participatesInSharePlay = false
-        }
-        .alert("player.termination.title", isPresented: $isShowingError) {
-            Button("player.termination.dismiss") { closePlayer(force: true) }
-        } message: {
-            Text(errorMessage)
-        }
-        .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
-            Button("sharePlay.leave.action", role: .destructive) {
-                sharePlayCoordinator.leave()
-                participatesInSharePlay = false
-                closePlayer(force: true)
-            }
+    }
 
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("sharePlay.leave.message")
-        }
+    private var configuredPlayerView: some View {
+        let lifecycle = AnyView(
+            playerScene
+                .onContinuousHover { phase in
+                    handlePointerMovement(phase)
+                }
+                .task {
+                    configureController()
+                    if sharePlayCoordinator.isInSession {
+                        participatesInSharePlay = true
+                        sharePlayCoordinator.attachPlayer(
+                            playerController,
+                            ratingKey: viewModel.currentRatingKey,
+                        )
+                    }
+                    await viewModel.load()
+                    startPlaybackIfNeeded(viewModel.playbackURL)
+                }
+                .onDisappear {
+                    hideControlsWorkItem?.cancel()
+                    restoreCursor()
+                    stopPlayback()
+                    appModel.resetPlayer(ifPresenting: presentationID)
+                    if participatesInSharePlay, sharePlayCoordinator.isInSession {
+                        sharePlayCoordinator.leave()
+                    }
+                    sharePlayCoordinator.detachPlayer(playerController)
+                    participatesInSharePlay = false
+                },
+        )
+
+        let playbackObservers = AnyView(
+            lifecycle
+                .onChange(of: viewModel.playbackURL) { _, url in
+                    startPlaybackIfNeeded(url)
+                }
+                .onChange(of: playerController.isPaused) { _, isPaused in
+                    viewModel.handlePlaybackState(isPaused: isPaused, isBuffering: playerController.isBuffering)
+                    if isPaused {
+                        showControls(temporarily: false)
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
+                .onChange(of: playerController.isBuffering) { _, isBuffering in
+                    viewModel.handlePlaybackState(isPaused: playerController.isPaused, isBuffering: isBuffering)
+                }
+                .onChange(of: playerController.position) { _, position in
+                    if !isScrubbing {
+                        scrubPosition = position
+                    }
+                    viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
+                }
+                .onChange(of: playerController.duration) { _, duration in
+                    viewModel.handlePlaybackDuration(duration)
+                }
+                .onChange(of: playerController.bufferedAhead) { _, bufferedAhead in
+                    viewModel.handleBufferedAhead(bufferedAhead)
+                },
+        )
+
+        let presentationObservers = AnyView(
+            playbackObservers
+                .onChange(of: playerController.errorMessage) { _, error in
+                    guard let error else { return }
+                    showError(error)
+                }
+                .onChange(of: viewModel.terminationMessage) { _, error in
+                    guard let error else { return }
+                    showError(error)
+                }
+                .onChange(of: viewModel.hasNavigableChapters) { _, hasChapters in
+                    if !hasChapters {
+                        isShowingChapterPopover = false
+                    }
+                }
+                .onChange(of: isShowingChapterPopover) { _, isShowing in
+                    if isShowing {
+                        hideControlsWorkItem?.cancel()
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
+                .onChange(of: sharePlayCoordinator.activityChangeID) { _, _ in
+                    guard participatesInSharePlay,
+                          let activity = sharePlayCoordinator.activity,
+                          activity.ratingKey != viewModel.currentRatingKey
+                    else { return }
+                    Task { await startPlayback(for: activity) }
+                },
+        )
+
+        return presentationObservers
+            .alert("player.termination.title", isPresented: $isShowingError) {
+                Button("player.termination.dismiss") { closePlayer(force: true) }
+            } message: {
+                Text(errorMessage)
+            }
+            .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
+                Button("sharePlay.leave.action", role: .destructive) {
+                    sharePlayCoordinator.leave()
+                    participatesInSharePlay = false
+                    closePlayer(force: true)
+                }
+
+                Button("common.actions.cancel", role: .cancel) {}
+            } message: {
+                Text("sharePlay.leave.message")
+            }
     }
 
     private var controls: some View {
@@ -227,25 +260,43 @@ struct MacPlayerView: View {
                     }
                 }
 
+                if isScrubbing, let chapter = viewModel.chapter(at: scrubPosition) {
+                    Text(chapter.displayTitle)
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .transition(.opacity)
+                }
+
                 HStack(spacing: 10) {
                     Text(formatTime(scrubPosition))
                         .font(.caption.monospacedDigit())
                         .frame(width: 64, alignment: .trailing)
-                    Slider(
-                        value: $scrubPosition,
-                        in: 0 ... max(viewModel.duration ?? 1, 1),
-                        onEditingChanged: { editing in
-                            isScrubbing = editing
-                            if editing {
-                                showControls(temporarily: false)
-                            }
-                            if !editing {
-                                playerController.seek(to: scrubPosition)
-                                viewModel.handlePlaybackPosition(scrubPosition, isScrubbing: false)
-                                showControls(temporarily: true)
-                            }
-                        },
-                    )
+                    ZStack {
+                        PlayerChapterTicksView(
+                            chapters: viewModel.chapters,
+                            duration: viewModel.duration,
+                            horizontalInset: 10,
+                        )
+                        .frame(height: 22)
+
+                        Slider(
+                            value: $scrubPosition,
+                            in: 0 ... max(viewModel.duration ?? 1, 1),
+                            onEditingChanged: { editing in
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    isScrubbing = editing
+                                }
+                                if editing {
+                                    showControls(temporarily: false)
+                                }
+                                if !editing {
+                                    playerController.seek(to: scrubPosition)
+                                    viewModel.handlePlaybackPosition(scrubPosition, isScrubbing: false)
+                                    showControls(temporarily: true)
+                                }
+                            },
+                        )
+                    }
                     Text(formatTime(viewModel.duration ?? 0))
                         .font(.caption.monospacedDigit())
                         .frame(width: 64, alignment: .leading)
@@ -281,6 +332,10 @@ struct MacPlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
+
+                    if viewModel.hasNavigableChapters {
+                        chapterButton
+                    }
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
@@ -411,6 +466,24 @@ struct MacPlayerView: View {
             }
         } label: {
             Label("player.settings.speed", systemImage: "speedometer")
+        }
+    }
+
+    private var chapterButton: some View {
+        Button {
+            isShowingChapterPopover.toggle()
+        } label: {
+            Label("player.chapters.title", systemImage: "list.bullet.rectangle")
+        }
+        .popover(isPresented: $isShowingChapterPopover, arrowEdge: .bottom) {
+            MacPlayerChapterPopover(
+                chapters: viewModel.chapters,
+                currentPosition: viewModel.position,
+                imageURL: { chapter in
+                    viewModel.chapterImageURL(for: chapter, width: 320, height: 180)
+                },
+                onSelect: selectChapter(_:),
+            )
         }
     }
 
@@ -578,7 +651,14 @@ struct MacPlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard !playerController.isPaused, !isScrubbing, !isShowingError else { return }
+        guard
+            !playerController.isPaused,
+            !isScrubbing,
+            !isShowingError,
+            !isShowingChapterPopover
+        else {
+            return
+        }
 
         let workItem = DispatchWorkItem {
             hideControls(force: false)
@@ -589,7 +669,16 @@ struct MacPlayerView: View {
 
     private func hideControls(force: Bool) {
         hideControlsWorkItem?.cancel()
-        guard force || (!playerController.isPaused && !isScrubbing && !isShowingError) else { return }
+        guard
+            force || (
+                !playerController.isPaused
+                    && !isScrubbing
+                    && !isShowingError
+                    && !isShowingChapterPopover
+            )
+        else {
+            return
+        }
 
         withAnimation(.easeInOut) {
             controlsVisible = false
@@ -613,5 +702,12 @@ struct MacPlayerView: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
         return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private func selectChapter(_ chapter: PlexChapter) {
+        playerController.seek(to: chapter.startTime)
+        scrubPosition = chapter.startTime
+        viewModel.handlePlaybackPosition(chapter.startTime, isScrubbing: false)
+        isShowingChapterPopover = false
     }
 }

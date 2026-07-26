@@ -205,6 +205,35 @@ struct PlexMarker: Codable, Equatable {
     }
 }
 
+struct PlexChapter: Codable, Equatable, Hashable {
+    let id: Int
+    let filter: String
+    let index: Int
+    let startTimeOffset: Int
+    let endTimeOffset: Int
+    let thumb: String?
+
+    var stableID: String {
+        "\(index)-\(startTimeOffset)"
+    }
+
+    var startTime: Double {
+        Double(startTimeOffset) / 1000
+    }
+
+    var endTime: Double {
+        Double(endTimeOffset) / 1000
+    }
+
+    var isValid: Bool {
+        startTimeOffset >= 0 && endTimeOffset > startTimeOffset
+    }
+
+    func contains(time: Double) -> Bool {
+        time >= startTime && time < endTime
+    }
+}
+
 struct PlexPartStream: Codable, Equatable, Hashable {
     enum PlexPartStreamType: Int, Codable, Equatable {
         case video = 1
@@ -275,6 +304,7 @@ struct PlexItem: Codable, Equatable {
     let ratings: [PlexRating]?
     let media: [PlexMedia]?
     let markers: [PlexMarker]?
+    let chapters: [PlexChapter]?
 
     // Movie
     let slug: String?
@@ -347,6 +377,7 @@ struct PlexItem: Codable, Equatable {
         case ratings = "Rating"
         case media = "Media"
         case markers = "Marker"
+        case chapters = "Chapter"
         case onDeck = "OnDeck"
         case playQueueItemID
         case subtype, minYear, maxYear, composite, playlistType, smart
