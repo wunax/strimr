@@ -33,6 +33,7 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var pendingSessionAcceptanceActivityID: UUID?
     @ObservationIgnored private var deferredSessionInvalidation = false
     @ObservationIgnored private var pendingInitialResumeActivityID: UUID?
+    @ObservationIgnored private var lastCoordinatedActivityID: UUID?
 
     init(sessionManager: SessionManager, context: PlexAPIContext) {
         self.sessionManager = sessionManager
@@ -165,6 +166,7 @@ final class SharePlayCoordinator {
             identifier: playbackIdentifier(for: activity),
             initialTime: activity.initialPosition,
         )
+        lastCoordinatedActivityID = activity.activityID
     }
 
     func detachPlayer(_ controller: PlayerController) {
@@ -309,6 +311,7 @@ final class SharePlayCoordinator {
                     identifier: playbackIdentifier(for: activity),
                     initialTime: activity.initialPosition,
                 )
+                lastCoordinatedActivityID = activity.activityID
             }
         } else if sharingPresentationActivityID != newSession.activity.activityID {
             await launchPlaybackIfNeeded(for: newSession.activity)
@@ -364,6 +367,7 @@ final class SharePlayCoordinator {
                 identifier: playbackIdentifier(for: newActivity),
                 initialTime: newActivity.initialPosition,
             )
+            lastCoordinatedActivityID = newActivity.activityID
         }
     }
 
@@ -389,17 +393,23 @@ final class SharePlayCoordinator {
             playerController.endCoordinatedPlayback(continueLocally: true)
         }
         let shouldResumeInitialPlayback = pendingInitialResumeActivityID == activity.activityID
+        // A first-time participant can reach this point while its media is still loading and its
+        // local clock is zero. Use the activity's advertised progress for that first binding; only
+        // preserve the local clock when reconnecting to an activity that was already coordinated.
+        let isRejoiningCoordinatedActivity = lastCoordinatedActivityID == activity.activityID
         playerController.playbackCoordinator.coordinateWithSession(session)
-        if shouldResumeInitialPlayback {
+        if shouldResumeInitialPlayback || isRejoiningCoordinatedActivity {
             pendingInitialResumeActivityID = nil
             playerController.beginCoordinatedPlaybackResumingFromCurrentState(
                 identifier: playbackIdentifier(for: activity),
             )
         } else {
-            playerController.beginCoordinatedPlaybackFromCurrentState(
+            playerController.beginCoordinatedPlayback(
                 identifier: playbackIdentifier(for: activity),
+                initialTime: activity.initialPosition,
             )
         }
+        lastCoordinatedActivityID = activity.activityID
     }
 
     private func detach(continueLocally: Bool) {
