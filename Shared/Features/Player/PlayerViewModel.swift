@@ -334,6 +334,7 @@ final class PlayerViewModel {
         guard
             let ffIndex = track.ffIndex,
             let stream = streamsByFFIndex[ffIndex],
+            let streamId = stream.id,
             let partId = activePartId
         else {
             return
@@ -345,12 +346,12 @@ final class PlayerViewModel {
             case .audio:
                 try await playbackRepository.setPreferredStreams(
                     partId: partId,
-                    audioStreamId: stream.id,
+                    audioStreamId: streamId,
                 )
             case .subtitle:
                 try await playbackRepository.setPreferredStreams(
                     partId: partId,
-                    subtitleStreamId: stream.id,
+                    subtitleStreamId: streamId,
                 )
             case .video:
                 break
