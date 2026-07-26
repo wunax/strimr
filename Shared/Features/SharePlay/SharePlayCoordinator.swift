@@ -167,6 +167,11 @@ final class SharePlayCoordinator {
         )
     }
 
+    func detachPlayer(_ controller: PlayerController) {
+        guard playerController === controller else { return }
+        playerController = nil
+    }
+
     func playerDidLoad(ratingKey: String) {
         guard let activity, activity.ratingKey == ratingKey else { return }
         if participantCount > 1 {
@@ -398,8 +403,11 @@ final class SharePlayCoordinator {
     }
 
     private func detach(continueLocally: Bool) {
-        playerController?.endCoordinatedPlayback(continueLocally: continueLocally)
-        playerController = nil
+        let continuingPlayer = continueLocally ? playerController : nil
+        if playerController?.isCoordinatedPlayback == true {
+            playerController?.endCoordinatedPlayback(continueLocally: continueLocally)
+        }
+        playerController = continuingPlayer
         pendingNextItem = nil
         pendingInitialResumeActivityID = nil
         session = nil

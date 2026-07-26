@@ -167,6 +167,7 @@ struct MacPlayerView: View {
             if participatesInSharePlay, sharePlayCoordinator.isInSession {
                 sharePlayCoordinator.leave()
             }
+            sharePlayCoordinator.detachPlayer(playerController)
             participatesInSharePlay = false
         }
         .alert("player.termination.title", isPresented: $isShowingError) {

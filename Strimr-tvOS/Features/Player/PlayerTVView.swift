@@ -91,6 +91,7 @@ struct PlayerTVView: View {
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
+                    sharePlayCoordinator.detachPlayer(playerController)
                 }
                 .onPlayPauseCommand {
                     togglePlayPause()

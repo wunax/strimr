@@ -86,6 +86,7 @@ struct PlayerView: View {
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
+                    sharePlayCoordinator.detachPlayer(playerController)
                 }
                 .task {
                     await viewModel.load()
