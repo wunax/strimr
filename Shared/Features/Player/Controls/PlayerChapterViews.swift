@@ -59,38 +59,138 @@ struct PlayerChapterArtworkView: View {
     }
 }
 
-struct PlayerChapterTicksView: View {
+struct PlayerSegmentedTimelineRail: View {
     var chapters: [PlexChapter]
     var duration: Double?
+    var position: Double
+    var bufferedEnd: Double
     var horizontalInset: CGFloat = 14
+    var trackHeight: CGFloat = 4
+    var preferredGap: CGFloat = 4
+
+    private let minimumGap: CGFloat = 2
 
     var body: some View {
         GeometryReader { proxy in
-            if let duration, duration > 0 {
-                let usableWidth = max(proxy.size.width - horizontalInset * 2, 0)
+            let timelineDuration = effectiveDuration
+            let rects = segmentRects(
+                width: proxy.size.width,
+                duration: timelineDuration,
+            )
+            let playedX = timelineX(
+                for: position,
+                width: proxy.size.width,
+                duration: timelineDuration,
+            )
+            let bufferedX = timelineX(
+                for: bufferedEnd,
+                width: proxy.size.width,
+                duration: timelineDuration,
+            )
 
-                ForEach(
-                    chapters.filter { $0.startTime > 0 && $0.startTime < duration },
-                    id: \.stableID,
-                ) { chapter in
-                    let progress = min(max(chapter.startTime / duration, 0), 1)
-                    Rectangle()
-                        .fill(.black.opacity(0.72))
-                        .frame(width: 3, height: 12)
-                        .overlay {
-                            Rectangle()
-                                .fill(.white.opacity(0.9))
-                                .frame(width: 1, height: 10)
-                        }
-                        .position(
-                            x: horizontalInset + usableWidth * progress,
-                            y: proxy.size.height / 2,
-                        )
+            ForEach(Array(rects.enumerated()), id: \.offset) { _, rect in
+                ZStack(alignment: .leading) {
+                    Color.white.opacity(0.35)
+
+                    Color.white.opacity(0.65)
+                        .frame(width: fillWidth(endingAt: bufferedX, in: rect))
+
+                    Color.white
+                        .frame(width: fillWidth(endingAt: playedX, in: rect))
                 }
+                .frame(width: rect.width, height: trackHeight)
+                .clipShape(Capsule())
+                .position(x: rect.midX, y: proxy.size.height / 2)
             }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private var effectiveDuration: Double {
+        if let duration, duration.isFinite, duration > 0 {
+            return duration
+        }
+
+        let knownExtent = [position, bufferedEnd]
+            .filter { $0.isFinite && $0 > 0 }
+            .max() ?? 0
+        return max(knownExtent, 1)
+    }
+
+    private func segmentRects(width: CGFloat, duration: Double) -> [CGRect] {
+        let usableWidth = max(width - horizontalInset * 2, 0)
+        guard usableWidth > 0 else { return [] }
+
+        let hasKnownDuration = self.duration.map {
+            $0.isFinite && $0 > 0
+        } ?? false
+        let validStarts = hasKnownDuration
+            ? chapters
+                .filter(\.isValid)
+                .map(\.startTime)
+                .filter { $0.isFinite && $0 > 0 && $0 < duration }
+                .sorted()
+            : []
+
+        var distinctStarts: [Double] = []
+        for start in validStarts {
+            if let previous = distinctStarts.last,
+               abs(start - previous) < 0.001
+            {
+                continue
+            }
+            distinctStarts.append(start)
+        }
+
+        let candidateBoundaries = [horizontalInset]
+            + distinctStarts.map { start in
+                horizontalInset + usableWidth * CGFloat(start / duration)
+            }
+            + [horizontalInset + usableWidth]
+        let minimumSpan = trackHeight + minimumGap
+        var boundaries = [candidateBoundaries[0]]
+
+        for boundary in candidateBoundaries.dropFirst().dropLast() {
+            guard let previous = boundaries.last,
+                  boundary - previous >= minimumSpan,
+                  horizontalInset + usableWidth - boundary >= minimumSpan
+            else {
+                continue
+            }
+            boundaries.append(boundary)
+        }
+        boundaries.append(horizontalInset + usableWidth)
+
+        let spans = zip(boundaries, boundaries.dropFirst()).map { $1 - $0 }
+        let smallestSpan = spans.min() ?? usableWidth
+        let gap = min(preferredGap, max(minimumGap, smallestSpan - trackHeight))
+        let lastSegmentIndex = boundaries.count - 2
+
+        return (0 ... lastSegmentIndex).compactMap { index in
+            let leadingGap = index == 0 ? 0 : gap / 2
+            let trailingGap = index == lastSegmentIndex ? 0 : gap / 2
+            let minX = boundaries[index] + leadingGap
+            let maxX = boundaries[index + 1] - trailingGap
+            guard maxX > minX else { return nil }
+            return CGRect(
+                x: minX,
+                y: 0,
+                width: maxX - minX,
+                height: trackHeight,
+            )
+        }
+    }
+
+    private func timelineX(for time: Double, width: CGFloat, duration: Double) -> CGFloat {
+        let usableWidth = max(width - horizontalInset * 2, 0)
+        let safeTime = time.isFinite ? time : 0
+        let progress = CGFloat(min(max(safeTime / duration, 0), 1))
+        return horizontalInset + usableWidth * progress
+    }
+
+    private func fillWidth(endingAt x: CGFloat, in rect: CGRect) -> CGFloat {
+        min(max(x - rect.minX, 0), rect.width)
     }
 }
 

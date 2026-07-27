@@ -1,5 +1,11 @@
 import SwiftUI
 
+#if os(iOS)
+    import UIKit
+#elseif os(macOS)
+    import AppKit
+#endif
+
 struct PlayerTimelineView: View {
     @Binding var position: Double
     var duration: Double?
@@ -17,11 +23,6 @@ struct PlayerTimelineView: View {
         let bufferedPosition = playbackPosition + bufferedAhead
         guard let duration else { return bufferedPosition }
         return min(bufferedPosition, duration)
-    }
-
-    private var bufferedProgress: Double {
-        guard sliderUpperBound > 0 else { return 0 }
-        return min(max(bufferedEnd / sliderUpperBound, 0), 1)
     }
 
     private var sliderBinding: Binding<Double> {
@@ -50,25 +51,26 @@ struct PlayerTimelineView: View {
                     position: $position,
                     upperBound: sliderUpperBound,
                     duration: duration,
-                    bufferedProgress: bufferedProgress,
+                    bufferedEnd: bufferedEnd,
                     chapters: chapters,
                     onEditingChanged: handleEditingChanged(_:),
                 )
             #else
                 ZStack {
-                    bufferTrack
-                    PlayerChapterTicksView(
+                    PlayerSegmentedTimelineRail(
                         chapters: chapters,
                         duration: duration,
+                        position: position,
+                        bufferedEnd: bufferedEnd,
                     )
                     .frame(maxHeight: 28)
-                    Slider(
+
+                    PlayerTracklessSlider(
                         value: sliderBinding,
                         in: 0 ... sliderUpperBound,
                         onEditingChanged: handleEditingChanged(_:),
                     )
-                        .tint(.white)
-                        .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 8)
+                    .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 8)
                 }
             #endif
 
@@ -95,24 +97,6 @@ struct PlayerTimelineView: View {
         return "-\(formatTime(remaining))"
     }
 
-    private var bufferTrack: some View {
-        GeometryReader { proxy in
-            let bufferWidth = proxy.size.width * bufferedProgress
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(0.35))
-                Capsule()
-                    .fill(Color.white.opacity(0.65))
-                    .frame(width: bufferWidth)
-            }
-            .frame(height: 4)
-            .frame(maxHeight: .infinity, alignment: .center)
-            .allowsHitTesting(false)
-        }
-        .frame(maxWidth: .infinity, maxHeight: 28)
-        .accessibilityHidden(true)
-    }
-
     private func formatTime(_ seconds: Double) -> String {
         let totalSeconds = max(Int(seconds.rounded()), 0)
         let hours = totalSeconds / 3600
@@ -137,3 +121,188 @@ struct PlayerTimelineView: View {
         onEditingChanged(editing)
     }
 }
+
+#if os(iOS)
+    private struct PlayerTracklessSlider: UIViewRepresentable {
+        @Binding var value: Double
+        var range: ClosedRange<Double>
+        var onEditingChanged: (Bool) -> Void
+
+        init(
+            value: Binding<Double>,
+            in range: ClosedRange<Double>,
+            onEditingChanged: @escaping (Bool) -> Void
+        ) {
+            _value = value
+            self.range = range
+            self.onEditingChanged = onEditingChanged
+        }
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeUIView(context: Context) -> UISlider {
+            let slider = UISlider()
+            slider.isContinuous = true
+            slider.minimumTrackTintColor = .clear
+            slider.maximumTrackTintColor = .clear
+            slider.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.editingBegan(_:)),
+                for: .touchDown
+            )
+            slider.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.valueChanged(_:)),
+                for: .valueChanged
+            )
+            slider.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.editingEnded(_:)),
+                for: [.touchUpInside, .touchUpOutside, .touchCancel]
+            )
+            return slider
+        }
+
+        func updateUIView(_ slider: UISlider, context: Context) {
+            context.coordinator.parent = self
+            slider.minimumValue = Float(range.lowerBound)
+            slider.maximumValue = Float(range.upperBound)
+            slider.minimumTrackTintColor = .clear
+            slider.maximumTrackTintColor = .clear
+
+            let clampedValue = min(max(value, range.lowerBound), range.upperBound)
+            if abs(Double(slider.value) - clampedValue) > 0.001 {
+                slider.setValue(Float(clampedValue), animated: false)
+            }
+        }
+
+        final class Coordinator: NSObject {
+            var parent: PlayerTracklessSlider
+            private var isEditing = false
+
+            init(parent: PlayerTracklessSlider) {
+                self.parent = parent
+            }
+
+            @objc func editingBegan(_ slider: UISlider) {
+                beginEditingIfNeeded()
+            }
+
+            @objc func valueChanged(_ slider: UISlider) {
+                let commitsImmediately = !slider.isTracking && !isEditing
+                if commitsImmediately {
+                    beginEditingIfNeeded()
+                }
+
+                parent.value = Double(slider.value)
+
+                if commitsImmediately {
+                    endEditingIfNeeded()
+                }
+            }
+
+            @objc func editingEnded(_ slider: UISlider) {
+                parent.value = Double(slider.value)
+                endEditingIfNeeded()
+            }
+
+            private func beginEditingIfNeeded() {
+                guard !isEditing else { return }
+                isEditing = true
+                parent.onEditingChanged(true)
+            }
+
+            private func endEditingIfNeeded() {
+                guard isEditing else { return }
+                isEditing = false
+                parent.onEditingChanged(false)
+            }
+        }
+    }
+#elseif os(macOS)
+    struct PlayerTracklessSlider: NSViewRepresentable {
+        @Binding var value: Double
+        var range: ClosedRange<Double>
+        var onEditingChanged: (Bool) -> Void
+
+        init(
+            value: Binding<Double>,
+            in range: ClosedRange<Double>,
+            onEditingChanged: @escaping (Bool) -> Void
+        ) {
+            _value = value
+            self.range = range
+            self.onEditingChanged = onEditingChanged
+        }
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeNSView(context: Context) -> TracklessNSSlider {
+            let slider = TracklessNSSlider()
+            slider.cell = TracklessNSSliderCell()
+            slider.isContinuous = true
+            slider.target = context.coordinator
+            slider.action = #selector(Coordinator.valueChanged(_:))
+            slider.onEditingChanged = context.coordinator.handleEditingChanged(_:)
+            return slider
+        }
+
+        func updateNSView(_ slider: TracklessNSSlider, context: Context) {
+            context.coordinator.parent = self
+            slider.minValue = range.lowerBound
+            slider.maxValue = range.upperBound
+            slider.onEditingChanged = context.coordinator.handleEditingChanged(_:)
+
+            let clampedValue = min(max(value, range.lowerBound), range.upperBound)
+            if abs(slider.doubleValue - clampedValue) > 0.001 {
+                slider.doubleValue = clampedValue
+            }
+        }
+
+        final class Coordinator: NSObject {
+            var parent: PlayerTracklessSlider
+
+            init(parent: PlayerTracklessSlider) {
+                self.parent = parent
+            }
+
+            @objc func valueChanged(_ slider: TracklessNSSlider) {
+                let commitsImmediately = !slider.isInteracting
+                if commitsImmediately {
+                    parent.onEditingChanged(true)
+                }
+
+                parent.value = slider.doubleValue
+
+                if commitsImmediately {
+                    parent.onEditingChanged(false)
+                }
+            }
+
+            func handleEditingChanged(_ editing: Bool) {
+                parent.onEditingChanged(editing)
+            }
+        }
+    }
+
+    final class TracklessNSSlider: NSSlider {
+        var onEditingChanged: ((Bool) -> Void)?
+        private(set) var isInteracting = false
+
+        override func mouseDown(with event: NSEvent) {
+            isInteracting = true
+            onEditingChanged?(true)
+            super.mouseDown(with: event)
+            isInteracting = false
+            onEditingChanged?(false)
+        }
+    }
+
+    final class TracklessNSSliderCell: NSSliderCell {
+        override func drawBar(inside rect: NSRect, flipped: Bool) {}
+    }
+#endif

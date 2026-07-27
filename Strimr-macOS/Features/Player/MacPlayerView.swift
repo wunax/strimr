@@ -272,14 +272,16 @@ struct MacPlayerView: View {
                         .font(.caption.monospacedDigit())
                         .frame(width: 64, alignment: .trailing)
                     ZStack {
-                        PlayerChapterTicksView(
+                        PlayerSegmentedTimelineRail(
                             chapters: viewModel.chapters,
                             duration: viewModel.duration,
+                            position: scrubPosition,
+                            bufferedEnd: viewModel.position + viewModel.bufferedAhead,
                             horizontalInset: 10,
                         )
                         .frame(height: 22)
 
-                        Slider(
+                        PlayerTracklessSlider(
                             value: $scrubPosition,
                             in: 0 ... max(viewModel.duration ?? 1, 1),
                             onEditingChanged: { editing in
