@@ -212,7 +212,7 @@ struct PlexPartStream: Codable, Equatable, Hashable {
         case subtitle = 3
     }
 
-    let id: Int
+    let id: Int?
     let index: Int?
     let codec: String
     let streamType: PlexPartStreamType
