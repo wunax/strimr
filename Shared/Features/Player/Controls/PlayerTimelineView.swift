@@ -12,6 +12,7 @@ struct PlayerTimelineView: View {
     var bufferedAhead: Double
     var playbackPosition: Double
     var chapters: [PlexChapter]
+    var showsChaptersOnTimeline: Bool
     var onEditingChanged: (Bool) -> Void
     @State private var isEditing = false
 
@@ -38,7 +39,10 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if isEditing, let chapter = chapter(at: position) {
+            if showsChaptersOnTimeline,
+               isEditing,
+               let chapter = chapter(at: position)
+            {
                 Text(chapter.displayTitle)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.9))
@@ -52,13 +56,13 @@ struct PlayerTimelineView: View {
                     upperBound: sliderUpperBound,
                     duration: duration,
                     bufferedEnd: bufferedEnd,
-                    chapters: chapters,
+                    chapters: timelineChapters,
                     onEditingChanged: handleEditingChanged(_:),
                 )
             #else
                 ZStack {
                     PlayerSegmentedTimelineRail(
-                        chapters: chapters,
+                        chapters: timelineChapters,
                         duration: duration,
                         position: position,
                         bufferedEnd: bufferedEnd,
@@ -89,6 +93,10 @@ struct PlayerTimelineView: View {
 
     private var elapsedText: String {
         formatTime(position)
+    }
+
+    private var timelineChapters: [PlexChapter] {
+        showsChaptersOnTimeline ? chapters : []
     }
 
     private var remainingText: String {

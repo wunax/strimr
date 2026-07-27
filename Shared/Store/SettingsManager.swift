@@ -42,6 +42,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowChaptersOnTimeline(_ enabled: Bool) {
+        settings.playback.showChaptersOnTimeline = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()

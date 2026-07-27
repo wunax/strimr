@@ -31,6 +31,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showChaptersOnTimelineBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showChaptersOnTimeline },
+            set: { self.settingsManager.setShowChaptersOnTimeline($0) },
+        )
+    }
+
     var rewindBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.seekBackwardSeconds },

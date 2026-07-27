@@ -44,6 +44,7 @@ struct SubtitleAppearance: Equatable {
 struct PlaybackSettings: Codable, Equatable {
     var autoPlayNextEpisode = true
     var losslessAudio = false
+    var showChaptersOnTimeline = true
     var seekBackwardSeconds = 10
     var seekForwardSeconds = 10
     var subtitleFontSize = defaultSubtitleFontSize
@@ -59,6 +60,10 @@ struct PlaybackSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         autoPlayNextEpisode = try container.decodeIfPresent(Bool.self, forKey: .autoPlayNextEpisode) ?? true
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
+        showChaptersOnTimeline = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showChaptersOnTimeline,
+        ) ?? true
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
         subtitleFontSize = (try? container.decode(Int.self, forKey: .subtitleFontSize))

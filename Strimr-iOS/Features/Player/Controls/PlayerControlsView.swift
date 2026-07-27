@@ -14,6 +14,7 @@ struct PlayerControlsView: View {
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
     var chapters: [PlexChapter]
+    var showsChaptersOnTimeline: Bool
     var onShowChapters: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
@@ -84,6 +85,7 @@ struct PlayerControlsView: View {
                         bufferedAhead: bufferedAhead,
                         playbackPosition: bufferBasePosition,
                         chapters: chapters,
+                        showsChaptersOnTimeline: showsChaptersOnTimeline,
                         onEditingChanged: onScrubbingChanged,
                     )
                 }

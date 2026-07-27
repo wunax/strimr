@@ -260,7 +260,10 @@ struct MacPlayerView: View {
                     }
                 }
 
-                if isScrubbing, let chapter = viewModel.chapter(at: scrubPosition) {
+                if settingsManager.playback.showChaptersOnTimeline,
+                   isScrubbing,
+                   let chapter = viewModel.chapter(at: scrubPosition)
+                {
                     Text(chapter.displayTitle)
                         .font(.caption.weight(.semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -273,7 +276,9 @@ struct MacPlayerView: View {
                         .frame(width: 64, alignment: .trailing)
                     ZStack {
                         PlayerSegmentedTimelineRail(
-                            chapters: viewModel.chapters,
+                            chapters: settingsManager.playback.showChaptersOnTimeline
+                                ? viewModel.chapters
+                                : [],
                             duration: viewModel.duration,
                             position: scrubPosition,
                             bufferedEnd: viewModel.position + viewModel.bufferedAhead,

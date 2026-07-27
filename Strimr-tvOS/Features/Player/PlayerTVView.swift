@@ -257,6 +257,7 @@ struct PlayerTVView: View {
                     onShowSubtitleSettings: showSubtitleSettings,
                     onShowSpeedSettings: showSpeedSettings,
                     chapters: viewModel.chapters,
+                    showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     currentPosition: viewModel.position,
                     isShowingChapterTray: isShowingChapterTray,
                     chapterImageURL: { chapter in

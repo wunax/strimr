@@ -236,6 +236,7 @@ struct PlayerView: View {
                     onDismiss: { dismissPlayer() },
                     onShowSettings: showSettings,
                     chapters: viewModel.chapters,
+                    showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     onShowChapters: showChapters,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,

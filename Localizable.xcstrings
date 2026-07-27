@@ -7039,6 +7039,28 @@
         }
       }
     },
+    "settings.playback.showChaptersOnTimeline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show chapters on timeline"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les chapitres sur la barre de progression"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在时间线上显示章节"
+          }
+        }
+      }
+    },
     "settings.playback.subtitleFontSize" : {
       "localizations" : {
         "en" : {
