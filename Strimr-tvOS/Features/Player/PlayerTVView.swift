@@ -264,6 +264,7 @@ struct PlayerTVView: View {
                         viewModel.chapterImageURL(for: chapter, width: 640, height: 360)
                     },
                     onShowChapters: showChapters,
+                    onHideChapters: hideChapters,
                     onSelectChapter: selectChapter(_:),
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
@@ -385,6 +386,14 @@ struct PlayerTVView: View {
             isShowingChapterTray = true
             controlsVisible = true
         }
+    }
+
+    private func hideChapters() {
+        guard isShowingChapterTray else { return }
+        withAnimation(.easeInOut) {
+            isShowingChapterTray = false
+        }
+        showControls(temporarily: true)
     }
 
     private func selectChapter(_ chapter: PlexChapter) {

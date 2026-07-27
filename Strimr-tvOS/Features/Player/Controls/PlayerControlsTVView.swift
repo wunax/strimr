@@ -19,6 +19,7 @@ struct PlayerControlsTVView: View {
     var isShowingChapterTray: Bool
     var chapterImageURL: (PlexChapter) -> URL?
     var onShowChapters: () -> Void
+    var onHideChapters: () -> Void
     var onSelectChapter: (PlexChapter) -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
@@ -99,6 +100,7 @@ struct PlayerControlsTVView: View {
                     currentPosition: currentPosition,
                     imageURL: chapterImageURL,
                     onSelect: onSelectChapter,
+                    onFocusExit: onHideChapters,
                 )
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
