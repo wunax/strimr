@@ -127,10 +127,10 @@ struct PlayerSegmentedTimelineRail: View {
         } ?? false
         let validStarts = hasKnownDuration
             ? chapters
-                .filter(\.isValid)
-                .map(\.startTime)
-                .filter { $0.isFinite && $0 > 0 && $0 < duration }
-                .sorted()
+            .filter(\.isValid)
+            .map(\.startTime)
+            .filter { $0.isFinite && $0 > 0 && $0 < duration }
+            .sorted()
             : []
 
         var distinctStarts: [Double] = []

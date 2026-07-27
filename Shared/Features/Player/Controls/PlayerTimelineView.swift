@@ -139,7 +139,7 @@ struct PlayerTimelineView: View {
         init(
             value: Binding<Double>,
             in range: ClosedRange<Double>,
-            onEditingChanged: @escaping (Bool) -> Void
+            onEditingChanged: @escaping (Bool) -> Void,
         ) {
             _value = value
             self.range = range
@@ -158,17 +158,17 @@ struct PlayerTimelineView: View {
             slider.addTarget(
                 context.coordinator,
                 action: #selector(Coordinator.editingBegan(_:)),
-                for: .touchDown
+                for: .touchDown,
             )
             slider.addTarget(
                 context.coordinator,
                 action: #selector(Coordinator.valueChanged(_:)),
-                for: .valueChanged
+                for: .valueChanged,
             )
             slider.addTarget(
                 context.coordinator,
                 action: #selector(Coordinator.editingEnded(_:)),
-                for: [.touchUpInside, .touchUpOutside, .touchCancel]
+                for: [.touchUpInside, .touchUpOutside, .touchCancel],
             )
             return slider
         }
@@ -194,7 +194,7 @@ struct PlayerTimelineView: View {
                 self.parent = parent
             }
 
-            @objc func editingBegan(_ slider: UISlider) {
+            @objc func editingBegan(_: UISlider) {
                 beginEditingIfNeeded()
             }
 
@@ -238,7 +238,7 @@ struct PlayerTimelineView: View {
         init(
             value: Binding<Double>,
             in range: ClosedRange<Double>,
-            onEditingChanged: @escaping (Bool) -> Void
+            onEditingChanged: @escaping (Bool) -> Void,
         ) {
             _value = value
             self.range = range
@@ -311,6 +311,6 @@ struct PlayerTimelineView: View {
     }
 
     final class TracklessNSSliderCell: NSSliderCell {
-        override func drawBar(inside rect: NSRect, flipped: Bool) {}
+        override func drawBar(inside _: NSRect, flipped _: Bool) {}
     }
 #endif
