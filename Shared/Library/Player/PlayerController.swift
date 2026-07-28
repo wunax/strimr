@@ -56,6 +56,8 @@ final class PlayerController {
     @ObservationIgnored private var scrubTargetGeneration = 0
     @ObservationIgnored private var activeScrubBucket: Int?
     @ObservationIgnored private var isScrubPreviewing = false
+    @ObservationIgnored private var showsScrubThumbnailPreviews = true
+    @ObservationIgnored private var generatesMissingScrubThumbnailPreviews = true
 
     private let scrubBucketDuration = 10.0
     private let unavailableBIFExtractorDelay: Duration = .milliseconds(250)
@@ -80,11 +82,17 @@ final class PlayerController {
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
         scrubThumbnailSource: PlexBIFSource? = nil,
+        showsScrubThumbnailPreviews: Bool = true,
+        generatesMissingScrubThumbnailPreviews: Bool = true,
         autoplay: Bool = true,
     ) {
         resetScrubPreviewSession()
-        scrubBIFProvider = scrubThumbnailSource.map {
-            PlexBIFThumbnailProvider(source: $0)
+        self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
+        self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
+        if showsScrubThumbnailPreviews {
+            scrubBIFProvider = scrubThumbnailSource.map {
+                PlexBIFThumbnailProvider(source: $0)
+            }
         }
         isStopping = false
         hasStartedPlayback = false
@@ -176,12 +184,13 @@ final class PlayerController {
     }
 
     func beginScrubPreviewing(at position: Double) {
+        guard showsScrubThumbnailPreviews else { return }
         isScrubPreviewing = true
         updateScrubPreview(to: position)
     }
 
     func updateScrubPreview(to position: Double) {
-        guard isScrubPreviewing, position.isFinite else { return }
+        guard showsScrubThumbnailPreviews, isScrubPreviewing, position.isFinite else { return }
 
         let target = max(0, position)
         scrubTargetGeneration &+= 1
@@ -442,7 +451,12 @@ final class PlayerController {
     ) {
         scrubExtractorDwellTask?.cancel()
         scrubExtractorDwellTask = nil
-        guard scrubPreview?.image == nil, !engine.isLive else { return }
+        guard generatesMissingScrubThumbnailPreviews,
+              scrubPreview?.image == nil,
+              !engine.isLive
+        else {
+            return
+        }
 
         scrubExtractorDwellTask = Task { @MainActor [weak self] in
             guard let self else { return }

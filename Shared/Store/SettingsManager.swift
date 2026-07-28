@@ -47,6 +47,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowScrubThumbnailPreviews(_ enabled: Bool) {
+        settings.playback.showScrubThumbnailPreviews = enabled
+        persist()
+    }
+
+    func setGenerateMissingScrubThumbnailPreviews(_ enabled: Bool) {
+        settings.playback.generateMissingScrubThumbnailPreviews = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()

@@ -581,6 +581,9 @@ struct PlayerTVView: View {
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
+            showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+            generatesMissingScrubThumbnailPreviews:
+                settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)

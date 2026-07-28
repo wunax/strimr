@@ -557,6 +557,9 @@ struct MacPlayerView: View {
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
+            showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+            generatesMissingScrubThumbnailPreviews:
+                settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)
