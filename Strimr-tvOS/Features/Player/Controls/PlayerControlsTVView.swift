@@ -15,6 +15,7 @@ struct PlayerControlsTVView: View {
     var onShowSpeedSettings: () -> Void
     var chapters: [PlexChapter]
     var showsChaptersOnTimeline: Bool
+    var scrubPreview: PlayerScrubPreview?
     var currentPosition: Double
     var isShowingChapterTray: Bool
     var chapterImageURL: (PlexChapter) -> URL?
@@ -121,6 +122,7 @@ struct PlayerControlsTVView: View {
                 playbackPosition: bufferBasePosition,
                 chapters: chapters,
                 showsChaptersOnTimeline: showsChaptersOnTimeline,
+                scrubPreview: scrubPreview,
                 onEditingChanged: onScrubbingChanged,
             )
 

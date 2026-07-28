@@ -6,6 +6,11 @@ import Foundation
 import Observation
 import SwiftUI
 
+struct PlayerScrubPreview {
+    var position: Double
+    var image: CGImage?
+}
+
 @MainActor
 @Observable
 final class PlayerController {
@@ -22,6 +27,7 @@ final class PlayerController {
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
     var errorMessage: String?
+    private(set) var scrubPreview: PlayerScrubPreview?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
 
@@ -39,6 +45,15 @@ final class PlayerController {
     @ObservationIgnored private var isStopping = false
     @ObservationIgnored private var playbackRate: Float = 1.0
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
+    @ObservationIgnored private var scrubPreviewTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubFrameExtractor: FrameExtractor?
+    @ObservationIgnored private var scrubExtractorRequestGeneration: Int?
+    @ObservationIgnored private var scrubPreviewGeneration = 0
+    @ObservationIgnored private var isScrubPreviewing = false
+
+    private let cacheThumbnailDelay: Duration = .milliseconds(75)
+    private let extractorThumbnailDelay: Duration = .milliseconds(350)
+    private let scrubThumbnailWidth = 320
 
     init() {
         do {
@@ -57,6 +72,7 @@ final class PlayerController {
         losslessAudio: Bool,
         autoplay: Bool = true,
     ) {
+        resetScrubPreviewSession()
         isStopping = false
         hasStartedPlayback = false
         selectedSubtitleTrackID = nil
@@ -139,6 +155,93 @@ final class PlayerController {
 
     func seek(by delta: Double) {
         seek(to: max(0, position + delta))
+    }
+
+    func beginScrubPreviewing(at position: Double) {
+        isScrubPreviewing = true
+        updateScrubPreview(to: position)
+    }
+
+    func updateScrubPreview(to position: Double) {
+        guard isScrubPreviewing, position.isFinite else { return }
+
+        let target = max(0, position)
+        scrubPreviewGeneration &+= 1
+        let generation = scrubPreviewGeneration
+        scrubPreviewTask?.cancel()
+        cancelInFlightScrubExtraction()
+        scrubPreview = PlayerScrubPreview(position: target, image: nil)
+
+        scrubPreviewTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let startedAt = ContinuousClock.now
+
+            do {
+                try await Task.sleep(for: cacheThumbnailDelay)
+            } catch {
+                return
+            }
+
+            let cachedImage = await engine.scrubThumbnail(
+                atSeconds: target,
+                maxWidth: scrubThumbnailWidth,
+            )
+            guard isCurrentScrubRequest(generation: generation, position: target) else {
+                return
+            }
+            if let cachedImage {
+                scrubPreview = PlayerScrubPreview(position: target, image: cachedImage)
+                return
+            }
+
+            guard !engine.isLive else { return }
+
+            let elapsed = startedAt.duration(to: ContinuousClock.now)
+            let remainingDelay = extractorThumbnailDelay - elapsed
+            if remainingDelay > .zero {
+                do {
+                    try await Task.sleep(for: remainingDelay)
+                } catch {
+                    return
+                }
+            }
+            guard isCurrentScrubRequest(generation: generation, position: target) else {
+                return
+            }
+
+            let extractor: FrameExtractor
+            if let scrubFrameExtractor {
+                extractor = scrubFrameExtractor
+            } else {
+                guard let newExtractor = engine.makeFrameExtractor() else { return }
+                scrubFrameExtractor = newExtractor
+                extractor = newExtractor
+            }
+
+            scrubExtractorRequestGeneration = generation
+            let extractedImage = await extractor.thumbnail(
+                at: target,
+                maxWidth: scrubThumbnailWidth,
+            )
+            if scrubExtractorRequestGeneration == generation {
+                scrubExtractorRequestGeneration = nil
+            }
+            guard let extractedImage,
+                  isCurrentScrubRequest(generation: generation, position: target)
+            else {
+                return
+            }
+            scrubPreview = PlayerScrubPreview(position: target, image: extractedImage)
+        }
+    }
+
+    func endScrubPreviewing() {
+        isScrubPreviewing = false
+        scrubPreviewGeneration &+= 1
+        scrubPreviewTask?.cancel()
+        scrubPreviewTask = nil
+        cancelInFlightScrubExtraction()
+        scrubPreview = nil
     }
 
     func setPlaybackRate(_ rate: Float) {
@@ -292,11 +395,46 @@ final class PlayerController {
     }
 
     func stop() {
+        resetScrubPreviewSession()
         isStopping = true
         isPaused = true
         isBuffering = false
         sourceVideoSize = nil
         engine.stop()
+    }
+
+    private func isCurrentScrubRequest(generation: Int, position: Double) -> Bool {
+        isScrubPreviewing
+            && scrubPreviewGeneration == generation
+            && scrubPreview?.position == position
+    }
+
+    private func resetScrubPreviewSession() {
+        isScrubPreviewing = false
+        scrubPreviewGeneration &+= 1
+        scrubPreviewTask?.cancel()
+        scrubPreviewTask = nil
+        scrubPreview = nil
+        scrubExtractorRequestGeneration = nil
+
+        guard let extractor = scrubFrameExtractor else { return }
+        scrubFrameExtractor = nil
+        Task {
+            await extractor.shutdown()
+        }
+    }
+
+    private func cancelInFlightScrubExtraction() {
+        guard scrubExtractorRequestGeneration != nil,
+              let extractor = scrubFrameExtractor
+        else {
+            return
+        }
+        scrubExtractorRequestGeneration = nil
+        scrubFrameExtractor = nil
+        Task {
+            await extractor.shutdown()
+        }
     }
 
     private func observeEngine() {

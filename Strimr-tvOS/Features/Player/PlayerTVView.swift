@@ -160,6 +160,10 @@ struct PlayerTVView: View {
                     guard !isScrubbing else { return }
                     timelinePosition = newValue
                 }
+                .onChange(of: timelinePosition) { _, newValue in
+                    guard isScrubbing else { return }
+                    playerController.updateScrubPreview(to: newValue)
+                }
                 .onChange(of: viewModel.hasNavigableChapters) { _, hasChapters in
                     if !hasChapters {
                         isShowingChapterTray = false
@@ -258,6 +262,7 @@ struct PlayerTVView: View {
                     onShowSpeedSettings: showSpeedSettings,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+                    scrubPreview: playerController.scrubPreview,
                     currentPosition: viewModel.position,
                     isShowingChapterTray: isShowingChapterTray,
                     chapterImageURL: { chapter in
@@ -532,11 +537,13 @@ struct PlayerTVView: View {
 
         if editing {
             timelinePosition = viewModel.position
+            playerController.beginScrubPreviewing(at: timelinePosition)
             hideControlsWorkItem?.cancel()
             withAnimation(.easeInOut) {
                 controlsVisible = true
             }
         } else {
+            playerController.endScrubPreviewing()
             playerController.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
