@@ -40,7 +40,10 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if isEditing, let scrubPreview {
+            if isEditing,
+               let scrubPreview,
+               scrubPreview.image != nil
+            {
                 PlayerScrubPreviewRail(
                     preview: scrubPreview,
                     duration: sliderUpperBound,
@@ -168,8 +171,14 @@ struct PlayerScrubPreviewRail: View {
                 max(halfCardWidth, width - halfCardWidth),
             )
 
-            PlayerScrubPreviewCard(preview: preview, size: cardSize)
+            if let image = preview.image {
+                PlayerScrubPreviewCard(
+                    image: image,
+                    position: preview.position,
+                    size: cardSize,
+                )
                 .position(x: cardX, y: cardSize.height / 2)
+            }
         }
         .frame(height: cardSize.height)
         .accessibilityElement(children: .combine)
@@ -177,30 +186,24 @@ struct PlayerScrubPreviewRail: View {
 }
 
 struct PlayerScrubPreviewCard: View {
-    var preview: PlayerScrubPreview
+    var image: CGImage
+    var position: Double
     var size: CGSize
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.72)
 
-            if let image = preview.image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .scaledToFill()
-                    .id(ObjectIdentifier(image))
-                    .transition(.opacity)
-            } else {
-                Image(systemName: "film")
-                    .font(.title2)
-                    .foregroundStyle(.white.opacity(0.45))
-                    .accessibilityHidden(true)
-            }
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .scaledToFill()
+                .id(ObjectIdentifier(image))
+                .transition(.opacity)
         }
         .frame(width: size.width, height: size.height)
         .clipped()
         .overlay(alignment: .bottomTrailing) {
-            Text(playerTimestampText(preview.position))
+            Text(playerTimestampText(position))
                 .font(.caption.monospacedDigit().weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
@@ -216,7 +219,7 @@ struct PlayerScrubPreviewCard: View {
         .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 7)
         .animation(
             .easeOut(duration: 0.1),
-            value: preview.image.map(ObjectIdentifier.init),
+            value: ObjectIdentifier(image),
         )
     }
 }

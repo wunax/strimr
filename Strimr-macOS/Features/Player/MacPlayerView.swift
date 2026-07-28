@@ -264,7 +264,10 @@ struct MacPlayerView: View {
                     }
                 }
 
-                if isScrubbing, let scrubPreview = playerController.scrubPreview {
+                if isScrubbing,
+                   let scrubPreview = playerController.scrubPreview,
+                   scrubPreview.image != nil
+                {
                     PlayerScrubPreviewRail(
                         preview: scrubPreview,
                         duration: max(max(viewModel.duration ?? 0, scrubPosition), 1),
