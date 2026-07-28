@@ -26,6 +26,13 @@ struct SettingsPlaybackView: View {
                 }
             }
 
+            Section("player.chapters.title") {
+                Toggle(
+                    "settings.playback.showChaptersOnTimeline",
+                    isOn: viewModel.showChaptersOnTimelineBinding,
+                )
+            }
+
             Section("settings.playback.subtitles.title") {
                 NavigationLink("settings.playback.subtitles.customize") {
                     SettingsSubtitlesView()

@@ -24,6 +24,7 @@ struct PlayerTVView: View {
     @State private var appliedResumeOffset = false
     @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
+    @State private var isShowingChapterTray = false
     @State private var activeSettingsSheet: PlayerSettingsSheet?
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
@@ -97,6 +98,13 @@ struct PlayerTVView: View {
                     togglePlayPause()
                 }
                 .onExitCommand {
+                    if isShowingChapterTray {
+                        withAnimation(.easeInOut) {
+                            isShowingChapterTray = false
+                        }
+                        showControls(temporarily: true)
+                        return
+                    }
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
@@ -151,6 +159,11 @@ struct PlayerTVView: View {
                 .onChange(of: viewModel.position) { _, newValue in
                     guard !isScrubbing else { return }
                     timelinePosition = newValue
+                }
+                .onChange(of: viewModel.hasNavigableChapters) { _, hasChapters in
+                    if !hasChapters {
+                        isShowingChapterTray = false
+                    }
                 }
                 .onChange(of: viewModel.terminationMessage) { _, newValue in
                     guard let newValue else { return }
@@ -243,6 +256,16 @@ struct PlayerTVView: View {
                     onShowAudioSettings: showAudioSettings,
                     onShowSubtitleSettings: showSubtitleSettings,
                     onShowSpeedSettings: showSpeedSettings,
+                    chapters: viewModel.chapters,
+                    showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+                    currentPosition: viewModel.position,
+                    isShowingChapterTray: isShowingChapterTray,
+                    chapterImageURL: { chapter in
+                        viewModel.chapterImageURL(for: chapter, width: 640, height: 360)
+                    },
+                    onShowChapters: showChapters,
+                    onHideChapters: hideChapters,
+                    onSelectChapter: selectChapter(_:),
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekForwardInterval) },
@@ -353,6 +376,33 @@ struct PlayerTVView: View {
 
     private func showSpeedSettings() {
         activeSettingsSheet = .speed
+        showControls(temporarily: true)
+    }
+
+    private func showChapters() {
+        guard viewModel.hasNavigableChapters else { return }
+        hideControlsWorkItem?.cancel()
+        withAnimation(.easeInOut) {
+            isShowingChapterTray = true
+            controlsVisible = true
+        }
+    }
+
+    private func hideChapters() {
+        guard isShowingChapterTray else { return }
+        withAnimation(.easeInOut) {
+            isShowingChapterTray = false
+        }
+        showControls(temporarily: true)
+    }
+
+    private func selectChapter(_ chapter: PlexChapter) {
+        playerController.seek(to: chapter.startTime)
+        viewModel.position = chapter.startTime
+        timelinePosition = chapter.startTime
+        withAnimation(.easeInOut) {
+            isShowingChapterTray = false
+        }
         showControls(temporarily: true)
     }
 
@@ -578,7 +628,7 @@ struct PlayerTVView: View {
             controlsVisible = true
         }
 
-        if temporarily, !isScrubbing {
+        if temporarily, !isScrubbing, !isShowingChapterTray {
             scheduleControlsHide()
         } else {
             hideControlsWorkItem?.cancel()
@@ -587,6 +637,7 @@ struct PlayerTVView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
+        guard !isShowingChapterTray else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(.easeInOut) {

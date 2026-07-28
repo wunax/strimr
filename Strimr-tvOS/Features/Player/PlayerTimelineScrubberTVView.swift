@@ -4,7 +4,8 @@ struct PlayerTimelineScrubberTVView: View {
     @Binding var position: Double
     var upperBound: Double
     var duration: Double?
-    var bufferedProgress: Double
+    var bufferedEnd: Double
+    var chapters: [PlexChapter]
     var onEditingChanged: (Bool) -> Void
 
     @State private var consecutiveMoves = 0
@@ -13,6 +14,8 @@ struct PlayerTimelineScrubberTVView: View {
     @FocusState private var isFocused: Bool
 
     private let scrubCommitDelay: TimeInterval = 0.4
+    private let horizontalInset: CGFloat = 14
+    private let thumbDiameter: CGFloat = 28
 
     private var playbackProgress: Double {
         guard upperBound > 0 else { return 0 }
@@ -27,31 +30,26 @@ struct PlayerTimelineScrubberTVView: View {
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let progressWidth = width * playbackProgress
-            let bufferedWidth = width * min(max(bufferedProgress, 0), 1)
-            let thumbX = min(max(progressWidth, 0), width)
+            let usableWidth = max(width - horizontalInset * 2, 0)
+            let thumbX = horizontalInset + usableWidth * playbackProgress
 
             ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(height: 8, alignment: .center)
-
-                Capsule()
-                    .fill(Color.white.opacity(0.65))
-                    .frame(width: bufferedWidth)
-                    .frame(height: 8, alignment: .center)
-
-                Capsule()
-                    .fill(Color.white)
-                    .frame(width: progressWidth)
-                    .frame(height: 8, alignment: .center)
+                PlayerSegmentedTimelineRail(
+                    chapters: chapters,
+                    duration: duration,
+                    position: position,
+                    bufferedEnd: bufferedEnd,
+                    horizontalInset: horizontalInset,
+                    trackHeight: 8,
+                    preferredGap: 6,
+                )
 
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 28, height: 28)
+                    .frame(width: thumbDiameter, height: thumbDiameter)
                     .scaleEffect(isFocused ? 1.0 : 0.75)
                     .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 6)
-                    .offset(x: max(0, thumbX - 16))
+                    .offset(x: thumbX - thumbDiameter / 2)
                     .animation(.easeInOut(duration: 0.15), value: isFocused)
             }
             .animation(.easeInOut(duration: 0.15), value: isFocused)

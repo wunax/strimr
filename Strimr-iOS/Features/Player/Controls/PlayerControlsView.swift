@@ -13,6 +13,9 @@ struct PlayerControlsView: View {
     var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var chapters: [PlexChapter]
+    var showsChaptersOnTimeline: Bool
+    var onShowChapters: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -57,6 +60,8 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
+                    showsChapters: chapters.count >= 2,
+                    onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
                 )
 
@@ -79,6 +84,8 @@ struct PlayerControlsView: View {
                         duration: duration,
                         bufferedAhead: bufferedAhead,
                         playbackPosition: bufferBasePosition,
+                        chapters: chapters,
+                        showsChaptersOnTimeline: showsChaptersOnTimeline,
                         onEditingChanged: onScrubbingChanged,
                     )
                 }
@@ -155,6 +162,8 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var showsChapters: Bool
+    var onShowChapters: () -> Void
     var isSharePlay: Bool
 
     var body: some View {
@@ -200,6 +209,10 @@ private struct PlayerControlsHeader: View {
             }
 
             Spacer()
+
+            if showsChapters {
+                PlayerChaptersButton(action: onShowChapters)
+            }
 
             PlayerSettingsButton(action: onShowSettings)
         }

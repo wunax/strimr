@@ -57,6 +57,7 @@ struct SkipMarkerButton: View {
 
 struct PlayerSettingButton: View {
     var systemImage: String
+    var accessibilityLabel: String?
     var action: () -> Void
 
     var body: some View {
@@ -65,5 +66,6 @@ struct PlayerSettingButton: View {
                 .foregroundStyle(.foreground)
                 .frame(width: 52, height: 52)
         }
+        .accessibilityLabel(accessibilityLabel ?? systemImage)
     }
 }

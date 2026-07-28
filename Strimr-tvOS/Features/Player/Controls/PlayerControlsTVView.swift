@@ -13,6 +13,14 @@ struct PlayerControlsTVView: View {
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
+    var chapters: [PlexChapter]
+    var showsChaptersOnTimeline: Bool
+    var currentPosition: Double
+    var isShowingChapterTray: Bool
+    var chapterImageURL: (PlexChapter) -> URL?
+    var onShowChapters: () -> Void
+    var onHideChapters: () -> Void
+    var onSelectChapter: (PlexChapter) -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -86,6 +94,17 @@ struct PlayerControlsTVView: View {
 
             Spacer()
 
+            if isShowingChapterTray {
+                PlayerChapterTrayTVView(
+                    chapters: chapters,
+                    currentPosition: currentPosition,
+                    imageURL: chapterImageURL,
+                    onSelect: onSelectChapter,
+                    onFocusExit: onHideChapters,
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             if !isScrubbing {
                 PlayerAuxiliaryControlsTVRow(
                     skipMarkerTitle: skipMarkerTitle,
@@ -100,6 +119,8 @@ struct PlayerControlsTVView: View {
                 duration: duration,
                 bufferedAhead: bufferedAhead,
                 playbackPosition: bufferBasePosition,
+                chapters: chapters,
+                showsChaptersOnTimeline: showsChaptersOnTimeline,
                 onEditingChanged: onScrubbingChanged,
             )
 
@@ -142,8 +163,18 @@ struct PlayerControlsTVView: View {
 
                     PlayerSettingButton(
                         systemImage: "speedometer",
+                        accessibilityLabel: String(localized: "player.settings.speed"),
                         action: onShowSpeedSettings,
                     )
+
+                    if chapters.count >= 2 {
+                        PlayerSettingButton(
+                            systemImage: "list.bullet.rectangle",
+                            accessibilityLabel: String(localized: "player.chapters.title"),
+                            action: onShowChapters,
+                        )
+                        .focused($focusedControl, equals: .chapters)
+                    }
                 }
             }
         }
@@ -154,6 +185,11 @@ struct PlayerControlsTVView: View {
         }
         .onAppear {
             focusedControl = .playPause
+        }
+        .onChange(of: isShowingChapterTray) { _, isShowing in
+            DispatchQueue.main.async {
+                focusedControl = isShowing ? nil : .chapters
+            }
         }
         .onMoveCommand { _ in
             onUserInteraction()
@@ -211,6 +247,7 @@ private struct PlayerAuxiliaryControlsTVRow: View {
 
 private enum FocusTarget: Hashable {
     case playPause
+    case chapters
 }
 
 private struct PlayerControlsTVBackground: View {
