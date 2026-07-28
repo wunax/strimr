@@ -58,7 +58,10 @@ final class PlayerController {
     @ObservationIgnored private var isScrubPreviewing = false
 
     private let scrubBucketDuration = 10.0
-    private let extractorThumbnailDelay: Duration = .milliseconds(800)
+    private let unavailableBIFExtractorDelay: Duration = .milliseconds(250)
+    private let failedBIFExtractorDelay: Duration = .milliseconds(450)
+    private let pendingBIFExtractorDelay: Duration = .milliseconds(800)
+    private let extractorAvailabilityPollInterval: Duration = .milliseconds(50)
     private let scrubThumbnailWidth = 320
 
     init() {
@@ -443,10 +446,17 @@ final class PlayerController {
 
         scrubExtractorDwellTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            do {
-                try await Task.sleep(for: extractorThumbnailDelay)
-            } catch {
-                return
+            let startedAt = ContinuousClock.now
+            while true {
+                do {
+                    try await Task.sleep(for: extractorAvailabilityPollInterval)
+                } catch {
+                    return
+                }
+                let requiredDelay = await extractorDelayForCurrentBIFState()
+                if startedAt.duration(to: ContinuousClock.now) >= requiredDelay {
+                    break
+                }
             }
             guard isScrubPreviewing,
                   scrubTargetGeneration == targetGeneration,
@@ -486,6 +496,20 @@ final class PlayerController {
                 position: target,
                 image: extractedImage,
             )
+        }
+    }
+
+    private func extractorDelayForCurrentBIFState() async -> Duration {
+        guard let scrubBIFProvider else {
+            return unavailableBIFExtractorDelay
+        }
+        switch await scrubBIFProvider.availability() {
+        case .unavailable:
+            return unavailableBIFExtractorDelay
+        case .temporarilyFailed:
+            return failedBIFExtractorDelay
+        case .loading, .ready:
+            return pendingBIFExtractorDelay
         }
     }
 

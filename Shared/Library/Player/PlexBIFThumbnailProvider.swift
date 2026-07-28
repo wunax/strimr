@@ -38,11 +38,24 @@ private nonisolated final class PlexBIFMemoryCache: @unchecked Sendable {
     }
 }
 
+nonisolated enum PlexBIFAvailability: Equatable, Sendable {
+    case loading
+    case ready
+    case unavailable
+    case temporarilyFailed
+}
+
 actor PlexBIFThumbnailProvider {
     private struct PreparedArchive: Sendable {
         let archive: PlexBIFArchive
         let metadata: PlexBIFCacheMetadata
         let shouldRevalidate: Bool
+    }
+
+    private enum PreparationOutcome: Sendable {
+        case ready(PreparedArchive)
+        case unavailable
+        case temporarilyFailed
     }
 
     private let source: PlexBIFSource
@@ -52,9 +65,9 @@ actor PlexBIFThumbnailProvider {
     private let cacheKey: String
 
     private var archive: PlexBIFArchive?
-    private var preparationTask: Task<PreparedArchive?, Never>?
+    private var preparationTask: Task<PreparationOutcome, Never>?
     private var refreshTask: Task<Void, Never>?
-    private var isUnavailable = false
+    private var availabilityState: PlexBIFAvailability = .loading
     private var isCancelled = false
 
     init(
@@ -72,6 +85,10 @@ actor PlexBIFThumbnailProvider {
 
     func prepare() async {
         _ = await preparedArchive()
+    }
+
+    func availability() -> PlexBIFAvailability {
+        availabilityState
     }
 
     func thumbnail(at seconds: Double) async -> PlexBIFThumbnail? {
@@ -105,7 +122,12 @@ actor PlexBIFThumbnailProvider {
         if let archive {
             return archive
         }
-        guard !isCancelled, !isUnavailable else { return nil }
+        guard !isCancelled,
+              availabilityState != .unavailable,
+              availabilityState != .temporarilyFailed
+        else {
+            return nil
+        }
         if let preparationTask {
             return await finishPreparation(preparationTask)
         }
@@ -114,7 +136,8 @@ actor PlexBIFThumbnailProvider {
         let diskCache = self.diskCache
         let cacheKey = self.cacheKey
         let intervalMilliseconds = self.intervalMilliseconds
-        let task = Task<PreparedArchive?, Never> {
+        availabilityState = .loading
+        let task = Task<PreparationOutcome, Never> {
             await Self.loadInitialArchive(
                 source: source,
                 diskCache: diskCache,
@@ -127,20 +150,26 @@ actor PlexBIFThumbnailProvider {
     }
 
     private func finishPreparation(
-        _ task: Task<PreparedArchive?, Never>,
+        _ task: Task<PreparationOutcome, Never>,
     ) async -> PlexBIFArchive? {
-        let prepared = await task.value
+        let outcome = await task.value
         guard !isCancelled else { return nil }
         preparationTask = nil
-        guard let prepared else {
-            isUnavailable = true
+        switch outcome {
+        case let .ready(prepared):
+            availabilityState = .ready
+            archive = prepared.archive
+            if prepared.shouldRevalidate {
+                scheduleRefresh(metadata: prepared.metadata)
+            }
+            return prepared.archive
+        case .unavailable:
+            availabilityState = .unavailable
+            return nil
+        case .temporarilyFailed:
+            availabilityState = .temporarilyFailed
             return nil
         }
-        archive = prepared.archive
-        if prepared.shouldRevalidate {
-            scheduleRefresh(metadata: prepared.metadata)
-        }
-        return prepared.archive
     }
 
     private func scheduleRefresh(metadata: PlexBIFCacheMetadata) {
@@ -196,16 +225,16 @@ actor PlexBIFThumbnailProvider {
         diskCache: PlexBIFDiskCache,
         cacheKey: String,
         intervalMilliseconds: Int,
-    ) async -> PreparedArchive? {
+    ) async -> PreparationOutcome {
         do {
             if let cached = try await diskCache.entry(for: cacheKey) {
                 do {
                     let archive = try PlexBIFArchive(fileURL: cached.fileURL)
-                    return PreparedArchive(
+                    return .ready(PreparedArchive(
                         archive: archive,
                         metadata: cached.metadata,
                         shouldRevalidate: shouldRevalidate(cached.metadata),
-                    )
+                    ))
                 } catch {
                     await diskCache.remove(key: cacheKey)
                     await MainActor.run {
@@ -233,20 +262,25 @@ actor PlexBIFThumbnailProvider {
                         lastAccessedAt: Date(),
                         byteCount: 0,
                     )
-                return PreparedArchive(
+                return .ready(PreparedArchive(
                     archive: archive,
                     metadata: metadata,
                     shouldRevalidate: false,
-                )
+                ))
             case .notModified:
-                return nil
+                return .temporarilyFailed
             case .unavailable:
-                return nil
+                return .unavailable
             }
         } catch {
-            guard !Task.isCancelled, !isCancellation(error) else { return nil }
+            guard !Task.isCancelled, !isCancellation(error) else {
+                return .temporarilyFailed
+            }
             await reportUnexpectedLocalError(error)
-            return nil
+            if error is PlexBIFArchiveError {
+                return .unavailable
+            }
+            return .temporarilyFailed
         }
     }
 
