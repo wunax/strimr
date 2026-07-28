@@ -559,7 +559,7 @@ struct MacPlayerView: View {
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
-                settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)

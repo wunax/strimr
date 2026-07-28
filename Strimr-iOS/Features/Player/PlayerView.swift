@@ -528,7 +528,7 @@ struct PlayerView: View {
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
-                settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)

@@ -23,7 +23,7 @@ actor PlexBIFDiskCache {
     init(directoryURL: URL? = nil) {
         self.directoryURL = directoryURL
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("PlexBIF", isDirectory: true)
+            .appendingPathComponent("PlexBIF", isDirectory: true)
     }
 
     nonisolated static func key(

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-private nonisolated final class PlexBIFImageBox {
+private final nonisolated class PlexBIFImageBox {
     let thumbnail: PlexBIFThumbnail
 
     init(_ thumbnail: PlexBIFThumbnail) {
@@ -9,9 +9,11 @@ private nonisolated final class PlexBIFImageBox {
     }
 }
 
-private nonisolated final class PlexBIFMemoryCache: @unchecked Sendable {
+private final nonisolated class PlexBIFMemoryCache: @unchecked Sendable {
     private static let sharedInstance = PlexBIFMemoryCache()
-    nonisolated static var shared: PlexBIFMemoryCache { sharedInstance }
+    nonisolated static var shared: PlexBIFMemoryCache {
+        sharedInstance
+    }
 
     private let cache: NSCache<NSString, PlexBIFImageBox> = {
         let cache = NSCache<NSString, PlexBIFImageBox>()
@@ -59,7 +61,7 @@ actor PlexBIFThumbnailProvider {
     }
 
     private let source: PlexBIFSource
-    private let intervalMilliseconds = 10_000
+    private let intervalMilliseconds = 10000
     private let diskCache: PlexBIFDiskCache
     private let memoryCache = PlexBIFMemoryCache.shared
     private let cacheKey: String
@@ -132,10 +134,10 @@ actor PlexBIFThumbnailProvider {
             return await finishPreparation(preparationTask)
         }
 
-        let source = self.source
-        let diskCache = self.diskCache
-        let cacheKey = self.cacheKey
-        let intervalMilliseconds = self.intervalMilliseconds
+        let source = source
+        let diskCache = diskCache
+        let cacheKey = cacheKey
+        let intervalMilliseconds = intervalMilliseconds
         availabilityState = .loading
         let task = Task<PreparationOutcome, Never> {
             await Self.loadInitialArchive(
@@ -174,10 +176,10 @@ actor PlexBIFThumbnailProvider {
 
     private func scheduleRefresh(metadata: PlexBIFCacheMetadata) {
         guard refreshTask == nil else { return }
-        let source = self.source
-        let diskCache = self.diskCache
-        let cacheKey = self.cacheKey
-        let intervalMilliseconds = self.intervalMilliseconds
+        let source = source
+        let diskCache = diskCache
+        let cacheKey = cacheKey
+        let intervalMilliseconds = intervalMilliseconds
         refreshTask = Task { [weak self] in
             let refreshed = await Self.refreshArchive(
                 source: source,
@@ -187,7 +189,7 @@ actor PlexBIFThumbnailProvider {
                 metadata: metadata,
             )
             guard let self else { return }
-            await self.finishRefresh(refreshed)
+            await finishRefresh(refreshed)
         }
     }
 
@@ -203,8 +205,8 @@ actor PlexBIFThumbnailProvider {
     ) {
         let indexes = [frameIndex - 1, frameIndex + 1]
             .filter { archive.frames.indices.contains($0) }
-        let memoryCache = self.memoryCache
-        let cacheKey = self.cacheKey
+        let memoryCache = memoryCache
+        let cacheKey = cacheKey
         Task(priority: .utility) {
             for index in indexes {
                 if memoryCache.thumbnail(key: cacheKey, frameIndex: index) != nil {
