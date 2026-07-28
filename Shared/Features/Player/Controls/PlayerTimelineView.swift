@@ -188,6 +188,8 @@ struct PlayerScrubPreviewCard: View {
                 Image(decorative: image, scale: 1)
                     .resizable()
                     .scaledToFill()
+                    .id(ObjectIdentifier(image))
+                    .transition(.opacity)
             } else {
                 Image(systemName: "film")
                     .font(.title2)
@@ -212,6 +214,10 @@ struct PlayerScrubPreviewCard: View {
                 .stroke(.white.opacity(0.2), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 7)
+        .animation(
+            .easeOut(duration: 0.1),
+            value: preview.image.map(ObjectIdentifier.init),
+        )
     }
 }
 

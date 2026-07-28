@@ -1,5 +1,10 @@
 import Foundation
 
+struct PlexBinaryDownload: @unchecked Sendable {
+    let temporaryFileURL: URL
+    let response: HTTPURLResponse
+}
+
 final class PlexServerNetworkClient {
     private let session: URLSession = .shared
     private var authToken: String
@@ -64,6 +69,36 @@ final class PlexServerNetworkClient {
         guard 200 ..< 300 ~= httpResponse.statusCode else {
             throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
         }
+    }
+
+    func download(
+        path: String,
+        queryItems: [URLQueryItem]? = nil,
+        headers: [String: String] = [:],
+        acceptedStatusCodes: Set<Int> = Set(200 ..< 300),
+    ) async throws -> PlexBinaryDownload {
+        let request = try buildRequest(
+            path: path,
+            queryItems: queryItems,
+            method: "GET",
+            headers: headers,
+        )
+        let (downloadURL, response) = try await session.download(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw PlexAPIError.requestFailed(statusCode: -1)
+        }
+        guard acceptedStatusCodes.contains(httpResponse.statusCode) else {
+            throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
+        }
+
+        let retainedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("download")
+        try FileManager.default.moveItem(at: downloadURL, to: retainedURL)
+        return PlexBinaryDownload(
+            temporaryFileURL: retainedURL,
+            response: httpResponse,
+        )
     }
 
     private func buildRequest(
