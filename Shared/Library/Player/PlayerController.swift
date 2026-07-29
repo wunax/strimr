@@ -52,8 +52,9 @@ final class PlayerController {
     @ObservationIgnored private var scrubBIFProvider: PlexBIFThumbnailProvider?
     @ObservationIgnored private var scrubFrameExtractor: FrameExtractor?
     @ObservationIgnored private var scrubExtractorRequestGeneration: Int?
+    @ObservationIgnored private var scrubGeneratedThumbnailCache: [Int: CGImage] = [:]
+    @ObservationIgnored private var scrubGeneratedThumbnailOrder: [Int] = []
     @ObservationIgnored private var scrubPreviewGeneration = 0
-    @ObservationIgnored private var scrubTargetGeneration = 0
     @ObservationIgnored private var activeScrubBucket: Int?
     @ObservationIgnored private var isScrubPreviewing = false
     @ObservationIgnored private var showsScrubThumbnailPreviews = true
@@ -65,6 +66,7 @@ final class PlayerController {
     private let pendingBIFExtractorDelay: Duration = .milliseconds(800)
     private let extractorAvailabilityPollInterval: Duration = .milliseconds(50)
     private let scrubThumbnailWidth = 320
+    private let scrubGeneratedThumbnailCacheLimit = 32
 
     init() {
         do {
@@ -193,19 +195,25 @@ final class PlayerController {
         guard showsScrubThumbnailPreviews, isScrubPreviewing, position.isFinite else { return }
 
         let target = max(0, position)
-        scrubTargetGeneration &+= 1
-        cancelInFlightScrubExtraction()
         let bucket = Int(floor(target / scrubBucketDuration))
         let bucketChanged = activeScrubBucket != bucket
 
         if bucketChanged {
+            cancelPendingExtractorFallback()
             activeScrubBucket = bucket
             scrubPreviewGeneration &+= 1
             scrubBIFTask?.cancel()
             scrubAetherTask?.cancel()
-            scrubPreview = PlayerScrubPreview(position: target, image: nil)
+            scrubPreview = PlayerScrubPreview(
+                position: target,
+                image: scrubGeneratedThumbnailCache[bucket],
+            )
             requestBucketThumbnails(
                 target: target,
+                bucket: bucket,
+                generation: scrubPreviewGeneration,
+            )
+            scheduleExtractorFallback(
                 bucket: bucket,
                 generation: scrubPreviewGeneration,
             )
@@ -215,17 +223,11 @@ final class PlayerController {
                 image: scrubPreview?.image,
             )
         }
-
-        scheduleExtractorFallback(
-            target: target,
-            targetGeneration: scrubTargetGeneration,
-        )
     }
 
     func endScrubPreviewing() {
         isScrubPreviewing = false
         scrubPreviewGeneration &+= 1
-        scrubTargetGeneration &+= 1
         activeScrubBucket = nil
         scrubBIFTask?.cancel()
         scrubBIFTask = nil
@@ -426,7 +428,7 @@ final class PlayerController {
 
         let bucketPosition = Double(bucket) * scrubBucketDuration
         scrubAetherTask = Task { @MainActor [weak self] in
-            guard let self else { return }
+            guard let self, scrubPreview?.image == nil else { return }
             let image = await engine.scrubThumbnail(
                 atSeconds: bucketPosition,
                 maxWidth: scrubThumbnailWidth,
@@ -446,8 +448,8 @@ final class PlayerController {
     }
 
     private func scheduleExtractorFallback(
-        target: Double,
-        targetGeneration: Int,
+        bucket: Int,
+        generation: Int,
     ) {
         scrubExtractorDwellTask?.cancel()
         scrubExtractorDwellTask = nil
@@ -472,9 +474,7 @@ final class PlayerController {
                     break
                 }
             }
-            guard isScrubPreviewing,
-                  scrubTargetGeneration == targetGeneration,
-                  scrubPreview?.position == target,
+            guard isCurrentScrubBucket(generation: generation, bucket: bucket),
                   scrubPreview?.image == nil,
                   !engine.isLive
             else {
@@ -490,24 +490,24 @@ final class PlayerController {
                 extractor = newExtractor
             }
 
-            scrubExtractorRequestGeneration = targetGeneration
+            let bucketPosition = Double(bucket) * scrubBucketDuration
+            scrubExtractorRequestGeneration = generation
             let extractedImage = await extractor.thumbnail(
-                at: target,
+                at: bucketPosition,
                 maxWidth: scrubThumbnailWidth,
             )
-            if scrubExtractorRequestGeneration == targetGeneration {
+            if scrubExtractorRequestGeneration == generation {
                 scrubExtractorRequestGeneration = nil
             }
             guard let extractedImage,
-                  isScrubPreviewing,
-                  scrubTargetGeneration == targetGeneration,
-                  scrubPreview?.position == target,
+                  isCurrentScrubBucket(generation: generation, bucket: bucket),
                   scrubPreview?.image == nil
             else {
                 return
             }
+            storeGeneratedThumbnail(extractedImage, for: bucket)
             scrubPreview = PlayerScrubPreview(
-                position: target,
+                position: scrubPreview?.position ?? bucketPosition,
                 image: extractedImage,
             )
         }
@@ -533,10 +533,21 @@ final class PlayerController {
         cancelInFlightScrubExtraction()
     }
 
+    private func storeGeneratedThumbnail(_ image: CGImage, for bucket: Int) {
+        if scrubGeneratedThumbnailCache[bucket] == nil {
+            scrubGeneratedThumbnailOrder.append(bucket)
+        }
+        scrubGeneratedThumbnailCache[bucket] = image
+
+        while scrubGeneratedThumbnailOrder.count > scrubGeneratedThumbnailCacheLimit {
+            let expiredBucket = scrubGeneratedThumbnailOrder.removeFirst()
+            scrubGeneratedThumbnailCache[expiredBucket] = nil
+        }
+    }
+
     private func resetScrubPreviewSession() {
         isScrubPreviewing = false
         scrubPreviewGeneration &+= 1
-        scrubTargetGeneration &+= 1
         activeScrubBucket = nil
         scrubBIFTask?.cancel()
         scrubBIFTask = nil
@@ -548,6 +559,8 @@ final class PlayerController {
         scrubBIFPreparationTask = nil
         scrubPreview = nil
         scrubExtractorRequestGeneration = nil
+        scrubGeneratedThumbnailCache = [:]
+        scrubGeneratedThumbnailOrder = []
 
         if let scrubBIFProvider {
             self.scrubBIFProvider = nil
