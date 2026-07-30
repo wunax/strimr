@@ -163,7 +163,7 @@ func playerEndsAtText(
     position: Double,
     duration: Double?,
     playbackRate: Float,
-    now: Date
+    now: Date,
 ) -> String? {
     guard let duration,
           duration.isFinite,
