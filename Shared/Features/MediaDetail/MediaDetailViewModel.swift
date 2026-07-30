@@ -718,6 +718,7 @@ final class MediaDetailViewModel {
             let character = role.role?.isEmpty == false ? role.role : nil
             return CastMember(
                 id: identifier,
+                personID: role.id,
                 name: role.tag,
                 character: character,
                 thumbPath: role.thumb,

@@ -3,6 +3,15 @@ import SwiftUI
 
 struct CastSection: View {
     @Bindable var viewModel: MediaDetailViewModel
+    let onSelectPerson: (Person) -> Void
+
+    init(
+        viewModel: MediaDetailViewModel,
+        onSelectPerson: @escaping (Person) -> Void = { _ in },
+    ) {
+        self.viewModel = viewModel
+        self.onSelectPerson = onSelectPerson
+    }
 
     var body: some View {
         Section {
@@ -38,13 +47,14 @@ struct CastSection: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
-            CastCarousel(viewModel: viewModel)
+            CastCarousel(viewModel: viewModel, onSelectPerson: onSelectPerson)
         }
     }
 }
 
 struct CastCarousel: View {
     @Bindable var viewModel: MediaDetailViewModel
+    let onSelectPerson: (Person) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -53,6 +63,9 @@ struct CastCarousel: View {
                     CastCard(
                         member: member,
                         imageURL: viewModel.castImageURL(for: member),
+                        onSelect: member.person.map { person in
+                            { onSelectPerson(person) }
+                        },
                     )
                 }
             }
@@ -71,11 +84,35 @@ struct CastCarousel: View {
 struct CastCard: View {
     let member: CastMember
     let imageURL: URL?
+    let onSelect: (() -> Void)?
     #if os(tvOS)
         @FocusState private var isFocused: Bool
     #endif
 
     var body: some View {
+        #if os(tvOS)
+        if let onSelect {
+            content
+                .contentShape(Rectangle())
+                .focusable()
+                .focused($isFocused)
+                .onTapGesture(perform: onSelect)
+        } else {
+            content
+        }
+        #else
+        if let onSelect {
+            Button(action: onSelect) {
+                content
+            }
+            .buttonStyle(.plain)
+        } else {
+            content
+        }
+        #endif
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 8) {
             thumbnail
 
@@ -93,11 +130,7 @@ struct CastCard: View {
             }
         }
         .frame(width: 140, alignment: .leading)
-        #if os(tvOS)
-            .focusable()
-            .focused($isFocused)
-            .animation(.easeOut(duration: 0.15), value: isFocused)
-        #endif
+        .animation(.easeOut(duration: 0.15), value: isFocusedValue)
     }
 
     @ViewBuilder
@@ -158,6 +191,14 @@ struct CastCard: View {
             .caption2
         #else
             .caption
+        #endif
+    }
+
+    private var isFocusedValue: Bool {
+        #if os(tvOS)
+            isFocused
+        #else
+            false
         #endif
     }
 }

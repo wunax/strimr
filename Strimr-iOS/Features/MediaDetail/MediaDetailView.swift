@@ -12,6 +12,7 @@ struct MediaDetailView: View {
     private let onShuffle: (String, PlexItemType) -> Void
     private let onSelectMedia: (MediaDisplayItem) -> Void
     private let onSelectParentSeries: (PlayableMediaItem) -> Void
+    private let onSelectPerson: (Person) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
@@ -20,6 +21,7 @@ struct MediaDetailView: View {
         onShuffle: @escaping (String, PlexItemType) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
         onSelectParentSeries: @escaping (PlayableMediaItem) -> Void = { _ in },
+        onSelectPerson: @escaping (Person) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPlay = onPlay
@@ -27,6 +29,7 @@ struct MediaDetailView: View {
         self.onShuffle = onShuffle
         self.onSelectMedia = onSelectMedia
         self.onSelectParentSeries = onSelectParentSeries
+        self.onSelectPerson = onSelectPerson
     }
 
     var body: some View {
@@ -55,7 +58,10 @@ struct MediaDetailView: View {
                     )
                 }
 
-                CastSection(viewModel: bindableViewModel)
+                CastSection(
+                    viewModel: bindableViewModel,
+                    onSelectPerson: onSelectPerson,
+                )
 
                 RelatedHubsSection(
                     viewModel: bindableViewModel,
