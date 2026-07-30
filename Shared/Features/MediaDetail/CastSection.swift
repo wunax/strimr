@@ -91,24 +91,24 @@ struct CastCard: View {
 
     var body: some View {
         #if os(tvOS)
-        if let onSelect {
-            content
-                .contentShape(Rectangle())
-                .focusable()
-                .focused($isFocused)
-                .onTapGesture(perform: onSelect)
-        } else {
-            content
-        }
-        #else
-        if let onSelect {
-            Button(action: onSelect) {
+            if let onSelect {
+                content
+                    .contentShape(Rectangle())
+                    .focusable()
+                    .focused($isFocused)
+                    .onTapGesture(perform: onSelect)
+            } else {
                 content
             }
-            .buttonStyle(.plain)
-        } else {
-            content
-        }
+        #else
+            if let onSelect {
+                Button(action: onSelect) {
+                    content
+                }
+                .buttonStyle(.plain)
+            } else {
+                content
+            }
         #endif
     }
 
