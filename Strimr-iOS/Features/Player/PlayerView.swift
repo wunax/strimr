@@ -236,6 +236,8 @@ struct PlayerView: View {
                     duration: viewModel.duration,
                     bufferedAhead: viewModel.bufferedAhead,
                     bufferBasePosition: viewModel.position,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
                     isScrubbing: isScrubbing,
                     onDismiss: { dismissPlayer() },
                     onShowSettings: showSettings,

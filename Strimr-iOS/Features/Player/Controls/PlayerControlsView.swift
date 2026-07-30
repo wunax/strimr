@@ -10,6 +10,8 @@ struct PlayerControlsView: View {
     var duration: Double?
     var bufferedAhead: Double
     var bufferBasePosition: Double
+    var playbackRate: Float
+    var showsEndsAtTime: Bool
     var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
@@ -85,6 +87,8 @@ struct PlayerControlsView: View {
                         duration: duration,
                         bufferedAhead: bufferedAhead,
                         playbackPosition: bufferBasePosition,
+                        playbackRate: playbackRate,
+                        showsEndsAtTime: showsEndsAtTime,
                         chapters: chapters,
                         showsChaptersOnTimeline: showsChaptersOnTimeline,
                         scrubPreview: scrubPreview,

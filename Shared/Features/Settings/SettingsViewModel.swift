@@ -38,6 +38,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showEndsAtTimeBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showEndsAtTime },
+            set: { self.settingsManager.setShowEndsAtTime($0) },
+        )
+    }
+
     var showScrubThumbnailPreviewsBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showScrubThumbnailPreviews },

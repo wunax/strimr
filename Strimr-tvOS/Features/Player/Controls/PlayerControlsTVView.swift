@@ -9,6 +9,8 @@ struct PlayerControlsTVView: View {
     var duration: Double?
     var bufferedAhead: Double
     var bufferBasePosition: Double
+    var playbackRate: Float
+    var showsEndsAtTime: Bool
     var isScrubbing: Bool
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
@@ -120,6 +122,8 @@ struct PlayerControlsTVView: View {
                 duration: duration,
                 bufferedAhead: bufferedAhead,
                 playbackPosition: bufferBasePosition,
+                playbackRate: playbackRate,
+                showsEndsAtTime: showsEndsAtTime,
                 chapters: chapters,
                 showsChaptersOnTimeline: showsChaptersOnTimeline,
                 scrubPreview: scrubPreview,

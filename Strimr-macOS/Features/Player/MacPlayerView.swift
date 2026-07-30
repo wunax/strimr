@@ -322,9 +322,25 @@ struct MacPlayerView: View {
                             },
                         )
                     }
-                    Text(formatTime(viewModel.duration ?? 0))
-                        .font(.caption.monospacedDigit())
-                        .frame(width: 64, alignment: .leading)
+                    HStack(spacing: 12) {
+                        Text(formatTime(viewModel.duration ?? 0))
+                            .frame(width: 64, alignment: .leading)
+
+                        if settingsManager.playback.showEndsAtTime {
+                            TimelineView(.periodic(from: .now, by: 30)) { context in
+                                if let endsAtText = playerEndsAtText(
+                                    position: scrubPosition,
+                                    duration: viewModel.duration,
+                                    playbackRate: playbackRate,
+                                    now: context.date,
+                                ) {
+                                    Text(endsAtText)
+                                }
+                            }
+                        }
+                    }
+                    .font(.caption.monospacedDigit())
+                    .fixedSize()
                 }
 
                 HStack(spacing: 18) {
