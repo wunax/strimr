@@ -165,6 +165,7 @@ struct MacMainView: View {
                 ),
                 onSelectMedia: appModel.showMedia,
                 onSelectParentSeries: appModel.returnToSeries,
+                onSelectPerson: appModel.showPerson,
                 onPlay: play,
             )
         case let .collection(collection):
@@ -184,6 +185,11 @@ struct MacMainView: View {
         case let .hub(hub):
             HubDetailView(
                 viewModel: HubDetailViewModel(hub: hub, context: context),
+                onSelectMedia: appModel.showMedia,
+            )
+        case let .person(person):
+            PersonDetailView(
+                viewModel: PersonDetailViewModel(person: person, context: context),
                 onSelectMedia: appModel.showMedia,
             )
         case let .library(library):

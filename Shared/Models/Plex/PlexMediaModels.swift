@@ -131,6 +131,15 @@ struct PlexTagPerson: Codable, Equatable {
     let thumb: String?
 }
 
+struct PlexPersonDirectory: Codable, Equatable {
+    let id: Int
+    let filter: String?
+    let tag: String
+    let tagType: Int?
+    let tagKey: String?
+    let thumb: String?
+}
+
 struct PlexImage: Codable, Equatable {
     let alt: String
     let type: String
@@ -430,6 +439,24 @@ struct PlexItemMediaContainer: Codable, Equatable {
             case totalSize
             case metadata = "Metadata"
             case meta = "Meta"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+struct PlexPersonMediaContainer: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let size: Int?
+        let directory: [PlexPersonDirectory]?
+
+        private enum CodingKeys: String, CodingKey {
+            case size
+            case directory = "Directory"
         }
     }
 

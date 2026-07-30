@@ -38,6 +38,7 @@ final class MacAppModel: PlaybackPresenting {
         case collection(CollectionMediaItem)
         case playlist(PlaylistMediaItem)
         case hub(Hub)
+        case person(Person)
         case library(Library)
         case seerr(SeerrMedia)
     }
@@ -115,6 +116,10 @@ final class MacAppModel: PlaybackPresenting {
 
     func showHub(_ hub: Hub) {
         append(.hub(hub))
+    }
+
+    func showPerson(_ person: Person) {
+        append(.person(person))
     }
 
     func showLibrary(_ library: Library) {

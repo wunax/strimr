@@ -12,17 +12,20 @@ struct MacMediaDetailView: View {
     @State private var sharePlaySharingRequest: MacSharePlaySharingRequest?
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
+    let onSelectPerson: (Person) -> Void
     let onPlay: (String, PlexItemType, Bool, Bool) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onSelectMedia: @escaping (MediaItem) -> Void,
         onSelectParentSeries: @escaping (PlayableMediaItem) -> Void,
+        onSelectPerson: @escaping (Person) -> Void = { _ in },
         onPlay: @escaping (String, PlexItemType, Bool, Bool) -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
         self.onSelectParentSeries = onSelectParentSeries
+        self.onSelectPerson = onSelectPerson
         self.onPlay = onPlay
     }
 
@@ -42,7 +45,10 @@ struct MacMediaDetailView: View {
                         episodesSection
                     }
 
-                    CastSection(viewModel: viewModel)
+                    CastSection(
+                        viewModel: viewModel,
+                        onSelectPerson: onSelectPerson,
+                    )
                     RelatedHubsSection(viewModel: viewModel) { media in
                         if case let .playable(item) = media {
                             onSelectMedia(item)

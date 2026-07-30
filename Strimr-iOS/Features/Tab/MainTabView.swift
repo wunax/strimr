@@ -162,6 +162,7 @@ struct MainTabView: View {
                 },
                 onSelectMedia: coordinator.showMediaDetail,
                 onSelectParentSeries: coordinator.returnToSeries,
+                onSelectPerson: coordinator.showPersonDetail,
             )
         case let .collectionDetail(collection):
             CollectionDetailView(
@@ -210,6 +211,11 @@ struct MainTabView: View {
         case let .hubDetail(hub):
             HubDetailView(
                 viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                onSelectMedia: coordinator.showMediaDetail,
+            )
+        case let .personDetail(person):
+            PersonDetailView(
+                viewModel: PersonDetailViewModel(person: person, context: plexApiContext),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }

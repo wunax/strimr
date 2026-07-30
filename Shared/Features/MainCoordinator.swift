@@ -22,6 +22,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case collectionDetail(CollectionMediaItem)
         case playlistDetail(PlaylistMediaItem)
         case hubDetail(Hub)
+        case personDetail(Person)
     }
 
     @Published var tab: Tab = .home
@@ -215,6 +216,25 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .more:
             break
         case .seerrDiscover:
+            break
+        case let .libraryDetail(libraryId):
+            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+            path.append(route)
+            libraryDetailPaths[libraryId] = path
+        }
+    }
+
+    func showPersonDetail(_ person: Person) {
+        let route = Route.personDetail(person)
+
+        switch tab {
+        case .home:
+            homePath.append(route)
+        case .search:
+            searchPath.append(route)
+        case .library:
+            libraryPath.append(route)
+        case .more, .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
