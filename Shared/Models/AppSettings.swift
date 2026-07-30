@@ -45,6 +45,7 @@ struct PlaybackSettings: Codable, Equatable {
     var autoPlayNextEpisode = true
     var losslessAudio = false
     var showChaptersOnTimeline = true
+    var showEndsAtTime = true
     var showScrubThumbnailPreviews = true
     var generateMissingScrubThumbnailPreviews = true
     var seekBackwardSeconds = 10
@@ -65,6 +66,10 @@ struct PlaybackSettings: Codable, Equatable {
         showChaptersOnTimeline = try container.decodeIfPresent(
             Bool.self,
             forKey: .showChaptersOnTimeline,
+        ) ?? true
+        showEndsAtTime = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showEndsAtTime,
         ) ?? true
         showScrubThumbnailPreviews = try container.decodeIfPresent(
             Bool.self,

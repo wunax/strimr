@@ -11,6 +11,8 @@ struct PlayerTimelineView: View {
     var duration: Double?
     var bufferedAhead: Double
     var playbackPosition: Double
+    var playbackRate: Float
+    var showsEndsAtTime: Bool
     var chapters: [PlexChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
@@ -93,7 +95,22 @@ struct PlayerTimelineView: View {
             HStack {
                 Text(elapsedText)
                 Spacer()
-                Text(remainingText)
+                HStack(spacing: 12) {
+                    Text(remainingText)
+                    if showsEndsAtTime {
+                        TimelineView(.periodic(from: .now, by: 30)) { context in
+                            if let endsAtText = playerEndsAtText(
+                                position: position,
+                                duration: duration,
+                                playbackRate: playbackRate,
+                                now: context.date,
+                            ) {
+                                Text(endsAtText)
+                            }
+                        }
+                    }
+                }
+                .fixedSize()
             }
             .font(.footnote.monospacedDigit())
             .foregroundStyle(.white.opacity(0.9))
@@ -140,6 +157,32 @@ struct PlayerTimelineView: View {
         }
         onEditingChanged(editing)
     }
+}
+
+func playerEndsAtText(
+    position: Double,
+    duration: Double?,
+    playbackRate: Float,
+    now: Date
+) -> String? {
+    guard let duration,
+          duration.isFinite,
+          duration > 0,
+          position.isFinite,
+          position >= 0,
+          playbackRate.isFinite,
+          playbackRate > 0
+    else {
+        return nil
+    }
+
+    let remaining = max(duration - position, 0)
+    let wallClockRemaining = remaining / Double(playbackRate)
+    guard wallClockRemaining.isFinite else { return nil }
+
+    let endDate = now.addingTimeInterval(wallClockRemaining)
+    let time = endDate.formatted(date: .omitted, time: .shortened)
+    return String(localized: "player.timeline.endsAt \(time)")
 }
 
 struct PlayerScrubPreviewRail: View {

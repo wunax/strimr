@@ -26,10 +26,14 @@ struct SettingsPlaybackView: View {
                 }
             }
 
-            Section("player.chapters.title") {
+            Section("settings.playback.timeline.title") {
                 Toggle(
                     "settings.playback.showChaptersOnTimeline",
                     isOn: viewModel.showChaptersOnTimelineBinding,
+                )
+                Toggle(
+                    "settings.playback.showEndsAtTime",
+                    isOn: viewModel.showEndsAtTimeBinding,
                 )
             }
 

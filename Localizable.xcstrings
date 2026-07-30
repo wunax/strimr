@@ -3771,6 +3771,28 @@
         }
       }
     },
+    "media.placeholder.noArtwork" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No artwork"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune illustration"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无封面"
+          }
+        }
+      }
+    },
     "media.rating.imdb" : {
       "localizations" : {
         "en" : {
@@ -3855,28 +3877,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "TMDB 评分"
-          }
-        }
-      }
-    },
-    "media.placeholder.noArtwork" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No artwork"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune illustration"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无封面"
           }
         }
       }
@@ -4626,6 +4626,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放已停止"
+          }
+        }
+      }
+    },
+    "player.timeline.endsAt %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ends at %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termine à %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将于 %@ 结束"
           }
         }
       }
@@ -6929,6 +6951,28 @@
         }
       }
     },
+    "settings.playback.fontSize %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 点"
+          }
+        }
+      }
+    },
     "settings.playback.generateMissingScrubThumbnails" : {
       "localizations" : {
         "en" : {
@@ -6969,28 +7013,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当 Plex 缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
-          }
-        }
-      }
-    },
-    "settings.playback.fontSize %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld pt"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld pt"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 点"
           }
         }
       }
@@ -7145,6 +7167,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在时间线上显示章节"
+          }
+        }
+      }
+    },
+    "settings.playback.showEndsAtTime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show estimated end time"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’heure de fin estimée"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示预计结束时间"
           }
         }
       }
@@ -7783,6 +7827,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "半粗体"
+          }
+        }
+      }
+    },
+    "settings.playback.timeline.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeline"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barre de progression"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间线"
           }
         }
       }

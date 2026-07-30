@@ -256,6 +256,8 @@ struct PlayerTVView: View {
                     duration: viewModel.duration,
                     bufferedAhead: viewModel.bufferedAhead,
                     bufferBasePosition: viewModel.position,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
                     isScrubbing: isScrubbing,
                     onShowAudioSettings: showAudioSettings,
                     onShowSubtitleSettings: showSubtitleSettings,

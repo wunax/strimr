@@ -47,6 +47,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowEndsAtTime(_ enabled: Bool) {
+        settings.playback.showEndsAtTime = enabled
+        persist()
+    }
+
     func setShowScrubThumbnailPreviews(_ enabled: Bool) {
         settings.playback.showScrubThumbnailPreviews = enabled
         persist()
