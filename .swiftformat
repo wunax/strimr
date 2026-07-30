@@ -11,7 +11,7 @@
 --strip-unused-args always
 --semicolons inline
 --self remove
---exclude Strimr.xcodeproj,Strimr.xcworkspace,AetherEngine
+--exclude Strimr.xcodeproj,Strimr.xcworkspace,AetherEngine,build
 
 # rules
 
