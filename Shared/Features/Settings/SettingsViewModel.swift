@@ -38,6 +38,24 @@ final class SettingsViewModel {
         )
     }
 
+    var showScrubThumbnailPreviewsBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showScrubThumbnailPreviews },
+            set: { self.settingsManager.setShowScrubThumbnailPreviews($0) },
+        )
+    }
+
+    var generateMissingScrubThumbnailPreviewsBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.generateMissingScrubThumbnailPreviews },
+            set: { self.settingsManager.setGenerateMissingScrubThumbnailPreviews($0) },
+        )
+    }
+
+    var showsScrubThumbnailPreviews: Bool {
+        settingsManager.playback.showScrubThumbnailPreviews
+    }
+
     var rewindBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.seekBackwardSeconds },

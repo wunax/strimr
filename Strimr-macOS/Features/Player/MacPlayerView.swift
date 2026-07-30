@@ -163,6 +163,10 @@ struct MacPlayerView: View {
                     }
                     viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
                 }
+                .onChange(of: scrubPosition) { _, position in
+                    guard isScrubbing else { return }
+                    playerController.updateScrubPreview(to: position)
+                }
                 .onChange(of: playerController.duration) { _, duration in
                     viewModel.handlePlaybackDuration(duration)
                 }
@@ -260,6 +264,18 @@ struct MacPlayerView: View {
                     }
                 }
 
+                if isScrubbing,
+                   let scrubPreview = playerController.scrubPreview,
+                   scrubPreview.image != nil
+                {
+                    PlayerScrubPreviewRail(
+                        preview: scrubPreview,
+                        duration: max(max(viewModel.duration ?? 0, scrubPosition), 1),
+                        horizontalInset: 74,
+                    )
+                    .transition(.opacity)
+                }
+
                 if settingsManager.playback.showChaptersOnTimeline,
                    isScrubbing,
                    let chapter = viewModel.chapter(at: scrubPosition)
@@ -294,9 +310,11 @@ struct MacPlayerView: View {
                                     isScrubbing = editing
                                 }
                                 if editing {
+                                    playerController.beginScrubPreviewing(at: scrubPosition)
                                     showControls(temporarily: false)
                                 }
                                 if !editing {
+                                    playerController.endScrubPreviewing()
                                     playerController.seek(to: scrubPosition)
                                     viewModel.handlePlaybackPosition(scrubPosition, isScrubbing: false)
                                     showControls(temporarily: true)
@@ -538,6 +556,10 @@ struct MacPlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            scrubThumbnailSource: viewModel.scrubThumbnailSource,
+            showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+            generatesMissingScrubThumbnailPreviews:
+            settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)

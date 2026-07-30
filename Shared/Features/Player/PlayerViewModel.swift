@@ -12,6 +12,7 @@ final class PlayerViewModel {
     var position = 0.0
     var bufferedAhead = 0.0
     var playbackURL: URL?
+    private(set) var scrubThumbnailSource: PlexBIFSource?
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
     var preferredSubtitleStreamFFIndex: Int?
@@ -131,6 +132,7 @@ final class PlayerViewModel {
         preferredAudioStreamFFIndex = nil
         preferredSubtitleStreamFFIndex = nil
         activePartId = nil
+        scrubThumbnailSource = nil
         streamsByFFIndex = [:]
         markers = []
         chapters = []
@@ -158,6 +160,10 @@ final class PlayerViewModel {
                     return $0.startTimeOffset < $1.startTimeOffset
                 }
             updatePartContext(from: metadata)
+            scrubThumbnailSource = PlexBIFSource(
+                partID: activePartId,
+                context: context,
+            )
             resolvePreferredStreams(from: metadata)
             playbackURL = resolvePlaybackURL(from: metadata)
         } catch {

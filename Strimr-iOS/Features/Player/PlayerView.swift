@@ -126,6 +126,10 @@ struct PlayerView: View {
                     guard !isScrubbing else { return }
                     timelinePosition = newValue
                 }
+                .onChange(of: timelinePosition) { _, newValue in
+                    guard isScrubbing else { return }
+                    playerController.updateScrubPreview(to: newValue)
+                }
                 .onChange(of: viewModel.terminationMessage) { _, newValue in
                     guard let newValue else { return }
                     terminationAlertMessage = newValue
@@ -237,6 +241,7 @@ struct PlayerView: View {
                     onShowSettings: showSettings,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+                    scrubPreview: playerController.scrubPreview,
                     onShowChapters: showChapters,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
@@ -477,11 +482,13 @@ struct PlayerView: View {
 
         if editing {
             timelinePosition = viewModel.position
+            playerController.beginScrubPreviewing(at: timelinePosition)
             hideControlsWorkItem?.cancel()
             withAnimation(.easeInOut) {
                 controlsVisible = true
             }
         } else {
+            playerController.endScrubPreviewing()
             playerController.seek(to: timelinePosition)
             viewModel.position = timelinePosition
             scheduleControlsHide()
@@ -518,6 +525,10 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            scrubThumbnailSource: viewModel.scrubThumbnailSource,
+            showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+            generatesMissingScrubThumbnailPreviews:
+            settingsManager.playback.generateMissingScrubThumbnailPreviews,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)

@@ -35,6 +35,8 @@ struct SettingsPlaybackView: View {
                 )
             }
 
+            scrubThumbnailSection
+
             Section("settings.playback.subtitles.title") {
                 NavigationLink("settings.playback.subtitles.customize") {
                     SettingsSubtitlesView()
@@ -50,5 +52,28 @@ struct SettingsPlaybackView: View {
             }
         }
         .navigationTitle("settings.playback.title")
+    }
+
+    private var scrubThumbnailSection: some View {
+        Section {
+            Toggle(isOn: viewModel.showScrubThumbnailPreviewsBinding) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("settings.playback.scrubThumbnails")
+                    Text("settings.playback.scrubThumbnails.description")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Toggle(isOn: viewModel.generateMissingScrubThumbnailPreviewsBinding) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("settings.playback.generateMissingScrubThumbnails")
+                    Text("settings.playback.generateMissingScrubThumbnails.description")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!viewModel.showsScrubThumbnailPreviews)
+        }
     }
 }

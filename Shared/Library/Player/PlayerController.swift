@@ -6,6 +6,11 @@ import Foundation
 import Observation
 import SwiftUI
 
+struct PlayerScrubPreview {
+    var position: Double
+    var image: CGImage?
+}
+
 @MainActor
 @Observable
 final class PlayerController {
@@ -22,6 +27,7 @@ final class PlayerController {
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
     var errorMessage: String?
+    private(set) var scrubPreview: PlayerScrubPreview?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
 
@@ -39,6 +45,28 @@ final class PlayerController {
     @ObservationIgnored private var isStopping = false
     @ObservationIgnored private var playbackRate: Float = 1.0
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
+    @ObservationIgnored private var scrubBIFTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubExtractorDwellTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubBIFPreparationTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubBIFProvider: PlexBIFThumbnailProvider?
+    @ObservationIgnored private var scrubFrameExtractor: FrameExtractor?
+    @ObservationIgnored private var scrubExtractorRequestGeneration: Int?
+    @ObservationIgnored private var scrubGeneratedThumbnailCache: [Int: CGImage] = [:]
+    @ObservationIgnored private var scrubGeneratedThumbnailOrder: [Int] = []
+    @ObservationIgnored private var scrubPreviewGeneration = 0
+    @ObservationIgnored private var activeScrubBucket: Int?
+    @ObservationIgnored private var isScrubPreviewing = false
+    @ObservationIgnored private var showsScrubThumbnailPreviews = true
+    @ObservationIgnored private var generatesMissingScrubThumbnailPreviews = true
+
+    private let scrubBucketDuration = 10.0
+    private let unavailableBIFExtractorDelay: Duration = .milliseconds(250)
+    private let failedBIFExtractorDelay: Duration = .milliseconds(450)
+    private let pendingBIFExtractorDelay: Duration = .milliseconds(800)
+    private let extractorAvailabilityPollInterval: Duration = .milliseconds(50)
+    private let scrubThumbnailWidth = 320
+    private let scrubGeneratedThumbnailCacheLimit = 32
 
     init() {
         do {
@@ -55,8 +83,19 @@ final class PlayerController {
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
+        scrubThumbnailSource: PlexBIFSource? = nil,
+        showsScrubThumbnailPreviews: Bool = true,
+        generatesMissingScrubThumbnailPreviews: Bool = true,
         autoplay: Bool = true,
     ) {
+        resetScrubPreviewSession()
+        self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
+        self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
+        if showsScrubThumbnailPreviews {
+            scrubBIFProvider = scrubThumbnailSource.map {
+                PlexBIFThumbnailProvider(source: $0)
+            }
+        }
         isStopping = false
         hasStartedPlayback = false
         selectedSubtitleTrackID = nil
@@ -87,6 +126,11 @@ final class PlayerController {
                 }
                 if !isCoordinatedPlayback {
                     engine.setRate(playbackRate)
+                }
+                if !engine.isLive, let scrubBIFProvider {
+                    scrubBIFPreparationTask = Task {
+                        await scrubBIFProvider.prepare()
+                    }
                 }
                 onMediaLoaded?()
             } catch {
@@ -139,6 +183,60 @@ final class PlayerController {
 
     func seek(by delta: Double) {
         seek(to: max(0, position + delta))
+    }
+
+    func beginScrubPreviewing(at position: Double) {
+        guard showsScrubThumbnailPreviews else { return }
+        isScrubPreviewing = true
+        updateScrubPreview(to: position)
+    }
+
+    func updateScrubPreview(to position: Double) {
+        guard showsScrubThumbnailPreviews, isScrubPreviewing, position.isFinite else { return }
+
+        let target = max(0, position)
+        let bucket = Int(floor(target / scrubBucketDuration))
+        let bucketChanged = activeScrubBucket != bucket
+
+        if bucketChanged {
+            cancelPendingExtractorFallback()
+            activeScrubBucket = bucket
+            scrubPreviewGeneration &+= 1
+            scrubBIFTask?.cancel()
+            scrubAetherTask?.cancel()
+            scrubPreview = PlayerScrubPreview(
+                position: target,
+                image: scrubGeneratedThumbnailCache[bucket],
+            )
+            requestBucketThumbnails(
+                target: target,
+                bucket: bucket,
+                generation: scrubPreviewGeneration,
+            )
+            scheduleExtractorFallback(
+                bucket: bucket,
+                generation: scrubPreviewGeneration,
+            )
+        } else {
+            scrubPreview = PlayerScrubPreview(
+                position: target,
+                image: scrubPreview?.image,
+            )
+        }
+    }
+
+    func endScrubPreviewing() {
+        isScrubPreviewing = false
+        scrubPreviewGeneration &+= 1
+        activeScrubBucket = nil
+        scrubBIFTask?.cancel()
+        scrubBIFTask = nil
+        scrubAetherTask?.cancel()
+        scrubAetherTask = nil
+        scrubExtractorDwellTask?.cancel()
+        scrubExtractorDwellTask = nil
+        cancelInFlightScrubExtraction()
+        scrubPreview = nil
     }
 
     func setPlaybackRate(_ rate: Float) {
@@ -292,11 +390,203 @@ final class PlayerController {
     }
 
     func stop() {
+        resetScrubPreviewSession()
         isStopping = true
         isPaused = true
         isBuffering = false
         sourceVideoSize = nil
         engine.stop()
+    }
+
+    private func isCurrentScrubBucket(generation: Int, bucket: Int) -> Bool {
+        isScrubPreviewing
+            && scrubPreviewGeneration == generation
+            && activeScrubBucket == bucket
+    }
+
+    private func requestBucketThumbnails(
+        target: Double,
+        bucket: Int,
+        generation: Int,
+    ) {
+        if let scrubBIFProvider {
+            scrubBIFTask = Task { @MainActor [weak self, scrubBIFProvider] in
+                let thumbnail = await scrubBIFProvider.thumbnail(at: target)
+                guard let self,
+                      let thumbnail,
+                      isCurrentScrubBucket(generation: generation, bucket: bucket)
+                else {
+                    return
+                }
+                scrubPreview = PlayerScrubPreview(
+                    position: scrubPreview?.position ?? target,
+                    image: thumbnail.image,
+                )
+                cancelPendingExtractorFallback()
+            }
+        }
+
+        let bucketPosition = Double(bucket) * scrubBucketDuration
+        scrubAetherTask = Task { @MainActor [weak self] in
+            guard let self, scrubPreview?.image == nil else { return }
+            let image = await engine.scrubThumbnail(
+                atSeconds: bucketPosition,
+                maxWidth: scrubThumbnailWidth,
+            )
+            guard let image,
+                  isCurrentScrubBucket(generation: generation, bucket: bucket),
+                  scrubPreview?.image == nil
+            else {
+                return
+            }
+            scrubPreview = PlayerScrubPreview(
+                position: scrubPreview?.position ?? target,
+                image: image,
+            )
+            cancelPendingExtractorFallback()
+        }
+    }
+
+    private func scheduleExtractorFallback(
+        bucket: Int,
+        generation: Int,
+    ) {
+        scrubExtractorDwellTask?.cancel()
+        scrubExtractorDwellTask = nil
+        guard generatesMissingScrubThumbnailPreviews,
+              scrubPreview?.image == nil,
+              !engine.isLive
+        else {
+            return
+        }
+
+        scrubExtractorDwellTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let startedAt = ContinuousClock.now
+            while true {
+                do {
+                    try await Task.sleep(for: extractorAvailabilityPollInterval)
+                } catch {
+                    return
+                }
+                let requiredDelay = await extractorDelayForCurrentBIFState()
+                if startedAt.duration(to: ContinuousClock.now) >= requiredDelay {
+                    break
+                }
+            }
+            guard isCurrentScrubBucket(generation: generation, bucket: bucket),
+                  scrubPreview?.image == nil,
+                  !engine.isLive
+            else {
+                return
+            }
+
+            let extractor: FrameExtractor
+            if let scrubFrameExtractor {
+                extractor = scrubFrameExtractor
+            } else {
+                guard let newExtractor = engine.makeFrameExtractor() else { return }
+                scrubFrameExtractor = newExtractor
+                extractor = newExtractor
+            }
+
+            let bucketPosition = Double(bucket) * scrubBucketDuration
+            scrubExtractorRequestGeneration = generation
+            let extractedImage = await extractor.thumbnail(
+                at: bucketPosition,
+                maxWidth: scrubThumbnailWidth,
+            )
+            if scrubExtractorRequestGeneration == generation {
+                scrubExtractorRequestGeneration = nil
+            }
+            guard let extractedImage,
+                  isCurrentScrubBucket(generation: generation, bucket: bucket),
+                  scrubPreview?.image == nil
+            else {
+                return
+            }
+            storeGeneratedThumbnail(extractedImage, for: bucket)
+            scrubPreview = PlayerScrubPreview(
+                position: scrubPreview?.position ?? bucketPosition,
+                image: extractedImage,
+            )
+        }
+    }
+
+    private func extractorDelayForCurrentBIFState() async -> Duration {
+        guard let scrubBIFProvider else {
+            return unavailableBIFExtractorDelay
+        }
+        switch await scrubBIFProvider.availability() {
+        case .unavailable:
+            return unavailableBIFExtractorDelay
+        case .temporarilyFailed:
+            return failedBIFExtractorDelay
+        case .loading, .ready:
+            return pendingBIFExtractorDelay
+        }
+    }
+
+    private func cancelPendingExtractorFallback() {
+        scrubExtractorDwellTask?.cancel()
+        scrubExtractorDwellTask = nil
+        cancelInFlightScrubExtraction()
+    }
+
+    private func storeGeneratedThumbnail(_ image: CGImage, for bucket: Int) {
+        if scrubGeneratedThumbnailCache[bucket] == nil {
+            scrubGeneratedThumbnailOrder.append(bucket)
+        }
+        scrubGeneratedThumbnailCache[bucket] = image
+
+        while scrubGeneratedThumbnailOrder.count > scrubGeneratedThumbnailCacheLimit {
+            let expiredBucket = scrubGeneratedThumbnailOrder.removeFirst()
+            scrubGeneratedThumbnailCache[expiredBucket] = nil
+        }
+    }
+
+    private func resetScrubPreviewSession() {
+        isScrubPreviewing = false
+        scrubPreviewGeneration &+= 1
+        activeScrubBucket = nil
+        scrubBIFTask?.cancel()
+        scrubBIFTask = nil
+        scrubAetherTask?.cancel()
+        scrubAetherTask = nil
+        scrubExtractorDwellTask?.cancel()
+        scrubExtractorDwellTask = nil
+        scrubBIFPreparationTask?.cancel()
+        scrubBIFPreparationTask = nil
+        scrubPreview = nil
+        scrubExtractorRequestGeneration = nil
+        scrubGeneratedThumbnailCache = [:]
+        scrubGeneratedThumbnailOrder = []
+
+        if let scrubBIFProvider {
+            self.scrubBIFProvider = nil
+            Task {
+                await scrubBIFProvider.cancel()
+            }
+        }
+        if let extractor = scrubFrameExtractor {
+            scrubFrameExtractor = nil
+            Task {
+                await extractor.shutdown()
+            }
+        }
+    }
+
+    private func cancelInFlightScrubExtraction() {
+        guard scrubExtractorRequestGeneration != nil,
+              let extractor = scrubFrameExtractor
+        else {
+            return
+        }
+        scrubExtractorRequestGeneration = nil
+        scrubFrameExtractor = nil
+        Task {
+            await extractor.shutdown()
+        }
     }
 
     private func observeEngine() {

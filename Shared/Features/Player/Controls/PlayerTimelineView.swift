@@ -13,6 +13,7 @@ struct PlayerTimelineView: View {
     var playbackPosition: Double
     var chapters: [PlexChapter]
     var showsChaptersOnTimeline: Bool
+    var scrubPreview: PlayerScrubPreview?
     var onEditingChanged: (Bool) -> Void
     @State private var isEditing = false
 
@@ -39,6 +40,17 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if isEditing,
+               let scrubPreview,
+               scrubPreview.image != nil
+            {
+                PlayerScrubPreviewRail(
+                    preview: scrubPreview,
+                    duration: sliderUpperBound,
+                )
+                .transition(.opacity)
+            }
+
             if showsChaptersOnTimeline,
                isEditing,
                let chapter = chapter(at: position)
@@ -127,6 +139,88 @@ struct PlayerTimelineView: View {
             isEditing = editing
         }
         onEditingChanged(editing)
+    }
+}
+
+struct PlayerScrubPreviewRail: View {
+    var preview: PlayerScrubPreview
+    var duration: Double
+    var horizontalInset: CGFloat = 14
+
+    private var cardSize: CGSize {
+        #if os(tvOS)
+            CGSize(width: 256, height: 144)
+        #elseif os(macOS)
+            CGSize(width: 200, height: 112.5)
+        #else
+            CGSize(width: 180, height: 101.25)
+        #endif
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let usableWidth = max(width - horizontalInset * 2, 0)
+            let progress = duration > 0
+                ? min(max(preview.position / duration, 0), 1)
+                : 0
+            let targetX = horizontalInset + usableWidth * CGFloat(progress)
+            let halfCardWidth = cardSize.width / 2
+            let cardX = min(
+                max(targetX, halfCardWidth),
+                max(halfCardWidth, width - halfCardWidth),
+            )
+
+            if let image = preview.image {
+                PlayerScrubPreviewCard(
+                    image: image,
+                    position: preview.position,
+                    size: cardSize,
+                )
+                .position(x: cardX, y: cardSize.height / 2)
+            }
+        }
+        .frame(height: cardSize.height)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct PlayerScrubPreviewCard: View {
+    var image: CGImage
+    var position: Double
+    var size: CGSize
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.72)
+
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .scaledToFill()
+                .id(ObjectIdentifier(image))
+                .transition(.opacity)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipped()
+        .overlay(alignment: .bottomTrailing) {
+            Text(playerTimestampText(position))
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(.black.opacity(0.72), in: Capsule())
+                .padding(8)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(.white.opacity(0.2), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 7)
+        .animation(
+            .easeOut(duration: 0.1),
+            value: ObjectIdentifier(image),
+        )
     }
 }
 

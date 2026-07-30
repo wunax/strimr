@@ -6929,6 +6929,50 @@
         }
       }
     },
+    "settings.playback.generateMissingScrubThumbnails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate missing previews on this device"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Générer les aperçus manquants sur cet appareil"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此设备上生成缺失的预览"
+          }
+        }
+      }
+    },
+    "settings.playback.generateMissingScrubThumbnails.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When Plex thumbnails aren’t available, Strimr can load previews from the video. This may use additional network data and device resources."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque les miniatures Plex ne sont pas disponibles, Strimr peut charger des aperçus depuis la vidéo. Cela peut utiliser davantage de données réseau et de ressources de l’appareil."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当 Plex 缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
+          }
+        }
+      }
+    },
     "settings.playback.fontSize %lld" : {
       "localizations" : {
         "en" : {
@@ -7013,6 +7057,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "后退"
+          }
+        }
+      }
+    },
+    "settings.playback.scrubThumbnails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrub thumbnail previews"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçus pendant le défilement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖动缩略图预览"
+          }
+        }
+      }
+    },
+    "settings.playback.scrubThumbnails.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show image previews while moving through the playback timeline. Strimr uses thumbnails provided by your Plex server when available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche des aperçus d’image lorsque vous parcourez la timeline de lecture. Strimr utilise les miniatures fournies par votre serveur Plex lorsqu’elles sont disponibles."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在播放时间线上移动时显示图像预览。Strimr 会优先使用 Plex 服务器提供的缩略图。"
           }
         }
       }
