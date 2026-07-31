@@ -201,7 +201,7 @@ struct PlayerView: View {
                 currentTime: playerController.sourcePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                controlsVisible: controlsVisible,
+                bottomPadding: controlsVisible ? 120 : 48,
                 videoSize: playerController.sourceVideoSize,
             )
             .ignoresSafeArea()

@@ -6,7 +6,7 @@ struct SubtitleOverlayView: View {
     let currentTime: Double
     let maxCueDuration: Double
     let appearance: SubtitleAppearance
-    let controlsVisible: Bool
+    let bottomPadding: CGFloat
     let videoSize: CGSize?
 
     var body: some View {
@@ -38,9 +38,10 @@ struct SubtitleOverlayView: View {
                             .padding(
                                 .bottom,
                                 appearance.verticalPosition == .bottom
-                                    ? (controlsVisible ? 96 : 48)
+                                    ? bottomPadding
                                     : 0,
                             )
+                            .animation(.easeInOut(duration: 0.2), value: bottomPadding)
                         }
                     }
             }

@@ -216,11 +216,16 @@ struct PlayerTVView: View {
                 currentTime: playerController.sourcePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                controlsVisible: controlsVisible,
+                bottomPadding: subtitleBottomPadding,
                 videoSize: playerController.sourceVideoSize,
             )
             .ignoresSafeArea()
         }
+    }
+
+    private var subtitleBottomPadding: CGFloat {
+        guard controlsVisible else { return 48 }
+        return isShowingChapterTray ? 520 : 380
     }
 
     private var playerOverlay: some View {
