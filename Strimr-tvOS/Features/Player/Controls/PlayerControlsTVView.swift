@@ -11,6 +11,7 @@ struct PlayerControlsTVView: View {
     var bufferBasePosition: Double
     var playbackRate: Float
     var showsEndsAtTime: Bool
+    var showsClock: Bool
     var isScrubbing: Bool
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
@@ -93,6 +94,15 @@ struct PlayerControlsTVView: View {
                 }
 
                 Spacer()
+
+                if showsClock {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text(context.date.formatted(date: .omitted, time: .shortened))
+                            .font(.title3.monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                }
             }
 
             Spacer()

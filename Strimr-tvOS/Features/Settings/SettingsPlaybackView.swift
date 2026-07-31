@@ -39,6 +39,13 @@ struct SettingsPlaybackView: View {
                 )
             }
 
+            Section("settings.playback.overlay.title") {
+                Toggle(
+                    "settings.playback.showClock",
+                    isOn: viewModel.showClockBinding,
+                )
+            }
+
             scrubThumbnailSection
 
             Section("settings.playback.subtitles.title") {
