@@ -136,8 +136,14 @@ struct SelectServerTVView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(server.name)
                         .font(.title2.weight(.semibold))
-                    connectionSummary(for: server)
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if viewModel.selectingServerID == server.clientIdentifier {
+                            Text(sessionManager.loadingPhase.title)
+                        } else {
+                            connectionSummary(for: server)
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
 
                 Spacer()

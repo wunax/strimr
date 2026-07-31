@@ -7,6 +7,29 @@ import Observation
 @MainActor
 @Observable
 final class SessionManager {
+    enum LoadingPhase {
+        case preparing
+        case account
+        case servers
+        case connection
+        case libraries
+
+        var title: String {
+            switch self {
+            case .preparing:
+                String(localized: "startup.loading.preparing")
+            case .account:
+                String(localized: "startup.loading.account")
+            case .servers:
+                String(localized: "startup.loading.servers")
+            case .connection:
+                String(localized: "startup.loading.connection")
+            case .libraries:
+                String(localized: "startup.loading.libraries")
+            }
+        }
+    }
+
     enum Status {
         case hydrating
         case signedOut
@@ -18,6 +41,7 @@ final class SessionManager {
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let libraryStore: LibraryStore
     private(set) var status: Status = .hydrating
+    private(set) var loadingPhase: LoadingPhase = .preparing
     private(set) var authToken: String?
     private(set) var user: PlexCloudUser?
     private(set) var plexServer: PlexCloudResource?
@@ -37,6 +61,7 @@ final class SessionManager {
 
     func hydrate() async {
         status = .hydrating
+        loadingPhase = .preparing
         do {
             await context.waitForBootstrap()
 
@@ -118,6 +143,7 @@ final class SessionManager {
 
     func selectServer(_ server: PlexCloudResource) async throws {
         do {
+            loadingPhase = .connection
             try await context.selectServer(server)
             plexServer = server
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
@@ -128,6 +154,7 @@ final class SessionManager {
                 }
             #endif
             if authToken != nil {
+                loadingPhase = .libraries
                 do {
                     try await libraryStore.reloadLibraries()
                 } catch {
@@ -183,6 +210,7 @@ final class SessionManager {
         let userRepo = UserRepository(context: context)
         let resourcesRepo = ResourceRepository(context: context)
 
+        loadingPhase = .account
         let userResponse = try await userRepo.getUser()
         user = userResponse
         authToken = token
@@ -203,6 +231,7 @@ final class SessionManager {
             } catch {}
         }
 
+        loadingPhase = .servers
         let resources = try await resourcesRepo.getAvailableResources()
 
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),

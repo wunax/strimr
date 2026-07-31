@@ -351,9 +351,15 @@ struct MacServerSelectionView: View {
                                 .foregroundStyle(.brandPrimary)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(server.name).font(.headline)
-                                Text(connectionDescription(for: server))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                Group {
+                                    if viewModel.selectingServerID == server.clientIdentifier {
+                                        Text(sessionManager.loadingPhase.title)
+                                    } else {
+                                        Text(connectionDescription(for: server))
+                                    }
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             }
                             Spacer()
                             if viewModel.selectingServerID == server.clientIdentifier {

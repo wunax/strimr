@@ -124,9 +124,15 @@ struct SelectServerView: View {
                     Text(server.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    connectionSummary(for: server)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if viewModel.selectingServerID == server.clientIdentifier {
+                            Text(sessionManager.loadingPhase.title)
+                        } else {
+                            connectionSummary(for: server)
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 }
 
                 Spacer()
