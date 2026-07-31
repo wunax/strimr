@@ -322,7 +322,7 @@ struct MacPlayerView: View {
                             },
                         )
                     }
-                    HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(formatTime(viewModel.duration ?? 0))
                             .frame(width: 64, alignment: .leading)
 
@@ -335,6 +335,8 @@ struct MacPlayerView: View {
                                     now: context.date,
                                 ) {
                                     Text(endsAtText)
+                                        .font(.caption2.monospacedDigit())
+                                        .foregroundStyle(.white.opacity(0.7))
                                 }
                             }
                         }
