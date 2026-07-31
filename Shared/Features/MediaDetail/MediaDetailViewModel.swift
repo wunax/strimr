@@ -213,33 +213,24 @@ final class MediaDetailViewModel {
 
     func toggleWatchStatus(for target: MediaItem? = nil) async {
         let item = target ?? media.mediaItem
-
-        guard let scrobbleRepository = try? ScrobbleRepository(context: context) else {
-            if target == nil {
-                watchActionErrorMessage = String(localized: "errors.selectServer.updateWatchStatus")
-            }
-            return
-        }
-
         guard !isUpdatingWatchStatus(for: item) else { return }
 
         updatingWatchStatusIds.insert(item.id)
-        if target == nil {
-            watchActionErrorMessage = nil
-        }
+        watchActionErrorMessage = nil
         defer { updatingWatchStatusIds.remove(item.id) }
 
         do {
+            let scrobbleRepository = try ScrobbleRepository(context: context)
             if isWatched(item) {
                 try await scrobbleRepository.markUnwatched(key: item.id)
             } else {
                 try await scrobbleRepository.markWatched(key: item.id)
             }
-            await loadDetails()
+            await loadDetails(preservingExistingContent: true)
         } catch {
-            if target == nil {
-                watchActionErrorMessage = error.localizedDescription
-            }
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            watchActionErrorMessage = error.localizedDescription
+            ErrorReporter.capture(error)
         }
     }
 
@@ -409,7 +400,11 @@ final class MediaDetailViewModel {
 
     var shouldShowPlayFromStartButton: Bool {
         guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return false }
-        return hasProgress(for: target.item)
+        return shouldShowPlayFromStartButton(for: target.item)
+    }
+
+    func shouldShowPlayFromStartButton(for item: MediaItem) -> Bool {
+        hasProgress(for: item)
     }
 
     var primaryActionRatingKey: String? {
@@ -565,8 +560,8 @@ final class MediaDetailViewModel {
         do {
             let response = try await metadataRepository.getMetadataChildren(ratingKey: detailRatingKey)
             let fetchedSeasons = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
+            let previousSelectedSeasonId = selectedSeasonId
             seasons = fetchedSeasons
-            episodes = []
 
             guard !fetchedSeasons.isEmpty else {
                 selectedSeasonId = nil
@@ -576,9 +571,16 @@ final class MediaDetailViewModel {
 
             let nextSeasonId = preferredSeasonId(in: fetchedSeasons)
             selectedSeasonId = nextSeasonId
+            let shouldPreserveEpisodes = preservingExistingContent
+                && previousSelectedSeasonId == nextSeasonId
+                && !episodes.isEmpty
+
+            if !shouldPreserveEpisodes {
+                episodes = []
+            }
 
             if let seasonId = nextSeasonId {
-                await fetchEpisodes(for: seasonId, preservingExistingContent: preservingExistingContent)
+                await fetchEpisodes(for: seasonId, preservingExistingContent: shouldPreserveEpisodes)
             } else {
                 episodes = []
             }

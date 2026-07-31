@@ -7,6 +7,7 @@ struct MediaDetailTVView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
+    @State private var contextualEpisodeID: String?
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     private let onPlay: (String, PlexItemType) -> Void
@@ -40,7 +41,7 @@ struct MediaDetailTVView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        MediaHeroContentView(media: focusedMedia ?? bindableViewModel.media.mediaItem)
+                        MediaHeroContentView(media: contextualEpisode ?? focusedMedia ?? bindableViewModel.media.mediaItem)
                             .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         buttonsRow
@@ -80,6 +81,21 @@ struct MediaDetailTVView: View {
                 focusedMedia = newValue.mediaItem
             }
         }
+        .onChange(of: bindableViewModel.episodes) { _, episodes in
+            guard let contextualEpisodeID else { return }
+
+            if let refreshedEpisode = episodes.first(where: { $0.id == contextualEpisodeID }) {
+                focusedMedia = refreshedEpisode
+            } else {
+                self.contextualEpisodeID = nil
+                if focusedMedia?.id == contextualEpisodeID {
+                    focusedMedia = nil
+                }
+            }
+        }
+        .onChange(of: bindableViewModel.selectedSeasonId) {
+            contextualEpisodeID = nil
+        }
         .toolbar(.hidden, for: .tabBar)
         .alert(
             "sharePlay.error.title",
@@ -98,6 +114,28 @@ struct MediaDetailTVView: View {
         } message: {
             Text(sharePlayCoordinator.errorMessage ?? "")
         }
+        .alert(
+            "media.detail.watchAction.error.title",
+            isPresented: Binding(
+                get: { bindableViewModel.watchActionErrorMessage != nil },
+                set: {
+                    if !$0 {
+                        bindableViewModel.watchActionErrorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                bindableViewModel.watchActionErrorMessage = nil
+            }
+        } message: {
+            Text(bindableViewModel.watchActionErrorMessage ?? "")
+        }
+    }
+
+    private var contextualEpisode: MediaItem? {
+        guard let contextualEpisodeID else { return nil }
+        return viewModel.episodes.first(where: { $0.id == contextualEpisodeID })
     }
 
     private var playButton: some View {
@@ -222,7 +260,7 @@ struct MediaDetailTVView: View {
     }
 
     private var seasonsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 32) {
             seasonSelector
             episodesRow
         }
@@ -293,10 +331,21 @@ struct MediaDetailTVView: View {
                                 runtime: viewModel.runtimeText(for: episode),
                                 progress: viewModel.progressFraction(for: episode),
                                 width: 460,
+                                shouldShowPlayFromStart: viewModel.shouldShowPlayFromStartButton(for: episode),
+                                watchActionIcon: viewModel.watchActionIcon(for: episode),
+                                watchActionTitle: viewModel.watchActionTitle(for: episode),
+                                isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
                                 onPlay: {
                                     onPlay(episode.id, .episode)
                                 },
+                                onPlayFromStart: {
+                                    onPlayFromStart(episode.id, .episode)
+                                },
+                                onToggleWatchStatus: {
+                                    Task { await viewModel.toggleWatchStatus(for: episode) }
+                                },
                                 onFocus: {
+                                    contextualEpisodeID = episode.id
                                     focusedMedia = episode
                                 },
                             )
@@ -421,34 +470,109 @@ private struct SeasonPillButton: View {
 }
 
 private struct EpisodeArtworkCard: View {
+    private enum FocusTarget: Hashable {
+        case artwork
+        case playFromStart
+        case watchStatus
+    }
+
     let episode: MediaItem
     let imageURL: URL?
     let runtime: String?
     let progress: Double?
     let width: CGFloat
+    let shouldShowPlayFromStart: Bool
+    let watchActionIcon: String
+    let watchActionTitle: String
+    let isUpdatingWatchStatus: Bool
     let onPlay: () -> Void
+    let onPlayFromStart: () -> Void
+    let onToggleWatchStatus: () -> Void
     let onFocus: () -> Void
 
-    @FocusState private var isFocused: Bool
+    @FocusState private var focusedTarget: FocusTarget?
+
+    private var isArtworkFocused: Bool {
+        focusedTarget == .artwork
+    }
+
+    private var isContextSelected: Bool {
+        focusedTarget != nil
+    }
+
+    private var isActionFocused: Bool {
+        isContextSelected && !isArtworkFocused
+    }
 
     var body: some View {
-        EpisodeArtworkView(
-            episode: episode,
-            imageURL: imageURL,
-            width: width,
-            runtime: runtime,
-            progress: progress,
-        )
-        .focusable()
-        .focused($isFocused)
-        .scaleEffect(isFocused ? 1.12 : 1)
-        .animation(.easeOut(duration: 0.15), value: isFocused)
-        .onChange(of: isFocused) { _, focused in
-            if focused {
+        VStack(alignment: .leading, spacing: 20) {
+            EpisodeArtworkView(
+                episode: episode,
+                imageURL: imageURL,
+                width: width,
+                runtime: runtime,
+                progress: progress,
+            )
+            .focusable()
+            .focused($focusedTarget, equals: .artwork)
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        Color.brandSecondary.opacity(isArtworkFocused ? 1 : isActionFocused ? 0.65 : 0),
+                        lineWidth: isArtworkFocused ? 3 : 2,
+                    )
+            }
+            .shadow(
+                color: Color.brandSecondary.opacity(isContextSelected ? 0.22 : 0),
+                radius: isContextSelected ? 14 : 0,
+            )
+            .scaleEffect(isArtworkFocused ? 1.12 : isActionFocused ? 1.05 : 1)
+            .onPlayPauseCommand(perform: onPlay)
+            .onTapGesture(perform: onPlay)
+
+            ZStack(alignment: .topLeading) {
+                if isContextSelected {
+                    HStack(spacing: 12) {
+                        if shouldShowPlayFromStart {
+                            Button(action: onPlayFromStart) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.headline.weight(.semibold))
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(.secondary)
+                            .focused($focusedTarget, equals: .playFromStart)
+                            .accessibilityLabel(Text("media.detail.playFromStart"))
+                        }
+
+                        Button(action: onToggleWatchStatus) {
+                            if isUpdatingWatchStatus {
+                                ProgressView()
+                                    .tint(.brandSecondaryForeground)
+                            } else {
+                                Image(systemName: watchActionIcon)
+                                    .font(.headline.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.secondary)
+                        .focused($focusedTarget, equals: .watchStatus)
+                        .disabled(isUpdatingWatchStatus)
+                        .accessibilityLabel(Text(watchActionTitle))
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .frame(height: 64, alignment: .topLeading)
+        }
+        .frame(width: width, alignment: .leading)
+        .focusSection()
+        .animation(.easeOut(duration: 0.15), value: focusedTarget)
+        .onChange(of: focusedTarget) { _, target in
+            if target != nil {
                 onFocus()
             }
         }
-        .onPlayPauseCommand(perform: onPlay)
-        .onTapGesture(perform: onPlay)
     }
 }
