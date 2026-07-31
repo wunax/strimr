@@ -7,10 +7,8 @@ struct PlexBinaryDownload: @unchecked Sendable {
 
 final class PlexServerNetworkClient {
     private let session: URLSession = .shared
-    private var authToken: String
-    private var baseURL: URL
+    private weak var context: PlexAPIContext?
     private var language: String
-    private var clientIdentifier: String?
     private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     private let platform: String = {
         #if os(tvOS)
@@ -22,11 +20,9 @@ final class PlexServerNetworkClient {
         #endif
     }()
 
-    init(authToken: String, baseURL: URL, clientIdentifier: String? = nil, language: String = "en") {
-        self.authToken = authToken
-        self.baseURL = baseURL
+    init(context: PlexAPIContext, language: String = "en") {
+        self.context = context
         self.language = Locale.preferredLanguages.first ?? language
-        self.clientIdentifier = clientIdentifier
     }
 
     func request<Response: Decodable>(
@@ -35,9 +31,14 @@ final class PlexServerNetworkClient {
         method: String = "GET",
         headers: [String: String] = [:],
     ) async throws -> Response {
-        let request = try buildRequest(path: path, queryItems: queryItems, method: method, headers: headers)
-
-        let (data, response) = try await session.data(for: request)
+        let result = try await data(
+            path: path,
+            queryItems: queryItems,
+            method: method,
+            headers: headers,
+        )
+        let data = result.data
+        let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlexAPIError.requestFailed(statusCode: -1)
         }
@@ -60,9 +61,13 @@ final class PlexServerNetworkClient {
         method: String = "GET",
         headers: [String: String] = [:],
     ) async throws {
-        let request = try buildRequest(path: path, queryItems: queryItems, method: method, headers: headers)
-
-        let (_, response) = try await session.data(for: request)
+        let result = try await data(
+            path: path,
+            queryItems: queryItems,
+            method: method,
+            headers: headers,
+        )
+        let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlexAPIError.requestFailed(statusCode: -1)
         }
@@ -77,13 +82,13 @@ final class PlexServerNetworkClient {
         headers: [String: String] = [:],
         acceptedStatusCodes: Set<Int> = Set(200 ..< 300),
     ) async throws -> PlexBinaryDownload {
-        let request = try buildRequest(
+        let result = try await download(
             path: path,
             queryItems: queryItems,
-            method: "GET",
             headers: headers,
         )
-        let (downloadURL, response) = try await session.download(for: request)
+        let downloadURL = result.url
+        let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlexAPIError.requestFailed(statusCode: -1)
         }
@@ -101,13 +106,88 @@ final class PlexServerNetworkClient {
         )
     }
 
+    private func data(
+        path: String,
+        queryItems: [URLQueryItem]?,
+        method: String,
+        headers: [String: String],
+    ) async throws -> (data: Data, response: URLResponse) {
+        let context = try requireContext()
+        let snapshot = try context.serverAccessSnapshot()
+        let request = try buildRequest(
+            snapshot: snapshot,
+            path: path,
+            queryItems: queryItems,
+            method: method,
+            headers: headers,
+        )
+        let result = try await session.data(for: request)
+        guard (result.1 as? HTTPURLResponse)?.statusCode == 401 else {
+            return result
+        }
+
+        try await context.recoverServerAccess(afterUnauthorizedSnapshot: snapshot)
+        let refreshedSnapshot = try context.serverAccessSnapshot()
+        let retryRequest = try buildRequest(
+            snapshot: refreshedSnapshot,
+            path: path,
+            queryItems: queryItems,
+            method: method,
+            headers: headers,
+        )
+        return try await session.data(for: retryRequest)
+    }
+
+    private func download(
+        path: String,
+        queryItems: [URLQueryItem]?,
+        headers: [String: String],
+    ) async throws -> (url: URL, response: URLResponse) {
+        let context = try requireContext()
+        let snapshot = try context.serverAccessSnapshot()
+        let request = try buildRequest(
+            snapshot: snapshot,
+            path: path,
+            queryItems: queryItems,
+            method: "GET",
+            headers: headers,
+        )
+        let result = try await session.download(for: request)
+        guard (result.1 as? HTTPURLResponse)?.statusCode == 401 else {
+            return result
+        }
+
+        try? FileManager.default.removeItem(at: result.0)
+        try await context.recoverServerAccess(afterUnauthorizedSnapshot: snapshot)
+        let refreshedSnapshot = try context.serverAccessSnapshot()
+        let retryRequest = try buildRequest(
+            snapshot: refreshedSnapshot,
+            path: path,
+            queryItems: queryItems,
+            method: "GET",
+            headers: headers,
+        )
+        return try await session.download(for: retryRequest)
+    }
+
+    private func requireContext() throws -> PlexAPIContext {
+        guard let context else {
+            throw PlexAPIError.missingConnection
+        }
+        return context
+    }
+
     private func buildRequest(
+        snapshot: PlexAPIContext.ServerAccessSnapshot,
         path: String,
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
     ) throws -> URLRequest {
-        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        guard var components = URLComponents(
+            url: snapshot.baseURL.appendingPathComponent(path),
+            resolvingAgainstBaseURL: false,
+        )
         else {
             throw PlexAPIError.invalidURL
         }
@@ -126,11 +206,9 @@ final class PlexServerNetworkClient {
         if let appVersion {
             request.setValue(appVersion, forHTTPHeaderField: "X-Plex-Version")
         }
-        request.setValue(authToken, forHTTPHeaderField: "X-Plex-Token")
+        request.setValue(snapshot.authToken, forHTTPHeaderField: "X-Plex-Token")
         request.setValue(language, forHTTPHeaderField: "X-Plex-Language")
-        if let clientIdentifier {
-            request.setValue(clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
-        }
+        request.setValue(snapshot.clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }

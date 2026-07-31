@@ -32,6 +32,12 @@ final class SessionManager {
     init(context: PlexAPIContext, libraryStore: LibraryStore) {
         self.context = context
         self.libraryStore = libraryStore
+        context.configureServerAccessRecovery { [weak self] force in
+            guard let self else {
+                throw PlexServerAccessRecoveryError.connectionFailed
+            }
+            try await self.refreshSelectedServerAccess(force: force)
+        }
         Task { await hydrate() }
     }
 
@@ -174,6 +180,51 @@ final class SessionManager {
             topShelfSessionStore.clear()
             TVTopShelfContentProvider.topShelfContentDidChange()
         #endif
+    }
+
+    func refreshSelectedServerAccess(force _: Bool = false) async throws {
+        guard let selectedServerID = plexServer?.clientIdentifier ?? context.serverIdentifier else {
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        }
+
+        let resources: [PlexCloudResource]
+        do {
+            resources = try await ResourceRepository(context: context).getAvailableResources()
+        } catch let error as PlexAPIError where error.isUnauthorized {
+            throw PlexServerAccessRecoveryError.accountUnauthorized
+        } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
+            }
+            throw PlexServerAccessRecoveryError.connectionFailed
+        }
+
+        guard let refreshedServer = resources.first(where: {
+            $0.clientIdentifier == selectedServerID
+        }) else {
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        }
+
+        try await context.refreshServerAccess(using: refreshedServer)
+        plexServer = refreshedServer
+        UserDefaults.standard.set(refreshedServer.clientIdentifier, forKey: serverIdDefaultsKey)
+        #if os(tvOS)
+            if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
+                try? topShelfSessionStore.save(serverURL: serverURL, token: serverToken)
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            }
+        #endif
+    }
+
+    func handleTerminalServerAccessFailure(_ error: PlexServerAccessRecoveryError) async {
+        switch error {
+        case .accountUnauthorized:
+            await signOut()
+        case .serverUnavailable:
+            await requestServerSelection()
+        case .connectionFailed:
+            break
+        }
     }
 
     private func bootstrapAuthenticatedSession(

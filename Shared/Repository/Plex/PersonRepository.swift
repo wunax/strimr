@@ -4,15 +4,15 @@ final class PersonRepository {
     private let network: PlexServerNetworkClient
 
     init(context: PlexAPIContext) throws {
-        guard let baseURLServer = context.baseURLServer else {
+        guard context.baseURLServer != nil else {
             throw PlexAPIError.missingConnection
         }
 
-        guard let authToken = context.authTokenServer else {
+        guard context.authTokenServer != nil else {
             throw PlexAPIError.missingAuthToken
         }
 
-        network = PlexServerNetworkClient(authToken: authToken, baseURL: baseURLServer)
+        network = PlexServerNetworkClient(context: context)
     }
 
     func getPerson(id: Int) async throws -> PlexPersonMediaContainer {
