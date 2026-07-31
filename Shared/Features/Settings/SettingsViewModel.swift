@@ -45,6 +45,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showClockBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showClock },
+            set: { self.settingsManager.setShowClock($0) },
+        )
+    }
+
     var showScrubThumbnailPreviewsBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showScrubThumbnailPreviews },
