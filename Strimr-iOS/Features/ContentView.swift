@@ -20,7 +20,7 @@ struct ContentView: View {
             } else {
                 switch sessionManager.status {
                 case .hydrating:
-                    ProgressView("loading")
+                    ProgressView(sessionManager.loadingPhase.title)
                         .progressViewStyle(.circular)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .signedOut:
