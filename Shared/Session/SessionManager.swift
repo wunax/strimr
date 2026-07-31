@@ -36,7 +36,7 @@ final class SessionManager {
             guard let self else {
                 throw PlexServerAccessRecoveryError.connectionFailed
             }
-            try await self.refreshSelectedServerAccess(force: force)
+            try await refreshSelectedServerAccess(force: force)
         }
         Task { await hydrate() }
     }
