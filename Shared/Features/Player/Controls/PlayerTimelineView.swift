@@ -95,7 +95,7 @@ struct PlayerTimelineView: View {
             HStack {
                 Text(elapsedText)
                 Spacer()
-                HStack(spacing: 12) {
+                VStack(alignment: .trailing, spacing: 3) {
                     Text(remainingText)
                     if showsEndsAtTime {
                         TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -106,6 +106,8 @@ struct PlayerTimelineView: View {
                                 now: context.date,
                             ) {
                                 Text(endsAtText)
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.white.opacity(0.7))
                             }
                         }
                     }
