@@ -85,7 +85,7 @@ struct MacPlayerView: View {
                 currentTime: playerController.sourcePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                controlsVisible: controlsVisible,
+                bottomPadding: controlsVisible ? 96 : 48,
                 videoSize: playerController.sourceVideoSize,
             )
             .ignoresSafeArea()
