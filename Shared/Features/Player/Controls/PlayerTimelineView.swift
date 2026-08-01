@@ -92,7 +92,7 @@ struct PlayerTimelineView: View {
                 }
             #endif
 
-            HStack {
+            HStack(alignment: .top) {
                 Text(elapsedText)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 3) {
