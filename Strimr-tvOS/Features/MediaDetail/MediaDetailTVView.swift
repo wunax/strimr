@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
@@ -360,7 +361,12 @@ struct MediaDetailTVView: View {
                         ForEach(viewModel.episodes) { episode in
                             EpisodeArtworkCard(
                                 episode: episode,
-                                imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
+                                imageURL: viewModel.imageURL(
+                                    for: episode,
+                                    width: 640,
+                                    height: 360,
+                                    spoilerProtection: settingsManager.interface.spoilerProtection,
+                                ),
                                 runtime: viewModel.runtimeText(for: episode),
                                 progress: viewModel.progressFraction(for: episode),
                                 width: 460,

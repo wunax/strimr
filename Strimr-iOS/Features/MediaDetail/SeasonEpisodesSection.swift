@@ -2,6 +2,7 @@ import Observation
 import SwiftUI
 
 struct SeasonEpisodesSection: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let onSelectSeason: (MediaItem) -> Void
     let onSelectEpisode: (MediaItem) -> Void
@@ -136,7 +137,12 @@ struct SeasonEpisodesSection: View {
             ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
                 EpisodeCardView(
                     episode: episode,
-                    imageURL: viewModel.imageURL(for: episode, width: 640, height: 360),
+                    imageURL: viewModel.imageURL(
+                        for: episode,
+                        width: 640,
+                        height: 360,
+                        spoilerProtection: settingsManager.interface.spoilerProtection,
+                    ),
                     runtime: viewModel.runtimeText(for: episode),
                     progress: viewModel.progressFraction(for: episode),
                     onSelect: { onSelectEpisode(episode) },

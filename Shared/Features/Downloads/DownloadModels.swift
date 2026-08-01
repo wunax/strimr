@@ -25,6 +25,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
     var genres: [String]
     var year: Int?
     var duration: TimeInterval?
+    var viewCount: Int?
     var contentRating: String?
     var studio: String?
     var tagline: String?

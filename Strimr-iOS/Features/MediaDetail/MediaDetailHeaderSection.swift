@@ -6,6 +6,7 @@ import UIKit
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(PlexAPIContext.self) private var context
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
@@ -36,7 +37,13 @@ struct MediaDetailHeaderSection: View {
                         .foregroundStyle(.primary)
                 }
 
-                if let summary = viewModel.media.summary, !summary.isEmpty {
+                if viewModel.media.mediaItem.shouldHideSpoilerSummary(
+                    at: settingsManager.interface.spoilerProtection,
+                ) {
+                    Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                } else if let summary = viewModel.media.summary, !summary.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(summary)
                             .font(.body)
@@ -203,7 +210,9 @@ struct MediaDetailHeaderSection: View {
     private var heroBackground: some View {
         ZStack(alignment: .top) {
             GeometryReader { proxy in
-                if let heroURL = viewModel.heroImageURL {
+                if let heroURL = viewModel.heroImageURL(
+                    spoilerProtection: settingsManager.interface.spoilerProtection,
+                ) {
                     AsyncImage(url: heroURL) { phase in
                         switch phase {
                         case let .success(image):
@@ -232,6 +241,14 @@ struct MediaDetailHeaderSection: View {
                 }
             }
             .frame(height: heroHeight)
+            .overlay(alignment: .topLeading) {
+                if viewModel.media.mediaItem.isSpoilerProtected(
+                    at: settingsManager.interface.spoilerProtection,
+                ) {
+                    SpoilerProtectionIndicator()
+                        .padding(16)
+                }
+            }
         }
         .frame(maxWidth: .infinity, minHeight: heroHeight, maxHeight: heroHeight)
         .ignoresSafeArea(edges: .horizontal)

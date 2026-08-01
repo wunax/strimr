@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SearchResultCard: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(SettingsManager.self) private var settingsManager
     let media: MediaDisplayItem
     let onTap: () -> Void
 
@@ -41,7 +42,14 @@ struct SearchResultCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    if let summary = media.summary, !summary.isEmpty {
+                    if media.playableItem?.shouldHideSpoilerSummary(
+                        at: settingsManager.interface.spoilerProtection,
+                    ) == true {
+                        Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                    } else if let summary = media.summary, !summary.isEmpty {
                         Text(summary)
                             .font(.callout)
                             .foregroundStyle(.secondary)

@@ -158,6 +158,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setSpoilerProtection(_ level: SpoilerProtectionLevel) {
+        settings.interface.spoilerProtection = level
+        persist()
+    }
+
     func setDownloadWiFiOnly(_ enabled: Bool) {
         settings.downloads.wifiOnly = enabled
         persist()

@@ -3,6 +3,7 @@ import GroupActivities
 import SwiftUI
 
 struct MacMediaDetailView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(PlexAPIContext.self) private var context
     @Environment(DownloadManager.self) private var downloadManager
@@ -108,7 +109,11 @@ struct MacMediaDetailView: View {
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
             GeometryReader { proxy in
-                AsyncImage(url: viewModel.heroImageURL) { phase in
+                AsyncImage(
+                    url: viewModel.heroImageURL(
+                        spoilerProtection: settingsManager.interface.spoilerProtection,
+                    ),
+                ) { phase in
                     if let image = phase.image {
                         image
                             .resizable()
@@ -125,6 +130,14 @@ struct MacMediaDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 380, maxHeight: 480)
+            .overlay(alignment: .topLeading) {
+                if viewModel.media.mediaItem.isSpoilerProtected(
+                    at: settingsManager.interface.spoilerProtection,
+                ) {
+                    SpoilerProtectionIndicator()
+                        .padding(16)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
@@ -209,7 +222,13 @@ struct MacMediaDetailView: View {
                 MediaDetailTrackButtons(viewModel: viewModel)
             }
 
-            if let summary = viewModel.media.summary, !summary.isEmpty {
+            if viewModel.media.mediaItem.shouldHideSpoilerSummary(
+                at: settingsManager.interface.spoilerProtection,
+            ) {
+                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            } else if let summary = viewModel.media.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -454,7 +473,12 @@ struct MacMediaDetailView: View {
             onSelectMedia(episode)
         } label: {
             HStack(spacing: 14) {
-                AsyncImage(url: viewModel.imageURL(for: episode)) { phase in
+                AsyncImage(
+                    url: viewModel.imageURL(
+                        for: episode,
+                        spoilerProtection: settingsManager.interface.spoilerProtection,
+                    ),
+                ) { phase in
                     if let image = phase.image {
                         image.resizable().scaledToFill()
                     } else {
@@ -463,11 +487,22 @@ struct MacMediaDetailView: View {
                 }
                 .frame(width: 180, height: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(alignment: .topLeading) {
+                    if episode.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
+                        SpoilerProtectionIndicator()
+                            .padding(6)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
                         .font(.headline)
-                    if let summary = episode.summary {
+                    if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                        Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    } else if let summary = episode.summary, !summary.isEmpty {
                         Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                     }
                 }

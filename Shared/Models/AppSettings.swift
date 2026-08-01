@@ -1,5 +1,22 @@
 import Foundation
 
+enum SpoilerProtectionLevel: String, Codable, CaseIterable, Hashable {
+    case off
+    case thumbnails
+    case full
+
+    var title: String {
+        switch self {
+        case .off:
+            String(localized: "settings.interface.spoilerProtection.off")
+        case .thumbnails:
+            String(localized: "settings.interface.spoilerProtection.thumbnails")
+        case .full:
+            String(localized: "settings.interface.spoilerProtection.full")
+        }
+    }
+}
+
 enum SubtitleTextColor: String, Codable, CaseIterable, Hashable {
     case white
     case yellow
@@ -138,6 +155,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayCollections = true
     var displayPlaylists = true
     var displaySeerrDiscoverTab = true
+    var spoilerProtection = SpoilerProtectionLevel.off
 
     init() {}
 
@@ -148,6 +166,7 @@ struct InterfaceSettings: Codable, Equatable {
         displayCollections = try container.decodeIfPresent(Bool.self, forKey: .displayCollections) ?? true
         displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
+        spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
     }
 }
 

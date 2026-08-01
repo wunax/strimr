@@ -4,6 +4,7 @@ import UIKit
 @MainActor
 struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(PlexAPIContext.self) private var context
     @State private var selectedDownload: DownloadItem?
 
@@ -102,6 +103,12 @@ struct DownloadsView: View {
             posterView(for: item)
                 .frame(width: 64, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .topLeading) {
+                    if isSpoilerProtected(item) {
+                        SpoilerProtectionIndicator()
+                            .padding(5)
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.metadata.title)
@@ -125,8 +132,15 @@ struct DownloadsView: View {
 
     @ViewBuilder
     private func posterView(for item: DownloadItem) -> some View {
-        if let posterURL = downloadManager.localPosterURL(for: item),
-           let image = UIImage(contentsOfFile: posterURL.path)
+        if isSpoilerProtected(item) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.2))
+                .overlay {
+                    Image(systemName: "film")
+                        .foregroundStyle(.secondary)
+                }
+        } else if let posterURL = downloadManager.localPosterURL(for: item),
+                  let image = UIImage(contentsOfFile: posterURL.path)
         {
             Image(uiImage: image)
                 .resizable()
@@ -171,5 +185,10 @@ struct DownloadsView: View {
 
     private func formattedBytes(_ value: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    private func isSpoilerProtected(_ item: DownloadItem) -> Bool {
+        downloadManager.localMediaItem(for: item)
+            .isSpoilerProtected(at: settingsManager.interface.spoilerProtection)
     }
 }
