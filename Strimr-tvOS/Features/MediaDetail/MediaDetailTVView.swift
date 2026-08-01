@@ -41,7 +41,8 @@ struct MediaDetailTVView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        MediaHeroContentView(media: contextualEpisode ?? focusedMedia ?? bindableViewModel.media.mediaItem)
+                        MediaHeroContentView(media: contextualEpisode ?? focusedMedia ?? bindableViewModel.media
+                            .mediaItem)
                             .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         buttonsRow
