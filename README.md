@@ -37,7 +37,7 @@ Strimr is a third-party Plex client built in Swift with native interfaces for iP
 | Video | H.264/AVC, HEVC/H.265, AV1, VP9, VP8, MPEG-4 Part 2, MPEG-2, VC-1 |
 | HDR | HDR10, HDR10+, HLG, Dolby Vision profiles 5, 7 (as 8.1), 8.1, and 8.4 |
 | Audio | AAC, HE-AAC, AC3, EAC3, FLAC, ALAC, TrueHD, MLP, DTS, DTS-HD MA, MP3, MP2, Opus, Vorbis, PCM |
-| Subtitles | SRT, ASS/SSA (text only), WebVTT, mov_text, PGS, DVB, DVD bitmap, CEA-608 (CC1), teletext (text only) |
+| Subtitles | SRT, ASS/SSA, WebVTT, mov_text, PGS, DVB, DVD bitmap, CEA-608 (CC1), teletext (text only) |
 
 ## Download
 <p align="center">
