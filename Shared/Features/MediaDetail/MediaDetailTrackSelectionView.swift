@@ -27,6 +27,7 @@ struct MediaDetailTrackButtons: View {
             }
         }
         .buttonStyle(.bordered)
+        .tint(.secondary)
     }
 
     @ViewBuilder
