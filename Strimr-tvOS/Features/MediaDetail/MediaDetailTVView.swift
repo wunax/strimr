@@ -172,29 +172,8 @@ struct MediaDetailTVView: View {
                 playFromStartButton
             }
 
-            shuffleButton
-
-            sharePlayButton
-
-            watchToggleButton
-
-            if viewModel.shouldShowWatchlistButton {
-                watchlistToggleButton
-            }
+            moreActionsMenu
         }
-    }
-
-    private var sharePlayButton: some View {
-        Button {
-            Task { await activateSharePlay() }
-        } label: {
-            Image(systemName: "shareplay")
-                .font(.title2.weight(.semibold))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
-        .accessibilityLabel(Text("sharePlay.action"))
     }
 
     private var playFromStartButton: some View {
@@ -208,56 +187,94 @@ struct MediaDetailTVView: View {
         .accessibilityLabel(Text("media.detail.playFromStart"))
     }
 
-    private var shuffleButton: some View {
-        Button(action: handleShuffle) {
-            Image(systemName: "shuffle")
+    private var shouldShowShuffleAction: Bool {
+        [.show, .season].contains(viewModel.media.type)
+    }
+
+    private var isPerformingMenuAction: Bool {
+        sharePlayCoordinator.isActivating
+            || viewModel.isUpdatingWatchStatus
+            || viewModel.isUpdatingWatchlistStatus
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            if shouldShowShuffleAction {
+                Button(action: handleShuffle) {
+                    Label("common.actions.shuffle", systemImage: "shuffle")
+                }
+            }
+
+            Button {
+                Task { await activateSharePlay() }
+            } label: {
+                if sharePlayCoordinator.isActivating {
+                    Label {
+                        Text("sharePlay.action")
+                    } icon: {
+                        ProgressView()
+                    }
+                } else {
+                    Label("sharePlay.action", systemImage: "shareplay")
+                }
+            }
+            .disabled(sharePlayCoordinator.isActivating)
+
+            Button {
+                Task { await viewModel.toggleWatchStatus() }
+            } label: {
+                if viewModel.isUpdatingWatchStatus {
+                    Label {
+                        Text(viewModel.watchActionTitle)
+                    } icon: {
+                        ProgressView()
+                    }
+                } else {
+                    Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+                }
+            }
+            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+            if viewModel.shouldShowWatchlistButton {
+                Button {
+                    Task { await viewModel.toggleWatchlistStatus() }
+                } label: {
+                    if viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus {
+                        Label {
+                            Text(viewModel.watchlistActionTitle)
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                    }
+                }
+                .disabled(
+                    viewModel.isLoading
+                        || viewModel.isLoadingWatchlistStatus
+                        || viewModel.isUpdatingWatchlistStatus,
+                )
+            }
+        } label: {
+            Image(systemName: "arrow.counterclockwise")
                 .font(.title2.weight(.semibold))
+                .opacity(0)
+                .overlay {
+                    if isPerformingMenuAction {
+                        ProgressView()
+                            .tint(.brandSecondaryForeground)
+                    } else {
+                        Image(systemName: "ellipsis")
+                            .font(.title2.weight(.semibold))
+                            .rotationEffect(.degrees(90))
+                    }
+                }
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
         .tint(.secondary)
-        .accessibilityLabel(Text("common.actions.shuffle"))
-    }
-
-    private var watchToggleButton: some View {
-        Button {
-            Task {
-                await viewModel.toggleWatchStatus()
-            }
-        } label: {
-            if viewModel.isUpdatingWatchStatus {
-                ProgressView()
-                    .tint(.brandSecondaryForeground)
-            } else {
-                Image(systemName: viewModel.watchActionIcon)
-                    .font(.title2.weight(.semibold))
-            }
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
-        .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-    }
-
-    private var watchlistToggleButton: some View {
-        Button {
-            Task {
-                await viewModel.toggleWatchlistStatus()
-            }
-        } label: {
-            if viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus {
-                ProgressView()
-                    .tint(.brandSecondaryForeground)
-            } else {
-                Image(systemName: viewModel.watchlistActionIcon)
-                    .font(.title2.weight(.semibold))
-            }
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
-        .disabled(viewModel.isLoading || viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus)
-        .accessibilityLabel(Text(viewModel.watchlistActionTitle))
+        .menuIndicator(.hidden)
+        .accessibilityLabel(Text("common.actions.more"))
     }
 
     private var seasonsSection: some View {
@@ -484,13 +501,6 @@ private struct SeasonPillButton: View {
 }
 
 private struct EpisodeArtworkCard: View {
-    private enum FocusTarget: Hashable {
-        case artwork
-        case playFromStart
-        case sharePlay
-        case watchStatus
-    }
-
     let episode: MediaItem
     let imageURL: URL?
     let runtime: String?
@@ -507,103 +517,71 @@ private struct EpisodeArtworkCard: View {
     let onToggleWatchStatus: () -> Void
     let onFocus: () -> Void
 
-    @FocusState private var focusedTarget: FocusTarget?
-
-    private var isArtworkFocused: Bool {
-        focusedTarget == .artwork
-    }
-
-    private var isContextSelected: Bool {
-        focusedTarget != nil
-    }
-
-    private var isActionFocused: Bool {
-        isContextSelected && !isArtworkFocused
-    }
+    @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            EpisodeArtworkView(
-                episode: episode,
-                imageURL: imageURL,
-                width: width,
-                runtime: runtime,
-                progress: progress,
-            )
-            .focusable()
-            .focused($focusedTarget, equals: .artwork)
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
-                        Color.brandSecondary.opacity(isArtworkFocused ? 1 : isActionFocused ? 0.65 : 0),
-                        lineWidth: isArtworkFocused ? 3 : 2,
-                    )
-            }
-            .shadow(
-                color: Color.brandSecondary.opacity(isContextSelected ? 0.22 : 0),
-                radius: isContextSelected ? 14 : 0,
-            )
-            .scaleEffect(isArtworkFocused ? 1.12 : isActionFocused ? 1.05 : 1)
-            .onPlayPauseCommand(perform: onPlay)
-            .onTapGesture(perform: onPlay)
-
-            ZStack(alignment: .topLeading) {
-                if isContextSelected {
-                    HStack(spacing: 12) {
-                        if shouldShowPlayFromStart {
-                            Button(action: onPlayFromStart) {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.headline.weight(.semibold))
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(.secondary)
-                            .focused($focusedTarget, equals: .playFromStart)
-                            .accessibilityLabel(Text("media.detail.playFromStart"))
-                        }
-
-                        Button(action: onSharePlay) {
-                            if isStartingSharePlay {
-                                ProgressView()
-                                    .tint(.brandSecondaryForeground)
-                            } else {
-                                Image(systemName: "shareplay")
-                                    .font(.headline.weight(.semibold))
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.secondary)
-                        .focused($focusedTarget, equals: .sharePlay)
-                        .disabled(isStartingSharePlay)
-                        .accessibilityLabel(Text("sharePlay.action"))
-
-                        Button(action: onToggleWatchStatus) {
-                            if isUpdatingWatchStatus {
-                                ProgressView()
-                                    .tint(.brandSecondaryForeground)
-                            } else {
-                                Image(systemName: watchActionIcon)
-                                    .font(.headline.weight(.semibold))
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.secondary)
-                        .focused($focusedTarget, equals: .watchStatus)
-                        .disabled(isUpdatingWatchStatus)
-                        .accessibilityLabel(Text(watchActionTitle))
+        EpisodeArtworkView(
+            episode: episode,
+            imageURL: imageURL,
+            width: width,
+            runtime: runtime,
+            progress: progress,
+        )
+        .focusable()
+        .focused($isFocused)
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    Color.brandSecondary.opacity(isFocused ? 1 : 0),
+                    lineWidth: isFocused ? 3 : 2,
+                )
+        }
+        .overlay(alignment: .trailing) {
+            if isFocused {
+                Group {
+                    if isStartingSharePlay || isUpdatingWatchStatus {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "ellipsis")
+                            .font(.headline.weight(.semibold))
+                            .rotationEffect(.degrees(90))
                     }
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                .padding(10)
+                .background(.ultraThinMaterial, in: Circle())
+                .padding(12)
+                .accessibilityHidden(true)
+                .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .shadow(
+            color: Color.brandSecondary.opacity(isFocused ? 0.22 : 0),
+            radius: isFocused ? 14 : 0,
+        )
+        .scaleEffect(isFocused ? 1.12 : 1)
+        .contextMenu {
+            if shouldShowPlayFromStart {
+                Button(action: onPlayFromStart) {
+                    Label("media.detail.playFromStart", systemImage: "arrow.counterclockwise")
                 }
             }
-            .frame(height: 64, alignment: .topLeading)
+
+            Button(action: onSharePlay) {
+                Label("sharePlay.action", systemImage: "shareplay")
+            }
+            .disabled(isStartingSharePlay)
+
+            Button(action: onToggleWatchStatus) {
+                Label(watchActionTitle, systemImage: watchActionIcon)
+            }
+            .disabled(isUpdatingWatchStatus)
         }
+        .onPlayPauseCommand(perform: onPlay)
+        .onTapGesture(perform: onPlay)
         .frame(width: width, alignment: .leading)
-        .focusSection()
-        .animation(.easeOut(duration: 0.15), value: focusedTarget)
-        .onChange(of: focusedTarget) { _, target in
-            if target != nil {
+        .animation(.easeOut(duration: 0.15), value: isFocused)
+        .onChange(of: isFocused) { _, focused in
+            if focused {
                 onFocus()
             }
         }

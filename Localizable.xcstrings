@@ -381,6 +381,28 @@
         }
       }
     },
+    "common.actions.more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More Actions"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus d’actions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多操作"
+          }
+        }
+      }
+    },
     "common.actions.pause" : {
       "localizations" : {
         "en" : {
