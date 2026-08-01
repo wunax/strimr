@@ -1,28 +1,20 @@
 import Foundation
 
 final class MediaRepository {
-    private let baseURL: URL
-    private let authToken: String
+    private weak var context: PlexAPIContext?
 
     init(context: PlexAPIContext) throws {
-        guard let baseURLServer = context.baseURLServer else {
-            throw PlexAPIError.missingConnection
-        }
-
-        guard let authToken = context.authTokenServer else {
-            throw PlexAPIError.missingAuthToken
-        }
-
-        baseURL = baseURLServer
-        self.authToken = authToken
+        _ = try context.serverAccessSnapshot()
+        self.context = context
     }
 
     func mediaURL(path: String) -> URL? {
-        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+        guard let snapshot = try? context?.serverAccessSnapshot() else { return nil }
+        var components = URLComponents(url: snapshot.baseURL, resolvingAgainstBaseURL: false)
         let normalizedPath = path.hasPrefix("/") ? path : "/\(path)"
         components?.path = normalizedPath
         components?.queryItems = [
-            URLQueryItem(name: "X-Plex-Token", value: authToken),
+            URLQueryItem(name: "X-Plex-Token", value: snapshot.authToken),
         ]
         return components?.url
     }

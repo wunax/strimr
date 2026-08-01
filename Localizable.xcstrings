@@ -4437,6 +4437,116 @@
         }
       }
     },
+    "player.serverRecovery.accountUnauthorized" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Plex sign-in has expired. Retry, or exit to sign in again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre connexion Plex a expiré. Réessayez ou quittez pour vous reconnecter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的 Plex 登录已过期。请重试，或退出后重新登录。"
+          }
+        }
+      }
+    },
+    "player.serverRecovery.connectionFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strimr could not reconnect to your Plex server. Check your connection and try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strimr n’a pas pu se reconnecter à votre serveur Plex. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strimr 无法重新连接到您的 Plex 服务器。请检查网络连接后重试。"
+          }
+        }
+      }
+    },
+    "player.serverRecovery.exitPlayer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit Player"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter le lecteur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出播放器"
+          }
+        }
+      }
+    },
+    "player.serverRecovery.serverUnavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Plex server is no longer available to your account. Retry, or exit to select another server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce serveur Plex n’est plus disponible pour votre compte. Réessayez ou quittez pour choisir un autre serveur."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的帐户已无法访问此 Plex 服务器。请重试，或退出后选择其他服务器。"
+          }
+        }
+      }
+    },
+    "player.serverRecovery.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex Server Connection"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion au serveur Plex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 服务器连接"
+          }
+        }
+      }
+    },
     "player.settings.audio" : {
       "localizations" : {
         "en" : {

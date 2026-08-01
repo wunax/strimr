@@ -12,6 +12,7 @@ final class PlayerViewModel {
     var position = 0.0
     var bufferedAhead = 0.0
     var playbackURL: URL?
+    var serverAccessRecoveryError: PlexServerAccessRecoveryError?
     private(set) var scrubThumbnailSource: PlexBIFSource?
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
@@ -109,6 +110,14 @@ final class PlayerViewModel {
         shouldResumeFromOffsetFlag
     }
 
+    var serverAccessGeneration: Int {
+        context.serverAccessGeneration
+    }
+
+    var isLocalPlayback: Bool {
+        localPlaybackURL != nil
+    }
+
     func load() async {
         if let localPlaybackURL, let localMedia {
             media = localMedia
@@ -139,36 +148,41 @@ final class PlayerViewModel {
         defer { isLoading = false }
 
         do {
-            let params = MetadataRepository.PlexMetadataParams(
-                checkFiles: true,
-                includeChapters: true,
-                includeMarkers: true,
-            )
-            let response = try await metadataRepository.getMetadata(
-                ratingKey: ratingKey,
-                params: params,
-            )
-            let metadata = response.mediaContainer.metadata?.first
-            media = metadata.map(MediaItem.init)
-            markers = metadata?.markers ?? []
-            chapters = (metadata?.chapters ?? [])
-                .filter(\.isValid)
-                .sorted {
-                    if $0.startTimeOffset == $1.startTimeOffset {
-                        return $0.index < $1.index
-                    }
-                    return $0.startTimeOffset < $1.startTimeOffset
-                }
-            updatePartContext(from: metadata)
-            scrubThumbnailSource = PlexBIFSource(
-                partID: activePartId,
-                context: context,
-            )
-            resolvePreferredStreams(from: metadata)
-            playbackURL = resolvePlaybackURL(from: metadata)
+            try await loadRemoteMetadata(using: metadataRepository)
         } catch {
+            if let recoveryError = error as? PlexServerAccessRecoveryError {
+                serverAccessRecoveryError = recoveryError
+            }
             errorMessage = error.localizedDescription
         }
+    }
+
+    func refreshPlaybackSource() async throws -> URL {
+        guard !isLocalPlayback else {
+            guard let playbackURL else { throw PlexAPIError.invalidURL }
+            return playbackURL
+        }
+        let repository = try MetadataRepository(context: context)
+        try await loadRemoteMetadata(using: repository)
+        guard let playbackURL else {
+            throw PlexAPIError.invalidURL
+        }
+        return playbackURL
+    }
+
+    @discardableResult
+    func recoverServerAccessIfUnauthorized() async throws -> Bool {
+        guard !isLocalPlayback else { return false }
+        return try await context.validateCurrentServerAccess()
+    }
+
+    func forceServerAccessRecovery() async throws {
+        guard !isLocalPlayback else { return }
+        try await context.forceRefreshCurrentServerAccess()
+    }
+
+    func clearServerAccessRecoveryError() {
+        serverAccessRecoveryError = nil
     }
 
     func handlePlaybackState(isPaused: Bool, isBuffering: Bool) {
@@ -271,8 +285,46 @@ final class PlayerViewModel {
             )
             handleTerminationIfNeeded(response)
         } catch {
+            if let recoveryError = error as? PlexServerAccessRecoveryError {
+                serverAccessRecoveryError = recoveryError
+            }
             debugPrint("Failed to update timeline:", error)
         }
+    }
+
+    private func loadRemoteMetadata(using repository: MetadataRepository) async throws {
+        let params = MetadataRepository.PlexMetadataParams(
+            checkFiles: true,
+            includeChapters: true,
+            includeMarkers: true,
+        )
+        let response = try await repository.getMetadata(
+            ratingKey: ratingKey,
+            params: params,
+        )
+        let metadata = response.mediaContainer.metadata?.first
+        media = metadata.map(MediaItem.init)
+        markers = metadata?.markers ?? []
+        chapters = (metadata?.chapters ?? [])
+            .filter(\.isValid)
+            .sorted {
+                if $0.startTimeOffset == $1.startTimeOffset {
+                    return $0.index < $1.index
+                }
+                return $0.startTimeOffset < $1.startTimeOffset
+            }
+        updatePartContext(from: metadata)
+        scrubThumbnailSource = PlexBIFSource(
+            partID: activePartId,
+            context: context,
+        )
+        resolvePreferredStreams(from: metadata)
+        guard let resolvedURL = resolvePlaybackURL(from: metadata) else {
+            throw PlexAPIError.invalidURL
+        }
+        playbackURL = resolvedURL
+        serverAccessRecoveryError = nil
+        errorMessage = nil
     }
 
     private func resolvePlaybackURL(from metadata: PlexItem?) -> URL? {

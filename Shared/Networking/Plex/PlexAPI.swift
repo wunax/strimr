@@ -9,6 +9,19 @@ enum PlexAPIError: Error {
     case decodingFailed(Error)
 }
 
+extension PlexAPIError {
+    var isUnauthorized: Bool {
+        guard case let .requestFailed(statusCode) = self else { return false }
+        return statusCode == 401
+    }
+}
+
+enum PlexServerAccessRecoveryError: Error, Equatable {
+    case accountUnauthorized
+    case serverUnavailable
+    case connectionFailed
+}
+
 protocol QueryItemConvertible {
     var queryItems: [URLQueryItem] { get }
 }

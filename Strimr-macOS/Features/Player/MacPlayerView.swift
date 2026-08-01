@@ -38,6 +38,7 @@ struct MacPlayerWindowView: View {
 struct MacPlayerView: View {
     @Environment(\.dismissWindow) private var dismissWindow
     @Environment(PlexAPIContext.self) private var context
+    @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(MacAppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -53,6 +54,9 @@ struct MacPlayerView: View {
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    @State private var pendingRecoveryAudioFFIndex: Int?
+    @State private var pendingRecoverySubtitleFFIndex: Int?
+    @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1
     @State private var loadedURL: URL?
     @State private var isShowingError = false
@@ -60,6 +64,12 @@ struct MacPlayerView: View {
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
+    @State private var isRecoveringServerAccess = false
+    @State private var isShowingServerRecoveryAlert = false
+    @State private var serverRecoveryError: PlexServerAccessRecoveryError?
+    @State private var lastReloadedServerAccessGeneration = -1
+    @State private var shouldResumeAfterMediaLoad = false
+    @State private var shouldPauseAfterMediaLoad = false
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -94,7 +104,7 @@ struct MacPlayerView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { toggleControlsVisibility() }
 
-            if viewModel.isLoading || viewModel.isBuffering {
+            if viewModel.isLoading || viewModel.isBuffering || isRecoveringServerAccess {
                 ProgressView()
                     .controlSize(.large)
                     .tint(.white)
@@ -179,7 +189,7 @@ struct MacPlayerView: View {
             playbackObservers
                 .onChange(of: playerController.errorMessage) { _, error in
                     guard let error else { return }
-                    showError(error)
+                    Task { await handlePlaybackError(error) }
                 }
                 .onChange(of: viewModel.terminationMessage) { _, error in
                     guard let error else { return }
@@ -203,6 +213,13 @@ struct MacPlayerView: View {
                           activity.ratingKey != viewModel.currentRatingKey
                     else { return }
                     Task { await startPlayback(for: activity) }
+                }
+                .onChange(of: viewModel.serverAccessGeneration) { _, generation in
+                    Task { await reloadPlaybackAfterServerAccessChange(generation) }
+                }
+                .onChange(of: viewModel.serverAccessRecoveryError) { _, error in
+                    guard let error else { return }
+                    presentServerRecoveryError(error)
                 },
         )
 
@@ -211,6 +228,16 @@ struct MacPlayerView: View {
                 Button("player.termination.dismiss") { closePlayer(force: true) }
             } message: {
                 Text(errorMessage)
+            }
+            .alert("player.serverRecovery.title", isPresented: $isShowingServerRecoveryAlert) {
+                Button("common.actions.retry") {
+                    Task { await retryServerAccessRecovery() }
+                }
+                Button("player.serverRecovery.exitPlayer") {
+                    Task { await exitAfterServerAccessFailure() }
+                }
+            } message: {
+                Text(serverRecoveryMessage)
             }
             .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
                 Button("sharePlay.leave.action", role: .destructive) {
@@ -544,16 +571,40 @@ struct MacPlayerView: View {
             let tracks = playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
-            selectedAudioTrackID = audioTracks.first(where: \.isSelected)?.id
+            if shouldRestoreTracksAfterLoad {
+                let audioID = audioTracks.first {
+                    $0.ffIndex == pendingRecoveryAudioFFIndex
+                }?.id
+                let subtitleID = subtitleTracks.first {
+                    $0.ffIndex == pendingRecoverySubtitleFFIndex
+                }?.id
+                selectedAudioTrackID = audioID
+                selectedSubtitleTrackID = subtitleID
+                playerController.selectAudioTrack(id: audioID)
+                playerController.selectSubtitleTrack(id: subtitleID)
+                pendingRecoveryAudioFFIndex = nil
+                pendingRecoverySubtitleFFIndex = nil
+                shouldRestoreTracksAfterLoad = false
+            } else {
+                selectedAudioTrackID = audioTracks.first(where: \.isSelected)?.id
 
-            if let preferredSubtitle = viewModel.preferredSubtitleStreamFFIndex,
-               let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitle })
-            {
-                selectedSubtitleTrackID = track.id
-                playerController.selectSubtitleTrack(id: track.id)
+                if let preferredSubtitle = viewModel.preferredSubtitleStreamFFIndex,
+                   let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitle })
+                {
+                    selectedSubtitleTrackID = track.id
+                    playerController.selectSubtitleTrack(id: track.id)
+                }
             }
             if participatesInSharePlay, sharePlayCoordinator.isInSession {
                 sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
+            }
+            if shouldPauseAfterMediaLoad {
+                shouldPauseAfterMediaLoad = false
+                shouldResumeAfterMediaLoad = false
+                playerController.pause()
+            } else if shouldResumeAfterMediaLoad {
+                shouldResumeAfterMediaLoad = false
+                playerController.resume()
             }
             showControls(temporarily: true)
         }
@@ -629,6 +680,121 @@ struct MacPlayerView: View {
         isShowingError = true
         showControls(temporarily: false)
         playerController.pause()
+    }
+
+    private var serverRecoveryMessage: String {
+        switch serverRecoveryError {
+        case .accountUnauthorized:
+            String(localized: "player.serverRecovery.accountUnauthorized")
+        case .serverUnavailable:
+            String(localized: "player.serverRecovery.serverUnavailable")
+        case .connectionFailed, .none:
+            String(localized: "player.serverRecovery.connectionFailed")
+        }
+    }
+
+    private func handlePlaybackError(_ message: String) async {
+        guard !isRecoveringServerAccess else { return }
+        isRecoveringServerAccess = true
+        defer { isRecoveringServerAccess = false }
+
+        do {
+            let recovered = try await viewModel.recoverServerAccessIfUnauthorized()
+            guard recovered else {
+                showError(message)
+                return
+            }
+        } catch let error as PlexServerAccessRecoveryError {
+            presentServerRecoveryError(error)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            showError(message)
+        }
+    }
+
+    private func reloadPlaybackAfterServerAccessChange(_ generation: Int) async {
+        guard !viewModel.isLocalPlayback,
+              generation != lastReloadedServerAccessGeneration,
+              loadedURL != nil
+        else { return }
+
+        lastReloadedServerAccessGeneration = generation
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        pendingRecoveryAudioFFIndex = audioTracks.first {
+            $0.id == selectedAudioTrackID
+        }?.ffIndex
+        pendingRecoverySubtitleFFIndex = subtitleTracks.first {
+            $0.id == selectedSubtitleTrackID
+        }?.ffIndex
+        shouldRestoreTracksAfterLoad = true
+        isRecoveringServerAccess = true
+        playerController.stop()
+        loadedURL = nil
+
+        do {
+            let url = try await viewModel.refreshPlaybackSource()
+            let isSharePlay = participatesInSharePlay && sharePlayCoordinator.isInSession
+            loadedURL = url
+            playerController.load(
+                url: url,
+                startPosition: position,
+                preferredAudioTrackID: pendingRecoveryAudioFFIndex,
+                losslessAudio: settingsManager.playback.losslessAudio,
+                scrubThumbnailSource: viewModel.scrubThumbnailSource,
+                showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+                generatesMissingScrubThumbnailPreviews:
+                settingsManager.playback.generateMissingScrubThumbnailPreviews,
+                autoplay: !isSharePlay,
+            )
+            playerController.setPlaybackRate(playbackRate)
+            shouldResumeAfterMediaLoad = !isSharePlay && !wasPaused
+            shouldPauseAfterMediaLoad = !isSharePlay && wasPaused
+            isRecoveringServerAccess = false
+        } catch let error as PlexServerAccessRecoveryError {
+            isRecoveringServerAccess = false
+            presentServerRecoveryError(error)
+        } catch {
+            isRecoveringServerAccess = false
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            presentServerRecoveryError(.connectionFailed)
+        }
+    }
+
+    private func retryServerAccessRecovery() async {
+        guard !isRecoveringServerAccess else { return }
+        isShowingServerRecoveryAlert = false
+        isRecoveringServerAccess = true
+        do {
+            try await viewModel.forceServerAccessRecovery()
+        } catch let error as PlexServerAccessRecoveryError {
+            isRecoveringServerAccess = false
+            presentServerRecoveryError(error)
+        } catch {
+            isRecoveringServerAccess = false
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            presentServerRecoveryError(.connectionFailed)
+        }
+    }
+
+    private func exitAfterServerAccessFailure() async {
+        let error = serverRecoveryError
+        loadedURL = nil
+        if participatesInSharePlay, sharePlayCoordinator.isInSession {
+            sharePlayCoordinator.leave()
+            participatesInSharePlay = false
+        }
+        if let error {
+            await sessionManager.handleTerminalServerAccessFailure(error)
+        }
+        closePlayer(force: true)
+    }
+
+    private func presentServerRecoveryError(_ error: PlexServerAccessRecoveryError) {
+        playerController.pause()
+        serverRecoveryError = error
+        viewModel.clearServerAccessRecoveryError()
+        isShowingServerRecoveryAlert = true
     }
 
     private func stopPlayback() {
