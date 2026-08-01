@@ -30,7 +30,6 @@ struct MediaDetailTrackButtons: View {
         .tint(.secondary)
     }
 
-    @ViewBuilder
     private var audioTrackButtons: some View {
         ForEach(viewModel.audioTracks, id: \.self) { track in
             if let id = track.id {

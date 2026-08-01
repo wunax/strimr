@@ -805,7 +805,6 @@ final class MediaDetailViewModel {
         using metadataRepository: MetadataRepository,
         preservingExistingContent: Bool,
     ) async {
-
         if preservingExistingContent, trackRatingKey == ratingKey, hasTrackSelection {
             return
         }
