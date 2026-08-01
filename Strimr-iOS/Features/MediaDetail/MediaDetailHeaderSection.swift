@@ -26,9 +26,6 @@ struct MediaDetailHeaderSection: View {
 
                 headerSection
                 playButtonsRow
-                if viewModel.hasTrackSelection {
-                    MediaDetailTrackButtons(viewModel: viewModel)
-                }
                 secondaryButtonsRow
                 badgesSection
                 ratingsSection
@@ -291,45 +288,149 @@ struct MediaDetailHeaderSection: View {
         HStack(alignment: .top, spacing: 12) {
             watchToggleButton
 
-            if viewModel.shouldShowWatchlistButton {
-                watchlistToggleButton
+            if !viewModel.audioTracks.isEmpty {
+                audioTrackButton
+            }
+
+            if !viewModel.subtitleTracks.isEmpty {
+                subtitleTrackButton
             }
 
             downloadButton
-            shuffleButton
-            sharePlayButton
+            moreButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    @ViewBuilder
-    private var sharePlayButton: some View {
-        if viewModel.primaryActionRatingKey != nil {
-            VStack(spacing: 2) {
-                Button {
-                    startSharePlay()
-                } label: {
-                    if isStartingSharePlay {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "shareplay")
-                            .font(.headline.weight(.semibold))
+    private var audioTrackButton: some View {
+        VStack(spacing: 2) {
+            Menu {
+                ForEach(viewModel.audioTracks, id: \.self) { track in
+                    if let id = track.id {
+                        Button {
+                            Task { await viewModel.selectAudioStream(id: id) }
+                        } label: {
+                            Label(
+                                track.displayTitle,
+                                systemImage: viewModel.selectedAudioStreamID == id ? "checkmark" : "circle",
+                            )
+                        }
                     }
                 }
-                .frame(width: 48, height: 44)
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-                .tint(.brandSecondary)
-                .disabled(isStartingSharePlay)
-
-                Text("sharePlay.action")
-                    .font(.caption2)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: 56)
-                    .lineLimit(2)
+            } label: {
+                if viewModel.isUpdatingTracks {
+                    ProgressView()
+                } else {
+                    Image(systemName: "waveform")
+                        .font(.headline.weight(.semibold))
+                }
             }
-            .accessibilityLabel(Text("sharePlay.action"))
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+            .disabled(viewModel.isUpdatingTracks)
+
+            Text("player.settings.audio")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 48)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
         }
+    }
+
+    private var subtitleTrackButton: some View {
+        VStack(spacing: 2) {
+            Menu {
+                Button {
+                    Task { await viewModel.selectSubtitleStream(id: nil) }
+                } label: {
+                    Label(
+                        String(localized: "player.settings.subtitles.off"),
+                        systemImage: viewModel.selectedSubtitleStreamID == nil ? "checkmark" : "circle",
+                    )
+                }
+
+                ForEach(viewModel.subtitleTracks, id: \.self) { track in
+                    if let id = track.id {
+                        Button {
+                            Task { await viewModel.selectSubtitleStream(id: id) }
+                        } label: {
+                            Label(
+                                track.displayTitle,
+                                systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
+                            )
+                        }
+                    }
+                }
+            } label: {
+                if viewModel.isUpdatingTracks {
+                    ProgressView()
+                } else {
+                    Image(systemName: "captions.bubble")
+                        .font(.headline.weight(.semibold))
+                }
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+            .disabled(viewModel.isUpdatingTracks)
+
+            Text("player.settings.subtitles")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 56)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+    }
+
+    private var moreButton: some View {
+        VStack(spacing: 2) {
+            Menu {
+                if viewModel.shouldShowWatchlistButton {
+                    Button {
+                        Task { await viewModel.toggleWatchlistStatus() }
+                    } label: {
+                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                    }
+                    .disabled(
+                        viewModel.isLoading
+                            || viewModel.isLoadingWatchlistStatus
+                            || viewModel.isUpdatingWatchlistStatus,
+                    )
+                }
+
+                Button(action: handleShuffle) {
+                    Label("common.actions.shuffle", systemImage: "shuffle")
+                }
+
+                if viewModel.primaryActionRatingKey != nil {
+                    Button(action: startSharePlay) {
+                        Label("sharePlay.action", systemImage: "shareplay")
+                    }
+                    .disabled(isStartingSharePlay)
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+            .frame(width: 48, height: 44)
+
+            Text("common.actions.more")
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 48)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .accessibilityLabel(Text("common.actions.more"))
     }
 
     private var playButtonsRow: some View {
@@ -376,27 +477,6 @@ struct MediaDetailHeaderSection: View {
         .accessibilityLabel(Text("media.detail.playFromStart"))
     }
 
-    private var shuffleButton: some View {
-        VStack(spacing: 2) {
-            Button(action: handleShuffle) {
-                Image(systemName: "shuffle")
-                    .font(.headline.weight(.semibold))
-            }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-
-            Text("common.actions.shuffle")
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 48)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-        }
-        .accessibilityLabel(Text("common.actions.shuffle"))
-    }
-
     private var watchToggleButton: some View {
         VStack(spacing: 2) {
             Button {
@@ -419,36 +499,6 @@ struct MediaDetailHeaderSection: View {
             .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
 
             Text(viewModel.watchActionTitle)
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 48)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-        }
-    }
-
-    private var watchlistToggleButton: some View {
-        VStack(spacing: 2) {
-            Button {
-                Task {
-                    await viewModel.toggleWatchlistStatus()
-                }
-            } label: {
-                if viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus {
-                    ProgressView()
-                        .tint(.brandSecondaryForeground)
-                } else {
-                    Image(systemName: viewModel.watchlistActionIcon)
-                        .font(.headline.weight(.semibold))
-                }
-            }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isLoading || viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus)
-
-            Text(viewModel.watchlistActionTitle)
                 .font(.caption2)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: 48)

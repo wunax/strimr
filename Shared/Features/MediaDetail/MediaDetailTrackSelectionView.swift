@@ -155,9 +155,10 @@ struct MediaDetailTrackMenuItems: View {
 
 struct MediaDetailTrackSummary: View {
     @Bindable var viewModel: MediaDetailViewModel
+    var spacing: CGFloat = 16
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: spacing) {
             if let audioTitle = viewModel.selectedAudioTrackTitle {
                 Label(audioTitle, systemImage: "waveform")
             }

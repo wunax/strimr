@@ -48,7 +48,7 @@ struct MediaDetailTVView: View {
                         buttonsRow
 
                         if bindableViewModel.hasTrackSelection {
-                            MediaDetailTrackSummary(viewModel: bindableViewModel)
+                            MediaDetailTrackSummary(viewModel: bindableViewModel, spacing: 24)
                         }
 
                         if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
