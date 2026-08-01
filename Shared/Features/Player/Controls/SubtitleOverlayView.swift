@@ -1,5 +1,13 @@
 import AetherEngine
+import Combine
+import SwiftAssRenderer
 import SwiftUI
+
+#if canImport(UIKit)
+    import UIKit
+#elseif canImport(AppKit)
+    import AppKit
+#endif
 
 struct SubtitleOverlayView: View {
     let cues: [SubtitleCue]
@@ -8,8 +16,24 @@ struct SubtitleOverlayView: View {
     let appearance: SubtitleAppearance
     let bottomPadding: CGFloat
     let videoSize: CGSize?
+    let assRenderer: AssSubtitlesRenderer?
+    let assReloadSignal: PassthroughSubject<Void, Never>
+    let activeSubtitleCodec: String?
 
     var body: some View {
+        if let assRenderer {
+            ASSRenderedSubtitles(
+                renderer: assRenderer,
+                reloadSignal: assReloadSignal,
+                currentOffset: currentTime,
+            )
+            .allowsHitTesting(false)
+        } else {
+            cueOverlay
+        }
+    }
+
+    private var cueOverlay: some View {
         ZStack {
             GeometryReader { geometry in
                 Color.clear
@@ -52,9 +76,36 @@ struct SubtitleOverlayView: View {
     private var activeTextLines: [String] {
         activeCues.compactMap { cue in
             guard case let .text(text) = cue.body else { return nil }
-            let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let displayText = isASSTrackActive ? strippedASSText(text) : text
+            let cleaned = displayText.trimmingCharacters(in: .whitespacesAndNewlines)
             return cleaned.isEmpty ? nil : cleaned
         }
+    }
+
+    private var isASSTrackActive: Bool {
+        activeSubtitleCodec == "ass" || activeSubtitleCodec == "ssa"
+    }
+
+    private func strippedASSText(_ rawText: String) -> String {
+        var lines: [String] = []
+        for line in rawText.split(separator: "\n") {
+            let fields = line.split(separator: ",", maxSplits: 8, omittingEmptySubsequences: false)
+            guard fields.count == 9, Int(fields[0]) != nil else {
+                lines.append(String(line))
+                continue
+            }
+
+            var text = String(fields[8])
+            text = text.replacingOccurrences(of: "\\N", with: "\n")
+            text = text.replacingOccurrences(of: "\\n", with: "\n")
+            text = text.replacingOccurrences(of: "\\h", with: " ")
+            text = text.replacingOccurrences(of: "\\{[^}]*\\}", with: "", options: .regularExpression)
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                lines.append(trimmed)
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     private var activeCues: [SubtitleCue] {
@@ -149,6 +200,193 @@ struct SubtitleOverlayView: View {
             width: image.position.width * canvasRect.width,
             height: image.position.height * canvasRect.height,
         )
+    }
+}
+
+private struct ASSRenderedSubtitles: PlatformViewRepresentable {
+    let renderer: AssSubtitlesRenderer
+    let reloadSignal: PassthroughSubject<Void, Never>
+    let currentOffset: Double
+
+    #if canImport(UIKit)
+        func makeUIView(context _: Context) -> ASSFrameHostView {
+            ASSFrameHostView(renderer: renderer, reloadSignal: reloadSignal)
+        }
+
+        func updateUIView(_ view: ASSFrameHostView, context _: Context) {
+            view.currentOffset = currentOffset
+        }
+    #elseif canImport(AppKit)
+        func makeNSView(context _: Context) -> ASSFrameHostView {
+            ASSFrameHostView(renderer: renderer, reloadSignal: reloadSignal)
+        }
+
+        func updateNSView(_ view: ASSFrameHostView, context _: Context) {
+            view.currentOffset = currentOffset
+        }
+    #endif
+}
+
+private final class ASSFrameHostView: PlatformView {
+    var currentOffset = 0.0
+
+    private let renderer: AssSubtitlesRenderer
+    private let imageView = PlatformImageView()
+    private var lastRenderBounds = CGRect.zero
+    private var cancellables: Set<AnyCancellable> = []
+    private var suppressNilDeadline = Date.distantPast
+    private var hideWorkItem: DispatchWorkItem?
+
+    private static let reloadSuppressWindow: TimeInterval = 0.5
+
+    init(renderer: AssSubtitlesRenderer, reloadSignal: PassthroughSubject<Void, Never>) {
+        self.renderer = renderer
+        super.init(frame: .zero)
+
+        #if canImport(UIKit)
+            backgroundColor = .clear
+            isUserInteractionEnabled = false
+        #elseif canImport(AppKit)
+            wantsLayer = true
+            layer?.backgroundColor = NSColor.clear.cgColor
+        #endif
+
+        addSubview(imageView)
+        reloadSignal
+            .sink { [weak self] in
+                self?.suppressNilDeadline = Date().addingTimeInterval(Self.reloadSuppressWindow)
+            }
+            .store(in: &cancellables)
+        renderer.framesPublisher()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] image in
+                self?.handleFrameChanged(image)
+            }
+            .store(in: &cancellables)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    #if canImport(UIKit)
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            layoutRenderer()
+        }
+    #elseif canImport(AppKit)
+        override func layout() {
+            super.layout()
+            layoutRenderer()
+        }
+
+        override func hitTest(_: NSPoint) -> NSView? {
+            nil
+        }
+    #endif
+
+    private func layoutRenderer() {
+        guard !bounds.isEmpty else { return }
+
+        if !lastRenderBounds.isEmpty, imageView.image != nil, lastRenderBounds != bounds {
+            let ratioX = bounds.width / lastRenderBounds.width
+            let ratioY = bounds.height / lastRenderBounds.height
+            let frame = imageView.frame
+            imageView.frame = CGRect(
+                x: frame.origin.x * ratioX,
+                y: frame.origin.y * ratioY,
+                width: frame.width * ratioX,
+                height: frame.height * ratioY,
+            ).integral
+        }
+        renderer.setCanvasSize(bounds.size, scale: displayScale)
+    }
+
+    private var displayScale: CGFloat {
+        #if canImport(UIKit)
+            traitCollection.displayScale
+        #elseif canImport(AppKit)
+            window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        #endif
+    }
+
+    private func handleFrameChanged(_ image: ProcessedImage?) {
+        if let image {
+            hideWorkItem?.cancel()
+            hideWorkItem = nil
+            suppressNilDeadline = .distantPast
+            lastRenderBounds = bounds
+            imageView.frame = imageFrame(image.imageRect)
+            #if canImport(UIKit)
+                imageView.image = PlatformImage(cgImage: image.image)
+            #elseif canImport(AppKit)
+                imageView.image = PlatformImage(cgImage: image.image, size: image.imageRect.size)
+            #endif
+            imageView.isHidden = false
+            return
+        }
+
+        let remaining = suppressNilDeadline.timeIntervalSinceNow
+        guard remaining > 0 else {
+            hideNow()
+            return
+        }
+        guard hideWorkItem == nil else { return }
+        scheduleSafetyHide(after: remaining)
+    }
+
+    private func imageFrame(_ rect: CGRect) -> CGRect {
+        #if canImport(UIKit)
+            rect
+        #elseif canImport(AppKit)
+            CGRect(
+                x: rect.minX,
+                y: bounds.height - rect.maxY,
+                width: rect.width,
+                height: rect.height,
+            )
+        #endif
+    }
+
+    private func scheduleSafetyHide(after delay: TimeInterval) {
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            hideWorkItem = nil
+            let remaining = suppressNilDeadline.timeIntervalSinceNow
+            if remaining > 0 {
+                scheduleSafetyHide(after: remaining)
+            } else if !renderer.dialogues(at: currentOffset).isEmpty {
+                suppressNilDeadline = .distantPast
+                scheduleEndWatch()
+            } else {
+                hideNow()
+            }
+        }
+        hideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func scheduleEndWatch() {
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            hideWorkItem = nil
+            if renderer.dialogues(at: currentOffset).isEmpty {
+                hideNow()
+            } else {
+                scheduleEndWatch()
+            }
+        }
+        hideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
+    }
+
+    private func hideNow() {
+        hideWorkItem?.cancel()
+        hideWorkItem = nil
+        imageView.isHidden = true
+        imageView.image = nil
+        suppressNilDeadline = .distantPast
     }
 }
 

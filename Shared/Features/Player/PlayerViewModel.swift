@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 import Observation
 
@@ -69,6 +70,34 @@ final class PlayerViewModel {
     func plexStream(forFFIndex ffIndex: Int?) -> PlexPartStream? {
         guard let ffIndex else { return nil }
         return streamsByFFIndex[ffIndex]
+    }
+
+    func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
+        guard let mediaRepository = try? MediaRepository(context: context) else { return [] }
+
+        return streamsByFFIndex.values
+            .filter { $0.streamType == .subtitle && $0.key != nil }
+            .sorted { ($0.index ?? 0) < ($1.index ?? 0) }
+            .compactMap { stream in
+                guard let index = stream.index,
+                      let key = stream.key,
+                      let url = mediaRepository.mediaURL(path: key)
+                else {
+                    return nil
+                }
+
+                return PlayerExternalSubtitle(
+                    track: ExternalSubtitleTrack(
+                        url: url,
+                        name: stream.title ?? stream.displayTitle,
+                        language: stream.language,
+                        isForced: stream.forced == true,
+                        isHearingImpaired: stream.hearingImpaired == true,
+                        formatHint: stream.codec,
+                    ),
+                    plexStreamIndex: index,
+                )
+            }
     }
 
     init(

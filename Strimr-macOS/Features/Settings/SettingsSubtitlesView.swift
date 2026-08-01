@@ -10,6 +10,15 @@ struct SettingsSubtitlesView: View {
 
     var body: some View {
         List {
+            Section {
+                Toggle(
+                    "settings.playback.subtitles.styledASS",
+                    isOn: viewModel.styledASSSubtitlesBinding,
+                )
+            } footer: {
+                Text("settings.playback.subtitles.styledASS.description")
+            }
+
             Section("settings.playback.subtitles.preview.title") {
                 SubtitleAppearancePreview(appearance: settingsManager.playback.subtitleAppearance)
                     .frame(height: 180)

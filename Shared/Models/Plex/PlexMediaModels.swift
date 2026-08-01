@@ -257,6 +257,10 @@ struct PlexPartStream: Codable, Equatable, Hashable {
     let selected: Bool?
     let title: String?
     let displayTitle: String
+    let key: String?
+    let language: String?
+    let forced: Bool?
+    let hearingImpaired: Bool?
 }
 
 struct PlexPart: Codable, Equatable {

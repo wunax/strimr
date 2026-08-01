@@ -226,6 +226,9 @@ struct PlayerView: View {
                 appearance: settingsManager.playback.subtitleAppearance,
                 bottomPadding: controlsVisible ? 120 : 48,
                 videoSize: playerController.sourceVideoSize,
+                assRenderer: playerController.assRenderer,
+                assReloadSignal: playerController.assReloadSignal,
+                activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()
         }
@@ -417,7 +420,10 @@ struct PlayerView: View {
                     selectedAudioTrackID = audioID
                     selectedSubtitleTrackID = subtitleID
                     playerController.selectAudioTrack(id: audioID)
-                    playerController.selectSubtitleTrack(id: subtitleID)
+                    playerController.selectSubtitleTrack(
+                        id: subtitleID,
+                        styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                    )
                     pendingRecoveryAudioFFIndex = nil
                     pendingRecoverySubtitleFFIndex = nil
                     shouldRestoreTracksAfterLoad = false
@@ -458,7 +464,10 @@ struct PlayerView: View {
 
     private func selectSubtitleTrack(_ id: Int?) {
         selectedSubtitleTrackID = id
-        playerController.selectSubtitleTrack(id: id)
+        playerController.selectSubtitleTrack(
+            id: id,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
 
         guard
             let id,
@@ -566,6 +575,9 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+            externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
@@ -664,7 +676,10 @@ struct PlayerView: View {
            let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitleIndex })
         {
             selectedSubtitleTrackID = track.id
-            playerController.selectSubtitleTrack(id: track.id)
+            playerController.selectSubtitleTrack(
+                id: track.id,
+                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            )
             appliedPreferredSubtitle = true
         }
     }

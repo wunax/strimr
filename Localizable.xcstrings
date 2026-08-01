@@ -7942,6 +7942,50 @@
         }
       }
     },
+    "settings.playback.subtitles.styledASS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use styled ASS/SSA subtitles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser les styles des sous-titres ASS/SSA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 ASS/SSA 字幕样式"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.styledASS.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preserves authored fonts, colors, animation, and positioning. Strimr's appearance settings are used when this is off."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserve les polices, couleurs, animations et positions d’origine. Les réglages d’apparence de Strimr sont utilisés lorsque cette option est désactivée."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留原始字体、颜色、动画和位置。关闭后将使用 Strimr 的字幕外观设置。"
+          }
+        }
+      }
+    },
     "settings.playback.subtitles.title" : {
       "localizations" : {
         "en" : {
