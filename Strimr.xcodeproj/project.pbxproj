@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E96A0001301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0011301D000100000001 /* SwiftAssRenderer */; };
+		E96A0002301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0012301D000100000001 /* SwiftAssRenderer */; };
+		E96A0003301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0013301D000100000001 /* SwiftAssRenderer */; };
 		E95F585F300A964500D50438 /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E95F585E300A964500D50438 /* AetherEngine */; };
 		E95F5861300A964900D50438 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E95F5860300A964900D50438 /* Sentry */; };
 		E95F5862300A970000D50438 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -135,7 +138,9 @@
 				Features/Settings/SettingsViewModel.swift,
 				Features/SharePlay/SharePlayCoordinator.swift,
 				Features/SharePlay/StrimrWatchActivity.swift,
+				Library/Player/ASSRenderCoordinator.swift,
 				Library/Player/PlayerController.swift,
+				Library/Player/PlayerExternalSubtitle.swift,
 				Library/Player/PlayerTrack.swift,
 				Library/Player/PlayerVideoFormatBadge.swift,
 				Library/Player/PlexBIFArchive.swift,
@@ -296,6 +301,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E96A0001301D000100000001 /* SwiftAssRenderer in Frameworks */,
 				E95F585F300A964500D50438 /* AetherEngine in Frameworks */,
 				E95F5861300A964900D50438 /* Sentry in Frameworks */,
 			);
@@ -313,6 +319,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E96A0002301D000100000001 /* SwiftAssRenderer in Frameworks */,
 				E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */,
 				E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */,
 			);
@@ -322,6 +329,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E96A0003301D000100000001 /* SwiftAssRenderer in Frameworks */,
 				E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */,
 				E981BEBF2FEC3CD700C94B4A /* AetherEngine in Frameworks */,
 			);
@@ -386,6 +394,7 @@
 			);
 			name = "Strimr-macOS";
 			packageProductDependencies = (
+				E96A0011301D000100000001 /* SwiftAssRenderer */,
 				E95F585E300A964500D50438 /* AetherEngine */,
 				E95F5860300A964900D50438 /* Sentry */,
 			);
@@ -434,6 +443,7 @@
 			);
 			name = "Strimr-iOS";
 			packageProductDependencies = (
+				E96A0012301D000100000001 /* SwiftAssRenderer */,
 				E9B55C4A2F18F6FE00AC81AD /* Sentry */,
 				E981BEBC2FEC3CCF00C94B4A /* AetherEngine */,
 			);
@@ -460,6 +470,7 @@
 			);
 			name = "Strimr-tvOS";
 			packageProductDependencies = (
+				E96A0013301D000100000001 /* SwiftAssRenderer */,
 				E9B55C4C2F18F71100AC81AD /* Sentry */,
 				E981BEBE2FEC3CD700C94B4A /* AetherEngine */,
 			);
@@ -502,6 +513,7 @@
 			mainGroup = E98A13B02ED8CBAD002F98B2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */,
 				E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */,
 			);
@@ -1081,6 +1093,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mihai8804858/swift-ass-renderer";
+			requirement = {
+				kind = exactVersion;
+				version = 1.3.1;
+			};
+		};
 		E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/wunax/AetherEngine";
@@ -1100,6 +1120,21 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E96A0011301D000100000001 /* SwiftAssRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */;
+			productName = SwiftAssRenderer;
+		};
+		E96A0012301D000100000001 /* SwiftAssRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */;
+			productName = SwiftAssRenderer;
+		};
+		E96A0013301D000100000001 /* SwiftAssRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */;
+			productName = SwiftAssRenderer;
+		};
 		E95F585E300A964500D50438 /* AetherEngine */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */;

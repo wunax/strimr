@@ -97,6 +97,9 @@ struct MacPlayerView: View {
                 appearance: settingsManager.playback.subtitleAppearance,
                 bottomPadding: controlsVisible ? 96 : 48,
                 videoSize: playerController.sourceVideoSize,
+                assRenderer: playerController.assRenderer,
+                assReloadSignal: playerController.assReloadSignal,
+                activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()
 
@@ -495,7 +498,10 @@ struct MacPlayerView: View {
         Menu {
             Button {
                 selectedSubtitleTrackID = nil
-                playerController.selectSubtitleTrack(id: nil)
+                playerController.selectSubtitleTrack(
+                    id: nil,
+                    styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                )
             } label: {
                 if selectedSubtitleTrackID == nil {
                     Label("player.settings.subtitles.off", systemImage: "checkmark")
@@ -506,7 +512,10 @@ struct MacPlayerView: View {
             ForEach(subtitleTracks) { track in
                 Button {
                     selectedSubtitleTrackID = track.id
-                    playerController.selectSubtitleTrack(id: track.id)
+                    playerController.selectSubtitleTrack(
+                        id: track.id,
+                        styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                    )
                 } label: {
                     if selectedSubtitleTrackID == track.id {
                         Label(track.displayName, systemImage: "checkmark")
@@ -581,7 +590,10 @@ struct MacPlayerView: View {
                 selectedAudioTrackID = audioID
                 selectedSubtitleTrackID = subtitleID
                 playerController.selectAudioTrack(id: audioID)
-                playerController.selectSubtitleTrack(id: subtitleID)
+                playerController.selectSubtitleTrack(
+                    id: subtitleID,
+                    styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                )
                 pendingRecoveryAudioFFIndex = nil
                 pendingRecoverySubtitleFFIndex = nil
                 shouldRestoreTracksAfterLoad = false
@@ -592,7 +604,10 @@ struct MacPlayerView: View {
                    let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitle })
                 {
                     selectedSubtitleTrackID = track.id
-                    playerController.selectSubtitleTrack(id: track.id)
+                    playerController.selectSubtitleTrack(
+                        id: track.id,
+                        styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                    )
                 }
             }
             if participatesInSharePlay, sharePlayCoordinator.isInSession {
@@ -625,6 +640,9 @@ struct MacPlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+            externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
@@ -741,6 +759,9 @@ struct MacPlayerView: View {
                 startPosition: position,
                 preferredAudioTrackID: pendingRecoveryAudioFFIndex,
                 losslessAudio: settingsManager.playback.losslessAudio,
+                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+                externalSubtitles: viewModel.externalSubtitleTracks(),
                 scrubThumbnailSource: viewModel.scrubThumbnailSource,
                 showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
                 generatesMissingScrubThumbnailPreviews:

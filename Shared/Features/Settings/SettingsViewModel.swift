@@ -91,6 +91,13 @@ final class SettingsViewModel {
         )
     }
 
+    var styledASSSubtitlesBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.styledASSSubtitles },
+            set: { self.settingsManager.setStyledASSSubtitles($0) },
+        )
+    }
+
     var subtitleTextColorBinding: Binding<SubtitleTextColor> {
         Binding(
             get: { self.settingsManager.playback.subtitleTextColor },

@@ -4,6 +4,7 @@ import Combine
 import CoreGraphics
 import Foundation
 import Observation
+import SwiftAssRenderer
 import SwiftUI
 
 struct PlayerScrubPreview {
@@ -26,6 +27,8 @@ final class PlayerController {
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
+    var assRenderer: AssSubtitlesRenderer?
+    var activeSubtitleCodec: String?
     var errorMessage: String?
     private(set) var scrubPreview: PlayerScrubPreview?
     private(set) var volume: Float = 1.0
@@ -33,6 +36,10 @@ final class PlayerController {
 
     var isMuted: Bool {
         volume == 0
+    }
+
+    var assReloadSignal: PassthroughSubject<Void, Never> {
+        assCoordinator.reloadSignal
     }
 
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
@@ -44,6 +51,11 @@ final class PlayerController {
     @ObservationIgnored private var hasStartedPlayback = false
     @ObservationIgnored private var isStopping = false
     @ObservationIgnored private var playbackRate: Float = 1.0
+    @ObservationIgnored private var styledASSSubtitles = true
+    @ObservationIgnored private var mediaIdentifier = "media"
+    @ObservationIgnored private var externalSubtitleFFIndexes: [Int: Int] = [:]
+    @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
+    @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
     @ObservationIgnored private var scrubBIFTask: Task<Void, Never>?
     @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
@@ -83,11 +95,15 @@ final class PlayerController {
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
+        styledASSSubtitles: Bool,
+        mediaIdentifier: String,
+        externalSubtitles: [PlayerExternalSubtitle],
         scrubThumbnailSource: PlexBIFSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
         autoplay: Bool = true,
     ) {
+        deactivateASSRendering()
         resetScrubPreviewSession()
         self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
         self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
@@ -101,6 +117,10 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         subtitleCues = []
         sourceVideoSize = nil
+        activeSubtitleCodec = nil
+        self.styledASSSubtitles = styledASSSubtitles
+        self.mediaIdentifier = mediaIdentifier
+        externalSubtitleFFIndexes = [:]
         errorMessage = nil
 
         Task { @MainActor [weak self] in
@@ -111,6 +131,8 @@ final class PlayerController {
                     startPosition: startPosition,
                     options: LoadOptions(
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
+                        preserveASSMarkup: true,
+                        externalSubtitles: externalSubtitles.map(\.track),
                         autoplay: autoplay,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
@@ -124,6 +146,16 @@ final class PlayerController {
                         height: Int(sourceProbe.videoHeight),
                     )
                 }
+                let externalEngineTracks = engine.subtitleTracks.filter(\.isExternal)
+                if externalEngineTracks.count == externalSubtitles.count {
+                    externalSubtitleFFIndexes = Dictionary(
+                        uniqueKeysWithValues: zip(externalEngineTracks, externalSubtitles).map {
+                            ($0.id, $1.plexStreamIndex)
+                        },
+                    )
+                } else {
+                    ErrorReporter.capture(ASSExternalTrackMappingError())
+                }
                 if !isCoordinatedPlayback {
                     engine.setRate(playbackRate)
                 }
@@ -135,6 +167,7 @@ final class PlayerController {
                 onMediaLoaded?()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
+                deactivateASSRendering()
                 ErrorReporter.capture(error)
                 errorMessage = error.localizedDescription
             }
@@ -340,15 +373,47 @@ final class PlayerController {
         engine.selectAudioTrack(index: id)
     }
 
-    func selectSubtitleTrack(id: Int?) {
+    func selectSubtitleTrack(id: Int?, styledASSSubtitles: Bool? = nil) {
+        deactivateASSRendering()
+        if let styledASSSubtitles {
+            self.styledASSSubtitles = styledASSSubtitles
+        }
         selectedSubtitleTrackID = id
         guard let id else {
             engine.clearSubtitle()
             subtitleCues = []
+            activeSubtitleCodec = nil
             return
         }
+
+        let track = engine.subtitleTracks.first { $0.id == id }
+        activeSubtitleCodec = track?.codec.lowercased()
         engine.selectSubtitleTrack(index: id)
         subtitleCues = engine.subtitleCues
+
+        guard self.styledASSSubtitles,
+              activeSubtitleCodec == "ass" || activeSubtitleCodec == "ssa"
+        else {
+            return
+        }
+
+        assCoordinator.onRendererChanged = { [weak self] renderer in
+            self?.assRenderer = renderer
+        }
+        if track?.isExternal == true {
+            sidecarASSHeaderCancellable = engine.$sidecarASSHeader
+                .receive(on: DispatchQueue.main)
+                .compactMap(\.self)
+                .first()
+                .sink { [weak self] header in
+                    guard let self else { return }
+                    assCoordinator.activate(header: header, mediaIdentifier: mediaIdentifier)
+                    assRenderer = assCoordinator.renderer
+                }
+        } else {
+            assCoordinator.activate(header: track?.assHeader, mediaIdentifier: mediaIdentifier)
+            assRenderer = assCoordinator.renderer
+        }
     }
 
     func trackList() -> [PlayerTrack] {
@@ -372,7 +437,7 @@ final class PlayerController {
         let subtitles = engine.subtitleTracks.map { track in
             PlayerTrack(
                 id: track.id,
-                ffIndex: track.id,
+                ffIndex: externalSubtitleFFIndexes[track.id] ?? track.id,
                 type: .subtitle,
                 title: track.name,
                 language: track.language,
@@ -390,12 +455,22 @@ final class PlayerController {
     }
 
     func stop() {
+        deactivateASSRendering()
         resetScrubPreviewSession()
         isStopping = true
         isPaused = true
         isBuffering = false
         sourceVideoSize = nil
+        activeSubtitleCodec = nil
+        selectedSubtitleTrackID = nil
         engine.stop()
+    }
+
+    private func deactivateASSRendering() {
+        sidecarASSHeaderCancellable?.cancel()
+        sidecarASSHeaderCancellable = nil
+        assCoordinator.deactivate()
+        assRenderer = nil
     }
 
     private func isCurrentScrubBucket(generation: Int, bucket: Int) -> Bool {
@@ -671,6 +746,7 @@ final class PlayerController {
         case .loading, .seeking:
             break
         case let .error(message):
+            deactivateASSRendering()
             errorMessage = message
         case .ended:
             isPaused = false
@@ -695,6 +771,12 @@ final class PlayerController {
         case .hlg:
             .hlg
         }
+    }
+}
+
+private struct ASSExternalTrackMappingError: LocalizedError {
+    var errorDescription: String? {
+        "AetherEngine returned an unexpected external subtitle track table."
     }
 }
 

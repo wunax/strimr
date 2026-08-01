@@ -67,6 +67,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setStyledASSSubtitles(_ enabled: Bool) {
+        settings.playback.styledASSSubtitles = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()
