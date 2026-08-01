@@ -335,11 +335,15 @@ struct MediaDetailTVView: View {
                                 watchActionIcon: viewModel.watchActionIcon(for: episode),
                                 watchActionTitle: viewModel.watchActionTitle(for: episode),
                                 isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
+                                isStartingSharePlay: sharePlayCoordinator.isActivating,
                                 onPlay: {
                                     onPlay(episode.id, .episode)
                                 },
                                 onPlayFromStart: {
                                     onPlayFromStart(episode.id, .episode)
+                                },
+                                onSharePlay: {
+                                    Task { await activateSharePlay(for: episode) }
                                 },
                                 onToggleWatchStatus: {
                                     Task { await viewModel.toggleWatchStatus(for: episode) }
@@ -423,6 +427,15 @@ struct MediaDetailTVView: View {
             initialPosition: viewModel.primaryActionInitialPosition,
         )
     }
+
+    private func activateSharePlay(for episode: MediaItem) async {
+        await sharePlayCoordinator.activate(
+            ratingKey: episode.id,
+            type: .episode,
+            title: episode.primaryLabel,
+            initialPosition: episode.isFullyWatched ? 0 : Double(episode.viewOffset ?? 0),
+        )
+    }
 }
 
 private struct SeasonPillButton: View {
@@ -473,6 +486,7 @@ private struct EpisodeArtworkCard: View {
     private enum FocusTarget: Hashable {
         case artwork
         case playFromStart
+        case sharePlay
         case watchStatus
     }
 
@@ -485,8 +499,10 @@ private struct EpisodeArtworkCard: View {
     let watchActionIcon: String
     let watchActionTitle: String
     let isUpdatingWatchStatus: Bool
+    let isStartingSharePlay: Bool
     let onPlay: () -> Void
     let onPlayFromStart: () -> Void
+    let onSharePlay: () -> Void
     let onToggleWatchStatus: () -> Void
     let onFocus: () -> Void
 
@@ -544,6 +560,22 @@ private struct EpisodeArtworkCard: View {
                             .focused($focusedTarget, equals: .playFromStart)
                             .accessibilityLabel(Text("media.detail.playFromStart"))
                         }
+
+                        Button(action: onSharePlay) {
+                            if isStartingSharePlay {
+                                ProgressView()
+                                    .tint(.brandSecondaryForeground)
+                            } else {
+                                Image(systemName: "shareplay")
+                                    .font(.headline.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.secondary)
+                        .focused($focusedTarget, equals: .sharePlay)
+                        .disabled(isStartingSharePlay)
+                        .accessibilityLabel(Text("sharePlay.action"))
 
                         Button(action: onToggleWatchStatus) {
                             if isUpdatingWatchStatus {
