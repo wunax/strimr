@@ -49,6 +49,18 @@ final class PlaybackRepository {
         )
     }
 
+    func setPreferredSubtitleStream(
+        partId: Int,
+        subtitleStreamId: Int?,
+        applyToAllParts: Bool = true,
+    ) async throws {
+        try await setPreferredStreams(
+            partId: partId,
+            subtitleStreamId: subtitleStreamId ?? 0,
+            applyToAllParts: applyToAllParts,
+        )
+    }
+
     func updateTimeline(
         ratingKey: String,
         state: PlaybackState,

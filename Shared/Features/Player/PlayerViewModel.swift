@@ -476,7 +476,34 @@ final class PlayerViewModel {
                 break
             }
         } catch {
-            debugPrint("Failed to persist stream selection:", error)
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
+        guard shouldReportPlaybackToServer, let partId = activePartId else { return }
+
+        let streamId: Int?
+        if let track {
+            guard
+                let ffIndex = track.ffIndex,
+                let stream = streamsByFFIndex[ffIndex]
+            else { return }
+            streamId = stream.id
+        } else {
+            streamId = nil
+        }
+
+        do {
+            let playbackRepository = try PlaybackRepository(context: context)
+            try await playbackRepository.setPreferredSubtitleStream(
+                partId: partId,
+                subtitleStreamId: streamId,
+            )
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
         }
     }
 }

@@ -205,6 +205,10 @@ struct MacMediaDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
 
+            if viewModel.hasTrackSelection {
+                MediaDetailTrackButtons(viewModel: viewModel)
+            }
+
             if let summary = viewModel.media.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.body)
@@ -219,7 +223,10 @@ struct MacMediaDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let error = viewModel.errorMessage ?? viewModel.watchActionErrorMessage {
+            if let error = viewModel.errorMessage
+                ?? viewModel.watchActionErrorMessage
+                ?? viewModel.trackSelectionErrorMessage
+            {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
             }

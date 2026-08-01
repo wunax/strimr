@@ -3506,6 +3506,28 @@
         }
       }
     },
+    "media.detail.tracks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio and Subtitles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio et sous-titres"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频和字幕"
+          }
+        }
+      }
+    },
     "media.detail.updating" : {
       "localizations" : {
         "en" : {
