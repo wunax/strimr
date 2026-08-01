@@ -469,15 +469,11 @@ struct PlayerView: View {
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
         )
 
-        guard
-            let id,
-            let track = subtitleTracks.first(where: { $0.id == id })
-        else {
-            return
-        }
-
         Task {
-            await viewModel.persistStreamSelection(for: track)
+            let track = id.flatMap { selectedID in
+                subtitleTracks.first(where: { $0.id == selectedID })
+            }
+            await viewModel.persistSubtitleStreamSelection(for: track)
         }
     }
 

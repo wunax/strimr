@@ -47,6 +47,15 @@ struct MediaDetailTVView: View {
 
                         buttonsRow
 
+                        if bindableViewModel.hasTrackSelection {
+                            MediaDetailTrackSummary(viewModel: bindableViewModel)
+                        }
+
+                        if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
+                            Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                                .foregroundStyle(.red)
+                        }
+
                         if bindableViewModel.media.type == .show {
                             seasonsSection
                         }
@@ -195,6 +204,7 @@ struct MediaDetailTVView: View {
         sharePlayCoordinator.isActivating
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
+            || viewModel.isUpdatingTracks
     }
 
     private var moreActionsMenu: some View {
@@ -254,6 +264,11 @@ struct MediaDetailTVView: View {
                         || viewModel.isLoadingWatchlistStatus
                         || viewModel.isUpdatingWatchlistStatus,
                 )
+            }
+
+            if viewModel.hasTrackSelection {
+                Divider()
+                MediaDetailTrackMenuItems(viewModel: viewModel)
             }
         } label: {
             Image(systemName: "arrow.counterclockwise")
@@ -354,6 +369,7 @@ struct MediaDetailTVView: View {
                                 watchActionTitle: viewModel.watchActionTitle(for: episode),
                                 isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
                                 isStartingSharePlay: sharePlayCoordinator.isActivating,
+                                trackViewModel: viewModel,
                                 onPlay: {
                                     onPlay(episode.id, .episode)
                                 },
@@ -369,6 +385,7 @@ struct MediaDetailTVView: View {
                                 onFocus: {
                                     contextualEpisodeID = episode.id
                                     focusedMedia = episode
+                                    Task { await viewModel.loadTrackSelection(for: episode.id) }
                                 },
                             )
                             .id(episode.id)
@@ -511,6 +528,7 @@ private struct EpisodeArtworkCard: View {
     let watchActionTitle: String
     let isUpdatingWatchStatus: Bool
     let isStartingSharePlay: Bool
+    @Bindable var trackViewModel: MediaDetailViewModel
     let onPlay: () -> Void
     let onPlayFromStart: () -> Void
     let onSharePlay: () -> Void
@@ -543,11 +561,12 @@ private struct EpisodeArtworkCard: View {
                         ProgressView()
                     } else {
                         Image(systemName: "ellipsis")
-                            .font(.headline.weight(.semibold))
+                            .font(.body.weight(.semibold))
                             .rotationEffect(.degrees(90))
                     }
                 }
-                .padding(10)
+                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
                 .background(.ultraThinMaterial, in: Circle())
                 .padding(12)
                 .accessibilityHidden(true)
@@ -575,6 +594,11 @@ private struct EpisodeArtworkCard: View {
                 Label(watchActionTitle, systemImage: watchActionIcon)
             }
             .disabled(isUpdatingWatchStatus)
+
+            if trackViewModel.hasTrackSelection(for: episode.id) {
+                Divider()
+                MediaDetailTrackMenuItems(viewModel: trackViewModel, ratingKey: episode.id)
+            }
         }
         .onPlayPauseCommand(perform: onPlay)
         .onTapGesture(perform: onPlay)

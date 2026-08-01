@@ -480,6 +480,7 @@ struct MacPlayerView: View {
                     Button {
                         selectedAudioTrackID = track.id
                         playerController.selectAudioTrack(id: track.id)
+                        Task { await viewModel.persistStreamSelection(for: track) }
                     } label: {
                         if selectedAudioTrackID == track.id {
                             Label(track.displayName, systemImage: "checkmark")
@@ -502,6 +503,7 @@ struct MacPlayerView: View {
                     id: nil,
                     styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 )
+                Task { await viewModel.persistSubtitleStreamSelection(for: nil) }
             } label: {
                 if selectedSubtitleTrackID == nil {
                     Label("player.settings.subtitles.off", systemImage: "checkmark")
@@ -516,6 +518,7 @@ struct MacPlayerView: View {
                         id: track.id,
                         styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                     )
+                    Task { await viewModel.persistSubtitleStreamSelection(for: track) }
                 } label: {
                     if selectedSubtitleTrackID == track.id {
                         Label(track.displayName, systemImage: "checkmark")

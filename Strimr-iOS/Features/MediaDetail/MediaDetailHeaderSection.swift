@@ -26,6 +26,9 @@ struct MediaDetailHeaderSection: View {
 
                 headerSection
                 playButtonsRow
+                if viewModel.hasTrackSelection {
+                    MediaDetailTrackButtons(viewModel: viewModel)
+                }
                 secondaryButtonsRow
                 badgesSection
                 ratingsSection
@@ -67,6 +70,11 @@ struct MediaDetailHeaderSection: View {
 
                 if let watchActionErrorMessage = viewModel.watchActionErrorMessage {
                     Label(watchActionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                        .foregroundStyle(.red)
+                }
+
+                if let trackSelectionErrorMessage = viewModel.trackSelectionErrorMessage {
+                    Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
                         .foregroundStyle(.red)
                 }
 

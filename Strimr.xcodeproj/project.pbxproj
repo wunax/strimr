@@ -107,6 +107,7 @@
 				Features/MediaDetail/CastMember.swift,
 				Features/MediaDetail/CastSection.swift,
 				Features/MediaDetail/MediaDetailViewModel.swift,
+				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
 				Features/Player/Controls/PlayerBadge.swift,
 				Features/Player/Controls/PlayerChapterViews.swift,

@@ -38,6 +38,16 @@ final class MediaDetailViewModel {
     var seasonsErrorMessage: String?
     var episodesErrorMessage: String?
     var relatedHubsErrorMessage: String?
+    var audioTracks: [PlexPartStream] = []
+    var subtitleTracks: [PlexPartStream] = []
+    var selectedAudioStreamID: Int?
+    var selectedSubtitleStreamID: Int?
+    var isLoadingTracks = false
+    var isUpdatingTracks = false
+    var trackSelectionErrorMessage: String?
+    @ObservationIgnored private var trackPartID: Int?
+    @ObservationIgnored private(set) var trackRatingKey: String?
+    @ObservationIgnored private var requestedTrackRatingKey: String?
     private var updatingWatchStatusIds: Set<String> = []
     var watchActionErrorMessage: String?
     var isLoadingWatchlistStatus = false
@@ -119,6 +129,10 @@ final class MediaDetailViewModel {
         async let relatedHubsTask: Void = loadRelatedHubs(preservingExistingContent: preservingExistingContent)
         await loadSeriesChildren(preservingExistingContent: preservingExistingContent)
         await resolveFallbackPlaybackTarget(
+            using: metadataRepository,
+            preservingExistingContent: preservingExistingContent,
+        )
+        await loadTrackSelection(
             using: metadataRepository,
             preservingExistingContent: preservingExistingContent,
         )
@@ -419,6 +433,96 @@ final class MediaDetailViewModel {
         primaryPlaybackTarget?.item
     }
 
+    var hasTrackSelection: Bool {
+        !audioTracks.isEmpty || !subtitleTracks.isEmpty
+    }
+
+    func hasTrackSelection(for ratingKey: String) -> Bool {
+        trackRatingKey == ratingKey && hasTrackSelection
+    }
+
+    var selectedAudioTrackTitle: String? {
+        selectedTrackTitle(in: audioTracks, id: selectedAudioStreamID)
+    }
+
+    var selectedSubtitleTrackTitle: String {
+        selectedTrackTitle(in: subtitleTracks, id: selectedSubtitleStreamID)
+            ?? String(localized: "player.settings.subtitles.off")
+    }
+
+    func selectAudioStream(id: Int) async {
+        guard
+            let partID = trackPartID,
+            let ratingKey = trackRatingKey,
+            selectedAudioStreamID != id
+        else { return }
+        let previousID = selectedAudioStreamID
+        selectedAudioStreamID = id
+        isUpdatingTracks = true
+        trackSelectionErrorMessage = nil
+        defer { isUpdatingTracks = false }
+
+        do {
+            let repository = try PlaybackRepository(context: context)
+            try await repository.setPreferredStreams(partId: partID, audioStreamId: id)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else {
+                if trackRatingKey == ratingKey {
+                    selectedAudioStreamID = previousID
+                }
+                return
+            }
+            if trackRatingKey == ratingKey {
+                selectedAudioStreamID = previousID
+                trackSelectionErrorMessage = error.localizedDescription
+            }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func selectSubtitleStream(id: Int?) async {
+        guard
+            let partID = trackPartID,
+            let ratingKey = trackRatingKey,
+            selectedSubtitleStreamID != id
+        else { return }
+        let previousID = selectedSubtitleStreamID
+        selectedSubtitleStreamID = id
+        isUpdatingTracks = true
+        trackSelectionErrorMessage = nil
+        defer { isUpdatingTracks = false }
+
+        do {
+            let repository = try PlaybackRepository(context: context)
+            try await repository.setPreferredSubtitleStream(partId: partID, subtitleStreamId: id)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else {
+                if trackRatingKey == ratingKey {
+                    selectedSubtitleStreamID = previousID
+                }
+                return
+            }
+            if trackRatingKey == ratingKey {
+                selectedSubtitleStreamID = previousID
+                trackSelectionErrorMessage = error.localizedDescription
+            }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func loadTrackSelection(for ratingKey: String) async {
+        guard trackRatingKey != ratingKey else { return }
+        guard let metadataRepository = try? MetadataRepository(context: context) else {
+            trackSelectionErrorMessage = String(localized: "errors.selectServer.loadDetails")
+            return
+        }
+        await loadTrackSelection(
+            for: ratingKey,
+            using: metadataRepository,
+            preservingExistingContent: false,
+        )
+    }
+
     var primaryActionInitialPosition: Double {
         guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return 0 }
         return Double(target.item.viewOffset ?? 0)
@@ -678,6 +782,85 @@ final class MediaDetailViewModel {
                 }
             }
         }
+    }
+
+    private func loadTrackSelection(
+        using metadataRepository: MetadataRepository,
+        preservingExistingContent: Bool,
+    ) async {
+        guard let ratingKey = primaryActionRatingKey else {
+            clearTrackSelection()
+            return
+        }
+
+        await loadTrackSelection(
+            for: ratingKey,
+            using: metadataRepository,
+            preservingExistingContent: preservingExistingContent,
+        )
+    }
+
+    private func loadTrackSelection(
+        for ratingKey: String,
+        using metadataRepository: MetadataRepository,
+        preservingExistingContent: Bool,
+    ) async {
+
+        if preservingExistingContent, trackRatingKey == ratingKey, hasTrackSelection {
+            return
+        }
+
+        requestedTrackRatingKey = ratingKey
+        isLoadingTracks = true
+        trackSelectionErrorMessage = nil
+        defer {
+            if requestedTrackRatingKey == ratingKey || requestedTrackRatingKey == nil {
+                isLoadingTracks = false
+            }
+        }
+
+        do {
+            let response = try await metadataRepository.getMetadata(
+                ratingKey: ratingKey,
+                params: MetadataRepository.PlexMetadataParams(checkFiles: true),
+            )
+            guard requestedTrackRatingKey == ratingKey else { return }
+            let part = response.mediaContainer.metadata?.first?.media?.first?.parts.first
+            let streams = part?.stream ?? []
+            let fetchedAudioTracks = streams.filter { $0.streamType == .audio && $0.id != nil }
+            let fetchedSubtitleTracks = streams.filter { $0.streamType == .subtitle && $0.id != nil }
+
+            trackRatingKey = ratingKey
+            trackPartID = part?.id
+            audioTracks = fetchedAudioTracks
+            subtitleTracks = fetchedSubtitleTracks
+            selectedAudioStreamID = fetchedAudioTracks.first(where: { $0.selected == true })?.id
+                ?? fetchedAudioTracks.first?.id
+            selectedSubtitleStreamID = fetchedSubtitleTracks.first(where: { $0.selected == true })?.id
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            guard requestedTrackRatingKey == ratingKey else { return }
+            if !preservingExistingContent || trackRatingKey != ratingKey {
+                clearTrackSelection()
+                trackSelectionErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func clearTrackSelection() {
+        requestedTrackRatingKey = nil
+        trackRatingKey = nil
+        trackPartID = nil
+        audioTracks = []
+        subtitleTracks = []
+        selectedAudioStreamID = nil
+        selectedSubtitleStreamID = nil
+    }
+
+    private func selectedTrackTitle(in tracks: [PlexPartStream], id: Int?) -> String? {
+        guard let id, let stream = tracks.first(where: { $0.id == id }) else { return nil }
+        return stream.displayTitle.isEmpty ? stream.language ?? stream.codec.uppercased() : stream.displayTitle
     }
 
     private func playbackFallback(
