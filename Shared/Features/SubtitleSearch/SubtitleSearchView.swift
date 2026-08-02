@@ -130,14 +130,13 @@ struct SubtitleSearchView: View {
 
     private var searchOptions: some View {
         Section {
-            NavigationLink {
-                SubtitleLanguageSelectionView(
-                    languages: viewModel.languages,
-                    selection: $viewModel.selectedLanguage,
-                )
-            } label: {
-                LabeledContent("subtitles.search.language", value: selectedLanguageName)
+            Picker("subtitles.search.language", selection: $viewModel.selectedLanguage) {
+                ForEach(viewModel.languages) { language in
+                    Text(language.name)
+                        .tag(language.code)
+                }
             }
+            .pickerStyle(.menu)
 
             Toggle("subtitles.search.hearingImpaired", isOn: $viewModel.hearingImpaired)
             Toggle("subtitles.search.forced", isOn: $viewModel.forced)
@@ -157,6 +156,7 @@ struct SubtitleSearchView: View {
                 }
             }
             .disabled(viewModel.isSearching || viewModel.attachingResultID != nil)
+            .tint(.secondary)
         }
     }
 
@@ -206,11 +206,6 @@ struct SubtitleSearchView: View {
         }
     }
 
-    private var selectedLanguageName: String {
-        viewModel.languages.first { $0.code == viewModel.selectedLanguage }?.name
-            ?? viewModel.selectedLanguage
-    }
-
     private func resultDetail(_ result: PlexSubtitleSearchResult) -> String {
         [result.language, result.codec.uppercased(), result.providerTitle]
             .compactMap(\.self)
@@ -223,41 +218,6 @@ struct SubtitleSearchView: View {
             guard await viewModel.attach(result) else { return }
             dismiss()
             await onAttached(result)
-        }
-    }
-}
-
-private struct SubtitleLanguageSelectionView: View {
-    let languages: [SubtitleLanguageOption]
-    @Binding var selection: String
-    @State private var searchText = ""
-
-    var body: some View {
-        List(filteredLanguages) { language in
-            Button {
-                selection = language.code
-            } label: {
-                HStack {
-                    Text(language.name)
-                    Spacer()
-                    Text(language.code)
-                        .foregroundStyle(.secondary)
-                    if selection == language.code {
-                        Image(systemName: "checkmark")
-                    }
-                }
-            }
-        }
-        .navigationTitle("subtitles.search.language")
-        .searchable(text: $searchText, prompt: "subtitles.search.language.search")
-    }
-
-    private var filteredLanguages: [SubtitleLanguageOption] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return languages }
-        return languages.filter {
-            $0.name.localizedCaseInsensitiveContains(query)
-                || $0.code.localizedCaseInsensitiveContains(query)
         }
     }
 }

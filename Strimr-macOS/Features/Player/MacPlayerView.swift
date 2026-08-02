@@ -551,6 +551,7 @@ struct MacPlayerView: View {
                 } label: {
                     Label("subtitles.search.action", systemImage: "magnifyingglass")
                 }
+                .tint(.secondary)
             }
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")

@@ -388,6 +388,7 @@ struct MediaDetailHeaderSection: View {
                     Button(action: onSearchSubtitles) {
                         Label("subtitles.search.action", systemImage: "magnifyingglass")
                     }
+                    .tint(.secondary)
                 }
             } label: {
                 if viewModel.isUpdatingTracks {

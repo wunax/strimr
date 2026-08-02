@@ -47,6 +47,7 @@ struct PlayerTrackSelectionView: View {
                     Button(action: onSearchSubtitles) {
                         Label("subtitles.search.action", systemImage: "magnifyingglass")
                     }
+                    .tint(.secondary)
                     .padding(.horizontal, 24)
                 }
             }

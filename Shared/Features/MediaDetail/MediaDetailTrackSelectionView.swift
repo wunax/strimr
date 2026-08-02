@@ -69,6 +69,7 @@ struct MediaDetailTrackButtons: View {
             Button(action: onSearchSubtitles) {
                 Label("subtitles.search.action", systemImage: "magnifyingglass")
             }
+            .tint(.secondary)
         }
     }
 
@@ -170,6 +171,7 @@ struct MediaDetailTrackMenuItems: View {
                         Button(action: onSearchSubtitles) {
                             Label("subtitles.search.action", systemImage: "magnifyingglass")
                         }
+                        .tint(.secondary)
                     }
                 }
             }
