@@ -3,6 +3,15 @@ import Foundation
 final class SubtitleRepository {
     private let network: PlexServerNetworkClient
 
+    private static let attachmentPollDelays: [Duration] = [
+        .zero,
+        .milliseconds(250),
+        .milliseconds(500),
+        .seconds(1),
+        .seconds(2),
+        .seconds(4),
+    ]
+
     init(context: PlexAPIContext) {
         network = PlexServerNetworkClient(context: context)
     }
@@ -37,6 +46,14 @@ final class SubtitleRepository {
         searchedHearingImpaired: Bool,
         searchedForced: Bool,
     ) async throws {
+        /*
+         Plex acknowledges the subtitle attachment before the server has necessarily added and
+         selected the new stream in its metadata. Callers refresh their track selectors as soon as
+         this method returns, so returning after the PUT alone can leave the interface showing the
+         previous selection. Snapshot the current streams and wait for the new selection to become
+         visible, keeping this eventual-consistency handling shared across every player and media view.
+         */
+        let previousSelection = try await subtitleSelectionState(ratingKey: ratingKey)
         let language = result.languageTag ?? result.languageCode ?? searchedLanguage
         var queryItems = [
             URLQueryItem(name: "key", value: result.key),
@@ -57,5 +74,73 @@ final class SubtitleRepository {
             queryItems: queryItems,
             method: "PUT",
         )
+
+        try await waitForAttachedSubtitle(
+            ratingKey: ratingKey,
+            result: result,
+            previousSelection: previousSelection,
+        )
+    }
+
+    private func waitForAttachedSubtitle(
+        ratingKey: String,
+        result: PlexSubtitleSearchResult,
+        previousSelection: SubtitleSelectionState,
+    ) async throws {
+        for delay in Self.attachmentPollDelays {
+            if delay > .zero {
+                try await Task.sleep(for: delay)
+            }
+
+            let state = try await subtitleSelectionState(ratingKey: ratingKey)
+            let attachedStreamIsSelected = state.streams.contains { stream in
+                guard stream.selected == true,
+                      stream.key != nil,
+                      stream.codec.caseInsensitiveCompare(result.codec) == .orderedSame,
+                      let id = stream.id
+                else { return false }
+
+                return !previousSelection.streamIDs.contains(id)
+                    || !previousSelection.selectedStreamIDs.contains(id)
+            }
+            if attachedStreamIsSelected {
+                return
+            }
+        }
+
+        throw PlexSubtitleAttachmentTimeoutError()
+    }
+
+    private func subtitleSelectionState(ratingKey: String) async throws -> SubtitleSelectionState {
+        let response: PlexItemMediaContainer = try await network.request(
+            path: "/library/metadata/\(ratingKey)",
+            queryItems: [URLQueryItem(name: "checkFiles", value: "1")],
+        )
+        let streams = response.mediaContainer.metadata?
+            .first?
+            .media?
+            .first?
+            .parts
+            .first?
+            .stream?
+            .filter { $0.streamType == .subtitle } ?? []
+
+        return SubtitleSelectionState(
+            streams: streams,
+            streamIDs: Set(streams.compactMap(\.id)),
+            selectedStreamIDs: Set(streams.filter { $0.selected == true }.compactMap(\.id)),
+        )
+    }
+}
+
+private struct SubtitleSelectionState {
+    let streams: [PlexPartStream]
+    let streamIDs: Set<Int>
+    let selectedStreamIDs: Set<Int>
+}
+
+private struct PlexSubtitleAttachmentTimeoutError: LocalizedError {
+    var errorDescription: String? {
+        String(localized: "subtitles.search.activation.error")
     }
 }
