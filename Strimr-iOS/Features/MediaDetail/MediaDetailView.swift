@@ -4,8 +4,10 @@ import SwiftUI
 struct MediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(PlexAPIContext.self) private var context
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false
+    @State private var isShowingSubtitleSearch = false
     private let heroHeight: CGFloat = 320
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
@@ -48,6 +50,7 @@ struct MediaDetailView: View {
                         guard let parentSeries = bindableViewModel.parentSeries else { return }
                         onSelectParentSeries(parentSeries)
                     },
+                    onSearchSubtitles: { isShowingSubtitleSearch = true },
                 )
 
                 if [.show, .season].contains(bindableViewModel.media.type) {
@@ -71,6 +74,17 @@ struct MediaDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .toolbar(.hidden, for: .tabBar)
+        .sheet(isPresented: $isShowingSubtitleSearch) {
+            if let ratingKey = bindableViewModel.trackRatingKey {
+                SubtitleSearchView(
+                    ratingKey: ratingKey,
+                    titlePlaceholder: bindableViewModel.subtitleSearchTitlePlaceholder,
+                    context: context,
+                ) { _ in
+                    await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
+                }
+            }
+        }
         .task {
             await bindableViewModel.loadDetails()
         }

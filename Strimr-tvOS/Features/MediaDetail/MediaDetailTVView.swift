@@ -4,6 +4,7 @@ import SwiftUI
 struct MediaDetailTVView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(PlexAPIContext.self) private var context
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
@@ -11,6 +12,7 @@ struct MediaDetailTVView: View {
     @State private var contextualEpisodeID: String?
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
+    @State private var isShowingSubtitleSearch = false
     private let onPlay: (String, PlexItemType) -> Void
     private let onPlayFromStart: (String, PlexItemType) -> Void
     private let onShuffle: (String, PlexItemType) -> Void
@@ -72,6 +74,17 @@ struct MediaDetailTVView: View {
         }
         .task {
             await bindableViewModel.loadDetails()
+        }
+        .sheet(isPresented: $isShowingSubtitleSearch) {
+            if let ratingKey = bindableViewModel.trackRatingKey {
+                SubtitleSearchView(
+                    ratingKey: ratingKey,
+                    titlePlaceholder: bindableViewModel.subtitleSearchTitlePlaceholder,
+                    context: context,
+                ) { _ in
+                    await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
+                }
+            }
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }

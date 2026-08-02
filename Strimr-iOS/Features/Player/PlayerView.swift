@@ -31,6 +31,8 @@ struct PlayerView: View {
     @State private var timelinePosition = 0.0
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
+    @State private var subtitleSearchErrorMessage = ""
+    @State private var showingSubtitleSearchError = false
     @State private var isRotationLocked = false
     @State private var isShowingSharePlayExitPrompt = false
     @State private var activePlaybackURL: URL?
@@ -173,6 +175,8 @@ struct PlayerView: View {
                 case .chapters:
                     chapterSelectionSheet
                         .presentationDetents([.medium, .large])
+                case .subtitleSearch:
+                    subtitleSearchSheet
                 }
             }
             .onChange(of: activeSheet) { _, sheet in
@@ -186,6 +190,11 @@ struct PlayerView: View {
                 }
             } message: {
                 Text(terminationAlertMessage)
+            }
+            .alert("subtitles.search.activation.error", isPresented: $showingSubtitleSearchError) {
+                Button("common.actions.done", role: .cancel) {}
+            } message: {
+                Text(subtitleSearchErrorMessage)
             }
             .alert("player.serverRecovery.title", isPresented: $isShowingServerRecoveryAlert) {
                 Button("common.actions.retry") {
@@ -304,10 +313,22 @@ struct PlayerView: View {
             playbackRate: playbackRate,
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
+            onSearchSubtitles: viewModel.canSearchSubtitles
+                ? { activeSheet = .subtitleSearch }
+                : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onClose: { activeSheet = nil },
         )
         .presentationBackground(.ultraThinMaterial)
+    }
+
+    private var subtitleSearchSheet: some View {
+        SubtitleSearchView(
+            ratingKey: viewModel.currentRatingKey,
+            titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+            context: context,
+            onAttached: handleAttachedSubtitle(_:),
+        )
     }
 
     private var chapterSelectionSheet: some View {
@@ -481,6 +502,23 @@ struct PlayerView: View {
         playbackRate = rate
         playerController.setPlaybackRate(rate)
         showControls(temporarily: true)
+    }
+
+    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+        do {
+            let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
+            let id = try playerController.registerExternalSubtitleIfNeeded(
+                subtitle,
+                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            )
+            selectedSubtitleTrackID = id
+            refreshTracks()
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            subtitleSearchErrorMessage = error.localizedDescription
+            showingSubtitleSearchError = true
+        }
     }
 
     private func jump(by seconds: Double) {
@@ -905,6 +943,7 @@ struct PlayerView: View {
 private enum PlayerSheet: String, Identifiable {
     case settings
     case chapters
+    case subtitleSearch
 
     var id: String {
         rawValue

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MediaDetailTrackButtons: View {
     @Bindable var viewModel: MediaDetailViewModel
+    var onSearchSubtitles: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -17,7 +18,7 @@ struct MediaDetailTrackButtons: View {
                 .disabled(viewModel.isUpdatingTracks)
             }
 
-            if !viewModel.subtitleTracks.isEmpty {
+            if !viewModel.subtitleTracks.isEmpty || onSearchSubtitles != nil {
                 Menu {
                     subtitleTrackButtons
                 } label: {
@@ -62,6 +63,14 @@ struct MediaDetailTrackButtons: View {
                 }
             }
         }
+
+        if let onSearchSubtitles {
+            Divider()
+            Button(action: onSearchSubtitles) {
+                Label("subtitles.search.action", systemImage: "magnifyingglass")
+            }
+            .tint(.secondary)
+        }
     }
 
     private func trackLabel(_ track: PlexPartStream, isSelected: Bool) -> some View {
@@ -75,10 +84,14 @@ struct MediaDetailTrackButtons: View {
 
 struct MediaDetailTrackEllipsisMenu: View {
     @Bindable var viewModel: MediaDetailViewModel
+    var onSearchSubtitles: (() -> Void)?
 
     var body: some View {
         Menu {
-            MediaDetailTrackMenuItems(viewModel: viewModel)
+            MediaDetailTrackMenuItems(
+                viewModel: viewModel,
+                onSearchSubtitles: onSearchSubtitles,
+            )
         } label: {
             if viewModel.isUpdatingTracks {
                 ProgressView()
@@ -98,10 +111,16 @@ struct MediaDetailTrackEllipsisMenu: View {
 struct MediaDetailTrackMenuItems: View {
     @Bindable var viewModel: MediaDetailViewModel
     var ratingKey: String?
+    var onSearchSubtitles: (() -> Void)?
 
-    init(viewModel: MediaDetailViewModel, ratingKey: String? = nil) {
+    init(
+        viewModel: MediaDetailViewModel,
+        ratingKey: String? = nil,
+        onSearchSubtitles: (() -> Void)? = nil,
+    ) {
         self.viewModel = viewModel
         self.ratingKey = ratingKey
+        self.onSearchSubtitles = onSearchSubtitles
     }
 
     var body: some View {
@@ -123,7 +142,7 @@ struct MediaDetailTrackMenuItems: View {
                 }
             }
 
-            if !viewModel.subtitleTracks.isEmpty {
+            if !viewModel.subtitleTracks.isEmpty || onSearchSubtitles != nil {
                 Menu("player.settings.subtitles", systemImage: "captions.bubble") {
                     Button {
                         Task { await viewModel.selectSubtitleStream(id: nil) }
@@ -145,6 +164,14 @@ struct MediaDetailTrackMenuItems: View {
                                 )
                             }
                         }
+                    }
+
+                    if let onSearchSubtitles {
+                        Divider()
+                        Button(action: onSearchSubtitles) {
+                            Label("subtitles.search.action", systemImage: "magnifyingglass")
+                        }
+                        .tint(.secondary)
                     }
                 }
             }

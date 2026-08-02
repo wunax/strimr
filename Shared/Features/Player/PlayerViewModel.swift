@@ -62,12 +62,23 @@ final class PlayerViewModel {
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let shouldReportPlaybackToServer: Bool
     @ObservationIgnored private var activePartId: Int?
+    @ObservationIgnored private var activePartFile: String?
     @ObservationIgnored private var partStreams: [PlexPartStream] = []
     @ObservationIgnored private var streamsByFFIndex: [Int: PlexPartStream] = [:]
     @ObservationIgnored private var streamsByID: [Int: PlexPartStream] = [:]
     @ObservationIgnored private let sessionIdentifier = UUID().uuidString
     @ObservationIgnored private var didReceiveTermination = false
     var terminationMessage: String?
+
+    var canSearchSubtitles: Bool {
+        !isLocalPlayback && activePartId != nil && !ratingKey.isEmpty
+    }
+
+    var subtitleSearchTitlePlaceholder: String {
+        activePartFile.map { URL(fileURLWithPath: $0).lastPathComponent }
+            ?? media?.title
+            ?? ""
+    }
 
     func plexStream(forID id: Int?) -> PlexPartStream? {
         guard let id else { return nil }
@@ -182,6 +193,7 @@ final class PlayerViewModel {
         preferredAudioStreamFFIndex = nil
         preferredSubtitleStreamID = nil
         activePartId = nil
+        activePartFile = nil
         scrubThumbnailSource = nil
         partStreams = []
         streamsByFFIndex = [:]
@@ -211,6 +223,18 @@ final class PlayerViewModel {
             throw PlexAPIError.invalidURL
         }
         return playbackURL
+    }
+
+    func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
+        guard !isLocalPlayback else { throw PlexSubtitleActivationError.missingSelectedExternalTrack }
+        let repository = try MetadataRepository(context: context)
+        try await loadRemoteMetadata(using: repository)
+        guard let selectedID = preferredSubtitleStreamID,
+              let subtitle = externalSubtitleTracks().first(where: { $0.plexStreamID == selectedID })
+        else {
+            throw PlexSubtitleActivationError.missingSelectedExternalTrack
+        }
+        return subtitle
     }
 
     @discardableResult
@@ -408,6 +432,7 @@ final class PlayerViewModel {
     private func updatePartContext(from metadata: PlexItem?) {
         let part = metadata?.media?.first?.parts.first
         activePartId = part?.id
+        activePartFile = part?.file
 
         let streams = part?.stream ?? []
         partStreams = streams
@@ -519,5 +544,13 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
         }
+    }
+}
+
+private enum PlexSubtitleActivationError: LocalizedError {
+    case missingSelectedExternalTrack
+
+    var errorDescription: String? {
+        String(localized: "subtitles.search.activation.error")
     }
 }

@@ -266,12 +266,49 @@ struct PlexPartStream: Codable, Equatable, Hashable {
 struct PlexPart: Codable, Equatable {
     let id: Int
     let key: String
+    let file: String?
     let stream: [PlexPartStream]?
 
     private enum CodingKeys: String, CodingKey {
-        case id, key
+        case id, key, file
         case stream = "Stream"
     }
+}
+
+struct PlexSubtitleSearchResponse: Decodable {
+    let mediaContainer: MediaContainer
+
+    struct MediaContainer: Decodable {
+        let size: Int
+        let streams: [PlexSubtitleSearchResult]?
+
+        private enum CodingKeys: String, CodingKey {
+            case size
+            case streams = "Stream"
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, Sendable {
+    let id: Int
+    let key: String
+    let codec: String
+    let language: String?
+    let languageTag: String?
+    let languageCode: String?
+    let format: String?
+    let providerTitle: String?
+    let score: String?
+    let sourceKey: String?
+    let title: String?
+    let displayTitle: String
+    let extendedDisplayTitle: String?
+    let forced: Bool?
+    let hearingImpaired: Bool?
 }
 
 struct PlexMedia: Codable, Equatable {

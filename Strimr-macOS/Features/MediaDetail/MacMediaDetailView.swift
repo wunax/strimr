@@ -11,6 +11,7 @@ struct MacMediaDetailView: View {
     @State private var viewModel: MediaDetailViewModel
     @State private var isShowingShowDownloadSheet = false
     @State private var sharePlaySharingRequest: MacSharePlaySharingRequest?
+    @State private var isShowingSubtitleSearch = false
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
@@ -72,6 +73,18 @@ struct MacMediaDetailView: View {
                 statusForRatingKey: downloadManager.status,
             )
             .frame(minWidth: 520, minHeight: 600)
+        }
+        .sheet(isPresented: $isShowingSubtitleSearch) {
+            if let ratingKey = viewModel.trackRatingKey {
+                SubtitleSearchView(
+                    ratingKey: ratingKey,
+                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                    context: context,
+                ) { _ in
+                    await viewModel.refreshTrackSelectionAfterSubtitleAttachment()
+                }
+                .frame(minWidth: 560, minHeight: 640)
+            }
         }
         .sheet(item: $sharePlaySharingRequest, onDismiss: {
             Task { await sharePlayCoordinator.sharingPresentationDidEnd() }
@@ -218,8 +231,11 @@ struct MacMediaDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
 
-            if viewModel.hasTrackSelection {
-                MediaDetailTrackButtons(viewModel: viewModel)
+            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+                MediaDetailTrackButtons(
+                    viewModel: viewModel,
+                    onSearchSubtitles: { isShowingSubtitleSearch = true },
+                )
             }
 
             if viewModel.media.mediaItem.shouldHideSpoilerSummary(
