@@ -54,8 +54,8 @@ struct MacPlayerView: View {
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
-    @State private var pendingRecoveryAudioFFIndex: Int?
-    @State private var pendingRecoverySubtitleFFIndex: Int?
+    @State private var pendingRecoveryAudioPlexStreamID: Int?
+    @State private var pendingRecoverySubtitlePlexStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1
     @State private var loadedURL: URL?
@@ -584,12 +584,12 @@ struct MacPlayerView: View {
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
             if shouldRestoreTracksAfterLoad {
-                let audioID = audioTracks.first {
-                    $0.ffIndex == pendingRecoveryAudioFFIndex
-                }?.id
-                let subtitleID = subtitleTracks.first {
-                    $0.ffIndex == pendingRecoverySubtitleFFIndex
-                }?.id
+                let audioID = pendingRecoveryAudioPlexStreamID.flatMap { plexStreamID in
+                    audioTracks.first { $0.plexStreamID == plexStreamID }?.id
+                }
+                let subtitleID = pendingRecoverySubtitlePlexStreamID.flatMap { plexStreamID in
+                    subtitleTracks.first { $0.plexStreamID == plexStreamID }?.id
+                }
                 selectedAudioTrackID = audioID
                 selectedSubtitleTrackID = subtitleID
                 playerController.selectAudioTrack(id: audioID)
@@ -597,14 +597,14 @@ struct MacPlayerView: View {
                     id: subtitleID,
                     styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 )
-                pendingRecoveryAudioFFIndex = nil
-                pendingRecoverySubtitleFFIndex = nil
+                pendingRecoveryAudioPlexStreamID = nil
+                pendingRecoverySubtitlePlexStreamID = nil
                 shouldRestoreTracksAfterLoad = false
             } else {
                 selectedAudioTrackID = audioTracks.first(where: \.isSelected)?.id
 
-                if let preferredSubtitle = viewModel.preferredSubtitleStreamFFIndex,
-                   let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitle })
+                if let preferredSubtitle = viewModel.preferredSubtitleStreamID,
+                   let track = subtitleTracks.first(where: { $0.plexStreamID == preferredSubtitle })
                 {
                     selectedSubtitleTrackID = track.id
                     playerController.selectSubtitleTrack(
@@ -645,6 +645,7 @@ struct MacPlayerView: View {
             losslessAudio: settingsManager.playback.losslessAudio,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+            plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
             externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
@@ -742,12 +743,12 @@ struct MacPlayerView: View {
         lastReloadedServerAccessGeneration = generation
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
-        pendingRecoveryAudioFFIndex = audioTracks.first {
+        pendingRecoveryAudioPlexStreamID = audioTracks.first {
             $0.id == selectedAudioTrackID
-        }?.ffIndex
-        pendingRecoverySubtitleFFIndex = subtitleTracks.first {
+        }?.plexStreamID
+        pendingRecoverySubtitlePlexStreamID = subtitleTracks.first {
             $0.id == selectedSubtitleTrackID
-        }?.ffIndex
+        }?.plexStreamID
         shouldRestoreTracksAfterLoad = true
         isRecoveringServerAccess = true
         playerController.stop()
@@ -760,10 +761,13 @@ struct MacPlayerView: View {
             playerController.load(
                 url: url,
                 startPosition: position,
-                preferredAudioTrackID: pendingRecoveryAudioFFIndex,
+                preferredAudioTrackID: viewModel.ffIndex(
+                    forPlexStreamID: pendingRecoveryAudioPlexStreamID,
+                ),
                 losslessAudio: settingsManager.playback.losslessAudio,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+                plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
                 externalSubtitles: viewModel.externalSubtitleTracks(),
                 scrubThumbnailSource: viewModel.scrubThumbnailSource,
                 showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,

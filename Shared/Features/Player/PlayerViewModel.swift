@@ -17,7 +17,7 @@ final class PlayerViewModel {
     private(set) var scrubThumbnailSource: PlexBIFSource?
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
-    var preferredSubtitleStreamFFIndex: Int?
+    var preferredSubtitleStreamID: Int?
     var resumePosition: Double? {
         media?.viewOffset
     }
@@ -62,24 +62,36 @@ final class PlayerViewModel {
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let shouldReportPlaybackToServer: Bool
     @ObservationIgnored private var activePartId: Int?
+    @ObservationIgnored private var partStreams: [PlexPartStream] = []
     @ObservationIgnored private var streamsByFFIndex: [Int: PlexPartStream] = [:]
+    @ObservationIgnored private var streamsByID: [Int: PlexPartStream] = [:]
     @ObservationIgnored private let sessionIdentifier = UUID().uuidString
     @ObservationIgnored private var didReceiveTermination = false
     var terminationMessage: String?
 
-    func plexStream(forFFIndex ffIndex: Int?) -> PlexPartStream? {
-        guard let ffIndex else { return nil }
-        return streamsByFFIndex[ffIndex]
+    func plexStream(forID id: Int?) -> PlexPartStream? {
+        guard let id else { return nil }
+        return streamsByID[id]
+    }
+
+    func ffIndex(forPlexStreamID id: Int?) -> Int? {
+        plexStream(forID: id)?.index
+    }
+
+    func plexStreamIDsByFFIndex() -> [Int: Int] {
+        streamsByFFIndex.reduce(into: [:]) { result, entry in
+            guard let id = entry.value.id else { return }
+            result[entry.key] = id
+        }
     }
 
     func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
         guard let mediaRepository = try? MediaRepository(context: context) else { return [] }
 
-        return streamsByFFIndex.values
+        return partStreams
             .filter { $0.streamType == .subtitle && $0.key != nil }
-            .sorted { ($0.index ?? 0) < ($1.index ?? 0) }
             .compactMap { stream in
-                guard let index = stream.index,
+                guard let id = stream.id,
                       let key = stream.key,
                       let url = mediaRepository.mediaURL(path: key)
                 else {
@@ -95,7 +107,7 @@ final class PlayerViewModel {
                         isHearingImpaired: stream.hearingImpaired == true,
                         formatHint: stream.codec,
                     ),
-                    plexStreamIndex: index,
+                    plexStreamID: id,
                 )
             }
     }
@@ -168,10 +180,12 @@ final class PlayerViewModel {
         isLoading = true
         errorMessage = nil
         preferredAudioStreamFFIndex = nil
-        preferredSubtitleStreamFFIndex = nil
+        preferredSubtitleStreamID = nil
         activePartId = nil
         scrubThumbnailSource = nil
+        partStreams = []
         streamsByFFIndex = [:]
+        streamsByID = [:]
         markers = []
         chapters = []
         defer { isLoading = false }
@@ -386,9 +400,9 @@ final class PlayerViewModel {
             $0.streamType == .audio && $0.selected == true
         }?.index
 
-        preferredSubtitleStreamFFIndex = streams.first {
+        preferredSubtitleStreamID = streams.first {
             $0.streamType == .subtitle && $0.selected == true
-        }?.index
+        }?.id
     }
 
     private func updatePartContext(from metadata: PlexItem?) {
@@ -396,9 +410,14 @@ final class PlayerViewModel {
         activePartId = part?.id
 
         let streams = part?.stream ?? []
+        partStreams = streams
         streamsByFFIndex = streams.reduce(into: [Int: PlexPartStream]()) { result, stream in
             guard let index = stream.index else { return }
             result[index] = stream
+        }
+        streamsByID = streams.reduce(into: [Int: PlexPartStream]()) { result, stream in
+            guard let id = stream.id else { return }
+            result[id] = stream
         }
     }
 
@@ -451,9 +470,7 @@ final class PlayerViewModel {
     func persistStreamSelection(for track: PlayerTrack) async {
         guard shouldReportPlaybackToServer else { return }
         guard
-            let ffIndex = track.ffIndex,
-            let stream = streamsByFFIndex[ffIndex],
-            let streamId = stream.id,
+            let streamId = track.plexStreamID,
             let partId = activePartId
         else {
             return
@@ -486,11 +503,8 @@ final class PlayerViewModel {
 
         let streamId: Int?
         if let track {
-            guard
-                let ffIndex = track.ffIndex,
-                let stream = streamsByFFIndex[ffIndex]
-            else { return }
-            streamId = stream.id
+            guard let plexStreamID = track.plexStreamID else { return }
+            streamId = plexStreamID
         } else {
             streamId = nil
         }

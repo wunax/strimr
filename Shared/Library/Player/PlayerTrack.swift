@@ -9,6 +9,7 @@ struct PlayerTrack: Identifiable, Hashable {
 
     let id: Int
     let ffIndex: Int?
+    let plexStreamID: Int?
     let type: TrackType
     let title: String?
     let language: String?
