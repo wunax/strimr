@@ -15,6 +15,7 @@ struct MediaDetailHeaderSection: View {
     let onPlayFromStart: (String, PlexItemType) -> Void
     let onShuffle: (String, PlexItemType) -> Void
     let onSelectParentSeries: () -> Void
+    var onSearchSubtitles: () -> Void = {}
     @State private var isShowingShowDownloadSheet = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
@@ -309,7 +310,7 @@ struct MediaDetailHeaderSection: View {
                 audioTrackButton
             }
 
-            if !viewModel.subtitleTracks.isEmpty {
+            if !viewModel.subtitleTracks.isEmpty || viewModel.canSearchSubtitles {
                 subtitleTrackButton
             }
 
@@ -379,6 +380,13 @@ struct MediaDetailHeaderSection: View {
                                 systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
                             )
                         }
+                    }
+                }
+
+                if viewModel.canSearchSubtitles {
+                    Divider()
+                    Button(action: onSearchSubtitles) {
+                        Label("subtitles.search.action", systemImage: "magnifyingglass")
                     }
                 }
             } label: {

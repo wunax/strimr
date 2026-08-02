@@ -46,6 +46,7 @@ final class MediaDetailViewModel {
     var isUpdatingTracks = false
     var trackSelectionErrorMessage: String?
     @ObservationIgnored private var trackPartID: Int?
+    @ObservationIgnored private var trackPartFile: String?
     @ObservationIgnored private(set) var trackRatingKey: String?
     @ObservationIgnored private var requestedTrackRatingKey: String?
     private var updatingWatchStatusIds: Set<String> = []
@@ -460,6 +461,14 @@ final class MediaDetailViewModel {
         !audioTracks.isEmpty || !subtitleTracks.isEmpty
     }
 
+    var canSearchSubtitles: Bool {
+        trackRatingKey != nil && trackPartID != nil
+    }
+
+    var subtitleSearchTitlePlaceholder: String {
+        trackPartFile.map { URL(fileURLWithPath: $0).lastPathComponent } ?? media.title
+    }
+
     func hasTrackSelection(for ratingKey: String) -> Bool {
         trackRatingKey == ratingKey && hasTrackSelection
     }
@@ -539,6 +548,17 @@ final class MediaDetailViewModel {
             trackSelectionErrorMessage = String(localized: "errors.selectServer.loadDetails")
             return
         }
+        await loadTrackSelection(
+            for: ratingKey,
+            using: metadataRepository,
+            preservingExistingContent: false,
+        )
+    }
+
+    func refreshTrackSelectionAfterSubtitleAttachment() async {
+        guard let ratingKey = trackRatingKey,
+              let metadataRepository = try? MetadataRepository(context: context)
+        else { return }
         await loadTrackSelection(
             for: ratingKey,
             using: metadataRepository,
@@ -854,6 +874,7 @@ final class MediaDetailViewModel {
 
             trackRatingKey = ratingKey
             trackPartID = part?.id
+            trackPartFile = part?.file
             audioTracks = fetchedAudioTracks
             subtitleTracks = fetchedSubtitleTracks
             selectedAudioStreamID = fetchedAudioTracks.first(where: { $0.selected == true })?.id
@@ -874,6 +895,7 @@ final class MediaDetailViewModel {
         requestedTrackRatingKey = nil
         trackRatingKey = nil
         trackPartID = nil
+        trackPartFile = nil
         audioTracks = []
         subtitleTracks = []
         selectedAudioStreamID = nil

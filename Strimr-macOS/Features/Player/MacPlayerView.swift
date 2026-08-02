@@ -61,6 +61,9 @@ struct MacPlayerView: View {
     @State private var loadedURL: URL?
     @State private var isShowingError = false
     @State private var errorMessage = ""
+    @State private var isShowingSubtitleSearch = false
+    @State private var subtitleSearchErrorMessage = ""
+    @State private var isShowingSubtitleSearchError = false
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
@@ -227,6 +230,15 @@ struct MacPlayerView: View {
         )
 
         return presentationObservers
+            .sheet(isPresented: $isShowingSubtitleSearch) {
+                SubtitleSearchView(
+                    ratingKey: viewModel.currentRatingKey,
+                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                    context: context,
+                    onAttached: handleAttachedSubtitle(_:),
+                )
+                .frame(minWidth: 560, minHeight: 640)
+            }
             .alert("player.termination.title", isPresented: $isShowingError) {
                 Button("player.termination.dismiss") { closePlayer(force: true) }
             } message: {
@@ -241,6 +253,11 @@ struct MacPlayerView: View {
                 }
             } message: {
                 Text(serverRecoveryMessage)
+            }
+            .alert("subtitles.search.activation.error", isPresented: $isShowingSubtitleSearchError) {
+                Button("common.actions.done", role: .cancel) {}
+            } message: {
+                Text(subtitleSearchErrorMessage)
             }
             .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
                 Button("sharePlay.leave.action", role: .destructive) {
@@ -527,6 +544,14 @@ struct MacPlayerView: View {
                     }
                 }
             }
+            if viewModel.canSearchSubtitles {
+                Divider()
+                Button {
+                    isShowingSubtitleSearch = true
+                } label: {
+                    Label("subtitles.search.action", systemImage: "magnifyingglass")
+                }
+            }
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
         }
@@ -548,6 +573,25 @@ struct MacPlayerView: View {
             }
         } label: {
             Label("player.settings.speed", systemImage: "speedometer")
+        }
+    }
+
+    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+        do {
+            let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
+            let id = try playerController.registerExternalSubtitleIfNeeded(
+                subtitle,
+                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            )
+            selectedSubtitleTrackID = id
+            let tracks = playerController.trackList()
+            audioTracks = tracks.filter { $0.type == .audio }
+            subtitleTracks = tracks.filter { $0.type == .subtitle }
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            subtitleSearchErrorMessage = error.localizedDescription
+            isShowingSubtitleSearchError = true
         }
     }
 

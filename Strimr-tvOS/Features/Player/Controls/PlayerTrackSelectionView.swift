@@ -6,6 +6,7 @@ struct PlayerTrackSelectionView: View {
     var selectedTrackID: Int?
     var showOffOption: Bool
     var onSelect: (Int?) -> Void
+    var onSearchSubtitles: (() -> Void)?
     var onClose: () -> Void
 
     var body: some View {
@@ -40,6 +41,13 @@ struct PlayerTrackSelectionView: View {
                             .padding(.horizontal, 24)
                         }
                     }
+                }
+
+                if let onSearchSubtitles {
+                    Button(action: onSearchSubtitles) {
+                        Label("subtitles.search.action", systemImage: "magnifyingglass")
+                    }
+                    .padding(.horizontal, 24)
                 }
             }
             .listStyle(.automatic)

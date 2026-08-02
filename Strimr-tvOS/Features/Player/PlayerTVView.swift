@@ -34,6 +34,8 @@ struct PlayerTVView: View {
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
     @State private var terminationAlertMessage = ""
+    @State private var subtitleSearchErrorMessage = ""
+    @State private var showingSubtitleSearchError = false
     @State private var activePlaybackURL: URL?
     @State private var needsPlaybackReloadAfterBackground = false
     @State private var backgroundPlaybackPosition: Double?
@@ -218,6 +220,11 @@ struct PlayerTVView: View {
             } message: {
                 Text(terminationAlertMessage)
             }
+            .alert("subtitles.search.activation.error", isPresented: $showingSubtitleSearchError) {
+                Button("common.actions.done", role: .cancel) {}
+            } message: {
+                Text(subtitleSearchErrorMessage)
+            }
             .alert("player.serverRecovery.title", isPresented: $isShowingServerRecoveryAlert) {
                 Button("common.actions.retry") {
                     Task { await retryServerAccessRecovery() }
@@ -357,6 +364,9 @@ struct PlayerTVView: View {
                 selectedTrackID: selectedSubtitleTrackID,
                 showOffOption: true,
                 onSelect: selectSubtitleTrack(_:),
+                onSearchSubtitles: viewModel.canSearchSubtitles
+                    ? { activeSettingsSheet = .subtitleSearch }
+                    : nil,
                 onClose: { activeSettingsSheet = nil },
             )
         case .speed:
@@ -364,6 +374,13 @@ struct PlayerTVView: View {
                 selectedRate: playbackRate,
                 onSelect: selectPlaybackRate(_:),
                 onClose: { activeSettingsSheet = nil },
+            )
+        case .subtitleSearch:
+            SubtitleSearchView(
+                ratingKey: viewModel.currentRatingKey,
+                titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                context: context,
+                onAttached: handleAttachedSubtitle(_:),
             )
         }
     }
@@ -545,6 +562,23 @@ struct PlayerTVView: View {
         playbackRate = rate
         playerController.setPlaybackRate(rate)
         showControls(temporarily: true)
+    }
+
+    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+        do {
+            let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
+            let id = try playerController.registerExternalSubtitleIfNeeded(
+                subtitle,
+                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            )
+            selectedSubtitleTrackID = id
+            refreshTracks()
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            subtitleSearchErrorMessage = error.localizedDescription
+            showingSubtitleSearchError = true
+        }
     }
 
     private func jump(by seconds: Double) {
@@ -1041,6 +1075,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case audio
     case subtitle
     case speed
+    case subtitleSearch
 
     var id: String {
         rawValue
@@ -1054,6 +1089,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.subtitles"
         case .speed:
             "player.settings.speed"
+        case .subtitleSearch:
+            "subtitles.search.title"
         }
     }
 }

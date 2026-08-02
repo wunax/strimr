@@ -419,6 +419,26 @@ final class PlayerController {
         }
     }
 
+    func registerExternalSubtitleIfNeeded(
+        _ subtitle: PlayerExternalSubtitle,
+        styledASSSubtitles: Bool,
+    ) throws -> Int {
+        if let existingID = externalSubtitlePlexStreamIDs.first(where: {
+            $0.value == subtitle.plexStreamID
+        })?.key {
+            selectSubtitleTrack(id: existingID, styledASSSubtitles: styledASSSubtitles)
+            return existingID
+        }
+
+        let track = engine.addExternalSubtitleTrack(subtitle.track)
+        guard engine.subtitleTracks.contains(where: { $0.id == track.id && $0.isExternal }) else {
+            throw ExternalSubtitleRegistrationError()
+        }
+        externalSubtitlePlexStreamIDs[track.id] = subtitle.plexStreamID
+        selectSubtitleTrack(id: track.id, styledASSSubtitles: styledASSSubtitles)
+        return track.id
+    }
+
     func trackList() -> [PlayerTrack] {
         let audio = engine.audioTracks.map { track in
             PlayerTrack(
@@ -784,6 +804,12 @@ final class PlayerController {
 private struct ExternalSubtitleTrackMappingError: LocalizedError {
     var errorDescription: String? {
         "AetherEngine returned an unexpected external subtitle track table."
+    }
+}
+
+private struct ExternalSubtitleRegistrationError: LocalizedError {
+    var errorDescription: String? {
+        String(localized: "subtitles.search.activation.error")
     }
 }
 

@@ -8,6 +8,7 @@ struct PlaybackSettingsView: View {
     var playbackRate: Float
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
+    var onSearchSubtitles: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
     var onClose: () -> Void
 
@@ -47,6 +48,12 @@ struct PlaybackSettingsView: View {
                             isSelected: selectedSubtitleTrackID == track.id,
                         ) {
                             onSelectSubtitle(track.track.id)
+                        }
+                    }
+
+                    if let onSearchSubtitles {
+                        Button(action: onSearchSubtitles) {
+                            Label("subtitles.search.action", systemImage: "magnifyingglass")
                         }
                     }
                 }
