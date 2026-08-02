@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct MacDownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MacAppModel.self) private var appModel
 
     var body: some View {
@@ -71,6 +72,12 @@ struct MacDownloadsView: View {
             posterView(for: item)
                 .frame(width: 72, height: 108)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .topLeading) {
+                    if isSpoilerProtected(item) {
+                        SpoilerProtectionIndicator()
+                            .padding(5)
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(item.metadata.title).font(.headline).lineLimit(2)
@@ -92,7 +99,11 @@ struct MacDownloadsView: View {
 
     @ViewBuilder
     private func posterView(for item: DownloadItem) -> some View {
-        if let url = downloadManager.localPosterURL(for: item), let image = NSImage(contentsOf: url) {
+        if isSpoilerProtected(item) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.quaternary)
+                .overlay { Image(systemName: "film").foregroundStyle(.secondary) }
+        } else if let url = downloadManager.localPosterURL(for: item), let image = NSImage(contentsOf: url) {
             Image(nsImage: image).resizable().scaledToFill()
         } else {
             RoundedRectangle(cornerRadius: 8)
@@ -128,5 +139,10 @@ struct MacDownloadsView: View {
 
     private func formattedBytes(_ value: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    private func isSpoilerProtected(_ item: DownloadItem) -> Bool {
+        downloadManager.localMediaItem(for: item)
+            .isSpoilerProtected(at: settingsManager.interface.spoilerProtection)
     }
 }

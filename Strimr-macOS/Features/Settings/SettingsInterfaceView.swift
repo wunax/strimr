@@ -24,6 +24,22 @@ struct SettingsInterfaceView: View {
                 )
             }
 
+            Section {
+                Picker(
+                    "settings.interface.spoilerProtection.title",
+                    selection: Binding(
+                        get: { settingsManager.interface.spoilerProtection },
+                        set: { settingsManager.setSpoilerProtection($0) },
+                    ),
+                ) {
+                    ForEach(SpoilerProtectionLevel.allCases, id: \.self) { level in
+                        Text(level.title).tag(level)
+                    }
+                }
+            } footer: {
+                Text("settings.interface.spoilerProtection.description")
+            }
+
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
                 libraryStore: libraryStore,

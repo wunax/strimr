@@ -266,11 +266,34 @@ final class MediaDetailViewModel {
         } catch {}
     }
 
-    func imageURL(for media: MediaItem, width: Int = 320, height: Int = 180) -> URL? {
+    func imageURL(
+        for media: MediaItem,
+        width: Int = 320,
+        height: Int = 180,
+        spoilerProtection: SpoilerProtectionLevel = .off,
+    ) -> URL? {
         guard let imageRepository = try? ImageRepository(context: context) else { return nil }
 
-        let path = media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
+        let path = if media.isSpoilerProtected(at: spoilerProtection) {
+            media.spoilerProtectedArtworkPath(at: spoilerProtection)
+        } else {
+            media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
+        }
         return path.flatMap { imageRepository.transcodeImageURL(path: $0, width: width, height: height) }
+    }
+
+    func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {
+        guard media.mediaItem.isSpoilerProtected(at: spoilerProtection) else {
+            return heroImageURL
+        }
+        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+
+        let path = media.mediaItem.grandparentArtPath
+            ?? parentSeries?.artPath
+            ?? media.mediaItem.grandparentThumbPath
+        return path.flatMap {
+            imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
+        }
     }
 
     private func resolveArtwork() {

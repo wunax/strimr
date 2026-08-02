@@ -12,6 +12,7 @@ final class MediaImageViewModel {
     @ObservationIgnored private let context: PlexAPIContext
     var artworkKind: ArtworkKind
     var media: MediaDisplayItem
+    var spoilerProtection = SpoilerProtectionLevel.off
     private(set) var imageURL: URL?
 
     init(context: PlexAPIContext, artworkKind: ArtworkKind, media: MediaDisplayItem) {
@@ -21,11 +22,15 @@ final class MediaImageViewModel {
     }
 
     func load() async {
-        let path: String? = switch artworkKind {
-        case .thumb:
-            media.preferredThumbPath
-        case .art:
-            media.preferredArtPath
+        let path: String? = if let item = media.playableItem, item.isSpoilerProtected(at: spoilerProtection) {
+            item.spoilerProtectedArtworkPath(at: spoilerProtection)
+        } else {
+            switch artworkKind {
+            case .thumb:
+                media.preferredThumbPath
+            case .art:
+                media.preferredArtPath
+            }
         }
 
         guard let path else {

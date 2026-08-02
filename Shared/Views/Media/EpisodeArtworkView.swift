@@ -1,12 +1,17 @@
 import SwiftUI
 
 struct EpisodeArtworkView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let episode: MediaItem
     let imageURL: URL?
     let width: CGFloat
     let runtime: String?
     let progress: Double?
     private let aspectRatio: CGFloat = 16 / 9
+
+    private var isSpoilerProtected: Bool {
+        episode.isSpoilerProtected(at: settingsManager.interface.spoilerProtection)
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -61,6 +66,12 @@ struct EpisodeArtworkView: View {
         }
         .overlay(alignment: .topTrailing) {
             WatchStatusBadge(media: .playable(episode))
+        }
+        .overlay(alignment: .topLeading) {
+            if isSpoilerProtected {
+                SpoilerProtectionIndicator()
+                    .padding(8)
+            }
         }
     }
 }

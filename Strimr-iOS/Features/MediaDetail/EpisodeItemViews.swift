@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EpisodeCardView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let episode: MediaItem
     let imageURL: URL?
     let runtime: String?
@@ -62,7 +63,12 @@ struct EpisodeCardView: View {
                 .fontWeight(.semibold)
                 .lineLimit(1)
 
-            if let summary = episode.summary, !summary.isEmpty {
+            if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            } else if let summary = episode.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.callout)
                     .foregroundStyle(.secondary)

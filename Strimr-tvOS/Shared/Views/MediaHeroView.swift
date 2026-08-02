@@ -3,6 +3,7 @@ import UIKit
 
 struct MediaHeroBackgroundView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(SettingsManager.self) private var settingsManager
 
     let media: MediaItem
 
@@ -26,17 +27,21 @@ struct MediaHeroBackgroundView: View {
                     .ignoresSafeArea()
             }
         }
-        .task(id: media.id) {
+        .task(id: "\(media.id)-\(settingsManager.interface.spoilerProtection.rawValue)") {
             await loadImage()
         }
     }
 
     private func loadImage() async {
-        let path = media.grandparentArtPath
-            ?? media.artPath
-            ?? media.grandparentThumbPath
-            ?? media.parentThumbPath
-            ?? media.thumbPath
+        let path = if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
+            media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
+        } else {
+            media.grandparentArtPath
+                ?? media.artPath
+                ?? media.grandparentThumbPath
+                ?? media.parentThumbPath
+                ?? media.thumbPath
+        }
         guard let path else {
             imageURL = nil
             return
@@ -58,6 +63,7 @@ struct MediaHeroBackgroundView: View {
 }
 
 struct MediaHeroContentView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
     private let summaryLineLimit = 3
 
@@ -81,7 +87,13 @@ struct MediaHeroContentView: View {
             ratingsLine
             genresLine
 
-            if let summary = media.summary, !summary.isEmpty {
+            if media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                    .font(.callout)
+                    .foregroundStyle(.brandSecondary)
+                    .lineLimit(summaryLineLimit)
+                    .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
+            } else if let summary = media.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.callout)
                     .foregroundStyle(.brandSecondary)

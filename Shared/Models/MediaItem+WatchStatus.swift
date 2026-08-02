@@ -26,4 +26,17 @@ extension MediaItem {
         let remaining = leafCount - viewedLeafCount
         return remaining > 0 ? remaining : nil
     }
+
+    func isSpoilerProtected(at level: SpoilerProtectionLevel) -> Bool {
+        type == .episode && !isFullyWatched && level != .off
+    }
+
+    func shouldHideSpoilerSummary(at level: SpoilerProtectionLevel) -> Bool {
+        isSpoilerProtected(at: level) && level == .full
+    }
+
+    func spoilerProtectedArtworkPath(at level: SpoilerProtectionLevel) -> String? {
+        guard isSpoilerProtected(at: level) else { return nil }
+        return grandparentArtPath ?? grandparentThumbPath
+    }
 }
