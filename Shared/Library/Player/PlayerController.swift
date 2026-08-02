@@ -53,7 +53,8 @@ final class PlayerController {
     @ObservationIgnored private var playbackRate: Float = 1.0
     @ObservationIgnored private var styledASSSubtitles = true
     @ObservationIgnored private var mediaIdentifier = "media"
-    @ObservationIgnored private var externalSubtitleFFIndexes: [Int: Int] = [:]
+    @ObservationIgnored private var plexStreamIDsByFFIndex: [Int: Int] = [:]
+    @ObservationIgnored private var externalSubtitlePlexStreamIDs: [Int: Int] = [:]
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
@@ -97,6 +98,7 @@ final class PlayerController {
         losslessAudio: Bool,
         styledASSSubtitles: Bool,
         mediaIdentifier: String,
+        plexStreamIDsByFFIndex: [Int: Int],
         externalSubtitles: [PlayerExternalSubtitle],
         scrubThumbnailSource: PlexBIFSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
@@ -120,7 +122,8 @@ final class PlayerController {
         activeSubtitleCodec = nil
         self.styledASSSubtitles = styledASSSubtitles
         self.mediaIdentifier = mediaIdentifier
-        externalSubtitleFFIndexes = [:]
+        self.plexStreamIDsByFFIndex = plexStreamIDsByFFIndex
+        externalSubtitlePlexStreamIDs = [:]
         errorMessage = nil
 
         Task { @MainActor [weak self] in
@@ -148,13 +151,13 @@ final class PlayerController {
                 }
                 let externalEngineTracks = engine.subtitleTracks.filter(\.isExternal)
                 if externalEngineTracks.count == externalSubtitles.count {
-                    externalSubtitleFFIndexes = Dictionary(
+                    externalSubtitlePlexStreamIDs = Dictionary(
                         uniqueKeysWithValues: zip(externalEngineTracks, externalSubtitles).map {
-                            ($0.id, $1.plexStreamIndex)
+                            ($0.id, $1.plexStreamID)
                         },
                     )
                 } else {
-                    ErrorReporter.capture(ASSExternalTrackMappingError())
+                    ErrorReporter.capture(ExternalSubtitleTrackMappingError())
                 }
                 if !isCoordinatedPlayback {
                     engine.setRate(playbackRate)
@@ -421,6 +424,7 @@ final class PlayerController {
             PlayerTrack(
                 id: track.id,
                 ffIndex: track.id,
+                plexStreamID: plexStreamIDsByFFIndex[track.id],
                 type: .audio,
                 title: track.name,
                 language: track.language,
@@ -437,7 +441,10 @@ final class PlayerController {
         let subtitles = engine.subtitleTracks.map { track in
             PlayerTrack(
                 id: track.id,
-                ffIndex: externalSubtitleFFIndexes[track.id] ?? track.id,
+                ffIndex: track.isExternal ? nil : track.id,
+                plexStreamID: track.isExternal
+                    ? externalSubtitlePlexStreamIDs[track.id]
+                    : plexStreamIDsByFFIndex[track.id],
                 type: .subtitle,
                 title: track.name,
                 language: track.language,
@@ -774,7 +781,7 @@ final class PlayerController {
     }
 }
 
-private struct ASSExternalTrackMappingError: LocalizedError {
+private struct ExternalSubtitleTrackMappingError: LocalizedError {
     var errorDescription: String? {
         "AetherEngine returned an unexpected external subtitle track table."
     }

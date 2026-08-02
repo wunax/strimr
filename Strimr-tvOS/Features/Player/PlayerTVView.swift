@@ -19,8 +19,8 @@ struct PlayerTVView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
-    @State private var pendingRecoveryAudioFFIndex: Int?
-    @State private var pendingRecoverySubtitleFFIndex: Int?
+    @State private var pendingRecoveryAudioPlexStreamID: Int?
+    @State private var pendingRecoverySubtitlePlexStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1.0
     @State private var appliedPreferredAudio = false
@@ -463,24 +463,24 @@ struct PlayerTVView: View {
                 settingsAudioTracks = audio.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
+                        plexStream: viewModel.plexStream(forID: $0.plexStreamID),
                     )
                 }
 
                 settingsSubtitleTracks = subtitles.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forFFIndex: $0.ffIndex),
+                        plexStream: viewModel.plexStream(forID: $0.plexStreamID),
                     )
                 }
 
                 if shouldRestoreTracksAfterLoad {
-                    let audioID = audio.first {
-                        $0.ffIndex == pendingRecoveryAudioFFIndex
-                    }?.id
-                    let subtitleID = subtitles.first {
-                        $0.ffIndex == pendingRecoverySubtitleFFIndex
-                    }?.id
+                    let audioID = pendingRecoveryAudioPlexStreamID.flatMap { plexStreamID in
+                        audio.first { $0.plexStreamID == plexStreamID }?.id
+                    }
+                    let subtitleID = pendingRecoverySubtitlePlexStreamID.flatMap { plexStreamID in
+                        subtitles.first { $0.plexStreamID == plexStreamID }?.id
+                    }
                     selectedAudioTrackID = audioID
                     selectedSubtitleTrackID = subtitleID
                     playerController.selectAudioTrack(id: audioID)
@@ -488,8 +488,8 @@ struct PlayerTVView: View {
                         id: subtitleID,
                         styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                     )
-                    pendingRecoveryAudioFFIndex = nil
-                    pendingRecoverySubtitleFFIndex = nil
+                    pendingRecoveryAudioPlexStreamID = nil
+                    pendingRecoverySubtitlePlexStreamID = nil
                     shouldRestoreTracksAfterLoad = false
                 } else {
                     applyPreferredTracksIfNeeded(audioTracks: audio, subtitleTracks: subtitles)
@@ -638,6 +638,7 @@ struct PlayerTVView: View {
             losslessAudio: settingsManager.playback.losslessAudio,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+            plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
             externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
@@ -729,8 +730,8 @@ struct PlayerTVView: View {
         }
 
         if !appliedPreferredSubtitle,
-           let preferredSubtitleIndex = viewModel.preferredSubtitleStreamFFIndex,
-           let track = subtitleTracks.first(where: { $0.ffIndex == preferredSubtitleIndex })
+           let preferredSubtitleStreamID = viewModel.preferredSubtitleStreamID,
+           let track = subtitleTracks.first(where: { $0.plexStreamID == preferredSubtitleStreamID })
         {
             selectedSubtitleTrackID = track.id
             playerController.selectSubtitleTrack(
@@ -962,12 +963,12 @@ struct PlayerTVView: View {
         lastReloadedServerAccessGeneration = generation
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
-        pendingRecoveryAudioFFIndex = audioTracks.first {
+        pendingRecoveryAudioPlexStreamID = audioTracks.first {
             $0.id == selectedAudioTrackID
-        }?.ffIndex
-        pendingRecoverySubtitleFFIndex = subtitleTracks.first {
+        }?.plexStreamID
+        pendingRecoverySubtitlePlexStreamID = subtitleTracks.first {
             $0.id == selectedSubtitleTrackID
-        }?.ffIndex
+        }?.plexStreamID
         shouldRestoreTracksAfterLoad = true
         isRecoveringServerAccess = true
         playerController.stop()
