@@ -4829,6 +4829,28 @@
         }
       }
     },
+    "player.skip.credits.automaticConfirmation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credits skipped automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Générique passé automatiquement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已自动跳过片尾"
+          }
+        }
+      }
+    },
     "player.skip.intro" : {
       "localizations" : {
         "en" : {
@@ -4847,6 +4869,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跳过片头"
+          }
+        }
+      }
+    },
+    "player.skip.intro.automaticConfirmation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intro skipped automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intro passée automatiquement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已自动跳过片头"
           }
         }
       }
@@ -7326,6 +7370,50 @@
         }
       }
     },
+    "settings.playback.autoSkipCredits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically skip credits"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer automatiquement le générique"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动跳过片尾"
+          }
+        }
+      }
+    },
+    "settings.playback.autoSkipIntros" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically skip intros"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer automatiquement les intros"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动跳过片头"
+          }
+        }
+      }
+    },
     "settings.playback.fastForward" : {
       "localizations" : {
         "en" : {
@@ -7630,6 +7718,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示预计结束时间"
+          }
+        }
+      }
+    },
+    "settings.playback.skipping.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipping"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sauts automatiques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动跳过"
           }
         }
       }

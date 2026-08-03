@@ -24,6 +24,20 @@ final class SettingsViewModel {
         )
     }
 
+    var autoSkipIntrosBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.autoSkipIntros },
+            set: { self.settingsManager.setAutoSkipIntros($0) },
+        )
+    }
+
+    var autoSkipCreditsBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.autoSkipCredits },
+            set: { self.settingsManager.setAutoSkipCredits($0) },
+        )
+    }
+
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },

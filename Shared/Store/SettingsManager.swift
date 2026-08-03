@@ -37,6 +37,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutoSkipIntros(_ enabled: Bool) {
+        settings.playback.autoSkipIntros = enabled
+        persist()
+    }
+
+    func setAutoSkipCredits(_ enabled: Bool) {
+        settings.playback.autoSkipCredits = enabled
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()

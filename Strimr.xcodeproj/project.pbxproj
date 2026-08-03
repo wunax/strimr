@@ -109,6 +109,7 @@
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
+				Features/Player/Controls/AutomaticSkipFeedbackView.swift,
 				Features/Player/Controls/PlayerBadge.swift,
 				Features/Player/Controls/PlayerChapterViews.swift,
 				Features/Player/Controls/PlayerTimelineView.swift,
