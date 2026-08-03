@@ -36,7 +36,7 @@ struct StrimrMacApp: App {
                 .frame(minWidth: 900, minHeight: 620)
                 .preferredColorScheme(.dark)
         }
-        .defaultSize(width: 1280, height: 820)
+        .defaultSize(width: 1440, height: 900)
 
         Window("player.window.title", id: MacAppModel.playerWindowID) {
             configured(MacPlayerWindowView())
