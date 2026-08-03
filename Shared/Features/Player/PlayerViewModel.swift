@@ -66,6 +66,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var partStreams: [PlexPartStream] = []
     @ObservationIgnored private var streamsByFFIndex: [Int: PlexPartStream] = [:]
     @ObservationIgnored private var streamsByID: [Int: PlexPartStream] = [:]
+    @ObservationIgnored private var automaticSkipMarkerInFlight: PlexMarker?
     @ObservationIgnored private let sessionIdentifier = UUID().uuidString
     @ObservationIgnored private var didReceiveTermination = false
     var terminationMessage: String?
@@ -198,6 +199,7 @@ final class PlayerViewModel {
         partStreams = []
         streamsByFFIndex = [:]
         streamsByID = [:]
+        automaticSkipMarkerInFlight = nil
         markers = []
         chapters = []
         defer { isLoading = false }
@@ -454,6 +456,26 @@ final class PlayerViewModel {
 
     private func activeMarker(where predicate: (PlexMarker) -> Bool) -> PlexMarker? {
         markers.first { predicate($0) && $0.contains(time: position) }
+    }
+
+    func automaticSkipMarker(
+        autoSkipIntros: Bool,
+        autoSkipCredits: Bool,
+    ) -> PlexMarker? {
+        if let automaticSkipMarkerInFlight {
+            guard !automaticSkipMarkerInFlight.contains(time: position) else { return nil }
+            self.automaticSkipMarkerInFlight = nil
+        }
+
+        guard let marker = markers.first(where: {
+            $0.contains(time: position)
+                && (($0.isIntro && autoSkipIntros) || ($0.isCredits && autoSkipCredits))
+        }) else {
+            return nil
+        }
+
+        automaticSkipMarkerInFlight = marker
+        return marker
     }
 
     private func handleTerminationIfNeeded(_ response: PlexTimelineResponse) {

@@ -11,6 +11,8 @@ struct PlayerTVView: View {
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
+    @State private var automaticSkipFeedbackWorkItem: DispatchWorkItem?
+    @State private var automaticSkipFeedbackMessage: String?
     @State private var isScrubbing = false
     @State private var videoFormatBadge: PlayerVideoFormatBadge?
     @State private var audioTracks: [PlayerTrack] = []
@@ -97,6 +99,7 @@ struct PlayerTVView: View {
                 .onDisappear {
                     viewModel.handleStop()
                     hideControlsWorkItem?.cancel()
+                    automaticSkipFeedbackWorkItem?.cancel()
                     seekFeedbackWorkItem?.cancel()
                     playerController.stop()
                     if sharePlayCoordinator.isInSession {
@@ -138,6 +141,7 @@ struct PlayerTVView: View {
                 }
                 .onChange(of: playerController.position) { _, newValue in
                     viewModel.handlePlaybackPosition(newValue, isScrubbing: isScrubbing)
+                    handleAutomaticMarkerSkipIfNeeded()
                 }
                 .onChange(of: playerController.duration) { _, newValue in
                     viewModel.handlePlaybackDuration(newValue)
@@ -341,6 +345,14 @@ struct PlayerTVView: View {
 
             if let seekFeedback {
                 seekFeedbackOverlay(seekFeedback)
+            }
+
+            if let automaticSkipFeedbackMessage {
+                AutomaticSkipFeedbackView(message: automaticSkipFeedbackMessage)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, controlsVisible ? 330 : 48)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -778,6 +790,40 @@ struct PlayerTVView: View {
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
         showControls(temporarily: true)
+    }
+
+    private func handleAutomaticMarkerSkipIfNeeded() {
+        guard !isScrubbing, !sharePlayCoordinator.isInSession else { return }
+        guard let marker = viewModel.automaticSkipMarker(
+            autoSkipIntros: settingsManager.playback.autoSkipIntros,
+            autoSkipCredits: settingsManager.playback.autoSkipCredits,
+        ) else {
+            return
+        }
+
+        playerController.seek(to: marker.endTime)
+        viewModel.position = marker.endTime
+        timelinePosition = marker.endTime
+        showAutomaticSkipFeedback(for: marker)
+    }
+
+    private func showAutomaticSkipFeedback(for marker: PlexMarker) {
+        automaticSkipFeedbackWorkItem?.cancel()
+        let message = marker.isIntro
+            ? String(localized: "player.skip.intro.automaticConfirmation")
+            : String(localized: "player.skip.credits.automaticConfirmation")
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            automaticSkipFeedbackMessage = message
+        }
+
+        let workItem = DispatchWorkItem {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                automaticSkipFeedbackMessage = nil
+            }
+        }
+        automaticSkipFeedbackWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
     }
 
     private func skipOverlay(marker: PlexMarker, title: String) -> some View {

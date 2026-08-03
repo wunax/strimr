@@ -47,6 +47,8 @@ struct MacPlayerView: View {
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
+    @State private var automaticSkipFeedbackWorkItem: DispatchWorkItem?
+    @State private var automaticSkipFeedbackMessage: String?
     @State private var isPointerInsidePlayer = false
     @State private var isScrubbing = false
     @State private var scrubPosition = 0.0
@@ -121,6 +123,14 @@ struct MacPlayerView: View {
                     .transition(.opacity)
             }
 
+            if let automaticSkipFeedbackMessage {
+                AutomaticSkipFeedbackView(message: automaticSkipFeedbackMessage)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, controlsVisible ? 110 : 32)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .allowsHitTesting(false)
+            }
+
             keyboardCommands
         }
         .background(.black)
@@ -146,6 +156,7 @@ struct MacPlayerView: View {
                 }
                 .onDisappear {
                     hideControlsWorkItem?.cancel()
+                    automaticSkipFeedbackWorkItem?.cancel()
                     restoreCursor()
                     stopPlayback()
                     appModel.resetPlayer(ifPresenting: presentationID)
@@ -178,6 +189,7 @@ struct MacPlayerView: View {
                         scrubPosition = position
                     }
                     viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
+                    handleAutomaticMarkerSkipIfNeeded()
                 }
                 .onChange(of: scrubPosition) { _, position in
                     guard isScrubbing else { return }
@@ -305,7 +317,7 @@ struct MacPlayerView: View {
                     HStack {
                         Spacer()
                         Button(marker.isIntro ? "player.skip.intro" : "player.skip.credits") {
-                            playerController.seek(to: marker.endTime / 1000)
+                            playerController.seek(to: marker.endTime)
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -699,6 +711,41 @@ struct MacPlayerView: View {
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)
+    }
+
+    private func handleAutomaticMarkerSkipIfNeeded() {
+        guard !isScrubbing else { return }
+        guard !(participatesInSharePlay && sharePlayCoordinator.isInSession) else { return }
+        guard let marker = viewModel.automaticSkipMarker(
+            autoSkipIntros: settingsManager.playback.autoSkipIntros,
+            autoSkipCredits: settingsManager.playback.autoSkipCredits,
+        ) else {
+            return
+        }
+
+        playerController.seek(to: marker.endTime)
+        viewModel.position = marker.endTime
+        scrubPosition = marker.endTime
+        showAutomaticSkipFeedback(for: marker)
+    }
+
+    private func showAutomaticSkipFeedback(for marker: PlexMarker) {
+        automaticSkipFeedbackWorkItem?.cancel()
+        let message = marker.isIntro
+            ? String(localized: "player.skip.intro.automaticConfirmation")
+            : String(localized: "player.skip.credits.automaticConfirmation")
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            automaticSkipFeedbackMessage = message
+        }
+
+        let workItem = DispatchWorkItem {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                automaticSkipFeedbackMessage = nil
+            }
+        }
+        automaticSkipFeedbackWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
     }
 
     private func handlePlaybackEnded() async {

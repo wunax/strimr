@@ -28,6 +28,11 @@ struct SettingsPlaybackView: View {
                 .pickerStyle(.navigationLink)
             }
 
+            Section("settings.playback.skipping.title") {
+                Toggle("settings.playback.autoSkipIntros", isOn: viewModel.autoSkipIntrosBinding)
+                Toggle("settings.playback.autoSkipCredits", isOn: viewModel.autoSkipCreditsBinding)
+            }
+
             Section("settings.playback.timeline.title") {
                 Toggle(
                     "settings.playback.showChaptersOnTimeline",

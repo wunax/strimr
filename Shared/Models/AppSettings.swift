@@ -60,6 +60,8 @@ struct SubtitleAppearance: Equatable {
 
 struct PlaybackSettings: Codable, Equatable {
     var autoPlayNextEpisode = true
+    var autoSkipIntros = false
+    var autoSkipCredits = false
     var losslessAudio = false
     var showChaptersOnTimeline = true
     var showEndsAtTime = true
@@ -81,6 +83,8 @@ struct PlaybackSettings: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         autoPlayNextEpisode = try container.decodeIfPresent(Bool.self, forKey: .autoPlayNextEpisode) ?? true
+        autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
+        autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
         showChaptersOnTimeline = try container.decodeIfPresent(
             Bool.self,
