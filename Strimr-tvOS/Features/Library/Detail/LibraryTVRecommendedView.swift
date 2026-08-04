@@ -8,6 +8,7 @@ struct LibraryTVRecommendedView: View {
     @State var viewModel: LibraryRecommendedViewModel
     @Binding var heroMedia: MediaItem?
     let onSelectMedia: (MediaDisplayItem) -> Void
+    private let focusOverflowInset: CGFloat = 24
 
     private let landscapeHubIdentifiers: [String] = [
         "inprogress",
@@ -33,6 +34,7 @@ struct LibraryTVRecommendedView: View {
                             maxHeight: .infinity,
                             alignment: .topLeading,
                         )
+                        .padding(.leading, focusOverflowInset)
                 }
 
                 recommendedContent
@@ -84,6 +86,7 @@ struct LibraryTVRecommendedView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .padding(.leading, focusOverflowInset)
             .padding(.trailing, 24)
         }
     }

@@ -18,9 +18,8 @@ struct RelatedHubsSection: View {
                 Divider()
 
                 relatedContent
-                    .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, relatedSectionHorizontalPadding)
             .padding(.bottom, 32)
         }
         .textCase(nil)
@@ -101,4 +100,14 @@ struct RelatedHubsSection: View {
             return nil
         #endif
     }
+}
+
+private var relatedSectionHorizontalPadding: CGFloat {
+    #if os(macOS)
+        28
+    #elseif os(iOS)
+        16
+    #else
+        0
+    #endif
 }

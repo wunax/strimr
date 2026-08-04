@@ -23,7 +23,6 @@ struct MediaHubSection<Content: View>: View {
                     .fill(Color.brandPrimary)
                     .frame(width: 32, height: 4)
             }
-            .padding(.horizontal, 2)
 
             content
         }
