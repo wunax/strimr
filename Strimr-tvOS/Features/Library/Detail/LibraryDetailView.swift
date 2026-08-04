@@ -30,13 +30,20 @@ struct LibraryDetailView: View {
             }
 
             HStack(alignment: .center, spacing: 12) {
-                sidebarView
-                    .focusSection()
+                sidebarContainer
+                    .zIndex(1)
                 contentView
                     .focusSection()
+                    .overlay {
+                        Color.black
+                            .opacity(isSidebarFocused ? 0.35 : 0)
+                            .ignoresSafeArea(edges: [.trailing, .top, .bottom])
+                            .allowsHitTesting(false)
+                    }
             }
             .focusScope(focusNamespace)
             .ignoresSafeArea(edges: [.leading])
+            .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
         }
         .onAppear {
             contentFocused = true
@@ -98,16 +105,38 @@ struct LibraryDetailView: View {
         .prefersDefaultFocus(true, in: focusNamespace)
     }
 
+    private var sidebarContainer: some View {
+        Color.clear
+            .frame(width: sidebarContainerWidth)
+            .frame(maxHeight: .infinity)
+            .overlay(alignment: .leading) {
+                sidebarView
+                    .focusSection()
+            }
+    }
+
     private var sidebarView: some View {
         VStack(spacing: 36) {
             ForEach(availableTabs) { tab in
                 sidebarButton(for: tab)
             }
         }
-        .frame(maxWidth: sidebarWidth, maxHeight: .infinity)
+        .frame(width: sidebarWidth)
+        .frame(maxHeight: .infinity)
         .padding(.leading, 48)
         .padding(.trailing, 12)
-        .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
+        .background(alignment: .leading) {
+            Rectangle()
+                .fill(.regularMaterial)
+                .frame(width: sidebarBackgroundWidth)
+                .opacity(isSidebarFocused ? 1 : 0)
+                .ignoresSafeArea(edges: [.leading, .top, .bottom])
+        }
+        .onMoveCommand { direction in
+            guard direction == .right else { return }
+            focusedSidebarItem = nil
+            contentFocused = true
+        }
     }
 
     private func sidebarButton(for tab: LibraryDetailTab) -> some View {
@@ -139,6 +168,14 @@ struct LibraryDetailView: View {
 
     private var sidebarWidth: CGFloat {
         isSidebarFocused ? 240 : 72
+    }
+
+    private var sidebarContainerWidth: CGFloat {
+        72 + 48 + 12
+    }
+
+    private var sidebarBackgroundWidth: CGFloat {
+        240 + 48 + 12 + 48
     }
 
     private var availableTabs: [LibraryDetailTab] {
