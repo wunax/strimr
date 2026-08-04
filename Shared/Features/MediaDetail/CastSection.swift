@@ -32,9 +32,8 @@ struct CastSection: View {
 
                     castContent
                 }
-                .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, sectionHorizontalPadding)
             .padding(.bottom, 32)
         }
         .textCase(nil)
@@ -71,14 +70,23 @@ struct CastCarousel: View {
             }
             #if os(tvOS)
             .padding(.vertical, 12)
-            .padding(.horizontal, 8)
-            #else
-            .padding(.vertical, 0)
-            .padding(.horizontal, 2)
             #endif
         }
         .mouseDragScrolling()
+        #if os(tvOS)
+            .scrollClipDisabled()
+        #endif
     }
+}
+
+private var sectionHorizontalPadding: CGFloat {
+    #if os(macOS)
+        28
+    #elseif os(iOS)
+        16
+    #else
+        0
+    #endif
 }
 
 struct CastCard: View {
