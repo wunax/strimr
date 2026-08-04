@@ -10,11 +10,23 @@ final class PlexAPIContext {
         let generation: Int
     }
 
-    private enum ConnectionStatus {
+    private enum ConnectionStatus: Sendable {
         case reachable
         case unauthorized
         case unavailable
     }
+
+    private enum ConnectionResolutionEvent: Sendable {
+        case probeFinished(index: Int, status: ConnectionStatus)
+        case localPreferenceExpired
+        case relayEligible
+        case deadlineReached
+    }
+
+    private static let localConnectionGrace: Duration = .milliseconds(500)
+    private static let relayProbeDelay: Duration = .milliseconds(750)
+    private static let relayDecisionDelay: Duration = .seconds(2)
+    private static let connectionResolutionDeadline: Duration = .seconds(6)
 
     private(set) var authTokenCloud: String?
     private(set) var clientIdentifier: String = ""
@@ -146,7 +158,7 @@ final class PlexAPIContext {
     @discardableResult
     func validateCurrentServerAccess() async throws -> Bool {
         let snapshot = try serverAccessSnapshot()
-        switch try await connectionStatus(
+        switch try await Self.connectionStatus(
             snapshot.baseURL,
             accessToken: snapshot.authToken,
         ) {
@@ -181,55 +193,140 @@ final class PlexAPIContext {
         guard let accessToken = resource.accessToken else {
             throw PlexServerAccessRecoveryError.serverUnavailable
         }
-        var sawUnauthorized = false
-        let savedConnection = loadSavedConnection(for: resource)
-        if let savedConnection,
-           let matchingConnection = resource.connections?.first(where: { $0.uri == savedConnection })
+        guard let resourceConnections = resource.connections, !resourceConnections.isEmpty else {
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        }
+
+        var seenURIs = Set<URL>()
+        var connections = resourceConnections.filter { connection in
+            seenURIs.insert(connection.uri).inserted
+        }
+        if let savedConnection = loadSavedConnection(for: resource),
+           let savedIndex = connections.firstIndex(where: { $0.uri == savedConnection })
         {
-            switch try await connectionStatus(matchingConnection.uri, accessToken: accessToken) {
-            case .reachable:
-                return matchingConnection
-            case .unauthorized:
-                sawUnauthorized = true
-            case .unavailable:
-                break
-            }
+            let savedCandidate = connections.remove(at: savedIndex)
+            connections.insert(savedCandidate, at: 0)
         }
 
-        guard let connections = resource.connections, !connections.isEmpty else {
-            throw PlexServerAccessRecoveryError.serverUnavailable
-        }
-        let sortedConnections = connections.sorted { lhs, rhs in
-            if lhs.isRelay != rhs.isRelay {
-                return rhs.isRelay // non-relay first
-            }
-            if lhs.isLocal != rhs.isLocal {
-                return lhs.isLocal // local first
-            }
-            return false
-        }
+        return try await withThrowingTaskGroup(of: ConnectionResolutionEvent.self) { group in
+            defer { group.cancelAll() }
 
-        for connection in sortedConnections {
-            if connection.uri == savedConnection {
-                continue
+            for (index, connection) in connections.enumerated() {
+                let uri = connection.uri
+                let isRelay = connection.isRelay
+                group.addTask {
+                    if isRelay {
+                        try await Task.sleep(for: Self.relayProbeDelay)
+                    }
+                    let status = try await Self.connectionStatus(uri, accessToken: accessToken)
+                    return .probeFinished(index: index, status: status)
+                }
             }
-            switch try await connectionStatus(connection.uri, accessToken: accessToken) {
-            case .reachable:
-                return connection
-            case .unauthorized:
-                sawUnauthorized = true
-            case .unavailable:
-                break
-            }
-        }
 
-        if sawUnauthorized {
-            throw PlexServerAccessRecoveryError.serverUnavailable
+            group.addTask {
+                try await Task.sleep(for: Self.relayDecisionDelay)
+                return .relayEligible
+            }
+            group.addTask {
+                try await Task.sleep(for: Self.connectionResolutionDeadline)
+                return .deadlineReached
+            }
+
+            var remainingProbeCount = connections.count
+            var remainingLocalProbeCount = connections.filter {
+                $0.isLocal && !$0.isRelay
+            }.count
+            var sawUnauthorized = false
+            var remoteCandidate: PlexCloudResource.Connection?
+            var relayCandidate: PlexCloudResource.Connection?
+            var isLocalPreferenceTimerScheduled = false
+            var isRelayEligible = false
+
+            while let event = try await group.next() {
+                switch event {
+                case let .probeFinished(index, status):
+                    let connection = connections[index]
+                    remainingProbeCount -= 1
+                    if connection.isLocal, !connection.isRelay {
+                        remainingLocalProbeCount -= 1
+                    }
+
+                    switch status {
+                    case .reachable:
+                        if connection.isLocal, !connection.isRelay {
+                            return connection
+                        }
+                        if !connection.isRelay {
+                            if remoteCandidate == nil {
+                                remoteCandidate = connection
+                            }
+                            if !isLocalPreferenceTimerScheduled {
+                                isLocalPreferenceTimerScheduled = true
+                                group.addTask {
+                                    try await Task.sleep(for: Self.localConnectionGrace)
+                                    return .localPreferenceExpired
+                                }
+                            }
+                        } else {
+                            if relayCandidate == nil {
+                                relayCandidate = connection
+                            }
+                        }
+                    case .unauthorized:
+                        sawUnauthorized = true
+                    case .unavailable:
+                        break
+                    }
+
+                    if let remoteCandidate, remainingLocalProbeCount == 0 {
+                        return remoteCandidate
+                    }
+                    if isRelayEligible, remoteCandidate == nil, let relayCandidate {
+                        return relayCandidate
+                    }
+                    if remainingProbeCount == 0,
+                       remoteCandidate == nil,
+                       relayCandidate == nil
+                    {
+                        if sawUnauthorized {
+                            throw PlexServerAccessRecoveryError.serverUnavailable
+                        }
+                        throw PlexServerAccessRecoveryError.connectionFailed
+                    }
+
+                case .localPreferenceExpired:
+                    if let remoteCandidate {
+                        return remoteCandidate
+                    }
+
+                case .relayEligible:
+                    isRelayEligible = true
+                    if remoteCandidate == nil, let relayCandidate {
+                        return relayCandidate
+                    }
+
+                case .deadlineReached:
+                    if let remoteCandidate {
+                        return remoteCandidate
+                    }
+                    if let relayCandidate {
+                        return relayCandidate
+                    }
+                    if sawUnauthorized {
+                        throw PlexServerAccessRecoveryError.serverUnavailable
+                    }
+                    throw PlexServerAccessRecoveryError.connectionFailed
+                }
+            }
+
+            if sawUnauthorized {
+                throw PlexServerAccessRecoveryError.serverUnavailable
+            }
+            throw PlexServerAccessRecoveryError.connectionFailed
         }
-        throw PlexServerAccessRecoveryError.connectionFailed
     }
 
-    private func connectionStatus(
+    private static func connectionStatus(
         _ url: URL,
         accessToken: String,
     ) async throws -> ConnectionStatus {
