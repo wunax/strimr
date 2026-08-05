@@ -130,19 +130,19 @@ struct SubtitleSearchView: View {
     @ViewBuilder
     private var subtitleSearchContent: some View {
         #if os(tvOS)
-        ScrollView(.vertical) {
-            LazyVStack(alignment: .leading, spacing: 20) {
+            ScrollView(.vertical) {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    searchOptions
+                    resultsSection
+                }
+                .padding(.horizontal, 42)
+                .padding(.vertical, 20)
+            }
+        #else
+            List {
                 searchOptions
                 resultsSection
             }
-            .padding(.horizontal, 42)
-            .padding(.vertical, 20)
-        }
-        #else
-        List {
-            searchOptions
-            resultsSection
-        }
         #endif
     }
 
@@ -245,9 +245,9 @@ private extension View {
     @ViewBuilder
     func centeredSubtitleSearchAction() -> some View {
         #if os(tvOS)
-        frame(maxWidth: .infinity, alignment: .center)
+            frame(maxWidth: .infinity, alignment: .center)
         #else
-        self
+            self
         #endif
     }
 }

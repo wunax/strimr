@@ -77,7 +77,7 @@ struct TrackSelectionRow: View {
     var title: String
     var subtitle: String?
     var isSelected: Bool
-    var systemImage: String? = nil
+    var systemImage: String?
     var action: () -> Void
 
     var body: some View {
