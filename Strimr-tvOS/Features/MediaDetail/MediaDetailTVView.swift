@@ -280,9 +280,12 @@ struct MediaDetailTVView: View {
                 )
             }
 
-            if viewModel.hasTrackSelection {
+            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
                 Divider()
-                MediaDetailTrackMenuItems(viewModel: viewModel)
+                MediaDetailTrackMenuItems(
+                    viewModel: viewModel,
+                    onSearchSubtitles: { isShowingSubtitleSearch = true },
+                )
             }
         } label: {
             Image(systemName: "arrow.counterclockwise")

@@ -77,11 +77,16 @@ struct TrackSelectionRow: View {
     var title: String
     var subtitle: String?
     var isSelected: Bool
+    var systemImage: String?
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .foregroundStyle(.primary)

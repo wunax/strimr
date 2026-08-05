@@ -44,10 +44,13 @@ struct PlayerTrackSelectionView: View {
                 }
 
                 if let onSearchSubtitles {
-                    Button(action: onSearchSubtitles) {
-                        Label("subtitles.search.action", systemImage: "magnifyingglass")
-                    }
-                    .tint(.secondary)
+                    TrackSelectionRow(
+                        title: String(localized: "subtitles.search.action"),
+                        subtitle: nil,
+                        isSelected: false,
+                        systemImage: "magnifyingglass",
+                        action: onSearchSubtitles,
+                    )
                     .padding(.horizontal, 24)
                 }
             }
