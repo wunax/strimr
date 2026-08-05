@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-EXPECTED_CONFIGURATION_COUNT = 6
+EXPECTED_CONFIGURATION_COUNT = 8
 PROJECT_PATH = ARGV.fetch(1, "Strimr.xcodeproj/project.pbxproj")
 VERSION_PATTERN = /(?<=MARKETING_VERSION = )[^;\s]+/
 BUILD_PATTERN = /(?<=CURRENT_PROJECT_VERSION = )[^;\s]+/
