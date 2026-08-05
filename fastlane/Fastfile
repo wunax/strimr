@@ -36,22 +36,32 @@ platform :ios do
     private_lane :latest_platform_build_number do |options|
         latest_testflight_build_number(
             api_key: options[:api_key],
-            platform: options[:platform]
+            platform: options[:platform],
+            version: options[:version],
+            initial_build_number: 0
         )
     end
 
     private_lane :next_shared_build_number do |options|
+        version = get_version_number(
+            xcodeproj: "Strimr.xcodeproj",
+            target: "Strimr-iOS",
+            configuration: "Release"
+        )
         ios_build_number = latest_platform_build_number(
             api_key: options[:api_key],
-            platform: "ios"
+            platform: "ios",
+            version: version
         )
         tvos_build_number = latest_platform_build_number(
             api_key: options[:api_key],
-            platform: "appletvos"
+            platform: "appletvos",
+            version: version
         )
         macos_build_number = latest_platform_build_number(
             api_key: options[:api_key],
-            platform: "osx"
+            platform: "osx",
+            version: version
         )
 
         [ios_build_number, tvos_build_number, macos_build_number].max + 1
@@ -190,20 +200,28 @@ platform :ios do
     desc "Verify App Store Connect API access for iOS, tvOS, and macOS"
     lane :verify_app_store_connect do
         api_key = app_store_connect_key
+        version = get_version_number(
+            xcodeproj: "Strimr.xcodeproj",
+            target: "Strimr-iOS",
+            configuration: "Release"
+        )
         ios_build_number = latest_platform_build_number(
             api_key: api_key,
-            platform: "ios"
+            platform: "ios",
+            version: version
         )
         tvos_build_number = latest_platform_build_number(
             api_key: api_key,
-            platform: "appletvos"
+            platform: "appletvos",
+            version: version
         )
         macos_build_number = latest_platform_build_number(
             api_key: api_key,
-            platform: "osx"
+            platform: "osx",
+            version: version
         )
 
-        UI.success("Latest TestFlight builds — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}, macOS: #{macos_build_number}")
+        UI.success("Latest TestFlight builds for #{version} — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}, macOS: #{macos_build_number}")
     end
 
     desc "Build a signed iOS TestFlight IPA without uploading it"
