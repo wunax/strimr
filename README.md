@@ -8,19 +8,15 @@ Strimr is a third-party Plex client built in Swift with native interfaces for iP
 ## Key Features
 - **HDR**, **HDR10+**, **HLG**, and **Dolby Vision** profiles 5, 8.1, 8.4, and 7 (profile 7 converted to 8.1 due to Apple platform limitations)
 - **Dolby Atmos**, **TrueHD**, **DTS**, and **DTS-HD MA** (passthrough or conversion when required)<sup>[1]</sup>
-- Server selection
-- Profile selection (Plex Home)
+- Multiple Plex servers and Plex Home profiles
 - Seerr integration
 - Customizable library visibility and navigation order
-- Media browsing with hubs
-- Search with filters for movies, shows, and episodes
-- Rich media details
-- Playback engines: MPV and external Infuse (limited)
-- Watch together
-- Audio/subtitle track selection
-- Resume playback
+- Media hubs, filtered search, and rich movie, show, season, episode, and person details
+- SharePlay synchronized viewing, including sessions started outside FaceTime
+- Audio and subtitle track selection, external subtitle search, and customizable subtitle appearance
+- Chapter navigation and scrubbing thumbnails
 - Downloads with offline mode
-- Skip intro and credits
+- Automatic intro and credits skipping
 
 <small><sup>[1]</sup> Apple platforms do not support HDMI bitstream passthrough for Dolby TrueHD, DTS, DTS-HD MA, or DTS:X. These formats are decoded for playback and output either as **Dolby Digital Plus (compatibility mode, default)** or **lossless multichannel LPCM (lossless mode)**. Dolby Atmos (TrueHD) and DTS:X object metadata cannot be preserved due to tvOS limitations, while Dolby Atmos delivered as Dolby Digital Plus (E-AC3/JOC) is preserved via stream copy.</small>
 
