@@ -115,17 +115,35 @@ struct SubtitleSearchView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            subtitleSearchContent
+                .navigationTitle("subtitles.search.title")
+            #if !os(tvOS)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("common.actions.cancel") { dismiss() }
+                    }
+                }
+            #endif
+        }
+    }
+
+    @ViewBuilder
+    private var subtitleSearchContent: some View {
+        #if os(tvOS)
+        ScrollView(.vertical) {
+            LazyVStack(alignment: .leading, spacing: 20) {
                 searchOptions
                 resultsSection
             }
-            .navigationTitle("subtitles.search.title")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("common.actions.cancel") { dismiss() }
-                }
-            }
+            .padding(.horizontal, 42)
+            .padding(.vertical, 20)
         }
+        #else
+        List {
+            searchOptions
+            resultsSection
+        }
+        #endif
     }
 
     private var searchOptions: some View {
@@ -157,6 +175,7 @@ struct SubtitleSearchView: View {
             }
             .disabled(viewModel.isSearching || viewModel.attachingResultID != nil)
             .tint(.secondary)
+            .centeredSubtitleSearchAction()
         }
     }
 
@@ -219,5 +238,16 @@ struct SubtitleSearchView: View {
             dismiss()
             await onAttached(result)
         }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func centeredSubtitleSearchAction() -> some View {
+        #if os(tvOS)
+        frame(maxWidth: .infinity, alignment: .center)
+        #else
+        self
+        #endif
     }
 }

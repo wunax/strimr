@@ -376,6 +376,9 @@ struct PlayerTVView: View {
                 selectedTrackID: selectedSubtitleTrackID,
                 showOffOption: true,
                 onSelect: selectSubtitleTrack(_:),
+                onSearchSubtitles: viewModel.canSearchSubtitles
+                    ? { activeSettingsSheet = .subtitleSearch }
+                    : nil,
                 onClose: { activeSettingsSheet = nil },
             )
         case .speed:
