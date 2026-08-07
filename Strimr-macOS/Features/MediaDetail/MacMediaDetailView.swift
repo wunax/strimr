@@ -372,6 +372,7 @@ struct MacMediaDetailView: View {
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
+            serverIdentifier: viewModel.serverIdentifier,
         ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {

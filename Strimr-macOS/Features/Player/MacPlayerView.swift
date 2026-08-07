@@ -13,6 +13,7 @@ struct MacPlayerWindowView: View {
                 viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
                 presentationID: presentation.id,
             )
+            .environment(presentation.context ?? context)
             .id(presentation.id)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
@@ -29,7 +30,7 @@ struct MacPlayerWindowView: View {
         return PlayerViewModel(
             playQueue: presentation.playQueue,
             ratingKey: ratingKey,
-            context: context,
+            context: presentation.context ?? context,
             shouldResumeFromOffset: presentation.shouldResumeFromOffset,
         )
     }
@@ -37,7 +38,6 @@ struct MacPlayerWindowView: View {
 
 struct MacPlayerView: View {
     @Environment(\.dismissWindow) private var dismissWindow
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(MacAppModel.self) private var appModel
@@ -246,7 +246,7 @@ struct MacPlayerView: View {
                 SubtitleSearchView(
                     ratingKey: viewModel.currentRatingKey,
                     titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    context: context,
+                    context: viewModel.serverContext,
                     onAttached: handleAttachedSubtitle(_:),
                 )
                 .frame(minWidth: 560, minHeight: 640)
@@ -775,7 +775,7 @@ struct MacPlayerView: View {
         let nextViewModel = PlayerViewModel(
             playQueue: viewModel.playQueue,
             ratingKey: next.ratingKey,
-            context: context,
+            context: viewModel.serverContext,
             shouldResumeFromOffset: false,
         )
         playerController.stop()
@@ -935,6 +935,15 @@ struct MacPlayerView: View {
     }
 
     private func startPlayback(for activity: StrimrWatchActivity) async {
+        let activityContext: PlexAPIContext
+        do {
+            activityContext = try await sharePlayCoordinator.serverContext(for: activity)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
+            return
+        }
         playerController.stop()
         loadedURL = nil
         audioTracks = []
@@ -944,7 +953,7 @@ struct MacPlayerView: View {
         viewModel = PlayerViewModel(
             playQueue: viewModel.playQueue,
             ratingKey: activity.ratingKey,
-            context: context,
+            context: activityContext,
             shouldResumeFromOffset: false,
         )
         await viewModel.load()

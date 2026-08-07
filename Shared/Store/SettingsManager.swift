@@ -168,6 +168,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setMultiServerSearchEnabled(_ enabled: Bool) {
+        settings.interface.multiServerSearchEnabled = enabled
+        persist()
+    }
+
     func setSpoilerProtection(_ level: SpoilerProtectionLevel) {
         settings.interface.spoilerProtection = level
         persist()

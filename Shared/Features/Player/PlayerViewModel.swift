@@ -57,6 +57,7 @@ final class PlayerViewModel {
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private var playQueueState: PlayQueueState
     @ObservationIgnored private let context: PlexAPIContext
+    var serverContext: PlexAPIContext { context }
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
     @ObservationIgnored private let localMedia: MediaItem?
     @ObservationIgnored private let localPlaybackURL: URL?

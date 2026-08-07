@@ -45,6 +45,8 @@ final class SessionManager {
     private(set) var authToken: String?
     private(set) var user: PlexCloudUser?
     private(set) var plexServer: PlexCloudResource?
+    private(set) var availableServers: [PlexCloudResource] = []
+    @ObservationIgnored private var serverContexts: [String: PlexAPIContext] = [:]
 
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     #if os(tvOS)
@@ -152,6 +154,7 @@ final class SessionManager {
             loadingPhase = .connection
             try await context.selectServer(server)
             plexServer = server
+            serverContexts[server.clientIdentifier] = nil
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
             #if os(tvOS)
                 if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
@@ -217,6 +220,7 @@ final class SessionManager {
         let resources: [PlexCloudResource]
         do {
             resources = try await ResourceRepository(context: context).getAvailableResources()
+            availableServers = resources
         } catch let error as PlexAPIError where error.isUnauthorized {
             throw PlexServerAccessRecoveryError.accountUnauthorized
         } catch {
@@ -243,6 +247,47 @@ final class SessionManager {
         #endif
     }
 
+    func refreshAvailableServers() async throws -> [PlexCloudResource] {
+        let resources = try await ResourceRepository(context: context).getAvailableResources()
+        availableServers = resources
+        return resources
+    }
+
+    func serverContext(for serverIdentifier: String) async throws -> PlexAPIContext {
+        if serverIdentifier == plexServer?.clientIdentifier {
+            return context
+        }
+        if let cached = serverContexts[serverIdentifier] {
+            return cached
+        }
+
+        let resources = availableServers.isEmpty ? try await refreshAvailableServers() : availableServers
+        guard let server = resources.first(where: { $0.clientIdentifier == serverIdentifier }) else {
+            throw PlexAPIError.unreachableServer
+        }
+
+        let serverContext = PlexAPIContext()
+        await serverContext.waitForBootstrap()
+        if let authToken {
+            serverContext.setAuthToken(authToken)
+        }
+        try await serverContext.selectServer(server)
+        serverContext.configureServerAccessRecovery { [weak self, weak serverContext] _ in
+            guard let self, let serverContext else {
+                throw PlexServerAccessRecoveryError.connectionFailed
+            }
+            let refreshedServers = try await refreshAvailableServers()
+            guard let refreshedServer = refreshedServers.first(where: {
+                $0.clientIdentifier == serverIdentifier
+            }) else {
+                throw PlexServerAccessRecoveryError.serverUnavailable
+            }
+            try await serverContext.refreshServerAccess(using: refreshedServer)
+        }
+        serverContexts[serverIdentifier] = serverContext
+        return serverContext
+    }
+
     func handleTerminalServerAccessFailure(_ error: PlexServerAccessRecoveryError) async {
         switch error {
         case .accountUnauthorized:
@@ -258,6 +303,7 @@ final class SessionManager {
         with token: String,
         allowProfileSelection: Bool,
     ) async throws {
+        serverContexts = [:]
         let userRepo = UserRepository(context: context)
         let resourcesRepo = ResourceRepository(context: context)
 
@@ -284,6 +330,7 @@ final class SessionManager {
 
         loadingPhase = .servers
         let resources = try await resourcesRepo.getAvailableResources()
+        availableServers = resources
 
         if let persistedServerId = UserDefaults.standard.string(forKey: serverIdDefaultsKey),
            let server = resources.first(where: { $0.clientIdentifier == persistedServerId })
@@ -313,6 +360,8 @@ final class SessionManager {
         authToken = nil
         user = nil
         plexServer = nil
+        availableServers = []
+        serverContexts = [:]
         context.reset()
     }
 }

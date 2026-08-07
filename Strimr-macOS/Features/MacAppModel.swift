@@ -49,12 +49,14 @@ final class MacAppModel: PlaybackPresenting {
         let shouldResumeFromOffset: Bool
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
+        let context: PlexAPIContext?
 
-        init(playQueue: PlayQueueState, shouldResumeFromOffset: Bool) {
+        init(playQueue: PlayQueueState, context: PlexAPIContext, shouldResumeFromOffset: Bool) {
             self.playQueue = playQueue
             self.shouldResumeFromOffset = shouldResumeFromOffset
             localMedia = nil
             localPlaybackURL = nil
+            self.context = context
         }
 
         init(localMedia: MediaItem, localPlaybackURL: URL) {
@@ -62,6 +64,7 @@ final class MacAppModel: PlaybackPresenting {
             shouldResumeFromOffset = false
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
+            context = nil
         }
     }
 
@@ -69,6 +72,8 @@ final class MacAppModel: PlaybackPresenting {
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
+    private var serverContexts: [String: PlexAPIContext] = [:]
+    private var scopedServerIdentifiers: [SidebarItem: String] = [:]
 
     func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
         Binding(
@@ -76,6 +81,9 @@ final class MacAppModel: PlaybackPresenting {
             set: { newValue in
                 self.paths[item] = newValue
                 self.pruneMediaRouteEntries(for: item, maximumDepth: newValue.count)
+                if newValue.isEmpty {
+                    self.scopedServerIdentifiers[item] = nil
+                }
             },
         )
     }
@@ -90,6 +98,17 @@ final class MacAppModel: PlaybackPresenting {
         case let .playlist(playlist):
             append(.playlist(playlist))
         }
+    }
+
+    func showSearchResult(_ source: SearchResultSource) {
+        serverContexts[source.serverIdentifier] = source.context
+        scopedServerIdentifiers[selection] = source.serverIdentifier
+        showMedia(source.media)
+    }
+
+    func context(for item: SidebarItem, default defaultContext: PlexAPIContext) -> PlexAPIContext {
+        guard let identifier = scopedServerIdentifiers[item] else { return defaultContext }
+        return serverContexts[identifier] ?? defaultContext
     }
 
     func showMedia(_ media: MediaItem) {
@@ -130,9 +149,14 @@ final class MacAppModel: PlaybackPresenting {
         append(.seerr(media))
     }
 
-    func showPlayer(for playQueue: PlayQueueState, shouldResumeFromOffset: Bool = true) {
+    func showPlayer(
+        for playQueue: PlayQueueState,
+        context: PlexAPIContext,
+        shouldResumeFromOffset: Bool = true,
+    ) {
         playerPresentation = PlayerPresentation(
             playQueue: playQueue,
+            context: context,
             shouldResumeFromOffset: shouldResumeFromOffset,
         )
     }

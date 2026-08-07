@@ -3,11 +3,12 @@ import SwiftUI
 @MainActor
 struct SearchView: View {
     @State var viewModel: SearchViewModel
-    let onSelectMedia: (MediaDisplayItem) -> Void
+    let onSelectMedia: (SearchResultSource) -> Void
+    @State private var selectedResult: MergedSearchResult?
 
     init(
         viewModel: SearchViewModel,
-        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
+        onSelectMedia: @escaping (SearchResultSource) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -34,6 +35,9 @@ struct SearchView: View {
         }
         .onSubmit(of: .search) {
             viewModel.submitSearch()
+        }
+        .sheet(item: $selectedResult) { result in
+            SearchServerSelectionView(result: result, onSelect: onSelectMedia)
         }
     }
 
@@ -64,16 +68,16 @@ struct SearchView: View {
             .frame(maxWidth: .infinity)
         } else {
             LazyVStack(alignment: .leading, spacing: 12) {
-                ForEach(viewModel.filteredItems) { media in
-                    card(for: media)
+                ForEach(viewModel.filteredItems) { result in
+                    card(for: result)
                 }
             }
         }
     }
 
-    private func card(for media: MediaDisplayItem) -> some View {
-        SearchResultCard(media: media) {
-            onSelectMedia(media)
+    private func card(for result: MergedSearchResult) -> some View {
+        SearchResultCard(result: result) {
+            selectedResult = result
         }
     }
 

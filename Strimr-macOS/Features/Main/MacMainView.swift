@@ -132,8 +132,12 @@ struct MacMainView: View {
             )
         case .search:
             SearchView(
-                viewModel: SearchViewModel(context: context),
-                onSelectMedia: appModel.showMedia,
+                viewModel: SearchViewModel(
+                    context: context,
+                    sessionManager: sessionManager,
+                    settingsManager: settingsManager,
+                ),
+                onSelectMedia: appModel.showSearchResult,
             )
         case .downloads:
             MacDownloadsView()
@@ -155,12 +159,13 @@ struct MacMainView: View {
 
     @ViewBuilder
     private func destination(for route: MacAppModel.Route) -> some View {
+        let routeContext = appModel.context(for: appModel.selection, default: context)
         switch route {
         case let .media(media):
             MacMediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    context: context,
+                    context: routeContext,
                     resolutionMode: .selectedMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
@@ -168,28 +173,29 @@ struct MacMainView: View {
                 onSelectPerson: appModel.showPerson,
                 onPlay: play,
             )
+            .environment(routeContext)
         case let .collection(collection):
             CollectionDetailView(
-                viewModel: CollectionDetailViewModel(collection: collection, context: context),
+                viewModel: CollectionDetailViewModel(collection: collection, context: routeContext),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .collection, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .collection, true, true) },
             )
         case let .playlist(playlist):
             PlaylistDetailView(
-                viewModel: PlaylistDetailViewModel(playlist: playlist, context: context),
+                viewModel: PlaylistDetailViewModel(playlist: playlist, context: routeContext),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .playlist, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .playlist, true, true) },
             )
         case let .hub(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, context: context),
+                viewModel: HubDetailViewModel(hub: hub, context: routeContext),
                 onSelectMedia: appModel.showMedia,
             )
         case let .person(person):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, context: context),
+                viewModel: PersonDetailViewModel(person: person, context: routeContext),
                 onSelectMedia: appModel.showMedia,
             )
         case let .library(library):
@@ -209,7 +215,10 @@ struct MacMainView: View {
         _ shouldResume: Bool = true,
     ) {
         Task {
-            await PlaybackLauncher(context: context, coordinator: appModel).play(
+            await PlaybackLauncher(
+                context: appModel.context(for: appModel.selection, default: context),
+                coordinator: appModel,
+            ).play(
                 ratingKey: ratingKey,
                 type: type,
                 shuffle: shuffle,
