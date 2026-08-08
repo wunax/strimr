@@ -57,6 +57,18 @@ platform :ios do
         [ios_build_number, tvos_build_number, macos_build_number].max + 1
     end
 
+    private_lane :testflight_build_number do |options|
+        requested_build_number = ENV.fetch("TESTFLIGHT_BUILD_NUMBER", "").strip
+        return next_shared_build_number(api_key: options[:api_key]) if requested_build_number.empty?
+
+        unless requested_build_number.match?(/\A[1-9]\d*\z/)
+            UI.user_error!("TESTFLIGHT_BUILD_NUMBER must be a positive integer")
+        end
+
+        UI.message("Using requested TestFlight build number #{requested_build_number}")
+        requested_build_number
+    end
+
     private_lane :upload_sentry_debug_files do |options|
         sentry_debug_files_upload(
             auth_token: ENV.fetch("SENTRY_AUTH_TOKEN"),
@@ -244,8 +256,8 @@ platform :ios do
     desc "Build and upload the iOS app to TestFlight"
     lane :ios_beta do
         api_key = app_store_connect_key
+        build_number = testflight_build_number(api_key: api_key)
         install_match_signing(api_key: api_key, ios: true)
-        build_number = next_shared_build_number(api_key: api_key)
         ipa = build_ios_ipa(build_number: build_number)
 
         upload_sentry_debug_files(project_slug_env: "SENTRY_IOS_PROJECT_SLUG")
@@ -261,8 +273,8 @@ platform :ios do
     desc "Build and upload the tvOS app to TestFlight"
     lane :tvos_beta do
         api_key = app_store_connect_key
+        build_number = testflight_build_number(api_key: api_key)
         install_match_signing(api_key: api_key, tvos: true)
-        build_number = next_shared_build_number(api_key: api_key)
         ipa = build_tvos_ipa(build_number: build_number)
 
         upload_sentry_debug_files(project_slug_env: "SENTRY_TVOS_PROJECT_SLUG")
@@ -278,8 +290,8 @@ platform :ios do
     desc "Build and upload the macOS app to TestFlight"
     lane :macos_beta do
         api_key = app_store_connect_key
+        build_number = testflight_build_number(api_key: api_key)
         install_match_signing(api_key: api_key, macos: true)
-        build_number = next_shared_build_number(api_key: api_key)
         pkg = build_macos_pkg(build_number: build_number)
 
         upload_sentry_debug_files(project_slug_env: "SENTRY_MACOS_PROJECT_SLUG")
@@ -295,8 +307,8 @@ platform :ios do
     desc "Build and upload the iOS, tvOS, and macOS apps to TestFlight"
     lane :beta do
         api_key = app_store_connect_key
+        build_number = testflight_build_number(api_key: api_key)
         install_match_signing(api_key: api_key, ios: true, tvos: true, macos: true)
-        build_number = next_shared_build_number(api_key: api_key)
 
         ios_ipa = build_ios_ipa(build_number: build_number)
         upload_sentry_debug_files(project_slug_env: "SENTRY_IOS_PROJECT_SLUG")

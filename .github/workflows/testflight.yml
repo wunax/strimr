@@ -13,6 +13,10 @@ on:
           - ios
           - tvos
           - macos
+      build_number:
+        description: Optional build number (uses the next TestFlight build number when omitted)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -37,6 +41,7 @@ jobs:
       SENTRY_IOS_PROJECT_SLUG: ${{ secrets.SENTRY_IOS_PROJECT_SLUG }}
       SENTRY_TVOS_PROJECT_SLUG: ${{ secrets.SENTRY_TVOS_PROJECT_SLUG }}
       SENTRY_MACOS_PROJECT_SLUG: ${{ secrets.SENTRY_MACOS_PROJECT_SLUG }}
+      TESTFLIGHT_BUILD_NUMBER: ${{ inputs.build_number }}
 
     steps:
       - name: Checkout
