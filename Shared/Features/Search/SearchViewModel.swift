@@ -262,7 +262,9 @@ final class SearchViewModel {
         for source in sources {
             let key = mergeKey(for: source.media)
             if grouped[key] == nil { order.append(key) }
-            if grouped[key]?.contains(where: { $0.serverIdentifier == source.serverIdentifier }) == false {
+            if !grouped[key, default: []].contains(where: {
+                $0.serverIdentifier == source.serverIdentifier
+            }) {
                 grouped[key, default: []].append(source)
             }
         }
