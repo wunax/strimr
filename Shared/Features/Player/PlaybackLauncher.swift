@@ -5,7 +5,7 @@ protocol PlaybackPresenting: AnyObject {
     func showPlayer(
         for playQueue: PlayQueueState,
         context: PlexAPIContext,
-        shouldResumeFromOffset: Bool
+        shouldResumeFromOffset: Bool,
     )
 }
 

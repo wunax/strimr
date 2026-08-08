@@ -6,7 +6,9 @@ enum SearchFilter: String, CaseIterable, Identifiable {
     case shows
     case episodes
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {
@@ -46,16 +48,26 @@ struct SearchResultSource: Identifiable {
     let media: MediaDisplayItem
     let context: PlexAPIContext
 
-    var id: String { "\(serverIdentifier):\(media.id)" }
+    var id: String {
+        "\(serverIdentifier):\(media.id)"
+    }
 }
 
 struct MergedSearchResult: Identifiable {
     let id: String
     var sources: [SearchResultSource]
 
-    var primarySource: SearchResultSource { sources[0] }
-    var media: MediaDisplayItem { primarySource.media }
-    var serverNames: [String] { sources.map(\.serverName) }
+    var primarySource: SearchResultSource {
+        sources[0]
+    }
+
+    var media: MediaDisplayItem {
+        primarySource.media
+    }
+
+    var serverNames: [String] {
+        sources.map(\.serverName)
+    }
 }
 
 @MainActor
@@ -112,14 +124,18 @@ final class SearchViewModel {
         filtersDidChange()
     }
 
-    func queryDidChange() { scheduleSearch(immediate: false) }
+    func queryDidChange() {
+        scheduleSearch(immediate: false)
+    }
 
     func filtersDidChange() {
         guard hasQuery else { return }
         scheduleSearch(immediate: true)
     }
 
-    func submitSearch() { scheduleSearch(immediate: true) }
+    func submitSearch() {
+        scheduleSearch(immediate: true)
+    }
 
     private func scheduleSearch(immediate: Bool) {
         searchTask?.cancel()
@@ -213,7 +229,9 @@ final class SearchViewModel {
                     case let .response(source):
                         sources.append(source)
                     case let .failure(error):
-                        if !error.isCancellation { failures.append(error) }
+                        if !error.isCancellation {
+                            failures.append(error)
+                        }
                     case .deadline:
                         reachedDeadline = true
                     }
@@ -261,7 +279,9 @@ final class SearchViewModel {
 
         for source in sources {
             let key = mergeKey(for: source.media)
-            if grouped[key] == nil { order.append(key) }
+            if grouped[key] == nil {
+                order.append(key)
+            }
             if !grouped[key, default: []].contains(where: {
                 $0.serverIdentifier == source.serverIdentifier
             }) {
@@ -272,15 +292,21 @@ final class SearchViewModel {
         let mergedResults: [MergedSearchResult] = order.compactMap { key in
             guard var resultSources = grouped[key], !resultSources.isEmpty else { return nil }
             resultSources.sort { lhs, rhs in
-                if lhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier { return true }
-                if rhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier { return false }
+                if lhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier {
+                    return true
+                }
+                if rhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier {
+                    return false
+                }
                 return lhs.serverName.localizedStandardCompare(rhs.serverName) == .orderedAscending
             }
             return MergedSearchResult(id: key, sources: resultSources)
         }
         return mergedResults.sorted { lhs, rhs in
             let titleOrder = lhs.media.primaryLabel.localizedStandardCompare(rhs.media.primaryLabel)
-            if titleOrder != .orderedSame { return titleOrder == .orderedAscending }
+            if titleOrder != .orderedSame {
+                return titleOrder == .orderedAscending
+            }
             return lhs.id < rhs.id
         }
     }
@@ -288,7 +314,9 @@ final class SearchViewModel {
     private func mergeKey(for media: MediaDisplayItem) -> String {
         if let item = media.playableItem {
             let guid = item.guid.lowercased()
-            if !guid.isEmpty { return "\(item.type.rawValue):\(guid)" }
+            if !guid.isEmpty {
+                return "\(item.type.rawValue):\(guid)"
+            }
         }
         let year = media.playableItem?.year.map(String.init) ?? ""
         return "\(media.type.rawValue):\(media.title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)):\(year)"
@@ -300,7 +328,9 @@ final class SearchViewModel {
         for filter in activeFilters {
             filter.requiredSearchTypes.forEach { types.insert($0) }
         }
-        if types.isEmpty { types.insert(.tv) }
+        if types.isEmpty {
+            types.insert(.tv)
+        }
         return Array(types).sorted { $0.rawValue < $1.rawValue }
     }
 

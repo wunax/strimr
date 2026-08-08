@@ -6,7 +6,9 @@ struct SearchResultCard: View {
     let result: MergedSearchResult
     let onTap: () -> Void
 
-    private var media: MediaDisplayItem { result.media }
+    private var media: MediaDisplayItem {
+        result.media
+    }
 
     var body: some View {
         Button(action: onTap) {
