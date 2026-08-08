@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabTVView: View {
     @Environment(PlexAPIContext.self) var plexApiContext
+    @Environment(SessionManager.self) var sessionManager
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
@@ -49,8 +50,12 @@ struct MainTabTVView: View {
             Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchTVView(
-                        viewModel: SearchViewModel(context: plexApiContext),
-                        onSelectMedia: coordinator.showMediaDetail,
+                        viewModel: SearchViewModel(
+                            context: plexApiContext,
+                            sessionManager: sessionManager,
+                            settingsManager: settingsManager,
+                        ),
+                        onSelectMedia: coordinator.showSearchResult,
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
                         destination(for: route)
@@ -141,27 +146,30 @@ struct MainTabTVView: View {
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let playQueue = coordinator.selectedPlayQueue,
+               let playbackContext = coordinator.selectedPlaybackContext,
                let ratingKey = playQueue.selectedRatingKey
             {
                 PlayerTVWrapper(
                     viewModel: PlayerViewModel(
                         playQueue: playQueue,
                         ratingKey: ratingKey,
-                        context: plexApiContext,
+                        context: playbackContext,
                         shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
                     ),
                     onExit: coordinator.resetPlayer,
                 )
+                .environment(playbackContext)
             }
         }
     }
 
     @ViewBuilder
     private func destination(for route: MainCoordinator.Route) -> some View {
+        let routeContext = coordinator.context(for: coordinator.tab, default: plexApiContext)
         switch route {
         case let .mediaDetail(media):
             MediaDetailTVView(
-                viewModel: MediaDetailViewModel(media: media, context: plexApiContext),
+                viewModel: MediaDetailViewModel(media: media, context: routeContext),
                 onPlay: { ratingKey, type in
                     Task {
                         await playbackLauncher.play(ratingKey: ratingKey, type: type)
@@ -188,11 +196,12 @@ struct MainTabTVView: View {
                 onSelectMedia: coordinator.showMediaDetail,
                 onSelectPerson: coordinator.showPersonDetail,
             )
+            .environment(routeContext)
         case let .collectionDetail(collection):
             CollectionDetailTVView(
                 viewModel: CollectionDetailViewModel(
                     collection: collection,
-                    context: plexApiContext,
+                    context: routeContext,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -214,7 +223,7 @@ struct MainTabTVView: View {
             PlaylistDetailTVView(
                 viewModel: PlaylistDetailViewModel(
                     playlist: playlist,
-                    context: plexApiContext,
+                    context: routeContext,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -234,12 +243,12 @@ struct MainTabTVView: View {
             )
         case let .hubDetail(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                viewModel: HubDetailViewModel(hub: hub, context: routeContext),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         case let .personDetail(person):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, context: plexApiContext),
+                viewModel: PersonDetailViewModel(person: person, context: routeContext),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }
@@ -252,7 +261,7 @@ struct MainTabTVView: View {
 
     private var playbackLauncher: PlaybackLauncher {
         PlaybackLauncher(
-            context: plexApiContext,
+            context: coordinator.context(for: coordinator.tab, default: plexApiContext),
             coordinator: coordinator,
         )
     }

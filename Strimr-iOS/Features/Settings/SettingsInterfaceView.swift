@@ -9,6 +9,18 @@ struct SettingsInterfaceView: View {
         List {
             Section {
                 Toggle(
+                    "settings.interface.multiServerSearch",
+                    isOn: Binding(
+                        get: { settingsManager.interface.multiServerSearchEnabled },
+                        set: { settingsManager.setMultiServerSearchEnabled($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.multiServerSearch.description")
+            }
+
+            Section {
+                Toggle(
                     "settings.interface.displayCollections",
                     isOn: Binding(
                         get: { settingsManager.interface.displayCollections },

@@ -159,6 +159,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayCollections = true
     var displayPlaylists = true
     var displaySeerrDiscoverTab = true
+    var multiServerSearchEnabled = true
     var spoilerProtection = SpoilerProtectionLevel.off
 
     init() {}
@@ -170,6 +171,10 @@ struct InterfaceSettings: Codable, Equatable {
         displayCollections = try container.decodeIfPresent(Bool.self, forKey: .displayCollections) ?? true
         displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
+        multiServerSearchEnabled = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .multiServerSearchEnabled,
+        ) ?? true
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
     }
 }

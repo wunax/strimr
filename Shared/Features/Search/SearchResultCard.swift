@@ -2,17 +2,20 @@ import Foundation
 import SwiftUI
 
 struct SearchResultCard: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
     @Environment(SettingsManager.self) private var settingsManager
-    let media: MediaDisplayItem
+    let result: MergedSearchResult
     let onTap: () -> Void
+
+    private var media: MediaDisplayItem {
+        result.media
+    }
 
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
                 MediaImageView(
                     viewModel: MediaImageViewModel(
-                        context: plexApiContext,
+                        context: result.primarySource.context,
                         artworkKind: .thumb,
                         media: media,
                     ),
@@ -42,6 +45,11 @@ struct SearchResultCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
+                    Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+
                     if media.playableItem?.shouldHideSpoilerSummary(
                         at: settingsManager.interface.spoilerProtection,
                     ) == true {
@@ -66,6 +74,27 @@ struct SearchResultCard: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct SearchServerSelectionView: View {
+    let result: MergedSearchResult
+    let onSelect: (SearchResultSource) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(result.sources) { source in
+                Button {
+                    dismiss()
+                    onSelect(source)
+                } label: {
+                    Label(source.serverName, systemImage: "server.rack")
+                }
+            }
+            .navigationTitle("search.serverSelection.title")
+        }
+        .presentationDetents([.medium])
     }
 }
 

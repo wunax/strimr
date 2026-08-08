@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PlayerTVView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -391,7 +390,7 @@ struct PlayerTVView: View {
             SubtitleSearchView(
                 ratingKey: viewModel.currentRatingKey,
                 titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                context: context,
+                context: viewModel.serverContext,
                 onAttached: handleAttachedSubtitle(_:),
             )
         }
@@ -977,7 +976,7 @@ struct PlayerTVView: View {
             viewModel = PlayerViewModel(
                 playQueue: viewModel.playQueue,
                 ratingKey: episode.ratingKey,
-                context: context,
+                context: viewModel.serverContext,
             )
         }
 
@@ -985,12 +984,21 @@ struct PlayerTVView: View {
     }
 
     private func startPlayback(for activity: StrimrWatchActivity) async {
+        let activityContext: PlexAPIContext
+        do {
+            activityContext = try await sharePlayCoordinator.serverContext(for: activity)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
+            return
+        }
         await MainActor.run {
             activePlaybackURL = nil
             viewModel = PlayerViewModel(
                 playQueue: viewModel.playQueue,
                 ratingKey: activity.ratingKey,
-                context: context,
+                context: activityContext,
                 shouldResumeFromOffset: false,
             )
         }

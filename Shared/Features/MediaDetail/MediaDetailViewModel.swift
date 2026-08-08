@@ -67,6 +67,10 @@ final class MediaDetailViewModel {
         resolveArtwork()
     }
 
+    var serverIdentifier: String? {
+        try? context.serverAccessSnapshot().serverIdentifier
+    }
+
     func loadDetails() async {
         _ = refreshGate.startInitialLoadIfNeeded()
         await loadDetails(preservingExistingContent: false)

@@ -33,10 +33,13 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
     private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
+    private var serverContexts: [String: PlexAPIContext] = [:]
+    private var scopedServerIdentifiers: [Tab: String] = [:]
 
     @Published var selectedPlayQueue: PlayQueueState?
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
+    @Published var selectedPlaybackContext: PlexAPIContext?
 
     func pathBinding(for tab: Tab) -> Binding<NavigationPath> {
         Binding(
@@ -72,6 +75,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.libraryDetailPaths[libraryId] = newValue
                 }
                 self.pruneMediaRouteEntries(for: tab, maximumDepth: newValue.count)
+                if newValue.isEmpty {
+                    self.scopedServerIdentifiers[tab] = nil
+                }
             },
         )
     }
@@ -159,6 +165,17 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case let .playlist(playlist):
             showPlaylistDetail(playlist)
         }
+    }
+
+    func showSearchResult(_ source: SearchResultSource) {
+        serverContexts[source.serverIdentifier] = source.context
+        scopedServerIdentifiers[tab] = source.serverIdentifier
+        showMediaDetail(source.media)
+    }
+
+    func context(for tab: Tab, default defaultContext: PlexAPIContext) -> PlexAPIContext {
+        guard let identifier = scopedServerIdentifiers[tab] else { return defaultContext }
+        return serverContexts[identifier] ?? defaultContext
     }
 
     func showCollectionDetail(_ collection: CollectionMediaItem) {
@@ -254,14 +271,20 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
-    func showPlayer(for playQueue: PlayQueueState, shouldResumeFromOffset: Bool = true) {
+    func showPlayer(
+        for playQueue: PlayQueueState,
+        context: PlexAPIContext,
+        shouldResumeFromOffset: Bool = true,
+    ) {
         selectedPlayQueue = playQueue
+        selectedPlaybackContext = context
         self.shouldResumeFromOffset = shouldResumeFromOffset
         isPresentingPlayer = true
     }
 
     func resetPlayer() {
         selectedPlayQueue = nil
+        selectedPlaybackContext = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
     }

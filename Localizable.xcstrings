@@ -5467,6 +5467,22 @@
         }
       }
     },
+    "search.serverSelection.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un serveur"
+          }
+        }
+      }
+    },
     "seerr.detail.countries" : {
       "localizations" : {
         "en" : {
@@ -7168,6 +7184,44 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示播放列表"
+          }
+        }
+      }
+    },
+    "settings.interface.multiServerSearch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search all servers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher sur tous les serveurs"
+          }
+        }
+      }
+    },
+    "settings.interface.multiServerSearch.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge matching results from every available Plex server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fusionne les résultats correspondants de tous les serveurs Plex disponibles."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合并所有可用 Plex 服务器中的匹配结果。"
           }
         }
       }
