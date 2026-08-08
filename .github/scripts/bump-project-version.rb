@@ -53,9 +53,8 @@ elsif %w[major minor patch].include?(mode)
     new_version = version.join(".")
 
     contents = contents.gsub(VERSION_PATTERN, new_version)
-    contents = contents.gsub(BUILD_PATTERN, "1")
     write_output("version", new_version)
-    write_output("build", "1")
+    write_output("build", current_build)
 else
     abort "Unsupported bump type: #{mode}. Expected major, minor, patch, or build."
 end
