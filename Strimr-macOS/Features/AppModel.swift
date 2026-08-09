@@ -1,0 +1,191 @@
+import Observation
+import SwiftUI
+
+@MainActor
+@Observable
+final class AppModel: PlaybackPresenting {
+    static let playerWindowID = "player"
+
+    private struct MediaRouteEntry {
+        let mediaID: String
+        let depth: Int
+    }
+
+    enum SidebarItem: Hashable, Identifiable {
+        case home
+        case discover
+        case search
+        case downloads
+        case libraries
+        case library(String)
+        case settings
+
+        var id: String {
+            switch self {
+            case .home: "home"
+            case .discover: "discover"
+            case .search: "search"
+            case .downloads: "downloads"
+            case .libraries: "libraries"
+            case let .library(id): "library-\(id)"
+            case .settings: "settings"
+            }
+        }
+    }
+
+    enum Route: Hashable {
+        case media(PlayableMediaItem)
+        case collection(CollectionMediaItem)
+        case playlist(PlaylistMediaItem)
+        case hub(Hub)
+        case person(Person)
+        case library(Library)
+        case seerr(SeerrMedia)
+    }
+
+    struct PlayerPresentation {
+        let id = UUID()
+        let playQueue: PlayQueueState
+        let shouldResumeFromOffset: Bool
+        let localMedia: MediaItem?
+        let localPlaybackURL: URL?
+        let context: PlexAPIContext?
+
+        init(playQueue: PlayQueueState, context: PlexAPIContext, shouldResumeFromOffset: Bool) {
+            self.playQueue = playQueue
+            self.shouldResumeFromOffset = shouldResumeFromOffset
+            localMedia = nil
+            localPlaybackURL = nil
+            self.context = context
+        }
+
+        init(localMedia: MediaItem, localPlaybackURL: URL) {
+            playQueue = PlayQueueState(localRatingKey: localMedia.id)
+            shouldResumeFromOffset = false
+            self.localMedia = localMedia
+            self.localPlaybackURL = localPlaybackURL
+            context = nil
+        }
+    }
+
+    var selection: SidebarItem = .home
+    var playerPresentation: PlayerPresentation?
+    private var paths: [SidebarItem: NavigationPath] = [:]
+    private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
+    private var serverContexts: [String: PlexAPIContext] = [:]
+    private var scopedServerIdentifiers: [SidebarItem: String] = [:]
+
+    func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
+        Binding(
+            get: { self.paths[item] ?? NavigationPath() },
+            set: { newValue in
+                self.paths[item] = newValue
+                self.pruneMediaRouteEntries(for: item, maximumDepth: newValue.count)
+                if newValue.isEmpty {
+                    self.scopedServerIdentifiers[item] = nil
+                }
+            },
+        )
+    }
+
+    func showMedia(_ media: MediaDisplayItem) {
+        switch media {
+        case let .playable(item):
+            guard let playable = PlayableMediaItem(mediaItem: item) else { return }
+            append(.media(playable))
+        case let .collection(collection):
+            append(.collection(collection))
+        case let .playlist(playlist):
+            append(.playlist(playlist))
+        }
+    }
+
+    func showSearchResult(_ source: SearchResultSource) {
+        serverContexts[source.serverIdentifier] = source.context
+        scopedServerIdentifiers[selection] = source.serverIdentifier
+        showMedia(source.media)
+    }
+
+    func context(for item: SidebarItem, default defaultContext: PlexAPIContext) -> PlexAPIContext {
+        guard let identifier = scopedServerIdentifiers[item] else { return defaultContext }
+        return serverContexts[identifier] ?? defaultContext
+    }
+
+    func showMedia(_ media: MediaItem) {
+        guard let playable = PlayableMediaItem(mediaItem: media) else { return }
+        append(.media(playable))
+    }
+
+    func returnToSeries(_ series: PlayableMediaItem) {
+        guard let destinationDepth = mediaRouteEntries[selection]?
+            .last(where: { $0.mediaID == series.id })?
+            .depth
+        else {
+            append(.media(series))
+            return
+        }
+
+        var path = paths[selection] ?? NavigationPath()
+        let numberOfRoutes = path.count - destinationDepth
+        guard numberOfRoutes > 0 else { return }
+        path.removeLast(numberOfRoutes)
+        paths[selection] = path
+        pruneMediaRouteEntries(for: selection, maximumDepth: destinationDepth)
+    }
+
+    func showHub(_ hub: Hub) {
+        append(.hub(hub))
+    }
+
+    func showPerson(_ person: Person) {
+        append(.person(person))
+    }
+
+    func showLibrary(_ library: Library) {
+        append(.library(library))
+    }
+
+    func showSeerr(_ media: SeerrMedia) {
+        append(.seerr(media))
+    }
+
+    func showPlayer(
+        for playQueue: PlayQueueState,
+        context: PlexAPIContext,
+        shouldResumeFromOffset: Bool = true,
+    ) {
+        playerPresentation = PlayerPresentation(
+            playQueue: playQueue,
+            context: context,
+            shouldResumeFromOffset: shouldResumeFromOffset,
+        )
+    }
+
+    func showDownloadedPlayer(media: MediaItem, url: URL) {
+        playerPresentation = PlayerPresentation(localMedia: media, localPlaybackURL: url)
+    }
+
+    func resetPlayer(ifPresenting presentationID: UUID? = nil) {
+        if let presentationID, playerPresentation?.id != presentationID {
+            return
+        }
+        playerPresentation = nil
+    }
+
+    private func append(_ route: Route) {
+        var path = paths[selection] ?? NavigationPath()
+        path.append(route)
+        paths[selection] = path
+
+        if case let .media(media) = route {
+            pruneMediaRouteEntries(for: selection, maximumDepth: path.count - 1)
+            mediaRouteEntries[selection, default: []].append(
+                MediaRouteEntry(mediaID: media.id, depth: path.count),
+            )
+        }
+    }
+
+    private func pruneMediaRouteEntries(for item: SidebarItem, maximumDepth: Int) {
+        mediaRouteEntries[item]?.removeAll { $0.depth > maximumDepth }
+    }
+}

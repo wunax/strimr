@@ -18,15 +18,15 @@ struct ContentView: View {
                     .progressViewStyle(.circular)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             case .signedOut:
-                SignInTVView(
-                    viewModel: SignInTVViewModel(
+                SignInView(
+                    viewModel: SignInViewModel(
                         sessionManager: sessionManager,
                         context: plexApiContext,
                     ),
                 )
             case .needsProfileSelection:
                 NavigationStack {
-                    ProfileSwitcherTVView(
+                    ProfileSwitcherView(
                         viewModel: ProfileSwitcherViewModel(
                             context: plexApiContext,
                             sessionManager: sessionManager,
@@ -35,7 +35,7 @@ struct ContentView: View {
                 }
             case .needsServerSelection:
                 NavigationStack {
-                    SelectServerTVView(
+                    SelectServerView(
                         viewModel: ServerSelectionViewModel(
                             sessionManager: sessionManager,
                             context: plexApiContext,
@@ -43,7 +43,7 @@ struct ContentView: View {
                     )
                 }
             case .ready:
-                MainTabTVView()
+                MainTabView()
             }
         }
     }

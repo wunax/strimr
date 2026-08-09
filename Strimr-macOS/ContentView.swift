@@ -6,7 +6,7 @@ struct ContentView: View {
     @Environment(PlexAPIContext.self) private var plexAPIContext
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
-    @Environment(MacAppModel.self) private var appModel
+    @Environment(AppModel.self) private var appModel
 
     init() {
         ErrorReporter.start()
@@ -22,28 +22,28 @@ struct ContentView: View {
                     .controlSize(.large)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .signedOut:
-                MacSignInView(
-                    viewModel: MacSignInViewModel(
+                SignInView(
+                    viewModel: SignInViewModel(
                         sessionManager: sessionManager,
                         context: plexAPIContext,
                     ),
                 )
             case .needsProfileSelection:
-                MacProfileSwitcherView(
+                ProfileSwitcherView(
                     viewModel: ProfileSwitcherViewModel(
                         context: plexAPIContext,
                         sessionManager: sessionManager,
                     ),
                 )
             case .needsServerSelection:
-                MacServerSelectionView(
+                SelectServerView(
                     viewModel: ServerSelectionViewModel(
                         sessionManager: sessionManager,
                         context: plexAPIContext,
                     ),
                 )
             case .ready:
-                MacMainView(
+                MainView(
                     homeViewModel: HomeViewModel(
                         context: plexAPIContext,
                         settingsManager: settingsManager,
@@ -58,7 +58,7 @@ struct ContentView: View {
         }
         .onChange(of: appModel.playerPresentation?.id) { _, presentationID in
             guard presentationID != nil else { return }
-            openWindow(id: MacAppModel.playerWindowID)
+            openWindow(id: AppModel.playerWindowID)
         }
     }
 }

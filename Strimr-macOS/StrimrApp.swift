@@ -1,14 +1,14 @@
 import SwiftUI
 
 @main
-struct StrimrMacApp: App {
+struct StrimrApp: App {
     @State private var plexAPIContext: PlexAPIContext
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var downloadManager: DownloadManager
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
-    @State private var appModel: MacAppModel
+    @State private var appModel: AppModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
 
     init() {
@@ -23,7 +23,7 @@ struct StrimrMacApp: App {
         _downloadManager = State(initialValue: DownloadManager(settingsManager: settingsManager))
         _libraryStore = State(initialValue: libraryStore)
         _seerrStore = State(initialValue: SeerrStore())
-        _appModel = State(initialValue: MacAppModel())
+        _appModel = State(initialValue: AppModel())
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
             context: context,
@@ -38,8 +38,8 @@ struct StrimrMacApp: App {
         }
         .defaultSize(width: 1440, height: 900)
 
-        Window("player.window.title", id: MacAppModel.playerWindowID) {
-            configured(MacPlayerWindowView())
+        Window("player.window.title", id: AppModel.playerWindowID) {
+            configured(PlayerWindowView())
                 .frame(minWidth: 720, minHeight: 405)
                 .preferredColorScheme(.dark)
         }

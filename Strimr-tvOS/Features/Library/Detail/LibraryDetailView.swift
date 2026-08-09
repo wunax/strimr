@@ -64,7 +64,7 @@ struct LibraryDetailView: View {
         Group {
             switch selectedTab {
             case .recommended:
-                LibraryTVRecommendedView(
+                LibraryRecommendedView(
                     viewModel: LibraryRecommendedViewModel(
                         library: library,
                         context: plexApiContext,

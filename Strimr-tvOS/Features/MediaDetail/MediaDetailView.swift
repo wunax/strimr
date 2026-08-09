@@ -1,0 +1,637 @@
+import Observation
+import SwiftUI
+
+struct MediaDetailView: View {
+    @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(PlexAPIContext.self) private var context
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
+    @Environment(\.scenePhase) private var scenePhase
+    @State var viewModel: MediaDetailViewModel
+    @State private var focusedMedia: MediaItem?
+    @State private var contextualEpisodeID: String?
+    @State private var hasHandledInitialEpisodePosition = false
+    @State private var hasUserSelectedSeason = false
+    @State private var isShowingSubtitleSearch = false
+    private let onPlay: (String, PlexItemType) -> Void
+    private let onPlayFromStart: (String, PlexItemType) -> Void
+    private let onShuffle: (String, PlexItemType) -> Void
+    private let onSelectMedia: (MediaDisplayItem) -> Void
+    private let onSelectPerson: (Person) -> Void
+
+    init(
+        viewModel: MediaDetailViewModel,
+        onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onShuffle: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
+        onSelectPerson: @escaping (Person) -> Void = { _ in },
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.onPlay = onPlay
+        self.onPlayFromStart = onPlayFromStart
+        self.onShuffle = onShuffle
+        self.onSelectMedia = onSelectMedia
+        self.onSelectPerson = onSelectPerson
+    }
+
+    var body: some View {
+        @Bindable var bindableViewModel = viewModel
+
+        GeometryReader { proxy in
+            ZStack {
+                MediaHeroBackgroundView(media: bindableViewModel.media.mediaItem)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 32) {
+                        MediaHeroContentView(media: contextualEpisode ?? focusedMedia ?? bindableViewModel.media
+                            .mediaItem)
+                            .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
+
+                        buttonsRow
+
+                        if bindableViewModel.hasTrackSelection {
+                            MediaDetailTrackSummary(viewModel: bindableViewModel, spacing: 24)
+                        }
+
+                        if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
+                            Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                                .foregroundStyle(.red)
+                        }
+
+                        if bindableViewModel.media.type == .show {
+                            seasonsSection
+                        }
+
+                        CastSection(
+                            viewModel: bindableViewModel,
+                            onSelectPerson: onSelectPerson,
+                        )
+                        RelatedHubsSection(viewModel: bindableViewModel, onSelectMedia: onSelectMedia)
+                    }
+                }
+            }
+        }
+        .task {
+            await bindableViewModel.loadDetails()
+        }
+        .sheet(isPresented: $isShowingSubtitleSearch) {
+            if let ratingKey = bindableViewModel.trackRatingKey {
+                SubtitleSearchView(
+                    ratingKey: ratingKey,
+                    titlePlaceholder: bindableViewModel.subtitleSearchTitlePlaceholder,
+                    context: context,
+                ) { _ in
+                    await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
+                }
+            }
+        }
+        .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
+            guard !isPresenting else { return }
+            Task { await bindableViewModel.loadDetails() }
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            Task { await bindableViewModel.refreshIfNeeded() }
+        }
+        .onAppear {
+            if focusedMedia == nil {
+                focusedMedia = bindableViewModel.media.mediaItem
+            }
+            Task { await bindableViewModel.refreshIfNeeded() }
+        }
+        .onChange(of: bindableViewModel.media) { oldValue, newValue in
+            if focusedMedia == nil || focusedMedia?.id == oldValue.id {
+                focusedMedia = newValue.mediaItem
+            }
+        }
+        .onChange(of: bindableViewModel.episodes) { _, episodes in
+            guard let contextualEpisodeID else { return }
+
+            if let refreshedEpisode = episodes.first(where: { $0.id == contextualEpisodeID }) {
+                focusedMedia = refreshedEpisode
+            } else {
+                self.contextualEpisodeID = nil
+                if focusedMedia?.id == contextualEpisodeID {
+                    focusedMedia = nil
+                }
+            }
+        }
+        .onChange(of: bindableViewModel.selectedSeasonId) {
+            contextualEpisodeID = nil
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .alert(
+            "sharePlay.error.title",
+            isPresented: Binding(
+                get: { sharePlayCoordinator.errorMessage != nil },
+                set: {
+                    if !$0 {
+                        sharePlayCoordinator.errorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                sharePlayCoordinator.errorMessage = nil
+            }
+        } message: {
+            Text(sharePlayCoordinator.errorMessage ?? "")
+        }
+        .alert(
+            "media.detail.watchAction.error.title",
+            isPresented: Binding(
+                get: { bindableViewModel.watchActionErrorMessage != nil },
+                set: {
+                    if !$0 {
+                        bindableViewModel.watchActionErrorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                bindableViewModel.watchActionErrorMessage = nil
+            }
+        } message: {
+            Text(bindableViewModel.watchActionErrorMessage ?? "")
+        }
+    }
+
+    private var contextualEpisode: MediaItem? {
+        guard let contextualEpisodeID else { return nil }
+        return viewModel.episodes.first(where: { $0.id == contextualEpisodeID })
+    }
+
+    private var playButton: some View {
+        Button(action: handlePlay) {
+            HStack(spacing: 12) {
+                Image(systemName: "play.fill")
+                    .font(.title3.weight(.semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(viewModel.primaryActionTitle)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    if let detail = viewModel.primaryActionDetail {
+                        Text(detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: 520, alignment: .leading)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .tint(.brandSecondary)
+        .foregroundStyle(.brandSecondaryForeground)
+        .disabled(viewModel.primaryActionRatingKey == nil)
+    }
+
+    private var buttonsRow: some View {
+        HStack(spacing: 16) {
+            playButton
+
+            if viewModel.shouldShowPlayFromStartButton {
+                playFromStartButton
+            }
+
+            moreActionsMenu
+        }
+    }
+
+    private var playFromStartButton: some View {
+        Button(action: handlePlayFromStart) {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.title2.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
+        .tint(.secondary)
+        .accessibilityLabel(Text("media.detail.playFromStart"))
+    }
+
+    private var shouldShowShuffleAction: Bool {
+        [.show, .season].contains(viewModel.media.type)
+    }
+
+    private var isPerformingMenuAction: Bool {
+        sharePlayCoordinator.isActivating
+            || viewModel.isUpdatingWatchStatus
+            || viewModel.isUpdatingWatchlistStatus
+            || viewModel.isUpdatingTracks
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            if shouldShowShuffleAction {
+                Button(action: handleShuffle) {
+                    Label("common.actions.shuffle", systemImage: "shuffle")
+                }
+            }
+
+            Button {
+                Task { await activateSharePlay() }
+            } label: {
+                if sharePlayCoordinator.isActivating {
+                    Label {
+                        Text("sharePlay.action")
+                    } icon: {
+                        ProgressView()
+                    }
+                } else {
+                    Label("sharePlay.action", systemImage: "shareplay")
+                }
+            }
+            .disabled(sharePlayCoordinator.isActivating)
+
+            Button {
+                Task { await viewModel.toggleWatchStatus() }
+            } label: {
+                if viewModel.isUpdatingWatchStatus {
+                    Label {
+                        Text(viewModel.watchActionTitle)
+                    } icon: {
+                        ProgressView()
+                    }
+                } else {
+                    Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+                }
+            }
+            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+            if viewModel.shouldShowWatchlistButton {
+                Button {
+                    Task { await viewModel.toggleWatchlistStatus() }
+                } label: {
+                    if viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus {
+                        Label {
+                            Text(viewModel.watchlistActionTitle)
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                    }
+                }
+                .disabled(
+                    viewModel.isLoading
+                        || viewModel.isLoadingWatchlistStatus
+                        || viewModel.isUpdatingWatchlistStatus,
+                )
+            }
+
+            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+                Divider()
+                MediaDetailTrackMenuItems(
+                    viewModel: viewModel,
+                    onSearchSubtitles: { isShowingSubtitleSearch = true },
+                )
+            }
+        } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.title2.weight(.semibold))
+                .opacity(0)
+                .overlay {
+                    if isPerformingMenuAction {
+                        ProgressView()
+                            .tint(.brandSecondaryForeground)
+                    } else {
+                        Image(systemName: "ellipsis")
+                            .font(.title2.weight(.semibold))
+                            .rotationEffect(.degrees(90))
+                    }
+                }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
+        .tint(.secondary)
+        .menuIndicator(.hidden)
+        .accessibilityLabel(Text("common.actions.more"))
+    }
+
+    private var seasonsSection: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            seasonSelector
+            episodesRow
+        }
+    }
+
+    @ViewBuilder
+    private var seasonSelector: some View {
+        if let error = viewModel.seasonsErrorMessage {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("media.detail.loadingSeasons")
+                    .foregroundStyle(.secondary)
+            }
+        } else if viewModel.seasons.isEmpty {
+            Text("media.detail.noSeasons")
+                .foregroundStyle(.secondary)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(viewModel.seasons) { season in
+                        SeasonPillButton(
+                            title: season.title,
+                            isSelected: season.id == viewModel.selectedSeasonId,
+                            onSelect: {
+                                if season.id != viewModel.selectedSeasonId {
+                                    hasUserSelectedSeason = true
+                                }
+                                Task { await viewModel.selectSeason(id: season.id) }
+                            },
+                            onFocus: {
+                                focusedMedia = season
+                            },
+                            onBlur: {
+                                if focusedMedia?.id == season.id {
+                                    focusedMedia = nil
+                                }
+                            },
+                        )
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .focusSection()
+        }
+    }
+
+    @ViewBuilder
+    private var episodesRow: some View {
+        if let error = viewModel.episodesErrorMessage {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
+            ProgressView("media.detail.loadingEpisodes")
+        } else if viewModel.episodes.isEmpty {
+            Text("media.detail.noEpisodes")
+                .foregroundStyle(.secondary)
+        } else {
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 36) {
+                        ForEach(viewModel.episodes) { episode in
+                            EpisodeArtworkCard(
+                                episode: episode,
+                                imageURL: viewModel.imageURL(
+                                    for: episode,
+                                    width: 640,
+                                    height: 360,
+                                    spoilerProtection: settingsManager.interface.spoilerProtection,
+                                ),
+                                runtime: viewModel.runtimeText(for: episode),
+                                progress: viewModel.progressFraction(for: episode),
+                                width: 460,
+                                shouldShowPlayFromStart: viewModel.shouldShowPlayFromStartButton(for: episode),
+                                watchActionIcon: viewModel.watchActionIcon(for: episode),
+                                watchActionTitle: viewModel.watchActionTitle(for: episode),
+                                isUpdatingWatchStatus: viewModel.isUpdatingWatchStatus(for: episode),
+                                isStartingSharePlay: sharePlayCoordinator.isActivating,
+                                trackViewModel: viewModel,
+                                onPlay: {
+                                    onPlay(episode.id, .episode)
+                                },
+                                onPlayFromStart: {
+                                    onPlayFromStart(episode.id, .episode)
+                                },
+                                onSharePlay: {
+                                    Task { await activateSharePlay(for: episode) }
+                                },
+                                onToggleWatchStatus: {
+                                    Task { await viewModel.toggleWatchStatus(for: episode) }
+                                },
+                                onFocus: {
+                                    contextualEpisodeID = episode.id
+                                    focusedMedia = episode
+                                    Task { await viewModel.loadTrackSelection(for: episode.id) }
+                                },
+                            )
+                            .id(episode.id)
+                        }
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.vertical, 4)
+                }
+                .task(id: viewModel.episodes.map(\.id)) {
+                    await positionOnDeckEpisodeIfNeeded(using: scrollProxy)
+                }
+                .focusSection()
+            }
+        }
+    }
+
+    @MainActor
+    private func positionOnDeckEpisodeIfNeeded(using scrollProxy: ScrollViewProxy) async {
+        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
+        hasHandledInitialEpisodePosition = true
+
+        guard let primaryEpisodeID = viewModel.primaryActionItem?.id else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+
+        await Task.yield()
+
+        guard !Task.isCancelled else { return }
+        guard !hasUserSelectedSeason else { return }
+        guard viewModel.primaryActionItem?.id == primaryEpisodeID else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+
+        scrollProxy.scrollTo(primaryEpisodeID, anchor: .leading)
+    }
+
+    private func handlePlay() {
+        Task {
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+
+            if viewModel.shouldPlayPrimaryActionFromStart {
+                onPlayFromStart(ratingKey, playbackType)
+            } else {
+                onPlay(ratingKey, playbackType)
+            }
+        }
+    }
+
+    private func handlePlayFromStart() {
+        Task {
+            guard
+                let ratingKey = await viewModel.playbackRatingKey(),
+                let playbackType = viewModel.primaryActionType
+            else { return }
+            onPlayFromStart(ratingKey, playbackType)
+        }
+    }
+
+    private func handleShuffle() {
+        onShuffle(viewModel.media.id, viewModel.media.plexType)
+    }
+
+    private func activateSharePlay() async {
+        guard
+            let ratingKey = viewModel.primaryActionRatingKey,
+            let playbackType = viewModel.primaryActionType,
+            let item = viewModel.primaryActionItem
+        else { return }
+        await sharePlayCoordinator.activate(
+            ratingKey: ratingKey,
+            type: playbackType,
+            title: item.primaryLabel,
+            initialPosition: viewModel.primaryActionInitialPosition,
+            serverIdentifier: viewModel.serverIdentifier,
+        )
+    }
+
+    private func activateSharePlay(for episode: MediaItem) async {
+        await sharePlayCoordinator.activate(
+            ratingKey: episode.id,
+            type: .episode,
+            title: episode.primaryLabel,
+            initialPosition: episode.isFullyWatched ? 0 : Double(episode.viewOffset ?? 0),
+            serverIdentifier: viewModel.serverIdentifier,
+        )
+    }
+}
+
+private struct SeasonPillButton: View {
+    let title: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onFocus: () -> Void
+    let onBlur: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack {
+            Text(title)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .foregroundStyle(.brandSecondary)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? Color.brandSecondary.opacity(0.5) : Color.gray.opacity(0.12)),
+                )
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(
+                            isFocused ? Color.brandSecondary : Color.gray.opacity(0.25),
+                            lineWidth: isFocused ? 3 : 1,
+                        )
+                }
+        }
+        .focusable()
+        .focused($isFocused)
+        .animation(.easeOut(duration: 0.15), value: isFocused)
+        .onChange(of: isFocused) { _, focused in
+            if focused {
+                onFocus()
+            } else {
+                onBlur()
+            }
+        }
+        .onPlayPauseCommand(perform: onSelect)
+        .onTapGesture(perform: onSelect)
+    }
+}
+
+private struct EpisodeArtworkCard: View {
+    let episode: MediaItem
+    let imageURL: URL?
+    let runtime: String?
+    let progress: Double?
+    let width: CGFloat
+    let shouldShowPlayFromStart: Bool
+    let watchActionIcon: String
+    let watchActionTitle: String
+    let isUpdatingWatchStatus: Bool
+    let isStartingSharePlay: Bool
+    @Bindable var trackViewModel: MediaDetailViewModel
+    let onPlay: () -> Void
+    let onPlayFromStart: () -> Void
+    let onSharePlay: () -> Void
+    let onToggleWatchStatus: () -> Void
+    let onFocus: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        EpisodeArtworkView(
+            episode: episode,
+            imageURL: imageURL,
+            width: width,
+            runtime: runtime,
+            progress: progress,
+        )
+        .focusable()
+        .focused($isFocused)
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    Color.brandSecondary.opacity(isFocused ? 1 : 0),
+                    lineWidth: isFocused ? 3 : 2,
+                )
+        }
+        .overlay(alignment: .trailing) {
+            if isFocused {
+                Group {
+                    if isStartingSharePlay || isUpdatingWatchStatus {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "ellipsis")
+                            .font(.body.weight(.semibold))
+                            .rotationEffect(.degrees(90))
+                    }
+                }
+                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
+                .background(.ultraThinMaterial, in: Circle())
+                .padding(12)
+                .accessibilityHidden(true)
+                .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .shadow(
+            color: Color.brandSecondary.opacity(isFocused ? 0.22 : 0),
+            radius: isFocused ? 14 : 0,
+        )
+        .scaleEffect(isFocused ? 1.12 : 1)
+        .contextMenu {
+            if shouldShowPlayFromStart {
+                Button(action: onPlayFromStart) {
+                    Label("media.detail.playFromStart", systemImage: "arrow.counterclockwise")
+                }
+            }
+
+            Button(action: onSharePlay) {
+                Label("sharePlay.action", systemImage: "shareplay")
+            }
+            .disabled(isStartingSharePlay)
+
+            Button(action: onToggleWatchStatus) {
+                Label(watchActionTitle, systemImage: watchActionIcon)
+            }
+            .disabled(isUpdatingWatchStatus)
+
+            if trackViewModel.hasTrackSelection(for: episode.id) {
+                Divider()
+                MediaDetailTrackMenuItems(viewModel: trackViewModel, ratingKey: episode.id)
+            }
+        }
+        .onPlayPauseCommand(perform: onPlay)
+        .onTapGesture(perform: onPlay)
+        .frame(width: width, alignment: .leading)
+        .animation(.easeOut(duration: 0.15), value: isFocused)
+        .onChange(of: isFocused) { _, focused in
+            if focused {
+                onFocus()
+            }
+        }
+    }
+}
