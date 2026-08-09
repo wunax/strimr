@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E96A0001301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0011301D000100000001 /* SwiftAssRenderer */; };
-		E96A0002301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0012301D000100000001 /* SwiftAssRenderer */; };
-		E96A0003301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0013301D000100000001 /* SwiftAssRenderer */; };
 		E95F585F300A964500D50438 /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E95F585E300A964500D50438 /* AetherEngine */; };
 		E95F5861300A964900D50438 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E95F5860300A964900D50438 /* Sentry */; };
 		E95F5862300A970000D50438 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
+		E96A0001301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0011301D000100000001 /* SwiftAssRenderer */; };
+		E96A0002301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0012301D000100000001 /* SwiftAssRenderer */; };
+		E96A0003301D000100000001 /* SwiftAssRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = E96A0013301D000100000001 /* SwiftAssRenderer */; };
 		E97F3FC32ED9E12000CA6E05 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBC2FEC3CCF00C94B4A /* AetherEngine */; };
 		E981BEBF2FEC3CD700C94B4A /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E981BEBE2FEC3CD700C94B4A /* AetherEngine */; };
@@ -106,9 +106,11 @@
 				Features/MainCoordinator.swift,
 				Features/MediaDetail/CastMember.swift,
 				Features/MediaDetail/CastSection.swift,
-				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
+				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
+				Features/PersonDetail/PersonDetailView.swift,
+				Features/PersonDetail/PersonDetailViewModel.swift,
 				Features/Player/Controls/AutomaticSkipFeedbackView.swift,
 				Features/Player/Controls/PlayerBadge.swift,
 				Features/Player/Controls/PlayerChapterViews.swift,
@@ -121,8 +123,6 @@
 				Features/Player/PlayQueue/PlayQueueManager.swift,
 				Features/Player/PlayQueue/PlayQueueState.swift,
 				Features/PlaylistDetail/PlaylistDetailViewModel.swift,
-				Features/PersonDetail/PersonDetailView.swift,
-				Features/PersonDetail/PersonDetailViewModel.swift,
 				Features/Search/SearchResultCard.swift,
 				Features/Search/SearchViewModel.swift,
 				Features/Seerr/SeerrDiscoverViewModel.swift,
@@ -159,9 +159,9 @@
 				"Models/MediaItem+Mapping.swift",
 				"Models/MediaItem+WatchStatus.swift",
 				Models/MediaRating.swift,
+				Models/Person.swift,
 				Models/PlayableMediaItem.swift,
 				Models/PlaylistMediaItem.swift,
-				Models/Person.swift,
 				Models/Plex/PlexCloudModels.swift,
 				Models/Plex/PlexDiscoverModels.swift,
 				Models/Plex/PlexMediaModels.swift,
@@ -196,7 +196,6 @@
 				Repository/Plex/MetadataRepository.swift,
 				Repository/Plex/PersonRepository.swift,
 				Repository/Plex/PlaybackRepository.swift,
-				Repository/Plex/SubtitleRepository.swift,
 				Repository/Plex/PlaylistRepository.swift,
 				Repository/Plex/PlayQueueRepository.swift,
 				Repository/Plex/PlexBIFRepository.swift,
@@ -204,6 +203,7 @@
 				Repository/Plex/ScrobbleRepository.swift,
 				Repository/Plex/SearchRepository.swift,
 				Repository/Plex/SectionRepository.swift,
+				Repository/Plex/SubtitleRepository.swift,
 				Repository/Plex/UserRepository.swift,
 				Repository/Seerr/SeerrAuthRepository.swift,
 				Repository/Seerr/SeerrDiscoverRepository.swift,
@@ -1124,6 +1124,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E95F585E300A964500D50438 /* AetherEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */;
+			productName = AetherEngine;
+		};
+		E95F5860300A964900D50438 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
 		E96A0011301D000100000001 /* SwiftAssRenderer */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */;
@@ -1138,16 +1148,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */;
 			productName = SwiftAssRenderer;
-		};
-		E95F585E300A964500D50438 /* AetherEngine */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */;
-			productName = AetherEngine;
-		};
-		E95F5860300A964900D50438 /* Sentry */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
-			productName = Sentry;
 		};
 		E981BEBC2FEC3CCF00C94B4A /* AetherEngine */ = {
 			isa = XCSwiftPackageProductDependency;
