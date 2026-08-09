@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SignInView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: SignInViewModel
 
     init(viewModel: SignInViewModel) {
@@ -48,6 +49,12 @@ struct SignInView: View {
                     .padding(.top, 4)
             }
 
+            Button {
+                returnToProviderSelection()
+            } label: {
+                Label("provider.change", systemImage: "chevron.left")
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(errorMessage)
@@ -60,5 +67,10 @@ struct SignInView: View {
             Spacer()
         }
         .padding(24)
+    }
+
+    private func returnToProviderSelection() {
+        viewModel.cancelSignIn()
+        Task { await sessionManager.changeProvider() }
     }
 }

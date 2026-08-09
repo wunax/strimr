@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SignInView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: SignInViewModel
 
     init(viewModel: SignInViewModel) {
@@ -45,6 +46,13 @@ struct SignInView: View {
                 .buttonStyle(.link)
             }
 
+            Button {
+                returnToProviderSelection()
+            } label: {
+                Label("provider.change", systemImage: "chevron.left")
+            }
+            .buttonStyle(.link)
+
             if let errorMessage = viewModel.errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
@@ -54,5 +62,10 @@ struct SignInView: View {
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onDisappear { viewModel.cancelSignIn() }
+    }
+
+    private func returnToProviderSelection() {
+        viewModel.cancelSignIn()
+        Task { await sessionManager.changeProvider() }
     }
 }
