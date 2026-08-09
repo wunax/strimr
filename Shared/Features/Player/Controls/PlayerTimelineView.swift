@@ -65,7 +65,7 @@ struct PlayerTimelineView: View {
             }
 
             #if os(tvOS)
-                PlayerTimelineScrubberTVView(
+                PlayerTimelineScrubberView(
                     position: $position,
                     upperBound: sliderUpperBound,
                     duration: duration,
