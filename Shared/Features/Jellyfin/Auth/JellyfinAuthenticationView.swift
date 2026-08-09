@@ -25,10 +25,13 @@ struct JellyfinAuthenticationView: View {
 
     private func authenticationForm(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
         VStack(spacing: 24) {
-            VStack(spacing: 8) {
-                Image(systemName: "triangle.fill")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(.brandPrimary)
+            VStack(spacing: 12) {
+                Image("jellyfin_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
+                    .accessibilityHidden(true)
+
                 if viewModel.step == .server {
                     Text("jellyfin.auth.server.title")
                         .font(.largeTitle.bold())
@@ -56,6 +59,10 @@ struct JellyfinAuthenticationView: View {
                 } else {
                     TextField("jellyfin.auth.username", text: Bindable(viewModel).username)
                         .textContentType(.username)
+                    #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    #endif
                     SecureField("jellyfin.auth.password", text: Bindable(viewModel).password)
                         .textContentType(.password)
                         .onSubmit { Task { await viewModel.signIn() } }
@@ -70,29 +77,49 @@ struct JellyfinAuthenticationView: View {
                     .multilineTextAlignment(.center)
             }
 
-            HStack(spacing: 12) {
-                if viewModel.step == .credentials {
-                    Button("common.actions.back") { viewModel.goBack() }
-                        .buttonStyle(.bordered)
-                }
+            VStack(spacing: 12) {
                 if viewModel.step == .server {
-                    Button("common.actions.continue") {
+                    Button {
                         Task { await viewModel.validateServer() }
+                    } label: {
+                        primaryButtonLabel("common.actions.continue", isLoading: viewModel.isLoading)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.isLoading)
+                    .buttonBorderShape(.roundedRectangle(radius: 12))
+                    .controlSize(.large)
+                    .tint(.brandPrimary)
+                    .disabled(
+                        viewModel.isLoading
+                            || viewModel.serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    )
                 } else {
-                    Button("jellyfin.auth.signIn") {
+                    Button {
                         Task { await viewModel.signIn() }
+                    } label: {
+                        primaryButtonLabel("jellyfin.auth.signIn", isLoading: viewModel.isLoading)
                     }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle(radius: 12))
+                    .controlSize(.large)
+                    .tint(.brandPrimary)
+                    .disabled(
+                        viewModel.isLoading
+                            || viewModel.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    )
+
+                    Button {
+                        viewModel.goBack()
+                    } label: {
+                        Text("common.actions.back")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.roundedRectangle(radius: 12))
+                    .controlSize(.large)
                     .disabled(viewModel.isLoading)
                 }
             }
-
-            if viewModel.isLoading {
-                ProgressView()
-            }
+            .frame(maxWidth: 520)
 
             if sessionManager.jellyfinHydrationError != nil {
                 Button("common.actions.retry") {
@@ -100,14 +127,48 @@ struct JellyfinAuthenticationView: View {
                 }
             }
 
-            Button("provider.change") {
+            Button {
                 Task { await sessionManager.changeProvider() }
+            } label: {
+                Label("provider.change", systemImage: "chevron.left")
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func primaryButtonLabel(
+        _ title: LocalizedStringKey,
+        isLoading: Bool,
+    ) -> some View {
+        HStack(spacing: 10) {
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            Text(title)
+                .fontWeight(.semibold)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+    }
+
+    private var logoMaxWidth: CGFloat {
+        #if os(tvOS)
+            300
+        #else
+            240
+        #endif
+    }
+
+    private var logoMaxHeight: CGFloat {
+        #if os(tvOS)
+            96
+        #else
+            72
+        #endif
     }
 }
 
@@ -116,8 +177,26 @@ private extension View {
     func jellyfinAuthenticationFieldStyle() -> some View {
         #if os(tvOS)
             self
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 20)
+                .frame(minHeight: 72)
+                .background(Color.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.14))
+                }
         #else
-            textFieldStyle(.roundedBorder)
+            self
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 54)
+                .background(Color.secondary.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.2))
+                }
         #endif
     }
 }
