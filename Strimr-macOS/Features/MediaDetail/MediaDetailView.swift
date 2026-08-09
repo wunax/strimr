@@ -5,7 +5,6 @@ import SwiftUI
 struct MediaDetailView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(PlexAPIContext.self) private var context
     @Environment(MediaServices.self) private var mediaServices
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator

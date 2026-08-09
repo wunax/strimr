@@ -21,6 +21,23 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     var supportsWatchlist: Bool { false }
     var supportsRemoteSubtitleSearch: Bool { true }
+    var serverAccessGeneration: Int { 0 }
+
+    func serverAccessRecoveryError(from _: Error) -> MediaServerAccessRecoveryError? { nil }
+
+    func recoverServerAccessIfUnauthorized() async throws -> Bool { false }
+
+    func forceServerAccessRecovery() async throws {}
+
+    func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem> {
+        let start = min(startIndex, hub.items.count)
+        let end = min(start + limit, hub.items.count)
+        return MediaPage(
+            items: Array(hub.items[start ..< end]),
+            startIndex: start,
+            totalCount: hub.items.count
+        )
+    }
 
     func mediaItem(id: String) async throws -> MediaItem {
         MediaItem(jellyfinItem: try await catalog.item(id: id), server: server)
@@ -191,6 +208,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return try await artwork(path: path, width: width, height: height)
     }
 
+    func artworkURL(path _: String?, width _: Int?, height _: Int?) -> URL? {
+        nil
+    }
+
     func artwork(path: String?, width: Int?, height: Int?) async throws -> ArtworkResource? {
         guard let path, let descriptor = JellyfinArtworkPath.parse(path) else { return nil }
         var query = [URLQueryItem(name: "quality", value: "90")]
@@ -268,9 +289,37 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             .map { MediaItem(jellyfinItem: $0, server: server) }
     }
 
+    func allEpisodes(for series: MediaItem) async throws -> [MediaItem] {
+        let item = try await catalog.item(id: series.id)
+        return try await catalog.playbackQueue(startingWith: item)
+            .filter { $0.kind == .episode }
+            .map { MediaItem(jellyfinItem: $0, server: server) }
+    }
+
     func setPlayed(_ played: Bool, itemID: String) async throws {
         try await catalog.markPlayed(itemID: itemID, played: played)
     }
+
+    func isWatchlisted(_: MediaItem) async throws -> Bool {
+        false
+    }
+
+    func setWatchlisted(_: Bool, media _: MediaItem) async throws {}
+
+    func trackSelection(itemID: String) async throws -> MediaTrackSelection {
+        MediaTrackSelection(
+            itemID: itemID,
+            filePath: nil,
+            audioTracks: [],
+            subtitleTracks: [],
+            selectedAudioTrackID: nil,
+            selectedSubtitleTrackID: nil
+        )
+    }
+
+    func selectAudioTrack(id _: Int, itemID _: String) async throws {}
+
+    func selectSubtitleTrack(id _: Int?, itemID _: String) async throws {}
 
     func collectionItems(id: String) async throws -> [MediaDisplayItem] {
         try await childItems(id: id)

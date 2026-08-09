@@ -20,7 +20,7 @@ final class LibraryCollectionsViewModel {
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
 
-    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
     @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
     @ObservationIgnored private var commonItems: [MediaDisplayItem]?
@@ -32,7 +32,7 @@ final class LibraryCollectionsViewModel {
         settingsManager _: SettingsManager,
     ) {
         self.library = library
-        context = services.plexContext
+        advancedService = services.library as? any PlexAdvancedLibraryService
         service = services.library
     }
 
@@ -83,25 +83,17 @@ final class LibraryCollectionsViewModel {
         preservingExistingContent: Bool,
         forceReload: Bool = false,
     ) async {
-        guard let context else { return }
+        guard let advancedService else { return }
         guard forceReload || sectionCharacters.isEmpty else { return }
         guard let sectionId = library.sectionId else { return }
-        guard let sectionRepository = try? SectionRepository(context: context) else { return }
-
         do {
-            let response = try await sectionRepository.getSectionFirstCharacters(
-                sectionId: sectionId,
-                type: 18,
-                includeCollections: true,
-            )
-            let directories = response.mediaContainer.directory ?? []
+            let values = try await advancedService.collectionCharacters(sectionID: sectionId)
             var runningIndex = 0
             var characters: [SectionCharacter] = []
 
-            for directory in directories {
-                let size = max(0, directory.size ?? 0)
-                guard size > 0 else { continue }
-                let title = directory.title ?? directory.key ?? "#"
+            for value in values {
+                let size = value.size
+                let title = value.title
                 let identifier = "\(title)-\(runningIndex)"
                 characters.append(
                     SectionCharacter(
@@ -132,7 +124,7 @@ final class LibraryCollectionsViewModel {
     ) async {
         guard reset || !loadedPageStarts.contains(start) else { return }
         guard !loadingPageStarts.contains(start) else { return }
-        if context == nil {
+        guard let advancedService else {
             await loadCommonPage(
                 start: start,
                 reset: reset,
@@ -148,15 +140,6 @@ final class LibraryCollectionsViewModel {
             )
             return
         }
-        guard let context, let sectionRepository = try? SectionRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.browseLibrary"),
-                reset: reset,
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         if reset {
             loadedPageStarts.remove(start)
         }
@@ -167,15 +150,14 @@ final class LibraryCollectionsViewModel {
         }
 
         do {
-            let response = try await sectionRepository.getSectionCollections(
-                sectionId: sectionId,
-                includeCollections: true,
-                pagination: PlexPagination(start: start, size: pageSize),
+            let response = try await advancedService.collectionPage(
+                sectionID: sectionId,
+                startIndex: start,
+                limit: pageSize
             )
 
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(MediaDisplayItem.init)
-            let total = response.mediaContainer.totalSize ?? (start + newItems.count)
+            let newItems = response.items
+            let total = response.totalCount ?? (start + newItems.count)
 
             if reset {
                 itemsByIndex = [:]

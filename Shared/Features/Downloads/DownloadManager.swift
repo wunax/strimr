@@ -102,6 +102,13 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     func localMediaItem(for item: DownloadItem) -> MediaItem {
         MediaItem(
             id: item.metadata.ratingKey,
+            identity: MediaIdentity(
+                server: ServerIdentity(
+                    provider: item.metadata.provider ?? .plex,
+                    id: item.metadata.serverIdentifier ?? "plex"
+                ),
+                itemID: item.metadata.ratingKey
+            ),
             guid: item.metadata.guid,
             summary: item.metadata.summary,
             title: item.metadata.title,

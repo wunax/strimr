@@ -41,7 +41,7 @@ enum JellyfinAPIError: LocalizedError, Equatable {
 @Observable
 final class JellyfinAPIContext {
     private(set) var connection: JellyfinConnection?
-    private(set) var capabilities = ProviderCapabilities.jellyfinMVP
+    private(set) var capabilities = ProviderCapabilities.jellyfin
 
     @ObservationIgnored private var accessToken: String?
     @ObservationIgnored private let session: URLSession
@@ -179,7 +179,7 @@ final class JellyfinAPIContext {
     func reset() {
         connection = nil
         accessToken = nil
-        capabilities = .jellyfinMVP
+        capabilities = .jellyfin
     }
 
     func validateAuthenticatedSession() async throws -> JellyfinUser {

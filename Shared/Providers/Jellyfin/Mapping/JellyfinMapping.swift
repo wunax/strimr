@@ -21,6 +21,7 @@ extension MediaItem {
 
         self.init(
             id: jellyfinItem.id,
+            identity: MediaIdentity(server: server, itemID: jellyfinItem.id),
             guid: "jellyfin://\(server.id)/\(jellyfinItem.id)",
             summary: jellyfinItem.overview,
             title: jellyfinItem.name,

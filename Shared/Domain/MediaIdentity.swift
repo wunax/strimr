@@ -49,7 +49,7 @@ struct ProviderCapabilities: Codable, Equatable, Sendable {
     let topShelf: Bool
     let syncPlay: Bool
 
-    static let jellyfinMVP = ProviderCapabilities(
+    static let jellyfin = ProviderCapabilities(
         profiles: false,
         multiServerSearch: false,
         cloudWatchlist: false,

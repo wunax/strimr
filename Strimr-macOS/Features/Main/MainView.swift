@@ -167,7 +167,6 @@ struct MainView: View {
     @ViewBuilder
     private func destination(for route: AppModel.Route) -> some View {
         let routeServices = appModel.services(for: appModel.selection, default: mediaServices)
-        let routeContext = appModel.context(for: appModel.selection, default: context)
         switch route {
         case let .media(media):
             MediaDetailView(
@@ -181,7 +180,6 @@ struct MainView: View {
                 onSelectPerson: appModel.showPerson,
                 onPlay: play,
             )
-            .environment(routeContext)
         case let .collection(collection):
             CollectionDetailView(
                 viewModel: CollectionDetailViewModel(collection: collection, services: routeServices),

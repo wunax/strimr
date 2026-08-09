@@ -29,8 +29,7 @@ struct DownloadsView: View {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
                         localMedia: downloadManager.localMediaItem(for: item),
-                        localPlaybackURL: localURL,
-                        context: context,
+                        localPlaybackURL: localURL
                     ),
                 )
             }

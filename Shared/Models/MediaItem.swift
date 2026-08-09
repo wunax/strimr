@@ -2,6 +2,7 @@ import Foundation
 
 struct MediaItem: Identifiable, Hashable {
     let id: String
+    let identity: MediaIdentity
     let guid: String
     let summary: String?
     let title: String
@@ -33,22 +34,86 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
 
-    var identity: MediaIdentity {
-        MediaIdentity(
-            server: ServerIdentity(provider: provider, id: serverIdentifier),
-            itemID: id,
+    var provider: MediaProvider { identity.server.provider }
+    var serverIdentifier: String { identity.server.id }
+
+    init(
+        id: String,
+        identity: MediaIdentity? = nil,
+        guid: String,
+        summary: String?,
+        title: String,
+        type: MediaKind,
+        parentRatingKey: String?,
+        grandparentRatingKey: String?,
+        genres: [String],
+        year: Int?,
+        duration: TimeInterval?,
+        videoResolution: String?,
+        rating: Double?,
+        ratings: [MediaRating],
+        contentRating: String?,
+        studio: String?,
+        tagline: String?,
+        thumbPath: String?,
+        artPath: String?,
+        ultraBlurColors: PlexUltraBlurColors?,
+        viewOffset: TimeInterval?,
+        viewCount: Int?,
+        childCount: Int?,
+        leafCount: Int?,
+        viewedLeafCount: Int?,
+        grandparentTitle: String?,
+        parentTitle: String?,
+        parentIndex: Int?,
+        index: Int?,
+        grandparentThumbPath: String?,
+        grandparentArtPath: String?,
+        parentThumbPath: String?
+    ) {
+        self.id = id
+        self.identity = identity ?? Self.legacyIdentity(id: id, guid: guid)
+        self.guid = guid
+        self.summary = summary
+        self.title = title
+        self.type = type
+        self.parentRatingKey = parentRatingKey
+        self.grandparentRatingKey = grandparentRatingKey
+        self.genres = genres
+        self.year = year
+        self.duration = duration
+        self.videoResolution = videoResolution
+        self.rating = rating
+        self.ratings = ratings
+        self.contentRating = contentRating
+        self.studio = studio
+        self.tagline = tagline
+        self.thumbPath = thumbPath
+        self.artPath = artPath
+        self.ultraBlurColors = ultraBlurColors
+        self.viewOffset = viewOffset
+        self.viewCount = viewCount
+        self.childCount = childCount
+        self.leafCount = leafCount
+        self.viewedLeafCount = viewedLeafCount
+        self.grandparentTitle = grandparentTitle
+        self.parentTitle = parentTitle
+        self.parentIndex = parentIndex
+        self.index = index
+        self.grandparentThumbPath = grandparentThumbPath
+        self.grandparentArtPath = grandparentArtPath
+        self.parentThumbPath = parentThumbPath
+    }
+
+    private static func legacyIdentity(id: String, guid: String) -> MediaIdentity {
+        let isJellyfin = guid.hasPrefix("jellyfin://")
+        let serverID = isJellyfin
+            ? guid.split(separator: "/").dropFirst(2).first.map(String.init) ?? "jellyfin"
+            : "plex"
+        return MediaIdentity(
+            server: ServerIdentity(provider: isJellyfin ? .jellyfin : .plex, id: serverID),
+            itemID: id
         )
-    }
-
-    var provider: MediaProvider {
-        guid.hasPrefix("jellyfin://") ? .jellyfin : .plex
-    }
-
-    var serverIdentifier: String {
-        if provider == .jellyfin {
-            return guid.split(separator: "/").dropFirst(2).first.map(String.init) ?? "jellyfin"
-        }
-        return "plex"
     }
 
     var kind: MediaKind { type }

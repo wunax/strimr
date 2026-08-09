@@ -44,7 +44,7 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
-    @State private var serverRecoveryError: PlexServerAccessRecoveryError?
+    @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -827,21 +827,7 @@ struct PlayerView: View {
             return
         }
 
-        guard let nextItem = await viewModel.nextItemInQueue() else {
-            await MainActor.run {
-                dismissPlayer(force: true)
-            }
-            return
-        }
-
-        if sharePlayCoordinator.isInSession {
-            await MainActor.run {
-                sharePlayCoordinator.updateToNextEpisode(nextItem)
-            }
-            return
-        }
-
-        await startPlayback(of: nextItem)
+        await MainActor.run { dismissPlayer(force: true) }
     }
 
     private func handleMovieCompletion() async {
@@ -860,27 +846,7 @@ struct PlayerView: View {
             return
         }
 
-        guard let nextItem = await viewModel.nextItemInQueue() else {
-            await MainActor.run {
-                dismissPlayer(force: true)
-            }
-            return
-        }
-
-        await startPlayback(of: nextItem)
-    }
-
-    private func startPlayback(of episode: PlexItem) async {
-        await MainActor.run {
-            activePlaybackURL = nil
-            viewModel = PlayerViewModel(
-                playQueue: viewModel.playQueue,
-                ratingKey: episode.ratingKey,
-                context: viewModel.serverContext,
-            )
-        }
-
-        await viewModel.load()
+        await MainActor.run { dismissPlayer(force: true) }
     }
 
     private func startPlayback(using nextViewModel: PlayerViewModel) async {
@@ -931,7 +897,7 @@ struct PlayerView: View {
                 showPlaybackError(message)
                 return
             }
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             presentServerRecoveryError(error)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -970,7 +936,7 @@ struct PlayerView: View {
                 shouldPauseAfterLoad: !isSharePlay && wasPaused,
             )
             isRecoveringServerAccess = false
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -986,7 +952,7 @@ struct PlayerView: View {
         isRecoveringServerAccess = true
         do {
             try await viewModel.forceServerAccessRecovery()
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -1008,7 +974,7 @@ struct PlayerView: View {
         dismissPlayer(force: true)
     }
 
-    private func presentServerRecoveryError(_ error: PlexServerAccessRecoveryError) {
+    private func presentServerRecoveryError(_ error: MediaServerAccessRecoveryError) {
         playerController.pause()
         serverRecoveryError = error
         viewModel.clearServerAccessRecoveryError()

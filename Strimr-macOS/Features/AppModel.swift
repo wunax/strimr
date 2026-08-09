@@ -45,43 +45,24 @@ final class AppModel: PlaybackPresenting {
 
     struct PlayerPresentation {
         let id = UUID()
-        let playQueue: PlayQueueState
         let shouldResumeFromOffset: Bool
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
-        let context: PlexAPIContext?
         let mediaQueue: PlaybackQueue?
         let mediaServices: MediaServices?
 
-        init(playQueue: PlayQueueState, context: PlexAPIContext, shouldResumeFromOffset: Bool) {
-            self.playQueue = playQueue
-            self.shouldResumeFromOffset = shouldResumeFromOffset
-            localMedia = nil
-            localPlaybackURL = nil
-            self.context = context
-            mediaQueue = nil
-            mediaServices = nil
-        }
-
         init(queue: PlaybackQueue, services: MediaServices, shouldResumeFromOffset: Bool) {
-            let itemID = queue.items.indices.contains(queue.currentIndex)
-                ? queue.items[queue.currentIndex].media.id
-                : ""
-            playQueue = PlayQueueState(localRatingKey: itemID)
             self.shouldResumeFromOffset = shouldResumeFromOffset
             localMedia = nil
             localPlaybackURL = nil
-            context = nil
             mediaQueue = queue
             mediaServices = services
         }
 
         init(localMedia: MediaItem, localPlaybackURL: URL) {
-            playQueue = PlayQueueState(localRatingKey: localMedia.id)
             shouldResumeFromOffset = false
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
-            context = nil
             mediaQueue = nil
             mediaServices = nil
         }
@@ -130,13 +111,6 @@ final class AppModel: PlaybackPresenting {
         return serverServices[identifier] ?? defaultServices
     }
 
-    func context(for item: SidebarItem, default defaultContext: PlexAPIContext) -> PlexAPIContext {
-        guard let identifier = scopedServerIdentifiers[item],
-              let context = serverServices[identifier]?.plexContext
-        else { return defaultContext }
-        return context
-    }
-
     func showMedia(_ media: MediaItem) {
         guard let playable = PlayableMediaItem(mediaItem: media) else { return }
         append(.media(playable))
@@ -173,18 +147,6 @@ final class AppModel: PlaybackPresenting {
 
     func showSeerr(_ media: SeerrMedia) {
         append(.seerr(media))
-    }
-
-    func showPlayer(
-        for playQueue: PlayQueueState,
-        context: PlexAPIContext,
-        shouldResumeFromOffset: Bool = true,
-    ) {
-        playerPresentation = PlayerPresentation(
-            playQueue: playQueue,
-            context: context,
-            shouldResumeFromOffset: shouldResumeFromOffset,
-        )
     }
 
     func showDownloadedPlayer(media: MediaItem, url: URL) {

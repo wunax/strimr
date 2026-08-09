@@ -28,9 +28,24 @@ struct MediaDetailContent {
     let relatedHubs: [Hub]
 }
 
+struct MediaTrackSelection {
+    let itemID: String
+    let filePath: String?
+    let audioTracks: [MediaTrackMetadata]
+    let subtitleTracks: [MediaTrackMetadata]
+    let selectedAudioTrackID: Int?
+    let selectedSubtitleTrackID: Int?
+}
+
 struct MediaDownloadPreparation {
     let media: MediaItem
     let request: URLRequest
+}
+
+enum MediaServerAccessRecoveryError: Error, Equatable {
+    case accountUnauthorized
+    case serverUnavailable
+    case connectionFailed
 }
 
 struct RemoteSubtitleResult: Hashable, Identifiable {
@@ -44,6 +59,7 @@ struct RemoteSubtitleResult: Hashable, Identifiable {
 @MainActor
 protocol MediaHomeService: AnyObject {
     func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists: Bool) async throws -> HomeContent
+    func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem>
 }
 
 @MainActor
@@ -72,6 +88,8 @@ protocol MediaSearchService: AnyObject {
 
 @MainActor
 protocol MediaArtworkService: AnyObject {
+    func artworkURL(path: String?, width: Int?, height: Int?) -> URL?
+
     func artwork(
         for media: MediaDisplayItem,
         kind: MediaImageViewModel.ArtworkKind,
@@ -102,7 +120,13 @@ protocol MediaDetailService: AnyObject {
     func details(for media: MediaItem) async throws -> MediaDetailContent
     func seasons(for series: MediaItem) async throws -> [MediaItem]
     func episodes(for season: MediaItem, seriesID: String?) async throws -> [MediaItem]
+    func allEpisodes(for series: MediaItem) async throws -> [MediaItem]
     func setPlayed(_ played: Bool, itemID: String) async throws
+    func isWatchlisted(_ media: MediaItem) async throws -> Bool
+    func setWatchlisted(_ watchlisted: Bool, media: MediaItem) async throws
+    func trackSelection(itemID: String) async throws -> MediaTrackSelection
+    func selectAudioTrack(id: Int, itemID: String) async throws
+    func selectSubtitleTrack(id: Int?, itemID: String) async throws
     func collectionItems(id: String) async throws -> [MediaDisplayItem]
     func playlistItems(id: String) async throws -> [MediaDisplayItem]
     func person(id: String) async throws -> Person
@@ -111,6 +135,7 @@ protocol MediaDetailService: AnyObject {
 
 @MainActor
 protocol MediaPlaybackService: AnyObject {
+    var serverAccessGeneration: Int { get }
     func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue
     func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan
@@ -118,6 +143,9 @@ protocol MediaPlaybackService: AnyObject {
     func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
     func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack]
+    func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError?
+    func recoverServerAccessIfUnauthorized() async throws -> Bool
+    func forceServerAccessRecovery() async throws
 }
 
 @MainActor

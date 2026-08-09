@@ -148,28 +148,13 @@ struct MainTabView: View {
             }
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
-            if let playQueue = coordinator.selectedPlayQueue,
-               let playbackContext = coordinator.selectedPlaybackContext,
-               let ratingKey = playQueue.selectedRatingKey
-            {
-                PlayerWrapper(
-                    viewModel: PlayerViewModel(
-                        playQueue: playQueue,
-                        ratingKey: ratingKey,
-                        context: playbackContext,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
-                    ),
-                    onExit: coordinator.resetPlayer,
-                )
-                .environment(playbackContext)
-            } else if let queue = coordinator.selectedMediaQueue,
+            if let queue = coordinator.selectedMediaQueue,
                       let services = coordinator.selectedMediaServices
             {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
                         queue: queue,
                         services: services,
-                        context: plexApiContext,
                         shouldResumeFromOffset: coordinator.shouldResumeFromOffset
                     ),
                     onExit: coordinator.resetPlayer
@@ -182,7 +167,6 @@ struct MainTabView: View {
     @ViewBuilder
     private func destination(for route: MainCoordinator.Route) -> some View {
         let routeServices = coordinator.services(for: coordinator.tab, default: mediaServices)
-        let routeContext = coordinator.context(for: coordinator.tab, default: plexApiContext)
         switch route {
         case let .mediaDetail(media):
             MediaDetailView(
@@ -213,7 +197,6 @@ struct MainTabView: View {
                 onSelectMedia: coordinator.showMediaDetail,
                 onSelectPerson: coordinator.showPersonDetail,
             )
-            .environment(routeContext)
         case let .collectionDetail(collection):
             CollectionDetailView(
                 viewModel: CollectionDetailViewModel(

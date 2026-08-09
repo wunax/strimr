@@ -75,10 +75,10 @@ final class LibraryBrowseControlsViewModel {
 
     @ObservationIgnored var onSelectionChanged: (() -> Void)?
     @ObservationIgnored var onDisplayTypeChanged: (() -> Void)?
-    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
 
-    init(context: PlexAPIContext?) {
-        self.context = context
+    init(advancedService: (any PlexAdvancedLibraryService)?) {
+        self.advancedService = advancedService
     }
 
     var hasDisplayTypes: Bool {
@@ -305,7 +305,7 @@ final class LibraryBrowseControlsViewModel {
         let filterKey = filter.filter
         guard !filterOptionsLoading.contains(filterKey) else { return }
         guard filterOptions[filterKey] == nil else { return }
-        guard let context, let sectionRepository = try? SectionRepository(context: context) else { return }
+        guard let advancedService else { return }
         guard let endpoint = PlexEndpoint(key: filter.key) else { return }
 
         filterOptionsLoading.insert(filterKey)
@@ -313,12 +313,11 @@ final class LibraryBrowseControlsViewModel {
         defer { filterOptionsLoading.remove(filterKey) }
 
         do {
-            let response = try await sectionRepository.getFilterOptions(
+            let values = try await advancedService.filterOptions(
                 path: endpoint.path,
-                queryItems: endpoint.queryItems,
+                queryItems: endpoint.queryItems
             )
-            let options = (response.mediaContainer.directory ?? [])
-                .map(FilterOption.init)
+            let options = values.map(FilterOption.init)
             filterOptions[filterKey] = options
         } catch {
             filterOptionsError[filterKey] = error.localizedDescription

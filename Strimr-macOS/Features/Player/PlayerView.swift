@@ -2,18 +2,16 @@ import AppKit
 import SwiftUI
 
 struct PlayerWindowView: View {
-    @Environment(PlexAPIContext.self) private var context
     @Environment(AppModel.self) private var appModel
 
     var body: some View {
         if let presentation = appModel.playerPresentation,
-           let ratingKey = presentation.playQueue.selectedRatingKey
+           let viewModel = playerViewModel(for: presentation)
         {
             PlayerView(
-                viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
+                viewModel: viewModel,
                 presentationID: presentation.id,
             )
-            .environment(presentation.context ?? context)
             .id(presentation.id)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
@@ -21,26 +19,19 @@ struct PlayerWindowView: View {
     }
 
     private func playerViewModel(
-        for presentation: AppModel.PlayerPresentation,
-        ratingKey: String,
-    ) -> PlayerViewModel {
+        for presentation: AppModel.PlayerPresentation
+    ) -> PlayerViewModel? {
         if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
-            return PlayerViewModel(localMedia: media, localPlaybackURL: url, context: context)
+            return PlayerViewModel(localMedia: media, localPlaybackURL: url)
         }
         if let queue = presentation.mediaQueue, let services = presentation.mediaServices {
             return PlayerViewModel(
                 queue: queue,
                 services: services,
-                context: context,
                 shouldResumeFromOffset: presentation.shouldResumeFromOffset
             )
         }
-        return PlayerViewModel(
-            playQueue: presentation.playQueue,
-            ratingKey: ratingKey,
-            context: presentation.context ?? context,
-            shouldResumeFromOffset: presentation.shouldResumeFromOffset,
-        )
+        return nil
     }
 }
 
@@ -79,7 +70,7 @@ struct PlayerView: View {
     @State private var isShowingChapterPopover = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
-    @State private var serverRecoveryError: PlexServerAccessRecoveryError?
+    @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var shouldResumeAfterMediaLoad = false
     @State private var shouldPauseAfterMediaLoad = false
@@ -780,29 +771,13 @@ struct PlayerView: View {
             return
         }
 
-        guard let next = await viewModel.nextItemInQueue() else {
-            if isSharePlayPlayback {
-                sharePlayCoordinator.leave()
-                participatesInSharePlay = false
-                closePlayer(force: true)
-            } else {
-                playerController.pause()
-            }
-            return
-        }
-
         if isSharePlayPlayback {
-            sharePlayCoordinator.updateToNextEpisode(next)
-            return
+            sharePlayCoordinator.leave()
+            participatesInSharePlay = false
+            closePlayer(force: true)
+        } else {
+            playerController.pause()
         }
-
-        let nextViewModel = PlayerViewModel(
-            playQueue: viewModel.playQueue,
-            ratingKey: next.ratingKey,
-            context: viewModel.serverContext,
-            shouldResumeFromOffset: false,
-        )
-        await startPlayback(using: nextViewModel)
     }
 
     private func startPlayback(using nextViewModel: PlayerViewModel) async {
@@ -846,7 +821,7 @@ struct PlayerView: View {
                 showError(message)
                 return
             }
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             presentServerRecoveryError(error)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -900,7 +875,7 @@ struct PlayerView: View {
             shouldResumeAfterMediaLoad = !isSharePlay && !wasPaused
             shouldPauseAfterMediaLoad = !isSharePlay && wasPaused
             isRecoveringServerAccess = false
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -916,7 +891,7 @@ struct PlayerView: View {
         isRecoveringServerAccess = true
         do {
             try await viewModel.forceServerAccessRecovery()
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -939,7 +914,7 @@ struct PlayerView: View {
         closePlayer(force: true)
     }
 
-    private func presentServerRecoveryError(_ error: PlexServerAccessRecoveryError) {
+    private func presentServerRecoveryError(_ error: MediaServerAccessRecoveryError) {
         playerController.pause()
         serverRecoveryError = error
         viewModel.clearServerAccessRecoveryError()

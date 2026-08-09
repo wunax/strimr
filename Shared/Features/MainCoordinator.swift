@@ -36,10 +36,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     private var serverServices: [String: MediaServices] = [:]
     private var scopedServerIdentifiers: [Tab: String] = [:]
 
-    @Published var selectedPlayQueue: PlayQueueState?
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
-    @Published var selectedPlaybackContext: PlexAPIContext?
     @Published var selectedMediaQueue: PlaybackQueue?
     @Published var selectedMediaServices: MediaServices?
 
@@ -180,13 +178,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         return serverServices[identifier] ?? defaultServices
     }
 
-    func context(for tab: Tab, default defaultContext: PlexAPIContext) -> PlexAPIContext {
-        guard let identifier = scopedServerIdentifiers[tab],
-              let context = serverServices[identifier]?.plexContext
-        else { return defaultContext }
-        return context
-    }
-
     func showCollectionDetail(_ collection: CollectionMediaItem) {
         let route = Route.collectionDetail(collection)
 
@@ -281,17 +272,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     }
 
     func showPlayer(
-        for playQueue: PlayQueueState,
-        context: PlexAPIContext,
-        shouldResumeFromOffset: Bool = true,
-    ) {
-        selectedPlayQueue = playQueue
-        selectedPlaybackContext = context
-        self.shouldResumeFromOffset = shouldResumeFromOffset
-        isPresentingPlayer = true
-    }
-
-    func showPlayer(
         for queue: PlaybackQueue,
         services: MediaServices,
         shouldResumeFromOffset: Bool = true,
@@ -303,8 +283,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     }
 
     func resetPlayer() {
-        selectedPlayQueue = nil
-        selectedPlaybackContext = nil
         selectedMediaQueue = nil
         selectedMediaServices = nil
         isPresentingPlayer = false

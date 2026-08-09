@@ -18,16 +18,6 @@ import Foundation
 
         private let defaults = UserDefaults(suiteName: appGroup)
 
-        func save(serverURL: URL, token: String) throws {
-            try save(
-                provider: .plex,
-                serverURL: serverURL,
-                serverID: "plex",
-                userID: nil,
-                token: token
-            )
-        }
-
         func save(
             provider: MediaProvider,
             serverURL: URL,

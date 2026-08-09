@@ -21,16 +21,16 @@ final class LibraryBrowseViewModel {
     private var reachedEnd = false
     private var hasLoadedMeta = false
 
-    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
     @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
 
     init(library: Library, services: MediaServices, settingsManager: SettingsManager) {
         self.library = library
-        context = services.plexContext
+        advancedService = services.library as? any PlexAdvancedLibraryService
         service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(context: services.plexContext)
+        controls = LibraryBrowseControlsViewModel(advancedService: services.library as? any PlexAdvancedLibraryService)
         controls.onSelectionChanged = { [weak self] in
             Task { await self?.refresh() }
         }
@@ -80,7 +80,7 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetch(reset: Bool) async {
-        if context == nil {
+        guard let advancedService else {
             await fetchUsingCommonService(reset: reset)
             return
         }
@@ -88,11 +88,6 @@ final class LibraryBrowseViewModel {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
-        guard let context, let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.browseLibrary"))
-            return
-        }
-
         if reset {
             isLoading = true
         } else {
@@ -115,20 +110,20 @@ final class LibraryBrowseViewModel {
                 includeMeta: includeMeta,
             )
 
-            let response = try await sectionRepository.getSectionBrowseItems(
+            let response = try await advancedService.advancedBrowse(
                 path: endpoint.path,
                 queryItems: queryItems,
-                pagination: PlexPagination(start: start, size: 20),
+                startIndex: start,
+                limit: 20
             )
 
-            if includeMeta, let meta = response.mediaContainer.meta {
+            if includeMeta, let meta = response.meta {
                 controls.applyMeta(meta)
                 hasLoadedMeta = true
             }
 
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(mapBrowseItem)
-            let total = response.mediaContainer.totalSize ?? (start + newItems.count)
+            let newItems = response.items
+            let total = response.totalCount
 
             if reset {
                 browseItems = newItems
@@ -197,22 +192,6 @@ final class LibraryBrowseViewModel {
             "2"
         default:
             "1,2"
-        }
-    }
-
-    private func mapBrowseItem(_ metadata: PlexBrowseMetadata) -> LibraryBrowseItem? {
-        switch metadata {
-        case let .item(plexItem):
-            guard let mediaItem = MediaDisplayItem(plexItem: plexItem) else { return nil }
-            return .media(mediaItem)
-        case let .folder(folder):
-            return .folder(
-                LibraryBrowseFolderItem(
-                    id: folder.key,
-                    key: folder.key,
-                    title: folder.title,
-                ),
-            )
         }
     }
 

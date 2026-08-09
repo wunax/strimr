@@ -5,7 +5,6 @@ struct MediaDetailView: View {
     @Environment(MediaServices.self) private var mediaServices
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel

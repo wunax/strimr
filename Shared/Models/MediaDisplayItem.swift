@@ -185,10 +185,10 @@ enum MediaDisplayItem: Identifiable, Hashable {
 }
 
 extension MediaDisplayItem {
-    init?(plexItem: PlexItem) {
+    init?(plexItem: PlexItem, server: ServerIdentity? = nil) {
         switch plexItem.type {
         case .movie, .show, .season, .episode:
-            self = .playable(MediaItem(plexItem: plexItem))
+            self = .playable(MediaItem(plexItem: plexItem, server: server))
         case .collection:
             self = .collection(CollectionMediaItem(plexItem: plexItem))
         case .playlist:

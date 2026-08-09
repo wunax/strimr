@@ -394,7 +394,7 @@ final class SessionManager {
         return serverContext
     }
 
-    func handleTerminalServerAccessFailure(_ error: PlexServerAccessRecoveryError) async {
+    func handleTerminalServerAccessFailure(_ error: MediaServerAccessRecoveryError) async {
         switch error {
         case .accountUnauthorized:
             await signOut()
@@ -590,7 +590,7 @@ final class SessionManager {
     private func activateJellyfinServicesIfAvailable() {
         guard let services = JellyfinMediaServicesFactory.make(
             context: jellyfinContext,
-            capabilities: .jellyfinMVP
+            capabilities: .jellyfin
         ) else { return }
         mediaServices = services
         libraryStore.configure(service: services.library)

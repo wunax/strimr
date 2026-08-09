@@ -4,7 +4,6 @@ import SwiftUI
 struct MediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(PlexAPIContext.self) private var context
     @Environment(MediaServices.self) private var mediaServices
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false

@@ -1,9 +1,13 @@
 import Foundation
 
 extension MediaItem {
-    init(plexItem: PlexItem) {
+    init(plexItem: PlexItem, server: ServerIdentity? = nil) {
         self.init(
             id: plexItem.ratingKey,
+            identity: MediaIdentity(
+                server: server ?? ServerIdentity(provider: .plex, id: "plex"),
+                itemID: plexItem.ratingKey
+            ),
             guid: plexItem.guid,
             summary: plexItem.summary,
             title: plexItem.title,
