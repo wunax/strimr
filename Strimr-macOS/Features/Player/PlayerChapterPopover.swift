@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct PlayerChapterPopover: View {
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (PlexChapter) -> URL?
-    var onSelect: (PlexChapter) -> Void
+    var imageURL: (MediaChapter) -> URL?
+    var onSelect: (MediaChapter) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -35,11 +35,11 @@ struct PlayerChapterPopover: View {
         .frame(width: 360, height: 420)
     }
 
-    private var currentChapter: PlexChapter? {
+    private var currentChapter: MediaChapter? {
         chapters.first { $0.contains(time: currentPosition) }
     }
 
-    private func chapterRow(_ chapter: PlexChapter) -> some View {
+    private func chapterRow(_ chapter: MediaChapter) -> some View {
         let isCurrent = currentChapter?.stableID == chapter.stableID
 
         return Button {

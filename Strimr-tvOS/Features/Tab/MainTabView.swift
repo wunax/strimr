@@ -127,15 +127,18 @@ struct MainTabView: View {
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }
             defer { topShelfDeepLinkRouter.clear(action) }
+            guard action.provider == mediaServices.provider,
+                  action.serverIdentifier == nil
+                    || action.serverIdentifier == "plex"
+                    || action.serverIdentifier == mediaServices.identity.id
+            else { return }
 
             switch action.kind {
             case .display:
                 do {
-                    let repository = try MetadataRepository(context: plexApiContext)
-                    let response = try await repository.getMetadata(ratingKey: action.ratingKey)
-                    guard let item = response.mediaContainer.metadata?.first else { return }
+                    let item = try await mediaServices.detail.mediaItem(id: action.ratingKey)
                     coordinator.tab = .home
-                    coordinator.showMediaDetail(MediaItem(plexItem: item))
+                    coordinator.showMediaDetail(item)
                 } catch {
                     guard !Task.isCancelled, !error.isCancellation else { return }
                     ErrorReporter.capture(error)

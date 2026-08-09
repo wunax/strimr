@@ -99,7 +99,7 @@ struct SearchServerSelectionView: View {
 }
 
 private struct TypeBadge: View {
-    let type: PlexItemType
+    let type: MediaKind
 
     var body: some View {
         Text(label)
@@ -118,7 +118,7 @@ private struct TypeBadge: View {
         switch type {
         case .movie:
             String(localized: "search.badge.movie")
-        case .show:
+        case .series:
             String(localized: "search.badge.show")
         case .season:
             String(localized: "search.badge.season")
@@ -128,7 +128,7 @@ private struct TypeBadge: View {
             String(localized: "search.badge.collection")
         case .playlist:
             String(localized: "search.badge.playlist")
-        case .unknown:
+        case .folder, .unknown:
             String(localized: "search.badge.unknown")
         }
     }
@@ -137,7 +137,7 @@ private struct TypeBadge: View {
         switch type {
         case .movie:
             .brandPrimary
-        case .show:
+        case .series:
             .mint
         case .season:
             .orange
@@ -147,7 +147,7 @@ private struct TypeBadge: View {
             .teal
         case .playlist:
             .indigo
-        case .unknown:
+        case .folder, .unknown:
             .gray
         }
     }
@@ -158,7 +158,7 @@ private extension SearchResultCard {
         switch media.type {
         case .movie:
             media.playableItem?.year.map(String.init) ?? String(localized: "search.fallback.movie")
-        case .show:
+        case .series:
             media.secondaryLabel ?? String(localized: "search.fallback.show")
         case .season:
             media.secondaryLabel ?? media.title
@@ -171,7 +171,7 @@ private extension SearchResultCard {
             media.secondaryLabel ?? String(localized: "search.fallback.collection")
         case .playlist:
             media.secondaryLabel ?? String(localized: "search.fallback.playlist")
-        case .unknown:
+        case .folder, .unknown:
             media.title
         }
     }

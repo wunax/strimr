@@ -5,18 +5,18 @@ extension MediaItem {
         switch type {
         case .movie, .episode:
             return (viewCount ?? 0) > 0
-        case .show, .season:
+        case .series, .season:
             guard let leafCount, let viewedLeafCount, leafCount > 0 else {
                 return false
             }
             return leafCount == viewedLeafCount
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             return false
         }
     }
 
     var remainingUnwatchedLeaves: Int? {
-        guard [.show, .season].contains(type),
+        guard [MediaKind.series, .season].contains(type),
               let leafCount,
               let viewedLeafCount
         else {

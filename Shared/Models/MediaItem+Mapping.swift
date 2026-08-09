@@ -7,7 +7,7 @@ extension MediaItem {
             guid: plexItem.guid,
             summary: plexItem.summary,
             title: plexItem.title,
-            type: plexItem.type,
+            type: plexItem.type.mediaKind,
             parentRatingKey: plexItem.parentRatingKey,
             grandparentRatingKey: plexItem.grandparentRatingKey,
             genres: plexItem.genres?.map(\.tag) ?? [],

@@ -135,112 +135,104 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         )
     }
 
-    func enqueueItem(ratingKey: String, context: PlexAPIContext) async {
-        guard !isAlreadyScheduled(for: ratingKey) else { return }
-
+    func enqueueItem(itemID: String, services: MediaServices) async {
         do {
-            let metadataRepository = try MetadataRepository(context: context)
-            let response = try await metadataRepository.getMetadata(
-                ratingKey: ratingKey,
-                params: .init(checkFiles: true),
-            )
-            guard let plexItem = response.mediaContainer.metadata?.first else { return }
-
-            let mediaItem = MediaItem(plexItem: plexItem)
-            guard mediaItem.type == .movie || mediaItem.type == .episode else { return }
-            guard let partPath = plexItem.media?.first?.parts.first?.key else { return }
-
-            let mediaRepository = try MediaRepository(context: context)
-            guard let mediaURL = mediaRepository.mediaURL(path: partPath) else { return }
-
-            let id = UUID().uuidString
-            let folderURL = downloadsDirectory.appendingPathComponent(id, isDirectory: true)
-            try createDirectoryIfNeeded(at: folderURL)
-            try setExcludedFromBackup(at: folderURL)
-
-            let posterFileName = await downloadPosterIfAvailable(
-                for: mediaItem,
-                context: context,
-                destinationFolder: folderURL,
-            )
-
-            var request = URLRequest(url: mediaURL)
-            if settingsManager.downloads.wifiOnly {
-                request.allowsCellularAccess = false
-                request.allowsConstrainedNetworkAccess = false
-                request.allowsExpensiveNetworkAccess = false
-            }
-
-            let task = backgroundSession.downloadTask(with: request)
-            task.taskDescription = id
-
-            let metadata = DownloadedMediaMetadata(
-                ratingKey: mediaItem.id,
-                guid: mediaItem.guid,
-                type: mediaItem.type,
-                title: mediaItem.title,
-                summary: mediaItem.summary,
-                genres: mediaItem.genres,
-                year: mediaItem.year,
-                duration: mediaItem.duration,
-                viewCount: mediaItem.viewCount,
-                contentRating: mediaItem.contentRating,
-                studio: mediaItem.studio,
-                tagline: mediaItem.tagline,
-                parentRatingKey: mediaItem.parentRatingKey,
-                grandparentRatingKey: mediaItem.grandparentRatingKey,
-                grandparentTitle: mediaItem.grandparentTitle,
-                parentTitle: mediaItem.parentTitle,
-                parentIndex: mediaItem.parentIndex,
-                index: mediaItem.index,
-                posterFileName: posterFileName,
-                videoFileName: "video",
-                fileSize: nil,
-                createdAt: Date(),
-            )
-
-            let item = DownloadItem(
-                id: id,
-                status: .downloading,
-                progress: 0,
-                bytesWritten: 0,
-                totalBytes: 0,
-                taskIdentifier: task.taskIdentifier,
-                errorMessage: nil,
-                metadata: metadata,
-            )
-            items.append(item)
-            persistState()
-            task.resume()
+            let preparation = try await services.downloads.prepareDownload(itemID: itemID)
+            try await enqueue(preparation, services: services)
         } catch {
-            lastErrorMessage = error.localizedDescription
+            handleDownloadError(error)
         }
+    }
+
+    func enqueueItems(itemID: String, kind: MediaKind, services: MediaServices) async {
+        do {
+            let media = try await services.downloads.downloadableItems(itemID: itemID, kind: kind)
+            for item in media {
+                guard !Task.isCancelled else { return }
+                await enqueueItem(itemID: item.id, services: services)
+            }
+        } catch {
+            handleDownloadError(error)
+        }
+    }
+
+    func enqueueItem(ratingKey: String, context: PlexAPIContext) async {
+        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
+        await enqueueItem(itemID: ratingKey, services: services)
     }
 
     func enqueueSeason(ratingKey: String, context: PlexAPIContext) async {
-        do {
-            let metadataRepository = try MetadataRepository(context: context)
-            let response = try await metadataRepository.getMetadataChildren(ratingKey: ratingKey)
-            let episodes = (response.mediaContainer.metadata ?? []).filter { $0.type == .episode }
-            for episode in episodes {
-                await enqueueItem(ratingKey: episode.ratingKey, context: context)
-            }
-        } catch {
-            lastErrorMessage = error.localizedDescription
-        }
+        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
+        await enqueueItems(itemID: ratingKey, kind: .season, services: services)
     }
 
     func enqueueShow(ratingKey: String, context: PlexAPIContext) async {
-        do {
-            let metadataRepository = try MetadataRepository(context: context)
-            let response = try await metadataRepository.getMetadataChildren(ratingKey: ratingKey)
-            let seasons = (response.mediaContainer.metadata ?? []).filter { $0.type == .season }
-            for season in seasons {
-                await enqueueSeason(ratingKey: season.ratingKey, context: context)
-            }
-        } catch {
-            lastErrorMessage = error.localizedDescription
+        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
+        await enqueueItems(itemID: ratingKey, kind: .series, services: services)
+    }
+
+    private func enqueue(_ preparation: MediaDownloadPreparation, services: MediaServices) async throws {
+        let mediaItem = preparation.media
+        guard !isAlreadyScheduled(for: mediaItem.identity) else { return }
+        guard mediaItem.kind == .movie || mediaItem.kind == .episode else { return }
+
+        let id = UUID().uuidString
+        let folderURL = downloadsDirectory.appendingPathComponent(id, isDirectory: true)
+        try createDirectoryIfNeeded(at: folderURL)
+        try setExcludedFromBackup(at: folderURL)
+
+        let posterFileName = await downloadPosterIfAvailable(
+            for: mediaItem,
+            services: services,
+            destinationFolder: folderURL
+        )
+        var request = preparation.request
+        if settingsManager.downloads.wifiOnly {
+            request.allowsCellularAccess = false
+            request.allowsConstrainedNetworkAccess = false
+            request.allowsExpensiveNetworkAccess = false
         }
+        let task = backgroundSession.downloadTask(with: request)
+        task.taskDescription = id
+
+        let metadata = DownloadedMediaMetadata(
+            provider: services.provider,
+            serverIdentifier: services.identity.id,
+            ratingKey: mediaItem.id,
+            guid: mediaItem.guid,
+            type: mediaItem.type,
+            title: mediaItem.title,
+            summary: mediaItem.summary,
+            genres: mediaItem.genres,
+            year: mediaItem.year,
+            duration: mediaItem.duration,
+            viewCount: mediaItem.viewCount,
+            contentRating: mediaItem.contentRating,
+            studio: mediaItem.studio,
+            tagline: mediaItem.tagline,
+            parentRatingKey: mediaItem.parentRatingKey,
+            grandparentRatingKey: mediaItem.grandparentRatingKey,
+            grandparentTitle: mediaItem.grandparentTitle,
+            parentTitle: mediaItem.parentTitle,
+            parentIndex: mediaItem.parentIndex,
+            index: mediaItem.index,
+            posterFileName: posterFileName,
+            videoFileName: "video",
+            fileSize: nil,
+            createdAt: Date()
+        )
+        items.append(DownloadItem(
+            id: id,
+            status: .downloading,
+            progress: 0,
+            bytesWritten: 0,
+            totalBytes: 0,
+            taskIdentifier: task.taskIdentifier,
+            errorMessage: nil,
+            metadata: metadata
+        ))
+        persistState()
+        task.resume()
     }
 
     func delete(_ item: DownloadItem) async {
@@ -300,16 +292,23 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func downloadPosterIfAvailable(
         for mediaItem: MediaItem,
-        context: PlexAPIContext,
+        services: MediaServices,
         destinationFolder: URL,
     ) async -> String? {
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
-        guard let thumbPath = mediaItem.preferredThumbPath else { return nil }
-        guard let posterURL = imageRepository.transcodeImageURL(path: thumbPath, width: 480, height: 720)
-        else { return nil }
-
         do {
-            let (data, _) = try await URLSession.shared.data(from: posterURL)
+            guard let artwork = try await services.artwork.artwork(
+                for: .playable(mediaItem),
+                kind: .thumb,
+                width: 480,
+                height: 720
+            ) else { return nil }
+            let data: Data
+            switch artwork {
+            case let .data(value):
+                data = value
+            case let .url(url):
+                data = try await URLSession.shared.data(from: url).0
+            }
             guard !data.isEmpty else { return nil }
             let fileName = "poster.jpg"
             let destination = destinationFolder.appendingPathComponent(fileName, isDirectory: false)
@@ -321,10 +320,20 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    private func isAlreadyScheduled(for ratingKey: String) -> Bool {
+    private func isAlreadyScheduled(for identity: MediaIdentity) -> Bool {
         items.contains { item in
-            item.ratingKey == ratingKey && item.status != .failed
+            item.ratingKey == identity.itemID
+                && (item.metadata.provider ?? .plex) == identity.server.provider
+                && (item.metadata.serverIdentifier == nil
+                    || item.metadata.serverIdentifier == identity.server.id)
+                && item.status != .failed
         }
+    }
+
+    private func handleDownloadError(_ error: Error) {
+        guard !Task.isCancelled, !error.isCancellation else { return }
+        lastErrorMessage = error.localizedDescription
+        ErrorReporter.capture(error)
     }
 
     private func persistState() {

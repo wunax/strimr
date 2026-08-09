@@ -8,3 +8,8 @@ struct SeerrLocalAuthRequest: Encodable {
     let email: String
     let password: String
 }
+
+struct SeerrJellyfinAuthRequest: Encodable {
+    let username: String
+    let password: String
+}

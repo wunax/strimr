@@ -56,7 +56,35 @@ struct JellyfinPlaybackService {
         )
         let headers = try context.playbackHeaders()
 
-        let externalSubtitles = (source.mediaStreams ?? []).compactMap { stream -> ExternalSubtitleTrack? in
+        let externalSubtitles = externalSubtitles(streams: source.mediaStreams ?? [], headers: headers)
+
+        return JellyfinPlaybackPlan(
+            item: item,
+            url: streamURL,
+            headers: headers,
+            mediaSourceID: source.id,
+            playSessionID: playSessionID,
+            initialPosition: resume ? item.resumePosition : nil,
+            preferredAudioStreamIndex: source.defaultAudioStreamIndex,
+            preferredSubtitleStreamIndex: source.defaultSubtitleStreamIndex,
+            chapters: item.chapters ?? [],
+            externalSubtitles: externalSubtitles,
+        )
+    }
+
+    func externalSubtitles(item: JellyfinItem) throws -> [ExternalSubtitleTrack] {
+        let headers = try context.playbackHeaders()
+        return externalSubtitles(
+            streams: (item.mediaSources ?? []).flatMap { $0.mediaStreams ?? [] },
+            headers: headers
+        )
+    }
+
+    private func externalSubtitles(
+        streams: [JellyfinMediaStream],
+        headers: [String: String]
+    ) -> [ExternalSubtitleTrack] {
+        streams.compactMap { stream -> ExternalSubtitleTrack? in
             guard stream.type.lowercased() == "subtitle",
                   stream.isExternal == true,
                   stream.deliveryMethod?.lowercased() == "external",
@@ -75,19 +103,6 @@ struct JellyfinPlaybackService {
                 formatHint: stream.codec,
             )
         }
-
-        return JellyfinPlaybackPlan(
-            item: item,
-            url: streamURL,
-            headers: headers,
-            mediaSourceID: source.id,
-            playSessionID: playSessionID,
-            initialPosition: resume ? item.resumePosition : nil,
-            preferredAudioStreamIndex: source.defaultAudioStreamIndex,
-            preferredSubtitleStreamIndex: source.defaultSubtitleStreamIndex,
-            chapters: item.chapters ?? [],
-            externalSubtitles: externalSubtitles,
-        )
     }
 
     func reportStarted(plan: JellyfinPlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {

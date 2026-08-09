@@ -16,15 +16,15 @@ struct PlayerControlsView: View {
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
     var currentPosition: Double
     var isShowingChapterTray: Bool
-    var chapterImageURL: (PlexChapter) -> URL?
+    var chapterImageURL: (MediaChapter) -> URL?
     var onShowChapters: () -> Void
     var onHideChapters: () -> Void
-    var onSelectChapter: (PlexChapter) -> Void
+    var onSelectChapter: (MediaChapter) -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void

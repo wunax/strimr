@@ -270,7 +270,7 @@ final class LibraryBrowseViewModel {
         switch library.type {
         case .movie:
             "1"
-        case .show:
+        case .series:
             "2"
         default:
             "1,2"

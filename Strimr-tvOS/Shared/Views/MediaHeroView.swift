@@ -74,7 +74,7 @@ struct MediaHeroContentView: View {
                 .font(.title2.bold())
                 .lineLimit(2)
 
-            if let secondary = media.secondaryLabel, media.type != .movie, media.type != .show {
+            if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
                 Text(secondary)
                     .font(.headline)
                     .foregroundStyle(.brandSecondary)

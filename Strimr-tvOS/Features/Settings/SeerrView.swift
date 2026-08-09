@@ -189,6 +189,7 @@ private enum SeerrSetupStep: Hashable {
     case server
     case method
     case local
+    case jellyfin
 
     var titleKey: LocalizedStringKey {
         switch self {
@@ -198,6 +199,8 @@ private enum SeerrSetupStep: Hashable {
             "integrations.seerr.setup.method.title"
         case .local:
             "integrations.seerr.login.local.title"
+        case .jellyfin:
+            "integrations.seerr.login.jellyfin"
         }
     }
 }
@@ -239,11 +242,15 @@ private struct SeerrSetupView: View {
                 step = .method
             }
         case .method:
-            SeerrAuthMethodStepView(viewModel: viewModel) {
-                step = .local
-            }
+            SeerrAuthMethodStepView(
+                viewModel: viewModel,
+                onSelectLocal: { step = .local },
+                onSelectJellyfin: { step = .jellyfin }
+            )
         case .local:
             SeerrLocalAuthStepView(viewModel: viewModel)
+        case .jellyfin:
+            SeerrJellyfinAuthStepView(viewModel: viewModel)
         }
     }
 }
@@ -312,6 +319,7 @@ private struct SeerrServerStepView: View {
 private struct SeerrAuthMethodStepView: View {
     @Bindable var viewModel: SeerrViewModel
     var onSelectLocal: () -> Void
+    var onSelectJellyfin: () -> Void
 
     var body: some View {
         ScrollView {
@@ -350,6 +358,18 @@ private struct SeerrAuthMethodStepView: View {
                                 .font(.callout)
                         }
 
+                        if viewModel.isJellyfinAuthAvailable {
+                            Divider().padding(.vertical, 4)
+
+                            Button(action: onSelectJellyfin) {
+                                Text("integrations.seerr.login.jellyfin")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(viewModel.isAuthenticating)
+                        }
+
                         Divider()
                             .padding(.vertical, 4)
 
@@ -365,6 +385,49 @@ private struct SeerrAuthMethodStepView: View {
                     }
                 }
 
+                Spacer(minLength: 0)
+            }
+            .padding(48)
+        }
+    }
+}
+
+@MainActor
+private struct SeerrJellyfinAuthStepView: View {
+    @Bindable var viewModel: SeerrViewModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("integrations.seerr.login.jellyfin").font(.title2.bold())
+                SeerrCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        TextField("integrations.seerr.login.username", text: $viewModel.jellyfinUsername)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(14)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        SecureField("integrations.seerr.login.password", text: $viewModel.jellyfinPassword)
+                            .padding(14)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Button {
+                            Task { await viewModel.signInWithJellyfin() }
+                        } label: {
+                            Text("integrations.seerr.login.jellyfin")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.brandPrimary)
+                        .disabled(
+                            viewModel.jellyfinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                || viewModel.jellyfinPassword.isEmpty
+                                || viewModel.isAuthenticating
+                        )
+                    }
+                }
                 Spacer(minLength: 0)
             }
             .padding(48)

@@ -116,6 +116,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let people: [JellyfinPerson]?
     let mediaSources: [JellyfinMediaSource]?
     let chapters: [JellyfinChapter]?
+    let trickplay: [String: [String: JellyfinTrickplayInfo]]?
+    let canDownload: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
@@ -149,6 +151,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case people = "People"
         case mediaSources = "MediaSources"
         case chapters = "Chapters"
+        case trickplay = "Trickplay"
+        case canDownload = "CanDownload"
     }
 
     static func == (lhs: JellyfinItem, rhs: JellyfinItem) -> Bool {
@@ -207,6 +211,71 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     var progress: Double? {
         guard let duration, duration > 0, let resumePosition else { return nil }
         return min(1, max(0, resumePosition / duration))
+    }
+}
+
+nonisolated struct JellyfinTrickplayInfo: Decodable, Hashable, Sendable {
+    let width: Int
+    let height: Int
+    let tileWidth: Int
+    let tileHeight: Int
+    let thumbnailCount: Int
+    let interval: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case width = "Width"
+        case height = "Height"
+        case tileWidth = "TileWidth"
+        case tileHeight = "TileHeight"
+        case thumbnailCount = "ThumbnailCount"
+        case interval = "Interval"
+    }
+}
+
+nonisolated struct JellyfinMediaSegmentsResponse: Decodable, Sendable {
+    let items: [JellyfinMediaSegment]
+
+    private enum CodingKeys: String, CodingKey {
+        case items = "Items"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        items = try container.decodeIfPresent([JellyfinMediaSegment].self, forKey: .items) ?? []
+    }
+}
+
+nonisolated struct JellyfinMediaSegment: Decodable, Sendable {
+    let id: String?
+    let type: String
+    let startTicks: Int64
+    let endTicks: Int64
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "Id"
+        case type = "Type"
+        case startTicks = "StartTicks"
+        case endTicks = "EndTicks"
+    }
+}
+
+nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
+    let id: String
+    let name: String?
+    let providerName: String?
+    let format: String?
+    let threeLetterISOLanguageName: String?
+    let isForced: Bool?
+    let hearingImpaired: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "Id"
+        case name = "Name"
+        case providerName = "ProviderName"
+        case format = "Format"
+        case threeLetterISOLanguageName = "ThreeLetterISOLanguageName"
+        case isForced = "IsForced"
+        case hearingImpaired = "HearingImpaired"
     }
 }
 

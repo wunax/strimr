@@ -1,8 +1,8 @@
 import SwiftUI
 
-extension PlexChapter {
+extension MediaChapter {
     var displayTitle: String {
-        String(localized: "player.chapters.number \(index)")
+        title.isEmpty ? String(localized: "player.chapters.number \(index)") : title
     }
 
     var startTimeText: String {
@@ -60,7 +60,7 @@ struct PlayerChapterArtworkView: View {
 }
 
 struct PlayerSegmentedTimelineRail: View {
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var duration: Double?
     var position: Double
     var bufferedEnd: Double

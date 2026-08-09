@@ -6,14 +6,15 @@ import UIKit
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(PlexAPIContext.self) private var context
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Bindable var viewModel: MediaDetailViewModel
     @Binding var isSummaryExpanded: Bool
     let heroHeight: CGFloat
-    let onPlay: (String, PlexItemType) -> Void
-    let onPlayFromStart: (String, PlexItemType) -> Void
-    let onShuffle: (String, PlexItemType) -> Void
+    let onPlay: (String, MediaKind) -> Void
+    let onPlayFromStart: (String, MediaKind) -> Void
+    let onShuffle: (String, MediaKind) -> Void
     let onSelectParentSeries: () -> Void
     var onSearchSubtitles: () -> Void = {}
     @State private var isShowingShowDownloadSheet = false
@@ -98,7 +99,7 @@ struct MediaDetailHeaderSection: View {
                     viewModel: viewModel,
                     onSubmitSelection: { episodeIDs in
                         for episodeID in episodeIDs {
-                            await downloadManager.enqueueItem(ratingKey: episodeID, context: context)
+                            await downloadManager.enqueueItem(itemID: episodeID, services: mediaServices)
                         }
                     },
                     statusForRatingKey: { ratingKey in
@@ -322,7 +323,9 @@ struct MediaDetailHeaderSection: View {
                 subtitleTrackButton
             }
 
-            downloadButton
+            if mediaServices.capabilities.downloads {
+                downloadButton
+            }
             moreButton
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -595,22 +598,26 @@ struct MediaDetailHeaderSection: View {
     }
 
     private func handleShuffle() {
-        onShuffle(viewModel.media.id, viewModel.media.plexType)
+        onShuffle(viewModel.media.id, viewModel.media.mediaKind)
     }
 
     private func handleDownloadTap() {
-        switch viewModel.media.plexType {
-        case .show:
+        switch viewModel.media.mediaKind {
+        case .series:
             isShowingShowDownloadSheet = true
         case .season:
             Task {
-                await downloadManager.enqueueSeason(ratingKey: viewModel.media.id, context: context)
+                await downloadManager.enqueueItems(
+                    itemID: viewModel.media.id,
+                    kind: .season,
+                    services: mediaServices
+                )
             }
         case .movie, .episode:
             Task {
-                await downloadManager.enqueueItem(ratingKey: viewModel.media.id, context: context)
+                await downloadManager.enqueueItem(itemID: viewModel.media.id, services: mediaServices)
             }
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             break
         }
     }

@@ -73,7 +73,7 @@ struct MediaDetailTrackButtons: View {
         }
     }
 
-    private func trackLabel(_ track: PlexPartStream, isSelected: Bool) -> some View {
+    private func trackLabel(_ track: MediaTrackMetadata, isSelected: Bool) -> some View {
         trackLabel(track.displayTitle, isSelected: isSelected)
     }
 

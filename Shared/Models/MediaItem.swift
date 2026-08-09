@@ -5,7 +5,7 @@ struct MediaItem: Identifiable, Hashable {
     let guid: String
     let summary: String?
     let title: String
-    let type: PlexItemType
+    let type: MediaKind
     let parentRatingKey: String?
     let grandparentRatingKey: String?
     let genres: [String]
@@ -51,17 +51,7 @@ struct MediaItem: Identifiable, Hashable {
         return "plex"
     }
 
-    var kind: MediaKind {
-        switch type {
-        case .movie: .movie
-        case .show: .series
-        case .season: .season
-        case .episode: .episode
-        case .collection: .collection
-        case .playlist: .playlist
-        case .unknown: .unknown
-        }
-    }
+    var kind: MediaKind { type }
 
     var hierarchy: MediaHierarchy {
         MediaHierarchy(
@@ -113,7 +103,7 @@ struct MediaItem: Identifiable, Hashable {
         case .movie:
             return year.map(String.init)
 
-        case .show:
+        case .series:
             guard let childCount else { return nil }
             return String(localized: "media.labels.seasonsCount \(childCount)")
 
@@ -124,7 +114,7 @@ struct MediaItem: Identifiable, Hashable {
             guard let childCount else { return nil }
             return String(localized: "media.labels.elementsCount \(childCount)")
 
-        case .playlist, .unknown:
+        case .playlist, .folder, .unknown:
             return nil
         }
     }
@@ -143,9 +133,9 @@ struct MediaItem: Identifiable, Hashable {
             grandparentRatingKey ?? parentRatingKey ?? id
         case .season:
             parentRatingKey ?? id
-        case .movie, .show:
+        case .movie, .series:
             id
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             id
         }
     }

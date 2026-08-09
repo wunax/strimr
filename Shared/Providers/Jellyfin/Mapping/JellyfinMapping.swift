@@ -2,15 +2,7 @@ import Foundation
 
 extension MediaItem {
     init(jellyfinItem: JellyfinItem, server: ServerIdentity) {
-        let type: PlexItemType = switch jellyfinItem.kind {
-        case .movie: .movie
-        case .series: .show
-        case .season: .season
-        case .episode: .episode
-        case .collection: .collection
-        case .playlist: .playlist
-        case .folder, .unknown: .unknown
-        }
+        let type = jellyfinItem.kind
         let primaryPath = JellyfinArtworkPath.make(
             ownerID: jellyfinItem.id,
             type: "Primary",
@@ -110,7 +102,7 @@ extension Library {
         self.init(
             id: jellyfinItem.id,
             title: jellyfinItem.name,
-            type: jellyfinItem.collectionType == "tvshows" ? .show : .movie
+            type: jellyfinItem.collectionType == "tvshows" ? .series : .movie
         )
     }
 }

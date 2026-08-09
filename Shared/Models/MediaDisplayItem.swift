@@ -16,7 +16,7 @@ enum MediaDisplayItem: Identifiable, Hashable {
         }
     }
 
-    var type: PlexItemType {
+    var type: MediaKind {
         switch self {
         case let .playable(item):
             item.type

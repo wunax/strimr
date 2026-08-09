@@ -387,12 +387,14 @@ struct PlayerView: View {
                 onClose: { activeSettingsSheet = nil },
             )
         case .subtitleSearch:
-            SubtitleSearchView(
-                ratingKey: viewModel.currentRatingKey,
-                titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                context: viewModel.serverContext,
-                onAttached: handleAttachedSubtitle(_:),
-            )
+            if let services = viewModel.subtitleSearchServices {
+                SubtitleSearchView(
+                    itemID: viewModel.currentRatingKey,
+                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                    services: services,
+                    onAttached: handleAttachedSubtitle(_:)
+                )
+            }
         }
     }
 
@@ -420,7 +422,7 @@ struct PlayerView: View {
         )
     }
 
-    private func skipTitle(for marker: PlexMarker?) -> String? {
+    private func skipTitle(for marker: SkipSegment?) -> String? {
         marker.map {
             $0.isCredits
                 ? String(localized: "player.skip.credits")
@@ -467,7 +469,7 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func selectChapter(_ chapter: PlexChapter) {
+    private func selectChapter(_ chapter: MediaChapter) {
         playerController.seek(to: chapter.startTime)
         viewModel.position = chapter.startTime
         timelinePosition = chapter.startTime
@@ -491,14 +493,14 @@ struct PlayerView: View {
                 settingsAudioTracks = audio.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forID: $0.plexStreamID),
+                        metadata: viewModel.trackMetadata(forID: $0.plexStreamID),
                     )
                 }
 
                 settingsSubtitleTracks = subtitles.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        plexStream: viewModel.plexStream(forID: $0.plexStreamID),
+                        metadata: viewModel.trackMetadata(forID: $0.plexStreamID),
                     )
                 }
 
@@ -575,7 +577,7 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+    private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
             let id = try playerController.registerExternalSubtitleIfNeeded(
@@ -788,7 +790,7 @@ struct PlayerView: View {
         }
     }
 
-    private func skipMarker(to marker: PlexMarker) {
+    private func skipMarker(to marker: SkipSegment) {
         playerController.seek(to: marker.endTime)
         viewModel.position = marker.endTime
         timelinePosition = marker.endTime
@@ -810,7 +812,7 @@ struct PlayerView: View {
         showAutomaticSkipFeedback(for: marker)
     }
 
-    private func showAutomaticSkipFeedback(for marker: PlexMarker) {
+    private func showAutomaticSkipFeedback(for marker: SkipSegment) {
         automaticSkipFeedbackWorkItem?.cancel()
         let message = marker.isIntro
             ? String(localized: "player.skip.intro.automaticConfirmation")
@@ -829,7 +831,7 @@ struct PlayerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
     }
 
-    private func skipOverlay(marker: PlexMarker, title: String) -> some View {
+    private func skipOverlay(marker: SkipSegment, title: String) -> some View {
         VStack {
             Spacer()
             HStack {
@@ -946,6 +948,10 @@ struct PlayerView: View {
                 await MainActor.run { dismissPlayer() }
                 return
             }
+            if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
+                await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
+                return
+            }
             await startPlayback(using: nextViewModel)
             return
         }
@@ -973,6 +979,10 @@ struct PlayerView: View {
         if viewModel.usesCommonPlaybackQueue {
             guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
                 await MainActor.run { dismissPlayer() }
+                return
+            }
+            if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
+                await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
                 return
             }
             await startPlayback(using: nextViewModel)
@@ -1011,25 +1021,14 @@ struct PlayerView: View {
     }
 
     private func startPlayback(for activity: StrimrWatchActivity) async {
-        let activityContext: PlexAPIContext
         do {
-            activityContext = try await sharePlayCoordinator.serverContext(for: activity)
+            let nextViewModel = try await sharePlayCoordinator.playerViewModel(for: activity)
+            await startPlayback(using: nextViewModel)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
         }
-        await MainActor.run {
-            activePlaybackURL = nil
-            viewModel = PlayerViewModel(
-                playQueue: viewModel.playQueue,
-                ratingKey: activity.ratingKey,
-                context: activityContext,
-                shouldResumeFromOffset: false,
-            )
-        }
-        await viewModel.load()
     }
 
     private func syncPlaybackState() {

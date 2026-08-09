@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 
 struct HomeContent {
@@ -25,6 +26,19 @@ struct MediaDetailContent {
     let episodes: [MediaItem]
     let cast: [CastMember]
     let relatedHubs: [Hub]
+}
+
+struct MediaDownloadPreparation {
+    let media: MediaItem
+    let request: URLRequest
+}
+
+struct RemoteSubtitleResult: Hashable, Identifiable {
+    let id: String
+    let title: String
+    let language: String?
+    let codec: String
+    let providerTitle: String?
 }
 
 @MainActor
@@ -76,6 +90,15 @@ protocol MediaArtworkService: AnyObject {
 protocol MediaDetailService: AnyObject {
     var supportsWatchlist: Bool { get }
     var supportsRemoteSubtitleSearch: Bool { get }
+    func mediaItem(id: String) async throws -> MediaItem
+    func searchSubtitles(
+        itemID: String,
+        language: String,
+        hearingImpaired: Bool,
+        forced: Bool,
+        title: String?
+    ) async throws -> [RemoteSubtitleResult]
+    func installSubtitle(itemID: String, result: RemoteSubtitleResult) async throws
     func details(for media: MediaItem) async throws -> MediaDetailContent
     func seasons(for series: MediaItem) async throws -> [MediaItem]
     func episodes(for season: MediaItem, seriesID: String?) async throws -> [MediaItem]
@@ -94,4 +117,11 @@ protocol MediaPlaybackService: AnyObject {
     func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
     func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
     func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws
+    func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack]
+}
+
+@MainActor
+protocol MediaDownloadService: AnyObject {
+    func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation
+    func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]
 }

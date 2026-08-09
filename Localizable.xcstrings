@@ -1306,6 +1306,7 @@
       }
     },
     "errors.selectServer.loadContent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1394,6 +1395,7 @@
       }
     },
     "errors.selectServer.loadRecommendations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1966,6 +1968,28 @@
         }
       }
     },
+    "integrations.seerr.login.jellyfin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer avec Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Jellyfin 继续"
+          }
+        }
+      }
+    },
     "integrations.seerr.login.password" : {
       "localizations" : {
         "en" : {
@@ -1984,6 +2008,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "密码"
+          }
+        }
+      }
+    },
+    "integrations.seerr.login.username" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin username"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom d’utilisateur Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 用户名"
           }
         }
       }
@@ -2517,6 +2563,7 @@
       }
     },
     "jellyfin.actions.markPlayed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2539,6 +2586,7 @@
       }
     },
     "jellyfin.actions.markUnplayed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2561,6 +2609,7 @@
       }
     },
     "jellyfin.actions.play" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2759,6 +2808,7 @@
       }
     },
     "jellyfin.collections.items" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2781,6 +2831,7 @@
       }
     },
     "jellyfin.collections.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2803,6 +2854,7 @@
       }
     },
     "jellyfin.detail.cast" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2825,6 +2877,7 @@
       }
     },
     "jellyfin.detail.episodes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2847,6 +2900,7 @@
       }
     },
     "jellyfin.detail.seasons" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3045,6 +3099,7 @@
       }
     },
     "jellyfin.errors.playbackTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3089,6 +3144,7 @@
       }
     },
     "jellyfin.errors.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3132,7 +3188,11 @@
         }
       }
     },
+    "jellyfin.home.latestIn %@" : {
+
+    },
     "jellyfin.home.latestMovies" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3155,6 +3215,7 @@
       }
     },
     "jellyfin.home.latestSeries" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3221,6 +3282,7 @@
       }
     },
     "jellyfin.libraries.items" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3243,6 +3305,7 @@
       }
     },
     "jellyfin.libraries.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3265,6 +3328,7 @@
       }
     },
     "jellyfin.person.media" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3287,6 +3351,7 @@
       }
     },
     "jellyfin.playlists.items" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3309,6 +3374,7 @@
       }
     },
     "jellyfin.playlists.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3331,6 +3397,7 @@
       }
     },
     "jellyfin.search.empty" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3353,6 +3420,7 @@
       }
     },
     "jellyfin.search.placeholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3375,6 +3443,7 @@
       }
     },
     "jellyfin.settings.server" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3397,6 +3466,7 @@
       }
     },
     "jellyfin.settings.session" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3419,6 +3489,7 @@
       }
     },
     "jellyfin.settings.user" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3441,6 +3512,7 @@
       }
     },
     "jellyfin.settings.version" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4960,9 +5032,6 @@
         }
       }
     },
-    "more.logout" : {
-
-    },
     "more.logout.message" : {
       "localizations" : {
         "en" : {
@@ -5934,6 +6003,7 @@
       }
     },
     "player.tracks.subtitles.off" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

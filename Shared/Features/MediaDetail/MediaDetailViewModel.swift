@@ -9,7 +9,7 @@ enum MediaDetailResolutionMode {
 
 struct MediaDetailPlaybackTarget {
     let item: MediaItem
-    let type: PlexItemType
+    let type: MediaKind
     let shouldResumeFromOffset: Bool
 }
 
@@ -39,8 +39,8 @@ final class MediaDetailViewModel {
     var seasonsErrorMessage: String?
     var episodesErrorMessage: String?
     var relatedHubsErrorMessage: String?
-    var audioTracks: [PlexPartStream] = []
-    var subtitleTracks: [PlexPartStream] = []
+    var audioTracks: [MediaTrackMetadata] = []
+    var subtitleTracks: [MediaTrackMetadata] = []
     var selectedAudioStreamID: Int?
     var selectedSubtitleStreamID: Int?
     var isLoadingTracks = false
@@ -515,7 +515,7 @@ final class MediaDetailViewModel {
         primaryPlaybackTarget?.item.id
     }
 
-    var primaryActionType: PlexItemType? {
+    var primaryActionType: MediaKind? {
         primaryPlaybackTarget?.type
     }
 
@@ -528,7 +528,9 @@ final class MediaDetailViewModel {
     }
 
     var canSearchSubtitles: Bool {
-        services.detail.supportsRemoteSubtitleSearch && trackRatingKey != nil && trackPartID != nil
+        services.detail.supportsRemoteSubtitleSearch
+            && (trackRatingKey ?? primaryActionRatingKey) != nil
+            && (context == nil || trackPartID != nil)
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -610,6 +612,10 @@ final class MediaDetailViewModel {
 
     func loadTrackSelection(for ratingKey: String) async {
         guard trackRatingKey != ratingKey else { return }
+        guard context != nil else {
+            trackRatingKey = ratingKey
+            return
+        }
         guard let metadataRepository = try? MetadataRepository(context: plexContext) else {
             trackSelectionErrorMessage = String(localized: "errors.selectServer.loadDetails")
             return
@@ -622,6 +628,10 @@ final class MediaDetailViewModel {
     }
 
     func refreshTrackSelectionAfterSubtitleAttachment() async {
+        guard context != nil else {
+            await loadCommonDetails(preservingExistingContent: true)
+            return
+        }
         guard let ratingKey = trackRatingKey,
               let metadataRepository = try? MetadataRepository(context: plexContext)
         else { return }
@@ -655,7 +665,7 @@ final class MediaDetailViewModel {
         case .movie, .episode:
             return MediaDetailPlaybackTarget(
                 item: media.mediaItem,
-                type: media.plexType,
+                type: media.mediaKind,
                 shouldResumeFromOffset: true,
             )
         case .show, .season:
@@ -698,7 +708,7 @@ final class MediaDetailViewModel {
     }
 
     func isWatched(_ item: MediaItem) -> Bool {
-        guard let playableType = PlayableItemType(plexType: item.type) else { return false }
+        guard let playableType = PlayableItemType(mediaKind: item.type) else { return false }
 
         switch playableType {
         case .movie, .episode:
@@ -935,17 +945,21 @@ final class MediaDetailViewModel {
             guard requestedTrackRatingKey == ratingKey else { return }
             let part = response.mediaContainer.metadata?.first?.media?.first?.parts.first
             let streams = part?.stream ?? []
-            let fetchedAudioTracks = streams.filter { $0.streamType == .audio && $0.id != nil }
-            let fetchedSubtitleTracks = streams.filter { $0.streamType == .subtitle && $0.id != nil }
+            let fetchedAudioTracks = streams
+                .filter { $0.streamType == .audio }
+                .compactMap(MediaTrackMetadata.init)
+            let fetchedSubtitleTracks = streams
+                .filter { $0.streamType == .subtitle }
+                .compactMap(MediaTrackMetadata.init)
 
             trackRatingKey = ratingKey
             trackPartID = part?.id
             trackPartFile = part?.file
             audioTracks = fetchedAudioTracks
             subtitleTracks = fetchedSubtitleTracks
-            selectedAudioStreamID = fetchedAudioTracks.first(where: { $0.selected == true })?.id
+            selectedAudioStreamID = fetchedAudioTracks.first(where: \.isDefault)?.id
                 ?? fetchedAudioTracks.first?.id
-            selectedSubtitleStreamID = fetchedSubtitleTracks.first(where: { $0.selected == true })?.id
+            selectedSubtitleStreamID = fetchedSubtitleTracks.first(where: \.isDefault)?.id
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -968,7 +982,7 @@ final class MediaDetailViewModel {
         selectedSubtitleStreamID = nil
     }
 
-    private func selectedTrackTitle(in tracks: [PlexPartStream], id: Int?) -> String? {
+    private func selectedTrackTitle(in tracks: [MediaTrackMetadata], id: Int?) -> String? {
         guard let id, let stream = tracks.first(where: { $0.id == id }) else { return nil }
         return stream.displayTitle.isEmpty ? stream.language ?? stream.codec.uppercased() : stream.displayTitle
     }
@@ -1086,6 +1100,7 @@ final class MediaDetailViewModel {
                     shouldResumeFromOffset: !firstEpisode.isFullyWatched
                 )
             }
+            trackRatingKey = primaryActionRatingKey
             resolveArtwork()
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }

@@ -27,7 +27,7 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var sessionSubscriptions: Set<AnyCancellable> = []
     @ObservationIgnored private var sessionListener: Task<Void, Never>?
     @ObservationIgnored private var locallyPreparedActivityIDs: Set<UUID> = []
-    @ObservationIgnored private var pendingNextItem: PlexItem?
+    @ObservationIgnored private var pendingNextItem: MediaItem?
     @ObservationIgnored private var lastLaunchedActivityID: UUID?
     @ObservationIgnored private var sharingPresentationActivityID: UUID?
     @ObservationIgnored private var pendingSessionAcceptanceActivityID: UUID?
@@ -56,20 +56,22 @@ final class SharePlayCoordinator {
 
     func makeActivity(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         title: String,
         initialPosition: Double,
         serverIdentifier: String? = nil,
     ) -> StrimrWatchActivity? {
-        guard let serverIdentifier = serverIdentifier ?? sessionManager.plexServer?.clientIdentifier else {
+        guard let services = sessionManager.mediaServices else {
             errorMessage = String(localized: "sharePlay.error.serverUnavailable")
             return nil
         }
+        let serverIdentifier = serverIdentifier ?? services.identity.id
         return StrimrWatchActivity(
             activityID: UUID(),
+            provider: services.provider,
             serverIdentifier: serverIdentifier,
             ratingKey: ratingKey,
-            mediaType: type,
+            mediaKind: type,
             title: title,
             initialPosition: max(0, initialPosition),
         )
@@ -77,7 +79,7 @@ final class SharePlayCoordinator {
 
     func activate(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         title: String,
         initialPosition: Double,
         serverIdentifier: String? = nil,
@@ -199,6 +201,11 @@ final class SharePlayCoordinator {
     }
 
     func updateToNextEpisode(_ item: PlexItem) {
+        pendingNextItem = MediaItem(plexItem: item)
+        publishPendingNextItemIfLeader()
+    }
+
+    func updateToNextItem(_ item: MediaItem) {
         pendingNextItem = item
         publishPendingNextItemIfLeader()
     }
@@ -207,9 +214,10 @@ final class SharePlayCoordinator {
         guard let session, isLocalLeader, let item = pendingNextItem else { return }
         let next = StrimrWatchActivity(
             activityID: UUID(),
+            provider: item.provider,
             serverIdentifier: session.activity.serverIdentifier,
-            ratingKey: item.ratingKey,
-            mediaType: item.type,
+            ratingKey: item.id,
+            mediaKind: item.kind,
             title: item.title,
             initialPosition: 0,
         )
@@ -330,33 +338,91 @@ final class SharePlayCoordinator {
               let playbackLauncher
         else { return }
         lastLaunchedActivityID = activity.activityID
-        let activityContext: PlexAPIContext
         do {
-            activityContext = try await serverContext(for: activity)
+            let viewModel = try await playerViewModel(for: activity)
+            if activity.provider == .plex {
+                guard let activityLauncher = playbackLauncher.using(context: viewModel.serverContext) else {
+                    throw SharePlayError.mediaUnavailable
+                }
+                await activityLauncher.play(
+                    ratingKey: activity.ratingKey,
+                    type: activity.mediaKind,
+                    shouldResumeFromOffset: false
+                )
+            } else {
+                guard let services = services(for: activity) else {
+                    throw SharePlayError.serverUnavailable
+                }
+                await playbackLauncher.using(services: services).play(
+                    ratingKey: activity.ratingKey,
+                    type: activity.mediaKind,
+                    shouldResumeFromOffset: false
+                )
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
         }
-        guard let activityLauncher = playbackLauncher.using(context: activityContext) else {
-            errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
-        }
-        await activityLauncher.play(
-            ratingKey: activity.ratingKey,
-            type: activity.mediaType,
-            shouldResumeFromOffset: false,
-        )
     }
 
     private func ensureAccess(to activity: StrimrWatchActivity) async throws {
-        let serverContext = try await sessionManager.serverContext(for: activity.serverIdentifier)
-        let repository = try MetadataRepository(context: serverContext)
-        let response = try await repository.getMetadata(ratingKey: activity.ratingKey)
-        guard response.mediaContainer.metadata?.isEmpty == false else {
-            throw SharePlayError.mediaUnavailable
+        switch activity.provider {
+        case .plex:
+            let serverContext = try await sessionManager.serverContext(for: activity.serverIdentifier)
+            let repository = try MetadataRepository(context: serverContext)
+            let response = try await repository.getMetadata(ratingKey: activity.ratingKey)
+            guard response.mediaContainer.metadata?.isEmpty == false else {
+                throw SharePlayError.mediaUnavailable
+            }
+        case .jellyfin:
+            guard let services = services(for: activity) else {
+                throw SharePlayError.serverUnavailable
+            }
+            let queue = try await services.playback.queue(
+                startingWith: activity.ratingKey,
+                kind: activity.mediaKind,
+                shuffle: false
+            )
+            guard !queue.items.isEmpty else { throw SharePlayError.mediaUnavailable }
         }
+    }
+
+    func playerViewModel(for activity: StrimrWatchActivity) async throws -> PlayerViewModel {
+        switch activity.provider {
+        case .plex:
+            let activityContext = try await serverContext(for: activity)
+            return PlayerViewModel(
+                playQueue: PlayQueueState(localRatingKey: activity.ratingKey),
+                ratingKey: activity.ratingKey,
+                context: activityContext,
+                shouldResumeFromOffset: false
+            )
+        case .jellyfin:
+            guard let services = services(for: activity) else {
+                throw SharePlayError.serverUnavailable
+            }
+            let queue = try await services.playback.queue(
+                startingWith: activity.ratingKey,
+                kind: activity.mediaKind,
+                shuffle: false
+            )
+            guard !queue.items.isEmpty else { throw SharePlayError.mediaUnavailable }
+            return PlayerViewModel(
+                queue: queue,
+                services: services,
+                context: context,
+                shouldResumeFromOffset: false
+            )
+        }
+    }
+
+    private func services(for activity: StrimrWatchActivity) -> MediaServices? {
+        guard let services = sessionManager.mediaServices,
+              services.provider == activity.provider,
+              services.identity.id == activity.serverIdentifier
+        else { return nil }
+        return services
     }
 
     private func handleActivityChange(_ newActivity: StrimrWatchActivity) {

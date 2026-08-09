@@ -32,20 +32,20 @@ final class SubtitleSearchViewModel {
     var hearingImpaired = false
     var forced = false
     var title = ""
-    var results: [PlexSubtitleSearchResult] = []
+    var results: [RemoteSubtitleResult] = []
     var isSearching = false
-    var attachingResultID: Int?
+    var attachingResultID: String?
     var errorMessage: String?
     var hasSearched = false
 
     let languages = SubtitleLanguageOption.all
 
-    private let ratingKey: String
-    private let repository: SubtitleRepository
+    private let itemID: String
+    private let services: MediaServices
 
-    init(ratingKey: String, context: PlexAPIContext) {
-        self.ratingKey = ratingKey
-        repository = SubtitleRepository(context: context)
+    init(itemID: String, services: MediaServices) {
+        self.itemID = itemID
+        self.services = services
         let preferred = Locale.preferredLanguages.first ?? "en"
         selectedLanguage = Locale.Language(identifier: preferred).languageCode?.identifier ?? "en"
     }
@@ -57,8 +57,8 @@ final class SubtitleSearchViewModel {
         defer { isSearching = false }
 
         do {
-            results = try await repository.search(
-                ratingKey: ratingKey,
+            results = try await services.detail.searchSubtitles(
+                itemID: itemID,
                 language: selectedLanguage,
                 hearingImpaired: hearingImpaired,
                 forced: forced,
@@ -72,20 +72,14 @@ final class SubtitleSearchViewModel {
         }
     }
 
-    func attach(_ result: PlexSubtitleSearchResult) async -> Bool {
+    func attach(_ result: RemoteSubtitleResult) async -> Bool {
         guard attachingResultID == nil else { return false }
         attachingResultID = result.id
         errorMessage = nil
         defer { attachingResultID = nil }
 
         do {
-            try await repository.attach(
-                ratingKey: ratingKey,
-                result: result,
-                searchedLanguage: selectedLanguage,
-                searchedHearingImpaired: hearingImpaired,
-                searchedForced: forced,
-            )
+            try await services.detail.installSubtitle(itemID: itemID, result: result)
             return true
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return false }
@@ -100,15 +94,15 @@ struct SubtitleSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: SubtitleSearchViewModel
     let titlePlaceholder: String
-    let onAttached: (PlexSubtitleSearchResult) async -> Void
+    let onAttached: (RemoteSubtitleResult) async -> Void
 
     init(
-        ratingKey: String,
+        itemID: String,
         titlePlaceholder: String,
-        context: PlexAPIContext,
-        onAttached: @escaping (PlexSubtitleSearchResult) async -> Void,
+        services: MediaServices,
+        onAttached: @escaping (RemoteSubtitleResult) async -> Void,
     ) {
-        _viewModel = State(initialValue: SubtitleSearchViewModel(ratingKey: ratingKey, context: context))
+        _viewModel = State(initialValue: SubtitleSearchViewModel(itemID: itemID, services: services))
         self.titlePlaceholder = titlePlaceholder
         self.onAttached = onAttached
     }
@@ -205,7 +199,7 @@ struct SubtitleSearchView: View {
                     } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(result.title ?? result.extendedDisplayTitle ?? result.displayTitle)
+                                Text(result.title)
                                     .foregroundStyle(.primary)
                                     .multilineTextAlignment(.leading)
                                 Text(resultDetail(result))
@@ -225,14 +219,14 @@ struct SubtitleSearchView: View {
         }
     }
 
-    private func resultDetail(_ result: PlexSubtitleSearchResult) -> String {
+    private func resultDetail(_ result: RemoteSubtitleResult) -> String {
         [result.language, result.codec.uppercased(), result.providerTitle]
             .compactMap(\.self)
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
     }
 
-    private func attach(_ result: PlexSubtitleSearchResult) {
+    private func attach(_ result: RemoteSubtitleResult) {
         Task {
             guard await viewModel.attach(result) else { return }
             dismiss()

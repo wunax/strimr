@@ -224,7 +224,7 @@ private struct LibraryCard: View {
         switch library.type {
         case .movie:
             "search.filter.movies"
-        case .show:
+        case .series:
             "search.filter.shows"
         default:
             "tabs.libraries"

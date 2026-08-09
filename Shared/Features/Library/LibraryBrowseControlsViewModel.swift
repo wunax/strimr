@@ -13,7 +13,7 @@ final class LibraryBrowseControlsViewModel {
     struct DisplayType: Identifiable, Equatable {
         let id: String
         let key: String
-        let type: PlexItemType
+        let type: MediaKind
         let title: String
         let isActive: Bool
         let filters: [PlexSectionItemFilter]
@@ -22,7 +22,7 @@ final class LibraryBrowseControlsViewModel {
         init(metaType: PlexSectionItemMetaType) {
             id = metaType.key
             key = metaType.key
-            type = metaType.type
+            type = metaType.type.mediaKind
             title = metaType.title
             isActive = metaType.active ?? false
             filters = metaType.filter ?? []

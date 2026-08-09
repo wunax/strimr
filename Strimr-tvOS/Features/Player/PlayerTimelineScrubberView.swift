@@ -5,7 +5,7 @@ struct PlayerTimelineScrubberView: View {
     var upperBound: Double
     var duration: Double?
     var bufferedEnd: Double
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var onEditingChanged: (Bool) -> Void
 
     @State private var consecutiveMoves = 0

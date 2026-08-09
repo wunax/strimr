@@ -62,7 +62,7 @@ final class PlayerController {
     @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
     @ObservationIgnored private var scrubExtractorDwellTask: Task<Void, Never>?
     @ObservationIgnored private var scrubBIFPreparationTask: Task<Void, Never>?
-    @ObservationIgnored private var scrubBIFProvider: PlexBIFThumbnailProvider?
+    @ObservationIgnored private var scrubBIFProvider: (any ScrubThumbnailProviding)?
     @ObservationIgnored private var scrubFrameExtractor: FrameExtractor?
     @ObservationIgnored private var scrubExtractorRequestGeneration: Int?
     @ObservationIgnored private var scrubGeneratedThumbnailCache: [Int: CGImage] = [:]
@@ -101,7 +101,7 @@ final class PlayerController {
         mediaIdentifier: String,
         plexStreamIDsByFFIndex: [Int: Int],
         externalSubtitles: [PlayerExternalSubtitle],
-        scrubThumbnailSource: PlexBIFSource? = nil,
+        scrubThumbnailSource: ScrubThumbnailSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
         autoplay: Bool = true,
@@ -111,8 +111,13 @@ final class PlayerController {
         self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
         self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
         if showsScrubThumbnailPreviews {
-            scrubBIFProvider = scrubThumbnailSource.map {
-                PlexBIFThumbnailProvider(source: $0)
+            scrubBIFProvider = scrubThumbnailSource.map { source in
+                switch source {
+                case let .plex(source):
+                    PlexBIFThumbnailProvider(source: source)
+                case let .jellyfin(source):
+                    JellyfinTrickplayThumbnailProvider(source: source)
+                }
             }
         }
         isStopping = false

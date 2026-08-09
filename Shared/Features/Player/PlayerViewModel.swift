@@ -15,7 +15,7 @@ final class PlayerViewModel {
     var playbackURL: URL?
     var playbackHTTPHeaders: [String: String] = [:]
     var serverAccessRecoveryError: PlexServerAccessRecoveryError?
-    private(set) var scrubThumbnailSource: PlexBIFSource?
+    private(set) var scrubThumbnailSource: ScrubThumbnailSource?
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
     var preferredSubtitleStreamID: Int?
@@ -23,9 +23,9 @@ final class PlayerViewModel {
         media?.viewOffset
     }
 
-    var markers: [PlexMarker] = []
-    var chapters: [PlexChapter] = []
-    var activeSkipMarker: PlexMarker? {
+    var markers: [SkipSegment] = []
+    var chapters: [MediaChapter] = []
+    var activeSkipMarker: SkipSegment? {
         activeMarker(where: \.isIntro)
             ?? activeMarker(where: \.isCredits)
     }
@@ -34,16 +34,16 @@ final class PlayerViewModel {
         chapters.count >= 2
     }
 
-    func chapter(at time: Double) -> PlexChapter? {
+    func chapter(at time: Double) -> MediaChapter? {
         chapters.first { $0.contains(time: time) }
     }
 
     func chapterImageURL(
-        for chapter: PlexChapter,
+        for chapter: MediaChapter,
         width: Int,
         height: Int,
     ) -> URL? {
-        guard let thumb = chapter.thumb else { return nil }
+        guard let thumb = chapter.thumbPath else { return nil }
         guard let imageRepository = try? ImageRepository(context: context) else { return nil }
         return imageRepository.transcodeImageURL(
             path: thumb,
@@ -75,13 +75,20 @@ final class PlayerViewModel {
     @ObservationIgnored private var partStreams: [PlexPartStream] = []
     @ObservationIgnored private var streamsByFFIndex: [Int: PlexPartStream] = [:]
     @ObservationIgnored private var streamsByID: [Int: PlexPartStream] = [:]
-    @ObservationIgnored private var automaticSkipMarkerInFlight: PlexMarker?
+    @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
     @ObservationIgnored private let sessionIdentifier = UUID().uuidString
     @ObservationIgnored private var didReceiveTermination = false
     var terminationMessage: String?
 
     var canSearchSubtitles: Bool {
-        mediaServices == nil && !isLocalPlayback && activePartId != nil && !ratingKey.isEmpty
+        !isLocalPlayback
+            && !ratingKey.isEmpty
+            && subtitleSearchServices?.detail.supportsRemoteSubtitleSearch == true
+            && (mediaServices != nil || activePartId != nil)
+    }
+
+    var subtitleSearchServices: MediaServices? {
+        mediaServices ?? PlexMediaServicesFactory.make(context: context, sessionManager: nil)
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -90,14 +97,28 @@ final class PlayerViewModel {
             ?? ""
     }
 
-    func plexStream(forID id: Int?) -> PlexPartStream? {
+    func trackMetadata(forID id: Int?) -> MediaTrackMetadata? {
         guard let id else { return nil }
-        return streamsByID[id]
+        if let stream = streamsByID[id] {
+            return MediaTrackMetadata(plexStream: stream)
+        }
+        guard let track = playbackPlan?.tracks.first(where: { $0.sourceIndex == id }) else { return nil }
+        return MediaTrackMetadata(
+            id: track.sourceIndex,
+            sourceIndex: track.sourceIndex,
+            codec: track.codec ?? "",
+            title: track.title,
+            displayTitle: track.title,
+            language: track.language,
+            isDefault: track.isDefault,
+            isForced: track.isForced,
+            isHearingImpaired: track.isHearingImpaired
+        )
     }
 
     func ffIndex(forPlexStreamID id: Int?) -> Int? {
         if mediaServices != nil { return id }
-        return plexStream(forID: id)?.index
+        return trackMetadata(forID: id)?.sourceIndex
     }
 
     func plexStreamIDsByFFIndex() -> [Int: Int] {
@@ -309,6 +330,14 @@ final class PlayerViewModel {
 
     func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
         guard !isLocalPlayback else { throw PlexSubtitleActivationError.missingSelectedExternalTrack }
+        if let mediaServices, let media {
+            let previousURLs = Set(playbackPlan?.externalSubtitles.map(\.url) ?? [])
+            let refreshed = try await mediaServices.playback.externalSubtitles(media: media)
+            guard let track = refreshed.first(where: { !previousURLs.contains($0.url) }) ?? refreshed.first else {
+                throw PlexSubtitleActivationError.missingSelectedExternalTrack
+            }
+            return PlayerExternalSubtitle(track: track, plexStreamID: -(refreshed.count + 1))
+        }
         let repository = try MetadataRepository(context: context)
         try await loadRemoteMetadata(using: repository)
         guard let selectedID = preferredSubtitleStreamID,
@@ -501,7 +530,14 @@ final class PlayerViewModel {
         )
         let metadata = response.mediaContainer.metadata?.first
         media = metadata.map(MediaItem.init)
-        markers = metadata?.markers ?? []
+        markers = (metadata?.markers ?? []).map {
+            SkipSegment(
+                id: String($0.id),
+                kind: $0.isIntro ? .intro : .credits,
+                startTime: $0.startTime,
+                endTime: $0.endTime
+            )
+        }
         chapters = (metadata?.chapters ?? [])
             .filter(\.isValid)
             .sorted {
@@ -510,11 +546,22 @@ final class PlayerViewModel {
                 }
                 return $0.startTimeOffset < $1.startTimeOffset
             }
+            .map {
+                MediaChapter(
+                    id: $0.stableID,
+                    title: "",
+                    index: $0.index,
+                    startTime: $0.startTime,
+                    endTime: $0.endTime,
+                    image: nil,
+                    thumbPath: $0.thumb
+                )
+            }
         updatePartContext(from: metadata)
         scrubThumbnailSource = PlexBIFSource(
             partID: activePartId,
             context: context,
-        )
+        ).map(ScrubThumbnailSource.plex)
         resolvePreferredStreams(from: metadata)
         guard let resolvedURL = resolvePlaybackURL(from: metadata) else {
             throw PlexAPIError.invalidURL
@@ -552,20 +599,9 @@ final class PlayerViewModel {
         playbackHTTPHeaders = plan.httpHeaders
         preferredAudioStreamFFIndex = plan.selectedAudioIndex
         preferredSubtitleStreamID = plan.selectedSubtitleIndex
-        let totalDuration = max(0, Int((plan.media.duration ?? 0) * 1000))
-        chapters = plan.chapters.enumerated().map { index, chapter in
-            let nextStart = plan.chapters.indices.contains(index + 1)
-                ? Int(plan.chapters[index + 1].startTime * 1000)
-                : totalDuration
-            return PlexChapter(
-                id: index,
-                filter: chapter.title,
-                index: index,
-                startTimeOffset: Int(chapter.startTime * 1000),
-                endTimeOffset: max(Int(chapter.startTime * 1000) + 1, nextStart),
-                thumb: nil
-            )
-        }
+        chapters = plan.chapters
+        markers = plan.skipSegments
+        scrubThumbnailSource = plan.scrubThumbnailSource
     }
 
     private func resolvePlaybackURL(from metadata: PlexItem?) -> URL? {
@@ -626,14 +662,14 @@ final class PlayerViewModel {
         return playQueueState.items.first { $0.ratingKey == currentRatingKey }?.playQueueItemID
     }
 
-    private func activeMarker(where predicate: (PlexMarker) -> Bool) -> PlexMarker? {
+    private func activeMarker(where predicate: (SkipSegment) -> Bool) -> SkipSegment? {
         markers.first { predicate($0) && $0.contains(time: position) }
     }
 
     func automaticSkipMarker(
         autoSkipIntros: Bool,
         autoSkipCredits: Bool,
-    ) -> PlexMarker? {
+    ) -> SkipSegment? {
         if let automaticSkipMarkerInFlight {
             guard !automaticSkipMarkerInFlight.contains(time: position) else { return nil }
             self.automaticSkipMarkerInFlight = nil

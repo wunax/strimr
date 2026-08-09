@@ -96,11 +96,15 @@ struct MainView: View {
 
     private var accountMenu: some View {
         Menu {
-            Button("common.actions.switchProfile", systemImage: "person.2.circle") {
-                Task { await sessionManager.requestProfileSelection() }
+            if sessionManager.mediaServices?.capabilities.profiles == true {
+                Button("common.actions.switchProfile", systemImage: "person.2.circle") {
+                    Task { await sessionManager.requestProfileSelection() }
+                }
             }
-            Button("common.actions.switchServer", systemImage: "server.rack") {
-                Task { await sessionManager.requestServerSelection() }
+            if sessionManager.provider == .plex {
+                Button("common.actions.switchServer", systemImage: "server.rack") {
+                    Task { await sessionManager.requestServerSelection() }
+                }
             }
             Button("provider.change", systemImage: "arrow.triangle.2.circlepath") {
                 Task { await sessionManager.changeProvider() }
@@ -214,7 +218,7 @@ struct MainView: View {
 
     private func play(
         _ ratingKey: String,
-        _ type: PlexItemType,
+        _ type: MediaKind,
         _ shuffle: Bool = false,
         _ shouldResume: Bool = true,
     ) {

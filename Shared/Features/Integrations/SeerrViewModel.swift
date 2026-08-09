@@ -11,6 +11,8 @@ final class SeerrViewModel {
     var baseURLInput = ""
     var email = ""
     var password = ""
+    var jellyfinUsername = ""
+    var jellyfinPassword = ""
     var errorMessage = ""
     var isShowingError = false
     var isValidating = false
@@ -76,6 +78,31 @@ final class SeerrViewModel {
         }
     }
 
+    func signInWithJellyfin() async {
+        isAuthenticating = true
+        defer {
+            isAuthenticating = false
+            jellyfinPassword = ""
+        }
+
+        do {
+            let baseURL = try requireBaseURL()
+            let user = try await sessionService.signInWithJellyfin(
+                baseURL: baseURL,
+                username: jellyfinUsername,
+                password: jellyfinPassword
+            )
+            store.setUser(user)
+            do {
+                store.setQuota(try await sessionService.fetchUserQuota(baseURL: baseURL, userId: user.id))
+            } catch {
+                store.setQuota(nil)
+            }
+        } catch {
+            presentError(error)
+        }
+    }
+
     func signOut() {
         if let baseURL {
             sessionService.signOut(baseURL: baseURL)
@@ -97,6 +124,10 @@ final class SeerrViewModel {
 
     var isPlexAuthAvailable: Bool {
         sessionManager.authToken != nil
+    }
+
+    var isJellyfinAuthAvailable: Bool {
+        sessionManager.provider == .jellyfin
     }
 
     var quota: SeerrUserQuota? {

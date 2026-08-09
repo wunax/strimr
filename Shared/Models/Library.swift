@@ -3,18 +3,18 @@ import Foundation
 struct Library: Identifiable, Equatable, Hashable {
     let id: String
     let title: String
-    let type: PlexItemType
+    let type: MediaKind
     let sectionId: Int?
 
     var iconName: String {
         switch type {
         case .movie:
             "film.fill"
-        case .show:
+        case .series:
             "tv.fill"
         case .season, .episode:
             "play.rectangle.fill"
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             "questionmark.square.fill"
         }
     }
@@ -22,7 +22,7 @@ struct Library: Identifiable, Equatable, Hashable {
     init(
         id: String,
         title: String,
-        type: PlexItemType,
+        type: MediaKind,
         sectionId: Int? = nil,
     ) {
         self.id = id
@@ -37,7 +37,7 @@ extension Library {
         self.init(
             id: plexSection.key,
             title: plexSection.title,
-            type: plexSection.type,
+            type: plexSection.type.mediaKind,
             sectionId: Int(plexSection.key),
         )
     }

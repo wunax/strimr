@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct PlayerChapterTrayView: View {
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (PlexChapter) -> URL?
-    var onSelect: (PlexChapter) -> Void
+    var imageURL: (MediaChapter) -> URL?
+    var onSelect: (MediaChapter) -> Void
     var onFocusExit: () -> Void
 
     @FocusState private var focusedChapterID: String?
@@ -52,11 +52,11 @@ struct PlayerChapterTrayView: View {
         .focusSection()
     }
 
-    private var currentChapter: PlexChapter? {
+    private var currentChapter: MediaChapter? {
         chapters.first { $0.contains(time: currentPosition) }
     }
 
-    private func chapterCard(_ chapter: PlexChapter) -> some View {
+    private func chapterCard(_ chapter: MediaChapter) -> some View {
         let isFocused = focusedChapterID == chapter.stableID
         let isCurrent = currentChapter?.stableID == chapter.stableID
 

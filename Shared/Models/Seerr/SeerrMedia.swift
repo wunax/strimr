@@ -46,6 +46,35 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
     let requests: [SeerrRequest]?
     let tmdbId: Int?
     let mediaType: SeerrMediaType?
+    let jellyfinMediaId: String?
+    let jellyfinMediaId4k: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, status, status4k, seasons, requests, tmdbId, mediaType
+        case jellyfinMediaId, jellyfinMediaId4k
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        status = try container.decodeIfPresent(SeerrMediaStatus.self, forKey: .status)
+        status4k = try container.decodeIfPresent(SeerrMediaStatus.self, forKey: .status4k)
+        seasons = try container.decodeIfPresent([SeerrMediaSeasonInfo].self, forKey: .seasons)
+        requests = try container.decodeIfPresent([SeerrRequest].self, forKey: .requests)
+        tmdbId = try container.decodeIfPresent(Int.self, forKey: .tmdbId)
+        mediaType = try container.decodeIfPresent(SeerrMediaType.self, forKey: .mediaType)
+        jellyfinMediaId = Self.decodeString(container, key: .jellyfinMediaId)
+        jellyfinMediaId4k = Self.decodeString(container, key: .jellyfinMediaId4k)
+    }
+
+    private static func decodeString(
+        _ container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys
+    ) -> String? {
+        if let value = try? container.decodeIfPresent(String.self, forKey: key) { return value }
+        if let value = try? container.decodeIfPresent(Int.self, forKey: key) { return String(value) }
+        return nil
+    }
 }
 
 enum SeerrMediaStatus: Int, Hashable, Decodable {

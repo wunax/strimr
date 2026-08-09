@@ -196,6 +196,16 @@ final class SessionManager {
             UserDefaults.standard.set(MediaProvider.jellyfin.rawValue, forKey: providerDefaultsKey)
             provider = .jellyfin
             activateJellyfinServicesIfAvailable()
+            #if os(tvOS)
+                try? topShelfSessionStore.save(
+                    provider: .jellyfin,
+                    serverURL: connection.baseURL,
+                    serverID: connection.serverID,
+                    userID: connection.userID,
+                    token: authenticatedSession.accessToken
+                )
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            #endif
             jellyfinHydrationError = nil
             status = .ready
         } catch {
@@ -240,7 +250,13 @@ final class SessionManager {
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
             #if os(tvOS)
                 if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
-                    try? topShelfSessionStore.save(serverURL: serverURL, token: serverToken)
+                    try? topShelfSessionStore.save(
+                        provider: .plex,
+                        serverURL: serverURL,
+                        serverID: server.clientIdentifier,
+                        userID: nil,
+                        token: serverToken
+                    )
                     TVTopShelfContentProvider.topShelfContentDidChange()
                 }
             #endif
@@ -274,6 +290,7 @@ final class SessionManager {
     }
 
     func requestProfileSelection() async {
+        guard provider == .plex else { return }
         status = .needsProfileSelection
         plexServer = nil
         context.removeServer()
@@ -284,6 +301,7 @@ final class SessionManager {
     }
 
     func requestServerSelection() async {
+        guard provider == .plex else { return }
         status = .needsServerSelection
         plexServer = nil
         context.removeServer()
@@ -323,7 +341,13 @@ final class SessionManager {
         UserDefaults.standard.set(refreshedServer.clientIdentifier, forKey: serverIdDefaultsKey)
         #if os(tvOS)
             if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
-                try? topShelfSessionStore.save(serverURL: serverURL, token: serverToken)
+                try? topShelfSessionStore.save(
+                    provider: .plex,
+                    serverURL: serverURL,
+                    serverID: refreshedServer.clientIdentifier,
+                    userID: nil,
+                    token: serverToken
+                )
                 TVTopShelfContentProvider.topShelfContentDidChange()
             }
         #endif
@@ -501,6 +525,16 @@ final class SessionManager {
             _ = try await jellyfinContext.validateAuthenticatedSession()
             guard !Task.isCancelled else { return }
             activateJellyfinServicesIfAvailable()
+            #if os(tvOS)
+                try? topShelfSessionStore.save(
+                    provider: .jellyfin,
+                    serverURL: connection.baseURL,
+                    serverID: connection.serverID,
+                    userID: connection.userID,
+                    token: token
+                )
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            #endif
             status = .ready
         } catch let error as JellyfinAPIError where error == .authenticationRequired {
             try? keychain.deleteValue(forKey: jellyfinTokenKey(connection: connection))
@@ -536,6 +570,10 @@ final class SessionManager {
         jellyfinContext.reset()
         mediaServices = nil
         libraryStore.configure(service: nil)
+        #if os(tvOS)
+            topShelfSessionStore.clear()
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        #endif
         status = .needsJellyfinAuthentication
     }
 

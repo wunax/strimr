@@ -251,13 +251,15 @@ struct PlayerView: View {
 
         return presentationObservers
             .sheet(isPresented: $isShowingSubtitleSearch) {
-                SubtitleSearchView(
-                    ratingKey: viewModel.currentRatingKey,
-                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    context: viewModel.serverContext,
-                    onAttached: handleAttachedSubtitle(_:),
-                )
-                .frame(minWidth: 560, minHeight: 640)
+                if let services = viewModel.subtitleSearchServices {
+                    SubtitleSearchView(
+                        itemID: viewModel.currentRatingKey,
+                        titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                        services: services,
+                        onAttached: handleAttachedSubtitle(_:)
+                    )
+                    .frame(minWidth: 560, minHeight: 640)
+                }
             }
             .alert("player.termination.title", isPresented: $isShowingError) {
                 Button("player.termination.dismiss") { closePlayer(force: true) }
@@ -597,7 +599,7 @@ struct PlayerView: View {
         }
     }
 
-    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+    private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
             let id = try playerController.registerExternalSubtitleIfNeeded(
@@ -738,7 +740,7 @@ struct PlayerView: View {
         showAutomaticSkipFeedback(for: marker)
     }
 
-    private func showAutomaticSkipFeedback(for marker: PlexMarker) {
+    private func showAutomaticSkipFeedback(for marker: SkipSegment) {
         automaticSkipFeedbackWorkItem?.cancel()
         let message = marker.isIntro
             ? String(localized: "player.skip.intro.automaticConfirmation")
@@ -768,6 +770,10 @@ struct PlayerView: View {
         if viewModel.usesCommonPlaybackQueue {
             guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
                 playerController.pause()
+                return
+            }
+            if isSharePlayPlayback, let next = nextViewModel.media {
+                sharePlayCoordinator.updateToNextItem(next)
                 return
             }
             await startPlayback(using: nextViewModel)
@@ -958,29 +964,14 @@ struct PlayerView: View {
     }
 
     private func startPlayback(for activity: StrimrWatchActivity) async {
-        let activityContext: PlexAPIContext
         do {
-            activityContext = try await sharePlayCoordinator.serverContext(for: activity)
+            let nextViewModel = try await sharePlayCoordinator.playerViewModel(for: activity)
+            await startPlayback(using: nextViewModel)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
         }
-        playerController.stop()
-        loadedURL = nil
-        audioTracks = []
-        subtitleTracks = []
-        selectedAudioTrackID = nil
-        selectedSubtitleTrackID = nil
-        viewModel = PlayerViewModel(
-            playQueue: viewModel.playQueue,
-            ratingKey: activity.ratingKey,
-            context: activityContext,
-            shouldResumeFromOffset: false,
-        )
-        await viewModel.load()
-        startPlaybackIfNeeded(viewModel.playbackURL)
     }
 
     private func handlePointerMovement(_ phase: HoverPhase) {
@@ -1069,7 +1060,7 @@ struct PlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
-    private func selectChapter(_ chapter: PlexChapter) {
+    private func selectChapter(_ chapter: MediaChapter) {
         playerController.seek(to: chapter.startTime)
         scrubPosition = chapter.startTime
         viewModel.handlePlaybackPosition(chapter.startTime, isScrubbing: false)

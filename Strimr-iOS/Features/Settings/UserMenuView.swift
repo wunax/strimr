@@ -20,19 +20,23 @@ struct UserMenuView: View {
                     Label("downloads.title", systemImage: "arrow.down.circle.fill")
                 }
 
-                Button {
-                    Task { await sessionManager.requestProfileSelection() }
-                } label: {
-                    Label("common.actions.switchProfile", systemImage: "person.2.circle")
+                if sessionManager.mediaServices?.capabilities.profiles == true {
+                    Button {
+                        Task { await sessionManager.requestProfileSelection() }
+                    } label: {
+                        Label("common.actions.switchProfile", systemImage: "person.2.circle")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
-                Button {
-                    Task { await sessionManager.requestServerSelection() }
-                } label: {
-                    Label("common.actions.switchServer", systemImage: "server.rack")
+                if sessionManager.provider == .plex {
+                    Button {
+                        Task { await sessionManager.requestServerSelection() }
+                    } label: {
+                        Label("common.actions.switchServer", systemImage: "server.rack")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 Button {
                     Task { await sessionManager.changeProvider() }

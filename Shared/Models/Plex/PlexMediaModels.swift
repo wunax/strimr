@@ -29,6 +29,34 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
     }
 }
 
+extension PlexItemType {
+    var mediaKind: MediaKind {
+        switch self {
+        case .movie: .movie
+        case .show: .series
+        case .season: .season
+        case .episode: .episode
+        case .collection: .collection
+        case .playlist: .playlist
+        case .unknown: .unknown
+        }
+    }
+}
+
+extension MediaKind {
+    var plexType: PlexItemType {
+        switch self {
+        case .movie: .movie
+        case .series: .show
+        case .season: .season
+        case .episode: .episode
+        case .collection: .collection
+        case .playlist: .playlist
+        case .folder, .unknown: .unknown
+        }
+    }
+}
+
 struct PlexHub: Codable, Equatable {
     let hubKey: String?
     let key: String
@@ -261,6 +289,23 @@ struct PlexPartStream: Codable, Equatable, Hashable {
     let language: String?
     let forced: Bool?
     let hearingImpaired: Bool?
+}
+
+extension MediaTrackMetadata {
+    init?(plexStream: PlexPartStream) {
+        guard let id = plexStream.id else { return nil }
+        self.init(
+            id: id,
+            sourceIndex: plexStream.index,
+            codec: plexStream.codec,
+            title: plexStream.title,
+            displayTitle: plexStream.displayTitle,
+            language: plexStream.language,
+            isDefault: plexStream.selected == true,
+            isForced: plexStream.forced == true,
+            isHearingImpaired: plexStream.hearingImpaired == true
+        )
+    }
 }
 
 struct PlexPart: Codable, Equatable {

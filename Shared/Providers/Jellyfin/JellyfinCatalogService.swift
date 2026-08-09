@@ -164,6 +164,13 @@ struct JellyfinCatalogService {
         )
     }
 
+    func mediaSegments(itemID: String) async throws -> [JellyfinMediaSegment] {
+        let response: JellyfinMediaSegmentsResponse = try await context.get(
+            path: ["MediaSegments", itemID]
+        )
+        return response.items
+    }
+
     func playbackQueue(startingWith item: JellyfinItem) async throws -> [JellyfinItem] {
         switch item.kind {
         case .movie:

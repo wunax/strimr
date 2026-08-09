@@ -24,6 +24,16 @@ enum MediaKind: String, Codable, Hashable, Sendable {
     case playlist
     case folder
     case unknown
+
+    var isSupported: Bool {
+        self != .unknown && self != .folder
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        self = value == "show" ? .series : MediaKind(rawValue: value) ?? .unknown
+    }
 }
 
 struct ProviderCapabilities: Codable, Equatable, Sendable {
@@ -44,12 +54,12 @@ struct ProviderCapabilities: Codable, Equatable, Sendable {
         multiServerSearch: false,
         cloudWatchlist: false,
         favorites: false,
-        remoteSubtitleSearch: false,
-        trickplay: false,
-        skipSegments: false,
-        downloads: false,
-        sharePlay: false,
-        topShelf: false,
+        remoteSubtitleSearch: true,
+        trickplay: true,
+        skipSegments: true,
+        downloads: true,
+        sharePlay: true,
+        topShelf: true,
         syncPlay: false,
     )
 

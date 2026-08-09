@@ -12,6 +12,7 @@ final class MediaServices {
     let artwork: any MediaArtworkService
     let detail: any MediaDetailService
     let playback: any MediaPlaybackService
+    let downloads: any MediaDownloadService
     @ObservationIgnored let plexContext: PlexAPIContext?
 
     init(
@@ -24,6 +25,7 @@ final class MediaServices {
         artwork: any MediaArtworkService,
         detail: any MediaDetailService,
         playback: any MediaPlaybackService,
+        downloads: any MediaDownloadService,
         plexContext: PlexAPIContext? = nil
     ) {
         self.provider = provider
@@ -35,6 +37,7 @@ final class MediaServices {
         self.artwork = artwork
         self.detail = detail
         self.playback = playback
+        self.downloads = downloads
         self.plexContext = plexContext
     }
 }

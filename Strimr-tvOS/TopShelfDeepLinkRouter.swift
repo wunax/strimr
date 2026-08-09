@@ -11,8 +11,10 @@ final class TopShelfDeepLinkRouter {
         }
 
         let kind: Kind
+        let provider: MediaProvider
+        let serverIdentifier: String?
         let ratingKey: String
-        let type: PlexItemType
+        let type: MediaKind
     }
 
     private(set) var pendingAction: Action?
@@ -29,12 +31,23 @@ final class TopShelfDeepLinkRouter {
             let ratingKey = url.pathComponents.dropFirst().first,
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
             let typeValue = components.queryItems?.first(where: { $0.name == "type" })?.value,
-            let type = PlexItemType(rawValue: typeValue)
+            let type = MediaKind(rawValue: typeValue)
+                ?? (typeValue == "show" ? .series : nil)
         else {
             return
         }
+        let provider = components.queryItems?
+            .first(where: { $0.name == "provider" })?
+            .value
+            .flatMap { MediaProvider(rawValue: $0) } ?? .plex
 
-        pendingAction = Action(kind: kind, ratingKey: ratingKey, type: type)
+        pendingAction = Action(
+            kind: kind,
+            provider: provider,
+            serverIdentifier: components.queryItems?.first(where: { $0.name == "server" })?.value,
+            ratingKey: ratingKey,
+            type: type
+        )
     }
 
     func clear(_ action: Action) {

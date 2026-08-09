@@ -33,7 +33,7 @@ struct PlaybackLauncher {
 
     func play(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         shuffle: Bool = false,
         shouldResumeFromOffset: Bool = true,
     ) async {
@@ -42,8 +42,8 @@ struct PlaybackLauncher {
                 let manager = try PlayQueueManager(context: context)
                 let playQueue = try await manager.createQueue(
                     for: ratingKey,
-                    itemType: type,
-                    continuous: type == .episode || type == .show || type == .season,
+                    itemType: type.plexType,
+                    continuous: type == .episode || type == .series || type == .season,
                     shuffle: shuffle,
                 )
                 guard playQueue.selectedRatingKey != nil else { return }
@@ -55,7 +55,7 @@ struct PlaybackLauncher {
             } else {
                 let queue = try await services.playback.queue(
                     startingWith: ratingKey,
-                    kind: type.mediaKind,
+                    kind: type,
                     shuffle: shuffle
                 )
                 guard !queue.items.isEmpty else { return }
@@ -78,19 +78,5 @@ struct PlaybackLauncher {
 
     func using(context: PlexAPIContext) -> PlaybackLauncher? {
         PlaybackLauncher(context: context, coordinator: coordinator)
-    }
-}
-
-private extension PlexItemType {
-    var mediaKind: MediaKind {
-        switch self {
-        case .movie: .movie
-        case .show: .series
-        case .season: .season
-        case .episode: .episode
-        case .collection: .collection
-        case .playlist: .playlist
-        case .unknown: .unknown
-        }
     }
 }

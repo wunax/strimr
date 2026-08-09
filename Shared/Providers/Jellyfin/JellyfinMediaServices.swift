@@ -1,8 +1,9 @@
+import AetherEngine
 import Foundation
 
 @MainActor
 final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
-    MediaArtworkService, MediaDetailService, MediaPlaybackService
+    MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService
 {
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
@@ -19,7 +20,42 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     var supportsWatchlist: Bool { false }
-    var supportsRemoteSubtitleSearch: Bool { false }
+    var supportsRemoteSubtitleSearch: Bool { true }
+
+    func mediaItem(id: String) async throws -> MediaItem {
+        MediaItem(jellyfinItem: try await catalog.item(id: id), server: server)
+    }
+
+    func searchSubtitles(
+        itemID: String,
+        language: String,
+        hearingImpaired: Bool,
+        forced: Bool,
+        title _: String?
+    ) async throws -> [RemoteSubtitleResult] {
+        let values: [JellyfinRemoteSubtitle] = try await context.get(
+            path: ["Items", itemID, "RemoteSearch", "Subtitles", language]
+        )
+        return values.filter { value in
+            (!forced || value.isForced == true)
+                && (!hearingImpaired || value.hearingImpaired == true)
+        }.map { value in
+            RemoteSubtitleResult(
+                id: value.id,
+                title: value.name ?? value.providerName ?? value.id,
+                language: value.threeLetterISOLanguageName,
+                codec: value.format ?? "",
+                providerTitle: value.providerName
+            )
+        }
+    }
+
+    func installSubtitle(itemID: String, result: RemoteSubtitleResult) async throws {
+        try await context.send(
+            path: ["Items", itemID, "RemoteSearch", "Subtitles", result.id],
+            method: "POST"
+        )
+    }
 
     func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists _: Bool) async throws -> HomeContent {
         let visibleLibraries = try await catalog.libraries().filter { !hiddenLibraryIDs.contains($0.id) }
@@ -68,7 +104,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
-        let type = library.type == .show ? "Series" : "Movie"
+        let type = library.type == .series ? "Series" : "Movie"
         guard let item = try await catalog.latest(types: type, parentID: library.id, limit: 1).first else {
             return nil
         }
@@ -77,7 +113,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func recommended(in library: Library) async throws -> [Hub] {
-        let type = library.type == .show ? "Series" : "Movie"
+        let type = library.type == .series ? "Series" : "Movie"
         let items = try await catalog.latest(types: type, parentID: library.id, limit: 20)
         guard !items.isEmpty else { return [] }
         return [hub(
@@ -95,7 +131,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     ) async throws -> MediaPage<MediaDisplayItem> {
         let response = try await catalog.items(
             parentID: parentID ?? library.id,
-            includeTypes: library.type == .show ? "Series,Season,Episode" : "Movie",
+            includeTypes: library.type == .series ? "Series,Season,Episode" : "Movie",
             recursive: parentID == nil,
             startIndex: startIndex,
             limit: limit
@@ -282,6 +318,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let item = try await catalog.item(id: media.id)
         let plan = try await playbackService.prepare(item: item, resume: resume)
         activePlans[plan.playSessionID] = plan
+        let segments = (try? await catalog.mediaSegments(itemID: item.id)) ?? []
         let tracks = (item.mediaSources?.first?.mediaStreams ?? []).compactMap { stream -> PlaybackTrack? in
             let kind: PlaybackTrackKind
             switch stream.type.lowercased() {
@@ -301,6 +338,33 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 isHearingImpaired: false
             )
         }
+        let scrubSource: ScrubThumbnailSource? = {
+            guard let variants = item.trickplay?[plan.mediaSourceID],
+                  let info = variants.values
+                    .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
+                    .sorted(by: { lhs, rhs in
+                        let lhsDistance = abs(lhs.width - 320)
+                        let rhsDistance = abs(rhs.width - 320)
+                        return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
+                    })
+                    .first,
+                  let directoryURL = try? context.url(
+                      path: ["Videos", item.id, "Trickplay", String(info.width)]
+                  )
+            else { return nil }
+            return .jellyfin(JellyfinTrickplaySource(
+                directoryURL: directoryURL,
+                headers: plan.headers,
+                cacheKey: "\(server.id):\(item.id):\(plan.mediaSourceID):\(info.width)",
+                mediaSourceID: plan.mediaSourceID,
+                width: info.width,
+                height: info.height,
+                tileColumns: info.tileWidth,
+                tileRows: info.tileHeight,
+                thumbnailCount: info.thumbnailCount,
+                intervalMilliseconds: info.interval
+            ))
+        }()
         return PlaybackPlan(
             media: MediaItem(jellyfinItem: item, server: server),
             url: plan.url,
@@ -313,14 +377,35 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             selectedSubtitleIndex: plan.preferredSubtitleStreamIndex,
             tracks: tracks,
             externalSubtitles: plan.externalSubtitles,
-            chapters: plan.chapters.map {
-                MediaChapter(
-                    id: String($0.startPositionTicks),
-                    title: $0.name ?? "",
-                    startTime: $0.startTime,
-                    image: nil
+            chapters: plan.chapters.enumerated().map { index, chapter in
+                let nextStart = plan.chapters.indices.contains(index + 1)
+                    ? plan.chapters[index + 1].startTime
+                    : item.duration ?? (chapter.startTime + 1)
+                return MediaChapter(
+                    id: String(chapter.startPositionTicks),
+                    title: chapter.name ?? "",
+                    index: index + 1,
+                    startTime: chapter.startTime,
+                    endTime: max(chapter.startTime + 0.001, nextStart),
+                    image: nil,
+                    thumbPath: nil
                 )
-            }
+            },
+            skipSegments: segments.compactMap { segment in
+                let kind: SkipSegment.Kind
+                switch segment.type.lowercased() {
+                case "intro": kind = .intro
+                case "outro", "credits": kind = .credits
+                default: return nil
+                }
+                return SkipSegment(
+                    id: segment.id ?? "\(segment.type).\(segment.startTicks)",
+                    kind: kind,
+                    startTime: JellyfinTime.seconds(fromTicks: segment.startTicks),
+                    endTime: JellyfinTime.seconds(fromTicks: segment.endTicks)
+                )
+            },
+            scrubThumbnailSource: scrubSource
         )
     }
 
@@ -338,6 +423,32 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         guard let source = sourcePlan(for: plan) else { return }
         defer { activePlans[source.playSessionID] = nil }
         try await playbackService.reportStopped(plan: source, position: position)
+    }
+
+    func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
+        try playbackService.externalSubtitles(item: try await catalog.item(id: media.id))
+    }
+
+    func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
+        let item = try await catalog.item(id: itemID)
+        guard item.isPlayable, item.canDownload != false else {
+            throw JellyfinAPIError.permissionDenied
+        }
+        let url = try context.url(path: ["Items", item.id, "Download"])
+        return MediaDownloadPreparation(
+            media: MediaItem(jellyfinItem: item, server: server),
+            request: try context.mediaRequest(url: url)
+        )
+    }
+
+    func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem] {
+        let item = try await catalog.item(id: itemID)
+        if kind == .movie || kind == .episode {
+            return [MediaItem(jellyfinItem: item, server: server)]
+        }
+        return try await catalog.playbackQueue(startingWith: item)
+            .filter(\.isPlayable)
+            .map { MediaItem(jellyfinItem: $0, server: server) }
     }
 
     private func sourcePlan(for plan: PlaybackPlan) -> JellyfinPlaybackPlan? {
@@ -396,7 +507,8 @@ enum JellyfinMediaServicesFactory {
             search: adapter,
             artwork: adapter,
             detail: adapter,
-            playback: adapter
+            playback: adapter,
+            downloads: adapter
         )
         adapter.services = services
         return services

@@ -126,6 +126,7 @@ private enum SeerrSetupStep: Hashable {
     case server
     case method
     case local
+    case jellyfin
 }
 
 @MainActor
@@ -145,11 +146,15 @@ private struct SeerrSetupView: View {
                 case .server:
                     EmptyView()
                 case .method:
-                    SeerrAuthMethodStepView(viewModel: viewModel) {
-                        path.append(.local)
-                    }
+                    SeerrAuthMethodStepView(
+                        viewModel: viewModel,
+                        onSelectLocal: { path.append(.local) },
+                        onSelectJellyfin: { path.append(.jellyfin) }
+                    )
                 case .local:
                     SeerrLocalAuthStepView(viewModel: viewModel)
+                case .jellyfin:
+                    SeerrJellyfinAuthStepView(viewModel: viewModel)
                 }
             }
             .toolbar {
@@ -211,6 +216,7 @@ private struct SeerrServerStepView: View {
 private struct SeerrAuthMethodStepView: View {
     @Bindable var viewModel: SeerrViewModel
     var onSelectLocal: () -> Void
+    var onSelectJellyfin: () -> Void
 
     var body: some View {
         List {
@@ -239,6 +245,19 @@ private struct SeerrAuthMethodStepView: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    if viewModel.isJellyfinAuthAvailable {
+                        Divider().padding(.vertical, 4)
+
+                        Button(action: onSelectJellyfin) {
+                            Label("integrations.seerr.login.jellyfin", systemImage: "play.tv.fill")
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .tint(.secondary)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(viewModel.isAuthenticating)
+                    }
+
                     Divider()
                         .padding(.vertical, 4)
 
@@ -257,6 +276,38 @@ private struct SeerrAuthMethodStepView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("integrations.seerr.login.title")
+    }
+}
+
+@MainActor
+private struct SeerrJellyfinAuthStepView: View {
+    @Bindable var viewModel: SeerrViewModel
+
+    var body: some View {
+        List {
+            Section("integrations.seerr.login.jellyfin") {
+                TextField("integrations.seerr.login.username", text: $viewModel.jellyfinUsername)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("integrations.seerr.login.password", text: $viewModel.jellyfinPassword)
+                Button {
+                    Task { await viewModel.signInWithJellyfin() }
+                } label: {
+                    Label("integrations.seerr.login.jellyfin", systemImage: "arrow.right.circle.fill")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .tint(.secondary)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(
+                    viewModel.jellyfinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.jellyfinPassword.isEmpty
+                        || viewModel.isAuthenticating
+                )
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("integrations.seerr.login.jellyfin")
     }
 }
 

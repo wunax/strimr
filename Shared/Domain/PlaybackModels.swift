@@ -23,11 +23,52 @@ struct PlaybackTrack: Sendable, Hashable, Identifiable {
     let isHearingImpaired: Bool
 }
 
+struct MediaTrackMetadata: Sendable, Hashable, Identifiable {
+    let id: Int?
+    let sourceIndex: Int?
+    let codec: String
+    let title: String?
+    let displayTitle: String
+    let language: String?
+    let isDefault: Bool
+    let isForced: Bool
+    let isHearingImpaired: Bool
+}
+
 struct MediaChapter: Sendable, Hashable, Identifiable {
     let id: String
     let title: String
+    let index: Int
     let startTime: TimeInterval
+    let endTime: TimeInterval
     let image: ArtworkReference?
+    let thumbPath: String?
+
+    var stableID: String { id }
+    var isValid: Bool { startTime >= 0 && endTime > startTime }
+
+    func contains(time: TimeInterval) -> Bool {
+        time >= startTime && time < endTime
+    }
+}
+
+struct SkipSegment: Sendable, Hashable, Identifiable {
+    enum Kind: String, Sendable, Hashable {
+        case intro
+        case credits
+    }
+
+    let id: String
+    let kind: Kind
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+
+    var isIntro: Bool { kind == .intro }
+    var isCredits: Bool { kind == .credits }
+
+    func contains(time: TimeInterval) -> Bool {
+        time >= startTime && time <= endTime
+    }
 }
 
 struct PlaybackPlan: Sendable {
@@ -43,6 +84,8 @@ struct PlaybackPlan: Sendable {
     let tracks: [PlaybackTrack]
     let externalSubtitles: [ExternalSubtitleTrack]
     let chapters: [MediaChapter]
+    let skipSegments: [SkipSegment]
+    let scrubThumbnailSource: ScrubThumbnailSource?
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {
