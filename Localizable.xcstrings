@@ -1284,6 +1284,7 @@
       }
     },
     "errors.selectServer.browseLibrary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1329,6 +1330,7 @@
       }
     },
     "errors.selectServer.loadDetails" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1351,6 +1353,7 @@
       }
     },
     "errors.selectServer.loadEpisodes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1418,6 +1421,7 @@
       }
     },
     "errors.selectServer.loadRelatedContent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1440,6 +1444,7 @@
       }
     },
     "errors.selectServer.loadSeasons" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1924,6 +1929,28 @@
         }
       }
     },
+    "integrations.seerr.login.jellyfin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer avec Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Jellyfin 继续"
+          }
+        }
+      }
+    },
     "integrations.seerr.login.local" : {
       "localizations" : {
         "en" : {
@@ -1968,28 +1995,6 @@
         }
       }
     },
-    "integrations.seerr.login.jellyfin" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue with Jellyfin"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continuer avec Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 Jellyfin 继续"
-          }
-        }
-      }
-    },
     "integrations.seerr.login.password" : {
       "localizations" : {
         "en" : {
@@ -2008,28 +2013,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "密码"
-          }
-        }
-      }
-    },
-    "integrations.seerr.login.username" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jellyfin username"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nom d’utilisateur Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jellyfin 用户名"
           }
         }
       }
@@ -2118,6 +2101,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录"
+          }
+        }
+      }
+    },
+    "integrations.seerr.login.username" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin username"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom d’utilisateur Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 用户名"
           }
         }
       }
@@ -6091,6 +6096,28 @@
         }
       }
     },
+    "provider.jellyfin.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect directly to your Jellyfin server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous directement à votre serveur Jellyfin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接连接到您的 Jellyfin 服务器。"
+          }
+        }
+      }
+    },
     "provider.plex" : {
       "localizations" : {
         "en" : {
@@ -6113,24 +6140,46 @@
         }
       }
     },
-    "provider.selection.subtitle" : {
+    "provider.plex.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose the media service to use for this session."
+            "value" : "Use your Plex account to access your servers and libraries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez le service multimédia à utiliser pour cette session."
+            "value" : "Utilisez votre compte Plex pour accéder à vos serveurs et médiathèques."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择此会话要使用的媒体服务。"
+            "value" : "使用您的 Plex 帐户访问服务器和媒体库。"
+          }
+        }
+      }
+    },
+    "provider.selection.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the media service you want to use with Strimr."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez le service multimédia à utiliser avec Strimr."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择您想要与 Strimr 配合使用的媒体服务。"
           }
         }
       }

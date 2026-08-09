@@ -2,50 +2,246 @@ import SwiftUI
 
 struct ProviderSelectionView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @FocusState private var focusedProvider: MediaProvider?
+    @State private var selectingProvider: MediaProvider?
 
     var body: some View {
-        VStack(spacing: 28) {
-            VStack(spacing: 8) {
-                Text("provider.selection.title")
-                    .font(.largeTitle.bold())
-                Text("provider.selection.subtitle")
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: verticalSpacing) {
+                header
+                providerChoices
             }
+            .frame(maxWidth: contentMaxWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
-            HStack(spacing: 20) {
-                providerButton(
-                    title: "provider.plex",
-                    systemImage: "play.tv.fill",
-                    provider: .plex,
-                )
-                providerButton(
-                    title: "provider.jellyfin",
-                    systemImage: "triangle.fill",
-                    provider: .jellyfin,
-                )
+    private var header: some View {
+        VStack(spacing: 10) {
+            Text("provider.selection.title")
+                .font(.largeTitle.bold())
+                .multilineTextAlignment(.center)
+            Text("provider.selection.subtitle")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: 620)
+    }
+
+    private var providerChoices: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: cardSpacing) {
+                providerButtons
+            }
+            .frame(minWidth: horizontalLayoutMinimumWidth)
+
+            VStack(spacing: cardSpacing) {
+                providerButtons
             }
         }
-        .padding(32)
-        .frame(maxWidth: 720, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var providerButtons: some View {
+        providerButton(
+            title: "provider.plex",
+            description: "provider.plex.description",
+            image: "plex_logo",
+            accent: Color(red: 0.95, green: 0.68, blue: 0.0),
+            provider: .plex,
+        )
+        providerButton(
+            title: "provider.jellyfin",
+            description: "provider.jellyfin.description",
+            image: "jellyfin_logo",
+            accent: Color(red: 0.46, green: 0.49, blue: 0.96),
+            provider: .jellyfin,
+        )
     }
 
     private func providerButton(
         title: LocalizedStringKey,
-        systemImage: String,
+        description: LocalizedStringKey,
+        image: String,
+        accent: Color,
         provider: MediaProvider,
     ) -> some View {
-        Button {
+        let isFocused = focusedProvider == provider
+        let isSelecting = selectingProvider == provider
+
+        return Button {
+            guard selectingProvider == nil else { return }
+            selectingProvider = provider
             Task { await sessionManager.selectProvider(provider) }
         } label: {
-            VStack(spacing: 14) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 42, weight: .semibold))
-                Text(title)
-                    .font(.title2.bold())
+            VStack(alignment: .leading, spacing: 0) {
+                Image(image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
+                    .frame(maxWidth: .infinity, minHeight: logoAreaHeight)
+                    .accessibilityHidden(true)
+
+                Text(description)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 18)
+
+                Spacer(minLength: 24)
+
+                HStack(spacing: 8) {
+                    if isSelecting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("common.actions.continue")
+                            .fontWeight(.semibold)
+                        Image(systemName: "arrow.right")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundStyle(accent)
             }
-            .frame(maxWidth: .infinity, minHeight: 150)
+            .padding(cardPadding)
+            .frame(maxWidth: .infinity, minHeight: cardMinimumHeight, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .fill(Color.white.opacity(isFocused ? 0.13 : 0.07))
+                    .overlay {
+                        accent.opacity(isFocused ? 0.16 : 0.08)
+                        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                    }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .stroke(
+                        isFocused ? accent.opacity(0.9) : Color.white.opacity(0.12),
+                        lineWidth: isFocused ? 3 : 1,
+                    )
+            }
+            .shadow(color: isFocused ? accent.opacity(0.22) : .clear, radius: 24, y: 8)
+            .scaleEffect(isFocused ? 1.035 : 1)
+            .opacity(selectingProvider == nil || isSelecting ? 1 : 0.5)
+            .animation(.easeOut(duration: 0.18), value: isFocused)
+            .animation(.easeOut(duration: 0.18), value: selectingProvider)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(ProviderCardButtonStyle())
+        .focused($focusedProvider, equals: provider)
+        .disabled(selectingProvider != nil)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityHint(description)
+    }
+
+    private var contentMaxWidth: CGFloat {
+        #if os(tvOS)
+            1120
+        #else
+            820
+        #endif
+    }
+
+    private var horizontalLayoutMinimumWidth: CGFloat {
+        #if os(tvOS)
+            900
+        #else
+            600
+        #endif
+    }
+
+    private var horizontalPadding: CGFloat {
+        #if os(tvOS)
+            64
+        #else
+            24
+        #endif
+    }
+
+    private var verticalPadding: CGFloat {
+        #if os(tvOS)
+            72
+        #else
+            32
+        #endif
+    }
+
+    private var verticalSpacing: CGFloat {
+        #if os(tvOS)
+            56
+        #else
+            32
+        #endif
+    }
+
+    private var cardSpacing: CGFloat {
+        #if os(tvOS)
+            32
+        #else
+            16
+        #endif
+    }
+
+    private var cardPadding: CGFloat {
+        #if os(tvOS)
+            40
+        #else
+            24
+        #endif
+    }
+
+    private var cardMinimumHeight: CGFloat {
+        #if os(tvOS)
+            300
+        #else
+            230
+        #endif
+    }
+
+    private var cardCornerRadius: CGFloat {
+        #if os(tvOS)
+            28
+        #else
+            20
+        #endif
+    }
+
+    private var logoMaxWidth: CGFloat {
+        #if os(tvOS)
+            280
+        #else
+            210
+        #endif
+    }
+
+    private var logoMaxHeight: CGFloat {
+        #if os(tvOS)
+            108
+        #else
+            76
+        #endif
+    }
+
+    private var logoAreaHeight: CGFloat {
+        #if os(tvOS)
+            112
+        #else
+            80
+        #endif
+    }
+}
+
+private struct ProviderCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
