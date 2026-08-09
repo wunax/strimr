@@ -50,14 +50,12 @@ struct ProviderSelectionView: View {
     private var providerButtons: some View {
         providerButton(
             title: "provider.plex",
-            description: "provider.plex.description",
             image: "plex_logo",
             accent: Color(red: 0.95, green: 0.68, blue: 0.0),
             provider: .plex,
         )
         providerButton(
             title: "provider.jellyfin",
-            description: "provider.jellyfin.description",
             image: "jellyfin_logo",
             accent: Color(red: 0.46, green: 0.49, blue: 0.96),
             provider: .jellyfin,
@@ -66,7 +64,6 @@ struct ProviderSelectionView: View {
 
     private func providerButton(
         title: LocalizedStringKey,
-        description: LocalizedStringKey,
         image: String,
         accent: Color,
         provider: MediaProvider,
@@ -86,29 +83,6 @@ struct ProviderSelectionView: View {
                     .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
                     .frame(maxWidth: .infinity, minHeight: logoAreaHeight)
                     .accessibilityHidden(true)
-
-                Text(description)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 18)
-
-                Spacer(minLength: 24)
-
-                HStack(spacing: 8) {
-                    if isSelecting {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Text("common.actions.continue")
-                            .fontWeight(.semibold)
-                        Image(systemName: "arrow.right")
-                            .fontWeight(.semibold)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .foregroundStyle(accent)
             }
             .padding(cardPadding)
             .frame(maxWidth: .infinity, minHeight: cardMinimumHeight, alignment: .leading)
@@ -138,7 +112,6 @@ struct ProviderSelectionView: View {
         .disabled(selectingProvider != nil)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
-        .accessibilityHint(description)
     }
 
     private var contentMaxWidth: CGFloat {
@@ -199,9 +172,9 @@ struct ProviderSelectionView: View {
 
     private var cardMinimumHeight: CGFloat {
         #if os(tvOS)
-            300
+            210
         #else
-            230
+            140
         #endif
     }
 

@@ -6096,28 +6096,6 @@
         }
       }
     },
-    "provider.jellyfin.description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connect directly to your Jellyfin server."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connectez-vous directement à votre serveur Jellyfin."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "直接连接到您的 Jellyfin 服务器。"
-          }
-        }
-      }
-    },
     "provider.plex" : {
       "localizations" : {
         "en" : {
@@ -6136,28 +6114,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plex"
-          }
-        }
-      }
-    },
-    "provider.plex.description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use your Plex account to access your servers and libraries."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisez votre compte Plex pour accéder à vos serveurs et médiathèques."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用您的 Plex 帐户访问服务器和媒体库。"
           }
         }
       }
