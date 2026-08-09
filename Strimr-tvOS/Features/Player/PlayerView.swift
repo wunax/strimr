@@ -678,6 +678,7 @@ struct PlayerView: View {
         awaitingMediaLoad = true
         playerController.load(
             url: url,
+            httpHeaders: viewModel.playbackHTTPHeaders,
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
@@ -940,6 +941,15 @@ struct PlayerView: View {
             return
         }
 
+        if viewModel.usesCommonPlaybackQueue {
+            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+                await MainActor.run { dismissPlayer() }
+                return
+            }
+            await startPlayback(using: nextViewModel)
+            return
+        }
+
         guard let nextEpisode = await viewModel.nextItemInQueue() else {
             await MainActor.run {
                 dismissPlayer()
@@ -959,6 +969,15 @@ struct PlayerView: View {
 
     private func handleMovieCompletion() async {
         await viewModel.markPlaybackFinished()
+
+        if viewModel.usesCommonPlaybackQueue {
+            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+                await MainActor.run { dismissPlayer() }
+                return
+            }
+            await startPlayback(using: nextViewModel)
+            return
+        }
 
         guard let nextItem = await viewModel.nextItemInQueue() else {
             await MainActor.run {
@@ -980,6 +999,14 @@ struct PlayerView: View {
             )
         }
 
+        await viewModel.load()
+    }
+
+    private func startPlayback(using nextViewModel: PlayerViewModel) async {
+        await MainActor.run {
+            activePlaybackURL = nil
+            viewModel = nextViewModel
+        }
         await viewModel.load()
     }
 

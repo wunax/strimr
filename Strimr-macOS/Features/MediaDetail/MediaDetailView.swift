@@ -122,25 +122,31 @@ struct MediaDetailView: View {
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
             GeometryReader { proxy in
-                AsyncImage(
-                    url: viewModel.heroImageURL(
-                        spoilerProtection: settingsManager.interface.spoilerProtection,
-                    ),
-                ) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                            .clipped()
-                            .overlay(Color.black.opacity(0.2))
-                            .mask(heroMask)
+                Group {
+                    if let url = viewModel.heroImageURL(
+                        spoilerProtection: settingsManager.interface.spoilerProtection
+                    ) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Color.black.opacity(0.25)
+                            }
+                        }
                     } else {
-                        Color.black.opacity(0.25)
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                            .mask(heroMask)
+                        ArtworkPathView(
+                            path: viewModel.heroArtworkPath(
+                                spoilerProtection: settingsManager.interface.spoilerProtection
+                            ),
+                            width: 1400,
+                            height: 800
+                        )
                     }
                 }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
+                .overlay(Color.black.opacity(0.2))
+                .mask(heroMask)
             }
             .frame(maxWidth: .infinity, minHeight: 380, maxHeight: 480)
             .overlay(alignment: .topLeading) {
@@ -490,16 +496,24 @@ struct MediaDetailView: View {
             onSelectMedia(episode)
         } label: {
             HStack(spacing: 14) {
-                AsyncImage(
-                    url: viewModel.imageURL(
+                Group {
+                    if let url = viewModel.imageURL(
                         for: episode,
-                        spoilerProtection: settingsManager.interface.spoilerProtection,
-                    ),
-                ) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
+                        spoilerProtection: settingsManager.interface.spoilerProtection
+                    ) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Color.gray.opacity(0.15)
+                            }
+                        }
                     } else {
-                        Color.gray.opacity(0.15)
+                        ArtworkPathView(
+                            path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
+                            width: 640,
+                            height: 360
+                        )
                     }
                 }
                 .frame(width: 180, height: 100)

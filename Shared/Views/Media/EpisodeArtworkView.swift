@@ -15,18 +15,21 @@ struct EpisodeArtworkView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            AsyncImage(url: imageURL) { phase in
-                switch phase {
-                case let .success(image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                case .empty:
-                    Color.gray.opacity(0.15)
-                case .failure:
-                    Color.gray.opacity(0.15)
-                @unknown default:
-                    Color.gray.opacity(0.15)
+            Group {
+                if let imageURL {
+                    AsyncImage(url: imageURL) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFit()
+                        } else {
+                            Color.gray.opacity(0.15)
+                        }
+                    }
+                } else {
+                    ArtworkPathView(
+                        path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
+                        width: Int(width),
+                        height: Int(width / aspectRatio)
+                    )
                 }
             }
             .frame(width: width)

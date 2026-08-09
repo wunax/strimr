@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class PlaylistDetailViewModel {
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaDetailService
 
     var playlist: PlaylistMediaItem
     var items: [MediaDisplayItem] = []
@@ -12,9 +12,9 @@ final class PlaylistDetailViewModel {
     var errorMessage: String?
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(playlist: PlaylistMediaItem, context: PlexAPIContext) {
+    init(playlist: PlaylistMediaItem, services: MediaServices) {
         self.playlist = playlist
-        self.context = context
+        service = services.detail
     }
 
     var playlistDisplayItem: MediaDisplayItem {
@@ -47,30 +47,12 @@ final class PlaylistDetailViewModel {
     }
 
     private func fetch(preservingExistingContent: Bool) async {
-        guard let playlistRepository = try? PlaylistRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.loadDetails"),
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            async let playlistResponse = playlistRepository.getPlaylist(ratingKey: playlist.id)
-            async let itemsResponse = playlistRepository.getPlaylistItems(ratingKey: playlist.id)
-
-            let playlistContainer = try await playlistResponse
-            let itemsContainer = try await itemsResponse
-
-            if let plexPlaylist = playlistContainer.mediaContainer.metadata?.first {
-                playlist = PlaylistMediaItem(plexItem: plexPlaylist)
-            }
-
-            items = (itemsContainer.mediaContainer.metadata ?? []).compactMap(MediaDisplayItem.init)
+            items = try await service.playlistItems(id: playlist.id)
         } catch {
             handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }

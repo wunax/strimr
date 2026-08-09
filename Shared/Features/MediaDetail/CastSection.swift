@@ -62,6 +62,7 @@ struct CastCarousel: View {
                     CastCard(
                         member: member,
                         imageURL: viewModel.castImageURL(for: member),
+                        artworkPath: member.thumbPath,
                         onSelect: member.person.map { person in
                             { onSelectPerson(person) }
                         },
@@ -92,6 +93,7 @@ private var sectionHorizontalPadding: CGFloat {
 struct CastCard: View {
     let member: CastMember
     let imageURL: URL?
+    let artworkPath: String?
     let onSelect: (() -> Void)?
     #if os(tvOS)
         @FocusState private var isFocused: Bool
@@ -164,6 +166,9 @@ struct CastCard: View {
                         placeholder
                     }
                 }
+            } else if artworkPath != nil {
+                ArtworkPathView(path: artworkPath, width: 200, height: 200)
+                    .frame(width: 120, height: 120)
             } else {
                 placeholder
             }

@@ -30,19 +30,21 @@ final class LibraryBrowseViewModel {
     private var folderStack: [FolderBreadcrumb] = []
     private var hasLoadedMeta = false
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
     private let pageSize = 40
 
     init(
         library: Library,
-        context: PlexAPIContext,
+        services: MediaServices,
         settingsManager: SettingsManager,
     ) {
         self.library = library
-        self.context = context
+        context = services.plexContext
+        service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(context: context)
+        controls = LibraryBrowseControlsViewModel(context: services.plexContext)
         controls.onSelectionChanged = { [weak self] in
             Task { await self?.refresh() }
         }
@@ -114,6 +116,7 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetchCharactersIfNeeded() async {
+        guard let context else { return }
         guard sectionCharacters.isEmpty else { return }
         guard supportsSectionCharacters else { return }
         guard let sectionId = library.sectionId else { return }
@@ -164,11 +167,15 @@ final class LibraryBrowseViewModel {
 
     private func loadPage(start: Int) async {
         guard !loadedPageStarts.contains(start), !loadingPageStarts.contains(start) else { return }
+        if context == nil {
+            await loadCommonPage(start: start)
+            return
+        }
         guard let sectionId = library.sectionId else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
+        guard let context, let sectionRepository = try? SectionRepository(context: context) else {
             resetState(error: String(localized: "errors.selectServer.browseLibrary"))
             return
         }
@@ -214,6 +221,31 @@ final class LibraryBrowseViewModel {
         }
     }
 
+    private func loadCommonPage(start: Int) async {
+        errorMessage = nil
+        loadingPageStarts.insert(start)
+        defer { loadingPageStarts.remove(start) }
+
+        do {
+            let page = try await service.items(
+                in: library,
+                parentID: nil,
+                startIndex: start,
+                limit: pageSize
+            )
+            for (offset, item) in page.items.enumerated() {
+                itemsByIndex[start + offset] = .media(item)
+            }
+            loadedPageStarts.insert(start)
+            totalItemCount = page.totalCount ?? (start + page.items.count)
+        } catch {
+            if !error.isCancellation {
+                ErrorReporter.capture(error)
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func resolvedEndpoint(sectionId: Int) -> PlexEndpoint {
         if let currentFolderEndpoint {
             return currentFolderEndpoint
@@ -254,6 +286,7 @@ final class LibraryBrowseViewModel {
     }
 
     private var supportsSectionCharacters: Bool {
+        guard context != nil else { return false }
         guard let sectionId = library.sectionId else { return false }
         let endpoint = resolvedEndpoint(sectionId: sectionId)
         return firstCharacterEndpoint(from: endpoint) != nil

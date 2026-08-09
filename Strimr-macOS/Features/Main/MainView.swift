@@ -8,6 +8,7 @@ struct MainView: View {
     @Environment(SeerrStore.self) private var seerrStore
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
+    @Environment(MediaServices.self) private var mediaServices
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -66,7 +67,7 @@ struct MainView: View {
         }
         .task {
             sharePlayCoordinator.configurePlaybackLauncher(
-                PlaybackLauncher(context: context, coordinator: appModel),
+                PlaybackLauncher(services: mediaServices, coordinator: appModel),
             )
             do {
                 try await libraryStore.loadLibraries()
@@ -101,6 +102,9 @@ struct MainView: View {
             Button("common.actions.switchServer", systemImage: "server.rack") {
                 Task { await sessionManager.requestServerSelection() }
             }
+            Button("provider.change", systemImage: "arrow.triangle.2.circlepath") {
+                Task { await sessionManager.changeProvider() }
+            }
             Divider()
             Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                 isShowingLogoutConfirmation = true
@@ -133,8 +137,7 @@ struct MainView: View {
         case .search:
             SearchView(
                 viewModel: SearchViewModel(
-                    context: context,
-                    sessionManager: sessionManager,
+                    services: mediaServices,
                     settingsManager: settingsManager,
                 ),
                 onSelectMedia: appModel.showSearchResult,
@@ -159,13 +162,14 @@ struct MainView: View {
 
     @ViewBuilder
     private func destination(for route: AppModel.Route) -> some View {
+        let routeServices = appModel.services(for: appModel.selection, default: mediaServices)
         let routeContext = appModel.context(for: appModel.selection, default: context)
         switch route {
         case let .media(media):
             MediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    context: routeContext,
+                    services: routeServices,
                     resolutionMode: .selectedMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
@@ -176,26 +180,26 @@ struct MainView: View {
             .environment(routeContext)
         case let .collection(collection):
             CollectionDetailView(
-                viewModel: CollectionDetailViewModel(collection: collection, context: routeContext),
+                viewModel: CollectionDetailViewModel(collection: collection, services: routeServices),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .collection, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .collection, true, true) },
             )
         case let .playlist(playlist):
             PlaylistDetailView(
-                viewModel: PlaylistDetailViewModel(playlist: playlist, context: routeContext),
+                viewModel: PlaylistDetailViewModel(playlist: playlist, services: routeServices),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .playlist, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .playlist, true, true) },
             )
         case let .hub(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, context: routeContext),
+                viewModel: HubDetailViewModel(hub: hub, services: routeServices),
                 onSelectMedia: appModel.showMedia,
             )
         case let .person(person):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, context: routeContext),
+                viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: appModel.showMedia,
             )
         case let .library(library):
@@ -216,7 +220,7 @@ struct MainView: View {
     ) {
         Task {
             await PlaybackLauncher(
-                context: appModel.context(for: appModel.selection, default: context),
+                services: appModel.services(for: appModel.selection, default: mediaServices),
                 coordinator: appModel,
             ).play(
                 ratingKey: ratingKey,

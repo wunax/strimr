@@ -9,12 +9,12 @@ final class LibraryRecommendedViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(library: Library, context: PlexAPIContext) {
+    init(library: Library, services: MediaServices) {
         self.library = library
-        self.context = context
+        service = services.library
     }
 
     var hasContent: Bool {
@@ -36,29 +36,12 @@ final class LibraryRecommendedViewModel {
     }
 
     private func fetchHubs(preservingExistingContent: Bool) async {
-        guard let sectionId = library.sectionId else {
-            handleLoadError(
-                String(localized: "errors.missingLibraryIdentifier"),
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-        guard let hubRepository = try? HubRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.loadRecommendations"),
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let response = try await hubRepository.getSectionHubs(sectionId: sectionId)
-            let plexHubs = response.mediaContainer.hub ?? []
-            hubs = plexHubs.map(Hub.init)
+            hubs = try await service.recommended(in: library)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)

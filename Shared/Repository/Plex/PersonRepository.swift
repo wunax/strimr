@@ -15,11 +15,11 @@ final class PersonRepository {
         network = PlexServerNetworkClient(context: context)
     }
 
-    func getPerson(id: Int) async throws -> PlexPersonMediaContainer {
+    func getPerson(id: String) async throws -> PlexPersonMediaContainer {
         try await network.request(path: "/library/people/\(id)")
     }
 
-    func getMedia(id: Int) async throws -> PlexItemMediaContainer {
+    func getMedia(id: String) async throws -> PlexItemMediaContainer {
         try await network.request(path: "/library/people/\(id)/media")
     }
 }

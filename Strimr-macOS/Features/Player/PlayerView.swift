@@ -27,6 +27,14 @@ struct PlayerWindowView: View {
         if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
             return PlayerViewModel(localMedia: media, localPlaybackURL: url, context: context)
         }
+        if let queue = presentation.mediaQueue, let services = presentation.mediaServices {
+            return PlayerViewModel(
+                queue: queue,
+                services: services,
+                context: context,
+                shouldResumeFromOffset: presentation.shouldResumeFromOffset
+            )
+        }
         return PlayerViewModel(
             playQueue: presentation.playQueue,
             ratingKey: ratingKey,
@@ -697,6 +705,7 @@ struct PlayerView: View {
             : (viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil)
         playerController.load(
             url: url,
+            httpHeaders: viewModel.playbackHTTPHeaders,
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
@@ -756,6 +765,15 @@ struct PlayerView: View {
             return
         }
 
+        if viewModel.usesCommonPlaybackQueue {
+            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+                playerController.pause()
+                return
+            }
+            await startPlayback(using: nextViewModel)
+            return
+        }
+
         guard let next = await viewModel.nextItemInQueue() else {
             if isSharePlayPlayback {
                 sharePlayCoordinator.leave()
@@ -778,6 +796,10 @@ struct PlayerView: View {
             context: viewModel.serverContext,
             shouldResumeFromOffset: false,
         )
+        await startPlayback(using: nextViewModel)
+    }
+
+    private func startPlayback(using nextViewModel: PlayerViewModel) async {
         playerController.stop()
         loadedURL = nil
         audioTracks = []
@@ -852,6 +874,7 @@ struct PlayerView: View {
             loadedURL = url
             playerController.load(
                 url: url,
+                httpHeaders: viewModel.playbackHTTPHeaders,
                 startPosition: position,
                 preferredAudioTrackID: viewModel.ffIndex(
                     forPlexStreamID: pendingRecoveryAudioPlexStreamID,

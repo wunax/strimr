@@ -235,6 +235,14 @@ struct MediaDetailHeaderSection: View {
                                 .mask(heroMask)
                         }
                     }
+                } else if let artworkPath = viewModel.heroArtworkPath(
+                    spoilerProtection: settingsManager.interface.spoilerProtection
+                ) {
+                    ArtworkPathView(path: artworkPath, width: 1400, height: 800)
+                        .frame(width: proxy.size.width, height: heroHeight, alignment: .center)
+                        .clipped()
+                        .overlay(Color.black.opacity(0.2))
+                        .mask(heroMask)
                 } else {
                     Color.gray.opacity(0.12)
                         .frame(width: proxy.size.width, height: heroHeight)

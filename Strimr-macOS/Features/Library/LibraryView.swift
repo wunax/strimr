@@ -127,7 +127,7 @@ struct LibraryView: View {
         NavigationLink(value: library) {
             LibraryCard(
                 library: library,
-                artworkURL: viewModel.artworkURL(for: library),
+                artworkResource: viewModel.artwork(for: library),
             )
         }
         .buttonStyle(.plain)
@@ -139,7 +139,7 @@ struct LibraryView: View {
 
 private struct LibraryCard: View {
     let library: Library
-    let artworkURL: URL?
+    let artworkResource: ArtworkResource?
 
     @State private var isHovering = false
 
@@ -202,25 +202,7 @@ private struct LibraryCard: View {
                 .font(.system(size: 42, weight: .medium))
                 .foregroundStyle(.white.opacity(0.35))
 
-            if let artworkURL {
-                AsyncImage(url: artworkURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .transition(.opacity)
-                    case .empty:
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white.opacity(0.8))
-                    case .failure:
-                        EmptyView()
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-            }
+            ArtworkResourceView(resource: artworkResource)
         }
         .clipped()
     }

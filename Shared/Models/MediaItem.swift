@@ -33,6 +33,65 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
 
+    var identity: MediaIdentity {
+        MediaIdentity(
+            server: ServerIdentity(provider: provider, id: serverIdentifier),
+            itemID: id,
+        )
+    }
+
+    var provider: MediaProvider {
+        guid.hasPrefix("jellyfin://") ? .jellyfin : .plex
+    }
+
+    var serverIdentifier: String {
+        if provider == .jellyfin {
+            return guid.split(separator: "/").dropFirst(2).first.map(String.init) ?? "jellyfin"
+        }
+        return "plex"
+    }
+
+    var kind: MediaKind {
+        switch type {
+        case .movie: .movie
+        case .show: .series
+        case .season: .season
+        case .episode: .episode
+        case .collection: .collection
+        case .playlist: .playlist
+        case .unknown: .unknown
+        }
+    }
+
+    var hierarchy: MediaHierarchy {
+        MediaHierarchy(
+            parentID: parentRatingKey.map { MediaIdentity(server: identity.server, itemID: $0) },
+            seriesID: grandparentRatingKey.map { MediaIdentity(server: identity.server, itemID: $0) },
+            seasonID: parentRatingKey.map { MediaIdentity(server: identity.server, itemID: $0) },
+            seriesTitle: grandparentTitle,
+            seasonTitle: parentTitle,
+            seasonNumber: parentIndex,
+            episodeNumber: index,
+        )
+    }
+
+    var watchState: MediaWatchState {
+        MediaWatchState(
+            isPlayed: (viewCount ?? 0) > 0,
+            playCount: viewCount ?? 0,
+            resumePosition: viewOffset,
+            isFavorite: false,
+        )
+    }
+
+    var counts: MediaCounts {
+        MediaCounts(
+            childCount: childCount,
+            leafCount: leafCount,
+            viewedLeafCount: viewedLeafCount,
+        )
+    }
+
     var primaryLabel: String {
         grandparentTitle ?? parentTitle ?? title
     }

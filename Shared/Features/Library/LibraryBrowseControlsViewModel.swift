@@ -75,9 +75,9 @@ final class LibraryBrowseControlsViewModel {
 
     @ObservationIgnored var onSelectionChanged: (() -> Void)?
     @ObservationIgnored var onDisplayTypeChanged: (() -> Void)?
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let context: PlexAPIContext?
 
-    init(context: PlexAPIContext) {
+    init(context: PlexAPIContext?) {
         self.context = context
     }
 
@@ -305,7 +305,7 @@ final class LibraryBrowseControlsViewModel {
         let filterKey = filter.filter
         guard !filterOptionsLoading.contains(filterKey) else { return }
         guard filterOptions[filterKey] == nil else { return }
-        guard let sectionRepository = try? SectionRepository(context: context) else { return }
+        guard let context, let sectionRepository = try? SectionRepository(context: context) else { return }
         guard let endpoint = PlexEndpoint(key: filter.key) else { return }
 
         filterOptionsLoading.insert(filterKey)

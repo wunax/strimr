@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class CollectionDetailViewModel {
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaDetailService
 
     var collection: CollectionMediaItem
     var items: [MediaDisplayItem] = []
@@ -12,9 +12,9 @@ final class CollectionDetailViewModel {
     var errorMessage: String?
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(collection: CollectionMediaItem, context: PlexAPIContext) {
+    init(collection: CollectionMediaItem, services: MediaServices) {
         self.collection = collection
-        self.context = context
+        service = services.detail
     }
 
     var collectionDisplayItem: MediaDisplayItem {
@@ -54,21 +54,12 @@ final class CollectionDetailViewModel {
     }
 
     private func fetch(preservingExistingContent: Bool) async {
-        guard let collectionsRepository = try? CollectionRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.loadDetails"),
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let response = try await collectionsRepository.getCollectionChildren(ratingKey: collection.id)
-            items = (response.mediaContainer.metadata ?? []).compactMap(MediaDisplayItem.init)
+            items = try await service.collectionItems(id: collection.id)
         } catch {
             handleLoadError(error.localizedDescription, preservingExistingContent: preservingExistingContent)
         }

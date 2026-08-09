@@ -10,13 +10,14 @@ final class PersonDetailViewModel {
     var isLoadingMedia = false
     var personErrorMessage: String?
     var mediaErrorMessage: String?
+    var imageResource: ArtworkResource?
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private var hasLoaded = false
 
-    init(person: Person, context: PlexAPIContext) {
+    init(person: Person, services: MediaServices) {
         self.person = person
-        self.context = context
+        self.services = services
     }
 
     var isLoading: Bool {
@@ -31,27 +32,18 @@ final class PersonDetailViewModel {
         await loadMedia()
     }
 
-    func imageURL(width: Int = 320, height: Int = 320) -> URL? {
-        guard let thumbPath = person.thumbPath,
-              let repository = try? ImageRepository(context: context)
-        else {
-            return nil
-        }
-
-        return repository.transcodeImageURL(path: thumbPath, width: width, height: height)
-    }
-
     private func loadPerson() async {
         isLoadingPerson = true
         personErrorMessage = nil
         defer { isLoadingPerson = false }
 
         do {
-            let repository = try PersonRepository(context: context)
-            let response = try await repository.getPerson(id: person.id)
-            if let directory = response.mediaContainer.directory?.first {
-                person = Person(directory: directory)
-            }
+            person = try await services.detail.person(id: person.id)
+            imageResource = try await services.artwork.artwork(
+                path: person.thumbPath,
+                width: 320,
+                height: 320
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -65,11 +57,7 @@ final class PersonDetailViewModel {
         defer { isLoadingMedia = false }
 
         do {
-            let repository = try PersonRepository(context: context)
-            let response = try await repository.getMedia(id: person.id)
-            items = (response.mediaContainer.metadata ?? [])
-                .filter(\.type.isSupported)
-                .compactMap(MediaDisplayItem.init)
+            items = try await services.detail.personMedia(id: person.id)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)

@@ -20,19 +20,20 @@ final class LibraryCollectionsViewModel {
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
 
-    @ObservationIgnored private let context: PlexAPIContext
-    @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    @ObservationIgnored private var commonItems: [MediaDisplayItem]?
     private let pageSize = 40
 
     init(
         library: Library,
-        context: PlexAPIContext,
-        settingsManager: SettingsManager,
+        services: MediaServices,
+        settingsManager _: SettingsManager,
     ) {
         self.library = library
-        self.context = context
-        self.settingsManager = settingsManager
+        context = services.plexContext
+        service = services.library
     }
 
     func load() async {
@@ -82,6 +83,7 @@ final class LibraryCollectionsViewModel {
         preservingExistingContent: Bool,
         forceReload: Bool = false,
     ) async {
+        guard let context else { return }
         guard forceReload || sectionCharacters.isEmpty else { return }
         guard let sectionId = library.sectionId else { return }
         guard let sectionRepository = try? SectionRepository(context: context) else { return }
@@ -130,6 +132,14 @@ final class LibraryCollectionsViewModel {
     ) async {
         guard reset || !loadedPageStarts.contains(start) else { return }
         guard !loadingPageStarts.contains(start) else { return }
+        if context == nil {
+            await loadCommonPage(
+                start: start,
+                reset: reset,
+                preservingExistingContent: preservingExistingContent
+            )
+            return
+        }
         guard let sectionId = library.sectionId else {
             handleLoadError(
                 String(localized: "errors.missingLibraryIdentifier"),
@@ -138,7 +148,7 @@ final class LibraryCollectionsViewModel {
             )
             return
         }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
+        guard let context, let sectionRepository = try? SectionRepository(context: context) else {
             handleLoadError(
                 String(localized: "errors.selectServer.browseLibrary"),
                 reset: reset,
@@ -185,6 +195,46 @@ final class LibraryCollectionsViewModel {
         }
     }
 
+    private func loadCommonPage(
+        start: Int,
+        reset: Bool,
+        preservingExistingContent: Bool
+    ) async {
+        if reset {
+            commonItems = nil
+            loadedPageStarts.removeAll()
+        }
+        errorMessage = nil
+        loadingPageStarts.insert(start)
+        defer { loadingPageStarts.remove(start) }
+
+        do {
+            let allItems: [MediaDisplayItem]
+            if let commonItems {
+                allItems = commonItems
+            } else {
+                allItems = try await service.collections(in: library).map(MediaDisplayItem.collection)
+                commonItems = allItems
+            }
+            let page = Array(allItems.dropFirst(start).prefix(pageSize))
+            if reset { itemsByIndex = [:] }
+            for (offset, item) in page.enumerated() {
+                itemsByIndex[start + offset] = item
+            }
+            loadedPageStarts.insert(start)
+            totalItemCount = allItems.count
+        } catch {
+            if !error.isCancellation {
+                ErrorReporter.capture(error)
+                handleLoadError(
+                    error.localizedDescription,
+                    reset: reset,
+                    preservingExistingContent: preservingExistingContent
+                )
+            }
+        }
+    }
+
     private func resetState(error: String? = nil) {
         itemsByIndex = [:]
         totalItemCount = 0
@@ -193,6 +243,7 @@ final class LibraryCollectionsViewModel {
         isLoading = false
         loadedPageStarts = []
         loadingPageStarts = []
+        commonItems = nil
     }
 
     private func handleLoadError(_ message: String, reset: Bool, preservingExistingContent: Bool) {

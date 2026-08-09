@@ -10,15 +10,15 @@ final class HubDetailViewModel {
     var isLoadingMore = false
     var errorMessage: String?
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let context: PlexAPIContext?
     @ObservationIgnored private var hasLoaded = false
     @ObservationIgnored private var reachedEnd = false
     @ObservationIgnored private var totalItemCount: Int?
     @ObservationIgnored private let pageSize = 50
 
-    init(hub: Hub, context: PlexAPIContext) {
+    init(hub: Hub, services: MediaServices) {
         self.hub = hub
-        self.context = context
+        context = services.plexContext
     }
 
     func load() async {
@@ -31,6 +31,11 @@ final class HubDetailViewModel {
         items = []
         reachedEnd = false
         totalItemCount = nil
+        guard context != nil else {
+            items = hub.items
+            reachedEnd = true
+            return
+        }
         await loadPage(start: 0, isInitialLoad: true)
     }
 
@@ -48,7 +53,7 @@ final class HubDetailViewModel {
         guard !reachedEnd else { return }
         guard !isLoading, !isLoadingMore else { return }
 
-        guard let repository = try? HubRepository(context: context) else {
+        guard let context, let repository = try? HubRepository(context: context) else {
             errorMessage = String(localized: "hub.error.loadFailed")
             return
         }

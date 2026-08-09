@@ -13,6 +13,7 @@ final class PlayerViewModel {
     var position = 0.0
     var bufferedAhead = 0.0
     var playbackURL: URL?
+    var playbackHTTPHeaders: [String: String] = [:]
     var serverAccessRecoveryError: PlexServerAccessRecoveryError?
     private(set) var scrubThumbnailSource: PlexBIFSource?
     var isPaused = false
@@ -57,6 +58,10 @@ final class PlayerViewModel {
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private var playQueueState: PlayQueueState
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let mediaServices: MediaServices?
+    @ObservationIgnored private var mediaQueue: PlaybackQueue?
+    @ObservationIgnored private var playbackPlan: PlaybackPlan?
+    @ObservationIgnored private var didReportCommonPlaybackStarted = false
     var serverContext: PlexAPIContext {
         context
     }
@@ -76,7 +81,7 @@ final class PlayerViewModel {
     var terminationMessage: String?
 
     var canSearchSubtitles: Bool {
-        !isLocalPlayback && activePartId != nil && !ratingKey.isEmpty
+        mediaServices == nil && !isLocalPlayback && activePartId != nil && !ratingKey.isEmpty
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -91,17 +96,32 @@ final class PlayerViewModel {
     }
 
     func ffIndex(forPlexStreamID id: Int?) -> Int? {
-        plexStream(forID: id)?.index
+        if mediaServices != nil { return id }
+        return plexStream(forID: id)?.index
     }
 
     func plexStreamIDsByFFIndex() -> [Int: Int] {
-        streamsByFFIndex.reduce(into: [:]) { result, entry in
+        if let playbackPlan {
+            return playbackPlan.tracks.reduce(into: [:]) { result, track in
+                result[track.sourceIndex] = track.sourceIndex
+            }
+        }
+        return streamsByFFIndex.reduce(into: [:]) { result, entry in
             guard let id = entry.value.id else { return }
             result[entry.key] = id
         }
     }
 
     func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
+        if let playbackPlan {
+            let subtitleTracks = playbackPlan.tracks.filter { $0.kind == .subtitle }
+            return playbackPlan.externalSubtitles.enumerated().map { index, track in
+                let streamID = subtitleTracks.indices.contains(index)
+                    ? subtitleTracks[index].sourceIndex
+                    : -(index + 1)
+                return PlayerExternalSubtitle(track: track, plexStreamID: streamID)
+            }
+        }
         guard let mediaRepository = try? MediaRepository(context: context) else { return [] }
 
         return partStreams
@@ -141,6 +161,29 @@ final class PlayerViewModel {
         localMedia = nil
         localPlaybackURL = nil
         shouldReportPlaybackToServer = true
+        mediaServices = nil
+        mediaQueue = nil
+    }
+
+    init(
+        queue: PlaybackQueue,
+        services: MediaServices,
+        context: PlexAPIContext,
+        shouldResumeFromOffset: Bool = true,
+    ) {
+        mediaQueue = queue
+        mediaServices = services
+        let currentMedia = queue.items.indices.contains(queue.currentIndex)
+            ? queue.items[queue.currentIndex].media
+            : queue.items.first?.media
+        ratingKey = currentMedia?.id ?? ""
+        playQueueState = PlayQueueState(localRatingKey: ratingKey)
+        self.context = context
+        shouldResumeFromOffsetFlag = shouldResumeFromOffset
+        localMedia = nil
+        localPlaybackURL = nil
+        shouldReportPlaybackToServer = true
+        media = currentMedia
     }
 
     init(localMedia: MediaItem, localPlaybackURL: URL, context: PlexAPIContext) {
@@ -151,12 +194,32 @@ final class PlayerViewModel {
         self.localMedia = localMedia
         self.localPlaybackURL = localPlaybackURL
         shouldReportPlaybackToServer = false
+        mediaServices = nil
+        mediaQueue = nil
         media = localMedia
         playbackURL = localPlaybackURL
     }
 
     var playQueue: PlayQueueState {
         playQueueState
+    }
+
+    var usesCommonPlaybackQueue: Bool {
+        mediaServices != nil
+    }
+
+    func nextCommonPlayerViewModel() -> PlayerViewModel? {
+        guard var queue = mediaQueue,
+              let mediaServices,
+              queue.items.indices.contains(queue.currentIndex + 1)
+        else { return nil }
+        queue.currentIndex += 1
+        return PlayerViewModel(
+            queue: queue,
+            services: mediaServices,
+            context: context,
+            shouldResumeFromOffset: false
+        )
     }
 
     var currentRatingKey: String {
@@ -180,6 +243,11 @@ final class PlayerViewModel {
             media = localMedia
             playbackURL = localPlaybackURL
             errorMessage = nil
+            return
+        }
+
+        if mediaServices != nil {
+            await loadCommonPlayback()
             return
         }
 
@@ -223,6 +291,14 @@ final class PlayerViewModel {
             guard let playbackURL else { throw PlexAPIError.invalidURL }
             return playbackURL
         }
+        if let mediaServices, let media {
+            let plan = try await mediaServices.playback.prepare(
+                media: media,
+                resume: shouldResumeFromOffsetFlag
+            )
+            apply(plan: plan)
+            return plan.url
+        }
         let repository = try MetadataRepository(context: context)
         try await loadRemoteMetadata(using: repository)
         guard let playbackURL else {
@@ -245,11 +321,13 @@ final class PlayerViewModel {
 
     @discardableResult
     func recoverServerAccessIfUnauthorized() async throws -> Bool {
+        guard mediaServices == nil else { return false }
         guard !isLocalPlayback else { return false }
         return try await context.validateCurrentServerAccess()
     }
 
     func forceServerAccessRecovery() async throws {
+        guard mediaServices == nil else { return }
         guard !isLocalPlayback else { return }
         try await context.forceRefreshCurrentServerAccess()
     }
@@ -283,11 +361,34 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        if let mediaServices, let playbackPlan {
+            Task {
+                do {
+                    try await mediaServices.playback.reportStopped(plan: playbackPlan, position: position)
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { return }
+                    ErrorReporter.capture(error)
+                }
+            }
+            return
+        }
         reportTimeline(state: .stopped, force: true)
     }
 
     func markPlaybackFinished() async {
         guard shouldReportPlaybackToServer else { return }
+        if let mediaServices, let playbackPlan {
+            do {
+                try await mediaServices.playback.reportStopped(
+                    plan: playbackPlan,
+                    position: media?.duration ?? duration ?? position
+                )
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+            return
+        }
         let currentDuration = max(0, Int((media?.duration ?? duration ?? position) * 1000))
 
         do {
@@ -306,6 +407,7 @@ final class PlayerViewModel {
     }
 
     func nextItemInQueue() async -> PlexItem? {
+        guard mediaServices == nil else { return nil }
         guard shouldReportPlaybackToServer else { return nil }
         await refreshPlayQueue()
         let fallbackRatingKey = ratingKey.isEmpty ? nil : ratingKey
@@ -343,6 +445,28 @@ final class PlayerViewModel {
 
     private func sendTimeline(state: PlaybackRepository.PlaybackState) async {
         guard shouldReportPlaybackToServer else { return }
+        if let mediaServices, let playbackPlan {
+            do {
+                if didReportCommonPlaybackStarted {
+                    try await mediaServices.playback.reportProgress(
+                        plan: playbackPlan,
+                        position: position,
+                        isPaused: state == .paused
+                    )
+                } else {
+                    try await mediaServices.playback.reportStarted(
+                        plan: playbackPlan,
+                        position: position,
+                        isPaused: state == .paused
+                    )
+                    didReportCommonPlaybackStarted = true
+                }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+            return
+        }
         let currentTime = max(0, Int(position * 1000))
         let currentDuration = max(0, Int((duration ?? 0) * 1000))
 
@@ -398,6 +522,50 @@ final class PlayerViewModel {
         playbackURL = resolvedURL
         serverAccessRecoveryError = nil
         errorMessage = nil
+    }
+
+    private func loadCommonPlayback() async {
+        guard let mediaServices, let media else {
+            errorMessage = String(localized: "errors.selectServer.playMedia")
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let plan = try await mediaServices.playback.prepare(
+                media: media,
+                resume: shouldResumeFromOffsetFlag
+            )
+            apply(plan: plan)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func apply(plan: PlaybackPlan) {
+        playbackPlan = plan
+        media = plan.media
+        playbackURL = plan.url
+        playbackHTTPHeaders = plan.httpHeaders
+        preferredAudioStreamFFIndex = plan.selectedAudioIndex
+        preferredSubtitleStreamID = plan.selectedSubtitleIndex
+        let totalDuration = max(0, Int((plan.media.duration ?? 0) * 1000))
+        chapters = plan.chapters.enumerated().map { index, chapter in
+            let nextStart = plan.chapters.indices.contains(index + 1)
+                ? Int(plan.chapters[index + 1].startTime * 1000)
+                : totalDuration
+            return PlexChapter(
+                id: index,
+                filter: chapter.title,
+                index: index,
+                startTimeOffset: Int(chapter.startTime * 1000),
+                endTimeOffset: max(Int(chapter.startTime * 1000) + 1, nextStart),
+                thumb: nil
+            )
+        }
     }
 
     private func resolvePlaybackURL(from metadata: PlexItem?) -> URL? {

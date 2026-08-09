@@ -11,12 +11,12 @@ final class LibraryCollectionsViewModel {
     var errorMessage: String?
     private var reachedEnd = false
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(library: Library, context: PlexAPIContext) {
+    init(library: Library, services: MediaServices) {
         self.library = library
-        self.context = context
+        service = services.library
     }
 
     func load() async {
@@ -39,23 +39,6 @@ final class LibraryCollectionsViewModel {
     }
 
     private func fetch(reset: Bool, preservingExistingContent: Bool) async {
-        guard let sectionId = library.sectionId else {
-            handleLoadError(
-                String(localized: "errors.missingLibraryIdentifier"),
-                reset: reset,
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.browseLibrary"),
-                reset: reset,
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         if reset {
             isLoading = true
         } else {
@@ -68,16 +51,10 @@ final class LibraryCollectionsViewModel {
         }
 
         do {
+            let allItems = try await service.collections(in: library).map(MediaDisplayItem.collection)
             let start = reset ? 0 : items.count
-            let response = try await sectionRepository.getSectionCollections(
-                sectionId: sectionId,
-                includeCollections: true,
-                pagination: PlexPagination(start: start, size: 20),
-            )
-
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(MediaDisplayItem.init)
-            let total = response.mediaContainer.totalSize ?? (start + newItems.count)
+            let newItems = Array(allItems.dropFirst(start).prefix(20))
+            let total = allItems.count
 
             if reset {
                 items = newItems

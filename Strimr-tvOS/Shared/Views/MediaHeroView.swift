@@ -2,12 +2,12 @@ import SwiftUI
 import UIKit
 
 struct MediaHeroBackgroundView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
 
     let media: MediaItem
 
-    @State private var imageURL: URL?
+    @State private var imageResource: ArtworkResource?
 
     var body: some View {
         GeometryReader { proxy in
@@ -15,7 +15,7 @@ struct MediaHeroBackgroundView: View {
                 MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: .playable(media)))
                     .ignoresSafeArea()
 
-                HeroImageView(imageURL: imageURL)
+                ArtworkResourceView(resource: imageResource)
                     .frame(
                         width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
                         height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
@@ -43,21 +43,18 @@ struct MediaHeroBackgroundView: View {
                 ?? media.thumbPath
         }
         guard let path else {
-            imageURL = nil
+            imageResource = nil
             return
         }
 
         do {
-            let imageRepository = try ImageRepository(context: plexApiContext)
-            imageURL = imageRepository.transcodeImageURL(
+            imageResource = try await mediaServices.artwork.artwork(
                 path: path,
                 width: 3840,
-                height: 2160,
-                minSize: 1,
-                upscale: 1,
+                height: 2160
             )
         } catch {
-            imageURL = nil
+            imageResource = nil
         }
     }
 }

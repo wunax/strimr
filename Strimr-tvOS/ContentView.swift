@@ -17,6 +17,8 @@ struct ContentView: View {
                 ProgressView(sessionManager.loadingPhase.title)
                     .progressViewStyle(.circular)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            case .needsProviderSelection:
+                ProviderSelectionView()
             case .signedOut:
                 SignInView(
                     viewModel: SignInViewModel(
@@ -24,6 +26,8 @@ struct ContentView: View {
                         context: plexApiContext,
                     ),
                 )
+            case .needsJellyfinAuthentication:
+                JellyfinAuthenticationView()
             case .needsProfileSelection:
                 NavigationStack {
                     ProfileSwitcherView(
@@ -43,7 +47,12 @@ struct ContentView: View {
                     )
                 }
             case .ready:
-                MainTabView()
+                if let services = sessionManager.mediaServices {
+                    MainTabView()
+                        .environment(services)
+                } else {
+                    ProgressView(sessionManager.loadingPhase.title)
+                }
             }
         }
     }

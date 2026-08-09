@@ -15,7 +15,7 @@ struct SearchResultCard: View {
             HStack(alignment: .top, spacing: 12) {
                 MediaImageView(
                     viewModel: MediaImageViewModel(
-                        context: result.primarySource.context,
+                        services: result.primarySource.services,
                         artworkKind: .thumb,
                         media: media,
                     ),

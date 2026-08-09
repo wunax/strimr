@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibraryDetailView: View {
     @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     let library: Library
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -25,7 +26,7 @@ struct LibraryDetailView: View {
                     LibraryRecommendedView(
                         viewModel: LibraryRecommendedViewModel(
                             library: library,
-                            context: plexApiContext,
+                            services: mediaServices,
                         ),
                         onSelectMedia: onSelectMedia,
                     )
@@ -33,7 +34,7 @@ struct LibraryDetailView: View {
                     LibraryBrowseView(
                         viewModel: LibraryBrowseViewModel(
                             library: library,
-                            context: plexApiContext,
+                            services: mediaServices,
                             settingsManager: settingsManager,
                         ),
                         onSelectMedia: onSelectMedia,
@@ -42,7 +43,7 @@ struct LibraryDetailView: View {
                     LibraryCollectionsView(
                         viewModel: LibraryCollectionsViewModel(
                             library: library,
-                            context: plexApiContext,
+                            services: mediaServices,
                         ),
                         onSelectMedia: onSelectMedia,
                     )
@@ -50,7 +51,7 @@ struct LibraryDetailView: View {
                     LibraryPlaylistsView(
                         viewModel: LibraryPlaylistsViewModel(
                             library: library,
-                            context: plexApiContext,
+                            services: mediaServices,
                         ),
                         onSelectMedia: onSelectMedia,
                     )

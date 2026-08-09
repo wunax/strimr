@@ -93,6 +93,7 @@ final class PlayerController {
 
     func load(
         url: URL,
+        httpHeaders: [String: String] = [:],
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
@@ -133,6 +134,7 @@ final class PlayerController {
                     url: url,
                     startPosition: startPosition,
                     options: LoadOptions(
+                        httpHeaders: httpHeaders,
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
                         preserveASSMarkup: true,
                         externalSubtitles: externalSubtitles.map(\.track),

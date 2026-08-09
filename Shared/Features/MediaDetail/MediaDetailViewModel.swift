@@ -16,7 +16,8 @@ struct MediaDetailPlaybackTarget {
 @MainActor
 @Observable
 final class MediaDetailViewModel {
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
 
     var media: PlayableMediaItem
@@ -58,17 +59,23 @@ final class MediaDetailViewModel {
 
     init(
         media: PlayableMediaItem,
-        context: PlexAPIContext,
+        services: MediaServices,
         resolutionMode: MediaDetailResolutionMode = .seriesRoot,
     ) {
         self.media = media
-        self.context = context
+        self.services = services
+        context = services.plexContext
         self.resolutionMode = resolutionMode
         resolveArtwork()
     }
 
     var serverIdentifier: String? {
-        try? context.serverAccessSnapshot().serverIdentifier
+        services.identity.id
+    }
+
+    private var plexContext: PlexAPIContext {
+        precondition(context != nil, "Plex-only detail operation used with another provider")
+        return context!
     }
 
     func loadDetails() async {
@@ -82,12 +89,16 @@ final class MediaDetailViewModel {
     }
 
     private func loadDetails(preservingExistingContent: Bool) async {
+        if context == nil {
+            await loadCommonDetails(preservingExistingContent: preservingExistingContent)
+            return
+        }
         if !preservingExistingContent {
             cast = []
             relatedHubs = []
         }
 
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
+        guard let context, let metadataRepository = try? MetadataRepository(context: context) else {
             handleDetailLoadError(preservingExistingContent: preservingExistingContent)
             return
         }
@@ -219,6 +230,22 @@ final class MediaDetailViewModel {
     func loadSeasonsIfNeeded(forceReload: Bool = false, preservingExistingContent: Bool = false) async {
         guard media.type == .show else { return }
         guard forceReload || seasons.isEmpty else { return }
+        if context == nil {
+            isLoadingSeasons = true
+            defer { isLoadingSeasons = false }
+            do {
+                seasons = try await services.detail.seasons(for: media.mediaItem)
+                selectedSeasonId = selectedSeasonId ?? seasons.first?.id
+                if let selectedSeason {
+                    episodes = try await services.detail.episodes(for: selectedSeason, seriesID: media.id)
+                }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                seasonsErrorMessage = error.localizedDescription
+                ErrorReporter.capture(error)
+            }
+            return
+        }
         await fetchSeasons(preservingExistingContent: preservingExistingContent)
     }
 
@@ -227,6 +254,16 @@ final class MediaDetailViewModel {
         selectedSeasonId = id
         episodes = []
         episodesErrorMessage = nil
+        if context == nil, let season = seasons.first(where: { $0.id == id }) {
+            do {
+                episodes = try await services.detail.episodes(for: season, seriesID: media.id)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                episodesErrorMessage = error.localizedDescription
+                ErrorReporter.capture(error)
+            }
+            return
+        }
         await fetchEpisodes(for: id)
     }
 
@@ -239,7 +276,12 @@ final class MediaDetailViewModel {
         defer { updatingWatchStatusIds.remove(item.id) }
 
         do {
-            let scrobbleRepository = try ScrobbleRepository(context: context)
+            if context == nil {
+                try await services.detail.setPlayed(!isWatched(item), itemID: item.id)
+                await loadCommonDetails(preservingExistingContent: true)
+                return
+            }
+            let scrobbleRepository = try ScrobbleRepository(context: plexContext)
             if isWatched(item) {
                 try await scrobbleRepository.markUnwatched(key: item.id)
             } else {
@@ -256,7 +298,7 @@ final class MediaDetailViewModel {
     func toggleWatchlistStatus() async {
         guard let discoverID = media.plexGuidID else { return }
         guard !isUpdatingWatchlistStatus else { return }
-        guard let repository = try? DiscoverWatchlistRepository(context: context) else { return }
+        guard let repository = try? DiscoverWatchlistRepository(context: plexContext) else { return }
 
         isUpdatingWatchlistStatus = true
         defer { isUpdatingWatchlistStatus = false }
@@ -277,7 +319,8 @@ final class MediaDetailViewModel {
         height: Int = 180,
         spoilerProtection: SpoilerProtectionLevel = .off,
     ) -> URL? {
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+        guard context != nil else { return nil }
+        guard let imageRepository = try? ImageRepository(context: plexContext) else { return nil }
 
         let path = if media.isSpoilerProtected(at: spoilerProtection) {
             media.spoilerProtectedArtworkPath(at: spoilerProtection)
@@ -288,10 +331,11 @@ final class MediaDetailViewModel {
     }
 
     func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {
+        guard context != nil else { return nil }
         guard media.mediaItem.isSpoilerProtected(at: spoilerProtection) else {
             return heroImageURL
         }
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+        guard let imageRepository = try? ImageRepository(context: plexContext) else { return nil }
 
         let path = media.mediaItem.grandparentArtPath
             ?? parentSeries?.artPath
@@ -301,8 +345,25 @@ final class MediaDetailViewModel {
         }
     }
 
+    func heroArtworkPath(spoilerProtection: SpoilerProtectionLevel) -> String? {
+        if media.mediaItem.isSpoilerProtected(at: spoilerProtection) {
+            return media.mediaItem.grandparentArtPath
+                ?? parentSeries?.artPath
+                ?? media.mediaItem.grandparentThumbPath
+        }
+        if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
+            return media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
+        }
+        return media.artPath ?? media.thumbPath
+    }
+
     private func resolveArtwork() {
-        guard let imageRepository = try? ImageRepository(context: context) else {
+        guard context != nil else {
+            heroImageURL = nil
+            resolveGradient()
+            return
+        }
+        guard let imageRepository = try? ImageRepository(context: plexContext) else {
             heroImageURL = nil
             return
         }
@@ -336,7 +397,7 @@ final class MediaDetailViewModel {
             return
         }
 
-        guard let repository = try? DiscoverWatchlistRepository(context: context) else {
+        guard let repository = try? DiscoverWatchlistRepository(context: plexContext) else {
             isWatchlisted = false
             return
         }
@@ -404,7 +465,8 @@ final class MediaDetailViewModel {
     }
 
     func castImageURL(for member: CastMember, width: Int = 200, height: Int = 260) -> URL? {
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
+        guard context != nil else { return nil }
+        guard let imageRepository = try? ImageRepository(context: plexContext) else { return nil }
         guard let thumbPath = member.thumbPath else { return nil }
         return imageRepository.transcodeImageURL(path: thumbPath, width: width, height: height)
     }
@@ -466,7 +528,7 @@ final class MediaDetailViewModel {
     }
 
     var canSearchSubtitles: Bool {
-        trackRatingKey != nil && trackPartID != nil
+        services.detail.supportsRemoteSubtitleSearch && trackRatingKey != nil && trackPartID != nil
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -499,7 +561,7 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            let repository = try PlaybackRepository(context: context)
+            let repository = try PlaybackRepository(context: plexContext)
             try await repository.setPreferredStreams(partId: partID, audioStreamId: id)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
@@ -529,7 +591,7 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            let repository = try PlaybackRepository(context: context)
+            let repository = try PlaybackRepository(context: plexContext)
             try await repository.setPreferredSubtitleStream(partId: partID, subtitleStreamId: id)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
@@ -548,7 +610,7 @@ final class MediaDetailViewModel {
 
     func loadTrackSelection(for ratingKey: String) async {
         guard trackRatingKey != ratingKey else { return }
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
+        guard let metadataRepository = try? MetadataRepository(context: plexContext) else {
             trackSelectionErrorMessage = String(localized: "errors.selectServer.loadDetails")
             return
         }
@@ -561,7 +623,7 @@ final class MediaDetailViewModel {
 
     func refreshTrackSelectionAfterSubtitleAttachment() async {
         guard let ratingKey = trackRatingKey,
-              let metadataRepository = try? MetadataRepository(context: context)
+              let metadataRepository = try? MetadataRepository(context: plexContext)
         else { return }
         await loadTrackSelection(
             for: ratingKey,
@@ -627,7 +689,7 @@ final class MediaDetailViewModel {
     }
 
     var shouldShowWatchlistButton: Bool {
-        [.movie, .show].contains(media.type)
+        services.detail.supportsWatchlist && [.movie, .show].contains(media.type)
             && media.plexGuidID != nil
     }
 
@@ -696,7 +758,7 @@ final class MediaDetailViewModel {
     }
 
     private func fetchSeasons(preservingExistingContent: Bool) async {
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
+        guard let metadataRepository = try? MetadataRepository(context: plexContext) else {
             if !preservingExistingContent || seasons.isEmpty {
                 seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
             }
@@ -767,7 +829,7 @@ final class MediaDetailViewModel {
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
+        guard let metadataRepository = try? MetadataRepository(context: plexContext) else {
             if !preservingExistingContent || episodes.isEmpty {
                 episodesErrorMessage = String(localized: "errors.selectServer.loadEpisodes")
             }
@@ -951,7 +1013,7 @@ final class MediaDetailViewModel {
             let character = role.role?.isEmpty == false ? role.role : nil
             return CastMember(
                 id: identifier,
-                personID: role.id,
+                personID: role.id.map(String.init),
                 name: role.tag,
                 character: character,
                 thumbPath: role.thumb,
@@ -960,7 +1022,8 @@ final class MediaDetailViewModel {
     }
 
     func loadRelatedHubs(preservingExistingContent: Bool = false) async {
-        guard let hubRepository = try? HubRepository(context: context) else {
+        if context == nil { return }
+        guard let hubRepository = try? HubRepository(context: plexContext) else {
             if !preservingExistingContent || relatedHubs.isEmpty {
                 relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
             }
@@ -982,6 +1045,53 @@ final class MediaDetailViewModel {
             } else {
                 relatedHubs = []
                 relatedHubsErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func loadCommonDetails(preservingExistingContent: Bool) async {
+        isLoading = true
+        errorMessage = nil
+        if !preservingExistingContent {
+            cast = []
+            relatedHubs = []
+            onDeckItem = nil
+            fallbackPlaybackTarget = nil
+        }
+        defer { isLoading = false }
+
+        do {
+            let content = try await services.detail.details(for: media.mediaItem)
+            guard !Task.isCancelled else { return }
+            if let mapped = PlayableMediaItem(mediaItem: content.media) {
+                media = mapped
+            }
+            parentSeries = content.parentSeries.flatMap(PlayableMediaItem.init)
+            onDeckItem = content.onDeck
+            seasons = content.seasons
+            episodes = content.episodes
+            cast = content.cast
+            relatedHubs = content.relatedHubs
+            selectedSeasonId = selectedSeasonId ?? seasons.first?.id
+            if let onDeckItem {
+                fallbackPlaybackTarget = MediaDetailPlaybackTarget(
+                    item: onDeckItem,
+                    type: onDeckItem.type,
+                    shouldResumeFromOffset: !onDeckItem.isFullyWatched
+                )
+            } else if let firstEpisode = episodes.first {
+                fallbackPlaybackTarget = MediaDetailPlaybackTarget(
+                    item: firstEpisode,
+                    type: firstEpisode.type,
+                    shouldResumeFromOffset: !firstEpisode.isFullyWatched
+                )
+            }
+            resolveArtwork()
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            if !preservingExistingContent {
+                errorMessage = error.localizedDescription
             }
         }
     }

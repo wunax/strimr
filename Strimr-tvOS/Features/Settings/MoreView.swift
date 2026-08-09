@@ -43,6 +43,15 @@ struct MoreView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button {
+                        Task { await sessionManager.changeProvider() }
+                    } label: {
+                        Label("provider.change", systemImage: "arrow.triangle.2.circlepath")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
                         Task { await sessionManager.signOut() }
                     } label: {
                         Label("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right")

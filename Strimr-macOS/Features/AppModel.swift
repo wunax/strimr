@@ -50,6 +50,8 @@ final class AppModel: PlaybackPresenting {
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
         let context: PlexAPIContext?
+        let mediaQueue: PlaybackQueue?
+        let mediaServices: MediaServices?
 
         init(playQueue: PlayQueueState, context: PlexAPIContext, shouldResumeFromOffset: Bool) {
             self.playQueue = playQueue
@@ -57,6 +59,21 @@ final class AppModel: PlaybackPresenting {
             localMedia = nil
             localPlaybackURL = nil
             self.context = context
+            mediaQueue = nil
+            mediaServices = nil
+        }
+
+        init(queue: PlaybackQueue, services: MediaServices, shouldResumeFromOffset: Bool) {
+            let itemID = queue.items.indices.contains(queue.currentIndex)
+                ? queue.items[queue.currentIndex].media.id
+                : ""
+            playQueue = PlayQueueState(localRatingKey: itemID)
+            self.shouldResumeFromOffset = shouldResumeFromOffset
+            localMedia = nil
+            localPlaybackURL = nil
+            context = nil
+            mediaQueue = queue
+            mediaServices = services
         }
 
         init(localMedia: MediaItem, localPlaybackURL: URL) {
@@ -65,6 +82,8 @@ final class AppModel: PlaybackPresenting {
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
             context = nil
+            mediaQueue = nil
+            mediaServices = nil
         }
     }
 
@@ -72,7 +91,7 @@ final class AppModel: PlaybackPresenting {
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
-    private var serverContexts: [String: PlexAPIContext] = [:]
+    private var serverServices: [String: MediaServices] = [:]
     private var scopedServerIdentifiers: [SidebarItem: String] = [:]
 
     func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
@@ -101,14 +120,21 @@ final class AppModel: PlaybackPresenting {
     }
 
     func showSearchResult(_ source: SearchResultSource) {
-        serverContexts[source.serverIdentifier] = source.context
+        serverServices[source.serverIdentifier] = source.services
         scopedServerIdentifiers[selection] = source.serverIdentifier
         showMedia(source.media)
     }
 
+    func services(for item: SidebarItem, default defaultServices: MediaServices) -> MediaServices {
+        guard let identifier = scopedServerIdentifiers[item] else { return defaultServices }
+        return serverServices[identifier] ?? defaultServices
+    }
+
     func context(for item: SidebarItem, default defaultContext: PlexAPIContext) -> PlexAPIContext {
-        guard let identifier = scopedServerIdentifiers[item] else { return defaultContext }
-        return serverContexts[identifier] ?? defaultContext
+        guard let identifier = scopedServerIdentifiers[item],
+              let context = serverServices[identifier]?.plexContext
+        else { return defaultContext }
+        return context
     }
 
     func showMedia(_ media: MediaItem) {
@@ -163,6 +189,18 @@ final class AppModel: PlaybackPresenting {
 
     func showDownloadedPlayer(media: MediaItem, url: URL) {
         playerPresentation = PlayerPresentation(localMedia: media, localPlaybackURL: url)
+    }
+
+    func showPlayer(
+        for queue: PlaybackQueue,
+        services: MediaServices,
+        shouldResumeFromOffset: Bool = true,
+    ) {
+        playerPresentation = PlayerPresentation(
+            queue: queue,
+            services: services,
+            shouldResumeFromOffset: shouldResumeFromOffset
+        )
     }
 
     func resetPlayer(ifPresenting presentationID: UUID? = nil) {

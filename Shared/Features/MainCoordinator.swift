@@ -33,13 +33,15 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
     private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
-    private var serverContexts: [String: PlexAPIContext] = [:]
+    private var serverServices: [String: MediaServices] = [:]
     private var scopedServerIdentifiers: [Tab: String] = [:]
 
     @Published var selectedPlayQueue: PlayQueueState?
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
     @Published var selectedPlaybackContext: PlexAPIContext?
+    @Published var selectedMediaQueue: PlaybackQueue?
+    @Published var selectedMediaServices: MediaServices?
 
     func pathBinding(for tab: Tab) -> Binding<NavigationPath> {
         Binding(
@@ -168,14 +170,21 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     }
 
     func showSearchResult(_ source: SearchResultSource) {
-        serverContexts[source.serverIdentifier] = source.context
+        serverServices[source.serverIdentifier] = source.services
         scopedServerIdentifiers[tab] = source.serverIdentifier
         showMediaDetail(source.media)
     }
 
+    func services(for tab: Tab, default defaultServices: MediaServices) -> MediaServices {
+        guard let identifier = scopedServerIdentifiers[tab] else { return defaultServices }
+        return serverServices[identifier] ?? defaultServices
+    }
+
     func context(for tab: Tab, default defaultContext: PlexAPIContext) -> PlexAPIContext {
-        guard let identifier = scopedServerIdentifiers[tab] else { return defaultContext }
-        return serverContexts[identifier] ?? defaultContext
+        guard let identifier = scopedServerIdentifiers[tab],
+              let context = serverServices[identifier]?.plexContext
+        else { return defaultContext }
+        return context
     }
 
     func showCollectionDetail(_ collection: CollectionMediaItem) {
@@ -282,9 +291,22 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         isPresentingPlayer = true
     }
 
+    func showPlayer(
+        for queue: PlaybackQueue,
+        services: MediaServices,
+        shouldResumeFromOffset: Bool = true,
+    ) {
+        selectedMediaQueue = queue
+        selectedMediaServices = services
+        self.shouldResumeFromOffset = shouldResumeFromOffset
+        isPresentingPlayer = true
+    }
+
     func resetPlayer() {
         selectedPlayQueue = nil
         selectedPlaybackContext = nil
+        selectedMediaQueue = nil
+        selectedMediaServices = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
     }

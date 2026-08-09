@@ -21,14 +21,16 @@ final class LibraryBrowseViewModel {
     private var reachedEnd = false
     private var hasLoadedMeta = false
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let context: PlexAPIContext?
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
 
-    init(library: Library, context: PlexAPIContext, settingsManager: SettingsManager) {
+    init(library: Library, services: MediaServices, settingsManager: SettingsManager) {
         self.library = library
-        self.context = context
+        context = services.plexContext
+        service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(context: context)
+        controls = LibraryBrowseControlsViewModel(context: services.plexContext)
         controls.onSelectionChanged = { [weak self] in
             Task { await self?.refresh() }
         }
@@ -78,11 +80,15 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetch(reset: Bool) async {
+        if context == nil {
+            await fetchUsingCommonService(reset: reset)
+            return
+        }
         guard let sectionId = library.sectionId else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
+        guard let context, let sectionRepository = try? SectionRepository(context: context) else {
             resetState(error: String(localized: "errors.selectServer.browseLibrary"))
             return
         }
@@ -137,6 +143,29 @@ final class LibraryBrowseViewModel {
             } else {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func fetchUsingCommonService(reset: Bool) async {
+        if reset { isLoading = true } else { isLoadingMore = true }
+        errorMessage = nil
+        defer {
+            isLoading = false
+            isLoadingMore = false
+        }
+        do {
+            let start = reset ? 0 : browseItems.count
+            let page = try await service.items(
+                in: library,
+                parentID: folderStack.last?.id,
+                startIndex: start,
+                limit: 20
+            )
+            let newItems = page.items.map(LibraryBrowseItem.media)
+            if reset { browseItems = newItems } else { browseItems.append(contentsOf: newItems) }
+            reachedEnd = page.totalCount.map { browseItems.count >= $0 } ?? newItems.isEmpty
+        } catch {
+            if reset { resetState(error: error.localizedDescription) } else { errorMessage = error.localizedDescription }
         }
     }
 

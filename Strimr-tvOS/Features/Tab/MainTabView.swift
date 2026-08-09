@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
+    @Environment(MediaServices.self) var mediaServices
     @StateObject var coordinator = MainCoordinator()
 
     var body: some View {
@@ -16,7 +17,7 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .home)) {
                     HomeView(
                         viewModel: HomeViewModel(
-                            context: plexApiContext,
+                            services: mediaServices,
                             settingsManager: settingsManager,
                             libraryStore: libraryStore,
                         ),
@@ -51,8 +52,7 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchView(
                         viewModel: SearchViewModel(
-                            context: plexApiContext,
-                            sessionManager: sessionManager,
+                            services: mediaServices,
                             settingsManager: settingsManager,
                         ),
                         onSelectMedia: coordinator.showSearchResult,
@@ -67,7 +67,7 @@ struct MainTabView: View {
                 NavigationStack(path: coordinator.pathBinding(for: .library)) {
                     LibraryView(
                         viewModel: LibraryViewModel(
-                            context: plexApiContext,
+                            services: mediaServices,
                             libraryStore: libraryStore,
                         ),
                         onSelectMedia: coordinator.showMediaDetail,
@@ -119,7 +119,7 @@ struct MainTabView: View {
             try? await libraryStore.loadLibraries()
             sharePlayCoordinator.configurePlaybackLauncher(
                 PlaybackLauncher(
-                    context: plexApiContext,
+                    services: mediaServices,
                     coordinator: coordinator,
                 ),
             )
@@ -159,17 +159,31 @@ struct MainTabView: View {
                     onExit: coordinator.resetPlayer,
                 )
                 .environment(playbackContext)
+            } else if let queue = coordinator.selectedMediaQueue,
+                      let services = coordinator.selectedMediaServices
+            {
+                PlayerWrapper(
+                    viewModel: PlayerViewModel(
+                        queue: queue,
+                        services: services,
+                        context: plexApiContext,
+                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset
+                    ),
+                    onExit: coordinator.resetPlayer
+                )
+                .environment(plexApiContext)
             }
         }
     }
 
     @ViewBuilder
     private func destination(for route: MainCoordinator.Route) -> some View {
+        let routeServices = coordinator.services(for: coordinator.tab, default: mediaServices)
         let routeContext = coordinator.context(for: coordinator.tab, default: plexApiContext)
         switch route {
         case let .mediaDetail(media):
             MediaDetailView(
-                viewModel: MediaDetailViewModel(media: media, context: routeContext),
+                viewModel: MediaDetailViewModel(media: media, services: routeServices),
                 onPlay: { ratingKey, type in
                     Task {
                         await playbackLauncher.play(ratingKey: ratingKey, type: type)
@@ -201,7 +215,7 @@ struct MainTabView: View {
             CollectionDetailView(
                 viewModel: CollectionDetailViewModel(
                     collection: collection,
-                    context: routeContext,
+                    services: routeServices,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -223,7 +237,7 @@ struct MainTabView: View {
             PlaylistDetailView(
                 viewModel: PlaylistDetailViewModel(
                     playlist: playlist,
-                    context: routeContext,
+                    services: routeServices,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -243,12 +257,12 @@ struct MainTabView: View {
             )
         case let .hubDetail(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, context: routeContext),
+                viewModel: HubDetailViewModel(hub: hub, services: routeServices),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         case let .personDetail(person):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, context: routeContext),
+                viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }
@@ -261,7 +275,7 @@ struct MainTabView: View {
 
     private var playbackLauncher: PlaybackLauncher {
         PlaybackLauncher(
-            context: coordinator.context(for: coordinator.tab, default: plexApiContext),
+            services: coordinator.services(for: coordinator.tab, default: mediaServices),
             coordinator: coordinator,
         )
     }

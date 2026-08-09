@@ -14,22 +14,8 @@ struct MediaImageView: View {
 
     var body: some View {
         Group {
-            if let url = viewModel.imageURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        placeholder
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
+            if viewModel.resource != nil {
+                ArtworkResourceView(resource: viewModel.resource)
             } else {
                 placeholder
             }

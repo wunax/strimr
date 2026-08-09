@@ -339,7 +339,11 @@ final class SharePlayCoordinator {
             errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
             return
         }
-        await playbackLauncher.using(context: activityContext).play(
+        guard let activityLauncher = playbackLauncher.using(context: activityContext) else {
+            errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
+            return
+        }
+        await activityLauncher.play(
             ratingKey: activity.ratingKey,
             type: activity.mediaType,
             shouldResumeFromOffset: false,

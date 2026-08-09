@@ -2,6 +2,7 @@ import Foundation
 
 enum PlexAPIError: Error {
     case invalidURL
+    case invalidResponse
     case missingAuthToken
     case missingConnection
     case unreachableServer
