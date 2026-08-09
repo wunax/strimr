@@ -11,11 +11,11 @@ struct SignInView: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Image("Icon")
+            Image("plex_logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 136, height: 136)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .frame(maxWidth: 240, maxHeight: 112)
+                .accessibilityHidden(true)
 
             VStack(spacing: 8) {
                 Text("signIn.title")

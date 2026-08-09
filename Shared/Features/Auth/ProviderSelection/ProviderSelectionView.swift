@@ -8,6 +8,13 @@ struct ProviderSelectionView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: verticalSpacing) {
+                Image("Icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: appLogoSize, height: appLogoSize)
+                    .clipShape(RoundedRectangle(cornerRadius: appLogoCornerRadius, style: .continuous))
+                    .accessibilityHidden(true)
+
                 header
                 providerChoices
             }
@@ -127,6 +134,22 @@ struct ProviderSelectionView: View {
             900
         #else
             600
+        #endif
+    }
+
+    private var appLogoSize: CGFloat {
+        #if os(tvOS)
+            192
+        #else
+            128
+        #endif
+    }
+
+    private var appLogoCornerRadius: CGFloat {
+        #if os(tvOS)
+            40
+        #else
+            28
         #endif
     }
 
