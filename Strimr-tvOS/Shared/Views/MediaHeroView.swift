@@ -8,14 +8,17 @@ struct MediaHeroBackgroundView: View {
     let media: MediaItem
 
     @State private var imageResource: ArtworkResource?
+    @State private var imageSourcePath: String?
+    @State private var sampledBackdropColors: [Color] = []
+    @State private var sampledBackdropSourcePath: String?
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: .playable(media)))
+                MediaBackdropGradient(colors: backdropColors)
                     .ignoresSafeArea()
 
-                ArtworkResourceView(resource: imageResource)
+                ArtworkResourceView(resource: imageSourcePath == artworkPath ? imageResource : nil)
                     .frame(
                         width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
                         height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
@@ -27,34 +30,68 @@ struct MediaHeroBackgroundView: View {
                     .ignoresSafeArea()
             }
         }
-        .task(id: "\(media.id)-\(settingsManager.interface.spoilerProtection.rawValue)") {
+        .task(id: "\(media.id)-\(artworkPath ?? "none")-\(settingsManager.interface.spoilerProtection.rawValue)") {
             await loadImage()
         }
     }
 
-    private func loadImage() async {
-        let path = if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
-            media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
-        } else {
-            media.grandparentArtPath
-                ?? media.artPath
-                ?? media.grandparentThumbPath
-                ?? media.parentThumbPath
-                ?? media.thumbPath
+    private var artworkPath: String? {
+        if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
         }
+        return media.grandparentArtPath
+            ?? media.artPath
+            ?? media.grandparentThumbPath
+            ?? media.parentThumbPath
+            ?? media.thumbPath
+    }
+
+    private var backdropColors: [Color] {
+        let providerColors = MediaBackdropGradient.colors(for: .playable(media))
+        if providerColors.count == 4 {
+            return providerColors
+        }
+        guard sampledBackdropSourcePath == artworkPath else { return [] }
+        return sampledBackdropColors
+    }
+
+    private func loadImage() async {
+        let path = artworkPath
         guard let path else {
             imageResource = nil
+            imageSourcePath = nil
+            sampledBackdropColors = []
+            sampledBackdropSourcePath = nil
             return
         }
 
         do {
-            imageResource = try await mediaServices.artwork.artwork(
+            let resource = try await mediaServices.artwork.artwork(
                 path: path,
                 width: 3840,
                 height: 2160
             )
+            guard !Task.isCancelled, artworkPath == path else { return }
+            imageResource = resource
+            imageSourcePath = path
+
+            let providerColors = MediaBackdropGradient.colors(for: .playable(media))
+            guard providerColors.count != 4, let resource else {
+                sampledBackdropColors = []
+                sampledBackdropSourcePath = nil
+                return
+            }
+
+            let colors = try await ImageCornerColorSampler.colors(from: resource)
+            guard !Task.isCancelled, artworkPath == path else { return }
+            sampledBackdropColors = colors.count == 4 ? colors : []
+            sampledBackdropSourcePath = path
         } catch {
+            guard !Task.isCancelled, !error.isCancellation, artworkPath == path else { return }
             imageResource = nil
+            imageSourcePath = path
+            sampledBackdropColors = []
+            sampledBackdropSourcePath = path
         }
     }
 }

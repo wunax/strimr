@@ -7,6 +7,16 @@ import SwiftUI
 #endif
 
 enum ImageCornerColorSampler {
+    static func colors(from resource: ArtworkResource) async throws -> [Color] {
+        switch resource {
+        case let .data(data):
+            return colors(from: data)
+        case let .url(url):
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return colors(from: data)
+        }
+    }
+
     static func colors(from data: Data) -> [Color] {
         #if canImport(UIKit)
             guard let image = UIImage(data: data) else { return [] }

@@ -18,6 +18,7 @@ struct MediaDetailPlaybackTarget {
 final class MediaDetailViewModel {
     @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
+    @ObservationIgnored private var backdropSourcePath: String?
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -63,7 +64,7 @@ final class MediaDetailViewModel {
         self.media = media
         self.services = services
         self.resolutionMode = resolutionMode
-        resolveArtwork()
+        _ = resolveArtwork()
     }
 
     var serverIdentifier: String? {
@@ -172,20 +173,60 @@ final class MediaDetailViewModel {
         return media.artPath ?? media.thumbPath
     }
 
-    private func resolveArtwork() {
+    @discardableResult
+    private func resolveArtwork() -> String? {
         let artPath: String? = if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
             media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
         } else {
             media.artPath
         }
+        let resolvedPath = artPath ?? media.thumbPath
 
         heroImageURL = services.artwork.artworkURL(path: artPath, width: 1400, height: 800)
             ?? services.artwork.artworkURL(path: media.thumbPath, width: 1400, height: 800)
         resolveGradient()
+        return resolvedPath
     }
 
     private func resolveGradient() {
-        backdropGradient = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        let colors = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        if colors.count == 4 {
+            backdropSourcePath = nil
+            backdropGradient = colors
+        }
+    }
+
+    private func loadBackdropGradient(path: String?) async {
+        let providerColors = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        if providerColors.count == 4 {
+            backdropSourcePath = nil
+            backdropGradient = providerColors
+            return
+        }
+
+        guard let path else {
+            backdropSourcePath = nil
+            backdropGradient = []
+            return
+        }
+        guard backdropSourcePath != path else { return }
+
+        backdropSourcePath = path
+        backdropGradient = []
+
+        do {
+            guard let resource = try await services.artwork.artwork(
+                path: path,
+                width: 300,
+                height: 169
+            ) else { return }
+            let colors = try await ImageCornerColorSampler.colors(from: resource)
+            guard !Task.isCancelled, backdropSourcePath == path else { return }
+            backdropGradient = colors.count == 4 ? colors : []
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation, backdropSourcePath == path else { return }
+            backdropGradient = []
+        }
     }
 
     private func loadWatchlistStatus() async {
@@ -791,7 +832,8 @@ final class MediaDetailViewModel {
             await resolveFallbackPlaybackTarget(preservingExistingContent: preservingExistingContent)
             await loadTrackSelection(preservingExistingContent: preservingExistingContent)
             await loadWatchlistStatus()
-            resolveArtwork()
+            let artworkPath = resolveArtwork()
+            await loadBackdropGradient(path: artworkPath)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
