@@ -45,6 +45,13 @@ extension MediaItem {
             childCount: jellyfinItem.childCount ?? jellyfinItem.recursiveItemCount,
             leafCount: jellyfinItem.recursiveItemCount,
             viewedLeafCount: nil,
+            watchState: MediaWatchState(
+                isPlayed: jellyfinItem.userData?.played ?? false,
+                playCount: jellyfinItem.userData?.playCount ?? 0,
+                resumePosition: jellyfinItem.resumePosition,
+                unplayedItemCount: jellyfinItem.userData?.unplayedItemCount,
+                isFavorite: false
+            ),
             grandparentTitle: jellyfinItem.seriesName,
             parentTitle: jellyfinItem.seasonName,
             parentIndex: jellyfinItem.parentIndexNumber,

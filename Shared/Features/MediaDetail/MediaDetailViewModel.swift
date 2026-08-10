@@ -516,18 +516,7 @@ final class MediaDetailViewModel {
     }
 
     func isWatched(_ item: MediaItem) -> Bool {
-        guard let playableType = PlayableItemType(mediaKind: item.type) else { return false }
-
-        switch playableType {
-        case .movie, .episode:
-            return (item.viewCount ?? 0) > 0
-        case .show, .season:
-            guard let leafCount = item.leafCount, let viewedLeafCount = item.viewedLeafCount else {
-                return false
-            }
-            guard leafCount > 0 else { return false }
-            return leafCount == viewedLeafCount
-        }
+        item.isFullyWatched
     }
 
     func watchActionTitle(for item: MediaItem) -> String {

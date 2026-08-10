@@ -26,6 +26,7 @@ struct MediaItem: Identifiable, Hashable {
     let childCount: Int?
     let leafCount: Int?
     let viewedLeafCount: Int?
+    private let mappedWatchState: MediaWatchState?
     let grandparentTitle: String?
     let parentTitle: String?
     let parentIndex: Int?
@@ -63,6 +64,7 @@ struct MediaItem: Identifiable, Hashable {
         childCount: Int?,
         leafCount: Int?,
         viewedLeafCount: Int?,
+        watchState: MediaWatchState? = nil,
         grandparentTitle: String?,
         parentTitle: String?,
         parentIndex: Int?,
@@ -96,6 +98,7 @@ struct MediaItem: Identifiable, Hashable {
         self.childCount = childCount
         self.leafCount = leafCount
         self.viewedLeafCount = viewedLeafCount
+        mappedWatchState = watchState
         self.grandparentTitle = grandparentTitle
         self.parentTitle = parentTitle
         self.parentIndex = parentIndex
@@ -131,10 +134,28 @@ struct MediaItem: Identifiable, Hashable {
     }
 
     var watchState: MediaWatchState {
-        MediaWatchState(
-            isPlayed: (viewCount ?? 0) > 0,
+        if let mappedWatchState {
+            return mappedWatchState
+        }
+
+        let isPlayed = switch kind {
+        case .movie, .episode:
+            (viewCount ?? 0) > 0
+        case .series, .season:
+            if let leafCount, let viewedLeafCount, leafCount > 0 {
+                leafCount == viewedLeafCount
+            } else {
+                (viewCount ?? 0) > 0
+            }
+        case .collection, .playlist, .folder, .unknown:
+            false
+        }
+
+        return MediaWatchState(
+            isPlayed: isPlayed,
             playCount: viewCount ?? 0,
             resumePosition: viewOffset,
+            unplayedItemCount: nil,
             isFavorite: false,
         )
     }

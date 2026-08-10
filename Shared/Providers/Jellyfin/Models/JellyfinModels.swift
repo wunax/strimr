@@ -291,12 +291,14 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
     let played: Bool?
     let playbackPositionTicks: Int64?
     let playCount: Int?
+    let unplayedItemCount: Int?
     let isFavorite: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case played = "Played"
         case playbackPositionTicks = "PlaybackPositionTicks"
         case playCount = "PlayCount"
+        case unplayedItemCount = "UnplayedItemCount"
         case isFavorite = "IsFavorite"
     }
 }
