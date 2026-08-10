@@ -53,16 +53,16 @@ final class PlayerController {
     @ObservationIgnored private var playbackRate: Float = 1.0
     @ObservationIgnored private var styledASSSubtitles = true
     @ObservationIgnored private var mediaIdentifier = "media"
-    @ObservationIgnored private var plexStreamIDsByFFIndex: [Int: Int] = [:]
-    @ObservationIgnored private var externalSubtitlePlexStreamIDs: [Int: Int] = [:]
+    @ObservationIgnored private var providerStreamIDsByFFIndex: [Int: Int] = [:]
+    @ObservationIgnored private var externalSubtitleProviderStreamIDs: [Int: Int] = [:]
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
-    @ObservationIgnored private var scrubBIFTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubThumbnailTask: Task<Void, Never>?
     @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
     @ObservationIgnored private var scrubExtractorDwellTask: Task<Void, Never>?
-    @ObservationIgnored private var scrubBIFPreparationTask: Task<Void, Never>?
-    @ObservationIgnored private var scrubBIFProvider: (any ScrubThumbnailProviding)?
+    @ObservationIgnored private var scrubThumbnailPreparationTask: Task<Void, Never>?
+    @ObservationIgnored private var scrubThumbnailProvider: (any ScrubThumbnailProviding)?
     @ObservationIgnored private var scrubFrameExtractor: FrameExtractor?
     @ObservationIgnored private var scrubExtractorRequestGeneration: Int?
     @ObservationIgnored private var scrubGeneratedThumbnailCache: [Int: CGImage] = [:]
@@ -74,9 +74,9 @@ final class PlayerController {
     @ObservationIgnored private var generatesMissingScrubThumbnailPreviews = true
 
     private let scrubBucketDuration = 10.0
-    private let unavailableBIFExtractorDelay: Duration = .milliseconds(250)
-    private let failedBIFExtractorDelay: Duration = .milliseconds(450)
-    private let pendingBIFExtractorDelay: Duration = .milliseconds(800)
+    private let unavailableThumbnailExtractorDelay: Duration = .milliseconds(250)
+    private let failedThumbnailExtractorDelay: Duration = .milliseconds(450)
+    private let pendingThumbnailExtractorDelay: Duration = .milliseconds(800)
     private let extractorAvailabilityPollInterval: Duration = .milliseconds(50)
     private let scrubThumbnailWidth = 320
     private let scrubGeneratedThumbnailCacheLimit = 32
@@ -99,7 +99,7 @@ final class PlayerController {
         losslessAudio: Bool,
         styledASSSubtitles: Bool,
         mediaIdentifier: String,
-        plexStreamIDsByFFIndex: [Int: Int],
+        providerStreamIDsByFFIndex: [Int: Int],
         externalSubtitles: [PlayerExternalSubtitle],
         scrubThumbnailSource: ScrubThumbnailSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
@@ -111,7 +111,7 @@ final class PlayerController {
         self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
         self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
         if showsScrubThumbnailPreviews {
-            scrubBIFProvider = scrubThumbnailSource.map { source in
+            scrubThumbnailProvider = scrubThumbnailSource.map { source in
                 switch source {
                 case let .plex(source):
                     PlexBIFThumbnailProvider(source: source)
@@ -128,8 +128,8 @@ final class PlayerController {
         activeSubtitleCodec = nil
         self.styledASSSubtitles = styledASSSubtitles
         self.mediaIdentifier = mediaIdentifier
-        self.plexStreamIDsByFFIndex = plexStreamIDsByFFIndex
-        externalSubtitlePlexStreamIDs = [:]
+        self.providerStreamIDsByFFIndex = providerStreamIDsByFFIndex
+        externalSubtitleProviderStreamIDs = [:]
         errorMessage = nil
 
         Task { @MainActor [weak self] in
@@ -158,9 +158,9 @@ final class PlayerController {
                 }
                 let externalEngineTracks = engine.subtitleTracks.filter(\.isExternal)
                 if externalEngineTracks.count == externalSubtitles.count {
-                    externalSubtitlePlexStreamIDs = Dictionary(
+                    externalSubtitleProviderStreamIDs = Dictionary(
                         uniqueKeysWithValues: zip(externalEngineTracks, externalSubtitles).map {
-                            ($0.id, $1.plexStreamID)
+                            ($0.id, $1.providerStreamID)
                         },
                     )
                 } else {
@@ -169,9 +169,9 @@ final class PlayerController {
                 if !isCoordinatedPlayback {
                     engine.setRate(playbackRate)
                 }
-                if !engine.isLive, let scrubBIFProvider {
-                    scrubBIFPreparationTask = Task {
-                        await scrubBIFProvider.prepare()
+                if !engine.isLive, let scrubThumbnailProvider {
+                    scrubThumbnailPreparationTask = Task {
+                        await scrubThumbnailProvider.prepare()
                     }
                 }
                 onMediaLoaded?()
@@ -245,7 +245,7 @@ final class PlayerController {
             cancelPendingExtractorFallback()
             activeScrubBucket = bucket
             scrubPreviewGeneration &+= 1
-            scrubBIFTask?.cancel()
+            scrubThumbnailTask?.cancel()
             scrubAetherTask?.cancel()
             scrubPreview = PlayerScrubPreview(
                 position: target,
@@ -272,8 +272,8 @@ final class PlayerController {
         isScrubPreviewing = false
         scrubPreviewGeneration &+= 1
         activeScrubBucket = nil
-        scrubBIFTask?.cancel()
-        scrubBIFTask = nil
+        scrubThumbnailTask?.cancel()
+        scrubThumbnailTask = nil
         scrubAetherTask?.cancel()
         scrubAetherTask = nil
         scrubExtractorDwellTask?.cancel()
@@ -430,8 +430,8 @@ final class PlayerController {
         _ subtitle: PlayerExternalSubtitle,
         styledASSSubtitles: Bool,
     ) throws -> Int {
-        if let existingID = externalSubtitlePlexStreamIDs.first(where: {
-            $0.value == subtitle.plexStreamID
+        if let existingID = externalSubtitleProviderStreamIDs.first(where: {
+            $0.value == subtitle.providerStreamID
         })?.key {
             selectSubtitleTrack(id: existingID, styledASSSubtitles: styledASSSubtitles)
             return existingID
@@ -441,7 +441,7 @@ final class PlayerController {
         guard engine.subtitleTracks.contains(where: { $0.id == track.id && $0.isExternal }) else {
             throw ExternalSubtitleRegistrationError()
         }
-        externalSubtitlePlexStreamIDs[track.id] = subtitle.plexStreamID
+        externalSubtitleProviderStreamIDs[track.id] = subtitle.providerStreamID
         selectSubtitleTrack(id: track.id, styledASSSubtitles: styledASSSubtitles)
         return track.id
     }
@@ -451,7 +451,7 @@ final class PlayerController {
             PlayerTrack(
                 id: track.id,
                 ffIndex: track.id,
-                plexStreamID: plexStreamIDsByFFIndex[track.id],
+                providerStreamID: providerStreamIDsByFFIndex[track.id],
                 type: .audio,
                 title: track.name,
                 language: track.language,
@@ -469,9 +469,9 @@ final class PlayerController {
             PlayerTrack(
                 id: track.id,
                 ffIndex: track.isExternal ? nil : track.id,
-                plexStreamID: track.isExternal
-                    ? externalSubtitlePlexStreamIDs[track.id]
-                    : plexStreamIDsByFFIndex[track.id],
+                providerStreamID: track.isExternal
+                    ? externalSubtitleProviderStreamIDs[track.id]
+                    : providerStreamIDsByFFIndex[track.id],
                 type: .subtitle,
                 title: track.name,
                 language: track.language,
@@ -518,9 +518,9 @@ final class PlayerController {
         bucket: Int,
         generation: Int,
     ) {
-        if let scrubBIFProvider {
-            scrubBIFTask = Task { @MainActor [weak self, scrubBIFProvider] in
-                let thumbnail = await scrubBIFProvider.thumbnail(at: target)
+        if let scrubThumbnailProvider {
+            scrubThumbnailTask = Task { @MainActor [weak self, scrubThumbnailProvider] in
+                let thumbnail = await scrubThumbnailProvider.thumbnail(at: target)
                 guard let self,
                       let thumbnail,
                       isCurrentScrubBucket(generation: generation, bucket: bucket)
@@ -578,7 +578,7 @@ final class PlayerController {
                 } catch {
                     return
                 }
-                let requiredDelay = await extractorDelayForCurrentBIFState()
+                let requiredDelay = await extractorDelayForCurrentThumbnailState()
                 if startedAt.duration(to: ContinuousClock.now) >= requiredDelay {
                     break
                 }
@@ -622,17 +622,17 @@ final class PlayerController {
         }
     }
 
-    private func extractorDelayForCurrentBIFState() async -> Duration {
-        guard let scrubBIFProvider else {
-            return unavailableBIFExtractorDelay
+    private func extractorDelayForCurrentThumbnailState() async -> Duration {
+        guard let scrubThumbnailProvider else {
+            return unavailableThumbnailExtractorDelay
         }
-        switch await scrubBIFProvider.availability() {
+        switch await scrubThumbnailProvider.availability() {
         case .unavailable:
-            return unavailableBIFExtractorDelay
+            return unavailableThumbnailExtractorDelay
         case .temporarilyFailed:
-            return failedBIFExtractorDelay
+            return failedThumbnailExtractorDelay
         case .loading, .ready:
-            return pendingBIFExtractorDelay
+            return pendingThumbnailExtractorDelay
         }
     }
 
@@ -658,23 +658,23 @@ final class PlayerController {
         isScrubPreviewing = false
         scrubPreviewGeneration &+= 1
         activeScrubBucket = nil
-        scrubBIFTask?.cancel()
-        scrubBIFTask = nil
+        scrubThumbnailTask?.cancel()
+        scrubThumbnailTask = nil
         scrubAetherTask?.cancel()
         scrubAetherTask = nil
         scrubExtractorDwellTask?.cancel()
         scrubExtractorDwellTask = nil
-        scrubBIFPreparationTask?.cancel()
-        scrubBIFPreparationTask = nil
+        scrubThumbnailPreparationTask?.cancel()
+        scrubThumbnailPreparationTask = nil
         scrubPreview = nil
         scrubExtractorRequestGeneration = nil
         scrubGeneratedThumbnailCache = [:]
         scrubGeneratedThumbnailOrder = []
 
-        if let scrubBIFProvider {
-            self.scrubBIFProvider = nil
+        if let scrubThumbnailProvider {
+            self.scrubThumbnailProvider = nil
             Task {
-                await scrubBIFProvider.cancel()
+                await scrubThumbnailProvider.cancel()
             }
         }
         if let extractor = scrubFrameExtractor {

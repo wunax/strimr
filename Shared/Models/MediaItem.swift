@@ -20,7 +20,7 @@ struct MediaItem: Identifiable, Hashable {
     let tagline: String?
     let thumbPath: String?
     let artPath: String?
-    let ultraBlurColors: PlexUltraBlurColors?
+    let artworkCornerColors: ArtworkCornerColors?
     let viewOffset: TimeInterval?
     let viewCount: Int?
     let childCount: Int?
@@ -57,7 +57,7 @@ struct MediaItem: Identifiable, Hashable {
         tagline: String?,
         thumbPath: String?,
         artPath: String?,
-        ultraBlurColors: PlexUltraBlurColors?,
+        artworkCornerColors: ArtworkCornerColors?,
         viewOffset: TimeInterval?,
         viewCount: Int?,
         childCount: Int?,
@@ -90,7 +90,7 @@ struct MediaItem: Identifiable, Hashable {
         self.tagline = tagline
         self.thumbPath = thumbPath
         self.artPath = artPath
-        self.ultraBlurColors = ultraBlurColors
+        self.artworkCornerColors = artworkCornerColors
         self.viewOffset = viewOffset
         self.viewCount = viewCount
         self.childCount = childCount

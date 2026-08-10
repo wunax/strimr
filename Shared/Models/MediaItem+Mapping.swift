@@ -27,7 +27,7 @@ extension MediaItem {
             tagline: plexItem.tagline,
             thumbPath: plexItem.thumb,
             artPath: plexItem.art ?? plexItem.thumb,
-            ultraBlurColors: plexItem.ultraBlurColors,
+            artworkCornerColors: plexItem.ultraBlurColors,
             viewOffset: plexItem.viewOffset.map { TimeInterval($0) / 1000 },
             viewCount: plexItem.viewCount,
             childCount: plexItem.childCount,

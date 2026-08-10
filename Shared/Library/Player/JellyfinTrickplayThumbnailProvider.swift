@@ -9,7 +9,7 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
     private let cacheDirectory: URL
     private var sheets: [Int: CGImage] = [:]
     private var sheetOrder: [Int] = []
-    private var state: PlexBIFAvailability = .loading
+    private var state: ScrubThumbnailAvailability = .loading
     private var isCancelled = false
 
     init(source: JellyfinTrickplaySource, session: URLSession = .shared) {
@@ -39,11 +39,11 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
         }
     }
 
-    func availability() -> PlexBIFAvailability {
+    func availability() -> ScrubThumbnailAvailability {
         state
     }
 
-    func thumbnail(at seconds: Double) async -> PlexBIFThumbnail? {
+    func thumbnail(at seconds: Double) async -> ScrubThumbnail? {
         guard !isCancelled,
               seconds.isFinite,
               source.intervalMilliseconds > 0,
@@ -68,7 +68,7 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
                 height: source.height
             )
             guard let thumbnail = image.cropping(to: crop) else { return nil }
-            return PlexBIFThumbnail(
+            return ScrubThumbnail(
                 bucketPosition: Double(frameIndex * source.intervalMilliseconds) / 1000,
                 image: thumbnail
             )

@@ -20,8 +20,8 @@ struct PlayerView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
-    @State private var pendingRecoveryAudioPlexStreamID: Int?
-    @State private var pendingRecoverySubtitlePlexStreamID: Int?
+    @State private var pendingRecoveryAudioProviderStreamID: Int?
+    @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1.0
     @State private var appliedPreferredAudio = false
@@ -493,23 +493,23 @@ struct PlayerView: View {
                 settingsAudioTracks = audio.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        metadata: viewModel.trackMetadata(forID: $0.plexStreamID),
+                        metadata: viewModel.trackMetadata(forID: $0.providerStreamID),
                     )
                 }
 
                 settingsSubtitleTracks = subtitles.map {
                     PlaybackSettingsTrack(
                         track: $0,
-                        metadata: viewModel.trackMetadata(forID: $0.plexStreamID),
+                        metadata: viewModel.trackMetadata(forID: $0.providerStreamID),
                     )
                 }
 
                 if shouldRestoreTracksAfterLoad {
-                    let audioID = pendingRecoveryAudioPlexStreamID.flatMap { plexStreamID in
-                        audio.first { $0.plexStreamID == plexStreamID }?.id
+                    let audioID = pendingRecoveryAudioProviderStreamID.flatMap { providerStreamID in
+                        audio.first { $0.providerStreamID == providerStreamID }?.id
                     }
-                    let subtitleID = pendingRecoverySubtitlePlexStreamID.flatMap { plexStreamID in
-                        subtitles.first { $0.plexStreamID == plexStreamID }?.id
+                    let subtitleID = pendingRecoverySubtitleProviderStreamID.flatMap { providerStreamID in
+                        subtitles.first { $0.providerStreamID == providerStreamID }?.id
                     }
                     selectedAudioTrackID = audioID
                     selectedSubtitleTrackID = subtitleID
@@ -518,8 +518,8 @@ struct PlayerView: View {
                         id: subtitleID,
                         styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                     )
-                    pendingRecoveryAudioPlexStreamID = nil
-                    pendingRecoverySubtitlePlexStreamID = nil
+                    pendingRecoveryAudioProviderStreamID = nil
+                    pendingRecoverySubtitleProviderStreamID = nil
                     shouldRestoreTracksAfterLoad = false
                 } else {
                     applyPreferredTracksIfNeeded(audioTracks: audio, subtitleTracks: subtitles)
@@ -686,7 +686,7 @@ struct PlayerView: View {
             losslessAudio: settingsManager.playback.losslessAudio,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
-            plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
+            providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
             externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
@@ -779,7 +779,7 @@ struct PlayerView: View {
 
         if !appliedPreferredSubtitle,
            let preferredSubtitleStreamID = viewModel.preferredSubtitleStreamID,
-           let track = subtitleTracks.first(where: { $0.plexStreamID == preferredSubtitleStreamID })
+           let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitleStreamID })
         {
             selectedSubtitleTrackID = track.id
             playerController.selectSubtitleTrack(
@@ -1043,12 +1043,12 @@ struct PlayerView: View {
         lastReloadedServerAccessGeneration = generation
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
-        pendingRecoveryAudioPlexStreamID = audioTracks.first {
+        pendingRecoveryAudioProviderStreamID = audioTracks.first {
             $0.id == selectedAudioTrackID
-        }?.plexStreamID
-        pendingRecoverySubtitlePlexStreamID = subtitleTracks.first {
+        }?.providerStreamID
+        pendingRecoverySubtitleProviderStreamID = subtitleTracks.first {
             $0.id == selectedSubtitleTrackID
-        }?.plexStreamID
+        }?.providerStreamID
         shouldRestoreTracksAfterLoad = true
         isRecoveringServerAccess = true
         playerController.stop()

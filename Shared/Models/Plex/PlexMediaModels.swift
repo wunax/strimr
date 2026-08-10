@@ -184,13 +184,6 @@ struct PlexGuid: Codable, Equatable {
     let id: String
 }
 
-struct PlexUltraBlurColors: Codable, Equatable, Hashable {
-    let topLeft: String
-    let topRight: String
-    let bottomRight: String
-    let bottomLeft: String
-}
-
 struct PlexMarkerAttributes: Codable, Equatable {
     let id: Int
     let version: Int?
@@ -388,7 +381,7 @@ struct PlexItem: Codable, Equatable {
     let contentRating: String?
     let contentRatingAge: Int?
     let tagline: String?
-    let ultraBlurColors: PlexUltraBlurColors?
+    let ultraBlurColors: ArtworkCornerColors?
     let images: [PlexImage]?
     let guids: [PlexGuid]?
     let genres: [PlexTag]?

@@ -126,7 +126,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             tagline: item.metadata.tagline,
             thumbPath: nil,
             artPath: nil,
-            ultraBlurColors: nil,
+            artworkCornerColors: nil,
             viewOffset: nil,
             viewCount: item.metadata.viewCount,
             childCount: nil,

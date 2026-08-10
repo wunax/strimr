@@ -156,6 +156,7 @@
 				Library/Player/PlexBIFThumbnailProvider.swift,
 				Library/Player/ScrubThumbnailSource.swift,
 				Models/AppSettings.swift,
+				Models/ArtworkCornerColors.swift,
 				Models/CollectionMediaItem.swift,
 				Models/Hub.swift,
 				"Models/Hub+Mapping.swift",

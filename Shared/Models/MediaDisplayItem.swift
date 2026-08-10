@@ -71,10 +71,10 @@ enum MediaDisplayItem: Identifiable, Hashable {
         }
     }
 
-    var ultraBlurColors: PlexUltraBlurColors? {
+    var artworkCornerColors: ArtworkCornerColors? {
         switch self {
         case let .playable(item):
-            item.ultraBlurColors
+            item.artworkCornerColors
         case .collection:
             nil
         case .playlist:

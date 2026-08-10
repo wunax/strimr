@@ -126,14 +126,14 @@ final class PlayerViewModel {
         )
     }
 
-    func ffIndex(forPlexStreamID id: Int?) -> Int? {
+    func ffIndex(forProviderStreamID id: Int?) -> Int? {
         guard let id else { return nil }
         return playbackPlan?.tracks.first(where: {
             $0.sourceIndex == id || Int($0.id) == id
         })?.sourceIndex ?? id
     }
 
-    func plexStreamIDsByFFIndex() -> [Int: Int] {
+    func providerStreamIDsByFFIndex() -> [Int: Int] {
         playbackPlan?.tracks.reduce(into: [:]) { result, track in
             result[track.sourceIndex] = Int(track.id) ?? track.sourceIndex
         } ?? [:]
@@ -146,7 +146,7 @@ final class PlayerViewModel {
             let streamID = subtitleTracks.indices.contains(index)
                 ? (Int(subtitleTracks[index].id) ?? subtitleTracks[index].sourceIndex)
                 : -(index + 1)
-            return PlayerExternalSubtitle(track: track, plexStreamID: streamID)
+            return PlayerExternalSubtitle(track: track, providerStreamID: streamID)
         }
     }
 
@@ -224,7 +224,7 @@ final class PlayerViewModel {
             guard let track = refreshed.first(where: { !previousURLs.contains($0.url) }) ?? refreshed.first else {
                 throw PlayerPlaybackError.missingExternalSubtitle
             }
-            return PlayerExternalSubtitle(track: track, plexStreamID: -(refreshed.count + 1))
+            return PlayerExternalSubtitle(track: track, providerStreamID: -(refreshed.count + 1))
         } catch {
             throw translatedServerAccessError(error, using: mediaServices.playback)
         }
@@ -315,7 +315,7 @@ final class PlayerViewModel {
     func persistStreamSelection(for track: PlayerTrack) async {
         guard let mediaServices,
               let itemID = media?.id,
-              let streamID = track.plexStreamID
+              let streamID = track.providerStreamID
         else { return }
 
         do {
@@ -335,7 +335,7 @@ final class PlayerViewModel {
 
     func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
         guard let mediaServices, let itemID = media?.id else { return }
-        let streamID = track?.plexStreamID
+        let streamID = track?.providerStreamID
         do {
             try await mediaServices.detail.selectSubtitleTrack(id: streamID, itemID: itemID)
         } catch {

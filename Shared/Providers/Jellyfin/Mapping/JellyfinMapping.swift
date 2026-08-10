@@ -39,7 +39,7 @@ extension MediaItem {
             tagline: jellyfinItem.taglines?.first,
             thumbPath: primaryPath,
             artPath: backdropPath ?? primaryPath,
-            ultraBlurColors: nil,
+            artworkCornerColors: nil,
             viewOffset: jellyfinItem.resumePosition,
             viewCount: jellyfinItem.userData?.played == true ? max(1, jellyfinItem.userData?.playCount ?? 1) : 0,
             childCount: jellyfinItem.childCount ?? jellyfinItem.recursiveItemCount,

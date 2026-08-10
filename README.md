@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">Strimr</h1>
 
-Strimr is a third-party Plex client built in Swift with native interfaces for iPhone, iPad, Mac, and Apple TV.
+Strimr is a third-party Plex and Jellyfin client built in Swift with native interfaces for iPhone, iPad, Mac, and Apple TV.
 
 ## Key Features
 - **HDR**, **HDR10+**, **HLG**, and **Dolby Vision** profiles 5, 8.1, 8.4, and 7 (profile 7 converted to 8.1 due to Apple platform limitations)

@@ -1,4 +1,17 @@
+import CoreGraphics
 import Foundation
+
+nonisolated enum ScrubThumbnailAvailability: Equatable, Sendable {
+    case loading
+    case ready
+    case unavailable
+    case temporarilyFailed
+}
+
+nonisolated struct ScrubThumbnail: @unchecked Sendable {
+    let bucketPosition: Double
+    let image: CGImage
+}
 
 nonisolated enum ScrubThumbnailSource: @unchecked Sendable {
     case plex(PlexBIFSource)
@@ -7,8 +20,8 @@ nonisolated enum ScrubThumbnailSource: @unchecked Sendable {
 
 protocol ScrubThumbnailProviding: Actor {
     func prepare() async
-    func availability() async -> PlexBIFAvailability
-    func thumbnail(at seconds: Double) async -> PlexBIFThumbnail?
+    func availability() async -> ScrubThumbnailAvailability
+    func thumbnail(at seconds: Double) async -> ScrubThumbnail?
     func cancel() async
 }
 

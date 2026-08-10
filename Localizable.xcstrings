@@ -3918,19 +3918,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add a Plex server or pull to refresh."
+            "value" : "Add a media server or pull to refresh."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajoutez un serveur Plex ou tirez pour actualiser."
+            "value" : "Ajoutez un serveur multimédia ou tirez pour actualiser."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加 Plex 服务器或下拉刷新"
+            "value" : "添加媒体服务器或下拉刷新"
           }
         }
       }
@@ -3962,19 +3962,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try refreshing to load your Plex libraries."
+            "value" : "Try refreshing to load your libraries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Essayez d'actualiser pour charger vos bibliothèques Plex."
+            "value" : "Essayez d'actualiser pour charger vos bibliothèques."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "尝试刷新以加载 Plex 媒体库"
+            "value" : "尝试刷新以加载您的媒体库"
           }
         }
       }
@@ -6321,19 +6321,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find movies, shows, and episodes across your Plex libraries."
+            "value" : "Find movies, shows, and episodes across your libraries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trouvez des films, séries et épisodes dans vos bibliothèques Plex."
+            "value" : "Trouvez des films, séries et épisodes dans vos bibliothèques."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Plex 媒体库中搜索电影、剧集"
+            "value" : "在您的媒体库中搜索电影、剧集和单集。"
           }
         }
       }
@@ -8696,19 +8696,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When Plex thumbnails aren’t available, Strimr can load previews from the video. This may use additional network data and device resources."
+            "value" : "When server-provided thumbnails aren’t available, Strimr can load previews from the video. This may use additional network data and device resources."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lorsque les miniatures Plex ne sont pas disponibles, Strimr peut charger des aperçus depuis la vidéo. Cela peut utiliser davantage de données réseau et de ressources de l’appareil."
+            "value" : "Lorsque les miniatures fournies par le serveur ne sont pas disponibles, Strimr peut charger des aperçus depuis la vidéo. Cela peut utiliser davantage de données réseau et de ressources de l’appareil."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当 Plex 缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
+            "value" : "服务器提供的缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
           }
         }
       }
@@ -8828,19 +8828,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show image previews while moving through the playback timeline. Strimr uses thumbnails provided by your Plex server when available."
+            "value" : "Show image previews while moving through the playback timeline. Strimr uses thumbnails provided by your media server when available."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Affiche des aperçus d’image lorsque vous parcourez la timeline de lecture. Strimr utilise les miniatures fournies par votre serveur Plex lorsqu’elles sont disponibles."
+            "value" : "Affiche des aperçus d’image lorsque vous parcourez la timeline de lecture. Strimr utilise les miniatures fournies par votre serveur multimédia lorsqu’elles sont disponibles."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在播放时间线上移动时显示图像预览。Strimr 会优先使用 Plex 服务器提供的缩略图。"
+            "value" : "在播放时间线上移动时显示图像预览。Strimr 会优先使用您的媒体服务器提供的缩略图。"
           }
         }
       }
@@ -9774,19 +9774,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This media is not available on your Plex server."
+            "value" : "This media is not available on your media server."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce média n’est pas disponible sur votre serveur Plex."
+            "value" : "Ce média n’est pas disponible sur votre serveur multimédia."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此媒体在您的 Plex 服务器上不可用。"
+            "value" : "此媒体在您的媒体服务器上不可用。"
           }
         }
       }
@@ -9796,19 +9796,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Select a Plex server before starting SharePlay."
+            "value" : "Connect to a media server before starting SharePlay."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionnez un serveur Plex avant de lancer SharePlay."
+            "value" : "Connectez-vous à un serveur multimédia avant de lancer SharePlay."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开始 SharePlay 前请选择 Plex 服务器。"
+            "value" : "开始 SharePlay 前请先连接媒体服务器。"
           }
         }
       }

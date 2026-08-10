@@ -31,19 +31,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strimr needs local network access to connect to your Plex Media Server."
+            "value" : "Strimr needs local network access to connect to your media server."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strimr a besoin d’accéder au réseau local pour se connecter à votre serveur Plex Media Server."
+            "value" : "Strimr a besoin d’accéder au réseau local pour se connecter à votre serveur multimédia."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strimr 需要访问本地网络以连接到您的 Plex Media Server。"
+            "value" : "Strimr 需要访问本地网络以连接到您的媒体服务器。"
           }
         }
       }
