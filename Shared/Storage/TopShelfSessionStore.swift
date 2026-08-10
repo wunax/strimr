@@ -6,6 +6,7 @@ import Foundation
         private static let keychainService = "com.github.wunax.strimr.top-shelf"
         private static let tokenKey = "media.serverToken"
         private static let sessionKey = "media.session.v1"
+        // Kept for upgrades from the Plex-only format; remove after a future migration window.
         private static let legacyTokenKey = "plex.serverToken"
         private static let legacyURLKey = "plex.serverURL"
 
