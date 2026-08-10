@@ -32,11 +32,16 @@ struct SignInView: View {
                         ProgressView().controlSize(.small)
                     }
                     Text(viewModel.isAuthenticating ? "signIn.button.waiting" : "signIn.button.continue")
+                        .fontWeight(.semibold)
                 }
-                .frame(width: 260)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
             .controlSize(.large)
+            .tint(.brandPrimary)
+            .frame(maxWidth: 520)
             .disabled(viewModel.isAuthenticating)
 
             if viewModel.isAuthenticating {

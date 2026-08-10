@@ -152,7 +152,7 @@ struct JellyfinAuthenticationView: View {
                 .fontWeight(.semibold)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     private var logoMaxWidth: CGFloat {

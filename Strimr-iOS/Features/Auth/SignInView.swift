@@ -31,19 +31,22 @@ struct SignInView: View {
             Button {
                 Task { await viewModel.startSignIn() }
             } label: {
-                HStack {
+                HStack(spacing: 10) {
                     if viewModel.isAuthenticating {
-                        ProgressView().tint(.white)
+                        ProgressView()
+                            .controlSize(.small)
                     }
                     Text(viewModel.isAuthenticating ? "signIn.button.waiting" : "signIn.button.continue")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(.brandPrimary)
-                .foregroundStyle(.brandPrimaryForeground)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.vertical, 4)
             }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.large)
+            .tint(.brandPrimary)
+            .frame(maxWidth: 520)
             .disabled(viewModel.isAuthenticating)
 
             if viewModel.isAuthenticating {
@@ -56,6 +59,8 @@ struct SignInView: View {
             } label: {
                 Label("provider.change", systemImage: "chevron.left")
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
 
             if let errorMessage = viewModel.errorMessage {
                 VStack(alignment: .leading, spacing: 8) {
