@@ -146,9 +146,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         startIndex: Int,
         limit: Int
     ) async throws -> MediaPage<MediaDisplayItem> {
+        let includeTypes = library.type == .series
+            ? (parentID == nil ? "Series" : "Series,Season,Episode")
+            : "Movie"
         let response = try await catalog.items(
             parentID: parentID ?? library.id,
-            includeTypes: library.type == .series ? "Series,Season,Episode" : "Movie",
+            includeTypes: includeTypes,
             recursive: parentID == nil,
             startIndex: startIndex,
             limit: limit
