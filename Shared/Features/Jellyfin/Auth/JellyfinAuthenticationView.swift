@@ -24,8 +24,8 @@ struct JellyfinAuthenticationView: View {
     }
 
     private func authenticationForm(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 12) {
+        VStack(spacing: contentSpacing) {
+            VStack(spacing: headerSpacing) {
                 Image("jellyfin_logo")
                     .resizable()
                     .scaledToFit()
@@ -47,7 +47,7 @@ struct JellyfinAuthenticationView: View {
                 }
             }
 
-            VStack(spacing: 14) {
+            VStack(spacing: fieldSpacing) {
                 if viewModel.step == .server {
                     TextField("jellyfin.auth.server.placeholder", text: Bindable(viewModel).serverURL)
                         .textContentType(.URL)
@@ -56,6 +56,7 @@ struct JellyfinAuthenticationView: View {
                         .keyboardType(.URL)
                     #endif
                         .onSubmit { Task { await viewModel.validateServer() } }
+                        .jellyfinAuthenticationFieldStyle()
                 } else {
                     TextField("jellyfin.auth.username", text: Bindable(viewModel).username)
                         .textContentType(.username)
@@ -63,12 +64,13 @@ struct JellyfinAuthenticationView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     #endif
+                        .jellyfinAuthenticationFieldStyle()
                     SecureField("jellyfin.auth.password", text: Bindable(viewModel).password)
                         .textContentType(.password)
                         .onSubmit { Task { await viewModel.signIn() } }
+                        .jellyfinAuthenticationFieldStyle()
                 }
             }
-            .jellyfinAuthenticationFieldStyle()
             .frame(maxWidth: 520)
 
             if let errorMessage = viewModel.errorMessage {
@@ -77,7 +79,7 @@ struct JellyfinAuthenticationView: View {
                     .multilineTextAlignment(.center)
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: buttonSpacing) {
                 if viewModel.step == .server {
                     Button {
                         Task { await viewModel.validateServer() }
@@ -110,12 +112,10 @@ struct JellyfinAuthenticationView: View {
                     Button {
                         viewModel.goBack()
                     } label: {
-                        Text("common.actions.back")
-                            .frame(maxWidth: .infinity)
+                        Label("common.actions.back", systemImage: "chevron.left")
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.roundedRectangle(radius: 12))
-                    .controlSize(.large)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                     .disabled(viewModel.isLoading)
                 }
             }
@@ -170,6 +170,38 @@ struct JellyfinAuthenticationView: View {
             72
         #endif
     }
+
+    private var contentSpacing: CGFloat {
+        #if os(tvOS)
+            40
+        #else
+            24
+        #endif
+    }
+
+    private var headerSpacing: CGFloat {
+        #if os(tvOS)
+            20
+        #else
+            12
+        #endif
+    }
+
+    private var fieldSpacing: CGFloat {
+        #if os(tvOS)
+            24
+        #else
+            14
+        #endif
+    }
+
+    private var buttonSpacing: CGFloat {
+        #if os(tvOS)
+            24
+        #else
+            12
+        #endif
+    }
 }
 
 private extension View {
@@ -177,15 +209,8 @@ private extension View {
     func jellyfinAuthenticationFieldStyle() -> some View {
         #if os(tvOS)
             self
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 20)
-                .frame(minHeight: 72)
-                .background(Color.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.14))
-                }
+                .textFieldStyle(.automatic)
+                .controlSize(.large)
         #else
             self
                 .textFieldStyle(.plain)
