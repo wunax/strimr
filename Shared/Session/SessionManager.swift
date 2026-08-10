@@ -77,6 +77,9 @@ final class SessionManager {
             }
             try await refreshSelectedServerAccess(force: force)
         }
+        jellyfinContext.configureAuthenticationRequiredHandler { [weak self] in
+            self?.invalidateJellyfinSession()
+        }
         Task { await hydrate() }
     }
 
@@ -574,6 +577,24 @@ final class SessionManager {
             topShelfSessionStore.clear()
             TVTopShelfContentProvider.topShelfContentDidChange()
         #endif
+        status = .needsJellyfinAuthentication
+    }
+
+    private func invalidateJellyfinSession() {
+        guard provider == .jellyfin, let connection = jellyfinContext.connection else { return }
+        do {
+            try keychain.deleteValue(forKey: jellyfinTokenKey(connection: connection))
+        } catch {
+            ErrorReporter.capture(error)
+        }
+        jellyfinContext.reset()
+        mediaServices = nil
+        libraryStore.configure(service: nil)
+        #if os(tvOS)
+            topShelfSessionStore.clear()
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        #endif
+        jellyfinHydrationError = nil
         status = .needsJellyfinAuthentication
     }
 

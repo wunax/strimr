@@ -48,6 +48,7 @@ final class JellyfinAPIContext {
     @ObservationIgnored private let redirectDelegate: JellyfinRedirectDelegate?
     @ObservationIgnored private let deviceID: String
     @ObservationIgnored private let clientVersion: String
+    @ObservationIgnored private var authenticationRequiredHandler: (() -> Void)?
 
     init(session: URLSession? = nil) {
         if let session {
@@ -174,6 +175,10 @@ final class JellyfinAPIContext {
     func configure(connection: JellyfinConnection, token: String) {
         self.connection = connection
         accessToken = token
+    }
+
+    func configureAuthenticationRequiredHandler(_ handler: @escaping () -> Void) {
+        authenticationRequiredHandler = handler
     }
 
     func reset() {
@@ -359,6 +364,7 @@ final class JellyfinAPIContext {
         case 200 ..< 300:
             return
         case 401:
+            authenticationRequiredHandler?()
             throw JellyfinAPIError.authenticationRequired
         case 403:
             throw JellyfinAPIError.permissionDenied
