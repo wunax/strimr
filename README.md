@@ -54,8 +54,7 @@ Beta versions are available through [TestFlight](https://testflight.apple.com/jo
     <img src="Screenshots/iphone/iphone_home.jpg" alt="iPhone Home" width="240" />
     <img src="Screenshots/iphone/iphone_library_explore.jpg" alt="iPhone Library Explore" width="240" />
     <img src="Screenshots/iphone/iphone_library_recommended.jpg" alt="iPhone Library Recommended" width="240" />
-    <img src="Screenshots/iphone/iphone_details_1.jpg" alt="iPhone Details 1" width="240" />
-    <img src="Screenshots/iphone/iphone_details_2.jpg" alt="iPhone Details 2" width="240" />
+    <img src="Screenshots/iphone/iphone_details_1.jpg" alt="iPhone Details" width="240" />
     <img src="Screenshots/iphone/iphone_player.jpg" alt="iPhone Player" width="240" />
     <img src="Screenshots/iphone/iphone_search.jpg" alt="iPhone Search" width="240" />
   </p>
@@ -67,9 +66,9 @@ Beta versions are available through [TestFlight](https://testflight.apple.com/jo
     <img src="Screenshots/ipad/ipad_home.jpg" alt="iPad Home" width="360" />
     <img src="Screenshots/ipad/ipad_library_explore.jpg" alt="iPad Library Explore" width="360" />
     <img src="Screenshots/ipad/ipad_library_recommended.jpg" alt="iPad Library Recommended" width="360" />
-    <img src="Screenshots/ipad/ipad_details_1.jpg" alt="iPad Details 1" width="360" />
-    <img src="Screenshots/ipad/ipad_details_2.jpg" alt="iPad Details 2" width="360" />
+    <img src="Screenshots/ipad/ipad_details_1.jpg" alt="iPad Details" width="360" />
     <img src="Screenshots/ipad/ipad_player.jpg" alt="iPad Player" width="360" />
+    <img src="Screenshots/ipad/ipad_search.jpg" alt="iPad Search" width="360" />
   </p>
 </details>
 
@@ -81,5 +80,18 @@ Beta versions are available through [TestFlight](https://testflight.apple.com/jo
     <img src="Screenshots/appletv/appletv_library_recommended.jpg" alt="Apple TV Library Recommended" width="360" />
     <img src="Screenshots/appletv/appletv_details.jpg" alt="Apple TV Details" width="360" />
     <img src="Screenshots/appletv/appletv_player.jpg" alt="Apple TV Player" width="360" />
+    <img src="Screenshots/appletv/appletv_search.jpg" alt="Apple TV Search" width="360" />
+  </p>
+</details>
+
+<details>
+  <summary>macOS</summary>
+  <p>
+    <img src="Screenshots/macos/macos_home.jpg" alt="macOS Home" width="360" />
+    <img src="Screenshots/macos/macos_library_explore.jpg" alt="macOS Library Explore" width="360" />
+    <img src="Screenshots/macos/macos_library_recommended.jpg" alt="macOS Library Recommended" width="360" />
+    <img src="Screenshots/macos/macos_details.jpg" alt="macOS Details" width="360" />
+    <img src="Screenshots/macos/macos_player.jpg" alt="macOS Player" width="360" />
+    <img src="Screenshots/macos/macos_search.jpg" alt="macOS Search" width="360" />
   </p>
 </details>
