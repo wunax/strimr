@@ -1,7 +1,12 @@
 <p align="center">
-  <img src="Strimr-iOS/Assets.xcassets/Icon.imageset/logo_ios.png" alt="Strimr logo" width="160" />
+  <img src=".github/assets/strimr-wordmark.jpg" alt="Strimr" width="100%" />
 </p>
-<h1 align="center">Strimr</h1>
+
+<hr />
+
+<p align="center">
+  <img src=".github/assets/strimr-platform-showcase.jpg" alt="Strimr on macOS, iOS, and tvOS" width="100%" />
+</p>
 
 Strimr is a third-party Plex client built in Swift with native interfaces for iPhone, iPad, Mac, and Apple TV.
 
