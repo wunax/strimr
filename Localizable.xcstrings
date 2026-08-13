@@ -3194,7 +3194,26 @@
       }
     },
     "jellyfin.home.latestIn %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest in %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveautés dans %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中的最新内容"
+          }
+        }
+      }
     },
     "jellyfin.home.latestMovies" : {
       "extractionState" : "stale",
