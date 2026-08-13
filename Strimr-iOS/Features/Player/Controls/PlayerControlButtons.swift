@@ -161,7 +161,7 @@ struct RotationLockButton: View {
         .accessibilityLabel(
             isLocked
                 ? String(localized: "player.controls.rotation.unlock")
-                : String(localized: "player.controls.rotation.lock")
+                : String(localized: "player.controls.rotation.lock"),
         )
     }
 }
