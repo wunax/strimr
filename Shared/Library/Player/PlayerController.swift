@@ -30,6 +30,14 @@ final class PlayerController {
     var assRenderer: AssSubtitlesRenderer?
     var activeSubtitleCodec: String?
     var errorMessage: String?
+    #if os(iOS) || os(macOS)
+        var showsPictureInPictureControl = false
+        var isPictureInPictureAvailable = false
+        var isPictureInPictureActive = false
+        var isPictureInPictureTransitioning = false
+        @ObservationIgnored var onPictureInPictureStartFailed: (() -> Void)?
+        @ObservationIgnored var onPictureInPictureRestoreRequested: (() -> Void)?
+    #endif
     private(set) var scrubPreview: PlayerScrubPreview?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
@@ -72,6 +80,9 @@ final class PlayerController {
     @ObservationIgnored private var isScrubPreviewing = false
     @ObservationIgnored private var showsScrubThumbnailPreviews = true
     @ObservationIgnored private var generatesMissingScrubThumbnailPreviews = true
+    #if os(iOS) || os(macOS)
+        @ObservationIgnored private lazy var pictureInPictureCoordinator = PictureInPictureCoordinator(engine: engine)
+    #endif
 
     private let scrubBucketDuration = 10.0
     private let unavailableBIFExtractorDelay: Duration = .milliseconds(250)
@@ -89,6 +100,9 @@ final class PlayerController {
         }
 
         observeEngine()
+        #if os(iOS) || os(macOS)
+            configurePictureInPicture()
+        #endif
     }
 
     func load(
@@ -135,6 +149,7 @@ final class PlayerController {
                     options: LoadOptions(
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
                         preserveASSMarkup: true,
+                        prepareNativeSubtitles: Self.preparesNativeSubtitles,
                         externalSubtitles: externalSubtitles.map(\.track),
                         autoplay: autoplay,
                     ),
@@ -482,6 +497,9 @@ final class PlayerController {
     }
 
     func stop() {
+        #if os(iOS) || os(macOS)
+            pictureInPictureCoordinator.stop()
+        #endif
         deactivateASSRendering()
         resetScrubPreviewSession()
         isStopping = true
@@ -492,6 +510,29 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         engine.stop()
     }
+
+    #if os(iOS) || os(macOS)
+        func startPictureInPicture() {
+            pictureInPictureCoordinator.start()
+        }
+
+        private func configurePictureInPicture() {
+            pictureInPictureCoordinator.onAvailabilityChanged = { [weak self] showsControl, isAvailable in
+                self?.showsPictureInPictureControl = showsControl
+                self?.isPictureInPictureAvailable = isAvailable
+            }
+            pictureInPictureCoordinator.onActivityChanged = { [weak self] isActive, isTransitioning in
+                self?.isPictureInPictureActive = isActive
+                self?.isPictureInPictureTransitioning = isTransitioning
+            }
+            pictureInPictureCoordinator.onRestoreUserInterface = { [weak self] in
+                self?.onPictureInPictureRestoreRequested?()
+            }
+            pictureInPictureCoordinator.onStartFailed = { [weak self] in
+                self?.onPictureInPictureStartFailed?()
+            }
+        }
+    #endif
 
     private func deactivateASSRendering() {
         sidecarASSHeaderCancellable?.cancel()
@@ -798,6 +839,14 @@ final class PlayerController {
         case .hlg:
             .hlg
         }
+    }
+
+    private static var preparesNativeSubtitles: Bool {
+        #if os(iOS) || os(macOS)
+            true
+        #else
+            false
+        #endif
     }
 }
 

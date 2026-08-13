@@ -22,6 +22,10 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Strimr needs local network access to connect to your Plex Media Server.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>SENTRY_DSN_IOS</key>
 	<string>https://$(SENTRY_DSN_IOS)</string>
 </dict>

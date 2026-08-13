@@ -30,6 +30,9 @@ struct PlayerControlsView: View {
     var isRotationLocked: Bool
     var onToggleRotationLock: () -> Void
     var isSharePlay: Bool
+    var showsPictureInPicture: Bool
+    var isPictureInPictureEnabled: Bool
+    var onStartPictureInPicture: () -> Void
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -66,6 +69,9 @@ struct PlayerControlsView: View {
                     showsChapters: chapters.count >= 2,
                     onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
+                    showsPictureInPicture: showsPictureInPicture,
+                    isPictureInPictureEnabled: isPictureInPictureEnabled,
+                    onStartPictureInPicture: onStartPictureInPicture,
                 )
 
                 Spacer(minLength: 0)
@@ -171,6 +177,9 @@ private struct PlayerControlsHeader: View {
     var showsChapters: Bool
     var onShowChapters: () -> Void
     var isSharePlay: Bool
+    var showsPictureInPicture: Bool
+    var isPictureInPictureEnabled: Bool
+    var onStartPictureInPicture: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -215,6 +224,11 @@ private struct PlayerControlsHeader: View {
             }
 
             Spacer()
+
+            if showsPictureInPicture {
+                PlayerPictureInPictureButton(action: onStartPictureInPicture)
+                    .disabled(!isPictureInPictureEnabled)
+            }
 
             if showsChapters {
                 PlayerChaptersButton(action: onShowChapters)
