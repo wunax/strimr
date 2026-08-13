@@ -185,7 +185,11 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     }
 
     var resumePosition: TimeInterval? {
-        userData?.playbackPositionTicks.map(JellyfinTime.seconds(fromTicks:))
+        guard let ticks = userData?.playbackPositionTicks, ticks > 0 else {
+            return nil
+        }
+
+        return JellyfinTime.seconds(fromTicks: ticks)
     }
 
     var primaryLabel: String {
