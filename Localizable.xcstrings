@@ -1437,28 +1437,6 @@
         }
       }
     },
-    "errors.selectServer.searchLibrary" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to search your library."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour rechercher dans votre bibliothèque."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以搜索媒体库"
-          }
-        }
-      }
-    },
     "home.loading" : {
       "localizations" : {
         "en" : {

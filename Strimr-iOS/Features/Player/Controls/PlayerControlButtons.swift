@@ -158,7 +158,10 @@ struct RotationLockButton: View {
                         .stroke(Color.white.opacity(0.18), lineWidth: 1),
                 )
         }
-        .accessibilityLabel(String(localized: isLocked ? "player.controls.rotation.unlock" :
-                "player.controls.rotation.lock"))
+        .accessibilityLabel(
+            isLocked
+                ? String(localized: "player.controls.rotation.unlock")
+                : String(localized: "player.controls.rotation.lock")
+        )
     }
 }
