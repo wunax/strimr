@@ -63,3 +63,7 @@ Config/Config-TopShelf.xcconfig
 
 node_modules/
 .env
+
+# Bundler
+.bundle/
+vendor/bundle/
