@@ -5320,6 +5320,28 @@
         }
       }
     },
+    "player.controls.pictureInPicture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture in Picture"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image dans l’image"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画中画"
+          }
+        }
+      }
+    },
     "player.controls.rewindSeconds %lld" : {
       "localizations" : {
         "en" : {

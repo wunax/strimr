@@ -37,6 +37,7 @@ struct PlayerWindowView: View {
 
 struct PlayerView: View {
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.openWindow) private var openWindow
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(AppModel.self) private var appModel
@@ -432,6 +433,21 @@ struct PlayerView: View {
                     Spacer()
 
                     volumeControl
+
+                    if playerController.showsPictureInPictureControl {
+                        Button {
+                            playerController.startPictureInPicture()
+                        } label: {
+                            Image(systemName: "pip.enter")
+                        }
+                        .disabled(
+                            !playerController.isPictureInPictureAvailable
+                                || playerController.isPictureInPictureActive
+                                || playerController.isPictureInPictureTransitioning,
+                        )
+                        .accessibilityLabel(String(localized: "player.controls.pictureInPicture"))
+                    }
+
                     audioMenu
                     subtitleMenu
                     speedMenu
@@ -637,6 +653,10 @@ struct PlayerView: View {
     }
 
     private func configureController() {
+        playerController.onPictureInPictureRestoreRequested = {
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: AppModel.playerWindowID)
+        }
         playerController.onMediaLoaded = {
             let tracks = playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
@@ -923,6 +943,7 @@ struct PlayerView: View {
 
     private func stopPlayback() {
         viewModel.handleStop()
+        playerController.onPictureInPictureRestoreRequested = nil
         playerController.stop()
     }
 

@@ -78,6 +78,10 @@ struct PlayerView: View {
                 .onAppear {
                     playerController.onMediaLoaded = handleMediaLoaded
                     playerController.onPlaybackEnded = handlePlaybackEnded
+                    playerController.onPictureInPictureStartFailed = {
+                        guard scenePhase == .background else { return }
+                        preparePlaybackForBackground()
+                    }
                     showControls(temporarily: true)
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
@@ -90,6 +94,7 @@ struct PlayerView: View {
                 }
                 .onDisappear {
                     viewModel.handleStop()
+                    playerController.onPictureInPictureStartFailed = nil
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
                     playerController.stop()
@@ -296,6 +301,11 @@ struct PlayerView: View {
                     isRotationLocked: isRotationLocked,
                     onToggleRotationLock: toggleRotationLock,
                     isSharePlay: sharePlayCoordinator.isInSession,
+                    showsPictureInPicture: playerController.showsPictureInPictureControl,
+                    isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
+                        && !playerController.isPictureInPictureActive
+                        && !playerController.isPictureInPictureTransitioning,
+                    onStartPictureInPicture: playerController.startPictureInPicture,
                 )
                 .transition(.opacity)
             }
@@ -656,6 +666,9 @@ struct PlayerView: View {
 
     private func preparePlaybackForBackground() {
         guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground else { return }
+        guard !playerController.isPictureInPictureActive,
+              !playerController.isPictureInPictureTransitioning
+        else { return }
 
         backgroundPlaybackPosition = max(playerController.position, viewModel.position)
         wasPlayingBeforeBackground = !viewModel.isPaused
