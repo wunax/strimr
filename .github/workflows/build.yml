@@ -31,3 +31,14 @@ jobs:
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             build
+
+      - name: macOS build
+        run: |
+          xcodebuild \
+            -project Strimr.xcodeproj \
+            -scheme Strimr-macOS \
+            -destination 'generic/platform=macOS' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
