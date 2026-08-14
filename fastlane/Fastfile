@@ -59,14 +59,16 @@ platform :ios do
 
     private_lane :testflight_build_number do |options|
         requested_build_number = ENV.fetch("TESTFLIGHT_BUILD_NUMBER", "").strip
-        return next_shared_build_number(api_key: options[:api_key]) if requested_build_number.empty?
+        if requested_build_number.empty?
+            next_shared_build_number(api_key: options[:api_key])
+        else
+            unless requested_build_number.match?(/\A[1-9]\d*\z/)
+                UI.user_error!("TESTFLIGHT_BUILD_NUMBER must be a positive integer")
+            end
 
-        unless requested_build_number.match?(/\A[1-9]\d*\z/)
-            UI.user_error!("TESTFLIGHT_BUILD_NUMBER must be a positive integer")
+            UI.message("Using requested TestFlight build number #{requested_build_number}")
+            requested_build_number
         end
-
-        UI.message("Using requested TestFlight build number #{requested_build_number}")
-        requested_build_number
     end
 
     private_lane :upload_sentry_debug_files do |options|
