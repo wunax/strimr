@@ -46,6 +46,7 @@ struct PlayerView: View {
 
     @State private var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
+    @State private var fullscreenCoordinator = PlayerFullscreenCoordinator()
     @State private var controlsVisible = true
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var automaticSkipFeedbackWorkItem: DispatchWorkItem?
@@ -111,7 +112,13 @@ struct PlayerView: View {
 
             Color.clear
                 .contentShape(Rectangle())
-                .onTapGesture { toggleControlsVisibility() }
+                .gesture(
+                    TapGesture(count: 2)
+                        .exclusively(
+                            before: TapGesture()
+                                .onEnded { toggleControlsVisibility() },
+                        ),
+                )
 
             if viewModel.isLoading || viewModel.isBuffering || isRecoveringServerAccess {
                 ProgressView()
@@ -134,7 +141,16 @@ struct PlayerView: View {
 
             keyboardCommands
         }
+        .simultaneousGesture(
+            TapGesture(count: 2)
+                .onEnded { toggleFullScreen() },
+        )
         .background(.black)
+        .background {
+            PlayerWindowReader { window in
+                fullscreenCoordinator.attach(to: window)
+            }
+        }
     }
 
     private var configuredPlayerView: some View {
@@ -158,6 +174,7 @@ struct PlayerView: View {
                 .onDisappear {
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
+                    fullscreenCoordinator.detach()
                     restoreCursor()
                     stopPlayback()
                     appModel.resetPlayer(ifPresenting: presentationID)
@@ -239,6 +256,11 @@ struct PlayerView: View {
                 .onChange(of: viewModel.serverAccessRecoveryError) { _, error in
                     guard let error else { return }
                     presentServerRecoveryError(error)
+                }
+                .onChange(of: fullscreenCoordinator.isFullScreen) { wasFullScreen, isFullScreen in
+                    if wasFullScreen, !isFullScreen {
+                        showControls(temporarily: true)
+                    }
                 },
         )
 
@@ -308,7 +330,6 @@ struct PlayerView: View {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.bordered)
-                .keyboardShortcut(.escape, modifiers: [])
             }
 
             Spacer()
@@ -454,6 +475,18 @@ struct PlayerView: View {
                     if viewModel.hasNavigableChapters {
                         chapterButton
                     }
+
+                    Button {
+                        toggleFullScreen()
+                    } label: {
+                        Image(
+                            systemName: fullscreenCoordinator.isFullScreen
+                                ? "arrow.down.right.and.arrow.up.left"
+                                : "arrow.up.left.and.arrow.down.right",
+                        )
+                    }
+                    .accessibilityLabel(fullscreenAccessibilityLabel)
+                    .disabled(fullscreenCoordinator.isTransitioning)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
@@ -646,9 +679,27 @@ struct PlayerView: View {
         HStack {
             Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
+
+            if !fullscreenCoordinator.isFullScreen {
+                Button(action: { closePlayer() }) { EmptyView() }
+                    .keyboardShortcut(.escape, modifiers: [])
+            }
         }
         .frame(width: 0, height: 0)
         .opacity(0)
+    }
+
+    private var fullscreenAccessibilityLabel: Text {
+        if fullscreenCoordinator.isFullScreen {
+            Text("player.controls.exitFullscreen")
+        } else {
+            Text("player.controls.enterFullscreen")
+        }
+    }
+
+    private func toggleFullScreen() {
+        fullscreenCoordinator.toggleFullScreen()
+        showControls(temporarily: true)
     }
 
     private func configureController() {
