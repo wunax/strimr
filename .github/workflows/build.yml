@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  ios-build:
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -22,6 +22,12 @@ jobs:
             -derivedDataPath build/DerivedData \
             build
 
+  tvos-build:
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: tvOS build
         run: |
           xcodebuild \
@@ -31,6 +37,12 @@ jobs:
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             build
+
+  macos-build:
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: macOS build
         run: |
