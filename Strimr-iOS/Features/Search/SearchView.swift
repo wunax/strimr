@@ -82,6 +82,14 @@ struct SearchView: View {
 
     private func card(for result: MergedSearchResult) -> some View {
         SearchResultCard(result: result) {
+            select(result)
+        }
+    }
+
+    private func select(_ result: MergedSearchResult) {
+        if result.sources.count == 1 {
+            onSelectMedia(result.primarySource)
+        } else {
             selectedResult = result
         }
     }

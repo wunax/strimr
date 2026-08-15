@@ -2,21 +2,24 @@ import SwiftUI
 
 @MainActor
 struct SettingsInterfaceView: View {
+    @Environment(SessionManager.self) private var sessionManager
     let settingsManager: SettingsManager
     let libraryStore: LibraryStore
 
     var body: some View {
         List {
-            Section {
-                Toggle(
-                    "settings.interface.multiServerSearch",
-                    isOn: Binding(
-                        get: { settingsManager.interface.multiServerSearchEnabled },
-                        set: { settingsManager.setMultiServerSearchEnabled($0) },
-                    ),
-                )
-            } footer: {
-                Text("settings.interface.multiServerSearch.description")
+            if sessionManager.provider == .plex {
+                Section {
+                    Toggle(
+                        "settings.interface.multiServerSearch",
+                        isOn: Binding(
+                            get: { settingsManager.interface.multiServerSearchEnabled },
+                            set: { settingsManager.setMultiServerSearchEnabled($0) },
+                        ),
+                    )
+                } footer: {
+                    Text("settings.interface.multiServerSearch.description")
+                }
             }
 
             Section {

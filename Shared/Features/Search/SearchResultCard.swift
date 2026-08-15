@@ -45,10 +45,12 @@ struct SearchResultCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    if result.sources.count > 1 {
+                        Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
 
                     if media.playableItem?.shouldHideSpoilerSummary(
                         at: settingsManager.interface.spoilerProtection,
