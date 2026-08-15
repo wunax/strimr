@@ -258,7 +258,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )]
         return MediaDetailContent(
             media: mapped,
-            parentSeries: nil,
+            parentSeries: try await parentSeries(for: item),
             onDeck: item.kind == .series ? try await catalog.nextUp(seriesID: item.id, limit: 1).first.map {
                 MediaItem(jellyfinItem: $0, server: server)
             } : nil,
@@ -279,6 +279,28 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             },
             relatedHubs: relatedHub
         )
+    }
+
+    private func parentSeries(for item: JellyfinItem) async throws -> MediaItem? {
+        let seriesID: String?
+        switch item.kind {
+        case .season:
+            seriesID = item.seriesID ?? item.parentID
+        case .episode:
+            if let itemSeriesID = item.seriesID {
+                seriesID = itemSeriesID
+            } else if let seasonID = item.parentID {
+                let season = try await catalog.item(id: seasonID)
+                seriesID = season.seriesID ?? season.parentID
+            } else {
+                seriesID = nil
+            }
+        case .movie, .series, .collection, .playlist, .folder, .unknown:
+            seriesID = nil
+        }
+
+        guard let seriesID else { return nil }
+        return MediaItem(jellyfinItem: try await catalog.item(id: seriesID), server: server)
     }
 
     func seasons(for series: MediaItem) async throws -> [MediaItem] {
