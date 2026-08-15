@@ -10,6 +10,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     private let playbackService: JellyfinPlaybackService
     private let server: ServerIdentity
     private var activePlans: [String: JellyfinPlaybackPlan] = [:]
+    private var trackSelectionOverrides: [String: JellyfinTrackSelectionOverride] = [:]
     weak var services: MediaServices?
 
     init(context: JellyfinAPIContext, server: ServerIdentity) {
@@ -331,19 +332,62 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func setWatchlisted(_: Bool, media _: MediaItem) async throws {}
 
     func trackSelection(itemID: String) async throws -> MediaTrackSelection {
-        MediaTrackSelection(
+        let item = try await catalog.item(id: itemID)
+        let source = preferredMediaSource(for: item)
+        let streams = source?.mediaStreams ?? []
+        let audioTracks = streams
+            .filter { $0.type.lowercased() == "audio" }
+            .map { MediaTrackMetadata(jellyfinStream: $0) }
+        let subtitleTracks = streams
+            .filter { $0.type.lowercased() == "subtitle" }
+            .map { MediaTrackMetadata(jellyfinStream: $0) }
+        let validAudioIndices = Set(audioTracks.compactMap(\.id))
+        let validSubtitleIndices = Set(subtitleTracks.compactMap(\.id))
+        let selectionOverride = validatedTrackSelectionOverride(
+            for: itemID,
+            validAudioIndices: validAudioIndices,
+            validSubtitleIndices: validSubtitleIndices
+        )
+        let defaultAudioTrackID = source?.defaultAudioStreamIndex.flatMap { index in
+            validAudioIndices.contains(index) ? index : nil
+        }
+        let defaultSubtitleTrackID = source?.defaultSubtitleStreamIndex.flatMap { index in
+            validSubtitleIndices.contains(index) ? index : nil
+        }
+        let selectedAudioTrackID = selectionOverride?.audioStreamIndex
+            ?? defaultAudioTrackID
+            ?? audioTracks.first(where: \.isDefault)?.id
+            ?? audioTracks.first?.id
+        let selectedSubtitleTrackID: Int? = switch selectionOverride?.subtitlePreference {
+        case .off:
+            nil
+        case let .stream(index):
+            index
+        case .serverDefault, nil:
+            defaultSubtitleTrackID ?? subtitleTracks.first(where: \.isDefault)?.id
+        }
+
+        return MediaTrackSelection(
             itemID: itemID,
             filePath: nil,
-            audioTracks: [],
-            subtitleTracks: [],
-            selectedAudioTrackID: nil,
-            selectedSubtitleTrackID: nil
+            audioTracks: audioTracks,
+            subtitleTracks: subtitleTracks,
+            selectedAudioTrackID: selectedAudioTrackID,
+            selectedSubtitleTrackID: selectedSubtitleTrackID
         )
     }
 
-    func selectAudioTrack(id _: Int, itemID _: String) async throws {}
+    func selectAudioTrack(id: Int, itemID: String) async throws {
+        var selectionOverride = trackSelectionOverrides[itemID] ?? JellyfinTrackSelectionOverride()
+        selectionOverride.audioStreamIndex = id
+        trackSelectionOverrides[itemID] = selectionOverride
+    }
 
-    func selectSubtitleTrack(id _: Int?, itemID _: String) async throws {}
+    func selectSubtitleTrack(id: Int?, itemID: String) async throws {
+        var selectionOverride = trackSelectionOverrides[itemID] ?? JellyfinTrackSelectionOverride()
+        selectionOverride.subtitlePreference = id.map(JellyfinSubtitleStreamPreference.stream) ?? .off
+        trackSelectionOverrides[itemID] = selectionOverride
+    }
 
     func collectionItems(id: String) async throws -> [MediaDisplayItem] {
         try await childItems(id: id)
@@ -389,10 +433,18 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan {
         let item = try await catalog.item(id: media.id)
-        let plan = try await playbackService.prepare(item: item, resume: resume)
+        let plan = try await playbackService.prepare(
+            item: item,
+            resume: resume,
+            trackSelection: trackSelectionOverrides[item.id]
+        )
         activePlans[plan.playSessionID] = plan
         let segments = (try? await catalog.mediaSegments(itemID: item.id)) ?? []
-        let tracks = (item.mediaSources?.first?.mediaStreams ?? []).compactMap { stream -> PlaybackTrack? in
+        let tracks = plan.mediaStreams.sorted { lhs, rhs in
+            let lhsPriority = lhs.type.lowercased() == "subtitle" && lhs.isExternal == true ? 0 : 1
+            let rhsPriority = rhs.type.lowercased() == "subtitle" && rhs.isExternal == true ? 0 : 1
+            return lhsPriority == rhsPriority ? lhs.index < rhs.index : lhsPriority < rhsPriority
+        }.compactMap { stream -> PlaybackTrack? in
             let kind: PlaybackTrackKind
             switch stream.type.lowercased() {
             case "audio": kind = .audio
@@ -408,7 +460,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 codec: stream.codec,
                 isDefault: stream.isDefault ?? false,
                 isForced: stream.isForced ?? false,
-                isHearingImpaired: false
+                isHearingImpaired: stream.isHearingImpaired ?? false
             )
         }
         let scrubSource: ScrubThumbnailSource? = {
@@ -480,6 +532,32 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             },
             scrubThumbnailSource: scrubSource
         )
+    }
+
+    private func preferredMediaSource(for item: JellyfinItem) -> JellyfinMediaSource? {
+        item.mediaSources?.first(where: { $0.supportsDirectPlay == true }) ?? item.mediaSources?.first
+    }
+
+    private func validatedTrackSelectionOverride(
+        for itemID: String,
+        validAudioIndices: Set<Int>,
+        validSubtitleIndices: Set<Int>
+    ) -> JellyfinTrackSelectionOverride? {
+        guard var selectionOverride = trackSelectionOverrides[itemID] else { return nil }
+
+        if let audioIndex = selectionOverride.audioStreamIndex,
+           !validAudioIndices.contains(audioIndex)
+        {
+            selectionOverride.audioStreamIndex = nil
+        }
+        if case let .stream(subtitleIndex) = selectionOverride.subtitlePreference,
+           !validSubtitleIndices.contains(subtitleIndex)
+        {
+            selectionOverride.subtitlePreference = .serverDefault
+        }
+
+        trackSelectionOverrides[itemID] = selectionOverride
+        return selectionOverride
     }
 
     func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {

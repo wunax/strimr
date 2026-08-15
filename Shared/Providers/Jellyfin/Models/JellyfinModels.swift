@@ -373,10 +373,12 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     let index: Int
     let type: String
     let codec: String?
+    let title: String?
     let displayTitle: String?
     let language: String?
     let isDefault: Bool?
     let isForced: Bool?
+    let isHearingImpaired: Bool?
     let isExternal: Bool?
     let deliveryMethod: String?
     let deliveryURL: String?
@@ -385,10 +387,12 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
         case index = "Index"
         case type = "Type"
         case codec = "Codec"
+        case title = "Title"
         case displayTitle = "DisplayTitle"
         case language = "Language"
         case isDefault = "IsDefault"
         case isForced = "IsForced"
+        case isHearingImpaired = "IsHearingImpaired"
         case isExternal = "IsExternal"
         case deliveryMethod = "DeliveryMethod"
         case deliveryURL = "DeliveryUrl"

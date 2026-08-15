@@ -1,5 +1,25 @@
 import Foundation
 
+extension MediaTrackMetadata {
+    init(jellyfinStream: JellyfinMediaStream) {
+        self.init(
+            id: jellyfinStream.index,
+            sourceIndex: jellyfinStream.index,
+            codec: jellyfinStream.codec ?? "",
+            title: jellyfinStream.title,
+            displayTitle: jellyfinStream.displayTitle
+                ?? jellyfinStream.title
+                ?? jellyfinStream.language
+                ?? jellyfinStream.codec
+                ?? "",
+            language: jellyfinStream.language,
+            isDefault: jellyfinStream.isDefault ?? false,
+            isForced: jellyfinStream.isForced ?? false,
+            isHearingImpaired: jellyfinStream.isHearingImpaired ?? false
+        )
+    }
+}
+
 extension MediaItem {
     init(jellyfinItem: JellyfinItem, server: ServerIdentity) {
         let type = jellyfinItem.kind

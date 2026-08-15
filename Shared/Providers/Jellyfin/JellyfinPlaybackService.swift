@@ -10,8 +10,28 @@ struct JellyfinPlaybackPlan: Sendable {
     let initialPosition: TimeInterval?
     let preferredAudioStreamIndex: Int?
     let preferredSubtitleStreamIndex: Int?
+    let mediaStreams: [JellyfinMediaStream]
     let chapters: [JellyfinChapter]
     let externalSubtitles: [ExternalSubtitleTrack]
+}
+
+enum JellyfinSubtitleStreamPreference: Sendable {
+    case serverDefault
+    case off
+    case stream(Int)
+
+    var requestIndex: Int? {
+        switch self {
+        case .serverDefault: nil
+        case .off: -1
+        case let .stream(index): index
+        }
+    }
+}
+
+struct JellyfinTrackSelectionOverride: Sendable {
+    var audioStreamIndex: Int?
+    var subtitlePreference: JellyfinSubtitleStreamPreference = .serverDefault
 }
 
 @MainActor
@@ -22,7 +42,11 @@ struct JellyfinPlaybackService {
         self.context = context
     }
 
-    func prepare(item: JellyfinItem, resume: Bool = true) async throws -> JellyfinPlaybackPlan {
+    func prepare(
+        item: JellyfinItem,
+        resume: Bool = true,
+        trackSelection: JellyfinTrackSelectionOverride? = nil
+    ) async throws -> JellyfinPlaybackPlan {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
         }
@@ -30,6 +54,8 @@ struct JellyfinPlaybackService {
         let body = JellyfinPlaybackInfoRequest(
             userID: userID,
             startTimeTicks: resume ? (item.userData?.playbackPositionTicks ?? 0) : 0,
+            audioStreamIndex: trackSelection?.audioStreamIndex,
+            subtitleStreamIndex: trackSelection?.subtitlePreference.requestIndex,
             deviceProfile: .strimrDirectPlay,
         )
         let info: JellyfinPlaybackInfo = try await context.post(
@@ -55,8 +81,23 @@ struct JellyfinPlaybackService {
             ],
         )
         let headers = try context.playbackHeaders()
-
-        let externalSubtitles = externalSubtitles(streams: source.mediaStreams ?? [], headers: headers)
+        let streams = source.mediaStreams ?? []
+        let audioStreams = streams.filter { $0.type.lowercased() == "audio" }
+        let subtitleStreams = streams.filter { $0.type.lowercased() == "subtitle" }
+        let selectedAudioStreamIndex = trackSelection?.audioStreamIndex.flatMap { selectedIndex in
+            audioStreams.contains(where: { $0.index == selectedIndex }) ? selectedIndex : nil
+        } ?? defaultAudioStreamIndex(source: source, streams: audioStreams)
+        let selectedSubtitleStreamIndex: Int? = switch trackSelection?.subtitlePreference {
+        case .off:
+            nil
+        case let .stream(selectedIndex):
+            subtitleStreams.contains(where: { $0.index == selectedIndex })
+                ? selectedIndex
+                : defaultSubtitleStreamIndex(source: source, streams: subtitleStreams)
+        case .serverDefault, nil:
+            defaultSubtitleStreamIndex(source: source, streams: subtitleStreams)
+        }
+        let externalSubtitles = externalSubtitles(streams: streams, headers: headers)
 
         return JellyfinPlaybackPlan(
             item: item,
@@ -65,11 +106,30 @@ struct JellyfinPlaybackService {
             mediaSourceID: source.id,
             playSessionID: playSessionID,
             initialPosition: resume ? item.resumePosition : nil,
-            preferredAudioStreamIndex: source.defaultAudioStreamIndex,
-            preferredSubtitleStreamIndex: source.defaultSubtitleStreamIndex,
+            preferredAudioStreamIndex: selectedAudioStreamIndex,
+            preferredSubtitleStreamIndex: selectedSubtitleStreamIndex,
+            mediaStreams: streams,
             chapters: item.chapters ?? [],
             externalSubtitles: externalSubtitles,
         )
+    }
+
+    private func defaultSubtitleStreamIndex(
+        source: JellyfinMediaSource,
+        streams: [JellyfinMediaStream]
+    ) -> Int? {
+        source.defaultSubtitleStreamIndex.flatMap { defaultIndex in
+            streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
+        } ?? streams.first(where: { $0.isDefault == true })?.index
+    }
+
+    private func defaultAudioStreamIndex(
+        source: JellyfinMediaSource,
+        streams: [JellyfinMediaStream]
+    ) -> Int? {
+        source.defaultAudioStreamIndex.flatMap { defaultIndex in
+            streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
+        } ?? streams.first(where: { $0.isDefault == true })?.index ?? streams.first?.index
     }
 
     func externalSubtitles(item: JellyfinItem) throws -> [ExternalSubtitleTrack] {
@@ -153,6 +213,8 @@ struct JellyfinPlaybackService {
 private struct JellyfinPlaybackInfoRequest: Encodable {
     let userID: String
     let startTimeTicks: Int64
+    let audioStreamIndex: Int?
+    let subtitleStreamIndex: Int?
     let isPlayback = true
     let autoOpenLiveStream = true
     let enableDirectPlay = true
@@ -164,6 +226,8 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
     private enum CodingKeys: String, CodingKey {
         case userID = "UserId"
         case startTimeTicks = "StartTimeTicks"
+        case audioStreamIndex = "AudioStreamIndex"
+        case subtitleStreamIndex = "SubtitleStreamIndex"
         case isPlayback = "IsPlayback"
         case autoOpenLiveStream = "AutoOpenLiveStream"
         case enableDirectPlay = "EnableDirectPlay"
