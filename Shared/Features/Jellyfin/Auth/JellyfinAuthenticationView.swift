@@ -128,7 +128,7 @@ struct JellyfinAuthenticationView: View {
             }
 
             Button {
-                Task { await sessionManager.changeProvider() }
+                Task { await sessionManager.requestProviderSelection() }
             } label: {
                 Label("provider.change", systemImage: "chevron.left")
             }

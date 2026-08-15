@@ -128,7 +128,7 @@ final class SessionManager {
         }
     }
 
-    func changeProvider() async {
+    func requestProviderSelection() async {
         await clearSession()
         jellyfinContext.reset()
         provider = nil
@@ -172,17 +172,20 @@ final class SessionManager {
     func signOut() async {
         if provider == .jellyfin {
             await signOutJellyfin()
-            return
+        } else {
+            await clearSession()
+            try? keychain.deleteValue(forKey: tokenKey)
+            UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
+            #if os(tvOS)
+                topShelfSessionStore.clear()
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            #endif
         }
 
-        await clearSession()
-        try? keychain.deleteValue(forKey: tokenKey)
-        UserDefaults.standard.removeObject(forKey: serverIdDefaultsKey)
-        #if os(tvOS)
-            topShelfSessionStore.clear()
-            TVTopShelfContentProvider.topShelfContentDidChange()
-        #endif
-        status = .signedOut
+        provider = nil
+        jellyfinHydrationError = nil
+        UserDefaults.standard.removeObject(forKey: providerDefaultsKey)
+        status = .needsProviderSelection
     }
 
     func completeJellyfinSignIn(
@@ -577,7 +580,6 @@ final class SessionManager {
             topShelfSessionStore.clear()
             TVTopShelfContentProvider.topShelfContentDidChange()
         #endif
-        status = .needsJellyfinAuthentication
     }
 
     private func invalidateJellyfinSession() {

@@ -39,13 +39,6 @@ struct UserMenuView: View {
                 }
 
                 Button {
-                    Task { await sessionManager.changeProvider() }
-                } label: {
-                    Label("provider.change", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .buttonStyle(.plain)
-
-                Button {
                     isShowingLogoutConfirmation = true
                 } label: {
                     Label("common.actions.logOut", systemImage: "arrow.backward.circle")

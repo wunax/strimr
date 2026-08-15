@@ -106,9 +106,6 @@ struct MainView: View {
                     Task { await sessionManager.requestServerSelection() }
                 }
             }
-            Button("provider.change", systemImage: "arrow.triangle.2.circlepath") {
-                Task { await sessionManager.changeProvider() }
-            }
             Divider()
             Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                 isShowingLogoutConfirmation = true

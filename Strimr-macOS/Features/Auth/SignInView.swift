@@ -71,6 +71,6 @@ struct SignInView: View {
 
     private func returnToProviderSelection() {
         viewModel.cancelSignIn()
-        Task { await sessionManager.changeProvider() }
+        Task { await sessionManager.requestProviderSelection() }
     }
 }
