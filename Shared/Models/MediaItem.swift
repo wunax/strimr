@@ -190,8 +190,13 @@ struct MediaItem: Identifiable, Hashable {
             return year.map(String.init)
 
         case .series:
-            guard let childCount else { return nil }
-            return String(localized: "media.labels.seasonsCount \(childCount)")
+            switch provider {
+            case .jellyfin:
+                return year.map(String.init)
+            case .plex:
+                guard let childCount else { return nil }
+                return String(localized: "media.labels.seasonsCount \(childCount)")
+            }
 
         case .season, .episode:
             return title

@@ -48,13 +48,19 @@ struct JellyfinCatalogService {
         return response.items
     }
 
-    func latest(types: String, parentID: String? = nil, limit: Int = 20) async throws -> [JellyfinItem] {
+    func latest(
+        types: String? = nil,
+        parentID: String? = nil,
+        limit: Int = 20
+    ) async throws -> [JellyfinItem] {
         var query = commonUserQuery + [
-            URLQueryItem(name: "IncludeItemTypes", value: types),
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: Self.cardFields),
             URLQueryItem(name: "EnableImages", value: "true"),
         ]
+        if let types {
+            query.append(URLQueryItem(name: "IncludeItemTypes", value: types))
+        }
         if let parentID {
             query.append(URLQueryItem(name: "ParentId", value: parentID))
         }

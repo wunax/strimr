@@ -89,7 +89,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             for (index, library) in visibleLibraries.enumerated() {
                 group.addTask { [catalog] in
                     let items = try await catalog.latest(
-                        types: library.collectionType == "tvshows" ? "Series" : "Movie",
                         parentID: library.id
                     )
                     return (index, library, items)
