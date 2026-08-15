@@ -63,5 +63,7 @@ Config/Config-TopShelf.xcconfig
 
 node_modules/
 .env
-WatchTogetherServer/.env.prod
-WatchTogetherServer/dist/
+
+# Bundler
+.bundle/
+vendor/bundle/
