@@ -151,6 +151,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let runTimeTicks: Int64?
     let productionYear: Int?
     let communityRating: Double?
+    let criticRating: Double?
     let officialRating: String?
     let genres: [String]?
     let studios: [JellyfinStudio]?
@@ -186,6 +187,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case runTimeTicks = "RunTimeTicks"
         case productionYear = "ProductionYear"
         case communityRating = "CommunityRating"
+        case criticRating = "CriticRating"
         case officialRating = "OfficialRating"
         case genres = "Genres"
         case studios = "Studios"

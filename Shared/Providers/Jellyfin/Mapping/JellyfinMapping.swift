@@ -53,7 +53,14 @@ extension MediaItem {
             duration: jellyfinItem.duration,
             videoResolution: nil,
             rating: jellyfinItem.communityRating,
-            ratings: [],
+            ratings: [
+                jellyfinItem.communityRating.map {
+                    MediaRating(source: .jellyfinCommunity, value: $0)
+                },
+                jellyfinItem.criticRating.map {
+                    MediaRating(source: .jellyfinCritics, value: $0)
+                },
+            ].compactMap(\.self),
             contentRating: jellyfinItem.officialRating,
             studio: jellyfinItem.studios?.first?.name,
             tagline: jellyfinItem.taglines?.first,

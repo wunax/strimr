@@ -5098,6 +5098,50 @@
         }
       }
     },
+    "media.rating.jellyfinCommunity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community rating"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note de la communauté"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "社区评分"
+          }
+        }
+      }
+    },
+    "media.rating.jellyfinCritics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critics rating"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note des critiques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影评人评分"
+          }
+        }
+      }
+    },
     "media.rating.rottenTomatoesAudience" : {
       "localizations" : {
         "en" : {

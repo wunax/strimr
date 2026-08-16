@@ -212,7 +212,7 @@ struct MediaDetailView: View {
             if let contentRating = viewModel.media.contentRating {
                 Text(contentRating)
             }
-            if let rating = viewModel.ratingText {
+            if viewModel.media.ratings.isEmpty, let rating = viewModel.ratingText {
                 Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)
             }
         }
