@@ -152,14 +152,72 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func recommended(in library: Library) async throws -> [Hub] {
-        let type = library.type == .series ? "Series" : "Movie"
-        let items = try await catalog.latest(types: type, parentID: library.id, limit: 20)
-        guard !items.isEmpty else { return [] }
-        return [hub(
-            id: "jellyfin.library.latest.\(library.id)",
-            title: String(localized: "jellyfin.home.latestIn \(library.title)"),
-            items: items
-        )]
+        switch library.type {
+        case .series:
+            async let resumableItems = catalog.resumable(
+                parentID: library.id,
+                includeTypes: "Episode",
+                limit: 3
+            )
+            async let latestItems = catalog.latest(
+                types: "Episode",
+                parentID: library.id,
+                limit: 30
+            )
+            async let nextUpItems = catalog.nextUp(parentID: library.id, limit: 24)
+
+            return try await [
+                hubIfNotEmpty(
+                    id: "jellyfin.library.inProgress.\(library.id)",
+                    title: String(localized: "jellyfin.home.resume"),
+                    items: resumableItems
+                ),
+                hubIfNotEmpty(
+                    id: "jellyfin.library.latestEpisodes.\(library.id)",
+                    title: String(localized: "jellyfin.library.recentlyAdded"),
+                    items: latestItems
+                ),
+                hubIfNotEmpty(
+                    id: "jellyfin.library.nextUp.\(library.id)",
+                    title: String(localized: "jellyfin.home.nextUp"),
+                    items: nextUpItems
+                ),
+            ].compactMap { $0 }
+        default:
+            async let resumableItems = catalog.resumable(
+                parentID: library.id,
+                includeTypes: "Movie",
+                limit: 3
+            )
+            async let latestItems = catalog.latest(
+                types: "Movie",
+                parentID: library.id,
+                limit: 18
+            )
+            async let recommendations = catalog.movieRecommendations(categoryLimit: 6, itemLimit: 6)
+
+            var hubs = try await [
+                hubIfNotEmpty(
+                    id: "jellyfin.library.inProgress.\(library.id)",
+                    title: String(localized: "jellyfin.home.resume"),
+                    items: resumableItems
+                ),
+                hubIfNotEmpty(
+                    id: "jellyfin.library.latestMovies.\(library.id)",
+                    title: String(localized: "jellyfin.library.recentlyAdded"),
+                    items: latestItems
+                ),
+            ].compactMap { $0 }
+            hubs.append(contentsOf: try await recommendations.enumerated().compactMap { index, recommendation in
+                guard !recommendation.items.isEmpty else { return nil }
+                return hub(
+                    id: "jellyfin.library.recommendation.\(recommendation.categoryID ?? String(index))",
+                    title: recommendationTitle(for: recommendation),
+                    items: recommendation.items
+                )
+            })
+            return hubs
+        }
     }
 
     func items(
@@ -655,6 +713,29 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             more: false,
             items: items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
         )
+    }
+
+    private func hubIfNotEmpty(id: String, title: String, items: [JellyfinItem]) -> Hub? {
+        guard !items.isEmpty else { return nil }
+        return hub(id: id, title: title, items: items)
+    }
+
+    private func recommendationTitle(for recommendation: JellyfinRecommendation) -> String {
+        guard let name = recommendation.baselineItemName, !name.isEmpty else {
+            return String(localized: "jellyfin.library.recommendations")
+        }
+        switch recommendation.recommendationType {
+        case "SimilarToRecentlyPlayed":
+            return String(localized: "jellyfin.library.recommendation.becauseWatched \(name)")
+        case "SimilarToLikedItem":
+            return String(localized: "jellyfin.library.recommendation.becauseLiked \(name)")
+        case "HasDirectorFromRecentlyPlayed", "HasLikedDirector":
+            return String(localized: "jellyfin.library.recommendation.directedBy \(name)")
+        case "HasActorFromRecentlyPlayed", "HasLikedActor":
+            return String(localized: "jellyfin.library.recommendation.starring \(name)")
+        default:
+            return String(localized: "jellyfin.library.recommendations")
+        }
     }
 
     private func searchTypes(for kinds: Set<MediaKind>) -> String {

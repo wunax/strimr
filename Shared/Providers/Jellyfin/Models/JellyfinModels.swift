@@ -84,6 +84,28 @@ nonisolated struct JellyfinQueryResult<Element: Decodable & Sendable>: Decodable
     }
 }
 
+nonisolated struct JellyfinRecommendation: Decodable, Sendable {
+    let items: [JellyfinItem]
+    let recommendationType: String?
+    let baselineItemName: String?
+    let categoryID: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case items = "Items"
+        case recommendationType = "RecommendationType"
+        case baselineItemName = "BaselineItemName"
+        case categoryID = "CategoryId"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        items = try container.decodeIfPresent([JellyfinItem].self, forKey: .items) ?? []
+        recommendationType = try container.decodeIfPresent(String.self, forKey: .recommendationType)
+        baselineItemName = try container.decodeIfPresent(String.self, forKey: .baselineItemName)
+        categoryID = try container.decodeIfPresent(String.self, forKey: .categoryID)
+    }
+}
+
 nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let id: String
     let name: String

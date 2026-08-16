@@ -34,7 +34,38 @@ struct JellyfinCatalogService {
         return response.items
     }
 
-    func nextUp(seriesID: String? = nil, limit: Int = 20) async throws -> [JellyfinItem] {
+    func resumable(
+        parentID: String,
+        includeTypes: String,
+        limit: Int
+    ) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items"],
+            query: [
+                URLQueryItem(name: "SortBy", value: "DatePlayed"),
+                URLQueryItem(name: "SortOrder", value: "Descending"),
+                URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
+                URLQueryItem(name: "Filters", value: "IsResumable"),
+                URLQueryItem(name: "Limit", value: String(limit)),
+                URLQueryItem(name: "Recursive", value: "true"),
+                URLQueryItem(name: "Fields", value: Self.cardFields),
+                URLQueryItem(name: "CollapseBoxSetItems", value: "false"),
+                URLQueryItem(name: "ParentId", value: parentID),
+                URLQueryItem(name: "EnableImages", value: "true"),
+                URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+            ]
+        )
+        return response.items
+    }
+
+    func nextUp(
+        seriesID: String? = nil,
+        parentID: String? = nil,
+        limit: Int = 20
+    ) async throws -> [JellyfinItem] {
         var query = commonUserQuery + [
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: Self.cardFields),
@@ -42,6 +73,9 @@ struct JellyfinCatalogService {
         ]
         if let seriesID {
             query.append(URLQueryItem(name: "SeriesId", value: seriesID))
+        }
+        if let parentID {
+            query.append(URLQueryItem(name: "ParentId", value: parentID))
         }
         let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
             path: ["Shows", "NextUp"],
@@ -55,6 +89,9 @@ struct JellyfinCatalogService {
         parentID: String? = nil,
         limit: Int = 20
     ) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
         var query = commonUserQuery + [
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: Self.cardFields),
@@ -66,7 +103,27 @@ struct JellyfinCatalogService {
         if let parentID {
             query.append(URLQueryItem(name: "ParentId", value: parentID))
         }
-        return try await context.get(path: ["Items", "Latest"], query: query)
+        return try await context.get(path: ["Users", userID, "Items", "Latest"], query: query)
+    }
+
+    func movieRecommendations(
+        categoryLimit: Int = 6,
+        itemLimit: Int = 6
+    ) async throws -> [JellyfinRecommendation] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        return try await context.get(
+            path: ["Movies", "Recommendations"],
+            query: [
+                URLQueryItem(name: "userId", value: userID),
+                URLQueryItem(name: "categoryLimit", value: String(categoryLimit)),
+                URLQueryItem(name: "ItemLimit", value: String(itemLimit)),
+                URLQueryItem(name: "Fields", value: Self.cardFields),
+                URLQueryItem(name: "ImageTypeLimit", value: "1"),
+                URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Banner,Thumb"),
+            ]
+        )
     }
 
     func items(

@@ -9,6 +9,8 @@ struct LibraryRecommendedView: View {
 
     private let landscapeHubIdentifiers: [String] = [
         "inprogress",
+        "latestepisodes",
+        "nextup",
     ]
 
     var body: some View {
