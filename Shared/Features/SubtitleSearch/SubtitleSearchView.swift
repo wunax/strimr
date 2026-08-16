@@ -95,6 +95,7 @@ struct SubtitleSearchView: View {
     @State private var viewModel: SubtitleSearchViewModel
     let titlePlaceholder: String
     let onAttached: (RemoteSubtitleResult) async -> Void
+    private let showsAdvancedOptions: Bool
 
     init(
         itemID: String,
@@ -105,6 +106,7 @@ struct SubtitleSearchView: View {
         _viewModel = State(initialValue: SubtitleSearchViewModel(itemID: itemID, services: services))
         self.titlePlaceholder = titlePlaceholder
         self.onAttached = onAttached
+        showsAdvancedOptions = services.detail.supportsAdvancedSubtitleSearch
     }
 
     var body: some View {
@@ -150,13 +152,15 @@ struct SubtitleSearchView: View {
             }
             .pickerStyle(.menu)
 
-            Toggle("subtitles.search.hearingImpaired", isOn: $viewModel.hearingImpaired)
-            Toggle("subtitles.search.forced", isOn: $viewModel.forced)
-            TextField(
-                "subtitles.search.releaseTitle",
-                text: $viewModel.title,
-                prompt: Text(titlePlaceholder),
-            )
+            if showsAdvancedOptions {
+                Toggle("subtitles.search.hearingImpaired", isOn: $viewModel.hearingImpaired)
+                Toggle("subtitles.search.forced", isOn: $viewModel.forced)
+                TextField(
+                    "subtitles.search.releaseTitle",
+                    text: $viewModel.title,
+                    prompt: Text(titlePlaceholder),
+                )
+            }
 
             Button {
                 Task { await viewModel.search() }

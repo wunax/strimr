@@ -23,6 +23,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     var supportsWatchlist: Bool { false }
     var supportsRemoteSubtitleSearch: Bool { true }
+    var supportsAdvancedSubtitleSearch: Bool { false }
     var serverAccessGeneration: Int { 0 }
 
     func serverAccessRecoveryError(from _: Error) -> MediaServerAccessRecoveryError? { nil }

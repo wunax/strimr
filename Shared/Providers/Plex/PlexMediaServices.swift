@@ -22,6 +22,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     var supportsWatchlist: Bool { true }
     var supportsRemoteSubtitleSearch: Bool { true }
+    var supportsAdvancedSubtitleSearch: Bool { true }
     var serverAccessGeneration: Int { context.serverAccessGeneration }
 
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError? {

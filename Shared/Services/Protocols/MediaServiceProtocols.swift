@@ -108,6 +108,7 @@ protocol MediaArtworkService: AnyObject {
 protocol MediaDetailService: AnyObject {
     var supportsWatchlist: Bool { get }
     var supportsRemoteSubtitleSearch: Bool { get }
+    var supportsAdvancedSubtitleSearch: Bool { get }
     func mediaItem(id: String) async throws -> MediaItem
     func searchSubtitles(
         itemID: String,
