@@ -3,7 +3,8 @@ import Foundation
 
 @MainActor
 final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
-    MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService
+    MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
+    AdvancedLibraryBrowseService
 {
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
@@ -247,6 +248,62 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             items: response.items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
             startIndex: response.startIndex ?? startIndex,
             totalCount: response.totalRecordCount
+        )
+    }
+
+    func browseItems(
+        in library: Library,
+        parentID: String?,
+        query: LibraryBrowseQuery,
+        startIndex: Int,
+        limit: Int
+    ) async throws -> MediaPage<MediaDisplayItem> {
+        let includeTypes = browseIncludeTypes(for: library, parentID: parentID)
+        let sort = browseSort(for: query, library: library)
+        var filters: [String] = []
+        switch query.watchStatus {
+        case .all:
+            break
+        case .unplayed:
+            filters.append("IsUnplayed")
+        case .played:
+            filters.append("IsPlayed")
+        }
+        if query.isResumable {
+            filters.append("IsResumable")
+        }
+
+        let response = try await catalog.items(
+            parentID: parentID ?? library.id,
+            includeTypes: includeTypes,
+            recursive: parentID == nil || library.type == .collection || library.type == .playlist,
+            startIndex: startIndex,
+            limit: limit,
+            sortBy: sort.keys.joined(separator: ","),
+            sortOrder: sort.directions.joined(separator: ","),
+            filters: filters,
+            isFavorite: query.isFavorite,
+            genreIDs: query.genreIDs,
+            years: query.years
+        )
+        return MediaPage(
+            items: response.items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
+            startIndex: response.startIndex ?? startIndex,
+            totalCount: response.totalRecordCount
+        )
+    }
+
+    func browseFilterOptions(in library: Library) async throws -> LibraryBrowseFilterOptions {
+        try await catalog.browseFilterOptions(
+            parentID: library.id,
+            includeTypes: library.type == .series ? "Series" : "Movie"
+        )
+    }
+
+    func genres(in library: Library) async throws -> [LibraryGenre] {
+        try await catalog.genres(
+            parentID: library.id,
+            includeTypes: library.type == .series ? "Series" : "Movie"
         )
     }
 
@@ -736,6 +793,49 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         default:
             return String(localized: "jellyfin.library.recommendations")
         }
+    }
+
+    private func browseIncludeTypes(for library: Library, parentID: String?) -> String {
+        switch library.type {
+        case .series:
+            parentID == nil ? "Series" : "Series,Season,Episode"
+        case .collection:
+            "BoxSet"
+        case .playlist:
+            "Playlist"
+        default:
+            "Movie"
+        }
+    }
+
+    private func browseSort(
+        for query: LibraryBrowseQuery,
+        library: Library
+    ) -> (keys: [String], directions: [String]) {
+        let primaryKey: String = switch query.sort {
+        case .name:
+            "SortName"
+        case .releaseDate:
+            "PremiereDate"
+        case .dateAdded:
+            "DateCreated"
+        case .rating:
+            "CommunityRating"
+        case .datePlayed:
+            library.type == .series ? "SeriesDatePlayed" : "DatePlayed"
+        case .playCount:
+            "PlayCount"
+        case .lastContentAdded:
+            "DateLastContentAdded"
+        }
+        let primaryDirection = query.sortDirection == .ascending ? "Ascending" : "Descending"
+        guard query.sort != .name else {
+            return ([primaryKey], [primaryDirection])
+        }
+        if library.type == .movie {
+            return ([primaryKey, "SortName", "ProductionYear"], [primaryDirection, "Ascending", "Ascending"])
+        }
+        return ([primaryKey, "SortName"], [primaryDirection, "Ascending"])
     }
 
     private func searchTypes(for kinds: Set<MediaKind>) -> String {

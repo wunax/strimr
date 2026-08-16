@@ -134,6 +134,12 @@ struct JellyfinCatalogService {
         recursive: Bool = true,
         startIndex: Int = 0,
         limit: Int = 100,
+        sortBy: String? = nil,
+        sortOrder: String? = nil,
+        filters: [String] = [],
+        isFavorite: Bool = false,
+        genreIDs: Set<String> = [],
+        years: Set<Int> = [],
     ) async throws -> JellyfinQueryResult<JellyfinItem> {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -146,8 +152,8 @@ struct JellyfinCatalogService {
             URLQueryItem(name: "Fields", value: Self.cardFields),
             URLQueryItem(name: "EnableUserData", value: "true"),
             URLQueryItem(name: "EnableImages", value: "true"),
-            URLQueryItem(name: "SortBy", value: searchTerm == nil ? "SortName" : "SearchScore,SortName"),
-            URLQueryItem(name: "SortOrder", value: "Ascending"),
+            URLQueryItem(name: "SortBy", value: sortBy ?? (searchTerm == nil ? "SortName" : "SearchScore,SortName")),
+            URLQueryItem(name: "SortOrder", value: sortOrder ?? "Ascending"),
         ]
         if let parentID {
             query.append(URLQueryItem(name: "ParentId", value: parentID))
@@ -158,7 +164,71 @@ struct JellyfinCatalogService {
         if let personID {
             query.append(URLQueryItem(name: "PersonIds", value: personID))
         }
+        if !filters.isEmpty {
+            query.append(URLQueryItem(name: "Filters", value: filters.joined(separator: ",")))
+        }
+        if isFavorite {
+            query.append(URLQueryItem(name: "IsFavorite", value: "true"))
+        }
+        if !genreIDs.isEmpty {
+            query.append(URLQueryItem(name: "GenreIds", value: genreIDs.sorted().joined(separator: "|")))
+        }
+        if !years.isEmpty {
+            query.append(URLQueryItem(name: "Years", value: years.sorted().map(String.init).joined(separator: ",")))
+        }
         return try await context.get(path: ["Users", userID, "Items"], query: query)
+    }
+
+    func browseFilterOptions(parentID: String, includeTypes: String) async throws -> LibraryBrowseFilterOptions {
+        let query = commonUserQuery + [
+            URLQueryItem(name: "ParentId", value: parentID),
+            URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
+        ]
+        async let current: JellyfinQueryFilters = context.get(
+            path: ["Items", "Filters2"],
+            query: query + [URLQueryItem(name: "Recursive", value: "true")]
+        )
+        async let legacy: JellyfinLegacyQueryFilters = context.get(path: ["Items", "Filters"], query: query)
+        let (currentFilters, legacyFilters) = try await (current, legacy)
+        return LibraryBrowseFilterOptions(
+            genres: currentFilters.genres
+                .map { LibraryBrowseValueOption(id: $0.id, title: $0.name) }
+                .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending },
+            years: legacyFilters.years
+                .sorted(by: >)
+                .map { LibraryBrowseValueOption(id: String($0), title: String($0)) }
+        )
+    }
+
+    func genres(parentID: String, includeTypes: String) async throws -> [LibraryGenre] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        var startIndex = 0
+        let pageSize = 100
+        var values: [LibraryGenre] = []
+
+        while true {
+            let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+                path: ["Genres"],
+                query: [
+                    URLQueryItem(name: "UserId", value: userID),
+                    URLQueryItem(name: "ParentId", value: parentID),
+                    URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
+                    URLQueryItem(name: "StartIndex", value: String(startIndex)),
+                    URLQueryItem(name: "Limit", value: String(pageSize)),
+                    URLQueryItem(name: "SortBy", value: "SortName"),
+                    URLQueryItem(name: "SortOrder", value: "Ascending"),
+                    URLQueryItem(name: "EnableImages", value: "false"),
+                ]
+            )
+            values.append(contentsOf: response.items.map { LibraryGenre(id: $0.id, title: $0.name) })
+            startIndex += response.items.count
+            if response.items.isEmpty || startIndex >= (response.totalRecordCount ?? startIndex) {
+                break
+            }
+        }
+        return values
     }
 
     func item(id: String) async throws -> JellyfinItem {

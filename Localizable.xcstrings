@@ -3734,6 +3734,15 @@
         }
       }
     },
+    "library.browse.filters.all" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"All"}},"fr":{"stringUnit":{"state":"translated","value":"Tous"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全部"}}}},
+    "library.browse.filters.favorites" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Favorites"}},"fr":{"stringUnit":{"state":"translated","value":"Favoris"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收藏"}}}},
+    "library.browse.filters.genres" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Genres"}},"fr":{"stringUnit":{"state":"translated","value":"Genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"类型"}}}},
+    "library.browse.filters.inProgress" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"In progress"}},"fr":{"stringUnit":{"state":"translated","value":"En cours"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在观看"}}}},
+    "library.browse.filters.played" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Played"}},"fr":{"stringUnit":{"state":"translated","value":"Lu"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已播放"}}}},
+    "library.browse.filters.search" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Search options"}},"fr":{"stringUnit":{"state":"translated","value":"Rechercher"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索选项"}}}},
+    "library.browse.filters.unplayed" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Unplayed"}},"fr":{"stringUnit":{"state":"translated","value":"Non lu"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未播放"}}}},
+    "library.browse.filters.watchStatus" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Watch status"}},"fr":{"stringUnit":{"state":"translated","value":"État de lecture"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"观看状态"}}}},
+    "library.browse.filters.years" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Years"}},"fr":{"stringUnit":{"state":"translated","value":"Années"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"年份"}}}},
     "library.browse.filters.clear" : {
       "localizations" : {
         "en" : {
@@ -3866,6 +3875,13 @@
         }
       }
     },
+    "library.browse.sort.dateAdded" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Date added"}},"fr":{"stringUnit":{"state":"translated","value":"Date d’ajout"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加日期"}}}},
+    "library.browse.sort.datePlayed" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Date played"}},"fr":{"stringUnit":{"state":"translated","value":"Dernière lecture"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"播放日期"}}}},
+    "library.browse.sort.lastContentAdded" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Last episode added"}},"fr":{"stringUnit":{"state":"translated","value":"Dernier épisode ajouté"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"最新添加剧集"}}}},
+    "library.browse.sort.name" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Name"}},"fr":{"stringUnit":{"state":"translated","value":"Nom"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"名称"}}}},
+    "library.browse.sort.playCount" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Play count"}},"fr":{"stringUnit":{"state":"translated","value":"Nombre de lectures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"播放次数"}}}},
+    "library.browse.sort.rating" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Rating"}},"fr":{"stringUnit":{"state":"translated","value":"Note"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"评分"}}}},
+    "library.browse.sort.releaseDate" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Release date"}},"fr":{"stringUnit":{"state":"translated","value":"Date de sortie"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"上映日期"}}}},
     "library.browse.sort.direction.asc" : {
       "localizations" : {
         "en" : {
@@ -3954,6 +3970,10 @@
         }
       }
     },
+    "library.detail.tab.genres" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Genres"}},"fr":{"stringUnit":{"state":"translated","value":"Genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"类型"}}}},
+    "library.genres.empty.description" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No genres are available for this library."}},"fr":{"stringUnit":{"state":"translated","value":"Aucun genre n’est disponible pour cette bibliothèque."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"此媒体库没有可用类型。"}}}},
+    "library.genres.empty.title" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No genres"}},"fr":{"stringUnit":{"state":"translated","value":"Aucun genre"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"没有类型"}}}},
+    "library.genres.loading" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Loading genres"}},"fr":{"stringUnit":{"state":"translated","value":"Chargement des genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在加载类型"}}}},
     "library.detail.tab.browse" : {
       "localizations" : {
         "en" : {
@@ -5541,7 +5561,6 @@
       }
     },
     "player.controls.rotation.lock" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5564,7 +5583,6 @@
       }
     },
     "player.controls.rotation.unlock" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

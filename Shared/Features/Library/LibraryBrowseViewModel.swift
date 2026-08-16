@@ -16,28 +16,47 @@ final class LibraryBrowseViewModel {
     var isLoadingMore = false
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
+    var scrollResetID = 0
     private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
     private var hasLoadedMeta = false
 
     @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
+    @ObservationIgnored private let browseService: (any AdvancedLibraryBrowseService)?
     @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private let browseSession: LibraryBrowseSession
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
-    init(library: Library, services: MediaServices, settingsManager: SettingsManager) {
+    init(
+        library: Library,
+        services: MediaServices,
+        settingsManager: SettingsManager,
+        browseSession: LibraryBrowseSession
+    ) {
         self.library = library
         advancedService = services.library as? any PlexAdvancedLibraryService
+        browseService = services.library as? any AdvancedLibraryBrowseService
         service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(advancedService: services.library as? any PlexAdvancedLibraryService)
+        self.browseSession = browseSession
+        controls = LibraryBrowseControlsViewModel(
+            advancedService: services.library as? any PlexAdvancedLibraryService,
+            browseService: services.library as? any AdvancedLibraryBrowseService,
+            library: library,
+            browseSession: browseSession
+        )
         controls.onSelectionChanged = { [weak self] in
-            Task { await self?.refresh() }
+            self?.selectionChanged()
         }
         controls.onDisplayTypeChanged = { [weak self] in
             guard let self else { return }
             folderStack = []
             Task { await self.refresh() }
+        }
+        browseSession.externalQueryChangeHandler = { [weak self] in
+            self?.selectionChanged()
         }
     }
 
@@ -74,9 +93,23 @@ final class LibraryBrowseViewModel {
     }
 
     func refresh() async {
+        scrollResetID &+= 1
         reachedEnd = false
         browseItems = []
         await fetch(reset: true)
+    }
+
+    private func selectionChanged() {
+        guard browseService != nil else {
+            Task { await refresh() }
+            return
+        }
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
     }
 
     private func fetch(reset: Bool) async {
@@ -150,16 +183,31 @@ final class LibraryBrowseViewModel {
         }
         do {
             let start = reset ? 0 : browseItems.count
-            let page = try await service.items(
-                in: library,
-                parentID: folderStack.last?.id,
-                startIndex: start,
-                limit: 20
-            )
+            let requestedQuery = browseSession.query
+            let page: MediaPage<MediaDisplayItem>
+            if let browseService {
+                page = try await browseService.browseItems(
+                    in: library,
+                    parentID: folderStack.last?.id,
+                    query: requestedQuery,
+                    startIndex: start,
+                    limit: 20
+                )
+            } else {
+                page = try await service.items(
+                    in: library,
+                    parentID: folderStack.last?.id,
+                    startIndex: start,
+                    limit: 20
+                )
+            }
+            guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }
             let newItems = page.items.map(LibraryBrowseItem.media)
             if reset { browseItems = newItems } else { browseItems.append(contentsOf: newItems) }
             reachedEnd = page.totalCount.map { browseItems.count >= $0 } ?? newItems.isEmpty
         } catch {
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             if reset { resetState(error: error.localizedDescription) } else { errorMessage = error.localizedDescription }
         }
     }

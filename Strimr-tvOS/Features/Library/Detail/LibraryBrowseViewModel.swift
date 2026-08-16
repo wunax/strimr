@@ -24,6 +24,7 @@ final class LibraryBrowseViewModel {
     var isLoading = false
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
+    var scrollResetID = 0
 
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
@@ -31,27 +32,41 @@ final class LibraryBrowseViewModel {
     private var hasLoadedMeta = false
 
     @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
+    @ObservationIgnored private let browseService: (any AdvancedLibraryBrowseService)?
     @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private let browseSession: LibraryBrowseSession
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
     private let pageSize = 40
 
     init(
         library: Library,
         services: MediaServices,
         settingsManager: SettingsManager,
+        browseSession: LibraryBrowseSession,
     ) {
         self.library = library
         advancedService = services.library as? any PlexAdvancedLibraryService
+        browseService = services.library as? any AdvancedLibraryBrowseService
         service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(advancedService: services.library as? any PlexAdvancedLibraryService)
+        self.browseSession = browseSession
+        controls = LibraryBrowseControlsViewModel(
+            advancedService: services.library as? any PlexAdvancedLibraryService,
+            browseService: services.library as? any AdvancedLibraryBrowseService,
+            library: library,
+            browseSession: browseSession
+        )
         controls.onSelectionChanged = { [weak self] in
-            Task { await self?.refresh() }
+            self?.selectionChanged()
         }
         controls.onDisplayTypeChanged = { [weak self] in
             guard let self else { return }
             folderStack = []
             Task { await self.refresh() }
+        }
+        browseSession.externalQueryChangeHandler = { [weak self] in
+            self?.selectionChanged()
         }
     }
 
@@ -108,11 +123,25 @@ final class LibraryBrowseViewModel {
     }
 
     func refresh() async {
+        scrollResetID &+= 1
         resetState()
         isLoading = true
         defer { isLoading = false }
         await loadPage(start: 0)
         await fetchCharactersIfNeeded()
+    }
+
+    private func selectionChanged() {
+        guard browseService != nil else {
+            Task { await refresh() }
+            return
+        }
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
     }
 
     private func fetchCharactersIfNeeded() async {
@@ -218,12 +247,25 @@ final class LibraryBrowseViewModel {
         defer { loadingPageStarts.remove(start) }
 
         do {
-            let page = try await service.items(
-                in: library,
-                parentID: nil,
-                startIndex: start,
-                limit: pageSize
-            )
+            let requestedQuery = browseSession.query
+            let page: MediaPage<MediaDisplayItem>
+            if let browseService {
+                page = try await browseService.browseItems(
+                    in: library,
+                    parentID: nil,
+                    query: requestedQuery,
+                    startIndex: start,
+                    limit: pageSize
+                )
+            } else {
+                page = try await service.items(
+                    in: library,
+                    parentID: nil,
+                    startIndex: start,
+                    limit: pageSize
+                )
+            }
+            guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }
             for (offset, item) in page.items.enumerated() {
                 itemsByIndex[start + offset] = .media(item)
             }

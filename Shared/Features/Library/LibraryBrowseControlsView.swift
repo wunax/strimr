@@ -26,6 +26,9 @@ struct LibraryBrowseControlsView: View {
         .sheet(item: $viewModel.activeFilterSheet) { sheet in
             LibraryBrowseFilterSheetView(viewModel: viewModel, filter: sheet.filter)
         }
+        .sheet(item: $viewModel.activeJellyfinFilterSheet) { filter in
+            JellyfinLibraryBrowseFilterSheetView(viewModel: viewModel, filter: filter)
+        }
     }
 
     private var topRow: some View {
@@ -40,20 +43,25 @@ struct LibraryBrowseControlsView: View {
                         action: onNavigateBack,
                     )
                 }
-                LibraryBrowsePillButton(
-                    title: viewModel.typePillTitle,
-                    systemImage: "square.grid.2x2",
-                    isSelected: viewModel.activePanel == .type,
-                    showsDisclosure: true,
-                ) {
-                    viewModel.togglePanel(.type)
+                if viewModel.hasDisplayTypes {
+                    LibraryBrowsePillButton(
+                        title: viewModel.typePillTitle,
+                        systemImage: "square.grid.2x2",
+                        isSelected: viewModel.activePanel == .type,
+                        showsDisclosure: true,
+                    ) {
+                        viewModel.togglePanel(.type)
+                    }
                 }
 
                 if viewModel.showsFilterPill {
                     LibraryBrowsePillButton(
                         title: viewModel.filterPillTitle,
                         systemImage: "line.3.horizontal.decrease.circle",
-                        isSelected: viewModel.activePanel == .filters || !viewModel.selectedFilters.isEmpty,
+                        isSelected: viewModel.activePanel == .filters
+                            || (viewModel.isJellyfinBrowse
+                                ? viewModel.jellyfinActiveFilterCount > 0
+                                : !viewModel.selectedFilters.isEmpty),
                         showsDisclosure: true,
                     ) {
                         viewModel.togglePanel(.filters)
@@ -110,18 +118,32 @@ struct LibraryBrowseControlsView: View {
     private var filterOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: pillSpacing) {
-                ForEach(viewModel.availableFilters, id: \.filter) { filter in
-                    let selection = viewModel.filterSelection(for: filter)
-                    let isSelected = selection?.isEnabled == true
-                    let label = filterLabel(for: filter, selection: selection)
+                if viewModel.isJellyfinBrowse {
+                    ForEach(LibraryBrowseControlsViewModel.JellyfinFilter.allCases) { filter in
+                        let isSelected = viewModel.jellyfinFilterIsSelected(filter)
+                        LibraryBrowsePillButton(
+                            title: viewModel.jellyfinFilterLabel(filter),
+                            systemImage: isSelected && filter.isBoolean ? "checkmark" : nil,
+                            isSelected: isSelected,
+                            showsDisclosure: !filter.isBoolean,
+                        ) {
+                            viewModel.toggleJellyfinFilter(filter)
+                        }
+                    }
+                } else {
+                    ForEach(viewModel.availableFilters, id: \.filter) { filter in
+                        let selection = viewModel.filterSelection(for: filter)
+                        let isSelected = selection?.isEnabled == true
+                        let label = filterLabel(for: filter, selection: selection)
 
-                    LibraryBrowsePillButton(
-                        title: label,
-                        systemImage: isSelected ? "checkmark" : nil,
-                        isSelected: isSelected,
-                        showsDisclosure: !filter.isBoolean,
-                    ) {
-                        viewModel.toggleFilter(filter)
+                        LibraryBrowsePillButton(
+                            title: label,
+                            systemImage: isSelected ? "checkmark" : nil,
+                            isSelected: isSelected,
+                            showsDisclosure: !filter.isBoolean,
+                        ) {
+                            viewModel.toggleFilter(filter)
+                        }
                     }
                 }
             }
@@ -133,18 +155,32 @@ struct LibraryBrowseControlsView: View {
     private var sortOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: pillSpacing) {
-                ForEach(viewModel.availableSorts, id: \.key) { sort in
-                    let selection = viewModel.selectedSort
-                    let isSelected = selection?.sort.key == sort.key
-                    let systemImage = sortDirectionImage(for: selection, sort: sort)
+                if viewModel.isJellyfinBrowse {
+                    ForEach(viewModel.jellyfinSortOptions) { sort in
+                        let isSelected = viewModel.browseSessionSort == sort.id
+                        LibraryBrowsePillButton(
+                            title: sort.title,
+                            systemImage: isSelected ? viewModel.jellyfinSortDirectionImage : nil,
+                            isSelected: isSelected,
+                            showsDisclosure: false,
+                        ) {
+                            viewModel.toggleJellyfinSort(sort)
+                        }
+                    }
+                } else {
+                    ForEach(viewModel.availableSorts, id: \.key) { sort in
+                        let selection = viewModel.selectedSort
+                        let isSelected = selection?.sort.key == sort.key
+                        let systemImage = sortDirectionImage(for: selection, sort: sort)
 
-                    LibraryBrowsePillButton(
-                        title: sort.title,
-                        systemImage: systemImage,
-                        isSelected: isSelected,
-                        showsDisclosure: false,
-                    ) {
-                        viewModel.toggleSort(sort)
+                        LibraryBrowsePillButton(
+                            title: sort.title,
+                            systemImage: systemImage,
+                            isSelected: isSelected,
+                            showsDisclosure: false,
+                        ) {
+                            viewModel.toggleSort(sort)
+                        }
                     }
                 }
             }
@@ -358,5 +394,130 @@ private struct LibraryBrowseFilterSheetView: View {
             }
         }
         .padding(.horizontal, 24)
+    }
+}
+
+private struct JellyfinLibraryBrowseFilterSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var viewModel: LibraryBrowseControlsViewModel
+    let filter: LibraryBrowseControlsViewModel.JellyfinFilter
+    @State private var searchText = ""
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                #if os(tvOS)
+                    headerRow
+                #endif
+                content
+            }
+            .navigationTitle(filter.title)
+            #if !os(tvOS)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        if viewModel.jellyfinFilterIsSelected(filter) {
+                            Button("library.browse.filters.clear") {
+                                viewModel.clearJellyfinFilter(filter)
+                            }
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("common.actions.done") { dismiss() }
+                    }
+                }
+            #endif
+        }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 420)
+        #endif
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if filter != .watchStatus, viewModel.isLoadingJellyfinFilterOptions {
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("library.browse.filters.loading")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if filter != .watchStatus, let errorMessage = viewModel.jellyfinFilterOptionsError {
+            ContentUnavailableView(
+                errorMessage,
+                systemImage: "exclamationmark.triangle.fill",
+                description: Text("common.errors.tryAgainLater"),
+            )
+            .symbolRenderingMode(.multicolor)
+        } else if filteredOptions.isEmpty {
+            ContentUnavailableView(
+                "common.empty.nothingToShow",
+                systemImage: "line.3.horizontal.decrease.circle",
+            )
+        } else {
+            optionsList
+        }
+    }
+
+    private var optionsList: some View {
+        List(filteredOptions) { option in
+            Button {
+                viewModel.selectJellyfinOption(option, for: filter)
+                if !filter.supportsMultiple {
+                    dismiss()
+                }
+            } label: {
+                HStack {
+                    Text(option.title)
+                    Spacer()
+                    if viewModel.jellyfinOptionIsSelected(option, for: filter) {
+                        Image(systemName: filter.supportsMultiple ? "checkmark.square.fill" : "checkmark")
+                            .foregroundStyle(Color.brandPrimary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            #if os(tvOS)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            #endif
+        }
+        .listStyle(.plain)
+        .modifier(JellyfinFilterSearchModifier(isEnabled: filter.supportsMultiple, searchText: $searchText))
+    }
+
+    private var filteredOptions: [LibraryBrowseValueOption] {
+        let options = viewModel.jellyfinOptions(for: filter)
+        guard !searchText.isEmpty else { return options }
+        return options.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    private var headerRow: some View {
+        HStack {
+            if viewModel.jellyfinFilterIsSelected(filter) {
+                Button {
+                    viewModel.clearJellyfinFilter(filter)
+                } label: {
+                    Text("library.browse.filters.clear")
+                }
+            }
+            Spacer()
+            Button("common.actions.done") { dismiss() }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+    }
+}
+
+private struct JellyfinFilterSearchModifier: ViewModifier {
+    let isEnabled: Bool
+    @Binding var searchText: String
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.searchable(text: $searchText, prompt: Text("library.browse.filters.search"))
+        } else {
+            content
+        }
     }
 }
