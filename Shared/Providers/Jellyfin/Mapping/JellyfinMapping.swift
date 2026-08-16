@@ -127,10 +127,16 @@ extension MediaDisplayItem {
 
 extension Library {
     init(jellyfinItem: JellyfinItem) {
+        let type: MediaKind = switch jellyfinItem.collectionType?.lowercased() {
+        case "tvshows": .series
+        case "boxsets": .collection
+        case "playlists": .playlist
+        default: .movie
+        }
         self.init(
             id: jellyfinItem.id,
             title: jellyfinItem.name,
-            type: jellyfinItem.collectionType == "tvshows" ? .series : .movie
+            type: type
         )
     }
 }

@@ -19,6 +19,9 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
+        _selectedTab = State(
+            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended
+        )
     }
 
     var body: some View {
@@ -31,8 +34,10 @@ struct LibraryDetailView: View {
             }
 
             HStack(alignment: .center, spacing: 12) {
-                sidebarContainer
-                    .zIndex(1)
+                if availableTabs.count > 1 {
+                    sidebarContainer
+                        .zIndex(1)
+                }
                 contentView
                     .focusSection()
                     .overlay {
@@ -180,7 +185,12 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        LibraryDetailTab.allCases.filter { tab in
+        if mediaServices.provider == .jellyfin {
+            return library.type == .collection || library.type == .playlist
+                ? [.browse]
+                : [.recommended, .browse]
+        }
+        return LibraryDetailTab.allCases.filter { tab in
             switch tab {
             case .collections:
                 settingsManager.interface.displayCollections

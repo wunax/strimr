@@ -76,7 +76,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists _: Bool) async throws -> HomeContent {
-        let visibleLibraries = try await catalog.libraries().filter { !hiddenLibraryIDs.contains($0.id) }
+        let visibleLibraries = try await catalog.libraries().filter {
+            !hiddenLibraryIDs.contains($0.id)
+                && ($0.collectionType?.lowercased() == "movies" || $0.collectionType?.lowercased() == "tvshows")
+        }
         async let resumeItems = catalog.resume()
         async let nextUpItems = catalog.nextUp()
         let resume = try await resumeItems
@@ -121,12 +124,31 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
-        let type = library.type == .series ? "Series" : "Movie"
-        guard let item = try await catalog.latest(types: type, parentID: library.id, limit: 1).first else {
+        let type = switch library.type {
+        case .series: "Series"
+        case .collection: "BoxSet"
+        case .playlist: "Playlist"
+        default: "Movie"
+        }
+        let item: JellyfinItem?
+        switch library.type {
+        case .collection, .playlist:
+            item = try await catalog.items(
+                parentID: library.id,
+                includeTypes: type,
+                limit: 1
+            ).items.first
+        default:
+            item = try await catalog.latest(types: type, parentID: library.id, limit: 1).first
+        }
+        guard let item, let media = MediaDisplayItem(jellyfinItem: item, server: server) else {
             return nil
         }
-        let media = MediaDisplayItem.playable(MediaItem(jellyfinItem: item, server: server))
-        return try await artwork(for: media, kind: .art, width: 800, height: 450)
+        let artworkKind: MediaImageViewModel.ArtworkKind = switch library.type {
+        case .collection, .playlist: .thumb
+        default: .art
+        }
+        return try await artwork(for: media, kind: artworkKind, width: 800, height: 450)
     }
 
     func recommended(in library: Library) async throws -> [Hub] {
@@ -146,13 +168,20 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         startIndex: Int,
         limit: Int
     ) async throws -> MediaPage<MediaDisplayItem> {
-        let includeTypes = library.type == .series
-            ? (parentID == nil ? "Series" : "Series,Season,Episode")
-            : "Movie"
+        let includeTypes = switch library.type {
+        case .series:
+            parentID == nil ? "Series" : "Series,Season,Episode"
+        case .collection:
+            "BoxSet"
+        case .playlist:
+            "Playlist"
+        default:
+            "Movie"
+        }
         let response = try await catalog.items(
             parentID: parentID ?? library.id,
             includeTypes: includeTypes,
-            recursive: parentID == nil,
+            recursive: parentID == nil || library.type == .collection || library.type == .playlist,
             startIndex: startIndex,
             limit: limit
         )

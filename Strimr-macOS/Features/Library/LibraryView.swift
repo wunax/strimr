@@ -116,11 +116,24 @@ struct LibraryView: View {
     }
 
     private var visibleLibraries: [Library] {
-        viewModel.libraries.filter { !hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
     }
 
     private var hiddenLibraries: [Library] {
-        viewModel.libraries.filter { hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
+    }
+
+    private var displayedLibraries: [Library] {
+        viewModel.libraries.filter { library in
+            guard viewModel.provider == .jellyfin else { return true }
+            if library.type == .collection {
+                return settingsManager.interface.displayCollections
+            }
+            if library.type == .playlist {
+                return settingsManager.interface.displayPlaylists
+            }
+            return true
+        }
     }
 
     private func libraryLink(for library: Library) -> some View {

@@ -14,8 +14,10 @@ struct JellyfinCatalogService {
             query: commonUserQuery,
         )
         return response.items.filter {
-            $0.type?.lowercased() == "collectionfolder"
-                && ($0.collectionType == "movies" || $0.collectionType == "tvshows")
+            let type = $0.type?.lowercased()
+            let collectionType = $0.collectionType?.lowercased()
+            return (type == "collectionfolder" || type == "userview")
+                && ["movies", "tvshows", "boxsets", "playlists"].contains(collectionType ?? "")
         }
     }
 

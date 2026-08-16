@@ -9,16 +9,29 @@ struct LibraryDetailView: View {
 
     @State private var selectedTab: LibraryDetailTab = .recommended
 
+    init(
+        library: Library,
+        onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
+    ) {
+        self.library = library
+        self.onSelectMedia = onSelectMedia
+        _selectedTab = State(
+            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            Picker("library.detail.tabPicker", selection: $selectedTab) {
-                ForEach(availableTabs) { tab in
-                    Text(tab.title).tag(tab)
+            if availableTabs.count > 1 {
+                Picker("library.detail.tabPicker", selection: $selectedTab) {
+                    ForEach(availableTabs) { tab in
+                        Text(tab.title).tag(tab)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
 
             Group {
                 switch selectedTab {
@@ -74,7 +87,12 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        LibraryDetailTab.allCases.filter { tab in
+        if mediaServices.provider == .jellyfin {
+            return library.type == .collection || library.type == .playlist
+                ? [.browse]
+                : [.recommended, .browse]
+        }
+        return LibraryDetailTab.allCases.filter { tab in
             switch tab {
             case .collections:
                 settingsManager.interface.displayCollections

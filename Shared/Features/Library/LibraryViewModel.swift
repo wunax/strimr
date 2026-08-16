@@ -4,6 +4,8 @@ import Observation
 @MainActor
 @Observable
 final class LibraryViewModel {
+    let provider: MediaProvider
+
     var libraries: [Library] {
         libraryStore.libraries
     }
@@ -19,6 +21,7 @@ final class LibraryViewModel {
     private let libraryStore: LibraryStore
 
     init(services: MediaServices, libraryStore: LibraryStore) {
+        provider = services.provider
         service = services.library
         self.libraryStore = libraryStore
     }
