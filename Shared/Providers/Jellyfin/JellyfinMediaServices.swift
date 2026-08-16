@@ -423,7 +423,8 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func playlistItems(id: String) async throws -> [MediaDisplayItem] {
-        try await childItems(id: id)
+        try await catalog.playlistItems(id: id)
+            .compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
     }
 
     func person(id: String) async throws -> Person {
