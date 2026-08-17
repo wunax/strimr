@@ -63,7 +63,7 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
             let row = tileIndex / source.tileColumns
             let crop = CGRect(
                 x: column * source.width,
-                y: image.height - ((row + 1) * source.height),
+                y: row * source.height,
                 width: source.width,
                 height: source.height,
             )

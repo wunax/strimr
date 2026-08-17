@@ -519,8 +519,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             params: .init(checkFiles: true, includeChapters: true, includeMarkers: true),
         )
         guard let item = response.mediaContainer.metadata?.first,
-              let path = item.media?.first?.parts.first?.key,
-              let url = try MediaRepository(context: context).mediaURL(path: path)
+              let part = item.media?.first?.parts.first,
+              let url = try MediaRepository(context: context).mediaURL(path: part.key)
         else { throw PlexAPIError.invalidURL }
         let streams = item.media?.first?.parts.first?.stream ?? []
         let tracks = streams.compactMap { stream -> PlaybackTrack? in
@@ -598,7 +598,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     endTime: $0.endTime,
                 )
             },
-            scrubThumbnailSource: nil,
+            scrubThumbnailSource: PlexBIFSource(partID: part.id, context: context)
+                .map(ScrubThumbnailSource.plex),
         )
     }
 
