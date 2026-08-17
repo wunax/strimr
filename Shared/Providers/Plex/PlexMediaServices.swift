@@ -535,7 +535,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 id: stream.id.map(String.init) ?? "plex.\(index)",
                 sourceIndex: index,
                 kind: kind,
-                title: stream.title ?? stream.displayTitle,
+                isExternal: stream.key != nil,
+                title: stream.displayTitle,
                 language: stream.language,
                 codec: stream.codec,
                 isDefault: stream.selected == true,
@@ -563,7 +564,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }?.index
         let selectedSubtitleIndex = streams.first {
             $0.streamType == .subtitle && $0.selected == true
-        }?.index
+        }?.id
         let sourceChapters = (item.chapters ?? []).filter(\.isValid)
         let chapters = sourceChapters.enumerated().map { _, chapter in
             MediaChapter(

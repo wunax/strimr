@@ -15,6 +15,7 @@ struct PlaybackTrack: Sendable, Hashable, Identifiable {
     let id: String
     let sourceIndex: Int
     let kind: PlaybackTrackKind
+    let isExternal: Bool
     let title: String
     let language: String?
     let codec: String?

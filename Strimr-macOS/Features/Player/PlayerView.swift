@@ -562,9 +562,9 @@ struct PlayerView: View {
                         Task { await viewModel.persistStreamSelection(for: track) }
                     } label: {
                         if selectedAudioTrackID == track.id {
-                            Label(track.displayName, systemImage: "checkmark")
+                            Label(playerTrackTitle(track), systemImage: "checkmark")
                         } else {
-                            Text(track.displayName)
+                            Text(playerTrackTitle(track))
                         }
                     }
                 }
@@ -600,9 +600,9 @@ struct PlayerView: View {
                     Task { await viewModel.persistSubtitleStreamSelection(for: track) }
                 } label: {
                     if selectedSubtitleTrackID == track.id {
-                        Label(track.displayName, systemImage: "checkmark")
+                        Label(playerTrackTitle(track), systemImage: "checkmark")
                     } else {
-                        Text(track.displayName)
+                        Text(playerTrackTitle(track))
                     }
                 }
             }
@@ -618,6 +618,13 @@ struct PlayerView: View {
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
         }
+    }
+
+    private func playerTrackTitle(_ track: PlayerTrack) -> String {
+        PlaybackSettingsTrack(
+            track: track,
+            metadata: viewModel.trackMetadata(forID: track.providerStreamID),
+        ).title
     }
 
     private var speedMenu: some View {

@@ -36,15 +36,7 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
         guard metadata != nil else { return track.displayName }
 
         if let displayTitle = metadata?.displayTitle, !displayTitle.isEmpty {
-            switch track.type {
-            case .subtitle:
-                if let metadataCodec {
-                    return "\(displayTitle) (\(metadataCodec))"
-                }
-                return displayTitle
-            default:
-                return displayTitle
-            }
+            return displayTitle
         }
 
         return track.displayName

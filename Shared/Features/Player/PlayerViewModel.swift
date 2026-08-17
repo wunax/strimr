@@ -128,7 +128,7 @@ final class PlayerViewModel {
     func trackMetadata(forID id: Int?) -> MediaTrackMetadata? {
         guard let id,
               let track = playbackPlan?.tracks.first(where: {
-                  $0.sourceIndex == id || Int($0.id) == id
+                  providerStreamID(for: $0) == id
               })
         else { return nil }
 
@@ -136,7 +136,7 @@ final class PlayerViewModel {
             id: Int(track.id) ?? track.sourceIndex,
             sourceIndex: track.sourceIndex,
             codec: track.codec ?? "",
-            title: track.title,
+            title: nil,
             displayTitle: track.title,
             language: track.language,
             isDefault: track.isDefault,
@@ -148,25 +148,31 @@ final class PlayerViewModel {
     func ffIndex(forProviderStreamID id: Int?) -> Int? {
         guard let id else { return nil }
         return playbackPlan?.tracks.first(where: {
-            $0.sourceIndex == id || Int($0.id) == id
+            providerStreamID(for: $0) == id
         })?.sourceIndex ?? id
     }
 
     func providerStreamIDsByFFIndex() -> [Int: Int] {
         playbackPlan?.tracks.reduce(into: [:]) { result, track in
-            result[track.sourceIndex] = Int(track.id) ?? track.sourceIndex
+            result[track.sourceIndex] = providerStreamID(for: track)
         } ?? [:]
     }
 
     func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
         guard let playbackPlan else { return [] }
-        let subtitleTracks = playbackPlan.tracks.filter { $0.kind == .subtitle }
+        let subtitleTracks = playbackPlan.tracks.filter {
+            $0.kind == .subtitle && $0.isExternal
+        }
         return playbackPlan.externalSubtitles.enumerated().map { index, track in
             let streamID = subtitleTracks.indices.contains(index)
-                ? (Int(subtitleTracks[index].id) ?? subtitleTracks[index].sourceIndex)
+                ? providerStreamID(for: subtitleTracks[index])
                 : -(index + 1)
             return PlayerExternalSubtitle(track: track, providerStreamID: streamID)
         }
+    }
+
+    private func providerStreamID(for track: PlaybackTrack) -> Int {
+        Int(track.id) ?? track.sourceIndex
     }
 
     func nextCommonPlayerViewModel() -> PlayerViewModel? {
