@@ -50,9 +50,9 @@ struct PlayerChapterPopover: View {
                     width: 320,
                     height: 180,
                 )
-                    .frame(width: 120, height: 68)
-                    .background(.quaternary)
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .frame(width: 120, height: 68)
+                .background(.quaternary)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(chapter.displayTitle)

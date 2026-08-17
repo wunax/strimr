@@ -65,17 +65,17 @@ struct PlayerChapterTrayView: View {
                 width: 640,
                 height: 360,
             )
-                .frame(width: 320, height: 180)
-                .background(.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    if isCurrent {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white, .black.opacity(0.6))
-                            .padding(12)
-                    }
+            .frame(width: 320, height: 180)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                if isCurrent {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white, .black.opacity(0.6))
+                        .padding(12)
                 }
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(chapter.displayTitle)

@@ -50,9 +50,9 @@ struct PlayerChapterSelectionView: View {
                     width: 320,
                     height: 180,
                 )
-                    .frame(width: 112, height: 63)
-                    .background(.quaternary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 112, height: 63)
+                .background(.quaternary)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(chapter.displayTitle)
