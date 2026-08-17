@@ -10,7 +10,6 @@ struct MediaHeroBackgroundView: View {
     @State private var imageResource: ArtworkResource?
     @State private var imageSourcePath: String?
     @State private var sampledBackdropColors: [Color] = []
-    @State private var sampledBackdropSourcePath: String?
 
     var body: some View {
         GeometryReader { proxy in
@@ -51,7 +50,6 @@ struct MediaHeroBackgroundView: View {
         if providerColors.count == 4 {
             return providerColors
         }
-        guard sampledBackdropSourcePath == artworkPath else { return [] }
         return sampledBackdropColors
     }
 
@@ -61,7 +59,6 @@ struct MediaHeroBackgroundView: View {
             imageResource = nil
             imageSourcePath = nil
             sampledBackdropColors = []
-            sampledBackdropSourcePath = nil
             return
         }
 
@@ -78,20 +75,18 @@ struct MediaHeroBackgroundView: View {
             let providerColors = MediaBackdropGradient.colors(for: .playable(media))
             guard providerColors.count != 4, let resource else {
                 sampledBackdropColors = []
-                sampledBackdropSourcePath = nil
                 return
             }
 
             let colors = try await ImageCornerColorSampler.colors(from: resource)
-            guard !Task.isCancelled, artworkPath == path else { return }
-            sampledBackdropColors = colors.count == 4 ? colors : []
-            sampledBackdropSourcePath = path
+            guard !Task.isCancelled, artworkPath == path, colors.count == 4 else { return }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                sampledBackdropColors = colors
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation, artworkPath == path else { return }
             imageResource = nil
             imageSourcePath = path
-            sampledBackdropColors = []
-            sampledBackdropSourcePath = path
         }
     }
 }
