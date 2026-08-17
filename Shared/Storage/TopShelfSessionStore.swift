@@ -24,7 +24,7 @@ import Foundation
             serverURL: URL,
             serverID: String,
             userID: String?,
-            token: String
+            token: String,
         ) throws {
             guard let accessGroup = Bundle.main.object(forInfoDictionaryKey: "TopShelfKeychainAccessGroup") as? String,
                   !accessGroup.isEmpty
@@ -35,14 +35,14 @@ import Foundation
             let keychain = Keychain(service: Self.keychainService, accessGroup: accessGroup)
             try keychain.setString(token, forKey: Self.tokenKey)
             try? keychain.deleteValue(forKey: Self.legacyTokenKey)
-            defaults?.set(
-                try JSONEncoder().encode(StoredSession(
+            try defaults?.set(
+                JSONEncoder().encode(StoredSession(
                     provider: provider,
                     serverURL: serverURL,
                     serverID: serverID,
-                    userID: userID
+                    userID: userID,
                 )),
-                forKey: Self.sessionKey
+                forKey: Self.sessionKey,
             )
             defaults?.removeObject(forKey: Self.legacyURLKey)
         }

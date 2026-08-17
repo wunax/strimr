@@ -129,8 +129,8 @@ struct MainTabView: View {
             defer { topShelfDeepLinkRouter.clear(action) }
             guard action.provider == mediaServices.provider,
                   action.serverIdentifier == nil
-                    || action.serverIdentifier == "plex"
-                    || action.serverIdentifier == mediaServices.identity.id
+                  || action.serverIdentifier == "plex"
+                  || action.serverIdentifier == mediaServices.identity.id
             else { return }
 
             switch action.kind {
@@ -149,15 +149,15 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let queue = coordinator.selectedMediaQueue,
-                      let services = coordinator.selectedMediaServices
+               let services = coordinator.selectedMediaServices
             {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
                         queue: queue,
                         services: services,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset
+                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
                     ),
-                    onExit: coordinator.resetPlayer
+                    onExit: coordinator.resetPlayer,
                 )
                 .environment(plexApiContext)
             }

@@ -33,7 +33,7 @@ final class LibraryBrowseViewModel {
         library: Library,
         services: MediaServices,
         settingsManager: SettingsManager,
-        browseSession: LibraryBrowseSession
+        browseSession: LibraryBrowseSession,
     ) {
         self.library = library
         advancedService = services.library as? any PlexAdvancedLibraryService
@@ -45,7 +45,7 @@ final class LibraryBrowseViewModel {
             advancedService: services.library as? any PlexAdvancedLibraryService,
             browseService: services.library as? any AdvancedLibraryBrowseService,
             library: library,
-            browseSession: browseSession
+            browseSession: browseSession,
         )
         controls.onSelectionChanged = { [weak self] in
             self?.selectionChanged()
@@ -147,7 +147,7 @@ final class LibraryBrowseViewModel {
                 path: endpoint.path,
                 queryItems: queryItems,
                 startIndex: start,
-                limit: 20
+                limit: 20,
             )
 
             if includeMeta, let meta = response.meta {
@@ -175,7 +175,11 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetchUsingCommonService(reset: Bool) async {
-        if reset { isLoading = true } else { isLoadingMore = true }
+        if reset {
+            isLoading = true
+        } else {
+            isLoadingMore = true
+        }
         errorMessage = nil
         defer {
             isLoading = false
@@ -184,31 +188,38 @@ final class LibraryBrowseViewModel {
         do {
             let start = reset ? 0 : browseItems.count
             let requestedQuery = browseSession.query
-            let page: MediaPage<MediaDisplayItem>
-            if let browseService {
-                page = try await browseService.browseItems(
+            let page: MediaPage<MediaDisplayItem> = if let browseService {
+                try await browseService.browseItems(
                     in: library,
                     parentID: folderStack.last?.id,
                     query: requestedQuery,
                     startIndex: start,
-                    limit: 20
+                    limit: 20,
                 )
             } else {
-                page = try await service.items(
+                try await service.items(
                     in: library,
                     parentID: folderStack.last?.id,
                     startIndex: start,
-                    limit: 20
+                    limit: 20,
                 )
             }
             guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }
             let newItems = page.items.map(LibraryBrowseItem.media)
-            if reset { browseItems = newItems } else { browseItems.append(contentsOf: newItems) }
+            if reset {
+                browseItems = newItems
+            } else {
+                browseItems.append(contentsOf: newItems)
+            }
             reachedEnd = page.totalCount.map { browseItems.count >= $0 } ?? newItems.isEmpty
         } catch {
             guard !error.isCancellation else { return }
             ErrorReporter.capture(error)
-            if reset { resetState(error: error.localizedDescription) } else { errorMessage = error.localizedDescription }
+            if reset {
+                resetState(error: error.localizedDescription)
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

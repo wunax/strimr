@@ -210,7 +210,7 @@ final class JellyfinAPIContext {
         return MediaAuthorization(
             isAdministrator: isAdministrator,
             canManageSubtitles: isAdministrator || policy.enableSubtitleManagement == true,
-            canManageServer: isAdministrator
+            canManageServer: isAdministrator,
         )
     }
 

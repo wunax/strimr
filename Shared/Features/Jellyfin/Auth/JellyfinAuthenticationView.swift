@@ -217,7 +217,7 @@ struct JellyfinAuthenticationView: View {
             }
         }
         #if os(tvOS)
-            .scrollClipDisabled()
+        .scrollClipDisabled()
         #endif
         .frame(maxWidth: authenticationContentMaxWidth, maxHeight: discoveredServersMaxHeight)
     }
@@ -331,12 +331,10 @@ private extension View {
     @ViewBuilder
     func jellyfinAuthenticationFieldStyle() -> some View {
         #if os(tvOS)
-            self
-                .textFieldStyle(.automatic)
+            textFieldStyle(.automatic)
                 .controlSize(.large)
         #else
-            self
-                .textFieldStyle(.plain)
+            textFieldStyle(.plain)
                 .padding(.horizontal, 16)
                 .frame(minHeight: 54)
                 .background(Color.secondary.opacity(0.12))

@@ -161,7 +161,7 @@ final class AppModel: PlaybackPresenting {
         playerPresentation = PlayerPresentation(
             queue: queue,
             services: services,
-            shouldResumeFromOffset: shouldResumeFromOffset
+            shouldResumeFromOffset: shouldResumeFromOffset,
         )
     }
 

@@ -218,7 +218,7 @@ final class MediaDetailViewModel {
             guard let resource = try await services.artwork.artwork(
                 path: path,
                 width: 300,
-                height: 169
+                height: 169,
             ) else { return }
             let colors = try await ImageCornerColorSampler.colors(from: resource)
             guard !Task.isCancelled, backdropSourcePath == path else { return }
@@ -639,7 +639,7 @@ final class MediaDetailViewModel {
             else { return }
             let fetchedEpisodes = try await services.detail.episodes(
                 for: season,
-                seriesID: parentSeries?.id ?? media.id
+                seriesID: parentSeries?.id ?? media.id,
             )
 
             guard selectedSeasonId == seasonId else { return }
@@ -832,5 +832,4 @@ final class MediaDetailViewModel {
             }
         }
     }
-
 }

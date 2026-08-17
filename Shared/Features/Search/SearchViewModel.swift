@@ -6,7 +6,9 @@ enum SearchFilter: String, CaseIterable, Identifiable {
     case shows
     case episodes
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {
@@ -47,16 +49,26 @@ struct SearchResultSource: Identifiable {
     let media: MediaDisplayItem
     let services: MediaServices
 
-    var id: String { "\(serverIdentifier):\(media.id)" }
+    var id: String {
+        "\(serverIdentifier):\(media.id)"
+    }
 }
 
 struct MergedSearchResult: Identifiable {
     let id: String
     var sources: [SearchResultSource]
 
-    var primarySource: SearchResultSource { sources[0] }
-    var media: MediaDisplayItem { primarySource.media }
-    var serverNames: [String] { sources.map(\.serverName) }
+    var primarySource: SearchResultSource {
+        sources[0]
+    }
+
+    var media: MediaDisplayItem {
+        primarySource.media
+    }
+
+    var serverNames: [String] {
+        sources.map(\.serverName)
+    }
 }
 
 @MainActor
@@ -99,12 +111,18 @@ final class SearchViewModel {
         filtersDidChange()
     }
 
-    func queryDidChange() { scheduleSearch(immediate: false) }
+    func queryDidChange() {
+        scheduleSearch(immediate: false)
+    }
+
     func filtersDidChange() {
         guard hasQuery else { return }
         scheduleSearch(immediate: true)
     }
-    func submitSearch() { scheduleSearch(immediate: true) }
+
+    func submitSearch() {
+        scheduleSearch(immediate: true)
+    }
 
     private func scheduleSearch(immediate: Bool) {
         searchTask?.cancel()
@@ -113,7 +131,9 @@ final class SearchViewModel {
             return
         }
         searchTask = Task { [weak self] in
-            if !immediate { try? await Task.sleep(for: .milliseconds(350)) }
+            if !immediate {
+                try? await Task.sleep(for: .milliseconds(350))
+            }
             guard !Task.isCancelled else { return }
             await self?.performSearch()
         }
@@ -128,7 +148,7 @@ final class SearchViewModel {
                 query: query.trimmingCharacters(in: .whitespacesAndNewlines),
                 kinds: resolvedKinds(),
                 searchesAllServers: services.capabilities.multiServerSearch
-                    && settingsManager.interface.multiServerSearchEnabled
+                    && settingsManager.interface.multiServerSearchEnabled,
             )
             guard !Task.isCancelled else { return }
             items = merge(values.map {
@@ -136,7 +156,7 @@ final class SearchViewModel {
                     serverIdentifier: $0.serverIdentifier,
                     serverName: $0.serverName,
                     media: $0.media,
-                    services: $0.services
+                    services: $0.services,
                 )
             })
         } catch {
@@ -151,7 +171,9 @@ final class SearchViewModel {
         var grouped: [String: [SearchResultSource]] = [:]
         for source in sources {
             let key = mergeKey(for: source.media)
-            if grouped[key] == nil { order.append(key) }
+            if grouped[key] == nil {
+                order.append(key)
+            }
             if !grouped[key, default: []].contains(where: { $0.serverIdentifier == source.serverIdentifier }) {
                 grouped[key, default: []].append(source)
             }

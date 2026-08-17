@@ -31,7 +31,7 @@ final class SeerrAuthRepository {
         try await client.send(
             path: "auth/jellyfin",
             method: "POST",
-            body: SeerrJellyfinAuthRequest(username: username, password: password)
+            body: SeerrJellyfinAuthRequest(username: username, password: password),
         )
     }
 

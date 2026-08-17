@@ -149,7 +149,7 @@ private struct SeerrSetupView: View {
                     SeerrAuthMethodStepView(
                         viewModel: viewModel,
                         onSelectLocal: { path.append(.local) },
-                        onSelectJellyfin: { path.append(.jellyfin) }
+                        onSelectJellyfin: { path.append(.jellyfin) },
                     )
                 case .local:
                     SeerrLocalAuthStepView(viewModel: viewModel)
@@ -302,7 +302,7 @@ private struct SeerrJellyfinAuthStepView: View {
                 .disabled(
                     viewModel.jellyfinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || viewModel.jellyfinPassword.isEmpty
-                        || viewModel.isAuthenticating
+                        || viewModel.isAuthenticating,
                 )
             }
         }

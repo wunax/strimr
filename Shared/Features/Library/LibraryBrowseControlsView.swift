@@ -512,7 +512,6 @@ private struct JellyfinFilterSearchModifier: ViewModifier {
     let isEnabled: Bool
     @Binding var searchText: String
 
-    @ViewBuilder
     func body(content: Content) -> some View {
         if isEnabled {
             content.searchable(text: $searchText, prompt: Text("library.browse.filters.search"))

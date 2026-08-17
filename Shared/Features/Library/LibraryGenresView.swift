@@ -62,14 +62,14 @@ struct LibraryGenresView: View {
                 ContentUnavailableView(
                     errorMessage,
                     systemImage: "exclamationmark.triangle.fill",
-                    description: Text("common.errors.tryAgainLater")
+                    description: Text("common.errors.tryAgainLater"),
                 )
                 .symbolRenderingMode(.multicolor)
             } else if viewModel.genres.isEmpty {
                 ContentUnavailableView(
                     "library.genres.empty.title",
                     systemImage: "theatermasks.fill",
-                    description: Text("library.genres.empty.description")
+                    description: Text("library.genres.empty.description"),
                 )
             }
         }
@@ -122,7 +122,7 @@ private struct LibraryGenreCard: View {
                     LinearGradient(
                         colors: [Color.brandPrimary.opacity(0.55), Color.brandPrimary.opacity(0.18)],
                         startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        endPoint: .bottomTrailing,
                     )
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))

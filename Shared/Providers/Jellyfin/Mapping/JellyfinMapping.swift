@@ -15,7 +15,7 @@ extension MediaTrackMetadata {
             language: jellyfinStream.language,
             isDefault: jellyfinStream.isDefault ?? false,
             isForced: jellyfinStream.isForced ?? false,
-            isHearingImpaired: jellyfinStream.isHearingImpaired ?? false
+            isHearingImpaired: jellyfinStream.isHearingImpaired ?? false,
         )
     }
 }
@@ -26,17 +26,17 @@ extension MediaItem {
         let primaryPath = JellyfinArtworkPath.make(
             ownerID: jellyfinItem.id,
             type: "Primary",
-            tag: jellyfinItem.imageTags?["Primary"]
+            tag: jellyfinItem.imageTags?["Primary"],
         )
         let backdropPath = JellyfinArtworkPath.make(
             ownerID: jellyfinItem.id,
             type: "Backdrop",
-            tag: jellyfinItem.backdropImageTags?.first
+            tag: jellyfinItem.backdropImageTags?.first,
         )
         let seriesPath = JellyfinArtworkPath.make(
             ownerID: jellyfinItem.seriesID ?? jellyfinItem.id,
             type: "Primary",
-            tag: jellyfinItem.seriesPrimaryImageTag
+            tag: jellyfinItem.seriesPrimaryImageTag,
         )
 
         self.init(
@@ -77,7 +77,7 @@ extension MediaItem {
                 playCount: jellyfinItem.userData?.playCount ?? 0,
                 resumePosition: jellyfinItem.resumePosition,
                 unplayedItemCount: jellyfinItem.userData?.unplayedItemCount,
-                isFavorite: false
+                isFavorite: false,
             ),
             grandparentTitle: jellyfinItem.seriesName,
             parentTitle: jellyfinItem.seasonName,
@@ -85,7 +85,7 @@ extension MediaItem {
             index: jellyfinItem.indexNumber,
             grandparentThumbPath: seriesPath,
             grandparentArtPath: backdropPath,
-            parentThumbPath: nil
+            parentThumbPath: nil,
         )
     }
 }
@@ -108,8 +108,8 @@ extension MediaDisplayItem {
                     thumbPath: media.thumbPath,
                     childCount: media.childCount,
                     minYear: nil,
-                    maxYear: nil
-                )
+                    maxYear: nil,
+                ),
             )
         case .playlist:
             self = .playlist(
@@ -123,8 +123,8 @@ extension MediaDisplayItem {
                     compositePath: media.thumbPath,
                     duration: media.duration.map { Int($0 * 1000) },
                     leafCount: media.leafCount,
-                    playlistType: "video"
-                )
+                    playlistType: "video",
+                ),
             )
         case .folder, .unknown:
             return nil
@@ -143,7 +143,7 @@ extension Library {
         self.init(
             id: jellyfinItem.id,
             title: jellyfinItem.name,
-            type: type
+            type: type,
         )
     }
 }
@@ -156,8 +156,8 @@ extension Person {
             thumbPath: JellyfinArtworkPath.make(
                 ownerID: jellyfinPerson.id,
                 type: "Primary",
-                tag: jellyfinPerson.primaryImageTag
-            )
+                tag: jellyfinPerson.primaryImageTag,
+            ),
         )
     }
 }

@@ -392,7 +392,7 @@ struct PlayerView: View {
                     itemID: viewModel.currentRatingKey,
                     titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
                     services: services,
-                    onAttached: handleAttachedSubtitle(_:)
+                    onAttached: handleAttachedSubtitle(_:),
                 )
             }
         }

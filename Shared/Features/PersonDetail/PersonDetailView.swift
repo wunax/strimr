@@ -121,10 +121,6 @@ struct PersonDetailView: View {
         #endif
     }
 
-    private var portraitPixels: Int {
-        Int(portraitSize * 2)
-    }
-
     private var headerFont: Font {
         #if os(tvOS)
             .largeTitle

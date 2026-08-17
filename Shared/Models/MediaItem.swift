@@ -35,8 +35,13 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
 
-    var provider: MediaProvider { identity.server.provider }
-    var serverIdentifier: String { identity.server.id }
+    var provider: MediaProvider {
+        identity.server.provider
+    }
+
+    var serverIdentifier: String {
+        identity.server.id
+    }
 
     init(
         id: String,
@@ -71,7 +76,7 @@ struct MediaItem: Identifiable, Hashable {
         index: Int?,
         grandparentThumbPath: String?,
         grandparentArtPath: String?,
-        parentThumbPath: String?
+        parentThumbPath: String?,
     ) {
         self.id = id
         self.identity = identity ?? Self.legacyIdentity(id: id, guid: guid)
@@ -115,11 +120,13 @@ struct MediaItem: Identifiable, Hashable {
             : "plex"
         return MediaIdentity(
             server: ServerIdentity(provider: isJellyfin ? .jellyfin : .plex, id: serverID),
-            itemID: id
+            itemID: id,
         )
     }
 
-    var kind: MediaKind { type }
+    var kind: MediaKind {
+        type
+    }
 
     var hierarchy: MediaHierarchy {
         MediaHierarchy(

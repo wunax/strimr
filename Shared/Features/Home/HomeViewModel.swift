@@ -63,7 +63,7 @@ final class HomeViewModel {
             }
             let content = try await service.loadHome(
                 hiddenLibraryIDs: Set(settingsManager.interface.hiddenLibraryIds),
-                includesPlaylists: settingsManager.interface.displayPlaylists
+                includesPlaylists: settingsManager.interface.displayPlaylists,
             )
 
             guard !Task.isCancelled else { return }

@@ -296,7 +296,7 @@ extension MediaTrackMetadata {
             language: plexStream.language,
             isDefault: plexStream.selected == true,
             isForced: plexStream.forced == true,
-            isHearingImpaired: plexStream.hearingImpaired == true
+            isHearingImpaired: plexStream.hearingImpaired == true,
         )
     }
 }

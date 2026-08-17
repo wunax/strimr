@@ -343,16 +343,15 @@ struct PlayerView: View {
         .presentationBackground(.ultraThinMaterial)
     }
 
+    @ViewBuilder
     private var subtitleSearchSheet: some View {
-        Group {
-            if let services = viewModel.subtitleSearchServices {
-                SubtitleSearchView(
-                    itemID: viewModel.currentRatingKey,
-                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    services: services,
-                    onAttached: handleAttachedSubtitle(_:)
-                )
-            }
+        if let services = viewModel.subtitleSearchServices {
+            SubtitleSearchView(
+                itemID: viewModel.currentRatingKey,
+                titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                services: services,
+                onAttached: handleAttachedSubtitle(_:),
+            )
         }
     }
 

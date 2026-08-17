@@ -45,7 +45,7 @@ struct JellyfinPlaybackService {
     func prepare(
         item: JellyfinItem,
         resume: Bool = true,
-        trackSelection: JellyfinTrackSelectionOverride? = nil
+        trackSelection: JellyfinTrackSelectionOverride? = nil,
     ) async throws -> JellyfinPlaybackPlan {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -116,7 +116,7 @@ struct JellyfinPlaybackService {
 
     private func defaultSubtitleStreamIndex(
         source: JellyfinMediaSource,
-        streams: [JellyfinMediaStream]
+        streams: [JellyfinMediaStream],
     ) -> Int? {
         source.defaultSubtitleStreamIndex.flatMap { defaultIndex in
             streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
@@ -125,7 +125,7 @@ struct JellyfinPlaybackService {
 
     private func defaultAudioStreamIndex(
         source: JellyfinMediaSource,
-        streams: [JellyfinMediaStream]
+        streams: [JellyfinMediaStream],
     ) -> Int? {
         source.defaultAudioStreamIndex.flatMap { defaultIndex in
             streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
@@ -136,13 +136,13 @@ struct JellyfinPlaybackService {
         let headers = try context.playbackHeaders()
         return externalSubtitles(
             streams: (item.mediaSources ?? []).flatMap { $0.mediaStreams ?? [] },
-            headers: headers
+            headers: headers,
         )
     }
 
     private func externalSubtitles(
         streams: [JellyfinMediaStream],
-        headers: [String: String]
+        headers: [String: String],
     ) -> [ExternalSubtitleTrack] {
         streams.compactMap { stream -> ExternalSubtitleTrack? in
             guard stream.type.lowercased() == "subtitle",

@@ -32,7 +32,7 @@ final class TopShelfDeepLinkRouter {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
             let typeValue = components.queryItems?.first(where: { $0.name == "type" })?.value,
             let type = MediaKind(rawValue: typeValue)
-                ?? (typeValue == "show" ? .series : nil)
+            ?? (typeValue == "show" ? .series : nil)
         else {
             return
         }
@@ -46,7 +46,7 @@ final class TopShelfDeepLinkRouter {
             provider: provider,
             serverIdentifier: components.queryItems?.first(where: { $0.name == "server" })?.value,
             ratingKey: ratingKey,
-            type: type
+            type: type,
         )
     }
 

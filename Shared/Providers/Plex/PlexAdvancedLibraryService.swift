@@ -17,7 +17,7 @@ protocol PlexAdvancedLibraryService: AnyObject {
         path: String,
         queryItems: [URLQueryItem],
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> PlexAdvancedBrowsePage
 
     func filterOptions(path: String, queryItems: [URLQueryItem]) async throws -> [PlexFilterDirectory]

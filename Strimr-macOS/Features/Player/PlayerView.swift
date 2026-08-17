@@ -19,7 +19,7 @@ struct PlayerWindowView: View {
     }
 
     private func playerViewModel(
-        for presentation: AppModel.PlayerPresentation
+        for presentation: AppModel.PlayerPresentation,
     ) -> PlayerViewModel? {
         if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
             return PlayerViewModel(localMedia: media, localPlaybackURL: url)
@@ -28,7 +28,7 @@ struct PlayerWindowView: View {
             return PlayerViewModel(
                 queue: queue,
                 services: services,
-                shouldResumeFromOffset: presentation.shouldResumeFromOffset
+                shouldResumeFromOffset: presentation.shouldResumeFromOffset,
             )
         }
         return nil
@@ -270,7 +270,7 @@ struct PlayerView: View {
                         itemID: viewModel.currentRatingKey,
                         titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
                         services: services,
-                        onAttached: handleAttachedSubtitle(_:)
+                        onAttached: handleAttachedSubtitle(_:),
                     )
                     .frame(minWidth: 560, minHeight: 640)
                 }

@@ -28,7 +28,7 @@ struct EpisodeArtworkView: View {
                     ArtworkPathView(
                         path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
                         width: Int(width),
-                        height: Int(width / aspectRatio)
+                        height: Int(width / aspectRatio),
                     )
                 }
             }

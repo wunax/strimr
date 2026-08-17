@@ -66,7 +66,7 @@ struct MediaHeroBackgroundView: View {
             let resource = try await mediaServices.artwork.artwork(
                 path: path,
                 width: 3840,
-                height: 2160
+                height: 2160,
             )
             guard !Task.isCancelled, artworkPath == path else { return }
             imageResource = resource

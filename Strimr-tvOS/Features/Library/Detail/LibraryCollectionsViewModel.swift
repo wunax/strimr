@@ -128,7 +128,7 @@ final class LibraryCollectionsViewModel {
             await loadCommonPage(
                 start: start,
                 reset: reset,
-                preservingExistingContent: preservingExistingContent
+                preservingExistingContent: preservingExistingContent,
             )
             return
         }
@@ -153,7 +153,7 @@ final class LibraryCollectionsViewModel {
             let response = try await advancedService.collectionPage(
                 sectionID: sectionId,
                 startIndex: start,
-                limit: pageSize
+                limit: pageSize,
             )
 
             let newItems = response.items
@@ -180,7 +180,7 @@ final class LibraryCollectionsViewModel {
     private func loadCommonPage(
         start: Int,
         reset: Bool,
-        preservingExistingContent: Bool
+        preservingExistingContent: Bool,
     ) async {
         if reset {
             commonItems = nil
@@ -199,7 +199,9 @@ final class LibraryCollectionsViewModel {
                 commonItems = allItems
             }
             let page = Array(allItems.dropFirst(start).prefix(pageSize))
-            if reset { itemsByIndex = [:] }
+            if reset {
+                itemsByIndex = [:]
+            }
             for (offset, item) in page.enumerated() {
                 itemsByIndex[start + offset] = item
             }
@@ -211,7 +213,7 @@ final class LibraryCollectionsViewModel {
                 handleLoadError(
                     error.localizedDescription,
                     reset: reset,
-                    preservingExistingContent: preservingExistingContent
+                    preservingExistingContent: preservingExistingContent,
                 )
             }
         }

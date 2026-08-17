@@ -42,7 +42,7 @@ final class PersonDetailViewModel {
             imageResource = try await services.artwork.artwork(
                 path: person.thumbPath,
                 width: 320,
-                height: 320
+                height: 320,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }

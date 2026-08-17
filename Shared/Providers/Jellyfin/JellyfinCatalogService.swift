@@ -37,7 +37,7 @@ struct JellyfinCatalogService {
     func resumable(
         parentID: String,
         includeTypes: String,
-        limit: Int
+        limit: Int,
     ) async throws -> [JellyfinItem] {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -56,7 +56,7 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "ParentId", value: parentID),
                 URLQueryItem(name: "EnableImages", value: "true"),
                 URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
-            ]
+            ],
         )
         return response.items
     }
@@ -64,7 +64,7 @@ struct JellyfinCatalogService {
     func nextUp(
         seriesID: String? = nil,
         parentID: String? = nil,
-        limit: Int = 20
+        limit: Int = 20,
     ) async throws -> [JellyfinItem] {
         var query = commonUserQuery + [
             URLQueryItem(name: "Limit", value: String(limit)),
@@ -87,7 +87,7 @@ struct JellyfinCatalogService {
     func latest(
         types: String? = nil,
         parentID: String? = nil,
-        limit: Int = 20
+        limit: Int = 20,
     ) async throws -> [JellyfinItem] {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -108,7 +108,7 @@ struct JellyfinCatalogService {
 
     func movieRecommendations(
         categoryLimit: Int = 6,
-        itemLimit: Int = 6
+        itemLimit: Int = 6,
     ) async throws -> [JellyfinRecommendation] {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -122,7 +122,7 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "Fields", value: Self.cardFields),
                 URLQueryItem(name: "ImageTypeLimit", value: "1"),
                 URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Banner,Thumb"),
-            ]
+            ],
         )
     }
 
@@ -186,7 +186,7 @@ struct JellyfinCatalogService {
         ]
         async let current: JellyfinQueryFilters = context.get(
             path: ["Items", "Filters2"],
-            query: query + [URLQueryItem(name: "Recursive", value: "true")]
+            query: query + [URLQueryItem(name: "Recursive", value: "true")],
         )
         async let legacy: JellyfinLegacyQueryFilters = context.get(path: ["Items", "Filters"], query: query)
         let (currentFilters, legacyFilters) = try await (current, legacy)
@@ -196,7 +196,7 @@ struct JellyfinCatalogService {
                 .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending },
             years: legacyFilters.years
                 .sorted(by: >)
-                .map { LibraryBrowseValueOption(id: String($0), title: String($0)) }
+                .map { LibraryBrowseValueOption(id: String($0), title: String($0)) },
         )
     }
 
@@ -220,7 +220,7 @@ struct JellyfinCatalogService {
                     URLQueryItem(name: "SortBy", value: "SortName"),
                     URLQueryItem(name: "SortOrder", value: "Ascending"),
                     URLQueryItem(name: "EnableImages", value: "false"),
-                ]
+                ],
             )
             values.append(contentsOf: response.items.map { LibraryGenre(id: $0.id, title: $0.name) })
             startIndex += response.items.count
@@ -301,7 +301,7 @@ struct JellyfinCatalogService {
 
     func mediaSegments(itemID: String) async throws -> [JellyfinMediaSegment] {
         let response: JellyfinMediaSegmentsResponse = try await context.get(
-            path: ["MediaSegments", itemID]
+            path: ["MediaSegments", itemID],
         )
         return response.items
     }
@@ -317,7 +317,7 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "Fields", value: fields),
                 URLQueryItem(name: "EnableUserData", value: "true"),
                 URLQueryItem(name: "EnableImages", value: "true"),
-            ]
+            ],
         )
     }
 
@@ -363,14 +363,14 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "ExcludeLocationTypes", value: "Virtual"),
                 URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
                 URLQueryItem(name: "CollapseBoxSetItems", value: "false"),
-            ]
+            ],
         )
     }
 
     private func paginatedItems(
         path: [String],
         query: [URLQueryItem],
-        pageSize: Int = 300
+        pageSize: Int = 300,
     ) async throws -> [JellyfinItem] {
         var items: [JellyfinItem] = []
         var startIndex = 0
@@ -381,7 +381,7 @@ struct JellyfinCatalogService {
                 query: query + [
                     URLQueryItem(name: "StartIndex", value: String(startIndex)),
                     URLQueryItem(name: "Limit", value: String(pageSize)),
-                ]
+                ],
             )
             items.append(contentsOf: response.items)
 

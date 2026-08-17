@@ -105,9 +105,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             identity: MediaIdentity(
                 server: ServerIdentity(
                     provider: item.metadata.provider ?? .plex,
-                    id: item.metadata.serverIdentifier ?? "plex"
+                    id: item.metadata.serverIdentifier ?? "plex",
                 ),
-                itemID: item.metadata.ratingKey
+                itemID: item.metadata.ratingKey,
             ),
             guid: item.metadata.guid,
             summary: item.metadata.summary,
@@ -191,7 +191,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         let posterFileName = await downloadPosterIfAvailable(
             for: mediaItem,
             services: services,
-            destinationFolder: folderURL
+            destinationFolder: folderURL,
         )
         var request = preparation.request
         if settingsManager.downloads.wifiOnly {
@@ -226,7 +226,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             posterFileName: posterFileName,
             videoFileName: "video",
             fileSize: nil,
-            createdAt: Date()
+            createdAt: Date(),
         )
         items.append(DownloadItem(
             id: id,
@@ -236,7 +236,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             totalBytes: 0,
             taskIdentifier: task.taskIdentifier,
             errorMessage: nil,
-            metadata: metadata
+            metadata: metadata,
         ))
         persistState()
         task.resume()
@@ -307,14 +307,13 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 for: .playable(mediaItem),
                 kind: .thumb,
                 width: 480,
-                height: 720
+                height: 720,
             ) else { return nil }
-            let data: Data
-            switch artwork {
+            let data: Data = switch artwork {
             case let .data(value):
-                data = value
+                value
             case let .url(url):
-                data = try await URLSession.shared.data(from: url).0
+                try await URLSession.shared.data(from: url).0
             }
             guard !data.isEmpty else { return nil }
             let fileName = "poster.jpg"

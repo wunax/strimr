@@ -98,7 +98,7 @@ struct ProviderSelectionView: View {
                     .fill(Color.white.opacity(isFocused ? 0.13 : 0.07))
                     .overlay {
                         accent.opacity(isFocused ? 0.16 : 0.08)
-                        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
                     }
             }
             .overlay {

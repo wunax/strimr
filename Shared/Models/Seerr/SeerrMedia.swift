@@ -69,10 +69,14 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
 
     private static func decodeString(
         _ container: KeyedDecodingContainer<CodingKeys>,
-        key: CodingKeys
+        key: CodingKeys,
     ) -> String? {
-        if let value = try? container.decodeIfPresent(String.self, forKey: key) { return value }
-        if let value = try? container.decodeIfPresent(Int.self, forKey: key) { return String(value) }
+        if let value = try? container.decodeIfPresent(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? container.decodeIfPresent(Int.self, forKey: key) {
+            return String(value)
+        }
         return nil
     }
 }

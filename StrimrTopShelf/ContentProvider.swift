@@ -5,12 +5,11 @@ import TVServices
 final class ContentProvider: TVTopShelfContentProvider {
     override func loadTopShelfContent() async -> (any TVTopShelfContent)? {
         guard let session = TopShelfSession.load() else { return nil }
-        let sections: [TVTopShelfItemCollection<TVTopShelfSectionedItem>]
-        switch session.provider {
+        let sections: [TVTopShelfItemCollection<TVTopShelfSectionedItem>] = switch session.provider {
         case .plex:
-            sections = await plexSections(session: session)
+            await plexSections(session: session)
         case .jellyfin:
-            sections = await jellyfinSections(session: session)
+            await jellyfinSections(session: session)
         }
         guard !sections.isEmpty else { return nil }
         return TVTopShelfSectionedContent(sections: sections)
@@ -29,17 +28,19 @@ final class ContentProvider: TVTopShelfContentProvider {
             makeSection(
                 title: String(localized: "topshelf.recentlyAddedMovies"),
                 items: recentlyAdded.filter { $0.type == "movie" },
-                session: session
+                session: session,
             ),
             makeSection(
                 title: String(localized: "topshelf.recentlyAddedShows"),
                 items: recentlyAdded.filter { ["show", "season", "episode"].contains($0.type) },
-                session: session
+                session: session,
             ),
         ].compactMap(\.self)
     }
 
-    private func jellyfinSections(session: TopShelfSession) async -> [TVTopShelfItemCollection<TVTopShelfSectionedItem>] {
+    private func jellyfinSections(session: TopShelfSession) async
+        -> [TVTopShelfItemCollection<TVTopShelfSectionedItem>]
+    {
         guard let userID = session.userID else { return [] }
         async let resume: JellyfinItemsResponse? = try? request(
             path: "/UserItems/Resume",
@@ -49,7 +50,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "Limit", value: "20"),
                 URLQueryItem(name: "Fields", value: "Overview,UserData,SeriesName,ParentIndexNumber,IndexNumber"),
             ],
-            session: session
+            session: session,
         )
         async let latestMovies: [JellyfinTopShelfItem]? = try? request(
             path: "/Items/Latest",
@@ -58,7 +59,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "IncludeItemTypes", value: "Movie"),
                 URLQueryItem(name: "Limit", value: "20"),
             ],
-            session: session
+            session: session,
         )
         async let latestShows: [JellyfinTopShelfItem]? = try? request(
             path: "/Items/Latest",
@@ -67,23 +68,23 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "IncludeItemTypes", value: "Series,Episode"),
                 URLQueryItem(name: "Limit", value: "20"),
             ],
-            session: session
+            session: session,
         )
-        return [
+        return await [
             makeSection(
                 title: String(localized: "topshelf.continueWatching"),
-                items: await (resume?.items ?? []).map(TopShelfDisplayItem.init),
-                session: session
+                items: (resume?.items ?? []).map(TopShelfDisplayItem.init),
+                session: session,
             ),
             makeSection(
                 title: String(localized: "topshelf.recentlyAddedMovies"),
-                items: await (latestMovies ?? []).map(TopShelfDisplayItem.init),
-                session: session
+                items: (latestMovies ?? []).map(TopShelfDisplayItem.init),
+                session: session,
             ),
             makeSection(
                 title: String(localized: "topshelf.recentlyAddedShows"),
-                items: await (latestShows ?? []).map(TopShelfDisplayItem.init),
-                session: session
+                items: (latestShows ?? []).map(TopShelfDisplayItem.init),
+                session: session,
             ),
         ].compactMap(\.self)
     }
@@ -101,7 +102,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "excludeContinueWatching", value: "1"),
                 URLQueryItem(name: "includeLibraryPlaylists", value: "0"),
             ],
-            session: session
+            session: session,
         )
         return response.mediaContainer.hub ?? []
     }
@@ -109,11 +110,11 @@ final class ContentProvider: TVTopShelfContentProvider {
     private func request<Response: Decodable>(
         path: String,
         queryItems: [URLQueryItem] = [],
-        session: TopShelfSession
+        session: TopShelfSession,
     ) async throws -> Response {
         guard var components = URLComponents(
             url: session.serverURL.appendingPathComponent(path),
-            resolvingAgainstBaseURL: false
+            resolvingAgainstBaseURL: false,
         ) else { throw TopShelfError.invalidURL }
         components.queryItems = queryItems.isEmpty ? nil : queryItems
         guard let url = components.url else { throw TopShelfError.invalidURL }
@@ -129,7 +130,7 @@ final class ContentProvider: TVTopShelfContentProvider {
         case .jellyfin:
             request.setValue(
                 "MediaBrowser Client=\"Strimr\", Device=\"Apple TV\", DeviceId=\"TopShelf\", Version=\"1\", Token=\"\(session.token)\"",
-                forHTTPHeaderField: "Authorization"
+                forHTTPHeaderField: "Authorization",
             )
             request.setValue(session.token, forHTTPHeaderField: "X-Emby-Token")
         }
@@ -143,7 +144,7 @@ final class ContentProvider: TVTopShelfContentProvider {
     private func makeSection(
         title: String,
         items: [TopShelfDisplayItem],
-        session: TopShelfSession
+        session: TopShelfSession,
     ) -> TVTopShelfItemCollection<TVTopShelfSectionedItem>? {
         let values = Array(items.prefix(20)).compactMap { makeItem($0, session: session) }
         guard !values.isEmpty else { return nil }
@@ -187,7 +188,7 @@ final class ContentProvider: TVTopShelfContentProvider {
             guard let path = media.artworkPath,
                   var components = URLComponents(
                       url: session.serverURL.appendingPathComponent("photo/:/transcode"),
-                      resolvingAgainstBaseURL: false
+                      resolvingAgainstBaseURL: false,
                   )
             else { return nil }
             components.queryItems = [
@@ -207,7 +208,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                     .appendingPathComponent(media.id)
                     .appendingPathComponent("Images")
                     .appendingPathComponent(imageType),
-                resolvingAgainstBaseURL: false
+                resolvingAgainstBaseURL: false,
             ) else { return nil }
             components.queryItems = [
                 URLQueryItem(name: "tag", value: media.backdropTag ?? media.primaryTag),
@@ -258,7 +259,7 @@ private struct TopShelfSession {
                 serverURL: stored.serverURL,
                 serverID: stored.serverID,
                 userID: stored.userID,
-                token: token
+                token: token,
             )
         }
         guard let value = defaults.string(forKey: legacyURLKey),
@@ -321,8 +322,12 @@ private struct TopShelfDisplayItem {
     }
 
     var displayTitle: String {
-        if type == "episode", let grandparentTitle { return "\(grandparentTitle) — \(title)" }
-        if type == "season", let parentTitle { return "\(parentTitle) — \(title)" }
+        if type == "episode", let grandparentTitle {
+            return "\(grandparentTitle) — \(title)"
+        }
+        if type == "season", let parentTitle {
+            return "\(parentTitle) — \(title)"
+        }
         return title
     }
 }
@@ -332,6 +337,7 @@ private struct PlexHubContainer: Decodable {
         let hub: [PlexTopShelfHub]?
         private enum CodingKeys: String, CodingKey { case hub = "Hub" }
     }
+
     let mediaContainer: MediaContainer
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }

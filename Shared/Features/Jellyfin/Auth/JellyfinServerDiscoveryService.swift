@@ -102,19 +102,23 @@ nonisolated struct JellyfinServerDiscoveryService: Sendable {
 
             let pollResult = poll(&descriptor, 1, pollTimeout)
             if pollResult < 0 {
-                if errno == EINTR { continue }
+                if errno == EINTR {
+                    continue
+                }
                 throw posixError()
             }
             guard pollResult > 0, descriptor.revents & Int16(POLLIN) != 0 else {
                 continue
             }
 
-            var buffer = [UInt8](repeating: 0, count: 65_535)
+            var buffer = [UInt8](repeating: 0, count: 65535)
             let receivedByteCount = buffer.withUnsafeMutableBytes { bytes in
                 recv(socketDescriptor, bytes.baseAddress, bytes.count, 0)
             }
             if receivedByteCount < 0 {
-                if errno == EINTR { continue }
+                if errno == EINTR {
+                    continue
+                }
                 throw posixError()
             }
 

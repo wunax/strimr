@@ -236,7 +236,7 @@ struct MediaDetailHeaderSection: View {
                         }
                     }
                 } else if let artworkPath = viewModel.heroArtworkPath(
-                    spoilerProtection: settingsManager.interface.spoilerProtection
+                    spoilerProtection: settingsManager.interface.spoilerProtection,
                 ) {
                     ArtworkPathView(path: artworkPath, width: 1400, height: 800)
                         .frame(width: proxy.size.width, height: heroHeight, alignment: .center)
@@ -609,7 +609,7 @@ struct MediaDetailHeaderSection: View {
                 await downloadManager.enqueueItems(
                     itemID: viewModel.media.id,
                     kind: .season,
-                    services: mediaServices
+                    services: mediaServices,
                 )
             }
         case .movie, .episode:

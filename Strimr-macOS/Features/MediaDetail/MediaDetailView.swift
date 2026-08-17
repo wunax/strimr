@@ -124,7 +124,7 @@ struct MediaDetailView: View {
             GeometryReader { proxy in
                 Group {
                     if let url = viewModel.heroImageURL(
-                        spoilerProtection: settingsManager.interface.spoilerProtection
+                        spoilerProtection: settingsManager.interface.spoilerProtection,
                     ) {
                         AsyncImage(url: url) { phase in
                             if let image = phase.image {
@@ -136,10 +136,10 @@ struct MediaDetailView: View {
                     } else {
                         ArtworkPathView(
                             path: viewModel.heroArtworkPath(
-                                spoilerProtection: settingsManager.interface.spoilerProtection
+                                spoilerProtection: settingsManager.interface.spoilerProtection,
                             ),
                             width: 1400,
-                            height: 800
+                            height: 800,
                         )
                     }
                 }
@@ -421,7 +421,7 @@ struct MediaDetailView: View {
                 await downloadManager.enqueueItems(
                     itemID: viewModel.media.id,
                     kind: .season,
-                    services: mediaServices
+                    services: mediaServices,
                 )
             }
         case .movie, .episode:
@@ -507,7 +507,7 @@ struct MediaDetailView: View {
                 Group {
                     if let url = viewModel.imageURL(
                         for: episode,
-                        spoilerProtection: settingsManager.interface.spoilerProtection
+                        spoilerProtection: settingsManager.interface.spoilerProtection,
                     ) {
                         AsyncImage(url: url) { phase in
                             if let image = phase.image {
@@ -520,7 +520,7 @@ struct MediaDetailView: View {
                         ArtworkPathView(
                             path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
                             width: 640,
-                            height: 360
+                            height: 360,
                         )
                     }
                 }

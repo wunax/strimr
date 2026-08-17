@@ -29,7 +29,7 @@ extension MediaItem {
             id: plexItem.ratingKey,
             identity: MediaIdentity(
                 server: server ?? ServerIdentity(provider: .plex, id: "plex"),
-                itemID: plexItem.ratingKey
+                itemID: plexItem.ratingKey,
             ),
             guid: plexItem.guid,
             summary: plexItem.summary,
@@ -61,7 +61,7 @@ extension MediaItem {
                 playCount: plexItem.viewCount ?? 0,
                 resumePosition: plexItem.viewOffset.map { TimeInterval($0) / 1000 },
                 unplayedItemCount: unplayedItemCount,
-                isFavorite: false
+                isFavorite: false,
             ),
             grandparentTitle: plexItem.grandparentTitle,
             parentTitle: plexItem.parentTitle,

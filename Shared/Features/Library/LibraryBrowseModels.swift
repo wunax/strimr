@@ -70,7 +70,7 @@ protocol AdvancedLibraryBrowseService: AnyObject {
         parentID: String?,
         query: LibraryBrowseQuery,
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem>
 
     func browseFilterOptions(in library: Library) async throws -> LibraryBrowseFilterOptions

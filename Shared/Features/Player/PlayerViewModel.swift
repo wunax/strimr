@@ -21,7 +21,9 @@ final class PlayerViewModel {
     var preferredSubtitleStreamID: Int?
     var terminationMessage: String?
 
-    var resumePosition: Double? { media?.viewOffset }
+    var resumePosition: Double? {
+        media?.viewOffset
+    }
 
     var markers: [SkipSegment] = []
     var chapters: [MediaChapter] = []
@@ -30,7 +32,9 @@ final class PlayerViewModel {
         activeMarker(where: \.isIntro) ?? activeMarker(where: \.isCredits)
     }
 
-    var hasNavigableChapters: Bool { chapters.count >= 2 }
+    var hasNavigableChapters: Bool {
+        chapters.count >= 2
+    }
 
     var canSearchSubtitles: Bool {
         !isLocalPlayback
@@ -39,19 +43,33 @@ final class PlayerViewModel {
             && mediaServices?.authorization.canManageSubtitles == true
     }
 
-    var subtitleSearchServices: MediaServices? { mediaServices }
+    var subtitleSearchServices: MediaServices? {
+        mediaServices
+    }
 
-    var subtitleSearchTitlePlaceholder: String { media?.title ?? "" }
+    var subtitleSearchTitlePlaceholder: String {
+        media?.title ?? ""
+    }
 
-    var usesCommonPlaybackQueue: Bool { mediaServices != nil }
+    var usesCommonPlaybackQueue: Bool {
+        mediaServices != nil
+    }
 
-    var currentRatingKey: String { media?.id ?? ratingKey }
+    var currentRatingKey: String {
+        media?.id ?? ratingKey
+    }
 
-    var shouldResumeFromOffset: Bool { shouldResumeFromOffsetFlag }
+    var shouldResumeFromOffset: Bool {
+        shouldResumeFromOffsetFlag
+    }
 
-    var serverAccessGeneration: Int { mediaServices?.playback.serverAccessGeneration ?? 0 }
+    var serverAccessGeneration: Int {
+        mediaServices?.playback.serverAccessGeneration ?? 0
+    }
 
-    var isLocalPlayback: Bool { localPlaybackURL != nil }
+    var isLocalPlayback: Bool {
+        localPlaybackURL != nil
+    }
 
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
     @ObservationIgnored private var lastTimelineSentAt: Date?
@@ -69,7 +87,7 @@ final class PlayerViewModel {
     init(
         queue: PlaybackQueue,
         services: MediaServices,
-        shouldResumeFromOffset: Bool = true
+        shouldResumeFromOffset: Bool = true,
     ) {
         mediaQueue = queue
         mediaServices = services
@@ -101,7 +119,7 @@ final class PlayerViewModel {
     func chapterImageURL(
         for chapter: MediaChapter,
         width: Int,
-        height: Int
+        height: Int,
     ) -> URL? {
         guard let thumb = chapter.thumbPath else { return nil }
         return mediaServices?.artwork.artworkURL(path: thumb, width: width, height: height)
@@ -123,7 +141,7 @@ final class PlayerViewModel {
             language: track.language,
             isDefault: track.isDefault,
             isForced: track.isForced,
-            isHearingImpaired: track.isHearingImpaired
+            isHearingImpaired: track.isHearingImpaired,
         )
     }
 
@@ -161,7 +179,7 @@ final class PlayerViewModel {
         return PlayerViewModel(
             queue: queue,
             services: mediaServices,
-            shouldResumeFromOffset: false
+            shouldResumeFromOffset: false,
         )
     }
 
@@ -186,7 +204,7 @@ final class PlayerViewModel {
         do {
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag
+                resume: shouldResumeFromOffsetFlag,
             )
             apply(plan: plan)
         } catch {
@@ -198,13 +216,15 @@ final class PlayerViewModel {
     }
 
     func refreshPlaybackSource() async throws -> URL {
-        if let localPlaybackURL { return localPlaybackURL }
+        if let localPlaybackURL {
+            return localPlaybackURL
+        }
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
 
         do {
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag
+                resume: shouldResumeFromOffsetFlag,
             )
             apply(plan: plan)
             return plan.url
@@ -287,7 +307,7 @@ final class PlayerViewModel {
         do {
             try await mediaServices.playback.reportStopped(
                 plan: playbackPlan,
-                position: media?.duration ?? duration ?? position
+                position: media?.duration ?? duration ?? position,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -297,7 +317,7 @@ final class PlayerViewModel {
 
     func automaticSkipMarker(
         autoSkipIntros: Bool,
-        autoSkipCredits: Bool
+        autoSkipCredits: Bool,
     ) -> SkipSegment? {
         if let automaticSkipMarkerInFlight {
             guard !automaticSkipMarkerInFlight.contains(time: position) else { return nil }
@@ -346,7 +366,9 @@ final class PlayerViewModel {
     }
 
     private var playbackState: TimelineState {
-        if isBuffering { return .buffering }
+        if isBuffering {
+            return .buffering
+        }
         return isPaused ? .paused : .playing
     }
 
@@ -398,13 +420,13 @@ final class PlayerViewModel {
                 try await mediaServices.playback.reportProgress(
                     plan: playbackPlan,
                     position: position,
-                    isPaused: state == .paused
+                    isPaused: state == .paused,
                 )
             } else {
                 try await mediaServices.playback.reportStarted(
                     plan: playbackPlan,
                     position: position,
-                    isPaused: state == .paused
+                    isPaused: state == .paused,
                 )
                 didReportPlaybackStarted = true
             }
@@ -417,7 +439,7 @@ final class PlayerViewModel {
 
     private func translatedServerAccessError(
         _ error: Error,
-        using playback: any MediaPlaybackService
+        using playback: any MediaPlaybackService,
     ) -> Error {
         playback.serverAccessRecoveryError(from: error) ?? error
     }

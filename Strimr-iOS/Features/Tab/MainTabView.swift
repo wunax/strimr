@@ -113,14 +113,14 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let queue = coordinator.selectedMediaQueue,
-                      let services = coordinator.selectedMediaServices
+               let services = coordinator.selectedMediaServices
             {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
                         queue: queue,
                         services: services,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset
-                    )
+                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                    ),
                 )
                 .environment(plexApiContext)
             }

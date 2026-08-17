@@ -13,11 +13,6 @@ struct PlaybackLauncher {
     let services: MediaServices
     let coordinator: any PlaybackPresenting
 
-    init(services: MediaServices, coordinator: any PlaybackPresenting) {
-        self.services = services
-        self.coordinator = coordinator
-    }
-
     func play(
         ratingKey: String,
         type: MediaKind,
@@ -28,13 +23,13 @@ struct PlaybackLauncher {
             let queue = try await services.playback.queue(
                 startingWith: ratingKey,
                 kind: type,
-                shuffle: shuffle
+                shuffle: shuffle,
             )
             guard !queue.items.isEmpty else { return }
             coordinator.showPlayer(
                 for: queue,
                 services: services,
-                shouldResumeFromOffset: shouldResumeFromOffset
+                shouldResumeFromOffset: shouldResumeFromOffset,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -46,5 +41,4 @@ struct PlaybackLauncher {
     func using(services: MediaServices) -> PlaybackLauncher {
         PlaybackLauncher(services: services, coordinator: coordinator)
     }
-
 }

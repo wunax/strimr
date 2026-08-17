@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct LibraryDetailView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
     @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     let library: Library
@@ -21,7 +20,7 @@ struct LibraryDetailView: View {
         self.library = library
         self.onSelectMedia = onSelectMedia
         _selectedTab = State(
-            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended
+            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended,
         )
     }
 

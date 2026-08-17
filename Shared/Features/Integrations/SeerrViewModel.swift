@@ -90,11 +90,11 @@ final class SeerrViewModel {
             let user = try await sessionService.signInWithJellyfin(
                 baseURL: baseURL,
                 username: jellyfinUsername,
-                password: jellyfinPassword
+                password: jellyfinPassword,
             )
             store.setUser(user)
             do {
-                store.setQuota(try await sessionService.fetchUserQuota(baseURL: baseURL, userId: user.id))
+                try await store.setQuota(sessionService.fetchUserQuota(baseURL: baseURL, userId: user.id))
             } catch {
                 store.setQuota(nil)
             }

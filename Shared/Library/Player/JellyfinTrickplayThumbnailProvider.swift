@@ -65,12 +65,12 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
                 x: column * source.width,
                 y: image.height - ((row + 1) * source.height),
                 width: source.width,
-                height: source.height
+                height: source.height,
             )
             guard let thumbnail = image.cropping(to: crop) else { return nil }
             return ScrubThumbnail(
                 bucketPosition: Double(frameIndex * source.intervalMilliseconds) / 1000,
-                image: thumbnail
+                image: thumbnail,
             )
         } catch {
             guard !Task.isCancelled, !isCancelled else { return nil }
@@ -86,7 +86,9 @@ actor JellyfinTrickplayThumbnailProvider: ScrubThumbnailProviding {
     }
 
     private func sheet(index: Int) async throws -> CGImage {
-        if let cached = sheets[index] { return cached }
+        if let cached = sheets[index] {
+            return cached
+        }
         let fileURL = cacheDirectory.appendingPathComponent("\(index).jpg")
         let data: Data
         if let cached = try? Data(contentsOf: fileURL), !cached.isEmpty {

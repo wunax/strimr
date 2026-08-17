@@ -208,7 +208,7 @@ final class SessionManager {
                     serverURL: connection.baseURL,
                     serverID: connection.serverID,
                     userID: connection.userID,
-                    token: authenticatedSession.accessToken
+                    token: authenticatedSession.accessToken,
                 )
                 TVTopShelfContentProvider.topShelfContentDidChange()
             #endif
@@ -261,7 +261,7 @@ final class SessionManager {
                         serverURL: serverURL,
                         serverID: server.clientIdentifier,
                         userID: nil,
-                        token: serverToken
+                        token: serverToken,
                     )
                     TVTopShelfContentProvider.topShelfContentDidChange()
                 }
@@ -352,7 +352,7 @@ final class SessionManager {
                     serverURL: serverURL,
                     serverID: refreshedServer.clientIdentifier,
                     userID: nil,
-                    token: serverToken
+                    token: serverToken,
                 )
                 TVTopShelfContentProvider.topShelfContentDidChange()
             }
@@ -537,7 +537,7 @@ final class SessionManager {
                     serverURL: connection.baseURL,
                     serverID: connection.serverID,
                     userID: connection.userID,
-                    token: token
+                    token: token,
                 )
                 TVTopShelfContentProvider.topShelfContentDidChange()
             #endif
@@ -614,7 +614,7 @@ final class SessionManager {
     private func activateJellyfinServicesIfAvailable() {
         guard let services = JellyfinMediaServicesFactory.make(
             context: jellyfinContext,
-            capabilities: .jellyfin
+            capabilities: .jellyfin,
         ) else { return }
         mediaServices = services
         libraryStore.configure(service: services.library)

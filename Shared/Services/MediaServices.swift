@@ -8,13 +8,13 @@ struct MediaAuthorization: Equatable, Sendable {
     static let denied = MediaAuthorization(
         isAdministrator: false,
         canManageSubtitles: false,
-        canManageServer: false
+        canManageServer: false,
     )
 
     static let plex = MediaAuthorization(
         isAdministrator: false,
         canManageSubtitles: true,
-        canManageServer: false
+        canManageServer: false,
     )
 }
 
@@ -53,7 +53,7 @@ final class MediaServices {
         detail: any MediaDetailService,
         playback: any MediaPlaybackService,
         downloads: any MediaDownloadService,
-        authorization: any MediaAuthorizationService
+        authorization: any MediaAuthorizationService,
     ) {
         self.provider = provider
         self.identity = identity

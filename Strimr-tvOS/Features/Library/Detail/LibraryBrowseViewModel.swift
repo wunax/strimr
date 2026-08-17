@@ -55,7 +55,7 @@ final class LibraryBrowseViewModel {
             advancedService: services.library as? any PlexAdvancedLibraryService,
             browseService: services.library as? any AdvancedLibraryBrowseService,
             library: library,
-            browseSession: browseSession
+            browseSession: browseSession,
         )
         controls.onSelectionChanged = { [weak self] in
             self?.selectionChanged()
@@ -161,7 +161,7 @@ final class LibraryBrowseViewModel {
 
             let values = try await advancedService.sectionCharacters(
                 path: firstCharacterEndpoint.path,
-                queryItems: queryItems
+                queryItems: queryItems,
             )
             var runningIndex = 0
             var characters: [SectionCharacter] = []
@@ -220,7 +220,7 @@ final class LibraryBrowseViewModel {
                 path: endpoint.path,
                 queryItems: queryItems,
                 startIndex: start,
-                limit: pageSize
+                limit: pageSize,
             )
 
             if includeMeta, let meta = response.meta {
@@ -248,21 +248,20 @@ final class LibraryBrowseViewModel {
 
         do {
             let requestedQuery = browseSession.query
-            let page: MediaPage<MediaDisplayItem>
-            if let browseService {
-                page = try await browseService.browseItems(
+            let page: MediaPage<MediaDisplayItem> = if let browseService {
+                try await browseService.browseItems(
                     in: library,
                     parentID: nil,
                     query: requestedQuery,
                     startIndex: start,
-                    limit: pageSize
+                    limit: pageSize,
                 )
             } else {
-                page = try await service.items(
+                try await service.items(
                     in: library,
                     parentID: nil,
                     startIndex: start,
-                    limit: pageSize
+                    limit: pageSize,
                 )
             }
             guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }

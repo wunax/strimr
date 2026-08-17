@@ -70,7 +70,9 @@ final class LibraryBrowseControlsViewModel {
         case genres
         case years
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var title: String {
             switch self {
@@ -127,7 +129,7 @@ final class LibraryBrowseControlsViewModel {
         advancedService: (any PlexAdvancedLibraryService)?,
         browseService: (any AdvancedLibraryBrowseService)? = nil,
         library: Library? = nil,
-        browseSession: LibraryBrowseSession? = nil
+        browseSession: LibraryBrowseSession? = nil,
     ) {
         self.advancedService = advancedService
         self.browseService = browseService
@@ -340,12 +342,21 @@ final class LibraryBrowseControlsViewModel {
     }
 
     func jellyfinOptions(for filter: JellyfinFilter) -> [LibraryBrowseValueOption] {
-        return switch filter {
+        switch filter {
         case .watchStatus:
             [
-                LibraryBrowseValueOption(id: LibraryBrowseWatchStatus.all.rawValue, title: String(localized: "library.browse.filters.all")),
-                LibraryBrowseValueOption(id: LibraryBrowseWatchStatus.unplayed.rawValue, title: String(localized: "library.browse.filters.unplayed")),
-                LibraryBrowseValueOption(id: LibraryBrowseWatchStatus.played.rawValue, title: String(localized: "library.browse.filters.played")),
+                LibraryBrowseValueOption(
+                    id: LibraryBrowseWatchStatus.all.rawValue,
+                    title: String(localized: "library.browse.filters.all"),
+                ),
+                LibraryBrowseValueOption(
+                    id: LibraryBrowseWatchStatus.unplayed.rawValue,
+                    title: String(localized: "library.browse.filters.unplayed"),
+                ),
+                LibraryBrowseValueOption(
+                    id: LibraryBrowseWatchStatus.played.rawValue,
+                    title: String(localized: "library.browse.filters.played"),
+                ),
             ]
         case .genres:
             jellyfinFilterOptions.genres
@@ -551,7 +562,7 @@ final class LibraryBrowseControlsViewModel {
     private func jellyfinSortOption(
         _ id: LibraryBrowseSort,
         _ localizationKey: String.LocalizationValue,
-        _ direction: LibraryBrowseSortDirection
+        _ direction: LibraryBrowseSortDirection,
     ) -> JellyfinSortOption {
         JellyfinSortOption(id: id, title: String(localized: localizationKey), defaultDirection: direction)
     }
@@ -598,7 +609,7 @@ final class LibraryBrowseControlsViewModel {
         do {
             let values = try await advancedService.filterOptions(
                 path: endpoint.path,
-                queryItems: endpoint.queryItems
+                queryItems: endpoint.queryItems,
             )
             let options = values.map(FilterOption.init)
             filterOptions[filterKey] = options

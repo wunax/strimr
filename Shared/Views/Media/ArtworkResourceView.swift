@@ -65,7 +65,7 @@ struct ArtworkPathView: View {
                     resource = try await services.artwork.artwork(
                         path: path,
                         width: width,
-                        height: height
+                        height: height,
                     )
                 } catch {
                     guard !Task.isCancelled, !error.isCancellation else { return }

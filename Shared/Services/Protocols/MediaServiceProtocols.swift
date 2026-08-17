@@ -71,7 +71,7 @@ protocol MediaLibraryService: AnyObject {
         in library: Library,
         parentID: String?,
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem>
     func collections(in library: Library) async throws -> [CollectionMediaItem]
     func playlists(in library: Library) async throws -> [PlaylistMediaItem]
@@ -82,7 +82,7 @@ protocol MediaSearchService: AnyObject {
     func search(
         query: String,
         kinds: Set<MediaKind>,
-        searchesAllServers: Bool
+        searchesAllServers: Bool,
     ) async throws -> [MediaSearchSource]
 }
 
@@ -94,13 +94,13 @@ protocol MediaArtworkService: AnyObject {
         for media: MediaDisplayItem,
         kind: MediaImageViewModel.ArtworkKind,
         width: Int?,
-        height: Int?
+        height: Int?,
     ) async throws -> ArtworkResource?
 
     func artwork(
         path: String?,
         width: Int?,
-        height: Int?
+        height: Int?,
     ) async throws -> ArtworkResource?
 }
 
@@ -115,7 +115,7 @@ protocol MediaDetailService: AnyObject {
         language: String,
         hearingImpaired: Bool,
         forced: Bool,
-        title: String?
+        title: String?,
     ) async throws -> [RemoteSubtitleResult]
     func installSubtitle(itemID: String, result: RemoteSubtitleResult) async throws
     func details(for media: MediaItem) async throws -> MediaDetailContent

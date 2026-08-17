@@ -74,6 +74,6 @@ struct ProviderCapabilities: Codable, Equatable, Sendable {
         downloads: true,
         sharePlay: true,
         topShelf: true,
-        syncPlay: false
+        syncPlay: false,
     )
 }

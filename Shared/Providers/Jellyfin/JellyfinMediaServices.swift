@@ -21,15 +21,33 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         playbackService = JellyfinPlaybackService(context: context)
     }
 
-    var supportsWatchlist: Bool { false }
-    var supportsRemoteSubtitleSearch: Bool { true }
-    var supportsAdvancedSubtitleSearch: Bool { false }
-    var serverAccessGeneration: Int { 0 }
-    var authorization: MediaAuthorization { context.authorization }
+    var supportsWatchlist: Bool {
+        false
+    }
 
-    func serverAccessRecoveryError(from _: Error) -> MediaServerAccessRecoveryError? { nil }
+    var supportsRemoteSubtitleSearch: Bool {
+        true
+    }
 
-    func recoverServerAccessIfUnauthorized() async throws -> Bool { false }
+    var supportsAdvancedSubtitleSearch: Bool {
+        false
+    }
+
+    var serverAccessGeneration: Int {
+        0
+    }
+
+    var authorization: MediaAuthorization {
+        context.authorization
+    }
+
+    func serverAccessRecoveryError(from _: Error) -> MediaServerAccessRecoveryError? {
+        nil
+    }
+
+    func recoverServerAccessIfUnauthorized() async throws -> Bool {
+        false
+    }
 
     func forceServerAccessRecovery() async throws {}
 
@@ -39,12 +57,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return MediaPage(
             items: Array(hub.items[start ..< end]),
             startIndex: start,
-            totalCount: hub.items.count
+            totalCount: hub.items.count,
         )
     }
 
     func mediaItem(id: String) async throws -> MediaItem {
-        MediaItem(jellyfinItem: try await catalog.item(id: id), server: server)
+        try await MediaItem(jellyfinItem: catalog.item(id: id), server: server)
     }
 
     func searchSubtitles(
@@ -52,10 +70,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         language: String,
         hearingImpaired: Bool,
         forced: Bool,
-        title _: String?
+        title _: String?,
     ) async throws -> [RemoteSubtitleResult] {
         let values: [JellyfinRemoteSubtitle] = try await context.get(
-            path: ["Items", itemID, "RemoteSearch", "Subtitles", language]
+            path: ["Items", itemID, "RemoteSearch", "Subtitles", language],
         )
         return values.filter { value in
             (!forced || value.isForced == true)
@@ -66,7 +84,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 title: value.name ?? value.providerName ?? value.id,
                 language: value.threeLetterISOLanguageName,
                 codec: value.format ?? "",
-                providerTitle: value.providerName
+                providerTitle: value.providerName,
             )
         }
     }
@@ -74,7 +92,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func installSubtitle(itemID: String, result: RemoteSubtitleResult) async throws {
         try await context.send(
             path: ["Items", itemID, "RemoteSearch", "Subtitles", result.id],
-            method: "POST"
+            method: "POST",
         )
     }
 
@@ -96,13 +114,15 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             for (index, library) in visibleLibraries.enumerated() {
                 group.addTask { [catalog] in
                     let items = try await catalog.latest(
-                        parentID: library.id
+                        parentID: library.id,
                     )
                     return (index, library, items)
                 }
             }
             var values: [(Int, JellyfinItem, [JellyfinItem])] = []
-            for try await value in group { values.append(value) }
+            for try await value in group {
+                values.append(value)
+            }
             return values.sorted { $0.0 < $1.0 }
         }
         hubs.append(contentsOf: latest.compactMap { _, library, items in
@@ -110,7 +130,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             return hub(
                 id: "jellyfin.latest.\(library.id)",
                 title: String(localized: "jellyfin.home.latestIn \(library.name)"),
-                items: items
+                items: items,
             )
         })
 
@@ -118,7 +138,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             continueWatching: resume.isEmpty
                 ? nil
                 : hub(id: "jellyfin.resume", title: String(localized: "jellyfin.home.resume"), items: resume),
-            recentlyAdded: hubs
+            recentlyAdded: hubs,
         )
     }
 
@@ -133,16 +153,15 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         case .playlist: "Playlist"
         default: "Movie"
         }
-        let item: JellyfinItem?
-        switch library.type {
+        let item: JellyfinItem? = switch library.type {
         case .collection, .playlist:
-            item = try await catalog.items(
+            try await catalog.items(
                 parentID: library.id,
                 includeTypes: type,
-                limit: 1
+                limit: 1,
             ).items.first
         default:
-            item = try await catalog.latest(types: type, parentID: library.id, limit: 1).first
+            try await catalog.latest(types: type, parentID: library.id, limit: 1).first
         }
         guard let item, let media = MediaDisplayItem(jellyfinItem: item, server: server) else {
             return nil
@@ -160,12 +179,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             async let resumableItems = catalog.resumable(
                 parentID: library.id,
                 includeTypes: "Episode",
-                limit: 3
+                limit: 3,
             )
             async let latestItems = catalog.latest(
                 types: "Episode",
                 parentID: library.id,
-                limit: 30
+                limit: 30,
             )
             async let nextUpItems = catalog.nextUp(parentID: library.id, limit: 24)
 
@@ -173,29 +192,29 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 hubIfNotEmpty(
                     id: "jellyfin.library.inProgress.\(library.id)",
                     title: String(localized: "jellyfin.home.resume"),
-                    items: resumableItems
+                    items: resumableItems,
                 ),
                 hubIfNotEmpty(
                     id: "jellyfin.library.latestEpisodes.\(library.id)",
                     title: String(localized: "jellyfin.library.recentlyAdded"),
-                    items: latestItems
+                    items: latestItems,
                 ),
                 hubIfNotEmpty(
                     id: "jellyfin.library.nextUp.\(library.id)",
                     title: String(localized: "jellyfin.home.nextUp"),
-                    items: nextUpItems
+                    items: nextUpItems,
                 ),
-            ].compactMap { $0 }
+            ].compactMap(\.self)
         default:
             async let resumableItems = catalog.resumable(
                 parentID: library.id,
                 includeTypes: "Movie",
-                limit: 3
+                limit: 3,
             )
             async let latestItems = catalog.latest(
                 types: "Movie",
                 parentID: library.id,
-                limit: 18
+                limit: 18,
             )
             async let recommendations = catalog.movieRecommendations(categoryLimit: 6, itemLimit: 6)
 
@@ -203,20 +222,20 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 hubIfNotEmpty(
                     id: "jellyfin.library.inProgress.\(library.id)",
                     title: String(localized: "jellyfin.home.resume"),
-                    items: resumableItems
+                    items: resumableItems,
                 ),
                 hubIfNotEmpty(
                     id: "jellyfin.library.latestMovies.\(library.id)",
                     title: String(localized: "jellyfin.library.recentlyAdded"),
-                    items: latestItems
+                    items: latestItems,
                 ),
-            ].compactMap { $0 }
-            hubs.append(contentsOf: try await recommendations.enumerated().compactMap { index, recommendation in
+            ].compactMap(\.self)
+            try await hubs.append(contentsOf: recommendations.enumerated().compactMap { index, recommendation in
                 guard !recommendation.items.isEmpty else { return nil }
                 return hub(
                     id: "jellyfin.library.recommendation.\(recommendation.categoryID ?? String(index))",
                     title: recommendationTitle(for: recommendation),
-                    items: recommendation.items
+                    items: recommendation.items,
                 )
             })
             return hubs
@@ -227,7 +246,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         in library: Library,
         parentID: String?,
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem> {
         let includeTypes = switch library.type {
         case .series:
@@ -244,12 +263,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             includeTypes: includeTypes,
             recursive: parentID == nil || library.type == .collection || library.type == .playlist,
             startIndex: startIndex,
-            limit: limit
+            limit: limit,
         )
         return MediaPage(
             items: response.items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
             startIndex: response.startIndex ?? startIndex,
-            totalCount: response.totalRecordCount
+            totalCount: response.totalRecordCount,
         )
     }
 
@@ -258,7 +277,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         parentID: String?,
         query: LibraryBrowseQuery,
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem> {
         let includeTypes = browseIncludeTypes(for: library, parentID: parentID)
         let sort = browseSort(for: query, library: library)
@@ -286,26 +305,26 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             filters: filters,
             isFavorite: query.isFavorite,
             genreIDs: query.genreIDs,
-            years: query.years
+            years: query.years,
         )
         return MediaPage(
             items: response.items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
             startIndex: response.startIndex ?? startIndex,
-            totalCount: response.totalRecordCount
+            totalCount: response.totalRecordCount,
         )
     }
 
     func browseFilterOptions(in library: Library) async throws -> LibraryBrowseFilterOptions {
         try await catalog.browseFilterOptions(
             parentID: library.id,
-            includeTypes: library.type == .series ? "Series" : "Movie"
+            includeTypes: library.type == .series ? "Series" : "Movie",
         )
     }
 
     func genres(in library: Library) async throws -> [LibraryGenre] {
         try await catalog.genres(
             parentID: library.id,
-            includeTypes: library.type == .series ? "Series" : "Movie"
+            includeTypes: library.type == .series ? "Series" : "Movie",
         )
     }
 
@@ -326,14 +345,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func search(
         query: String,
         kinds: Set<MediaKind>,
-        searchesAllServers _: Bool
+        searchesAllServers _: Bool,
     ) async throws -> [MediaSearchSource] {
         guard let services else { return [] }
         let includeTypes = searchTypes(for: kinds)
         let response = try await catalog.items(
             includeTypes: includeTypes,
             searchTerm: query,
-            limit: 100
+            limit: 100,
         )
         let name = context.connection?.serverName ?? "Jellyfin"
         return response.items.compactMap { item in
@@ -342,7 +361,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 serverIdentifier: server.id,
                 serverName: name,
                 media: media,
-                services: services
+                services: services,
             )
         }
     }
@@ -351,7 +370,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         for media: MediaDisplayItem,
         kind: MediaImageViewModel.ArtworkKind,
         width: Int?,
-        height: Int?
+        height: Int?,
     ) async throws -> ArtworkResource? {
         let path = kind == .thumb ? media.preferredThumbPath : media.preferredArtPath
         return try await artwork(path: path, width: width, height: height)
@@ -367,14 +386,18 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         if let descriptorTag = descriptor.tag {
             query.append(URLQueryItem(name: "tag", value: descriptorTag))
         }
-        if let width { query.append(URLQueryItem(name: "maxWidth", value: String(width))) }
-        if let height { query.append(URLQueryItem(name: "maxHeight", value: String(height))) }
+        if let width {
+            query.append(URLQueryItem(name: "maxWidth", value: String(width)))
+        }
+        if let height {
+            query.append(URLQueryItem(name: "maxHeight", value: String(height)))
+        }
         let url = try context.url(
             path: ["Items", descriptor.ownerID, "Images", descriptor.type],
-            query: query
+            query: query,
         )
         let request = try context.mediaRequest(url: url)
-        return .data(try await context.data(for: request))
+        return try await .data(context.data(for: request))
     }
 
     func details(for media: MediaItem) async throws -> MediaDetailContent {
@@ -392,7 +415,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             episodes = if let seriesID {
                 try await catalog.episodes(seriesID: seriesID, seasonID: item.id)
                     .map { MediaItem(jellyfinItem: $0, server: server) }
-            } else { [] }
+            } else {
+                []
+            }
         default:
             seasons = []
             episodes = []
@@ -401,12 +426,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let relatedHub = related.isEmpty ? [] : [hub(
             id: "jellyfin.similar.\(item.id)",
             title: String(localized: "jellyfin.detail.similar"),
-            items: related
+            items: related,
         )]
-        return MediaDetailContent(
+        return try await MediaDetailContent(
             media: mapped,
-            parentSeries: try await parentSeries(for: item),
-            onDeck: item.kind == .series ? try await catalog.nextUp(seriesID: item.id, limit: 1).first.map {
+            parentSeries: parentSeries(for: item),
+            onDeck: item.kind == .series ? catalog.nextUp(seriesID: item.id, limit: 1).first.map {
                 MediaItem(jellyfinItem: $0, server: server)
             } : nil,
             seasons: seasons,
@@ -420,11 +445,11 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                     thumbPath: JellyfinArtworkPath.make(
                         ownerID: $0.id,
                         type: "Primary",
-                        tag: $0.primaryImageTag
-                    )
+                        tag: $0.primaryImageTag,
+                    ),
                 )
             },
-            relatedHubs: relatedHub
+            relatedHubs: relatedHub,
         )
     }
 
@@ -447,7 +472,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
 
         guard let seriesID else { return nil }
-        return MediaItem(jellyfinItem: try await catalog.item(id: seriesID), server: server)
+        return try await MediaItem(jellyfinItem: catalog.item(id: seriesID), server: server)
     }
 
     func seasons(for series: MediaItem) async throws -> [MediaItem] {
@@ -492,7 +517,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let selectionOverride = validatedTrackSelectionOverride(
             for: itemID,
             validAudioIndices: validAudioIndices,
-            validSubtitleIndices: validSubtitleIndices
+            validSubtitleIndices: validSubtitleIndices,
         )
         let defaultAudioTrackID = source?.defaultAudioStreamIndex.flatMap { index in
             validAudioIndices.contains(index) ? index : nil
@@ -519,7 +544,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             audioTracks: audioTracks,
             subtitleTracks: subtitleTracks,
             selectedAudioTrackID: selectedAudioTrackID,
-            selectedSubtitleTrackID: selectedSubtitleTrackID
+            selectedSubtitleTrackID: selectedSubtitleTrackID,
         )
     }
 
@@ -557,23 +582,25 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue {
         let item = try await catalog.item(id: media.id)
         var values = try await catalog.playbackQueue(startingWith: item)
-        if shuffle { values.shuffle() }
+        if shuffle {
+            values.shuffle()
+        }
         let queueItems = values.map {
             PlaybackQueueItem(
                 id: UUID(),
                 media: MediaItem(jellyfinItem: $0, server: server),
-                providerQueueItemID: nil
+                providerQueueItemID: nil,
             )
         }
         return PlaybackQueue(
             id: UUID(),
             items: queueItems,
             currentIndex: queueItems.firstIndex(where: { $0.media.id == media.id }) ?? 0,
-            isShuffled: shuffle
+            isShuffled: shuffle,
         )
     }
 
-    func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue {
+    func queue(startingWith itemID: String, kind _: MediaKind, shuffle: Bool) async throws -> PlaybackQueue {
         let item = try await catalog.item(id: itemID)
         return try await queue(startingWith: MediaItem(jellyfinItem: item, server: server), shuffle: shuffle)
     }
@@ -583,10 +610,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let plan = try await playbackService.prepare(
             item: item,
             resume: resume,
-            trackSelection: trackSelectionOverrides[item.id]
+            trackSelection: trackSelectionOverrides[item.id],
         )
         activePlans[plan.playSessionID] = plan
-        let segments = (try? await catalog.mediaSegments(itemID: item.id)) ?? []
+        let segments = await (try? catalog.mediaSegments(itemID: item.id)) ?? []
         let tracks = plan.mediaStreams.sorted { lhs, rhs in
             let lhsPriority = lhs.type.lowercased() == "subtitle" && lhs.isExternal == true ? 0 : 1
             let rhsPriority = rhs.type.lowercased() == "subtitle" && rhs.isExternal == true ? 0 : 1
@@ -607,21 +634,21 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 codec: stream.codec,
                 isDefault: stream.isDefault ?? false,
                 isForced: stream.isForced ?? false,
-                isHearingImpaired: stream.isHearingImpaired ?? false
+                isHearingImpaired: stream.isHearingImpaired ?? false,
             )
         }
         let scrubSource: ScrubThumbnailSource? = {
             guard let variants = item.trickplay?[plan.mediaSourceID],
                   let info = variants.values
-                    .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
-                    .sorted(by: { lhs, rhs in
-                        let lhsDistance = abs(lhs.width - 320)
-                        let rhsDistance = abs(rhs.width - 320)
-                        return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
-                    })
-                    .first,
+                  .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
+                  .sorted(by: { lhs, rhs in
+                      let lhsDistance = abs(lhs.width - 320)
+                      let rhsDistance = abs(rhs.width - 320)
+                      return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
+                  })
+                  .first,
                   let directoryURL = try? context.url(
-                      path: ["Videos", item.id, "Trickplay", String(info.width)]
+                      path: ["Videos", item.id, "Trickplay", String(info.width)],
                   )
             else { return nil }
             return .jellyfin(JellyfinTrickplaySource(
@@ -634,7 +661,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 tileColumns: info.tileWidth,
                 tileRows: info.tileHeight,
                 thumbnailCount: info.thumbnailCount,
-                intervalMilliseconds: info.interval
+                intervalMilliseconds: info.interval,
             ))
         }()
         return PlaybackPlan(
@@ -660,7 +687,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                     startTime: chapter.startTime,
                     endTime: max(chapter.startTime + 0.001, nextStart),
                     image: nil,
-                    thumbPath: nil
+                    thumbPath: nil,
                 )
             },
             skipSegments: segments.compactMap { segment in
@@ -674,10 +701,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                     id: segment.id ?? "\(segment.type).\(segment.startTicks)",
                     kind: kind,
                     startTime: JellyfinTime.seconds(fromTicks: segment.startTicks),
-                    endTime: JellyfinTime.seconds(fromTicks: segment.endTicks)
+                    endTime: JellyfinTime.seconds(fromTicks: segment.endTicks),
                 )
             },
-            scrubThumbnailSource: scrubSource
+            scrubThumbnailSource: scrubSource,
         )
     }
 
@@ -688,7 +715,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     private func validatedTrackSelectionOverride(
         for itemID: String,
         validAudioIndices: Set<Int>,
-        validSubtitleIndices: Set<Int>
+        validSubtitleIndices: Set<Int>,
     ) -> JellyfinTrackSelectionOverride? {
         guard var selectionOverride = trackSelectionOverrides[itemID] else { return nil }
 
@@ -724,7 +751,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
-        try playbackService.externalSubtitles(item: try await catalog.item(id: media.id))
+        try await playbackService.externalSubtitles(item: catalog.item(id: media.id))
     }
 
     func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
@@ -733,9 +760,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             throw JellyfinAPIError.permissionDenied
         }
         let url = try context.url(path: ["Items", item.id, "Download"])
-        return MediaDownloadPreparation(
+        return try MediaDownloadPreparation(
             media: MediaItem(jellyfinItem: item, server: server),
-            request: try context.mediaRequest(url: url)
+            request: context.mediaRequest(url: url),
         )
     }
 
@@ -758,7 +785,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             parentID: id,
             includeTypes: "Movie,Series,Season,Episode",
             recursive: false,
-            limit: 500
+            limit: 500,
         ).items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
     }
 
@@ -770,7 +797,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             title: title,
             size: items.count,
             more: false,
-            items: items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
+            items: items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
         )
     }
 
@@ -812,7 +839,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     private func browseSort(
         for query: LibraryBrowseQuery,
-        library: Library
+        library: Library,
     ) -> (keys: [String], directions: [String]) {
         let primaryKey: String = switch query.sort {
         case .name:
@@ -873,7 +900,7 @@ enum JellyfinMediaServicesFactory {
             detail: adapter,
             playback: adapter,
             downloads: adapter,
-            authorization: adapter
+            authorization: adapter,
         )
         adapter.services = services
         return services

@@ -44,8 +44,13 @@ struct MediaChapter: Sendable, Hashable, Identifiable {
     let image: ArtworkReference?
     let thumbPath: String?
 
-    var stableID: String { id }
-    var isValid: Bool { startTime >= 0 && endTime > startTime }
+    var stableID: String {
+        id
+    }
+
+    var isValid: Bool {
+        startTime >= 0 && endTime > startTime
+    }
 
     func contains(time: TimeInterval) -> Bool {
         time >= startTime && time < endTime
@@ -63,8 +68,13 @@ struct SkipSegment: Sendable, Hashable, Identifiable {
     let startTime: TimeInterval
     let endTime: TimeInterval
 
-    var isIntro: Bool { kind == .intro }
-    var isCredits: Bool { kind == .credits }
+    var isIntro: Bool {
+        kind == .intro
+    }
+
+    var isCredits: Bool {
+        kind == .credits
+    }
 
     func contains(time: TimeInterval) -> Bool {
         time >= startTime && time <= endTime

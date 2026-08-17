@@ -16,7 +16,7 @@ struct MediaWatchState: Hashable, Sendable {
     var isPlayed: Bool
     var playCount: Int
     var resumePosition: TimeInterval?
-    var unplayedItemCount: Int? = nil
+    var unplayedItemCount: Int?
     var isFavorite: Bool
 
     static let empty = MediaWatchState(

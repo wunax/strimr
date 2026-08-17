@@ -332,7 +332,7 @@ final class SharePlayCoordinator {
             await playbackLauncher.using(services: services).play(
                 ratingKey: activity.ratingKey,
                 type: activity.mediaKind,
-                shouldResumeFromOffset: false
+                shouldResumeFromOffset: false,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -351,13 +351,13 @@ final class SharePlayCoordinator {
         let queue = try await services.playback.queue(
             startingWith: activity.ratingKey,
             kind: activity.mediaKind,
-            shuffle: false
+            shuffle: false,
         )
         guard !queue.items.isEmpty else { throw SharePlayError.mediaUnavailable }
         return PlayerViewModel(
             queue: queue,
             services: services,
-            shouldResumeFromOffset: false
+            shouldResumeFromOffset: false,
         )
     }
 
@@ -370,7 +370,9 @@ final class SharePlayCoordinator {
     }
 
     private func resolvedServices(for activity: StrimrWatchActivity) async throws -> MediaServices {
-        if let services = services(for: activity) { return services }
+        if let services = services(for: activity) {
+            return services
+        }
         guard activity.provider == .plex else { throw SharePlayError.serverUnavailable }
         let context = try await sessionManager.serverContext(for: activity.serverIdentifier)
         guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: sessionManager) else {

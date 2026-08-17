@@ -20,11 +20,25 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         self.server = server
     }
 
-    var supportsWatchlist: Bool { true }
-    var supportsRemoteSubtitleSearch: Bool { true }
-    var supportsAdvancedSubtitleSearch: Bool { true }
-    var serverAccessGeneration: Int { context.serverAccessGeneration }
-    var authorization: MediaAuthorization { .plex }
+    var supportsWatchlist: Bool {
+        true
+    }
+
+    var supportsRemoteSubtitleSearch: Bool {
+        true
+    }
+
+    var supportsAdvancedSubtitleSearch: Bool {
+        true
+    }
+
+    var serverAccessGeneration: Int {
+        context.serverAccessGeneration
+    }
+
+    var authorization: MediaAuthorization {
+        .plex
+    }
 
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError? {
         guard let error = error as? PlexServerAccessRecoveryError else { return nil }
@@ -59,14 +73,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let response = try await HubRepository(context: context).getHubItems(
             path: endpoint.path,
             queryItems: endpoint.queryItems.filter { $0.name != "count" },
-            pagination: PlexPagination(start: startIndex, size: limit)
+            pagination: PlexPagination(start: startIndex, size: limit),
         )
         return MediaPage(
             items: (response.mediaContainer.metadata ?? [])
                 .filter(\.type.isSupported)
                 .compactMap(mapDisplayItem),
             startIndex: startIndex,
-            totalCount: response.mediaContainer.totalSize ?? response.mediaContainer.size
+            totalCount: response.mediaContainer.totalSize ?? response.mediaContainer.size,
         )
     }
 
@@ -81,14 +95,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         language: String,
         hearingImpaired: Bool,
         forced: Bool,
-        title: String?
+        title: String?,
     ) async throws -> [RemoteSubtitleResult] {
         let values = try await SubtitleRepository(context: context).search(
             ratingKey: itemID,
             language: language,
             hearingImpaired: hearingImpaired,
             forced: forced,
-            title: title
+            title: title,
         )
         return values.map { value in
             let id = "plex.\(value.id)"
@@ -98,7 +112,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 title: value.title ?? value.extendedDisplayTitle ?? value.displayTitle,
                 language: value.language,
                 codec: value.codec,
-                providerTitle: value.providerTitle
+                providerTitle: value.providerTitle,
             )
         }
     }
@@ -110,7 +124,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             result: value,
             searchedLanguage: result.language ?? "",
             searchedHearingImpaired: false,
-            searchedForced: false
+            searchedForced: false,
         )
     }
 
@@ -124,7 +138,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         async let continueResponse = repository.getContinueWatchingHub(params: params)
         async let promotedResponse = repository.getPromotedHub(
             params: params,
-            includeLibraryPlaylists: includesPlaylists
+            includeLibraryPlaylists: includesPlaylists,
         )
         let continueHub = try await continueResponse.mediaContainer.hub?.first.map(Hub.init)
         let promoted = try await promotedResponse.mediaContainer.hub ?? []
@@ -132,7 +146,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             continueWatching: continueHub,
             recentlyAdded: promoted
                 .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
-                .map(Hub.init)
+                .map(Hub.init),
         )
     }
 
@@ -146,7 +160,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let response = try await SectionRepository(context: context).getSectionsItems(
             sectionId: sectionID,
             params: .init(sort: "random", limit: 1),
-            pagination: PlexPagination(start: 0, size: 1)
+            pagination: PlexPagination(start: 0, size: 1),
         )
         guard let item = response.mediaContainer.metadata?.first,
               let path = item.art ?? item.thumb
@@ -164,7 +178,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         in library: Library,
         parentID _: String?,
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem> {
         guard let sectionID = library.sectionId else {
             throw PlexAPIError.missingConnection
@@ -172,13 +186,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let response = try await SectionRepository(context: context).getSectionsItems(
             sectionId: sectionID,
             params: .init(type: library.type == .series ? "2" : "1"),
-            pagination: PlexPagination(start: startIndex, size: limit)
+            pagination: PlexPagination(start: startIndex, size: limit),
         )
         let items = (response.mediaContainer.metadata ?? []).compactMap(mapDisplayItem)
         return MediaPage(
             items: items,
             startIndex: startIndex,
-            totalCount: response.mediaContainer.totalSize
+            totalCount: response.mediaContainer.totalSize,
         )
     }
 
@@ -198,18 +212,18 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         path: String,
         queryItems: [URLQueryItem],
         startIndex: Int,
-        limit: Int
+        limit: Int,
     ) async throws -> PlexAdvancedBrowsePage {
         let response = try await SectionRepository(context: context).getSectionBrowseItems(
             path: path,
             queryItems: queryItems,
-            pagination: PlexPagination(start: startIndex, size: limit)
+            pagination: PlexPagination(start: startIndex, size: limit),
         )
         let items = (response.mediaContainer.metadata ?? []).compactMap(mapBrowseItem)
         return PlexAdvancedBrowsePage(
             items: items,
             totalCount: response.mediaContainer.totalSize ?? (startIndex + items.count),
-            meta: response.mediaContainer.meta
+            meta: response.mediaContainer.meta,
         )
     }
 
@@ -220,14 +234,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func sectionCharacters(
         path: String,
-        queryItems: [URLQueryItem]
+        queryItems: [URLQueryItem],
     ) async throws -> [PlexAdvancedSectionCharacter] {
         try await SectionRepository(context: context).getSectionFirstCharacters(path: path, queryItems: queryItems)
             .mediaContainer.directory?.compactMap { directory in
                 guard let size = directory.size, size > 0 else { return nil }
                 return PlexAdvancedSectionCharacter(
                     title: directory.title ?? directory.key ?? "#",
-                    size: size
+                    size: size,
                 )
             } ?? []
     }
@@ -236,12 +250,12 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         try await SectionRepository(context: context).getSectionFirstCharacters(
             sectionId: sectionID,
             type: 18,
-            includeCollections: true
+            includeCollections: true,
         ).mediaContainer.directory?.compactMap { directory in
             guard let size = directory.size, size > 0 else { return nil }
             return PlexAdvancedSectionCharacter(
                 title: directory.title ?? directory.key ?? "#",
-                size: size
+                size: size,
             )
         } ?? []
     }
@@ -250,19 +264,19 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let response = try await SectionRepository(context: context).getSectionCollections(
             sectionId: sectionID,
             includeCollections: true,
-            pagination: PlexPagination(start: startIndex, size: limit)
+            pagination: PlexPagination(start: startIndex, size: limit),
         )
         return MediaPage(
             items: (response.mediaContainer.metadata ?? []).compactMap(mapDisplayItem),
             startIndex: startIndex,
-            totalCount: response.mediaContainer.totalSize
+            totalCount: response.mediaContainer.totalSize,
         )
     }
 
     func search(
         query: String,
         kinds: Set<MediaKind>,
-        searchesAllServers: Bool
+        searchesAllServers: Bool,
     ) async throws -> [MediaSearchSource] {
         if searchesAllServers, let sessionManager {
             let servers = try await sessionManager.refreshAvailableServers()
@@ -271,15 +285,15 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 let childContext = try await sessionManager.serverContext(for: resource.clientIdentifier)
                 guard let childServices = PlexMediaServicesFactory.make(
                     context: childContext,
-                    sessionManager: sessionManager
+                    sessionManager: sessionManager,
                 ) else { continue }
-                values.append(contentsOf: try await Self.search(
+                try await values.append(contentsOf: Self.search(
                     query: query,
                     kinds: kinds,
                     context: childContext,
                     serverID: resource.clientIdentifier,
                     serverName: resource.name,
-                    services: childServices
+                    services: childServices,
                 ))
             }
             return values
@@ -292,7 +306,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             context: context,
             serverID: snapshot.serverIdentifier,
             serverName: snapshot.serverIdentifier,
-            services: services
+            services: services,
         )
     }
 
@@ -300,12 +314,12 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         for media: MediaDisplayItem,
         kind: MediaImageViewModel.ArtworkKind,
         width: Int?,
-        height: Int?
+        height: Int?,
     ) async throws -> ArtworkResource? {
         try await artwork(
             path: kind == .thumb ? media.preferredThumbPath : media.preferredArtPath,
             width: width,
-            height: height
+            height: height,
         )
     }
 
@@ -314,7 +328,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return repository.transcodeImageURL(
             path: path,
             width: width ?? 240,
-            height: height ?? 360
+            height: height ?? 360,
         )
     }
 
@@ -326,7 +340,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let metadataRepository = try MetadataRepository(context: context)
         let response = try await metadataRepository.getMetadata(
             ratingKey: media.id,
-            params: .init(includeOnDeck: true)
+            params: .init(includeOnDeck: true),
         )
         let plexItem = response.mediaContainer.metadata?.first
         let mapped = plexItem.map(mapMediaItem) ?? media
@@ -352,17 +366,17 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 personID: $0.id.map(String.init),
                 name: $0.tag,
                 character: $0.role,
-                thumbPath: $0.thumb
+                thumbPath: $0.thumb,
             )
         } ?? []
-        return MediaDetailContent(
+        return try await MediaDetailContent(
             media: mapped,
-            parentSeries: try await parentSeries(for: mapped),
+            parentSeries: parentSeries(for: mapped),
             onDeck: plexItem?.onDeck?.metadata.map(mapMediaItem),
             seasons: seasons,
             episodes: episodes,
             cast: cast,
-            relatedHubs: (related.mediaContainer.hub ?? []).map(Hub.init)
+            relatedHubs: (related.mediaContainer.hub ?? []).map(Hub.init),
         )
     }
 
@@ -409,7 +423,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func trackSelection(itemID: String) async throws -> MediaTrackSelection {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
-            params: .init(checkFiles: true)
+            params: .init(checkFiles: true),
         )
         let part = response.mediaContainer.metadata?.first?.media?.first?.parts.first
         let streams = part?.stream ?? []
@@ -421,7 +435,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             audioTracks: audioTracks,
             subtitleTracks: subtitleTracks,
             selectedAudioTrackID: audioTracks.first(where: \.isDefault)?.id ?? audioTracks.first?.id,
-            selectedSubtitleTrackID: subtitleTracks.first(where: \.isDefault)?.id
+            selectedSubtitleTrackID: subtitleTracks.first(where: \.isDefault)?.id,
         )
     }
 
@@ -434,7 +448,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let partID = try await mediaPartID(itemID: itemID)
         try await PlaybackRepository(context: context).setPreferredSubtitleStream(
             partId: partID,
-            subtitleStreamId: id
+            subtitleStreamId: id,
         )
     }
 
@@ -466,7 +480,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             for: media.id,
             itemType: media.type.plexType,
             shuffle: shuffle,
-            continuous: media.kind == .episode || media.kind == .series || media.kind == .season
+            continuous: media.kind == .episode || media.kind == .series || media.kind == .season,
         )
         let queueItems = response.mediaContainer.metadata ?? []
         queueItemIDs = Dictionary(uniqueKeysWithValues: queueItems.compactMap { item in
@@ -476,7 +490,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             PlaybackQueueItem(
                 id: UUID(),
                 media: MediaItem(plexItem: $0, server: server),
-                providerQueueItemID: $0.playQueueItemID.map(String.init)
+                providerQueueItemID: $0.playQueueItemID.map(String.init),
             )
         }
         let selectedRatingKey = response.mediaContainer.playQueueSelectedMetadataItemID
@@ -487,11 +501,11 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             id: UUID(),
             items: items,
             currentIndex: items.firstIndex(where: { $0.media.id == selectedRatingKey }) ?? 0,
-            isShuffled: shuffle
+            isShuffled: shuffle,
         )
     }
 
-    func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue {
+    func queue(startingWith itemID: String, kind _: MediaKind, shuffle: Bool) async throws -> PlaybackQueue {
         let response = try await MetadataRepository(context: context).getMetadata(ratingKey: itemID)
         guard let item = response.mediaContainer.metadata?.first else {
             throw PlexAPIError.invalidResponse
@@ -502,7 +516,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: media.id,
-            params: .init(checkFiles: true, includeChapters: true, includeMarkers: true)
+            params: .init(checkFiles: true, includeChapters: true, includeMarkers: true),
         )
         guard let item = response.mediaContainer.metadata?.first,
               let path = item.media?.first?.parts.first?.key,
@@ -526,7 +540,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 codec: stream.codec,
                 isDefault: stream.selected == true,
                 isForced: stream.forced == true,
-                isHearingImpaired: stream.hearingImpaired == true
+                isHearingImpaired: stream.hearingImpaired == true,
             )
         }
         let subtitles = streams.compactMap { stream -> ExternalSubtitleTrack? in
@@ -540,7 +554,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 language: stream.language,
                 isForced: stream.forced == true,
                 isHearingImpaired: stream.hearingImpaired == true,
-                formatHint: stream.codec
+                formatHint: stream.codec,
             )
         }
         let initialPosition = resume ? item.viewOffset.map { TimeInterval($0) / 1000 } : nil
@@ -551,7 +565,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             $0.streamType == .subtitle && $0.selected == true
         }?.index
         let sourceChapters = (item.chapters ?? []).filter(\.isValid)
-        let chapters = sourceChapters.enumerated().map { offset, chapter in
+        let chapters = sourceChapters.enumerated().map { _, chapter in
             MediaChapter(
                 id: chapter.stableID,
                 title: "",
@@ -559,7 +573,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 startTime: chapter.startTime,
                 endTime: chapter.endTime,
                 image: nil,
-                thumbPath: chapter.thumb
+                thumbPath: chapter.thumb,
             )
         }
         return PlaybackPlan(
@@ -580,10 +594,10 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     id: String($0.id),
                     kind: $0.isIntro ? .intro : .credits,
                     startTime: $0.startTime,
-                    endTime: $0.endTime
+                    endTime: $0.endTime,
                 )
             },
-            scrubThumbnailSource: nil
+            scrubThumbnailSource: nil,
         )
     }
 
@@ -606,7 +620,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
-            params: .init(checkFiles: true)
+            params: .init(checkFiles: true),
         )
         guard let item = response.mediaContainer.metadata?.first,
               let path = item.media?.first?.parts.first?.key,
@@ -614,14 +628,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         else { throw PlexAPIError.invalidURL }
         return MediaDownloadPreparation(
             media: MediaItem(plexItem: item, server: server),
-            request: URLRequest(url: url)
+            request: URLRequest(url: url),
         )
     }
 
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem] {
         switch kind {
         case .movie, .episode:
-            return [try await prepareDownload(itemID: itemID).media]
+            return try await [prepareDownload(itemID: itemID).media]
         case .season:
             let response = try await MetadataRepository(context: context)
                 .getMetadataChildren(ratingKey: itemID)
@@ -633,7 +647,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 .getMetadataChildren(ratingKey: itemID)
             var items: [MediaItem] = []
             for season in (response.mediaContainer.metadata ?? []).filter({ $0.type == .season }) {
-                items.append(contentsOf: try await downloadableItems(itemID: season.ratingKey, kind: .season))
+                try await items.append(contentsOf: downloadableItems(itemID: season.ratingKey, kind: .season))
             }
             return items
         case .collection, .playlist, .folder, .unknown:
@@ -644,7 +658,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private func report(
         plan: PlaybackPlan,
         position: TimeInterval,
-        state: PlaybackRepository.PlaybackState
+        state: PlaybackRepository.PlaybackState,
     ) async throws {
         _ = try await PlaybackRepository(context: context).updateTimeline(
             ratingKey: plan.media.id,
@@ -652,7 +666,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             time: max(0, Int(position * 1000)),
             duration: max(0, Int((plan.media.duration ?? 0) * 1000)),
             sessionIdentifier: playbackSessionID,
-            playQueueItemID: queueItemIDs[plan.media.id]
+            playQueueItemID: queueItemIDs[plan.media.id],
         )
     }
 
@@ -681,7 +695,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private func mediaPartID(itemID: String) async throws -> Int {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
-            params: .init(checkFiles: true)
+            params: .init(checkFiles: true),
         )
         guard let partID = response.mediaContainer.metadata?.first?.media?.first?.parts.first?.id else {
             throw PlexAPIError.invalidResponse
@@ -700,9 +714,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private func mapBrowseItem(_ metadata: PlexBrowseMetadata) -> LibraryBrowseItem? {
         switch metadata {
         case let .item(item):
-            return mapDisplayItem(item).map(LibraryBrowseItem.media)
+            mapDisplayItem(item).map(LibraryBrowseItem.media)
         case let .folder(folder):
-            return .folder(LibraryBrowseFolderItem(id: folder.key, key: folder.key, title: folder.title))
+            .folder(LibraryBrowseFolderItem(id: folder.key, key: folder.key, title: folder.title))
         }
     }
 
@@ -712,7 +726,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         context: PlexAPIContext,
         serverID: String,
         serverName: String,
-        services: MediaServices
+        services: MediaServices,
     ) async throws -> [MediaSearchSource] {
         let types: [SearchRepository.SearchType] = if kinds == [.movie] {
             [.movies]
@@ -722,7 +736,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             [.tv]
         }
         let response = try await SearchRepository(context: context).search(
-            params: .init(query: query, searchTypes: types, limit: 100)
+            params: .init(query: query, searchTypes: types, limit: 100),
         )
         return (response.mediaContainer.searchResult ?? []).compactMap(\.metadata)
             .compactMap { MediaDisplayItem(plexItem: $0, server: services.identity) }
@@ -732,7 +746,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     serverIdentifier: serverID,
                     serverName: serverName,
                     media: $0,
-                    services: services
+                    services: services,
                 )
             }
     }
@@ -746,7 +760,7 @@ enum PlexMediaServicesFactory {
         let adapter = PlexMediaServiceAdapter(
             context: context,
             sessionManager: sessionManager,
-            server: identity
+            server: identity,
         )
         let services = MediaServices(
             provider: .plex,
@@ -759,7 +773,7 @@ enum PlexMediaServicesFactory {
             detail: adapter,
             playback: adapter,
             downloads: adapter,
-            authorization: adapter
+            authorization: adapter,
         )
         adapter.services = services
         return services

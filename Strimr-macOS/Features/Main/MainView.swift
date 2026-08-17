@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct MainView: View {
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
