@@ -14,11 +14,18 @@ final class JellyfinAuthenticationViewModel {
     var username = ""
     var password = ""
     var serverName = ""
+    var discoveredServers: [JellyfinDiscoveredServer] = []
     var isLoading = false
+    var isDiscovering = false
     var errorMessage: String?
+
+    var isBusy: Bool {
+        isLoading || isDiscovering
+    }
 
     @ObservationIgnored private let context: JellyfinAPIContext
     @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let discoveryService = JellyfinServerDiscoveryService()
     @ObservationIgnored private var validatedServer: JellyfinPublicSystemInfo?
     @ObservationIgnored private var validatedBaseURL: URL?
 
@@ -29,7 +36,7 @@ final class JellyfinAuthenticationViewModel {
     }
 
     func validateServer() async {
-        guard !isLoading else { return }
+        guard !isBusy else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -46,8 +53,32 @@ final class JellyfinAuthenticationViewModel {
         }
     }
 
+    func discoverServers() async {
+        guard !isBusy else { return }
+        discoveredServers = []
+        isDiscovering = true
+        errorMessage = nil
+        defer { isDiscovering = false }
+
+        do {
+            let servers = try await discoveryService.discover()
+            guard !Task.isCancelled else { return }
+            discoveredServers = servers
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+            errorMessage = String(localized: "jellyfin.auth.discovery.error")
+        }
+    }
+
+    func selectDiscoveredServer(_ server: JellyfinDiscoveredServer) async {
+        guard !isBusy else { return }
+        serverURL = server.url.absoluteString
+        await validateServer()
+    }
+
     func signIn() async {
-        guard !isLoading,
+        guard !isBusy,
               let validatedServer,
               let validatedBaseURL,
               !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

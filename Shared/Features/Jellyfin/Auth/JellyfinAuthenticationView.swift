@@ -71,7 +71,7 @@ struct JellyfinAuthenticationView: View {
                         .jellyfinAuthenticationFieldStyle()
                 }
             }
-            .frame(maxWidth: 520)
+            .frame(maxWidth: authenticationContentMaxWidth)
 
             if let errorMessage = viewModel.errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -91,9 +91,30 @@ struct JellyfinAuthenticationView: View {
                     .controlSize(.large)
                     .tint(.brandPrimary)
                     .disabled(
-                        viewModel.isLoading
+                        viewModel.isBusy
                             || viewModel.serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     )
+
+                    Button {
+                        Task { await viewModel.discoverServers() }
+                    } label: {
+                        HStack(spacing: 10) {
+                            if viewModel.isDiscovering {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "network")
+                            }
+                            Text("jellyfin.auth.discovery.search")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.roundedRectangle(radius: 12))
+                    .controlSize(.large)
+                    .disabled(viewModel.isBusy)
                 } else {
                     Button {
                         Task { await viewModel.signIn() }
@@ -105,7 +126,7 @@ struct JellyfinAuthenticationView: View {
                     .controlSize(.large)
                     .tint(.brandPrimary)
                     .disabled(
-                        viewModel.isLoading
+                        viewModel.isBusy
                             || viewModel.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     )
 
@@ -119,7 +140,11 @@ struct JellyfinAuthenticationView: View {
                     .disabled(viewModel.isLoading)
                 }
             }
-            .frame(maxWidth: 520)
+            .frame(maxWidth: authenticationContentMaxWidth)
+
+            if viewModel.step == .server, !viewModel.discoveredServers.isEmpty {
+                discoveredServersList(viewModel)
+            }
 
             if sessionManager.jellyfinHydrationError != nil {
                 Button("common.actions.retry") {
@@ -137,6 +162,50 @@ struct JellyfinAuthenticationView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func discoveredServersList(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.discoveredServers) { server in
+                    Button {
+                        Task { await viewModel.selectDiscoveredServer(server) }
+                    } label: {
+                        HStack(spacing: serverRowSpacing) {
+                            Circle()
+                                .fill(.brandPrimary.opacity(0.2))
+                                .frame(width: serverIconSize, height: serverIconSize)
+                                .overlay {
+                                    Image(systemName: "server.rack")
+                                        .foregroundStyle(.brandPrimary)
+                                }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(server.name)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(server.url.absoluteString)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(serverRowPadding)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isBusy)
+                }
+            }
+        }
+        .frame(maxWidth: authenticationContentMaxWidth, maxHeight: discoveredServersMaxHeight)
     }
 
     private func primaryButtonLabel(
@@ -160,6 +229,14 @@ struct JellyfinAuthenticationView: View {
             300
         #else
             240
+        #endif
+    }
+
+    private var authenticationContentMaxWidth: CGFloat {
+        #if os(tvOS)
+            640
+        #else
+            520
         #endif
     }
 
@@ -200,6 +277,38 @@ struct JellyfinAuthenticationView: View {
             24
         #else
             12
+        #endif
+    }
+
+    private var serverIconSize: CGFloat {
+        #if os(tvOS)
+            64
+        #else
+            44
+        #endif
+    }
+
+    private var serverRowSpacing: CGFloat {
+        #if os(tvOS)
+            28
+        #else
+            12
+        #endif
+    }
+
+    private var serverRowPadding: CGFloat {
+        #if os(tvOS)
+            24
+        #else
+            16
+        #endif
+    }
+
+    private var discoveredServersMaxHeight: CGFloat {
+        #if os(tvOS)
+            360
+        #else
+            240
         #endif
     }
 }

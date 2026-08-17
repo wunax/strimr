@@ -103,6 +103,7 @@
 				Features/Integrations/SeerrViewModel.swift,
 				Features/Jellyfin/Auth/JellyfinAuthenticationView.swift,
 				Features/Jellyfin/Auth/JellyfinAuthenticationViewModel.swift,
+				Features/Jellyfin/Auth/JellyfinServerDiscoveryService.swift,
 				Features/Library/LibraryBrowseControlsView.swift,
 				Features/Library/LibraryBrowseControlsViewModel.swift,
 				Features/Library/LibraryBrowseModels.swift,

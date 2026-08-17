@@ -2680,6 +2680,50 @@
         }
       }
     },
+    "jellyfin.auth.discovery.error" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to search for Jellyfin servers on the local network."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rechercher des serveurs Jellyfin sur le réseau local."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在本地网络上搜索 Jellyfin 服务器。"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.discovery.search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search local servers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des serveurs locaux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索本地服务器"
+          }
+        }
+      }
+    },
     "jellyfin.auth.password" : {
       "localizations" : {
         "en" : {
