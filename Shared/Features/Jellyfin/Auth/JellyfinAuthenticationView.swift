@@ -205,6 +205,9 @@ struct JellyfinAuthenticationView: View {
                 }
             }
         }
+        #if os(tvOS)
+            .scrollClipDisabled()
+        #endif
         .frame(maxWidth: authenticationContentMaxWidth, maxHeight: discoveredServersMaxHeight)
     }
 
