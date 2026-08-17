@@ -25,6 +25,8 @@ struct JellyfinAuthenticationView: View {
 
     private func authenticationForm(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
         VStack(spacing: contentSpacing) {
+            Spacer(minLength: 0)
+
             VStack(spacing: headerSpacing) {
                 Image("jellyfin_logo")
                     .resizable()
@@ -129,15 +131,6 @@ struct JellyfinAuthenticationView: View {
                         viewModel.isBusy
                             || viewModel.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     )
-
-                    Button {
-                        viewModel.goBack()
-                    } label: {
-                        Label("common.actions.back", systemImage: "chevron.left")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .disabled(viewModel.isLoading)
                 }
             }
             .frame(maxWidth: authenticationContentMaxWidth)
@@ -152,16 +145,34 @@ struct JellyfinAuthenticationView: View {
                 }
             }
 
+            Spacer(minLength: 0)
+
+            bottomActions(viewModel)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func bottomActions(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
+        VStack(spacing: buttonSpacing) {
+            if viewModel.step == .credentials {
+                Button {
+                    viewModel.goBack()
+                } label: {
+                    Label("common.actions.back", systemImage: "chevron.left")
+                }
+                .disabled(viewModel.isLoading)
+            }
+
             Button {
                 Task { await sessionManager.requestProviderSelection() }
             } label: {
                 Label("provider.change", systemImage: "chevron.left")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: authenticationContentMaxWidth)
     }
 
     private func discoveredServersList(_ viewModel: JellyfinAuthenticationViewModel) -> some View {

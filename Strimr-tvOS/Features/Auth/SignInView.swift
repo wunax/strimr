@@ -64,14 +64,14 @@ struct SignInView: View {
                 .padding(.top, 16)
             }
 
+            Spacer()
+
             Button {
                 returnToProviderSelection()
             } label: {
                 Label("provider.change", systemImage: "chevron.left")
             }
             .buttonStyle(.bordered)
-
-            Spacer()
         }
         .padding(48)
         .onAppear { Task { await viewModel.startSignIn() } }

@@ -51,18 +51,18 @@ struct SignInView: View {
                 .buttonStyle(.link)
             }
 
+            if let errorMessage = viewModel.errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            }
+            Spacer()
+
             Button {
                 returnToProviderSelection()
             } label: {
                 Label("provider.change", systemImage: "chevron.left")
             }
             .buttonStyle(.link)
-
-            if let errorMessage = viewModel.errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-            }
-            Spacer()
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
