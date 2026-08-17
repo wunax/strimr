@@ -1,14 +1,14 @@
 # Privacy Policy
 
-Effective date: 16 January 2026
+Effective date: 17 August 2026
 
-This Privacy Policy explains how Strimr ("Strimr", "we", "us", or "our") handles information when you use the Strimr application on iOS, macOS, or tvOS (the "App"). Strimr is a third-party client for Plex and is not affiliated with Plex, Inc.
+This Privacy Policy explains how Strimr ("Strimr", "we", "us", or "our") handles information when you use the Strimr application on iOS, macOS, or tvOS (the "App"). Strimr is a third-party client for Plex and Jellyfin and is not affiliated with Plex, Inc. or the Jellyfin project.
 
 ## Summary
 
 - Strimr only collects crash diagnostics to improve app stability (via Sentry).
 - All information used by the App remains on your device.
-- The App communicates with Plex services to function; Plex's handling of data is governed by Plex's privacy policy.
+- The App communicates with Plex services or your Jellyfin server to function. Plex's handling of data is governed by Plex's privacy policy, while data handled by a Jellyfin server is controlled by that server's operator.
 
 ## Information We Collect
 
@@ -25,16 +25,17 @@ We do not collect or process:
 
 Strimr stores only the minimum data required for the App to function. This information is stored locally on your device and is not transmitted to us. Specifically:
 
-- Authentication token used to access your Plex account through the App
+- Authentication tokens used to access your Plex account or Jellyfin server through the App
 - App settings and preferences
 
 ## How the App Communicates
 
-The App connects directly to Plex services to retrieve and display your media. All requests are made from your device to Plex. Strimr does not operate servers that collect or relay your data.
+The App connects directly to Plex services or your Jellyfin server to retrieve and display your media. All requests are made from your device to the selected service or server. Strimr does not operate servers that collect or relay your data.
 
-For details about Plex's data practices, please review the Plex Privacy Policy:
+For details about Plex and Jellyfin data practices, review:
 
-- https://www.plex.tv/about/privacy-legal/
+- [Plex Privacy Policy](https://www.plex.tv/about/privacy-legal/)
+- [Jellyfin's privacy information](https://jellyfin.org/#privacy-focused)
 
 ## Data Retention
 

@@ -22,7 +22,7 @@ What actually happened.
 - Device: 
 - OS version: 
 - App version: 
-- Plex server version (if relevant): 
+- Media server and version (Plex or Jellyfin, if relevant):
 
 ## Additional context
 Screenshots, logs, or other details that help.
