@@ -18,7 +18,9 @@ struct MediaDetailTrackButtons: View {
                 .disabled(viewModel.isUpdatingTracks)
             }
 
-            if !viewModel.subtitleTracks.isEmpty || onSearchSubtitles != nil {
+            if !viewModel.subtitleTracks.isEmpty
+                || (onSearchSubtitles != nil && viewModel.canSearchSubtitles)
+            {
                 Menu {
                     subtitleTrackButtons
                 } label: {
@@ -64,7 +66,7 @@ struct MediaDetailTrackButtons: View {
             }
         }
 
-        if let onSearchSubtitles {
+        if let onSearchSubtitles, viewModel.canSearchSubtitles {
             Divider()
             Button(action: onSearchSubtitles) {
                 Label("subtitles.search.action", systemImage: "magnifyingglass")
@@ -142,7 +144,9 @@ struct MediaDetailTrackMenuItems: View {
                 }
             }
 
-            if !viewModel.subtitleTracks.isEmpty || onSearchSubtitles != nil {
+            if !viewModel.subtitleTracks.isEmpty
+                || (onSearchSubtitles != nil && viewModel.canSearchSubtitles)
+            {
                 Menu("player.settings.subtitles", systemImage: "captions.bubble") {
                     Button {
                         Task { await viewModel.selectSubtitleStream(id: nil) }
@@ -166,7 +170,7 @@ struct MediaDetailTrackMenuItems: View {
                         }
                     }
 
-                    if let onSearchSubtitles {
+                    if let onSearchSubtitles, viewModel.canSearchSubtitles {
                         Divider()
                         Button(action: onSearchSubtitles) {
                             Label("subtitles.search.action", systemImage: "magnifyingglass")
