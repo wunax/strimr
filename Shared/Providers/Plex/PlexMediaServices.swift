@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
     MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
-    PlexAdvancedLibraryService
+    PlexAdvancedLibraryService, MediaAuthorizationService
 {
     private let context: PlexAPIContext
     private weak var sessionManager: SessionManager?
@@ -24,6 +24,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     var supportsRemoteSubtitleSearch: Bool { true }
     var supportsAdvancedSubtitleSearch: Bool { true }
     var serverAccessGeneration: Int { context.serverAccessGeneration }
+    var authorization: MediaAuthorization { .plex }
 
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError? {
         guard let error = error as? PlexServerAccessRecoveryError else { return nil }
@@ -757,7 +758,8 @@ enum PlexMediaServicesFactory {
             artwork: adapter,
             detail: adapter,
             playback: adapter,
-            downloads: adapter
+            downloads: adapter,
+            authorization: adapter
         )
         adapter.services = services
         return services

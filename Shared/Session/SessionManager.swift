@@ -548,6 +548,7 @@ final class SessionManager {
             status = .needsJellyfinAuthentication
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             jellyfinContext.reset()
             jellyfinHydrationError = String(localized: "jellyfin.errors.serverUnreachable")
             status = .needsJellyfinAuthentication

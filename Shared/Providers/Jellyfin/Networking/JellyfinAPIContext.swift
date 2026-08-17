@@ -41,6 +41,7 @@ enum JellyfinAPIError: LocalizedError, Equatable {
 @Observable
 final class JellyfinAPIContext {
     private(set) var connection: JellyfinConnection?
+    private(set) var currentUser: JellyfinUser?
     private(set) var capabilities = ProviderCapabilities.jellyfin
 
     @ObservationIgnored private var accessToken: String?
@@ -169,12 +170,14 @@ final class JellyfinAPIContext {
             username: authenticated.user.name,
         )
         configure(connection: connection, token: authenticated.accessToken)
+        currentUser = authenticated.user
         return (authenticated, connection)
     }
 
     func configure(connection: JellyfinConnection, token: String) {
         self.connection = connection
         accessToken = token
+        currentUser = nil
     }
 
     func configureAuthenticationRequiredHandler(_ handler: @escaping () -> Void) {
@@ -183,13 +186,32 @@ final class JellyfinAPIContext {
 
     func reset() {
         connection = nil
+        currentUser = nil
         accessToken = nil
         capabilities = .jellyfin
     }
 
     func validateAuthenticatedSession() async throws -> JellyfinUser {
+        try await refreshCurrentUser()
+    }
+
+    @discardableResult
+    func refreshCurrentUser() async throws -> JellyfinUser {
         guard let connection else { throw JellyfinAPIError.authenticationRequired }
-        return try await get(path: ["Users", connection.userID], query: [])
+        let user: JellyfinUser = try await get(path: ["Users", connection.userID], query: [])
+        guard user.id == connection.userID else { throw JellyfinAPIError.invalidResponse }
+        currentUser = user
+        return user
+    }
+
+    var authorization: MediaAuthorization {
+        guard let policy = currentUser?.policy else { return .denied }
+        let isAdministrator = policy.isAdministrator == true
+        return MediaAuthorization(
+            isAdministrator: isAdministrator,
+            canManageSubtitles: isAdministrator || policy.enableSubtitleManagement == true,
+            canManageServer: isAdministrator
+        )
     }
 
     func get<Response: Decodable & Sendable>(

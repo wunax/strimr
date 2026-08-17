@@ -44,11 +44,13 @@ nonisolated struct JellyfinUserPolicy: Codable, Hashable, Sendable {
     let isAdministrator: Bool?
     let enableMediaPlayback: Bool?
     let enableContentDownloading: Bool?
+    let enableSubtitleManagement: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case isAdministrator = "IsAdministrator"
         case enableMediaPlayback = "EnableMediaPlayback"
         case enableContentDownloading = "EnableContentDownloading"
+        case enableSubtitleManagement = "EnableSubtitleManagement"
     }
 }
 

@@ -36,6 +36,7 @@ final class PlayerViewModel {
         !isLocalPlayback
             && !currentRatingKey.isEmpty
             && mediaServices?.detail.supportsRemoteSubtitleSearch == true
+            && mediaServices?.authorization.canManageSubtitles == true
     }
 
     var subtitleSearchServices: MediaServices? { mediaServices }

@@ -1,5 +1,28 @@
 import Observation
 
+struct MediaAuthorization: Equatable, Sendable {
+    let isAdministrator: Bool
+    let canManageSubtitles: Bool
+    let canManageServer: Bool
+
+    static let denied = MediaAuthorization(
+        isAdministrator: false,
+        canManageSubtitles: false,
+        canManageServer: false
+    )
+
+    static let plex = MediaAuthorization(
+        isAdministrator: false,
+        canManageSubtitles: true,
+        canManageServer: false
+    )
+}
+
+@MainActor
+protocol MediaAuthorizationService: AnyObject {
+    var authorization: MediaAuthorization { get }
+}
+
 @MainActor
 @Observable
 final class MediaServices {
@@ -13,6 +36,11 @@ final class MediaServices {
     let detail: any MediaDetailService
     let playback: any MediaPlaybackService
     let downloads: any MediaDownloadService
+    @ObservationIgnored private let authorizationService: any MediaAuthorizationService
+
+    var authorization: MediaAuthorization {
+        authorizationService.authorization
+    }
 
     init(
         provider: MediaProvider,
@@ -24,7 +52,8 @@ final class MediaServices {
         artwork: any MediaArtworkService,
         detail: any MediaDetailService,
         playback: any MediaPlaybackService,
-        downloads: any MediaDownloadService
+        downloads: any MediaDownloadService,
+        authorization: any MediaAuthorizationService
     ) {
         self.provider = provider
         self.identity = identity
@@ -36,5 +65,6 @@ final class MediaServices {
         self.detail = detail
         self.playback = playback
         self.downloads = downloads
+        authorizationService = authorization
     }
 }

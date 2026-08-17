@@ -364,6 +364,7 @@ final class MediaDetailViewModel {
 
     var canSearchSubtitles: Bool {
         services.detail.supportsRemoteSubtitleSearch
+            && services.authorization.canManageSubtitles
             && (trackRatingKey ?? primaryActionRatingKey) != nil
     }
 

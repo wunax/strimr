@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
     MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
-    AdvancedLibraryBrowseService
+    AdvancedLibraryBrowseService, MediaAuthorizationService
 {
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
@@ -25,6 +25,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     var supportsRemoteSubtitleSearch: Bool { true }
     var supportsAdvancedSubtitleSearch: Bool { false }
     var serverAccessGeneration: Int { 0 }
+    var authorization: MediaAuthorization { context.authorization }
 
     func serverAccessRecoveryError(from _: Error) -> MediaServerAccessRecoveryError? { nil }
 
@@ -871,7 +872,8 @@ enum JellyfinMediaServicesFactory {
             artwork: adapter,
             detail: adapter,
             playback: adapter,
-            downloads: adapter
+            downloads: adapter,
+            authorization: adapter
         )
         adapter.services = services
         return services
