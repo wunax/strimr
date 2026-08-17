@@ -359,9 +359,6 @@ struct PlayerView: View {
         PlayerChapterSelectionView(
             chapters: viewModel.chapters,
             currentPosition: viewModel.position,
-            imageURL: { chapter in
-                viewModel.chapterImageURL(for: chapter, width: 320, height: 180)
-            },
             onSelect: selectChapter(_:),
             onClose: { activeSheet = nil },
         )

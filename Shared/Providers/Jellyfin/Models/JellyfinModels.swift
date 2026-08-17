@@ -388,6 +388,7 @@ nonisolated struct JellyfinPerson: Decodable, Identifiable, Hashable, Sendable {
 nonisolated struct JellyfinChapter: Decodable, Identifiable, Hashable, Sendable {
     let name: String?
     let startPositionTicks: Int64
+    let imagePath: String?
     let imageTag: String?
 
     var id: Int64 {
@@ -401,6 +402,7 @@ nonisolated struct JellyfinChapter: Decodable, Identifiable, Hashable, Sendable 
     private enum CodingKeys: String, CodingKey {
         case name = "Name"
         case startPositionTicks = "StartPositionTicks"
+        case imagePath = "ImagePath"
         case imageTag = "ImageTag"
     }
 }

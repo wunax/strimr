@@ -3,7 +3,6 @@ import SwiftUI
 struct PlayerChapterPopover: View {
     var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (MediaChapter) -> URL?
     var onSelect: (MediaChapter) -> Void
 
     var body: some View {
@@ -46,7 +45,11 @@ struct PlayerChapterPopover: View {
             onSelect(chapter)
         } label: {
             HStack(spacing: 12) {
-                PlayerChapterArtworkView(imageURL: imageURL(chapter))
+                PlayerChapterArtworkView(
+                    artworkPath: chapter.thumbPath,
+                    width: 320,
+                    height: 180,
+                )
                     .frame(width: 120, height: 68)
                     .background(.quaternary)
                     .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))

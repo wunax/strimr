@@ -116,15 +116,6 @@ final class PlayerViewModel {
         chapters.first { $0.contains(time: time) }
     }
 
-    func chapterImageURL(
-        for chapter: MediaChapter,
-        width: Int,
-        height: Int,
-    ) -> URL? {
-        guard let thumb = chapter.thumbPath else { return nil }
-        return mediaServices?.artwork.artworkURL(path: thumb, width: width, height: height)
-    }
-
     func trackMetadata(forID id: Int?) -> MediaTrackMetadata? {
         guard let id,
               let track = playbackPlan?.tracks.first(where: {

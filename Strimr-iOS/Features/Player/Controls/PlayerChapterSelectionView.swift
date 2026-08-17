@@ -3,7 +3,6 @@ import SwiftUI
 struct PlayerChapterSelectionView: View {
     var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (MediaChapter) -> URL?
     var onSelect: (MediaChapter) -> Void
     var onClose: () -> Void
 
@@ -46,7 +45,11 @@ struct PlayerChapterSelectionView: View {
             onSelect(chapter)
         } label: {
             HStack(spacing: 14) {
-                PlayerChapterArtworkView(imageURL: imageURL(chapter))
+                PlayerChapterArtworkView(
+                    artworkPath: chapter.thumbPath,
+                    width: 320,
+                    height: 180,
+                )
                     .frame(width: 112, height: 63)
                     .background(.quaternary)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

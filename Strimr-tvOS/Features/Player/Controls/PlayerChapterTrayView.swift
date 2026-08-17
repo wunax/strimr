@@ -3,7 +3,6 @@ import SwiftUI
 struct PlayerChapterTrayView: View {
     var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (MediaChapter) -> URL?
     var onSelect: (MediaChapter) -> Void
     var onFocusExit: () -> Void
 
@@ -61,7 +60,11 @@ struct PlayerChapterTrayView: View {
         let isCurrent = currentChapter?.stableID == chapter.stableID
 
         return VStack(alignment: .leading, spacing: 10) {
-            PlayerChapterArtworkView(imageURL: imageURL(chapter))
+            PlayerChapterArtworkView(
+                artworkPath: chapter.thumbPath,
+                width: 640,
+                height: 360,
+            )
                 .frame(width: 320, height: 180)
                 .background(.white.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

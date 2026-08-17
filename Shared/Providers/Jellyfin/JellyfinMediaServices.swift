@@ -392,10 +392,11 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         if let height {
             query.append(URLQueryItem(name: "maxHeight", value: String(height)))
         }
-        let url = try context.url(
-            path: ["Items", descriptor.ownerID, "Images", descriptor.type],
-            query: query,
-        )
+        var imagePath = ["Items", descriptor.ownerID, "Images", descriptor.type]
+        if let imageIndex = descriptor.index {
+            imagePath.append(String(imageIndex))
+        }
+        let url = try context.url(path: imagePath, query: query)
         let request = try context.mediaRequest(url: url)
         return try await .data(context.data(for: request))
     }
@@ -681,6 +682,8 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 let nextStart = plan.chapters.indices.contains(index + 1)
                     ? plan.chapters[index + 1].startTime
                     : item.duration ?? (chapter.startTime + 1)
+                let hasImage = chapter.imagePath?.isEmpty == false
+                    || chapter.imageTag?.isEmpty == false
                 return MediaChapter(
                     id: String(chapter.startPositionTicks),
                     title: chapter.name ?? "",
@@ -688,7 +691,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                     startTime: chapter.startTime,
                     endTime: max(chapter.startTime + 0.001, nextStart),
                     image: nil,
-                    thumbPath: nil,
+                    thumbPath: hasImage
+                        ? JellyfinArtworkPath.makeChapter(
+                            ownerID: item.id,
+                            index: index,
+                            tag: chapter.imageTag,
+                        )
+                        : nil,
                 )
             },
             skipSegments: segments.compactMap { segment in

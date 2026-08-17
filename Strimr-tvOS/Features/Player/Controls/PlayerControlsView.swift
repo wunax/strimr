@@ -21,7 +21,6 @@ struct PlayerControlsView: View {
     var scrubPreview: PlayerScrubPreview?
     var currentPosition: Double
     var isShowingChapterTray: Bool
-    var chapterImageURL: (MediaChapter) -> URL?
     var onShowChapters: () -> Void
     var onHideChapters: () -> Void
     var onSelectChapter: (MediaChapter) -> Void
@@ -111,7 +110,6 @@ struct PlayerControlsView: View {
                 PlayerChapterTrayView(
                     chapters: chapters,
                     currentPosition: currentPosition,
-                    imageURL: chapterImageURL,
                     onSelect: onSelectChapter,
                     onFocusExit: onHideChapters,
                 )

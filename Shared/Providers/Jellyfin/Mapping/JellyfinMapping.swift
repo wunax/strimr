@@ -168,14 +168,30 @@ enum JellyfinArtworkPath {
         return "jellyfin-artwork://\(ownerID)/\(type)?tag=\(tag ?? "")"
     }
 
-    static func parse(_ value: String) -> (ownerID: String, type: String, tag: String?)? {
+    static func makeChapter(ownerID: String, index: Int, tag: String?) -> String {
+        var components = URLComponents()
+        components.scheme = "jellyfin-artwork"
+        components.host = ownerID
+        components.path = "/Chapter"
+        components.queryItems = [URLQueryItem(name: "index", value: String(index))]
+        if let tag, !tag.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "tag", value: tag))
+        }
+        return components.string ?? "jellyfin-artwork://\(ownerID)/Chapter?index=\(index)"
+    }
+
+    static func parse(_ value: String) -> (ownerID: String, type: String, index: Int?, tag: String?)? {
         guard let components = URLComponents(string: value),
               components.scheme == "jellyfin-artwork",
               let ownerID = components.host
         else { return nil }
         let type = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard !type.isEmpty else { return nil }
+        let index = components.queryItems?
+            .first(where: { $0.name == "index" })?
+            .value
+            .flatMap(Int.init)
         let tag = components.queryItems?.first(where: { $0.name == "tag" })?.value
-        return (ownerID, type, tag)
+        return (ownerID, type, index, tag)
     }
 }

@@ -313,9 +313,6 @@ struct PlayerView: View {
                     scrubPreview: playerController.scrubPreview,
                     currentPosition: viewModel.position,
                     isShowingChapterTray: isShowingChapterTray,
-                    chapterImageURL: { chapter in
-                        viewModel.chapterImageURL(for: chapter, width: 640, height: 360)
-                    },
                     onShowChapters: showChapters,
                     onHideChapters: hideChapters,
                     onSelectChapter: selectChapter(_:),
