@@ -144,13 +144,27 @@ struct SubtitleSearchView: View {
 
     private var searchOptions: some View {
         Section {
-            Picker("subtitles.search.language", selection: $viewModel.selectedLanguage) {
-                ForEach(viewModel.languages) { language in
-                    Text(language.name)
-                        .tag(language.code)
+            #if os(tvOS)
+                Picker("subtitles.search.language", selection: $viewModel.selectedLanguage) {
+                    ForEach(viewModel.languages) { language in
+                        Text(language.name)
+                            .tag(language.code)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
+                .pickerStyle(.menu)
+            #else
+                NavigationLink {
+                    SubtitleLanguageSelectionView(
+                        languages: viewModel.languages,
+                        selection: $viewModel.selectedLanguage,
+                    )
+                } label: {
+                    LabeledContent("subtitles.search.language") {
+                        Text(selectedLanguageName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            #endif
 
             if showsAdvancedOptions {
                 Toggle("subtitles.search.hearingImpaired", isOn: $viewModel.hearingImpaired)
@@ -175,6 +189,11 @@ struct SubtitleSearchView: View {
             .tint(.secondary)
             .centeredSubtitleSearchAction()
         }
+    }
+
+    private var selectedLanguageName: String {
+        viewModel.languages.first { $0.code == viewModel.selectedLanguage }?.name
+            ?? viewModel.selectedLanguage
     }
 
     @ViewBuilder
@@ -238,6 +257,51 @@ struct SubtitleSearchView: View {
         }
     }
 }
+
+#if !os(tvOS)
+    private struct SubtitleLanguageSelectionView: View {
+        @Environment(\.dismiss) private var dismiss
+        let languages: [SubtitleLanguageOption]
+        @Binding var selection: String
+        @State private var searchText = ""
+
+        private var filteredLanguages: [SubtitleLanguageOption] {
+            guard !searchText.isEmpty else { return languages }
+            return languages.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+                    || $0.code.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+
+        var body: some View {
+            List(filteredLanguages) { language in
+                Button {
+                    selection = language.code
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(language.name)
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Text(language.code.uppercased())
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+
+                        if selection == language.code {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+            }
+            .navigationTitle("subtitles.search.language")
+            .searchable(text: $searchText, prompt: "subtitles.search.language.search")
+        }
+    }
+#endif
 
 private extension View {
     @ViewBuilder

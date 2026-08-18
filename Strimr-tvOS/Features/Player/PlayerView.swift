@@ -30,7 +30,7 @@ struct PlayerView: View {
     @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
     @State private var isShowingChapterTray = false
-    @State private var activeSettingsSheet: PlayerSettingsSheet?
+    @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSettingsSheet>()
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
@@ -213,8 +213,19 @@ struct PlayerView: View {
         )
 
         return sessionObservers
-            .sheet(item: $activeSettingsSheet) { sheet in
-                playbackSettingsSheet(sheet)
+            .overlay {
+                IsolatedSheetPresentationHost(
+                    presentation: sheetPresentation,
+                    refreshID: PlayerSheetRefreshID(
+                        settingsAudioTracks: settingsAudioTracks,
+                        settingsSubtitleTracks: settingsSubtitleTracks,
+                        selectedAudioTrackID: selectedAudioTrackID,
+                        selectedSubtitleTrackID: selectedSubtitleTrackID,
+                        playbackRate: playbackRate,
+                    ),
+                    sheetContent: playbackSettingsSheet(_:),
+                )
+                .equatable()
             }
             .alert("player.termination.title", isPresented: $showingTerminationAlert) {
                 Button("player.termination.dismiss") {
@@ -353,48 +364,6 @@ struct PlayerView: View {
         }
     }
 
-    @ViewBuilder
-    private func playbackSettingsSheet(_ sheet: PlayerSettingsSheet) -> some View {
-        switch sheet {
-        case .audio:
-            PlayerTrackSelectionView(
-                titleKey: sheet.titleKey,
-                tracks: settingsAudioTracks,
-                selectedTrackID: selectedAudioTrackID,
-                showOffOption: false,
-                onSelect: selectAudioTrack(_:),
-                onClose: { activeSettingsSheet = nil },
-            )
-        case .subtitle:
-            PlayerTrackSelectionView(
-                titleKey: sheet.titleKey,
-                tracks: settingsSubtitleTracks,
-                selectedTrackID: selectedSubtitleTrackID,
-                showOffOption: true,
-                onSelect: selectSubtitleTrack(_:),
-                onSearchSubtitles: viewModel.canSearchSubtitles
-                    ? { activeSettingsSheet = .subtitleSearch }
-                    : nil,
-                onClose: { activeSettingsSheet = nil },
-            )
-        case .speed:
-            PlayerSpeedSelectionView(
-                selectedRate: playbackRate,
-                onSelect: selectPlaybackRate(_:),
-                onClose: { activeSettingsSheet = nil },
-            )
-        case .subtitleSearch:
-            if let services = viewModel.subtitleSearchServices {
-                SubtitleSearchView(
-                    itemID: viewModel.currentRatingKey,
-                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    services: services,
-                    onAttached: handleAttachedSubtitle(_:),
-                )
-            }
-        }
-    }
-
     private var bufferingOverlay: some View {
         VStack {
             Spacer()
@@ -410,6 +379,48 @@ struct PlayerView: View {
             }
         }
         .padding(.bottom, 20)
+    }
+
+    @ViewBuilder
+    private func playbackSettingsSheet(_ sheet: PlayerSettingsSheet) -> some View {
+        switch sheet {
+        case .audio:
+            PlayerTrackSelectionView(
+                titleKey: sheet.titleKey,
+                tracks: settingsAudioTracks,
+                selectedTrackID: selectedAudioTrackID,
+                showOffOption: false,
+                onSelect: selectAudioTrack(_:),
+                onClose: { sheetPresentation.item = nil },
+            )
+        case .subtitle:
+            PlayerTrackSelectionView(
+                titleKey: sheet.titleKey,
+                tracks: settingsSubtitleTracks,
+                selectedTrackID: selectedSubtitleTrackID,
+                showOffOption: true,
+                onSelect: selectSubtitleTrack(_:),
+                onSearchSubtitles: viewModel.canSearchSubtitles
+                    ? { sheetPresentation.item = .subtitleSearch }
+                    : nil,
+                onClose: { sheetPresentation.item = nil },
+            )
+        case .speed:
+            PlayerSpeedSelectionView(
+                selectedRate: playbackRate,
+                onSelect: selectPlaybackRate(_:),
+                onClose: { sheetPresentation.item = nil },
+            )
+        case .subtitleSearch:
+            if let services = viewModel.subtitleSearchServices {
+                SubtitleSearchView(
+                    itemID: viewModel.currentRatingKey,
+                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                    services: services,
+                    onAttached: handleAttachedSubtitle(_:),
+                )
+            }
+        }
     }
 
     private var timelineBinding: Binding<Double> {
@@ -434,18 +445,18 @@ struct PlayerView: View {
 
     private func showAudioSettings() {
         refreshTracks()
-        activeSettingsSheet = .audio
+        sheetPresentation.item = .audio
         showControls(temporarily: true)
     }
 
     private func showSubtitleSettings() {
         refreshTracks()
-        activeSettingsSheet = .subtitle
+        sheetPresentation.item = .subtitle
         showControls(temporarily: true)
     }
 
     private func showSpeedSettings() {
-        activeSettingsSheet = .speed
+        sheetPresentation.item = .speed
         showControls(temporarily: true)
     }
 
@@ -1112,6 +1123,14 @@ struct PlayerView: View {
         showingTerminationAlert = true
         playerController.pause()
     }
+}
+
+private struct PlayerSheetRefreshID: Hashable {
+    let settingsAudioTracks: [PlaybackSettingsTrack]
+    let settingsSubtitleTracks: [PlaybackSettingsTrack]
+    let selectedAudioTrackID: Int?
+    let selectedSubtitleTrackID: Int?
+    let playbackRate: Float
 }
 
 private enum PlayerSettingsSheet: String, Identifiable {

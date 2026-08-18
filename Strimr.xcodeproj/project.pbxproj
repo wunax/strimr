@@ -237,6 +237,7 @@
 				Store/SeerrStore.swift,
 				Store/SettingsManager.swift,
 				Views/FolderCard.swift,
+				Views/IsolatedSheetPresentationHost.swift,
 				Views/Media/ArtworkResourceView.swift,
 				Views/Media/Card/LandscapeMediaCard.swift,
 				Views/Media/Card/MediaCard.swift,

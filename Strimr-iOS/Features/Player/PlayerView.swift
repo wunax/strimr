@@ -14,7 +14,7 @@ struct PlayerView: View {
     @State private var automaticSkipFeedbackMessage: String?
     @State private var isScrubbing = false
     @State private var videoFormatBadge: PlayerVideoFormatBadge?
-    @State private var activeSheet: PlayerSheet?
+    @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSheet>()
     @State private var audioTracks: [PlayerTrack] = []
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var settingsAudioTracks: [PlaybackSettingsTrack] = []
@@ -175,22 +175,31 @@ struct PlayerView: View {
         )
 
         return sessionObservers
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .settings:
-                    playbackSettingsSheet
-                        .presentationDetents([.medium])
-                case .chapters:
-                    chapterSelectionSheet
-                        .presentationDetents([.medium, .large])
-                case .subtitleSearch:
-                    subtitleSearchSheet
+            .overlay {
+                IsolatedSheetPresentationHost(
+                    presentation: sheetPresentation,
+                    refreshID: PlayerSheetRefreshID(
+                        settingsAudioTracks: settingsAudioTracks,
+                        settingsSubtitleTracks: settingsSubtitleTracks,
+                        selectedAudioTrackID: selectedAudioTrackID,
+                        selectedSubtitleTrackID: selectedSubtitleTrackID,
+                        playbackRate: playbackRate,
+                        chapters: viewModel.chapters,
+                    ),
+                    onDismiss: { showControls(temporarily: true) },
+                ) { sheet in
+                    switch sheet {
+                    case .settings:
+                        playbackSettingsSheet
+                            .presentationDetents([.medium])
+                    case .chapters:
+                        chapterSelectionSheet
+                            .presentationDetents([.medium, .large])
+                    case .subtitleSearch:
+                        subtitleSearchSheet
+                    }
                 }
-            }
-            .onChange(of: activeSheet) { _, sheet in
-                if sheet == nil {
-                    showControls(temporarily: true)
-                }
+                .equatable()
             }
             .alert("player.termination.title", isPresented: $showingTerminationAlert) {
                 Button("player.termination.dismiss") {
@@ -325,6 +334,19 @@ struct PlayerView: View {
         }
     }
 
+    private var bufferingOverlay: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+
+            Text("player.status.buffering")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.bottom, 20)
+    }
+
     private var playbackSettingsSheet: some View {
         PlaybackSettingsView(
             audioTracks: settingsAudioTracks,
@@ -335,10 +357,10 @@ struct PlayerView: View {
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
             onSearchSubtitles: viewModel.canSearchSubtitles
-                ? { activeSheet = .subtitleSearch }
+                ? { sheetPresentation.item = .subtitleSearch }
                 : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
-            onClose: { activeSheet = nil },
+            onClose: { sheetPresentation.item = nil },
         )
         .presentationBackground(.ultraThinMaterial)
     }
@@ -360,22 +382,9 @@ struct PlayerView: View {
             chapters: viewModel.chapters,
             currentPosition: viewModel.position,
             onSelect: selectChapter(_:),
-            onClose: { activeSheet = nil },
+            onClose: { sheetPresentation.item = nil },
         )
         .presentationBackground(.ultraThinMaterial)
-    }
-
-    private var bufferingOverlay: some View {
-        HStack(spacing: 8) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(.white)
-
-            Text("player.status.buffering")
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.9))
-        }
-        .padding(.bottom, 20)
     }
 
     private var timelineBinding: Binding<Double> {
@@ -400,13 +409,13 @@ struct PlayerView: View {
 
     private func showSettings() {
         refreshTracks()
-        activeSheet = .settings
+        sheetPresentation.item = .settings
         hideControlsWorkItem?.cancel()
     }
 
     private func showChapters() {
         guard viewModel.hasNavigableChapters else { return }
-        activeSheet = .chapters
+        sheetPresentation.item = .chapters
         hideControlsWorkItem?.cancel()
     }
 
@@ -414,7 +423,7 @@ struct PlayerView: View {
         playerController.seek(to: chapter.startTime)
         viewModel.position = chapter.startTime
         timelinePosition = chapter.startTime
-        activeSheet = nil
+        sheetPresentation.item = nil
     }
 
     private func toggleRotationLock() {
@@ -995,6 +1004,15 @@ struct PlayerView: View {
         showingTerminationAlert = true
         playerController.pause()
     }
+}
+
+private struct PlayerSheetRefreshID: Hashable {
+    let settingsAudioTracks: [PlaybackSettingsTrack]
+    let settingsSubtitleTracks: [PlaybackSettingsTrack]
+    let selectedAudioTrackID: Int?
+    let selectedSubtitleTrackID: Int?
+    let playbackRate: Float
+    let chapters: [MediaChapter]
 }
 
 private enum PlayerSheet: String, Identifiable {

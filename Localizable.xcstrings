@@ -10787,6 +10787,28 @@
         }
       }
     },
+    "subtitles.search.language.search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search languages"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des langues"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索语言"
+          }
+        }
+      }
+    },
     "subtitles.search.releaseTitle" : {
       "localizations" : {
         "en" : {
