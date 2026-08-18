@@ -5,9 +5,10 @@ struct StrimrWatchActivity: GroupActivity, Hashable, Sendable {
     static let activityIdentifier = "com.github.wunax.strimr.watch"
 
     let activityID: UUID
+    let provider: MediaProvider
     let serverIdentifier: String
     let ratingKey: String
-    let mediaType: PlexItemType
+    let mediaKind: MediaKind
     let title: String
     let initialPosition: Double
 

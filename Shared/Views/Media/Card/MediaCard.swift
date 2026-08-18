@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MediaCard: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     #if os(tvOS)
         @Environment(MediaFocusModel.self) private var focusModel
         @FocusState private var isFocused: Bool
@@ -58,7 +58,7 @@ struct MediaCard: View {
     private var artwork: some View {
         MediaImageView(
             viewModel: MediaImageViewModel(
-                context: plexApiContext,
+                services: mediaServices,
                 artworkKind: artworkKind,
                 media: media,
             ),

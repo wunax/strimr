@@ -1,13 +1,14 @@
 import SwiftUI
 
 struct LibraryDetailView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     let library: Library
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @State private var viewModel = LibraryDetailViewModel()
     @State private var selectedTab: LibraryDetailTab = .recommended
+    @State private var browseSession = LibraryBrowseSession()
     @FocusState private var focusedSidebarItem: LibraryDetailTab?
     @FocusState private var contentFocused: Bool
     @Namespace private var focusNamespace
@@ -18,6 +19,9 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
+        _selectedTab = State(
+            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended,
+        )
     }
 
     var body: some View {
@@ -30,8 +34,10 @@ struct LibraryDetailView: View {
             }
 
             HStack(alignment: .center, spacing: 12) {
-                sidebarContainer
-                    .zIndex(1)
+                if availableTabs.count > 1 {
+                    sidebarContainer
+                        .zIndex(1)
+                }
                 contentView
                     .focusSection()
                     .overlay {
@@ -67,7 +73,7 @@ struct LibraryDetailView: View {
                 LibraryRecommendedView(
                     viewModel: LibraryRecommendedViewModel(
                         library: library,
-                        context: plexApiContext,
+                        services: mediaServices,
                     ),
                     heroMedia: $viewModel.heroMedia,
                     onSelectMedia: onSelectMedia,
@@ -76,16 +82,21 @@ struct LibraryDetailView: View {
                 LibraryBrowseView(
                     viewModel: LibraryBrowseViewModel(
                         library: library,
-                        context: plexApiContext,
+                        services: mediaServices,
                         settingsManager: settingsManager,
+                        browseSession: browseSession,
                     ),
                     onSelectMedia: onSelectMedia,
                 )
+            case .genres:
+                if let viewModel = LibraryGenresViewModel(library: library, services: mediaServices) {
+                    LibraryGenresView(viewModel: viewModel, onSelectGenre: selectGenre)
+                }
             case .collections:
                 LibraryCollectionsView(
                     viewModel: LibraryCollectionsViewModel(
                         library: library,
-                        context: plexApiContext,
+                        services: mediaServices,
                         settingsManager: settingsManager,
                     ),
                     onSelectMedia: onSelectMedia,
@@ -94,7 +105,7 @@ struct LibraryDetailView: View {
                 LibraryPlaylistsView(
                     viewModel: LibraryPlaylistsViewModel(
                         library: library,
-                        context: plexApiContext,
+                        services: mediaServices,
                     ),
                     onSelectMedia: onSelectMedia,
                 )
@@ -179,22 +190,35 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        LibraryDetailTab.allCases.filter { tab in
+        if mediaServices.provider == .jellyfin {
+            return library.type == .collection || library.type == .playlist
+                ? [.browse]
+                : [.recommended, .browse, .genres]
+        }
+        return LibraryDetailTab.allCases.filter { tab in
             switch tab {
             case .collections:
                 settingsManager.interface.displayCollections
             case .playlists:
                 settingsManager.interface.displayPlaylists
+            case .genres:
+                false
             default:
                 true
             }
         }
+    }
+
+    private func selectGenre(_ genre: LibraryGenre) {
+        browseSession.selectGenre(id: genre.id)
+        selectedTab = .browse
     }
 }
 
 enum LibraryDetailTab: String, CaseIterable, Identifiable {
     case recommended
     case browse
+    case genres
     case collections
     case playlists
 
@@ -208,6 +232,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "library.detail.tab.recommended"
         case .browse:
             "library.detail.tab.browse"
+        case .genres:
+            "library.detail.tab.genres"
         case .collections:
             "library.detail.tab.collections"
         case .playlists:
@@ -221,6 +247,8 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "sparkles"
         case .browse:
             "square.grid.2x2.fill"
+        case .genres:
+            "theatermasks.fill"
         case .collections:
             "rectangle.stack.fill"
         case .playlists:

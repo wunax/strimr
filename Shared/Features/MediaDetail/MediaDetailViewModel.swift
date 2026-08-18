@@ -9,15 +9,16 @@ enum MediaDetailResolutionMode {
 
 struct MediaDetailPlaybackTarget {
     let item: MediaItem
-    let type: PlexItemType
+    let type: MediaKind
     let shouldResumeFromOffset: Bool
 }
 
 @MainActor
 @Observable
 final class MediaDetailViewModel {
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
+    @ObservationIgnored private var backdropSourcePath: String?
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -38,14 +39,13 @@ final class MediaDetailViewModel {
     var seasonsErrorMessage: String?
     var episodesErrorMessage: String?
     var relatedHubsErrorMessage: String?
-    var audioTracks: [PlexPartStream] = []
-    var subtitleTracks: [PlexPartStream] = []
+    var audioTracks: [MediaTrackMetadata] = []
+    var subtitleTracks: [MediaTrackMetadata] = []
     var selectedAudioStreamID: Int?
     var selectedSubtitleStreamID: Int?
     var isLoadingTracks = false
     var isUpdatingTracks = false
     var trackSelectionErrorMessage: String?
-    @ObservationIgnored private var trackPartID: Int?
     @ObservationIgnored private var trackPartFile: String?
     @ObservationIgnored private(set) var trackRatingKey: String?
     @ObservationIgnored private var requestedTrackRatingKey: String?
@@ -58,17 +58,21 @@ final class MediaDetailViewModel {
 
     init(
         media: PlayableMediaItem,
-        context: PlexAPIContext,
+        services: MediaServices,
         resolutionMode: MediaDetailResolutionMode = .seriesRoot,
     ) {
         self.media = media
-        self.context = context
+        self.services = services
         self.resolutionMode = resolutionMode
-        resolveArtwork()
+        _ = resolveArtwork()
     }
 
     var serverIdentifier: String? {
-        try? context.serverAccessSnapshot().serverIdentifier
+        services.identity.id
+    }
+
+    private var detailTargetID: String {
+        resolutionMode == .seriesRoot ? media.metadataRatingKey : media.id
     }
 
     func loadDetails() async {
@@ -82,138 +86,7 @@ final class MediaDetailViewModel {
     }
 
     private func loadDetails(preservingExistingContent: Bool) async {
-        if !preservingExistingContent {
-            cast = []
-            relatedHubs = []
-        }
-
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
-            handleDetailLoadError(preservingExistingContent: preservingExistingContent)
-            return
-        }
-
-        isLoading = true
-        errorMessage = nil
-        if !preservingExistingContent {
-            onDeckItem = nil
-            fallbackPlaybackTarget = nil
-            watchActionErrorMessage = nil
-        }
-
-        do {
-            let params = MetadataRepository.PlexMetadataParams(includeOnDeck: true)
-            let response = try await metadataRepository.getMetadata(
-                ratingKey: detailRatingKey,
-                params: params,
-            )
-            if let item = response.mediaContainer.metadata?.first,
-               let playable = PlayableMediaItem(plexItem: item)
-            {
-                media = playable
-                cast = castMembers(from: item)
-                resolveArtwork()
-                resolveGradient()
-            }
-            onDeckItem = response.mediaContainer.metadata?.first?.onDeck?.metadata.map { MediaItem(plexItem: $0) }
-            await loadParentSeries(using: metadataRepository)
-            await loadWatchlistStatus()
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else {
-                isLoading = false
-                return
-            }
-            ErrorReporter.capture(error)
-            if preservingExistingContent {
-                errorMessage = nil
-            } else {
-                errorMessage = error.localizedDescription
-            }
-        }
-
-        isLoading = false
-        async let relatedHubsTask: Void = loadRelatedHubs(preservingExistingContent: preservingExistingContent)
-        await loadSeriesChildren(preservingExistingContent: preservingExistingContent)
-        await resolveFallbackPlaybackTarget(
-            using: metadataRepository,
-            preservingExistingContent: preservingExistingContent,
-        )
-        await loadTrackSelection(
-            using: metadataRepository,
-            preservingExistingContent: preservingExistingContent,
-        )
-        await relatedHubsTask
-    }
-
-    private var detailRatingKey: String {
-        switch resolutionMode {
-        case .seriesRoot:
-            media.metadataRatingKey
-        case .selectedMedia:
-            media.id
-        }
-    }
-
-    private func loadSeriesChildren(preservingExistingContent: Bool) async {
-        switch media.type {
-        case .show:
-            await loadSeasonsIfNeeded(forceReload: true, preservingExistingContent: preservingExistingContent)
-        case .season where resolutionMode == .selectedMedia:
-            seasons = []
-            selectedSeasonId = media.id
-            await fetchEpisodes(for: media.id, preservingExistingContent: preservingExistingContent)
-        case .movie, .episode, .season:
-            seasons = []
-            episodes = []
-            selectedSeasonId = nil
-        }
-    }
-
-    private func loadParentSeries(using metadataRepository: MetadataRepository) async {
-        guard resolutionMode == .selectedMedia else {
-            parentSeries = nil
-            return
-        }
-
-        let seriesRatingKey: String? = switch media.type {
-        case .season:
-            media.mediaItem.parentRatingKey
-        case .episode:
-            await resolveEpisodeSeriesRatingKey(using: metadataRepository)
-        case .movie, .show:
-            nil
-        }
-
-        guard let seriesRatingKey else {
-            parentSeries = nil
-            return
-        }
-
-        do {
-            let response = try await metadataRepository.getMetadata(ratingKey: seriesRatingKey)
-            parentSeries = response.mediaContainer.metadata?.first.flatMap(PlayableMediaItem.init)
-            resolveArtwork()
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            parentSeries = nil
-            ErrorReporter.capture(error)
-        }
-    }
-
-    private func resolveEpisodeSeriesRatingKey(using metadataRepository: MetadataRepository) async -> String? {
-        if let grandparentRatingKey = media.mediaItem.grandparentRatingKey {
-            return grandparentRatingKey
-        }
-
-        guard let seasonRatingKey = media.mediaItem.parentRatingKey else { return nil }
-
-        do {
-            let response = try await metadataRepository.getMetadata(ratingKey: seasonRatingKey)
-            return response.mediaContainer.metadata?.first?.parentRatingKey
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return nil }
-            ErrorReporter.capture(error)
-            return nil
-        }
+        await loadCommonDetails(preservingExistingContent: preservingExistingContent)
     }
 
     func loadSeasonsIfNeeded(forceReload: Bool = false, preservingExistingContent: Bool = false) async {
@@ -239,13 +112,8 @@ final class MediaDetailViewModel {
         defer { updatingWatchStatusIds.remove(item.id) }
 
         do {
-            let scrobbleRepository = try ScrobbleRepository(context: context)
-            if isWatched(item) {
-                try await scrobbleRepository.markUnwatched(key: item.id)
-            } else {
-                try await scrobbleRepository.markWatched(key: item.id)
-            }
-            await loadDetails(preservingExistingContent: true)
+            try await services.detail.setPlayed(!isWatched(item), itemID: item.id)
+            await loadCommonDetails(preservingExistingContent: true)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             watchActionErrorMessage = error.localizedDescription
@@ -254,21 +122,18 @@ final class MediaDetailViewModel {
     }
 
     func toggleWatchlistStatus() async {
-        guard let discoverID = media.plexGuidID else { return }
         guard !isUpdatingWatchlistStatus else { return }
-        guard let repository = try? DiscoverWatchlistRepository(context: context) else { return }
 
         isUpdatingWatchlistStatus = true
         defer { isUpdatingWatchlistStatus = false }
 
         do {
-            if isWatchlisted {
-                try await repository.removeFromWatchlist(ratingKey: discoverID)
-            } else {
-                try await repository.addToWatchlist(ratingKey: discoverID)
-            }
+            try await services.detail.setWatchlisted(!isWatchlisted, media: media.mediaItem)
             await loadWatchlistStatus()
-        } catch {}
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
     }
 
     func imageURL(
@@ -277,52 +142,91 @@ final class MediaDetailViewModel {
         height: Int = 180,
         spoilerProtection: SpoilerProtectionLevel = .off,
     ) -> URL? {
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
-
         let path = if media.isSpoilerProtected(at: spoilerProtection) {
             media.spoilerProtectedArtworkPath(at: spoilerProtection)
         } else {
             media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
         }
-        return path.flatMap { imageRepository.transcodeImageURL(path: $0, width: width, height: height) }
+        return services.artwork.artworkURL(path: path, width: width, height: height)
     }
 
     func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {
         guard media.mediaItem.isSpoilerProtected(at: spoilerProtection) else {
             return heroImageURL
         }
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
 
         let path = media.mediaItem.grandparentArtPath
             ?? parentSeries?.artPath
             ?? media.mediaItem.grandparentThumbPath
-        return path.flatMap {
-            imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
-        }
+        return services.artwork.artworkURL(path: path, width: 1400, height: 800)
     }
 
-    private func resolveArtwork() {
-        guard let imageRepository = try? ImageRepository(context: context) else {
-            heroImageURL = nil
-            return
+    func heroArtworkPath(spoilerProtection: SpoilerProtectionLevel) -> String? {
+        if media.mediaItem.isSpoilerProtected(at: spoilerProtection) {
+            return media.mediaItem.grandparentArtPath
+                ?? parentSeries?.artPath
+                ?? media.mediaItem.grandparentThumbPath
         }
+        if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
+            return media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
+        }
+        return media.artPath ?? media.thumbPath
+    }
 
+    @discardableResult
+    private func resolveArtwork() -> String? {
         let artPath: String? = if resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) {
             media.mediaItem.grandparentArtPath ?? parentSeries?.artPath ?? media.artPath
         } else {
             media.artPath
         }
+        let resolvedPath = artPath ?? media.thumbPath
 
-        heroImageURL = artPath.flatMap {
-            imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
-        } ?? media.thumbPath.flatMap {
-            imageRepository.transcodeImageURL(path: $0, width: 1400, height: 800)
-        }
+        heroImageURL = services.artwork.artworkURL(path: artPath, width: 1400, height: 800)
+            ?? services.artwork.artworkURL(path: media.thumbPath, width: 1400, height: 800)
         resolveGradient()
+        return resolvedPath
     }
 
     private func resolveGradient() {
-        backdropGradient = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        let colors = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        if colors.count == 4 {
+            backdropSourcePath = nil
+            backdropGradient = colors
+        }
+    }
+
+    private func loadBackdropGradient(path: String?) async {
+        let providerColors = MediaBackdropGradient.colors(for: .playable(media.mediaItem))
+        if providerColors.count == 4 {
+            backdropSourcePath = nil
+            backdropGradient = providerColors
+            return
+        }
+
+        guard let path else {
+            backdropSourcePath = nil
+            backdropGradient = []
+            return
+        }
+        guard backdropSourcePath != path else { return }
+
+        backdropSourcePath = path
+        backdropGradient = []
+
+        do {
+            guard let resource = try await services.artwork.artwork(
+                path: path,
+                width: 300,
+                height: 169,
+            ) else { return }
+            let colors = try await ImageCornerColorSampler.colors(from: resource)
+            guard !Task.isCancelled, backdropSourcePath == path else { return }
+            backdropGradient = colors.count == 4 ? colors : []
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation, backdropSourcePath == path else { return }
+            backdropGradient = []
+        }
     }
 
     private func loadWatchlistStatus() async {
@@ -331,12 +235,7 @@ final class MediaDetailViewModel {
             return
         }
 
-        guard let discoverID = media.plexGuidID else {
-            isWatchlisted = false
-            return
-        }
-
-        guard let repository = try? DiscoverWatchlistRepository(context: context) else {
+        guard services.detail.supportsWatchlist else {
             isWatchlisted = false
             return
         }
@@ -345,11 +244,11 @@ final class MediaDetailViewModel {
         defer { isLoadingWatchlistStatus = false }
 
         do {
-            let response = try await repository.getUserState(discoverID: discoverID)
-            let userState = response.mediaContainer.userState?.first
-            isWatchlisted = userState?.watchlistedAt != nil
+            isWatchlisted = try await services.detail.isWatchlisted(media.mediaItem)
         } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
             isWatchlisted = false
+            ErrorReporter.capture(error)
         }
     }
 
@@ -404,9 +303,7 @@ final class MediaDetailViewModel {
     }
 
     func castImageURL(for member: CastMember, width: Int = 200, height: Int = 260) -> URL? {
-        guard let imageRepository = try? ImageRepository(context: context) else { return nil }
-        guard let thumbPath = member.thumbPath else { return nil }
-        return imageRepository.transcodeImageURL(path: thumbPath, width: width, height: height)
+        services.artwork.artworkURL(path: member.thumbPath, width: width, height: height)
     }
 
     var primaryActionTitle: String {
@@ -453,7 +350,7 @@ final class MediaDetailViewModel {
         primaryPlaybackTarget?.item.id
     }
 
-    var primaryActionType: PlexItemType? {
+    var primaryActionType: MediaKind? {
         primaryPlaybackTarget?.type
     }
 
@@ -466,7 +363,9 @@ final class MediaDetailViewModel {
     }
 
     var canSearchSubtitles: Bool {
-        trackRatingKey != nil && trackPartID != nil
+        services.detail.supportsRemoteSubtitleSearch
+            && services.authorization.canManageSubtitles
+            && (trackRatingKey ?? primaryActionRatingKey) != nil
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -488,7 +387,6 @@ final class MediaDetailViewModel {
 
     func selectAudioStream(id: Int) async {
         guard
-            let partID = trackPartID,
             let ratingKey = trackRatingKey,
             selectedAudioStreamID != id
         else { return }
@@ -499,8 +397,7 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            let repository = try PlaybackRepository(context: context)
-            try await repository.setPreferredStreams(partId: partID, audioStreamId: id)
+            try await services.detail.selectAudioTrack(id: id, itemID: ratingKey)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
                 if trackRatingKey == ratingKey {
@@ -518,7 +415,6 @@ final class MediaDetailViewModel {
 
     func selectSubtitleStream(id: Int?) async {
         guard
-            let partID = trackPartID,
             let ratingKey = trackRatingKey,
             selectedSubtitleStreamID != id
         else { return }
@@ -529,8 +425,7 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            let repository = try PlaybackRepository(context: context)
-            try await repository.setPreferredSubtitleStream(partId: partID, subtitleStreamId: id)
+            try await services.detail.selectSubtitleTrack(id: id, itemID: ratingKey)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
                 if trackRatingKey == ratingKey {
@@ -548,26 +443,12 @@ final class MediaDetailViewModel {
 
     func loadTrackSelection(for ratingKey: String) async {
         guard trackRatingKey != ratingKey else { return }
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
-            trackSelectionErrorMessage = String(localized: "errors.selectServer.loadDetails")
-            return
-        }
-        await loadTrackSelection(
-            for: ratingKey,
-            using: metadataRepository,
-            preservingExistingContent: false,
-        )
+        await loadTrackSelection(for: ratingKey, preservingExistingContent: false)
     }
 
     func refreshTrackSelectionAfterSubtitleAttachment() async {
-        guard let ratingKey = trackRatingKey,
-              let metadataRepository = try? MetadataRepository(context: context)
-        else { return }
-        await loadTrackSelection(
-            for: ratingKey,
-            using: metadataRepository,
-            preservingExistingContent: false,
-        )
+        guard let ratingKey = trackRatingKey ?? primaryActionRatingKey else { return }
+        await loadTrackSelection(for: ratingKey, preservingExistingContent: false)
     }
 
     var primaryActionInitialPosition: Double {
@@ -593,7 +474,7 @@ final class MediaDetailViewModel {
         case .movie, .episode:
             return MediaDetailPlaybackTarget(
                 item: media.mediaItem,
-                type: media.plexType,
+                type: media.mediaKind,
                 shouldResumeFromOffset: true,
             )
         case .show, .season:
@@ -627,7 +508,7 @@ final class MediaDetailViewModel {
     }
 
     var shouldShowWatchlistButton: Bool {
-        [.movie, .show].contains(media.type)
+        services.detail.supportsWatchlist && [.movie, .show].contains(media.type)
             && media.plexGuidID != nil
     }
 
@@ -636,18 +517,7 @@ final class MediaDetailViewModel {
     }
 
     func isWatched(_ item: MediaItem) -> Bool {
-        guard let playableType = PlayableItemType(plexType: item.type) else { return false }
-
-        switch playableType {
-        case .movie, .episode:
-            return (item.viewCount ?? 0) > 0
-        case .show, .season:
-            guard let leafCount = item.leafCount, let viewedLeafCount = item.viewedLeafCount else {
-                return false
-            }
-            guard leafCount > 0 else { return false }
-            return leafCount == viewedLeafCount
-        }
+        item.isFullyWatched
     }
 
     func watchActionTitle(for item: MediaItem) -> String {
@@ -696,21 +566,13 @@ final class MediaDetailViewModel {
     }
 
     private func fetchSeasons(preservingExistingContent: Bool) async {
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
-            if !preservingExistingContent || seasons.isEmpty {
-                seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
-            }
-            return
-        }
-
         isLoadingSeasons = true
         seasonsErrorMessage = nil
         episodesErrorMessage = nil
         defer { isLoadingSeasons = false }
 
         do {
-            let response = try await metadataRepository.getMetadataChildren(ratingKey: detailRatingKey)
-            let fetchedSeasons = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
+            let fetchedSeasons = try await services.detail.seasons(for: media.mediaItem)
             let previousSelectedSeasonId = selectedSeasonId
             seasons = fetchedSeasons
 
@@ -767,20 +629,18 @@ final class MediaDetailViewModel {
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
-        guard let metadataRepository = try? MetadataRepository(context: context) else {
-            if !preservingExistingContent || episodes.isEmpty {
-                episodesErrorMessage = String(localized: "errors.selectServer.loadEpisodes")
-            }
-            return
-        }
-
         isLoadingEpisodes = true
         episodesErrorMessage = nil
         defer { isLoadingEpisodes = false }
 
         do {
-            let response = try await metadataRepository.getMetadataChildren(ratingKey: seasonId)
-            let fetchedEpisodes = (response.mediaContainer.metadata ?? []).map(MediaItem.init)
+            guard let season = seasons.first(where: { $0.id == seasonId })
+                ?? (media.id == seasonId ? media.mediaItem : nil)
+            else { return }
+            let fetchedEpisodes = try await services.detail.episodes(
+                for: season,
+                seriesID: parentSeries?.id ?? media.id,
+            )
 
             guard selectedSeasonId == seasonId else { return }
             episodes = fetchedEpisodes
@@ -798,10 +658,7 @@ final class MediaDetailViewModel {
         }
     }
 
-    private func resolveFallbackPlaybackTarget(
-        using metadataRepository: MetadataRepository,
-        preservingExistingContent: Bool,
-    ) async {
+    private func resolveFallbackPlaybackTarget(preservingExistingContent: Bool) async {
         guard onDeckItem == nil else {
             fallbackPlaybackTarget = nil
             return
@@ -814,10 +671,7 @@ final class MediaDetailViewModel {
             fallbackPlaybackTarget = playbackFallback(from: episodes, sortBySeason: false)
         case .show:
             do {
-                let response = try await metadataRepository.getMetadataGrandChildren(ratingKey: detailRatingKey)
-                let allEpisodes = (response.mediaContainer.metadata ?? [])
-                    .map(MediaItem.init)
-                    .filter { $0.type == .episode }
+                let allEpisodes = try await services.detail.allEpisodes(for: media.mediaItem)
                 let regularEpisodes = allEpisodes.filter { ($0.parentIndex ?? 0) > 0 }
                 let eligibleEpisodes = regularEpisodes.isEmpty ? allEpisodes : regularEpisodes
                 fallbackPlaybackTarget = playbackFallback(from: eligibleEpisodes, sortBySeason: true)
@@ -831,25 +685,17 @@ final class MediaDetailViewModel {
         }
     }
 
-    private func loadTrackSelection(
-        using metadataRepository: MetadataRepository,
-        preservingExistingContent: Bool,
-    ) async {
+    private func loadTrackSelection(preservingExistingContent: Bool) async {
         guard let ratingKey = primaryActionRatingKey else {
             clearTrackSelection()
             return
         }
 
-        await loadTrackSelection(
-            for: ratingKey,
-            using: metadataRepository,
-            preservingExistingContent: preservingExistingContent,
-        )
+        await loadTrackSelection(for: ratingKey, preservingExistingContent: preservingExistingContent)
     }
 
     private func loadTrackSelection(
         for ratingKey: String,
-        using metadataRepository: MetadataRepository,
         preservingExistingContent: Bool,
     ) async {
         if preservingExistingContent, trackRatingKey == ratingKey, hasTrackSelection {
@@ -866,24 +712,15 @@ final class MediaDetailViewModel {
         }
 
         do {
-            let response = try await metadataRepository.getMetadata(
-                ratingKey: ratingKey,
-                params: MetadataRepository.PlexMetadataParams(checkFiles: true),
-            )
+            let selection = try await services.detail.trackSelection(itemID: ratingKey)
             guard requestedTrackRatingKey == ratingKey else { return }
-            let part = response.mediaContainer.metadata?.first?.media?.first?.parts.first
-            let streams = part?.stream ?? []
-            let fetchedAudioTracks = streams.filter { $0.streamType == .audio && $0.id != nil }
-            let fetchedSubtitleTracks = streams.filter { $0.streamType == .subtitle && $0.id != nil }
 
             trackRatingKey = ratingKey
-            trackPartID = part?.id
-            trackPartFile = part?.file
-            audioTracks = fetchedAudioTracks
-            subtitleTracks = fetchedSubtitleTracks
-            selectedAudioStreamID = fetchedAudioTracks.first(where: { $0.selected == true })?.id
-                ?? fetchedAudioTracks.first?.id
-            selectedSubtitleStreamID = fetchedSubtitleTracks.first(where: { $0.selected == true })?.id
+            trackPartFile = selection.filePath
+            audioTracks = selection.audioTracks
+            subtitleTracks = selection.subtitleTracks
+            selectedAudioStreamID = selection.selectedAudioTrackID
+            selectedSubtitleStreamID = selection.selectedSubtitleTrackID
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -898,7 +735,6 @@ final class MediaDetailViewModel {
     private func clearTrackSelection() {
         requestedTrackRatingKey = nil
         trackRatingKey = nil
-        trackPartID = nil
         trackPartFile = nil
         audioTracks = []
         subtitleTracks = []
@@ -906,7 +742,7 @@ final class MediaDetailViewModel {
         selectedSubtitleStreamID = nil
     }
 
-    private func selectedTrackTitle(in tracks: [PlexPartStream], id: Int?) -> String? {
+    private func selectedTrackTitle(in tracks: [MediaTrackMetadata], id: Int?) -> String? {
         guard let id, let stream = tracks.first(where: { $0.id == id }) else { return nil }
         return stream.displayTitle.isEmpty ? stream.language ?? stream.codec.uppercased() : stream.displayTitle
     }
@@ -943,59 +779,57 @@ final class MediaDetailViewModel {
         )
     }
 
-    private func castMembers(from item: PlexItem?) -> [CastMember] {
-        guard let roles = item?.roles, !roles.isEmpty else { return [] }
-
-        return roles.map { role in
-            let identifier = role.id.map(String.init) ?? "\(role.tag)-\(role.role ?? "role")"
-            let character = role.role?.isEmpty == false ? role.role : nil
-            return CastMember(
-                id: identifier,
-                personID: role.id,
-                name: role.tag,
-                character: character,
-                thumbPath: role.thumb,
-            )
+    private func loadCommonDetails(preservingExistingContent: Bool) async {
+        isLoading = true
+        errorMessage = nil
+        if !preservingExistingContent {
+            cast = []
+            relatedHubs = []
+            onDeckItem = nil
+            fallbackPlaybackTarget = nil
         }
-    }
-
-    func loadRelatedHubs(preservingExistingContent: Bool = false) async {
-        guard let hubRepository = try? HubRepository(context: context) else {
-            if !preservingExistingContent || relatedHubs.isEmpty {
-                relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
-            }
-            return
-        }
-
-        isLoadingRelatedHubs = true
-        relatedHubsErrorMessage = nil
-        defer { isLoadingRelatedHubs = false }
+        defer { isLoading = false }
 
         do {
-            let response = try await hubRepository.getRelatedMediaHubs(ratingKey: detailRatingKey)
-            relatedHubs = (response.mediaContainer.hub ?? []).map(Hub.init)
+            let target = detailTargetID == media.id
+                ? media.mediaItem
+                : try await services.detail.mediaItem(id: detailTargetID)
+            let content = try await services.detail.details(for: target)
+            guard !Task.isCancelled else { return }
+            if let mapped = PlayableMediaItem(mediaItem: content.media) {
+                media = mapped
+            }
+            parentSeries = content.parentSeries.flatMap(PlayableMediaItem.init)
+            onDeckItem = content.onDeck
+            seasons = content.seasons
+            episodes = content.episodes
+            cast = content.cast
+            relatedHubs = content.relatedHubs
+            relatedHubsErrorMessage = nil
+
+            switch media.type {
+            case .show:
+                selectedSeasonId = preferredSeasonId(in: seasons)
+                if let selectedSeasonId {
+                    await fetchEpisodes(for: selectedSeasonId, preservingExistingContent: preservingExistingContent)
+                }
+            case .season where resolutionMode == .selectedMedia:
+                selectedSeasonId = media.id
+            case .movie, .episode, .season:
+                selectedSeasonId = nil
+            }
+
+            await resolveFallbackPlaybackTarget(preservingExistingContent: preservingExistingContent)
+            await loadTrackSelection(preservingExistingContent: preservingExistingContent)
+            await loadWatchlistStatus()
+            let artworkPath = resolveArtwork()
+            await loadBackdropGradient(path: artworkPath)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
-            if preservingExistingContent, !relatedHubs.isEmpty {
-                relatedHubsErrorMessage = nil
-            } else {
-                relatedHubs = []
-                relatedHubsErrorMessage = error.localizedDescription
+            if !preservingExistingContent {
+                errorMessage = error.localizedDescription
             }
         }
-    }
-
-    private func handleDetailLoadError(preservingExistingContent: Bool) {
-        if preservingExistingContent {
-            errorMessage = nil
-            return
-        }
-
-        errorMessage = String(localized: "errors.selectServer.loadDetails")
-        if media.type == .show {
-            seasonsErrorMessage = String(localized: "errors.selectServer.loadSeasons")
-        }
-        relatedHubsErrorMessage = String(localized: "errors.selectServer.loadRelatedContent")
     }
 }

@@ -5,6 +5,8 @@ enum MediaRatingSource: Hashable {
     case rottenTomatoesCritic
     case rottenTomatoesAudience
     case tmdb
+    case jellyfinCommunity
+    case jellyfinCritics
 
     init?(imageIdentifier: String) {
         switch imageIdentifier {
@@ -21,16 +23,20 @@ enum MediaRatingSource: Hashable {
         }
     }
 
-    var assetName: String {
+    var icon: MediaRatingIcon {
         switch self {
         case .imdb:
-            "imdb"
+            .asset("imdb")
         case .rottenTomatoesCritic:
-            "rotten_tomatoes_critic"
+            .asset("rotten_tomatoes_critic")
         case .rottenTomatoesAudience:
-            "rotten_tomatoes_audience"
+            .asset("rotten_tomatoes_audience")
         case .tmdb:
-            "tmdb"
+            .asset("tmdb")
+        case .jellyfinCommunity:
+            .system("star.fill")
+        case .jellyfinCritics:
+            .asset("rotten_tomatoes_critic")
         }
     }
 
@@ -44,8 +50,17 @@ enum MediaRatingSource: Hashable {
             String(localized: "media.rating.rottenTomatoesAudience")
         case .tmdb:
             String(localized: "media.rating.tmdb")
+        case .jellyfinCommunity:
+            String(localized: "media.rating.jellyfinCommunity")
+        case .jellyfinCritics:
+            String(localized: "media.rating.jellyfinCritics")
         }
     }
+}
+
+enum MediaRatingIcon: Hashable {
+    case asset(String)
+    case system(String)
 }
 
 struct MediaRating: Hashable {
@@ -61,8 +76,18 @@ struct MediaRating: Hashable {
         self.value = value
     }
 
+    init(source: MediaRatingSource, value: Double) {
+        self.source = source
+        self.value = value
+    }
+
     var formattedValue: String {
-        String(format: "%.1f", value)
+        switch source {
+        case .jellyfinCritics:
+            String(format: "%.0f%%", value)
+        default:
+            String(format: "%.1f", value)
+        }
     }
 
     var accessibilityLabel: String {

@@ -4,7 +4,7 @@ struct PlaylistMediaItem: Identifiable, Hashable {
     let id: String
     let key: String
     let guid: String
-    let type: PlexItemType
+    let type: MediaKind
     let title: String
     let summary: String?
     let compositePath: String?
@@ -19,7 +19,7 @@ extension PlaylistMediaItem {
             id: plexItem.ratingKey,
             key: plexItem.key,
             guid: plexItem.guid,
-            type: plexItem.type,
+            type: plexItem.type.mediaKind,
             title: plexItem.title,
             summary: plexItem.summary,
             compositePath: plexItem.composite,

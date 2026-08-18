@@ -2,7 +2,7 @@ import Foundation
 
 struct CastMember: Identifiable, Hashable {
     let id: String
-    let personID: Int?
+    let personID: String?
     let name: String
     let character: String?
     let thumbPath: String?

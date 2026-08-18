@@ -5,7 +5,6 @@ import UIKit
 struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(PlexAPIContext.self) private var context
     @State private var selectedDownload: DownloadItem?
 
     var body: some View {
@@ -30,7 +29,6 @@ struct DownloadsView: View {
                     viewModel: PlayerViewModel(
                         localMedia: downloadManager.localMediaItem(for: item),
                         localPlaybackURL: localURL,
-                        context: context,
                     ),
                 )
             }

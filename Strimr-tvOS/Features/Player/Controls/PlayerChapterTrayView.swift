@@ -1,10 +1,9 @@
 import SwiftUI
 
 struct PlayerChapterTrayView: View {
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var currentPosition: Double
-    var imageURL: (PlexChapter) -> URL?
-    var onSelect: (PlexChapter) -> Void
+    var onSelect: (MediaChapter) -> Void
     var onFocusExit: () -> Void
 
     @FocusState private var focusedChapterID: String?
@@ -52,27 +51,31 @@ struct PlayerChapterTrayView: View {
         .focusSection()
     }
 
-    private var currentChapter: PlexChapter? {
+    private var currentChapter: MediaChapter? {
         chapters.first { $0.contains(time: currentPosition) }
     }
 
-    private func chapterCard(_ chapter: PlexChapter) -> some View {
+    private func chapterCard(_ chapter: MediaChapter) -> some View {
         let isFocused = focusedChapterID == chapter.stableID
         let isCurrent = currentChapter?.stableID == chapter.stableID
 
         return VStack(alignment: .leading, spacing: 10) {
-            PlayerChapterArtworkView(imageURL: imageURL(chapter))
-                .frame(width: 320, height: 180)
-                .background(.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    if isCurrent {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white, .black.opacity(0.6))
-                            .padding(12)
-                    }
+            PlayerChapterArtworkView(
+                artworkPath: chapter.thumbPath,
+                width: 640,
+                height: 360,
+            )
+            .frame(width: 320, height: 180)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                if isCurrent {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white, .black.opacity(0.6))
+                        .padding(12)
                 }
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(chapter.displayTitle)

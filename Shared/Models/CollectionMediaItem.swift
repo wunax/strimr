@@ -4,7 +4,7 @@ struct CollectionMediaItem: Identifiable, Hashable {
     let id: String
     let key: String
     let guid: String
-    let type: PlexItemType
+    let type: MediaKind
     let title: String
     let summary: String?
     let thumbPath: String?
@@ -19,7 +19,7 @@ extension CollectionMediaItem {
             id: plexItem.ratingKey,
             key: plexItem.key,
             guid: plexItem.guid,
-            type: plexItem.type,
+            type: plexItem.type.mediaKind,
             title: plexItem.title,
             summary: plexItem.summary,
             thumbPath: plexItem.thumb,

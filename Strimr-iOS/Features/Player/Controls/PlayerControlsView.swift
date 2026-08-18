@@ -15,7 +15,7 @@ struct PlayerControlsView: View {
     var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
     var onShowChapters: () -> Void

@@ -12,7 +12,7 @@ extension Hub {
             more: plexHub.more,
             items: (plexHub.metadata ?? [])
                 .filter(\.type.isSupported)
-                .compactMap(MediaDisplayItem.init),
+                .compactMap { MediaDisplayItem(plexItem: $0) },
         )
     }
 }

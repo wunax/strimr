@@ -19,7 +19,6 @@ final class SharePlayCoordinator {
     }
 
     @ObservationIgnored private let sessionManager: SessionManager
-    @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let groupStateObserver = GroupStateObserver()
     @ObservationIgnored private var session: GroupSession<StrimrWatchActivity>?
     @ObservationIgnored private var playbackLauncher: PlaybackLauncher?
@@ -27,7 +26,7 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var sessionSubscriptions: Set<AnyCancellable> = []
     @ObservationIgnored private var sessionListener: Task<Void, Never>?
     @ObservationIgnored private var locallyPreparedActivityIDs: Set<UUID> = []
-    @ObservationIgnored private var pendingNextItem: PlexItem?
+    @ObservationIgnored private var pendingNextItem: MediaItem?
     @ObservationIgnored private var lastLaunchedActivityID: UUID?
     @ObservationIgnored private var sharingPresentationActivityID: UUID?
     @ObservationIgnored private var pendingSessionAcceptanceActivityID: UUID?
@@ -35,9 +34,8 @@ final class SharePlayCoordinator {
     @ObservationIgnored private var pendingInitialResumeActivityID: UUID?
     @ObservationIgnored private var lastCoordinatedActivityID: UUID?
 
-    init(sessionManager: SessionManager, context: PlexAPIContext) {
+    init(sessionManager: SessionManager) {
         self.sessionManager = sessionManager
-        self.context = context
         sessionListener = Task { [weak self] in
             for await session in StrimrWatchActivity.sessions() {
                 guard !Task.isCancelled else { return }
@@ -50,26 +48,24 @@ final class SharePlayCoordinator {
         playbackLauncher = launcher
     }
 
-    func serverContext(for activity: StrimrWatchActivity) async throws -> PlexAPIContext {
-        try await sessionManager.serverContext(for: activity.serverIdentifier)
-    }
-
     func makeActivity(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         title: String,
         initialPosition: Double,
         serverIdentifier: String? = nil,
     ) -> StrimrWatchActivity? {
-        guard let serverIdentifier = serverIdentifier ?? sessionManager.plexServer?.clientIdentifier else {
+        guard let services = sessionManager.mediaServices else {
             errorMessage = String(localized: "sharePlay.error.serverUnavailable")
             return nil
         }
+        let serverIdentifier = serverIdentifier ?? services.identity.id
         return StrimrWatchActivity(
             activityID: UUID(),
+            provider: services.provider,
             serverIdentifier: serverIdentifier,
             ratingKey: ratingKey,
-            mediaType: type,
+            mediaKind: type,
             title: title,
             initialPosition: max(0, initialPosition),
         )
@@ -77,7 +73,7 @@ final class SharePlayCoordinator {
 
     func activate(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         title: String,
         initialPosition: Double,
         serverIdentifier: String? = nil,
@@ -198,7 +194,7 @@ final class SharePlayCoordinator {
         }
     }
 
-    func updateToNextEpisode(_ item: PlexItem) {
+    func updateToNextItem(_ item: MediaItem) {
         pendingNextItem = item
         publishPendingNextItemIfLeader()
     }
@@ -207,9 +203,10 @@ final class SharePlayCoordinator {
         guard let session, isLocalLeader, let item = pendingNextItem else { return }
         let next = StrimrWatchActivity(
             activityID: UUID(),
+            provider: item.provider,
             serverIdentifier: session.activity.serverIdentifier,
-            ratingKey: item.ratingKey,
-            mediaType: item.type,
+            ratingKey: item.id,
+            mediaKind: item.kind,
             title: item.title,
             initialPosition: 0,
         )
@@ -330,29 +327,58 @@ final class SharePlayCoordinator {
               let playbackLauncher
         else { return }
         lastLaunchedActivityID = activity.activityID
-        let activityContext: PlexAPIContext
         do {
-            activityContext = try await serverContext(for: activity)
+            let services = try await resolvedServices(for: activity)
+            await playbackLauncher.using(services: services).play(
+                ratingKey: activity.ratingKey,
+                type: activity.mediaKind,
+                shouldResumeFromOffset: false,
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
         }
-        await playbackLauncher.using(context: activityContext).play(
-            ratingKey: activity.ratingKey,
-            type: activity.mediaType,
+    }
+
+    private func ensureAccess(to activity: StrimrWatchActivity) async throws {
+        let services = try await resolvedServices(for: activity)
+        _ = try await services.detail.mediaItem(id: activity.ratingKey)
+    }
+
+    func playerViewModel(for activity: StrimrWatchActivity) async throws -> PlayerViewModel {
+        let services = try await resolvedServices(for: activity)
+        let queue = try await services.playback.queue(
+            startingWith: activity.ratingKey,
+            kind: activity.mediaKind,
+            shuffle: false,
+        )
+        guard !queue.items.isEmpty else { throw SharePlayError.mediaUnavailable }
+        return PlayerViewModel(
+            queue: queue,
+            services: services,
             shouldResumeFromOffset: false,
         )
     }
 
-    private func ensureAccess(to activity: StrimrWatchActivity) async throws {
-        let serverContext = try await sessionManager.serverContext(for: activity.serverIdentifier)
-        let repository = try MetadataRepository(context: serverContext)
-        let response = try await repository.getMetadata(ratingKey: activity.ratingKey)
-        guard response.mediaContainer.metadata?.isEmpty == false else {
-            throw SharePlayError.mediaUnavailable
+    private func services(for activity: StrimrWatchActivity) -> MediaServices? {
+        guard let services = sessionManager.mediaServices,
+              services.provider == activity.provider,
+              services.identity.id == activity.serverIdentifier
+        else { return nil }
+        return services
+    }
+
+    private func resolvedServices(for activity: StrimrWatchActivity) async throws -> MediaServices {
+        if let services = services(for: activity) {
+            return services
         }
+        guard activity.provider == .plex else { throw SharePlayError.serverUnavailable }
+        let context = try await sessionManager.serverContext(for: activity.serverIdentifier)
+        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: sessionManager) else {
+            throw SharePlayError.serverUnavailable
+        }
+        return services
     }
 
     private func handleActivityChange(_ newActivity: StrimrWatchActivity) {

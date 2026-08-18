@@ -31,11 +31,6 @@ nonisolated enum PlexBIFArchiveError: Error, LocalizedError, Equatable, Sendable
     }
 }
 
-nonisolated struct PlexBIFThumbnail: @unchecked Sendable {
-    let bucketPosition: Double
-    let image: CGImage
-}
-
 nonisolated struct PlexBIFArchive: Sendable {
     static let maximumFileSize = 100 * 1024 * 1024
     private static let headerSize = 64
@@ -175,11 +170,11 @@ nonisolated struct PlexBIFArchive: Sendable {
         Double(frames[frameIndex(at: seconds)].timestampMilliseconds) / 1000
     }
 
-    nonisolated func thumbnail(at seconds: Double) throws -> PlexBIFThumbnail {
+    nonisolated func thumbnail(at seconds: Double) throws -> ScrubThumbnail {
         try thumbnail(frameIndex: frameIndex(at: seconds))
     }
 
-    nonisolated func thumbnail(frameIndex: Int) throws -> PlexBIFThumbnail {
+    nonisolated func thumbnail(frameIndex: Int) throws -> ScrubThumbnail {
         guard frames.indices.contains(frameIndex) else {
             throw PlexBIFArchiveError.invalidIndex
         }
@@ -199,7 +194,7 @@ nonisolated struct PlexBIFArchive: Sendable {
         else {
             throw PlexBIFArchiveError.invalidJPEG
         }
-        return PlexBIFThumbnail(
+        return ScrubThumbnail(
             bucketPosition: Double(frame.timestampMilliseconds) / 1000,
             image: image,
         )

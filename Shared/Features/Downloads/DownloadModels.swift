@@ -17,9 +17,11 @@ enum DownloadStatus: String, Codable, Hashable {
 }
 
 struct DownloadedMediaMetadata: Codable, Hashable {
+    var provider: MediaProvider?
+    var serverIdentifier: String?
     var ratingKey: String
     var guid: String
-    var type: PlexItemType
+    var type: MediaKind
     var title: String
     var summary: String?
     var genres: [String]
@@ -51,9 +53,9 @@ struct DownloadedMediaMetadata: Codable, Hashable {
             return year.map(String.init)
         case .season:
             return parentTitle
-        case .show:
+        case .series:
             return nil
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             return nil
         }
     }

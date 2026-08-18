@@ -25,7 +25,11 @@ struct LibraryBrowseView: View {
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        if controls.hasDisplayTypes {
+                        Color.clear
+                            .frame(height: 0)
+                            .id("libraryBrowseTop")
+
+                        if controls.hasControls {
                             LibraryBrowseControlsView(
                                 viewModel: controls,
                                 showsBackButton: viewModel.canNavigateBack,
@@ -90,6 +94,9 @@ struct LibraryBrowseView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .onChange(of: viewModel.scrollResetID) {
+                proxy.scrollTo("libraryBrowseTop", anchor: .top)
             }
         }
     }

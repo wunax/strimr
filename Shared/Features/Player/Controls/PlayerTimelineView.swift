@@ -13,7 +13,7 @@ struct PlayerTimelineView: View {
     var playbackPosition: Double
     var playbackRate: Float
     var showsEndsAtTime: Bool
-    var chapters: [PlexChapter]
+    var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
     var onEditingChanged: (Bool) -> Void
@@ -126,7 +126,7 @@ struct PlayerTimelineView: View {
         formatTime(position)
     }
 
-    private var timelineChapters: [PlexChapter] {
+    private var timelineChapters: [MediaChapter] {
         showsChaptersOnTimeline ? chapters : []
     }
 
@@ -149,7 +149,7 @@ struct PlayerTimelineView: View {
         }
     }
 
-    private func chapter(at time: Double) -> PlexChapter? {
+    private func chapter(at time: Double) -> MediaChapter? {
         chapters.first { $0.contains(time: time) }
     }
 

@@ -82,21 +82,8 @@ struct PersonDetailView: View {
             Circle()
                 .fill(Color.white.opacity(0.08))
 
-            if let imageURL = viewModel.imageURL(width: portraitPixels, height: portraitPixels) {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .empty:
-                        ProgressView()
-                    case .failure:
-                        portraitPlaceholder
-                    @unknown default:
-                        portraitPlaceholder
-                    }
-                }
+            if viewModel.imageResource != nil {
+                ArtworkResourceView(resource: viewModel.imageResource)
             } else {
                 portraitPlaceholder
             }
@@ -132,10 +119,6 @@ struct PersonDetailView: View {
         #else
             112
         #endif
-    }
-
-    private var portraitPixels: Int {
-        Int(portraitSize * 2)
     }
 
     private var headerFont: Font {

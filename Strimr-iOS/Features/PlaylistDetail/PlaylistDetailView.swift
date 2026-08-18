@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 struct PlaylistDetailView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: PlaylistDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -81,7 +81,7 @@ struct PlaylistDetailView: View {
         HStack(alignment: .top, spacing: 16) {
             MediaImageView(
                 viewModel: MediaImageViewModel(
-                    context: plexApiContext,
+                    services: mediaServices,
                     artworkKind: .thumb,
                     media: viewModel.playlistDisplayItem,
                 ),

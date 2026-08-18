@@ -20,19 +20,20 @@ final class LibraryCollectionsViewModel {
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
 
-    @ObservationIgnored private let context: PlexAPIContext
-    @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    @ObservationIgnored private var commonItems: [MediaDisplayItem]?
     private let pageSize = 40
 
     init(
         library: Library,
-        context: PlexAPIContext,
-        settingsManager: SettingsManager,
+        services: MediaServices,
+        settingsManager _: SettingsManager,
     ) {
         self.library = library
-        self.context = context
-        self.settingsManager = settingsManager
+        advancedService = services.library as? any PlexAdvancedLibraryService
+        service = services.library
     }
 
     func load() async {
@@ -82,24 +83,17 @@ final class LibraryCollectionsViewModel {
         preservingExistingContent: Bool,
         forceReload: Bool = false,
     ) async {
+        guard let advancedService else { return }
         guard forceReload || sectionCharacters.isEmpty else { return }
         guard let sectionId = library.sectionId else { return }
-        guard let sectionRepository = try? SectionRepository(context: context) else { return }
-
         do {
-            let response = try await sectionRepository.getSectionFirstCharacters(
-                sectionId: sectionId,
-                type: 18,
-                includeCollections: true,
-            )
-            let directories = response.mediaContainer.directory ?? []
+            let values = try await advancedService.collectionCharacters(sectionID: sectionId)
             var runningIndex = 0
             var characters: [SectionCharacter] = []
 
-            for directory in directories {
-                let size = max(0, directory.size ?? 0)
-                guard size > 0 else { continue }
-                let title = directory.title ?? directory.key ?? "#"
+            for value in values {
+                let size = value.size
+                let title = value.title
                 let identifier = "\(title)-\(runningIndex)"
                 characters.append(
                     SectionCharacter(
@@ -130,6 +124,14 @@ final class LibraryCollectionsViewModel {
     ) async {
         guard reset || !loadedPageStarts.contains(start) else { return }
         guard !loadingPageStarts.contains(start) else { return }
+        guard let advancedService else {
+            await loadCommonPage(
+                start: start,
+                reset: reset,
+                preservingExistingContent: preservingExistingContent,
+            )
+            return
+        }
         guard let sectionId = library.sectionId else {
             handleLoadError(
                 String(localized: "errors.missingLibraryIdentifier"),
@@ -138,15 +140,6 @@ final class LibraryCollectionsViewModel {
             )
             return
         }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
-            handleLoadError(
-                String(localized: "errors.selectServer.browseLibrary"),
-                reset: reset,
-                preservingExistingContent: preservingExistingContent,
-            )
-            return
-        }
-
         if reset {
             loadedPageStarts.remove(start)
         }
@@ -157,15 +150,14 @@ final class LibraryCollectionsViewModel {
         }
 
         do {
-            let response = try await sectionRepository.getSectionCollections(
-                sectionId: sectionId,
-                includeCollections: true,
-                pagination: PlexPagination(start: start, size: pageSize),
+            let response = try await advancedService.collectionPage(
+                sectionID: sectionId,
+                startIndex: start,
+                limit: pageSize,
             )
 
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(MediaDisplayItem.init)
-            let total = response.mediaContainer.totalSize ?? (start + newItems.count)
+            let newItems = response.items
+            let total = response.totalCount ?? (start + newItems.count)
 
             if reset {
                 itemsByIndex = [:]
@@ -185,6 +177,48 @@ final class LibraryCollectionsViewModel {
         }
     }
 
+    private func loadCommonPage(
+        start: Int,
+        reset: Bool,
+        preservingExistingContent: Bool,
+    ) async {
+        if reset {
+            commonItems = nil
+            loadedPageStarts.removeAll()
+        }
+        errorMessage = nil
+        loadingPageStarts.insert(start)
+        defer { loadingPageStarts.remove(start) }
+
+        do {
+            let allItems: [MediaDisplayItem]
+            if let commonItems {
+                allItems = commonItems
+            } else {
+                allItems = try await service.collections(in: library).map(MediaDisplayItem.collection)
+                commonItems = allItems
+            }
+            let page = Array(allItems.dropFirst(start).prefix(pageSize))
+            if reset {
+                itemsByIndex = [:]
+            }
+            for (offset, item) in page.enumerated() {
+                itemsByIndex[start + offset] = item
+            }
+            loadedPageStarts.insert(start)
+            totalItemCount = allItems.count
+        } catch {
+            if !error.isCancellation {
+                ErrorReporter.capture(error)
+                handleLoadError(
+                    error.localizedDescription,
+                    reset: reset,
+                    preservingExistingContent: preservingExistingContent,
+                )
+            }
+        }
+    }
+
     private func resetState(error: String? = nil) {
         itemsByIndex = [:]
         totalItemCount = 0
@@ -193,6 +227,7 @@ final class LibraryCollectionsViewModel {
         isLoading = false
         loadedPageStarts = []
         loadingPageStarts = []
+        commonItems = nil
     }
 
     private func handleLoadError(_ message: String, reset: Bool, preservingExistingContent: Bool) {

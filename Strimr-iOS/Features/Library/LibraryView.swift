@@ -66,38 +66,32 @@ struct LibraryView: View {
     }
 
     private var visibleLibraries: [Library] {
-        viewModel.libraries.filter { !hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
     }
 
     private var hiddenLibraries: [Library] {
-        viewModel.libraries.filter { hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
+    }
+
+    private var displayedLibraries: [Library] {
+        viewModel.libraries.filter { library in
+            guard viewModel.provider == .jellyfin else { return true }
+            if library.type == .collection {
+                return settingsManager.interface.displayCollections
+            }
+            if library.type == .playlist {
+                return settingsManager.interface.displayPlaylists
+            }
+            return true
+        }
     }
 
     private func libraryRow(for library: Library) -> some View {
         NavigationLink(value: library) {
             ZStack(alignment: .bottomLeading) {
-                if let artwork = viewModel.artworkURL(for: library) {
-                    AsyncImage(url: artwork) { phase in
-                        switch phase {
-                        case let .success(image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .transition(.opacity)
-                        case .empty:
-                            Color.gray.opacity(0.1)
-                        case .failure:
-                            Color.gray.opacity(0.1)
-                        @unknown default:
-                            Color.gray.opacity(0.1)
-                        }
-                    }
+                ArtworkResourceView(resource: viewModel.artwork(for: library))
                     .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight)
                     .clipped()
-                } else {
-                    Color.gray.opacity(0.08)
-                        .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight)
-                }
 
                 LinearGradient(
                     colors: [

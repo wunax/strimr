@@ -16,26 +16,47 @@ final class LibraryBrowseViewModel {
     var isLoadingMore = false
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
+    var scrollResetID = 0
     private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
     private var hasLoadedMeta = false
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
+    @ObservationIgnored private let browseService: (any AdvancedLibraryBrowseService)?
+    @ObservationIgnored private let service: any MediaLibraryService
     @ObservationIgnored private let settingsManager: SettingsManager
+    @ObservationIgnored private let browseSession: LibraryBrowseSession
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
-    init(library: Library, context: PlexAPIContext, settingsManager: SettingsManager) {
+    init(
+        library: Library,
+        services: MediaServices,
+        settingsManager: SettingsManager,
+        browseSession: LibraryBrowseSession,
+    ) {
         self.library = library
-        self.context = context
+        advancedService = services.library as? any PlexAdvancedLibraryService
+        browseService = services.library as? any AdvancedLibraryBrowseService
+        service = services.library
         self.settingsManager = settingsManager
-        controls = LibraryBrowseControlsViewModel(context: context)
+        self.browseSession = browseSession
+        controls = LibraryBrowseControlsViewModel(
+            advancedService: services.library as? any PlexAdvancedLibraryService,
+            browseService: services.library as? any AdvancedLibraryBrowseService,
+            library: library,
+            browseSession: browseSession,
+        )
         controls.onSelectionChanged = { [weak self] in
-            Task { await self?.refresh() }
+            self?.selectionChanged()
         }
         controls.onDisplayTypeChanged = { [weak self] in
             guard let self else { return }
             folderStack = []
             Task { await self.refresh() }
+        }
+        browseSession.externalQueryChangeHandler = { [weak self] in
+            self?.selectionChanged()
         }
     }
 
@@ -72,21 +93,34 @@ final class LibraryBrowseViewModel {
     }
 
     func refresh() async {
+        scrollResetID &+= 1
         reachedEnd = false
         browseItems = []
         await fetch(reset: true)
     }
 
+    private func selectionChanged() {
+        guard browseService != nil else {
+            Task { await refresh() }
+            return
+        }
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
+    }
+
     private func fetch(reset: Bool) async {
+        guard let advancedService else {
+            await fetchUsingCommonService(reset: reset)
+            return
+        }
         guard let sectionId = library.sectionId else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
-        guard let sectionRepository = try? SectionRepository(context: context) else {
-            resetState(error: String(localized: "errors.selectServer.browseLibrary"))
-            return
-        }
-
         if reset {
             isLoading = true
         } else {
@@ -109,20 +143,20 @@ final class LibraryBrowseViewModel {
                 includeMeta: includeMeta,
             )
 
-            let response = try await sectionRepository.getSectionBrowseItems(
+            let response = try await advancedService.advancedBrowse(
                 path: endpoint.path,
                 queryItems: queryItems,
-                pagination: PlexPagination(start: start, size: 20),
+                startIndex: start,
+                limit: 20,
             )
 
-            if includeMeta, let meta = response.mediaContainer.meta {
+            if includeMeta, let meta = response.meta {
                 controls.applyMeta(meta)
                 hasLoadedMeta = true
             }
 
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .compactMap(mapBrowseItem)
-            let total = response.mediaContainer.totalSize ?? (start + newItems.count)
+            let newItems = response.items
+            let total = response.totalCount
 
             if reset {
                 browseItems = newItems
@@ -132,6 +166,55 @@ final class LibraryBrowseViewModel {
 
             reachedEnd = browseItems.count >= total || newItems.isEmpty
         } catch {
+            if reset {
+                resetState(error: error.localizedDescription)
+            } else {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func fetchUsingCommonService(reset: Bool) async {
+        if reset {
+            isLoading = true
+        } else {
+            isLoadingMore = true
+        }
+        errorMessage = nil
+        defer {
+            isLoading = false
+            isLoadingMore = false
+        }
+        do {
+            let start = reset ? 0 : browseItems.count
+            let requestedQuery = browseSession.query
+            let page: MediaPage<MediaDisplayItem> = if let browseService {
+                try await browseService.browseItems(
+                    in: library,
+                    parentID: folderStack.last?.id,
+                    query: requestedQuery,
+                    startIndex: start,
+                    limit: 20,
+                )
+            } else {
+                try await service.items(
+                    in: library,
+                    parentID: folderStack.last?.id,
+                    startIndex: start,
+                    limit: 20,
+                )
+            }
+            guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }
+            let newItems = page.items.map(LibraryBrowseItem.media)
+            if reset {
+                browseItems = newItems
+            } else {
+                browseItems.append(contentsOf: newItems)
+            }
+            reachedEnd = page.totalCount.map { browseItems.count >= $0 } ?? newItems.isEmpty
+        } catch {
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             if reset {
                 resetState(error: error.localizedDescription)
             } else {
@@ -164,26 +247,10 @@ final class LibraryBrowseViewModel {
         switch library.type {
         case .movie:
             "1"
-        case .show:
+        case .series:
             "2"
         default:
             "1,2"
-        }
-    }
-
-    private func mapBrowseItem(_ metadata: PlexBrowseMetadata) -> LibraryBrowseItem? {
-        switch metadata {
-        case let .item(plexItem):
-            guard let mediaItem = MediaDisplayItem(plexItem: plexItem) else { return nil }
-            return .media(mediaItem)
-        case let .folder(folder):
-            return .folder(
-                LibraryBrowseFolderItem(
-                    id: folder.key,
-                    key: folder.key,
-                    title: folder.title,
-                ),
-            )
         }
     }
 

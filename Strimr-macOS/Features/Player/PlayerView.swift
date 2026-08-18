@@ -2,18 +2,16 @@ import AppKit
 import SwiftUI
 
 struct PlayerWindowView: View {
-    @Environment(PlexAPIContext.self) private var context
     @Environment(AppModel.self) private var appModel
 
     var body: some View {
         if let presentation = appModel.playerPresentation,
-           let ratingKey = presentation.playQueue.selectedRatingKey
+           let viewModel = playerViewModel(for: presentation)
         {
             PlayerView(
-                viewModel: playerViewModel(for: presentation, ratingKey: ratingKey),
+                viewModel: viewModel,
                 presentationID: presentation.id,
             )
-            .environment(presentation.context ?? context)
             .id(presentation.id)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
@@ -22,17 +20,18 @@ struct PlayerWindowView: View {
 
     private func playerViewModel(
         for presentation: AppModel.PlayerPresentation,
-        ratingKey: String,
-    ) -> PlayerViewModel {
+    ) -> PlayerViewModel? {
         if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
-            return PlayerViewModel(localMedia: media, localPlaybackURL: url, context: context)
+            return PlayerViewModel(localMedia: media, localPlaybackURL: url)
         }
-        return PlayerViewModel(
-            playQueue: presentation.playQueue,
-            ratingKey: ratingKey,
-            context: presentation.context ?? context,
-            shouldResumeFromOffset: presentation.shouldResumeFromOffset,
-        )
+        if let queue = presentation.mediaQueue, let services = presentation.mediaServices {
+            return PlayerViewModel(
+                queue: queue,
+                services: services,
+                shouldResumeFromOffset: presentation.shouldResumeFromOffset,
+            )
+        }
+        return nil
     }
 }
 
@@ -58,8 +57,8 @@ struct PlayerView: View {
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
-    @State private var pendingRecoveryAudioPlexStreamID: Int?
-    @State private var pendingRecoverySubtitlePlexStreamID: Int?
+    @State private var pendingRecoveryAudioProviderStreamID: Int?
+    @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1
     @State private var loadedURL: URL?
@@ -73,7 +72,7 @@ struct PlayerView: View {
     @State private var isShowingChapterPopover = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
-    @State private var serverRecoveryError: PlexServerAccessRecoveryError?
+    @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var shouldResumeAfterMediaLoad = false
     @State private var shouldPauseAfterMediaLoad = false
@@ -266,13 +265,15 @@ struct PlayerView: View {
 
         return presentationObservers
             .sheet(isPresented: $isShowingSubtitleSearch) {
-                SubtitleSearchView(
-                    ratingKey: viewModel.currentRatingKey,
-                    titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    context: viewModel.serverContext,
-                    onAttached: handleAttachedSubtitle(_:),
-                )
-                .frame(minWidth: 560, minHeight: 640)
+                if let services = viewModel.subtitleSearchServices {
+                    SubtitleSearchView(
+                        itemID: viewModel.currentRatingKey,
+                        titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                        services: services,
+                        onAttached: handleAttachedSubtitle(_:),
+                    )
+                    .frame(minWidth: 560, minHeight: 640)
+                }
             }
             .alert("player.termination.title", isPresented: $isShowingError) {
                 Button("player.termination.dismiss") { closePlayer(force: true) }
@@ -561,9 +562,9 @@ struct PlayerView: View {
                         Task { await viewModel.persistStreamSelection(for: track) }
                     } label: {
                         if selectedAudioTrackID == track.id {
-                            Label(track.displayName, systemImage: "checkmark")
+                            Label(playerTrackTitle(track), systemImage: "checkmark")
                         } else {
-                            Text(track.displayName)
+                            Text(playerTrackTitle(track))
                         }
                     }
                 }
@@ -599,9 +600,9 @@ struct PlayerView: View {
                     Task { await viewModel.persistSubtitleStreamSelection(for: track) }
                 } label: {
                     if selectedSubtitleTrackID == track.id {
-                        Label(track.displayName, systemImage: "checkmark")
+                        Label(playerTrackTitle(track), systemImage: "checkmark")
                     } else {
-                        Text(track.displayName)
+                        Text(playerTrackTitle(track))
                     }
                 }
             }
@@ -617,6 +618,13 @@ struct PlayerView: View {
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
         }
+    }
+
+    private func playerTrackTitle(_ track: PlayerTrack) -> String {
+        PlaybackSettingsTrack(
+            track: track,
+            metadata: viewModel.trackMetadata(forID: track.providerStreamID),
+        ).title
     }
 
     private var speedMenu: some View {
@@ -638,7 +646,7 @@ struct PlayerView: View {
         }
     }
 
-    private func handleAttachedSubtitle(_: PlexSubtitleSearchResult) async {
+    private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
             let id = try playerController.registerExternalSubtitleIfNeeded(
@@ -667,9 +675,6 @@ struct PlayerView: View {
             PlayerChapterPopover(
                 chapters: viewModel.chapters,
                 currentPosition: viewModel.position,
-                imageURL: { chapter in
-                    viewModel.chapterImageURL(for: chapter, width: 320, height: 180)
-                },
                 onSelect: selectChapter(_:),
             )
         }
@@ -712,11 +717,11 @@ struct PlayerView: View {
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
             if shouldRestoreTracksAfterLoad {
-                let audioID = pendingRecoveryAudioPlexStreamID.flatMap { plexStreamID in
-                    audioTracks.first { $0.plexStreamID == plexStreamID }?.id
+                let audioID = pendingRecoveryAudioProviderStreamID.flatMap { providerStreamID in
+                    audioTracks.first { $0.providerStreamID == providerStreamID }?.id
                 }
-                let subtitleID = pendingRecoverySubtitlePlexStreamID.flatMap { plexStreamID in
-                    subtitleTracks.first { $0.plexStreamID == plexStreamID }?.id
+                let subtitleID = pendingRecoverySubtitleProviderStreamID.flatMap { providerStreamID in
+                    subtitleTracks.first { $0.providerStreamID == providerStreamID }?.id
                 }
                 selectedAudioTrackID = audioID
                 selectedSubtitleTrackID = subtitleID
@@ -725,14 +730,14 @@ struct PlayerView: View {
                     id: subtitleID,
                     styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 )
-                pendingRecoveryAudioPlexStreamID = nil
-                pendingRecoverySubtitlePlexStreamID = nil
+                pendingRecoveryAudioProviderStreamID = nil
+                pendingRecoverySubtitleProviderStreamID = nil
                 shouldRestoreTracksAfterLoad = false
             } else {
                 selectedAudioTrackID = audioTracks.first(where: \.isSelected)?.id
 
                 if let preferredSubtitle = viewModel.preferredSubtitleStreamID,
-                   let track = subtitleTracks.first(where: { $0.plexStreamID == preferredSubtitle })
+                   let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitle })
                 {
                     selectedSubtitleTrackID = track.id
                     playerController.selectSubtitleTrack(
@@ -768,12 +773,13 @@ struct PlayerView: View {
             : (viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil)
         playerController.load(
             url: url,
+            httpHeaders: viewModel.playbackHTTPHeaders,
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
-            plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
+            providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
             externalSubtitles: viewModel.externalSubtitleTracks(),
             scrubThumbnailSource: viewModel.scrubThumbnailSource,
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
@@ -800,7 +806,7 @@ struct PlayerView: View {
         showAutomaticSkipFeedback(for: marker)
     }
 
-    private func showAutomaticSkipFeedback(for marker: PlexMarker) {
+    private func showAutomaticSkipFeedback(for marker: SkipSegment) {
         automaticSkipFeedbackWorkItem?.cancel()
         let message = marker.isIntro
             ? String(localized: "player.skip.intro.automaticConfirmation")
@@ -827,28 +833,29 @@ struct PlayerView: View {
             return
         }
 
-        guard let next = await viewModel.nextItemInQueue() else {
-            if isSharePlayPlayback {
-                sharePlayCoordinator.leave()
-                participatesInSharePlay = false
-                closePlayer(force: true)
-            } else {
+        if viewModel.usesCommonPlaybackQueue {
+            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
                 playerController.pause()
+                return
             }
+            if isSharePlayPlayback, let next = nextViewModel.media {
+                sharePlayCoordinator.updateToNextItem(next)
+                return
+            }
+            await startPlayback(using: nextViewModel)
             return
         }
 
         if isSharePlayPlayback {
-            sharePlayCoordinator.updateToNextEpisode(next)
-            return
+            sharePlayCoordinator.leave()
+            participatesInSharePlay = false
+            closePlayer(force: true)
+        } else {
+            playerController.pause()
         }
+    }
 
-        let nextViewModel = PlayerViewModel(
-            playQueue: viewModel.playQueue,
-            ratingKey: next.ratingKey,
-            context: viewModel.serverContext,
-            shouldResumeFromOffset: false,
-        )
+    private func startPlayback(using nextViewModel: PlayerViewModel) async {
         playerController.stop()
         loadedURL = nil
         audioTracks = []
@@ -889,7 +896,7 @@ struct PlayerView: View {
                 showError(message)
                 return
             }
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             presentServerRecoveryError(error)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -906,12 +913,12 @@ struct PlayerView: View {
         lastReloadedServerAccessGeneration = generation
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
-        pendingRecoveryAudioPlexStreamID = audioTracks.first {
+        pendingRecoveryAudioProviderStreamID = audioTracks.first {
             $0.id == selectedAudioTrackID
-        }?.plexStreamID
-        pendingRecoverySubtitlePlexStreamID = subtitleTracks.first {
+        }?.providerStreamID
+        pendingRecoverySubtitleProviderStreamID = subtitleTracks.first {
             $0.id == selectedSubtitleTrackID
-        }?.plexStreamID
+        }?.providerStreamID
         shouldRestoreTracksAfterLoad = true
         isRecoveringServerAccess = true
         playerController.stop()
@@ -923,14 +930,15 @@ struct PlayerView: View {
             loadedURL = url
             playerController.load(
                 url: url,
+                httpHeaders: viewModel.playbackHTTPHeaders,
                 startPosition: position,
                 preferredAudioTrackID: viewModel.ffIndex(
-                    forPlexStreamID: pendingRecoveryAudioPlexStreamID,
+                    forProviderStreamID: pendingRecoveryAudioProviderStreamID,
                 ),
                 losslessAudio: settingsManager.playback.losslessAudio,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
-                plexStreamIDsByFFIndex: viewModel.plexStreamIDsByFFIndex(),
+                providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
                 externalSubtitles: viewModel.externalSubtitleTracks(),
                 scrubThumbnailSource: viewModel.scrubThumbnailSource,
                 showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
@@ -942,7 +950,7 @@ struct PlayerView: View {
             shouldResumeAfterMediaLoad = !isSharePlay && !wasPaused
             shouldPauseAfterMediaLoad = !isSharePlay && wasPaused
             isRecoveringServerAccess = false
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -958,7 +966,7 @@ struct PlayerView: View {
         isRecoveringServerAccess = true
         do {
             try await viewModel.forceServerAccessRecovery()
-        } catch let error as PlexServerAccessRecoveryError {
+        } catch let error as MediaServerAccessRecoveryError {
             isRecoveringServerAccess = false
             presentServerRecoveryError(error)
         } catch {
@@ -981,7 +989,7 @@ struct PlayerView: View {
         closePlayer(force: true)
     }
 
-    private func presentServerRecoveryError(_ error: PlexServerAccessRecoveryError) {
+    private func presentServerRecoveryError(_ error: MediaServerAccessRecoveryError) {
         playerController.pause()
         serverRecoveryError = error
         viewModel.clearServerAccessRecoveryError()
@@ -1007,29 +1015,14 @@ struct PlayerView: View {
     }
 
     private func startPlayback(for activity: StrimrWatchActivity) async {
-        let activityContext: PlexAPIContext
         do {
-            activityContext = try await sharePlayCoordinator.serverContext(for: activity)
+            let nextViewModel = try await sharePlayCoordinator.playerViewModel(for: activity)
+            await startPlayback(using: nextViewModel)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
-            return
         }
-        playerController.stop()
-        loadedURL = nil
-        audioTracks = []
-        subtitleTracks = []
-        selectedAudioTrackID = nil
-        selectedSubtitleTrackID = nil
-        viewModel = PlayerViewModel(
-            playQueue: viewModel.playQueue,
-            ratingKey: activity.ratingKey,
-            context: activityContext,
-            shouldResumeFromOffset: false,
-        )
-        await viewModel.load()
-        startPlaybackIfNeeded(viewModel.playbackURL)
     }
 
     private func handlePointerMovement(_ phase: HoverPhase) {
@@ -1118,7 +1111,7 @@ struct PlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
-    private func selectChapter(_ chapter: PlexChapter) {
+    private func selectChapter(_ chapter: MediaChapter) {
         playerController.seek(to: chapter.startTime)
         scrubPosition = chapter.startTime
         viewModel.handlePlaybackPosition(chapter.startTime, isScrubbing: false)

@@ -23,6 +23,8 @@ struct ContentView: View {
                     ProgressView(sessionManager.loadingPhase.title)
                         .progressViewStyle(.circular)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .needsProviderSelection:
+                    ProviderSelectionView()
                 case .signedOut:
                     SignInView(
                         viewModel: SignInViewModel(
@@ -30,6 +32,8 @@ struct ContentView: View {
                             context: plexApiContext,
                         ),
                     )
+                case .needsJellyfinAuthentication:
+                    JellyfinAuthenticationView()
                 case .needsProfileSelection:
                     NavigationStack {
                         ProfileSwitcherView(
@@ -49,17 +53,22 @@ struct ContentView: View {
                         )
                     }
                 case .ready:
-                    MainTabView(
-                        homeViewModel: HomeViewModel(
-                            context: plexApiContext,
-                            settingsManager: settingsManager,
-                            libraryStore: libraryStore,
-                        ),
-                        libraryViewModel: LibraryViewModel(
-                            context: plexApiContext,
-                            libraryStore: libraryStore,
-                        ),
-                    )
+                    if let services = sessionManager.mediaServices {
+                        MainTabView(
+                            homeViewModel: HomeViewModel(
+                                services: services,
+                                settingsManager: settingsManager,
+                                libraryStore: libraryStore,
+                            ),
+                            libraryViewModel: LibraryViewModel(
+                                services: services,
+                                libraryStore: libraryStore,
+                            ),
+                        )
+                        .environment(services)
+                    } else {
+                        ProgressView(sessionManager.loadingPhase.title)
+                    }
                 }
             }
         }

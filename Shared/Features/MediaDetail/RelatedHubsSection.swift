@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 struct RelatedHubsSection: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     #if os(tvOS)
         @EnvironmentObject private var coordinator: MainCoordinator
     #endif
@@ -27,7 +27,7 @@ struct RelatedHubsSection: View {
             .sheet(item: $selectedHub) { hub in
                 NavigationStack {
                     HubDetailView(
-                        viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                        viewModel: HubDetailViewModel(hub: hub, services: mediaServices),
                         onSelectMedia: { media in
                             selectedHub = nil
                             onSelectMedia(media)

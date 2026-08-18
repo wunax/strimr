@@ -12,6 +12,7 @@ struct LibraryRecommendedView: View {
 
     private let landscapeHubIdentifiers: [String] = [
         "inprogress",
+        "nextup",
     ]
 
     init(

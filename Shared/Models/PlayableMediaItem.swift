@@ -6,27 +6,27 @@ enum PlayableItemType: String, Codable, Hashable {
     case season
     case episode
 
-    init?(plexType: PlexItemType) {
-        switch plexType {
+    init?(mediaKind: MediaKind) {
+        switch mediaKind {
         case .movie:
             self = .movie
-        case .show:
+        case .series:
             self = .show
         case .season:
             self = .season
         case .episode:
             self = .episode
-        case .collection, .playlist, .unknown:
+        case .collection, .playlist, .folder, .unknown:
             return nil
         }
     }
 
-    var plexType: PlexItemType {
+    var mediaKind: MediaKind {
         switch self {
         case .movie:
             .movie
         case .show:
-            .show
+            .series
         case .season:
             .season
         case .episode:
@@ -40,7 +40,7 @@ struct PlayableMediaItem: Identifiable, Hashable {
     let type: PlayableItemType
 
     init?(mediaItem: MediaItem) {
-        guard let playableType = PlayableItemType(plexType: mediaItem.type) else { return nil }
+        guard let playableType = PlayableItemType(mediaKind: mediaItem.type) else { return nil }
         item = mediaItem
         type = playableType
     }
@@ -137,8 +137,8 @@ struct PlayableMediaItem: Identifiable, Hashable {
         item.viewProgressPercentage
     }
 
-    var plexType: PlexItemType {
-        type.plexType
+    var mediaKind: MediaKind {
+        type.mediaKind
     }
 
     var mediaItem: MediaItem {

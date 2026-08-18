@@ -24,6 +24,12 @@ final class SeerrSessionService {
         return try await repository.fetchCurrentUser()
     }
 
+    func signInWithJellyfin(baseURL: URL, username: String, password: String) async throws -> SeerrUser {
+        let repository = SeerrAuthRepository(baseURL: baseURL)
+        try await repository.signInWithJellyfin(username: username, password: password)
+        return try await repository.fetchCurrentUser()
+    }
+
     func hydrateCurrentUser(baseURL: URL) async throws -> SeerrUser {
         let repository = SeerrAuthRepository(baseURL: baseURL)
         return try await repository.fetchCurrentUser()

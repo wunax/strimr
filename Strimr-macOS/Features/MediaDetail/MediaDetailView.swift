@@ -5,7 +5,7 @@ import SwiftUI
 struct MediaDetailView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(PlexAPIContext.self) private var context
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @State private var viewModel: MediaDetailViewModel
@@ -15,14 +15,14 @@ struct MediaDetailView: View {
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
-    let onPlay: (String, PlexItemType, Bool, Bool) -> Void
+    let onPlay: (String, MediaKind, Bool, Bool) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
         onSelectMedia: @escaping (MediaItem) -> Void,
         onSelectParentSeries: @escaping (PlayableMediaItem) -> Void,
         onSelectPerson: @escaping (Person) -> Void = { _ in },
-        onPlay: @escaping (String, PlexItemType, Bool, Bool) -> Void,
+        onPlay: @escaping (String, MediaKind, Bool, Bool) -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
@@ -67,7 +67,7 @@ struct MediaDetailView: View {
                 viewModel: viewModel,
                 onSubmitSelection: { episodeIDs in
                     for episodeID in episodeIDs {
-                        await downloadManager.enqueueItem(ratingKey: episodeID, context: context)
+                        await downloadManager.enqueueItem(itemID: episodeID, services: mediaServices)
                     }
                 },
                 statusForRatingKey: downloadManager.status,
@@ -77,9 +77,9 @@ struct MediaDetailView: View {
         .sheet(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = viewModel.trackRatingKey {
                 SubtitleSearchView(
-                    ratingKey: ratingKey,
+                    itemID: ratingKey,
                     titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                    context: context,
+                    services: mediaServices,
                 ) { _ in
                     await viewModel.refreshTrackSelectionAfterSubtitleAttachment()
                 }
@@ -122,25 +122,31 @@ struct MediaDetailView: View {
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
             GeometryReader { proxy in
-                AsyncImage(
-                    url: viewModel.heroImageURL(
+                Group {
+                    if let url = viewModel.heroImageURL(
                         spoilerProtection: settingsManager.interface.spoilerProtection,
-                    ),
-                ) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                            .clipped()
-                            .overlay(Color.black.opacity(0.2))
-                            .mask(heroMask)
+                    ) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Color.black.opacity(0.25)
+                            }
+                        }
                     } else {
-                        Color.black.opacity(0.25)
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                            .mask(heroMask)
+                        ArtworkPathView(
+                            path: viewModel.heroArtworkPath(
+                                spoilerProtection: settingsManager.interface.spoilerProtection,
+                            ),
+                            width: 1400,
+                            height: 800,
+                        )
                     }
                 }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
+                .overlay(Color.black.opacity(0.2))
+                .mask(heroMask)
             }
             .frame(maxWidth: .infinity, minHeight: 380, maxHeight: 480)
             .overlay(alignment: .topLeading) {
@@ -206,7 +212,7 @@ struct MediaDetailView: View {
             if let contentRating = viewModel.media.contentRating {
                 Text(contentRating)
             }
-            if let rating = viewModel.ratingText {
+            if viewModel.media.ratings.isEmpty, let rating = viewModel.ratingText {
                 Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)
             }
         }
@@ -316,7 +322,7 @@ struct MediaDetailView: View {
 
                 if viewModel.media.type == .show || viewModel.media.type == .season {
                     Button("common.actions.shuffle", systemImage: "shuffle") {
-                        onPlay(viewModel.media.id, viewModel.media.plexType, true, true)
+                        onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
                     }
                     .controlSize(.large)
                 }
@@ -333,7 +339,9 @@ struct MediaDetailView: View {
                     .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
                 }
 
-                if [.movie, .episode, .season, .show].contains(viewModel.media.type) {
+                if mediaServices.capabilities.downloads,
+                   [.movie, .episode, .season, .show].contains(viewModel.media.type)
+                {
                     Button("downloads.action", systemImage: downloadIconName) {
                         handleDownload()
                     }
@@ -409,9 +417,15 @@ struct MediaDetailView: View {
         case .show:
             isShowingShowDownloadSheet = true
         case .season:
-            Task { await downloadManager.enqueueSeason(ratingKey: viewModel.media.id, context: context) }
+            Task {
+                await downloadManager.enqueueItems(
+                    itemID: viewModel.media.id,
+                    kind: .season,
+                    services: mediaServices,
+                )
+            }
         case .movie, .episode:
-            Task { await downloadManager.enqueueItem(ratingKey: viewModel.media.id, context: context) }
+            Task { await downloadManager.enqueueItem(itemID: viewModel.media.id, services: mediaServices) }
         }
     }
 
@@ -490,16 +504,24 @@ struct MediaDetailView: View {
             onSelectMedia(episode)
         } label: {
             HStack(spacing: 14) {
-                AsyncImage(
-                    url: viewModel.imageURL(
+                Group {
+                    if let url = viewModel.imageURL(
                         for: episode,
                         spoilerProtection: settingsManager.interface.spoilerProtection,
-                    ),
-                ) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
+                    ) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Color.gray.opacity(0.15)
+                            }
+                        }
                     } else {
-                        Color.gray.opacity(0.15)
+                        ArtworkPathView(
+                            path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
+                            width: 640,
+                            height: 360,
+                        )
                     }
                 }
                 .frame(width: 180, height: 100)

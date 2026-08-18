@@ -2,9 +2,9 @@ import Observation
 import SwiftUI
 
 struct MediaDetailView: View {
+    @Environment(MediaServices.self) private var mediaServices
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: MediaDetailViewModel
@@ -13,17 +13,17 @@ struct MediaDetailView: View {
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
-    private let onPlay: (String, PlexItemType) -> Void
-    private let onPlayFromStart: (String, PlexItemType) -> Void
-    private let onShuffle: (String, PlexItemType) -> Void
+    private let onPlay: (String, MediaKind) -> Void
+    private let onPlayFromStart: (String, MediaKind) -> Void
+    private let onShuffle: (String, MediaKind) -> Void
     private let onSelectMedia: (MediaDisplayItem) -> Void
     private let onSelectPerson: (Person) -> Void
 
     init(
         viewModel: MediaDetailViewModel,
-        onPlay: @escaping (String, PlexItemType) -> Void = { _, _ in },
-        onPlayFromStart: @escaping (String, PlexItemType) -> Void = { _, _ in },
-        onShuffle: @escaping (String, PlexItemType) -> Void = { _, _ in },
+        onPlay: @escaping (String, MediaKind) -> Void = { _, _ in },
+        onPlayFromStart: @escaping (String, MediaKind) -> Void = { _, _ in },
+        onShuffle: @escaping (String, MediaKind) -> Void = { _, _ in },
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
         onSelectPerson: @escaping (Person) -> Void = { _ in },
     ) {
@@ -78,9 +78,9 @@ struct MediaDetailView: View {
         .sheet(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = bindableViewModel.trackRatingKey {
                 SubtitleSearchView(
-                    ratingKey: ratingKey,
+                    itemID: ratingKey,
                     titlePlaceholder: bindableViewModel.subtitleSearchTitlePlaceholder,
-                    context: context,
+                    services: mediaServices,
                 ) { _ in
                     await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
                 }
@@ -468,7 +468,7 @@ struct MediaDetailView: View {
     }
 
     private func handleShuffle() {
-        onShuffle(viewModel.media.id, viewModel.media.plexType)
+        onShuffle(viewModel.media.id, viewModel.media.mediaKind)
     }
 
     private func activateSharePlay() async {

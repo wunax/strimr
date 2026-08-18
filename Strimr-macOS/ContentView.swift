@@ -21,6 +21,8 @@ struct ContentView: View {
                 ProgressView(sessionManager.loadingPhase.title)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .needsProviderSelection:
+                ProviderSelectionView()
             case .signedOut:
                 SignInView(
                     viewModel: SignInViewModel(
@@ -28,6 +30,8 @@ struct ContentView: View {
                         context: plexAPIContext,
                     ),
                 )
+            case .needsJellyfinAuthentication:
+                JellyfinAuthenticationView()
             case .needsProfileSelection:
                 ProfileSwitcherView(
                     viewModel: ProfileSwitcherViewModel(
@@ -43,17 +47,22 @@ struct ContentView: View {
                     ),
                 )
             case .ready:
-                MainView(
-                    homeViewModel: HomeViewModel(
-                        context: plexAPIContext,
-                        settingsManager: settingsManager,
-                        libraryStore: libraryStore,
-                    ),
-                    libraryViewModel: LibraryViewModel(
-                        context: plexAPIContext,
-                        libraryStore: libraryStore,
-                    ),
-                )
+                if let services = sessionManager.mediaServices {
+                    MainView(
+                        homeViewModel: HomeViewModel(
+                            services: services,
+                            settingsManager: settingsManager,
+                            libraryStore: libraryStore,
+                        ),
+                        libraryViewModel: LibraryViewModel(
+                            services: services,
+                            libraryStore: libraryStore,
+                        ),
+                    )
+                    .environment(services)
+                } else {
+                    ProgressView(sessionManager.loadingPhase.title)
+                }
             }
         }
         .onChange(of: appModel.playerPresentation?.id) { _, presentationID in

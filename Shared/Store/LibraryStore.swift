@@ -9,9 +9,16 @@ final class LibraryStore {
     var loadFailed = false
 
     @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private var service: (any MediaLibraryService)?
 
     init(context: PlexAPIContext) {
         self.context = context
+    }
+
+    func configure(service: (any MediaLibraryService)?) {
+        self.service = service
+        libraries = []
+        loadFailed = false
     }
 
     func loadLibraries() async throws {
@@ -23,6 +30,10 @@ final class LibraryStore {
         defer { isLoading = false }
 
         do {
+            if let service {
+                libraries = try await service.libraries()
+                return
+            }
             let repository = try SectionRepository(context: context)
             let response = try await repository.getSections()
             let sections = response.mediaContainer.directory ?? []

@@ -116,18 +116,31 @@ struct LibraryView: View {
     }
 
     private var visibleLibraries: [Library] {
-        viewModel.libraries.filter { !hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
     }
 
     private var hiddenLibraries: [Library] {
-        viewModel.libraries.filter { hiddenLibraryIds.contains($0.id) }
+        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
+    }
+
+    private var displayedLibraries: [Library] {
+        viewModel.libraries.filter { library in
+            guard viewModel.provider == .jellyfin else { return true }
+            if library.type == .collection {
+                return settingsManager.interface.displayCollections
+            }
+            if library.type == .playlist {
+                return settingsManager.interface.displayPlaylists
+            }
+            return true
+        }
     }
 
     private func libraryLink(for library: Library) -> some View {
         NavigationLink(value: library) {
             LibraryCard(
                 library: library,
-                artworkURL: viewModel.artworkURL(for: library),
+                artworkResource: viewModel.artwork(for: library),
             )
         }
         .buttonStyle(.plain)
@@ -139,7 +152,7 @@ struct LibraryView: View {
 
 private struct LibraryCard: View {
     let library: Library
-    let artworkURL: URL?
+    let artworkResource: ArtworkResource?
 
     @State private var isHovering = false
 
@@ -202,25 +215,7 @@ private struct LibraryCard: View {
                 .font(.system(size: 42, weight: .medium))
                 .foregroundStyle(.white.opacity(0.35))
 
-            if let artworkURL {
-                AsyncImage(url: artworkURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .transition(.opacity)
-                    case .empty:
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white.opacity(0.8))
-                    case .failure:
-                        EmptyView()
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-            }
+            ArtworkResourceView(resource: artworkResource)
         }
         .clipped()
     }
@@ -242,7 +237,7 @@ private struct LibraryCard: View {
         switch library.type {
         case .movie:
             "search.filter.movies"
-        case .show:
+        case .series:
             "search.filter.shows"
         default:
             "tabs.libraries"

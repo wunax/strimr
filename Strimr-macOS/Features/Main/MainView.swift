@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct MainView: View {
-    @Environment(PlexAPIContext.self) private var context
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(SeerrStore.self) private var seerrStore
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
+    @Environment(MediaServices.self) private var mediaServices
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -66,7 +66,7 @@ struct MainView: View {
         }
         .task {
             sharePlayCoordinator.configurePlaybackLauncher(
-                PlaybackLauncher(context: context, coordinator: appModel),
+                PlaybackLauncher(services: mediaServices, coordinator: appModel),
             )
             do {
                 try await libraryStore.loadLibraries()
@@ -95,11 +95,15 @@ struct MainView: View {
 
     private var accountMenu: some View {
         Menu {
-            Button("common.actions.switchProfile", systemImage: "person.2.circle") {
-                Task { await sessionManager.requestProfileSelection() }
+            if sessionManager.mediaServices?.capabilities.profiles == true {
+                Button("common.actions.switchProfile", systemImage: "person.2.circle") {
+                    Task { await sessionManager.requestProfileSelection() }
+                }
             }
-            Button("common.actions.switchServer", systemImage: "server.rack") {
-                Task { await sessionManager.requestServerSelection() }
+            if sessionManager.provider == .plex {
+                Button("common.actions.switchServer", systemImage: "server.rack") {
+                    Task { await sessionManager.requestServerSelection() }
+                }
             }
             Divider()
             Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
@@ -133,8 +137,7 @@ struct MainView: View {
         case .search:
             SearchView(
                 viewModel: SearchViewModel(
-                    context: context,
-                    sessionManager: sessionManager,
+                    services: mediaServices,
                     settingsManager: settingsManager,
                 ),
                 onSelectMedia: appModel.showSearchResult,
@@ -159,13 +162,13 @@ struct MainView: View {
 
     @ViewBuilder
     private func destination(for route: AppModel.Route) -> some View {
-        let routeContext = appModel.context(for: appModel.selection, default: context)
+        let routeServices = appModel.services(for: appModel.selection, default: mediaServices)
         switch route {
         case let .media(media):
             MediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    context: routeContext,
+                    services: routeServices,
                     resolutionMode: .selectedMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
@@ -173,29 +176,28 @@ struct MainView: View {
                 onSelectPerson: appModel.showPerson,
                 onPlay: play,
             )
-            .environment(routeContext)
         case let .collection(collection):
             CollectionDetailView(
-                viewModel: CollectionDetailViewModel(collection: collection, context: routeContext),
+                viewModel: CollectionDetailViewModel(collection: collection, services: routeServices),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .collection, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .collection, true, true) },
             )
         case let .playlist(playlist):
             PlaylistDetailView(
-                viewModel: PlaylistDetailViewModel(playlist: playlist, context: routeContext),
+                viewModel: PlaylistDetailViewModel(playlist: playlist, services: routeServices),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .playlist, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .playlist, true, true) },
             )
         case let .hub(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, context: routeContext),
+                viewModel: HubDetailViewModel(hub: hub, services: routeServices),
                 onSelectMedia: appModel.showMedia,
             )
         case let .person(person):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, context: routeContext),
+                viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: appModel.showMedia,
             )
         case let .library(library):
@@ -210,13 +212,13 @@ struct MainView: View {
 
     private func play(
         _ ratingKey: String,
-        _ type: PlexItemType,
+        _ type: MediaKind,
         _ shuffle: Bool = false,
         _ shouldResume: Bool = true,
     ) {
         Task {
             await PlaybackLauncher(
-                context: appModel.context(for: appModel.selection, default: context),
+                services: appModel.services(for: appModel.selection, default: mediaServices),
                 coordinator: appModel,
             ).play(
                 ratingKey: ratingKey,

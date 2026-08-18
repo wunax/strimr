@@ -10,15 +10,15 @@ final class HubDetailViewModel {
     var isLoadingMore = false
     var errorMessage: String?
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaHomeService
     @ObservationIgnored private var hasLoaded = false
     @ObservationIgnored private var reachedEnd = false
     @ObservationIgnored private var totalItemCount: Int?
     @ObservationIgnored private let pageSize = 50
 
-    init(hub: Hub, context: PlexAPIContext) {
+    init(hub: Hub, services: MediaServices) {
         self.hub = hub
-        self.context = context
+        service = services.home
     }
 
     func load() async {
@@ -48,16 +48,6 @@ final class HubDetailViewModel {
         guard !reachedEnd else { return }
         guard !isLoading, !isLoadingMore else { return }
 
-        guard let repository = try? HubRepository(context: context) else {
-            errorMessage = String(localized: "hub.error.loadFailed")
-            return
-        }
-
-        guard let endpoint = PlexEndpoint(key: hub.key) else {
-            errorMessage = String(localized: "hub.error.loadFailed")
-            return
-        }
-
         if isInitialLoad {
             isLoading = true
         } else {
@@ -73,18 +63,9 @@ final class HubDetailViewModel {
         }
 
         do {
-            let response = try await repository.getHubItems(
-                path: endpoint.path,
-                queryItems: endpoint.queryItems.filter { $0.name != "count" },
-                pagination: PlexPagination(start: start, size: pageSize),
-            )
-            let newItems = (response.mediaContainer.metadata ?? [])
-                .filter(\.type.isSupported)
-                .compactMap(MediaDisplayItem.init)
-
-            totalItemCount = response.mediaContainer.totalSize
-                ?? response.mediaContainer.size
-                ?? totalItemCount
+            let response = try await service.items(in: hub, startIndex: start, limit: pageSize)
+            let newItems = response.items
+            totalItemCount = response.totalCount ?? totalItemCount
 
             if isInitialLoad {
                 items = newItems

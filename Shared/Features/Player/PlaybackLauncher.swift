@@ -3,42 +3,34 @@ import Foundation
 @MainActor
 protocol PlaybackPresenting: AnyObject {
     func showPlayer(
-        for playQueue: PlayQueueState,
-        context: PlexAPIContext,
+        for queue: PlaybackQueue,
+        services: MediaServices,
         shouldResumeFromOffset: Bool,
     )
 }
 
 struct PlaybackLauncher {
-    let context: PlexAPIContext
+    let services: MediaServices
     let coordinator: any PlaybackPresenting
 
     func play(
         ratingKey: String,
-        type: PlexItemType,
+        type: MediaKind,
         shuffle: Bool = false,
         shouldResumeFromOffset: Bool = true,
     ) async {
         do {
-            let manager = try PlayQueueManager(context: context)
-            let playQueue = try await manager.createQueue(
-                for: ratingKey,
-                itemType: type,
-                continuous: type == .episode || type == .show || type == .season,
+            let queue = try await services.playback.queue(
+                startingWith: ratingKey,
+                kind: type,
                 shuffle: shuffle,
             )
-
-            guard playQueue.selectedRatingKey != nil else {
-                return
-            }
-
-            await MainActor.run {
-                coordinator.showPlayer(
-                    for: playQueue,
-                    context: context,
-                    shouldResumeFromOffset: shouldResumeFromOffset,
-                )
-            }
+            guard !queue.items.isEmpty else { return }
+            coordinator.showPlayer(
+                for: queue,
+                services: services,
+                shouldResumeFromOffset: shouldResumeFromOffset,
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             debugPrint("Failed to create play queue:", error)
@@ -46,7 +38,7 @@ struct PlaybackLauncher {
         }
     }
 
-    func using(context: PlexAPIContext) -> PlaybackLauncher {
-        PlaybackLauncher(context: context, coordinator: coordinator)
+    func using(services: MediaServices) -> PlaybackLauncher {
+        PlaybackLauncher(services: services, coordinator: coordinator)
     }
 }

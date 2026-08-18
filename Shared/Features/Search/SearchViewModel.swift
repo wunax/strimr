@@ -26,18 +26,19 @@ enum SearchFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    func matches(_ type: PlexItemType) -> Bool {
+    func matches(_ kind: MediaKind) -> Bool {
         switch self {
-        case .movies: type == .movie
-        case .shows: type == .show || type == .season
-        case .episodes: type == .episode
+        case .movies: kind == .movie
+        case .shows: kind == .series || kind == .season
+        case .episodes: kind == .episode
         }
     }
 
-    var requiredSearchTypes: [SearchRepository.SearchType] {
+    var kinds: Set<MediaKind> {
         switch self {
-        case .movies: [.movies]
-        case .shows, .episodes: [.tv]
+        case .movies: [.movie]
+        case .shows: [.series, .season]
+        case .episodes: [.episode]
         }
     }
 }
@@ -46,7 +47,7 @@ struct SearchResultSource: Identifiable {
     let serverIdentifier: String
     let serverName: String
     let media: MediaDisplayItem
-    let context: PlexAPIContext
+    let services: MediaServices
 
     var id: String {
         "\(serverIdentifier):\(media.id)"
@@ -73,32 +74,18 @@ struct MergedSearchResult: Identifiable {
 @MainActor
 @Observable
 final class SearchViewModel {
-    private enum SearchEvent {
-        case response(SearchResultSource)
-        case failure(Error)
-        case deadline
-    }
-
-    private static let responseDeadline: Duration = .seconds(5)
-
-    var query: String = ""
+    var query = ""
     var items: [MergedSearchResult] = []
     var isLoading = false
     var errorMessage: String?
     var activeFilters: Set<SearchFilter> = []
 
-    @ObservationIgnored private let context: PlexAPIContext
-    @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
-    init(
-        context: PlexAPIContext,
-        sessionManager: SessionManager,
-        settingsManager: SettingsManager,
-    ) {
-        self.context = context
-        self.sessionManager = sessionManager
+    init(services: MediaServices, settingsManager: SettingsManager) {
+        self.services = services
         self.settingsManager = settingsManager
     }
 
@@ -107,7 +94,7 @@ final class SearchViewModel {
     var filteredItems: [MergedSearchResult] {
         guard !activeFilters.isEmpty else { return items }
         return items.filter { result in
-            activeFilters.contains { $0.matches(result.media.type) }
+            activeFilters.contains { $0.matches(result.media.playableItem?.kind ?? .unknown) }
         }
     }
 
@@ -143,7 +130,6 @@ final class SearchViewModel {
             resetState()
             return
         }
-
         searchTask = Task { [weak self] in
             if !immediate {
                 try? await Task.sleep(for: .milliseconds(350))
@@ -157,181 +143,62 @@ final class SearchViewModel {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-
-        let params = SearchRepository.SearchParams(
-            query: query.trimmingCharacters(in: .whitespacesAndNewlines),
-            searchTypes: resolvedSearchTypes(),
-            limit: 100,
-        )
-
         do {
-            let sources = if settingsManager.interface.multiServerSearchEnabled {
-                try await searchAllServers(params: params)
-            } else {
-                try await searchCurrentServer(params: params)
-            }
+            let values = try await services.search.search(
+                query: query.trimmingCharacters(in: .whitespacesAndNewlines),
+                kinds: resolvedKinds(),
+                searchesAllServers: services.capabilities.multiServerSearch
+                    && settingsManager.interface.multiServerSearchEnabled,
+            )
             guard !Task.isCancelled else { return }
-            items = merge(sources)
+            items = merge(values.map {
+                SearchResultSource(
+                    serverIdentifier: $0.serverIdentifier,
+                    serverName: $0.serverName,
+                    media: $0.media,
+                    services: $0.services,
+                )
+            })
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
-            items = []
-            errorMessage = error.localizedDescription
+            resetState(error: error.localizedDescription)
         }
-    }
-
-    private func searchCurrentServer(
-        params: SearchRepository.SearchParams,
-    ) async throws -> [SearchResultSource] {
-        guard let server = sessionManager.plexServer else {
-            throw PlexAPIError.missingConnection
-        }
-        return try await search(server: server, context: context, params: params)
-    }
-
-    private func searchAllServers(
-        params: SearchRepository.SearchParams,
-    ) async throws -> [SearchResultSource] {
-        let servers = try await sessionManager.refreshAvailableServers()
-        guard !servers.isEmpty else { return [] }
-
-        var sources: [SearchResultSource] = []
-        var failures: [Error] = []
-        var remainingServers = servers.count
-
-        await withTaskGroup(of: [SearchEvent].self) { group in
-            for server in servers {
-                group.addTask { [sessionManager] in
-                    do {
-                        let serverContext = try await sessionManager.serverContext(
-                            for: server.clientIdentifier,
-                        )
-                        let results = try await self.search(
-                            server: server,
-                            context: serverContext,
-                            params: params,
-                        )
-                        return results.map(SearchEvent.response)
-                    } catch {
-                        return [.failure(error)]
-                    }
-                }
-            }
-            group.addTask {
-                try? await Task.sleep(for: Self.responseDeadline)
-                return [.deadline]
-            }
-
-            searchLoop: while let events = await group.next() {
-                var reachedDeadline = false
-                for event in events {
-                    switch event {
-                    case let .response(source):
-                        sources.append(source)
-                    case let .failure(error):
-                        if !error.isCancellation {
-                            failures.append(error)
-                        }
-                    case .deadline:
-                        reachedDeadline = true
-                    }
-                }
-                if reachedDeadline {
-                    group.cancelAll()
-                    break searchLoop
-                }
-                remainingServers -= 1
-                if remainingServers == 0 {
-                    group.cancelAll()
-                    break searchLoop
-                }
-            }
-        }
-
-        if sources.isEmpty, let failure = failures.first {
-            throw failure
-        }
-        return sources
-    }
-
-    private func search(
-        server: PlexCloudResource,
-        context: PlexAPIContext,
-        params: SearchRepository.SearchParams,
-    ) async throws -> [SearchResultSource] {
-        let response = try await SearchRepository(context: context).search(params: params)
-        return (response.mediaContainer.searchResult ?? [])
-            .compactMap(\.metadata)
-            .compactMap(MediaDisplayItem.init)
-            .map {
-                SearchResultSource(
-                    serverIdentifier: server.clientIdentifier,
-                    serverName: server.name,
-                    media: $0,
-                    context: context,
-                )
-            }
     }
 
     private func merge(_ sources: [SearchResultSource]) -> [MergedSearchResult] {
         var order: [String] = []
         var grouped: [String: [SearchResultSource]] = [:]
-
         for source in sources {
             let key = mergeKey(for: source.media)
             if grouped[key] == nil {
                 order.append(key)
             }
-            if !grouped[key, default: []].contains(where: {
-                $0.serverIdentifier == source.serverIdentifier
-            }) {
+            if !grouped[key, default: []].contains(where: { $0.serverIdentifier == source.serverIdentifier }) {
                 grouped[key, default: []].append(source)
             }
         }
-
-        let mergedResults: [MergedSearchResult] = order.compactMap { key in
+        return order.compactMap { key in
             guard var resultSources = grouped[key], !resultSources.isEmpty else { return nil }
-            resultSources.sort { lhs, rhs in
-                if lhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier {
-                    return true
-                }
-                if rhs.serverIdentifier == sessionManager.plexServer?.clientIdentifier {
-                    return false
-                }
-                return lhs.serverName.localizedStandardCompare(rhs.serverName) == .orderedAscending
-            }
+            resultSources.sort { $0.serverName.localizedStandardCompare($1.serverName) == .orderedAscending }
             return MergedSearchResult(id: key, sources: resultSources)
-        }
-        return mergedResults.sorted { lhs, rhs in
-            let titleOrder = lhs.media.primaryLabel.localizedStandardCompare(rhs.media.primaryLabel)
-            if titleOrder != .orderedSame {
-                return titleOrder == .orderedAscending
-            }
-            return lhs.id < rhs.id
+        }.sorted {
+            $0.media.primaryLabel.localizedStandardCompare($1.media.primaryLabel) == .orderedAscending
         }
     }
 
     private func mergeKey(for media: MediaDisplayItem) -> String {
-        if let item = media.playableItem {
-            let guid = item.guid.lowercased()
-            if !guid.isEmpty {
-                return "\(item.type.rawValue):\(guid)"
-            }
+        if let item = media.playableItem, !item.guid.isEmpty {
+            return "\(item.kind.rawValue):\(item.guid.lowercased())"
         }
         let year = media.playableItem?.year.map(String.init) ?? ""
         return "\(media.type.rawValue):\(media.title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)):\(year)"
     }
 
-    private func resolvedSearchTypes() -> [SearchRepository.SearchType] {
-        guard !activeFilters.isEmpty else { return [.movies, .tv] }
-        var types = Set<SearchRepository.SearchType>()
-        for filter in activeFilters {
-            filter.requiredSearchTypes.forEach { types.insert($0) }
+    private func resolvedKinds() -> Set<MediaKind> {
+        activeFilters.reduce(into: Set<MediaKind>()) { result, filter in
+            result.formUnion(filter.kinds)
         }
-        if types.isEmpty {
-            types.insert(.tv)
-        }
-        return Array(types).sorted { $0.rawValue < $1.rawValue }
     }
 
     private func resetState(error: String? = nil) {

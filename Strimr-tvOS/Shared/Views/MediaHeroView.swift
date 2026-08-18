@@ -2,20 +2,22 @@ import SwiftUI
 import UIKit
 
 struct MediaHeroBackgroundView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
 
     let media: MediaItem
 
-    @State private var imageURL: URL?
+    @State private var imageResource: ArtworkResource?
+    @State private var imageSourcePath: String?
+    @State private var sampledBackdropColors: [Color] = []
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                MediaBackdropGradient(colors: MediaBackdropGradient.colors(for: .playable(media)))
+                MediaBackdropGradient(colors: backdropColors)
                     .ignoresSafeArea()
 
-                HeroImageView(imageURL: imageURL)
+                ArtworkResourceView(resource: imageSourcePath == artworkPath ? imageResource : nil)
                     .frame(
                         width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
                         height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
@@ -27,37 +29,64 @@ struct MediaHeroBackgroundView: View {
                     .ignoresSafeArea()
             }
         }
-        .task(id: "\(media.id)-\(settingsManager.interface.spoilerProtection.rawValue)") {
+        .task(id: "\(media.id)-\(artworkPath ?? "none")-\(settingsManager.interface.spoilerProtection.rawValue)") {
             await loadImage()
         }
     }
 
-    private func loadImage() async {
-        let path = if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
-            media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
-        } else {
-            media.grandparentArtPath
-                ?? media.artPath
-                ?? media.grandparentThumbPath
-                ?? media.parentThumbPath
-                ?? media.thumbPath
+    private var artworkPath: String? {
+        if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
         }
+        return media.grandparentArtPath
+            ?? media.artPath
+            ?? media.grandparentThumbPath
+            ?? media.parentThumbPath
+            ?? media.thumbPath
+    }
+
+    private var backdropColors: [Color] {
+        let providerColors = MediaBackdropGradient.colors(for: .playable(media))
+        if providerColors.count == 4 {
+            return providerColors
+        }
+        return sampledBackdropColors
+    }
+
+    private func loadImage() async {
+        let path = artworkPath
         guard let path else {
-            imageURL = nil
+            imageResource = nil
+            imageSourcePath = nil
+            sampledBackdropColors = []
             return
         }
 
         do {
-            let imageRepository = try ImageRepository(context: plexApiContext)
-            imageURL = imageRepository.transcodeImageURL(
+            let resource = try await mediaServices.artwork.artwork(
                 path: path,
                 width: 3840,
                 height: 2160,
-                minSize: 1,
-                upscale: 1,
             )
+            guard !Task.isCancelled, artworkPath == path else { return }
+            imageResource = resource
+            imageSourcePath = path
+
+            let providerColors = MediaBackdropGradient.colors(for: .playable(media))
+            guard providerColors.count != 4, let resource else {
+                sampledBackdropColors = []
+                return
+            }
+
+            let colors = try await ImageCornerColorSampler.colors(from: resource)
+            guard !Task.isCancelled, artworkPath == path, colors.count == 4 else { return }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                sampledBackdropColors = colors
+            }
         } catch {
-            imageURL = nil
+            guard !Task.isCancelled, !error.isCancellation, artworkPath == path else { return }
+            imageResource = nil
+            imageSourcePath = path
         }
     }
 }
@@ -77,7 +106,7 @@ struct MediaHeroContentView: View {
                 .font(.title2.bold())
                 .lineLimit(2)
 
-            if let secondary = media.secondaryLabel, media.type != .movie, media.type != .show {
+            if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
                 Text(secondary)
                     .font(.headline)
                     .foregroundStyle(.brandSecondary)

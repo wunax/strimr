@@ -9,14 +9,14 @@ final class MediaImageViewModel {
         case art
     }
 
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let service: any MediaArtworkService
     var artworkKind: ArtworkKind
     var media: MediaDisplayItem
     var spoilerProtection = SpoilerProtectionLevel.off
-    private(set) var imageURL: URL?
+    private(set) var resource: ArtworkResource?
 
-    init(context: PlexAPIContext, artworkKind: ArtworkKind, media: MediaDisplayItem) {
-        self.context = context
+    init(services: MediaServices, artworkKind: ArtworkKind, media: MediaDisplayItem) {
+        service = services.artwork
         self.artworkKind = artworkKind
         self.media = media
     }
@@ -34,15 +34,14 @@ final class MediaImageViewModel {
         }
 
         guard let path else {
-            imageURL = nil
+            resource = nil
             return
         }
 
         do {
-            let imageRepository = try ImageRepository(context: context)
-            imageURL = imageRepository.transcodeImageURL(path: path)
+            resource = try await service.artwork(path: path, width: nil, height: nil)
         } catch {
-            imageURL = nil
+            resource = nil
         }
     }
 }

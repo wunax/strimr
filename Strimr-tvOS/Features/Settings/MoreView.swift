@@ -24,23 +24,27 @@ struct MoreView: View {
                     }
                     .buttonStyle(.borderedProminent)
 
-                    Button {
-                        Task { await sessionManager.requestProfileSelection() }
-                    } label: {
-                        Label("common.actions.switchProfile", systemImage: "person.2.fill")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
+                    if sessionManager.mediaServices?.capabilities.profiles == true {
+                        Button {
+                            Task { await sessionManager.requestProfileSelection() }
+                        } label: {
+                            Label("common.actions.switchProfile", systemImage: "person.2.fill")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
 
-                    Button {
-                        Task { await sessionManager.requestServerSelection() }
-                    } label: {
-                        Label("serverSelection.title", systemImage: "server.rack")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
+                    if sessionManager.provider == .plex {
+                        Button {
+                            Task { await sessionManager.requestServerSelection() }
+                        } label: {
+                            Label("serverSelection.title", systemImage: "server.rack")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
 
                     Button {
                         Task { await sessionManager.signOut() }

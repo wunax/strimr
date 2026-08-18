@@ -16,7 +16,7 @@ enum MediaDisplayItem: Identifiable, Hashable {
         }
     }
 
-    var type: PlexItemType {
+    var type: MediaKind {
         switch self {
         case let .playable(item):
             item.type
@@ -71,10 +71,10 @@ enum MediaDisplayItem: Identifiable, Hashable {
         }
     }
 
-    var ultraBlurColors: PlexUltraBlurColors? {
+    var artworkCornerColors: ArtworkCornerColors? {
         switch self {
         case let .playable(item):
-            item.ultraBlurColors
+            item.artworkCornerColors
         case .collection:
             nil
         case .playlist:
@@ -185,10 +185,10 @@ enum MediaDisplayItem: Identifiable, Hashable {
 }
 
 extension MediaDisplayItem {
-    init?(plexItem: PlexItem) {
+    init?(plexItem: PlexItem, server: ServerIdentity? = nil) {
         switch plexItem.type {
         case .movie, .show, .season, .episode:
-            self = .playable(MediaItem(plexItem: plexItem))
+            self = .playable(MediaItem(plexItem: plexItem, server: server))
         case .collection:
             self = .collection(CollectionMediaItem(plexItem: plexItem))
         case .playlist:

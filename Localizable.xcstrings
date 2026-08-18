@@ -271,6 +271,28 @@
         }
       }
     },
+    "common.actions.back" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
+          }
+        }
+      }
+    },
     "common.actions.cancel" : {
       "localizations" : {
         "en" : {
@@ -311,6 +333,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        }
+      }
+    },
+    "common.actions.continue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
           }
         }
       }
@@ -1240,6 +1284,7 @@
       }
     },
     "errors.selectServer.browseLibrary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1262,6 +1307,7 @@
       }
     },
     "errors.selectServer.loadContent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1284,6 +1330,7 @@
       }
     },
     "errors.selectServer.loadDetails" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1306,6 +1353,7 @@
       }
     },
     "errors.selectServer.loadEpisodes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1350,6 +1398,7 @@
       }
     },
     "errors.selectServer.loadRecommendations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1372,6 +1421,7 @@
       }
     },
     "errors.selectServer.loadRelatedContent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1394,6 +1444,7 @@
       }
     },
     "errors.selectServer.loadSeasons" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1433,6 +1484,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请选择服务器以播放媒体"
+          }
+        }
+      }
+    },
+    "errors.selectServer.searchLibrary" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a server to search your library."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionnez un serveur pour rechercher dans votre bibliothèque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择服务器以搜索媒体库"
           }
         }
       }
@@ -1855,6 +1929,28 @@
         }
       }
     },
+    "integrations.seerr.login.jellyfin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer avec Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Jellyfin 继续"
+          }
+        }
+      }
+    },
     "integrations.seerr.login.local" : {
       "localizations" : {
         "en" : {
@@ -2005,6 +2101,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录"
+          }
+        }
+      }
+    },
+    "integrations.seerr.login.username" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin username"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom d’utilisateur Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 用户名"
           }
         }
       }
@@ -2449,6 +2567,1173 @@
         }
       }
     },
+    "jellyfin.actions.markPlayed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as played"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marquer comme vu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为已播放"
+          }
+        }
+      }
+    },
+    "jellyfin.actions.markUnplayed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as unplayed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marquer comme non vu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为未播放"
+          }
+        }
+      }
+    },
+    "jellyfin.actions.play" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.credentials.subtitle %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous à %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录到 %@。"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.credentials.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin account"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 帐户"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.discovery.error" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to search for Jellyfin servers on the local network."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rechercher des serveurs Jellyfin sur le réseau local."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在本地网络上搜索 Jellyfin 服务器。"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.discovery.search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search local servers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des serveurs locaux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索本地服务器"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.password" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.server.placeholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server URL"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL du serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器 URL"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.server.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the address of your Jellyfin server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez l’adresse de votre serveur Jellyfin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入您的 Jellyfin 服务器地址。"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.server.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion à Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接到 Jellyfin"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.signIn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "jellyfin.auth.username" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom d’utilisateur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户名"
+          }
+        }
+      }
+    },
+    "jellyfin.collections.items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection items"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments de la collection"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集项目"
+          }
+        }
+      }
+    },
+    "jellyfin.collections.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集"
+          }
+        }
+      }
+    },
+    "jellyfin.detail.cast" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cast and crew"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distribution et équipe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演职人员"
+          }
+        }
+      }
+    },
+    "jellyfin.detail.episodes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épisodes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
+          }
+        }
+      }
+    },
+    "jellyfin.detail.seasons" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seasons"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisons"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季"
+          }
+        }
+      }
+    },
+    "jellyfin.detail.similar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Similar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Similaires"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相似内容"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.authenticationRequired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Jellyfin session has expired. Sign in again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre session Jellyfin a expiré. Reconnectez-vous."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的 Jellyfin 会话已过期，请重新登录。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.invalidCredentials" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The username or password is incorrect."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le nom d’utilisateur ou le mot de passe est incorrect."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户名或密码不正确。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.invalidResponse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin returned an unexpected response."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin a renvoyé une réponse inattendue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 返回了意外响应。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.invalidURL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a valid HTTP or HTTPS server address."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez une adresse de serveur HTTP ou HTTPS valide."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的 HTTP 或 HTTPS 服务器地址。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.itemUnavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This item is no longer available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet élément n’est plus disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此项目不再可用。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.noDirectPlaySource" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This format is not compatible with direct play."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce format n’est pas compatible avec la lecture directe."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此格式不兼容直接播放。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.permissionDenied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Jellyfin account does not have permission to do this."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre compte Jellyfin n’est pas autorisé à effectuer cette action."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的 Jellyfin 帐户无权执行此操作。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.playbackTitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback unavailable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture indisponible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法播放"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.serverUnreachable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Jellyfin server cannot be reached."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur Jellyfin est inaccessible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到 Jellyfin 服务器。"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to load Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载 Jellyfin"
+          }
+        }
+      }
+    },
+    "jellyfin.errors.unsupportedServer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This address does not point to a supported Jellyfin server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette adresse ne correspond pas à un serveur Jellyfin pris en charge."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此地址不是受支持的 Jellyfin 服务器。"
+          }
+        }
+      }
+    },
+    "jellyfin.home.latestIn %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest in %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveautés dans %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中的最新内容"
+          }
+        }
+      }
+    },
+    "jellyfin.home.latestMovies" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest movies"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Films récents"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新电影"
+          }
+        }
+      }
+    },
+    "jellyfin.home.latestSeries" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Séries récentes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新剧集"
+          }
+        }
+      }
+    },
+    "jellyfin.home.nextUp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next up"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À suivre"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接下来播放"
+          }
+        }
+      }
+    },
+    "jellyfin.home.resume" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue watching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer à regarder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续观看"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recentlyAdded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recently added"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutés récemment"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近添加"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recommendation.becauseLiked %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Because you like %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parce que vous aimez %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "因为您喜欢 %@"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recommendation.becauseWatched %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Because you watched %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parce que vous avez regardé %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "因为您观看了 %@"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recommendation.directedBy %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directed by %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réalisé par %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %@ 执导"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recommendation.starring %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starring %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 主演"
+          }
+        }
+      }
+    },
+    "jellyfin.library.recommendations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommendations"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommandations"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
+          }
+        }
+      }
+    },
+    "jellyfin.libraries.items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library items"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments de la bibliothèque"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体库项目"
+          }
+        }
+      }
+    },
+    "jellyfin.libraries.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movie and series libraries"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliothèques Films et Séries"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影和剧集媒体库"
+          }
+        }
+      }
+    },
+    "jellyfin.person.media" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movies and series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Films et séries"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影和剧集"
+          }
+        }
+      }
+    },
+    "jellyfin.playlists.items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist items"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments de la playlist"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放列表项目"
+          }
+        }
+      }
+    },
+    "jellyfin.playlists.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlists"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlists"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放列表"
+          }
+        }
+      }
+    },
+    "jellyfin.search.empty" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Jellyfin results"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun résultat Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有 Jellyfin 搜索结果"
+          }
+        }
+      }
+    },
+    "jellyfin.search.placeholder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search this Jellyfin server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher sur ce serveur Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索此 Jellyfin 服务器"
+          }
+        }
+      }
+    },
+    "jellyfin.settings.server" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器"
+          }
+        }
+      }
+    },
+    "jellyfin.settings.session" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin session"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin 会话"
+          }
+        }
+      }
+    },
+    "jellyfin.settings.user" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisateur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户"
+          }
+        }
+      }
+    },
+    "jellyfin.settings.version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server version"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version du serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器版本"
+          }
+        }
+      }
+    },
     "library.browse.empty.description" : {
       "localizations" : {
         "en" : {
@@ -2493,6 +3778,15 @@
         }
       }
     },
+    "library.browse.filters.all" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"All"}},"fr":{"stringUnit":{"state":"translated","value":"Tous"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全部"}}}},
+    "library.browse.filters.favorites" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Favorites"}},"fr":{"stringUnit":{"state":"translated","value":"Favoris"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收藏"}}}},
+    "library.browse.filters.genres" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Genres"}},"fr":{"stringUnit":{"state":"translated","value":"Genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"类型"}}}},
+    "library.browse.filters.inProgress" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"In progress"}},"fr":{"stringUnit":{"state":"translated","value":"En cours"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在观看"}}}},
+    "library.browse.filters.played" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Played"}},"fr":{"stringUnit":{"state":"translated","value":"Lu"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已播放"}}}},
+    "library.browse.filters.search" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Search options"}},"fr":{"stringUnit":{"state":"translated","value":"Rechercher"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索选项"}}}},
+    "library.browse.filters.unplayed" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Unplayed"}},"fr":{"stringUnit":{"state":"translated","value":"Non lu"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未播放"}}}},
+    "library.browse.filters.watchStatus" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Watch status"}},"fr":{"stringUnit":{"state":"translated","value":"État de lecture"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"观看状态"}}}},
+    "library.browse.filters.years" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Years"}},"fr":{"stringUnit":{"state":"translated","value":"Années"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"年份"}}}},
     "library.browse.filters.clear" : {
       "localizations" : {
         "en" : {
@@ -2625,6 +3919,13 @@
         }
       }
     },
+    "library.browse.sort.dateAdded" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Date added"}},"fr":{"stringUnit":{"state":"translated","value":"Date d’ajout"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加日期"}}}},
+    "library.browse.sort.datePlayed" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Date played"}},"fr":{"stringUnit":{"state":"translated","value":"Dernière lecture"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"播放日期"}}}},
+    "library.browse.sort.lastContentAdded" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Last episode added"}},"fr":{"stringUnit":{"state":"translated","value":"Dernier épisode ajouté"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"最新添加剧集"}}}},
+    "library.browse.sort.name" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Name"}},"fr":{"stringUnit":{"state":"translated","value":"Nom"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"名称"}}}},
+    "library.browse.sort.playCount" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Play count"}},"fr":{"stringUnit":{"state":"translated","value":"Nombre de lectures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"播放次数"}}}},
+    "library.browse.sort.rating" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Rating"}},"fr":{"stringUnit":{"state":"translated","value":"Note"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"评分"}}}},
+    "library.browse.sort.releaseDate" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Release date"}},"fr":{"stringUnit":{"state":"translated","value":"Date de sortie"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"上映日期"}}}},
     "library.browse.sort.direction.asc" : {
       "localizations" : {
         "en" : {
@@ -2713,6 +4014,10 @@
         }
       }
     },
+    "library.detail.tab.genres" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Genres"}},"fr":{"stringUnit":{"state":"translated","value":"Genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"类型"}}}},
+    "library.genres.empty.description" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No genres are available for this library."}},"fr":{"stringUnit":{"state":"translated","value":"Aucun genre n’est disponible pour cette bibliothèque."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"此媒体库没有可用类型。"}}}},
+    "library.genres.empty.title" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No genres"}},"fr":{"stringUnit":{"state":"translated","value":"Aucun genre"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"没有类型"}}}},
+    "library.genres.loading" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Loading genres"}},"fr":{"stringUnit":{"state":"translated","value":"Chargement des genres"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在加载类型"}}}},
     "library.detail.tab.browse" : {
       "localizations" : {
         "en" : {
@@ -2828,19 +4133,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add a Plex server or pull to refresh."
+            "value" : "Add a media server or pull to refresh."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajoutez un serveur Plex ou tirez pour actualiser."
+            "value" : "Ajoutez un serveur multimédia ou tirez pour actualiser."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加 Plex 服务器或下拉刷新"
+            "value" : "添加媒体服务器或下拉刷新"
           }
         }
       }
@@ -2872,19 +4177,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try refreshing to load your Plex libraries."
+            "value" : "Try refreshing to load your libraries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Essayez d'actualiser pour charger vos bibliothèques Plex."
+            "value" : "Essayez d'actualiser pour charger vos bibliothèques."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "尝试刷新以加载 Plex 媒体库"
+            "value" : "尝试刷新以加载您的媒体库"
           }
         }
       }
@@ -3833,6 +5138,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IMDb 评分"
+          }
+        }
+      }
+    },
+    "media.rating.jellyfinCommunity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community rating"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note de la communauté"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "社区评分"
+          }
+        }
+      }
+    },
+    "media.rating.jellyfinCritics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critics rating"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note des critiques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影评人评分"
           }
         }
       }
@@ -4981,6 +6330,29 @@
         }
       }
     },
+    "player.tracks.subtitles.off" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles off"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sous-titres désactivés"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭字幕"
+          }
+        }
+      }
+    },
     "player.window.title" : {
       "localizations" : {
         "en" : {
@@ -4999,6 +6371,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放器"
+          }
+        }
+      }
+    },
+    "provider.change" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change service"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer de service"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改服务"
+          }
+        }
+      }
+    },
+    "provider.jellyfin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin"
+          }
+        }
+      }
+    },
+    "provider.plex" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex"
+          }
+        }
+      }
+    },
+    "provider.selection.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the media service you want to use with Strimr."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez le service multimédia à utiliser avec Strimr."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择您想要与 Strimr 配合使用的媒体服务。"
+          }
+        }
+      }
+    },
+    "provider.selection.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a service"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un service"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择服务"
           }
         }
       }
@@ -5162,19 +6644,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find movies, shows, and episodes across your Plex libraries."
+            "value" : "Find movies, shows, and episodes across your libraries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trouvez des films, séries et épisodes dans vos bibliothèques Plex."
+            "value" : "Trouvez des films, séries et épisodes dans vos bibliothèques."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Plex 媒体库中搜索电影、剧集"
+            "value" : "在您的媒体库中搜索电影、剧集和单集。"
           }
         }
       }
@@ -7537,19 +9019,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When Plex thumbnails aren’t available, Strimr can load previews from the video. This may use additional network data and device resources."
+            "value" : "When server-provided thumbnails aren’t available, Strimr can load previews from the video. This may use additional network data and device resources."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lorsque les miniatures Plex ne sont pas disponibles, Strimr peut charger des aperçus depuis la vidéo. Cela peut utiliser davantage de données réseau et de ressources de l’appareil."
+            "value" : "Lorsque les miniatures fournies par le serveur ne sont pas disponibles, Strimr peut charger des aperçus depuis la vidéo. Cela peut utiliser davantage de données réseau et de ressources de l’appareil."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当 Plex 缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
+            "value" : "服务器提供的缩略图不可用时，Strimr 可以从视频中加载预览。这可能会使用额外的网络流量和设备资源。"
           }
         }
       }
@@ -7669,19 +9151,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show image previews while moving through the playback timeline. Strimr uses thumbnails provided by your Plex server when available."
+            "value" : "Show image previews while moving through the playback timeline. Strimr uses thumbnails provided by your media server when available."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Affiche des aperçus d’image lorsque vous parcourez la timeline de lecture. Strimr utilise les miniatures fournies par votre serveur Plex lorsqu’elles sont disponibles."
+            "value" : "Affiche des aperçus d’image lorsque vous parcourez la timeline de lecture. Strimr utilise les miniatures fournies par votre serveur multimédia lorsqu’elles sont disponibles."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在播放时间线上移动时显示图像预览。Strimr 会优先使用 Plex 服务器提供的缩略图。"
+            "value" : "在播放时间线上移动时显示图像预览。Strimr 会优先使用您的媒体服务器提供的缩略图。"
           }
         }
       }
@@ -8615,19 +10097,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This media is not available on your Plex server."
+            "value" : "This media is not available on your media server."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce média n’est pas disponible sur votre serveur Plex."
+            "value" : "Ce média n’est pas disponible sur votre serveur multimédia."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此媒体在您的 Plex 服务器上不可用。"
+            "value" : "此媒体在您的媒体服务器上不可用。"
           }
         }
       }
@@ -8637,19 +10119,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Select a Plex server before starting SharePlay."
+            "value" : "Connect to a media server before starting SharePlay."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionnez un serveur Plex avant de lancer SharePlay."
+            "value" : "Connectez-vous à un serveur multimédia avant de lancer SharePlay."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开始 SharePlay 前请选择 Plex 服务器。"
+            "value" : "开始 SharePlay 前请先连接媒体服务器。"
           }
         }
       }

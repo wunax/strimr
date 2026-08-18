@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: HomeViewModel
     @State private var selectedHub: Hub?
@@ -80,7 +80,7 @@ struct HomeView: View {
         .sheet(item: $selectedHub) { hub in
             NavigationStack {
                 HubDetailView(
-                    viewModel: HubDetailViewModel(hub: hub, context: plexApiContext),
+                    viewModel: HubDetailViewModel(hub: hub, services: mediaServices),
                     onSelectMedia: { media in
                         selectedHub = nil
                         onSelectMedia(media)

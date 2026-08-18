@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SignInView: View {
+    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: SignInViewModel
 
     init(viewModel: SignInViewModel) {
@@ -12,9 +13,11 @@ struct SignInView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                Image(.icon)
+                Image("plex_logo")
                     .resizable()
-                    .frame(width: 128, height: 128)
+                    .scaledToFit()
+                    .frame(maxWidth: 240, maxHeight: 112)
+                    .accessibilityHidden(true)
 
                 Text("signIn.title")
                     .multilineTextAlignment(.center)
@@ -28,19 +31,22 @@ struct SignInView: View {
             Button {
                 Task { await viewModel.startSignIn() }
             } label: {
-                HStack {
+                HStack(spacing: 10) {
                     if viewModel.isAuthenticating {
-                        ProgressView().tint(.white)
+                        ProgressView()
+                            .controlSize(.small)
                     }
                     Text(viewModel.isAuthenticating ? "signIn.button.waiting" : "signIn.button.continue")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(.brandPrimary)
-                .foregroundStyle(.brandPrimaryForeground)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.vertical, 4)
             }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.large)
+            .tint(.brandPrimary)
+            .frame(maxWidth: 520)
             .disabled(viewModel.isAuthenticating)
 
             if viewModel.isAuthenticating {
@@ -58,7 +64,20 @@ struct SignInView: View {
             }
 
             Spacer()
+
+            Button {
+                returnToProviderSelection()
+            } label: {
+                Label("provider.change", systemImage: "chevron.left")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         .padding(24)
+    }
+
+    private func returnToProviderSelection() {
+        viewModel.cancelSignIn()
+        Task { await sessionManager.requestProviderSelection() }
     }
 }

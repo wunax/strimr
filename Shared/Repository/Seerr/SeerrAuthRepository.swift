@@ -27,6 +27,14 @@ final class SeerrAuthRepository {
         )
     }
 
+    func signInWithJellyfin(username: String, password: String) async throws {
+        try await client.send(
+            path: "auth/jellyfin",
+            method: "POST",
+            body: SeerrJellyfinAuthRequest(username: username, password: password),
+        )
+    }
+
     func fetchCurrentUser() async throws -> SeerrUser {
         try await client.request(path: "auth/me")
     }

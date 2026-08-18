@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 private final nonisolated class PlexBIFImageBox {
-    let thumbnail: PlexBIFThumbnail
+    let thumbnail: ScrubThumbnail
 
-    init(_ thumbnail: PlexBIFThumbnail) {
+    init(_ thumbnail: ScrubThumbnail) {
         self.thumbnail = thumbnail
     }
 }
@@ -22,12 +22,12 @@ private final nonisolated class PlexBIFMemoryCache: @unchecked Sendable {
         return cache
     }()
 
-    nonisolated func thumbnail(key: String, frameIndex: Int) -> PlexBIFThumbnail? {
+    nonisolated func thumbnail(key: String, frameIndex: Int) -> ScrubThumbnail? {
         cache.object(forKey: "\(key):\(frameIndex)" as NSString)?.thumbnail
     }
 
     nonisolated func store(
-        _ thumbnail: PlexBIFThumbnail,
+        _ thumbnail: ScrubThumbnail,
         key: String,
         frameIndex: Int,
     ) {
@@ -38,13 +38,6 @@ private final nonisolated class PlexBIFMemoryCache: @unchecked Sendable {
             cost: cost,
         )
     }
-}
-
-nonisolated enum PlexBIFAvailability: Equatable, Sendable {
-    case loading
-    case ready
-    case unavailable
-    case temporarilyFailed
 }
 
 actor PlexBIFThumbnailProvider {
@@ -69,7 +62,7 @@ actor PlexBIFThumbnailProvider {
     private var archive: PlexBIFArchive?
     private var preparationTask: Task<PreparationOutcome, Never>?
     private var refreshTask: Task<Void, Never>?
-    private var availabilityState: PlexBIFAvailability = .loading
+    private var availabilityState: ScrubThumbnailAvailability = .loading
     private var isCancelled = false
 
     init(
@@ -89,11 +82,11 @@ actor PlexBIFThumbnailProvider {
         _ = await preparedArchive()
     }
 
-    func availability() -> PlexBIFAvailability {
+    func availability() -> ScrubThumbnailAvailability {
         availabilityState
     }
 
-    func thumbnail(at seconds: Double) async -> PlexBIFThumbnail? {
+    func thumbnail(at seconds: Double) async -> ScrubThumbnail? {
         guard let archive = await preparedArchive(), !isCancelled else {
             return nil
         }

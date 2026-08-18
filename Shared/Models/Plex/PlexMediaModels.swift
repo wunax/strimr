@@ -29,6 +29,34 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
     }
 }
 
+extension PlexItemType {
+    var mediaKind: MediaKind {
+        switch self {
+        case .movie: .movie
+        case .show: .series
+        case .season: .season
+        case .episode: .episode
+        case .collection: .collection
+        case .playlist: .playlist
+        case .unknown: .unknown
+        }
+    }
+}
+
+extension MediaKind {
+    var plexType: PlexItemType {
+        switch self {
+        case .movie: .movie
+        case .series: .show
+        case .season: .season
+        case .episode: .episode
+        case .collection: .collection
+        case .playlist: .playlist
+        case .folder, .unknown: .unknown
+        }
+    }
+}
+
 struct PlexHub: Codable, Equatable {
     let hubKey: String?
     let key: String
@@ -156,13 +184,6 @@ struct PlexGuid: Codable, Equatable {
     let id: String
 }
 
-struct PlexUltraBlurColors: Codable, Equatable, Hashable {
-    let topLeft: String
-    let topRight: String
-    let bottomRight: String
-    let bottomLeft: String
-}
-
 struct PlexMarkerAttributes: Codable, Equatable {
     let id: Int
     let version: Int?
@@ -263,6 +284,23 @@ struct PlexPartStream: Codable, Equatable, Hashable {
     let hearingImpaired: Bool?
 }
 
+extension MediaTrackMetadata {
+    init?(plexStream: PlexPartStream) {
+        guard let id = plexStream.id else { return nil }
+        self.init(
+            id: id,
+            sourceIndex: plexStream.index,
+            codec: plexStream.codec,
+            title: plexStream.title,
+            displayTitle: plexStream.displayTitle,
+            language: plexStream.language,
+            isDefault: plexStream.selected == true,
+            isForced: plexStream.forced == true,
+            isHearingImpaired: plexStream.hearingImpaired == true,
+        )
+    }
+}
+
 struct PlexPart: Codable, Equatable {
     let id: Int
     let key: String
@@ -343,7 +381,7 @@ struct PlexItem: Codable, Equatable {
     let contentRating: String?
     let contentRatingAge: Int?
     let tagline: String?
-    let ultraBlurColors: PlexUltraBlurColors?
+    let ultraBlurColors: ArtworkCornerColors?
     let images: [PlexImage]?
     let guids: [PlexGuid]?
     let genres: [PlexTag]?
