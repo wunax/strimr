@@ -110,17 +110,7 @@ struct PlayerView: View {
                     togglePlayPause()
                 }
                 .onExitCommand {
-                    if isShowingChapterTray {
-                        withAnimation(.easeInOut) {
-                            isShowingChapterTray = false
-                        }
-                        showControls(temporarily: true)
-                        return
-                    }
-                    if sharePlayCoordinator.isInSession {
-                        sharePlayCoordinator.leave()
-                    }
-                    dismissPlayer(force: true)
+                    handleExitCommand()
                 }
                 .task {
                     await viewModel.load()
@@ -325,7 +315,6 @@ struct PlayerView: View {
                     currentPosition: viewModel.position,
                     isShowingChapterTray: isShowingChapterTray,
                     onShowChapters: showChapters,
-                    onHideChapters: hideChapters,
                     onSelectChapter: selectChapter(_:),
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
@@ -475,6 +464,18 @@ struct PlayerView: View {
             isShowingChapterTray = false
         }
         showControls(temporarily: true)
+    }
+
+    private func handleExitCommand() {
+        if isShowingChapterTray {
+            hideChapters()
+            return
+        }
+
+        if sharePlayCoordinator.isInSession {
+            sharePlayCoordinator.leave()
+        }
+        dismissPlayer(force: true)
     }
 
     private func selectChapter(_ chapter: MediaChapter) {

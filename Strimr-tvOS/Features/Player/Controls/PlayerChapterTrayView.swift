@@ -4,7 +4,6 @@ struct PlayerChapterTrayView: View {
     var chapters: [MediaChapter]
     var currentPosition: Double
     var onSelect: (MediaChapter) -> Void
-    var onFocusExit: () -> Void
 
     @FocusState private var focusedChapterID: String?
 
@@ -36,13 +35,11 @@ struct PlayerChapterTrayView: View {
                         }
                     }
                 }
-                .onChange(of: focusedChapterID) { previousID, chapterID in
+                .onChange(of: focusedChapterID) { _, chapterID in
                     if let chapterID {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             proxy.scrollTo(chapterID, anchor: .center)
                         }
-                    } else if previousID != nil {
-                        onFocusExit()
                     }
                 }
             }
