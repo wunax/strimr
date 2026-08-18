@@ -64,7 +64,7 @@ struct PlayerView: View {
     @State private var loadedURL: URL?
     @State private var isShowingError = false
     @State private var errorMessage = ""
-    @State private var isShowingSubtitleSearch = false
+    @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSheet>()
     @State private var subtitleSearchErrorMessage = ""
     @State private var isShowingSubtitleSearchError = false
     @State private var isShowingSharePlayExitPrompt = false
@@ -264,16 +264,17 @@ struct PlayerView: View {
         )
 
         return presentationObservers
-            .sheet(isPresented: $isShowingSubtitleSearch) {
-                if let services = viewModel.subtitleSearchServices {
-                    SubtitleSearchView(
-                        itemID: viewModel.currentRatingKey,
-                        titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
-                        services: services,
-                        onAttached: handleAttachedSubtitle(_:),
-                    )
-                    .frame(minWidth: 560, minHeight: 640)
+            .overlay {
+                IsolatedSheetPresentationHost(
+                    presentation: sheetPresentation,
+                    refreshID: presentationID,
+                ) { sheet in
+                    switch sheet {
+                    case .subtitleSearch:
+                        subtitleSearchSheet
+                    }
                 }
+                .equatable()
             }
             .alert("player.termination.title", isPresented: $isShowingError) {
                 Button("player.termination.dismiss") { closePlayer(force: true) }
@@ -504,6 +505,19 @@ struct PlayerView: View {
         )
     }
 
+    @ViewBuilder
+    private var subtitleSearchSheet: some View {
+        if let services = viewModel.subtitleSearchServices {
+            SubtitleSearchView(
+                itemID: viewModel.currentRatingKey,
+                titlePlaceholder: viewModel.subtitleSearchTitlePlaceholder,
+                services: services,
+                onAttached: handleAttachedSubtitle(_:),
+            )
+            .frame(minWidth: 560, minHeight: 640)
+        }
+    }
+
     private var volumeControl: some View {
         HStack(spacing: 8) {
             Button {
@@ -609,7 +623,7 @@ struct PlayerView: View {
             if viewModel.canSearchSubtitles {
                 Divider()
                 Button {
-                    isShowingSubtitleSearch = true
+                    sheetPresentation.item = .subtitleSearch
                 } label: {
                     Label("subtitles.search.action", systemImage: "magnifyingglass")
                 }
@@ -1116,5 +1130,13 @@ struct PlayerView: View {
         scrubPosition = chapter.startTime
         viewModel.handlePlaybackPosition(chapter.startTime, isScrubbing: false)
         isShowingChapterPopover = false
+    }
+}
+
+private enum PlayerSheet: String, Identifiable {
+    case subtitleSearch
+
+    var id: String {
+        rawValue
     }
 }
