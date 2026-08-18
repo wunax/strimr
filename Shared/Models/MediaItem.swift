@@ -188,7 +188,11 @@ struct MediaItem: Identifiable, Hashable {
     }
 
     var preferredArtPath: String? {
-        grandparentArtPath ?? artPath
+        if type == .episode {
+            return thumbPath ?? grandparentArtPath ?? artPath
+        }
+
+        return grandparentArtPath ?? artPath
     }
 
     var secondaryLabel: String? {
