@@ -62,11 +62,7 @@ struct EpisodeArtworkView: View {
         }
         .frame(width: width)
         .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(.white.opacity(0.05))
-        }
+        .mediaArtworkStyle(.compact, borderColor: .white.opacity(0.05))
         .overlay(alignment: .topTrailing) {
             WatchStatusBadge(media: .playable(episode))
         }

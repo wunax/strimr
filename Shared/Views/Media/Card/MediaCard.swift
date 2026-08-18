@@ -64,9 +64,7 @@ struct MediaCard: View {
             ),
         )
         .frame(width: size.width, height: size.height)
-        .clipShape(
-            RoundedRectangle(cornerRadius: 14, style: .continuous),
-        )
+        .mediaArtworkStyle()
         .overlay(alignment: .topTrailing) {
             WatchStatusBadge(media: media)
         }

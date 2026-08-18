@@ -147,10 +147,6 @@ private struct SeerrEpisodeArtworkView: View {
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(.white.opacity(0.05))
-        }
+        .mediaArtworkStyle(.compact, borderColor: .white.opacity(0.05))
     }
 }
