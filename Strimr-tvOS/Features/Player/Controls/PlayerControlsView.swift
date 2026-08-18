@@ -22,7 +22,6 @@ struct PlayerControlsView: View {
     var currentPosition: Double
     var isShowingChapterTray: Bool
     var onShowChapters: () -> Void
-    var onHideChapters: () -> Void
     var onSelectChapter: (MediaChapter) -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
@@ -111,7 +110,6 @@ struct PlayerControlsView: View {
                     chapters: chapters,
                     currentPosition: currentPosition,
                     onSelect: onSelectChapter,
-                    onFocusExit: onHideChapters,
                 )
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }

@@ -147,8 +147,9 @@ struct MainTabView: View {
                 await playbackLauncher.play(ratingKey: action.ratingKey, type: action.type)
             }
         }
-        .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
-            if let queue = coordinator.selectedMediaQueue,
+        .overlay {
+            if coordinator.isPresentingPlayer,
+               let queue = coordinator.selectedMediaQueue,
                let services = coordinator.selectedMediaServices
             {
                 PlayerWrapper(
