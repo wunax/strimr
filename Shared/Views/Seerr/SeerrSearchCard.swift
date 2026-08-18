@@ -12,11 +12,6 @@ struct SeerrSearchCard: View {
                     width: artworkSize.width,
                     height: artworkSize.height,
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.08))
-                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {

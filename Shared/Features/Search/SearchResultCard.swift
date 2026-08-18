@@ -21,11 +21,7 @@ struct SearchResultCard: View {
                     ),
                 )
                 .frame(width: 100, height: 150)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.08))
-                }
+                .mediaArtworkStyle()
                 .overlay(alignment: .topTrailing) {
                     WatchStatusBadge(media: media)
                 }

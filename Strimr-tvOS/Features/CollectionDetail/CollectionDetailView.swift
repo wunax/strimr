@@ -85,11 +85,7 @@ struct CollectionDetailView: View {
                 ),
             )
             .frame(width: 280, height: 420)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.08))
-            }
+            .mediaArtworkStyle(.largeDetail, borderColor: .white.opacity(0.08))
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(viewModel.collection.title)

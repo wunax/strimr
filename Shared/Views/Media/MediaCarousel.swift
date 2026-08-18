@@ -95,11 +95,7 @@ struct MediaCarousel: View {
         .foregroundStyle(.brandSecondary)
         .frame(width: size.width, height: size.height)
         .background(Color.brandSecondary.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.brandSecondary.opacity(0.24), lineWidth: 1)
-        }
+        .mediaArtworkStyle(borderColor: Color.brandSecondary.opacity(0.24))
         #if os(tvOS)
         .scaleEffect(isViewAllFocused ? 1.12 : 1)
         .animation(.easeOut(duration: 0.15), value: isViewAllFocused)

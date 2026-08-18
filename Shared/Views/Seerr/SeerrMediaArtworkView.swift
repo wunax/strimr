@@ -40,9 +40,7 @@ struct SeerrMediaArtworkView: View {
             }
         }
         .frame(width: width, height: height)
-        .clipShape(
-            RoundedRectangle(cornerRadius: 14, style: .continuous),
-        )
+        .mediaArtworkStyle()
     }
 
     private var badgeText: String? {
@@ -72,14 +70,17 @@ struct SeerrMediaArtworkView: View {
     }
 
     private var placeholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "film")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text("media.placeholder.noArtwork")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        MediaArtworkPlaceholder(mediaKind: placeholderMediaKind)
+    }
+
+    private var placeholderMediaKind: MediaKind? {
+        switch media.mediaType {
+        case .movie:
+            .movie
+        case .tv:
+            .series
+        case .person, nil:
+            nil
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
