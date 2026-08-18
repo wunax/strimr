@@ -97,8 +97,8 @@ struct MediaCarousel: View {
         .background(Color.brandSecondary.opacity(0.08))
         .mediaArtworkStyle(borderColor: Color.brandSecondary.opacity(0.24))
         #if os(tvOS)
-        .scaleEffect(isViewAllFocused ? 1.12 : 1)
-        .animation(.easeOut(duration: 0.15), value: isViewAllFocused)
+            .scaleEffect(isViewAllFocused ? 1.12 : 1)
+            .animation(.easeOut(duration: 0.15), value: isViewAllFocused)
         #endif
     }
 
