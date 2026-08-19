@@ -101,9 +101,7 @@ struct MediaDetailHeaderSection: View {
                             await downloadManager.enqueueItem(itemID: episodeID, services: mediaServices)
                         }
                     },
-                    statusForRatingKey: { ratingKey in
-                        downloadManager.status(for: ratingKey)
-                    },
+                    statusForIdentity: downloadManager.status,
                 )
             }
         }
@@ -622,7 +620,7 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var downloadStatus: DownloadStatus? {
-        downloadManager.status(for: viewModel.media.id)
+        downloadManager.status(for: viewModel.media.identity)
     }
 
     private var isDownloadInProgress: Bool {

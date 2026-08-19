@@ -85,12 +85,12 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         isOffline
     }
 
-    func status(for ratingKey: String) -> DownloadStatus? {
-        items.first { $0.ratingKey == ratingKey }?.status
+    func status(for identity: MediaIdentity) -> DownloadStatus? {
+        latestItem(for: identity)?.status
     }
 
-    func progress(for ratingKey: String) -> Double? {
-        items.first { $0.ratingKey == ratingKey }?.progress
+    func progress(for identity: MediaIdentity) -> Double? {
+        latestItem(for: identity)?.progress
     }
 
     func localVideoURL(for item: DownloadItem) -> URL? {
@@ -108,15 +108,13 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     func localMediaItem(for item: DownloadItem) -> MediaItem {
-        MediaItem(
-            id: item.metadata.ratingKey,
-            identity: MediaIdentity(
-                server: ServerIdentity(
-                    provider: item.metadata.provider ?? .plex,
-                    id: item.metadata.serverIdentifier ?? "plex",
-                ),
-                itemID: item.metadata.ratingKey,
-            ),
+        let identity = item.identity ?? MediaIdentity(
+            server: ServerIdentity(provider: .plex, id: "legacy-download:\(item.id)"),
+            itemID: item.itemID,
+        )
+        return MediaItem(
+            id: item.itemID,
+            identity: identity,
             guid: item.metadata.guid,
             summary: item.metadata.summary,
             title: item.metadata.title,
@@ -171,19 +169,19 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    func enqueueItem(ratingKey: String, context: PlexAPIContext) async {
+    func enqueueItem(itemID: String, context: PlexAPIContext) async {
         guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItem(itemID: ratingKey, services: services)
+        await enqueueItem(itemID: itemID, services: services)
     }
 
-    func enqueueSeason(ratingKey: String, context: PlexAPIContext) async {
+    func enqueueSeason(itemID: String, context: PlexAPIContext) async {
         guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItems(itemID: ratingKey, kind: .season, services: services)
+        await enqueueItems(itemID: itemID, kind: .season, services: services)
     }
 
-    func enqueueShow(ratingKey: String, context: PlexAPIContext) async {
+    func enqueueShow(itemID: String, context: PlexAPIContext) async {
         guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItems(itemID: ratingKey, kind: .series, services: services)
+        await enqueueItems(itemID: itemID, kind: .series, services: services)
     }
 
     private func enqueue(_ preparation: MediaDownloadPreparation, services: MediaServices) async throws {
@@ -211,9 +209,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         task.taskDescription = id
 
         let metadata = DownloadedMediaMetadata(
-            provider: services.provider,
-            serverIdentifier: services.identity.id,
-            ratingKey: mediaItem.id,
+            identity: mediaItem.identity,
             guid: mediaItem.guid,
             type: mediaItem.type,
             title: mediaItem.title,
@@ -336,12 +332,14 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func isAlreadyScheduled(for identity: MediaIdentity) -> Bool {
         items.contains { item in
-            item.ratingKey == identity.itemID
-                && (item.metadata.provider ?? .plex) == identity.server.provider
-                && (item.metadata.serverIdentifier == nil
-                    || item.metadata.serverIdentifier == identity.server.id)
-                && item.status != .failed
+            item.identity == identity && item.status != .failed
         }
+    }
+
+    private func latestItem(for identity: MediaIdentity) -> DownloadItem? {
+        items
+            .filter { $0.identity == identity }
+            .max { $0.createdAt < $1.createdAt }
     }
 
     private func handleDownloadError(_ error: Error) {

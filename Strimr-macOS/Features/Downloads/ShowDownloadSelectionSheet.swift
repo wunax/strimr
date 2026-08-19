@@ -6,7 +6,7 @@ struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
     let onSubmitSelection: ([String]) async -> Void
-    let statusForRatingKey: (String) -> DownloadStatus?
+    let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?
     @State private var selectedEpisodeIDs: Set<String> = []
@@ -87,7 +87,7 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     private func episodeRow(_ episode: MediaItem) -> some View {
-        let downloaded = statusForRatingKey(episode.id) == .completed
+        let downloaded = statusForIdentity(episode.identity) == .completed
         let selected = selectedEpisodeIDs.contains(episode.id) && !downloaded
         return Button {
             if selected {
@@ -108,7 +108,7 @@ struct ShowDownloadSelectionSheet: View {
                 Spacer()
                 if downloaded {
                     Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
-                } else if statusForRatingKey(episode.id)?.isActive == true {
+                } else if statusForIdentity(episode.identity)?.isActive == true {
                     ProgressView().controlSize(.small)
                 }
             }
@@ -127,7 +127,7 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     private func submitSelection() {
-        let episodeIDs = selectedEpisodeIDs.filter { statusForRatingKey($0) != .completed }.sorted()
+        let episodeIDs = selectedEpisodeIDs.filter { !isDownloaded(itemID: $0) }.sorted()
         guard !episodeIDs.isEmpty else { return }
         isSubmitting = true
         Task {
@@ -138,11 +138,16 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     private var selectableEpisodeIDs: Set<String> {
-        Set(viewModel.episodes.map(\.id).filter { statusForRatingKey($0) != .completed })
+        Set(viewModel.episodes.filter { statusForIdentity($0.identity) != .completed }.map(\.id))
     }
 
     private var effectiveSelectionCount: Int {
-        selectedEpisodeIDs.count(where: { statusForRatingKey($0) != .completed })
+        selectedEpisodeIDs.count(where: { !isDownloaded(itemID: $0) })
+    }
+
+    private func isDownloaded(itemID: String) -> Bool {
+        guard let episode = viewModel.episodes.first(where: { $0.id == itemID }) else { return false }
+        return statusForIdentity(episode.identity) == .completed
     }
 
     private var submitButtonTitle: String {

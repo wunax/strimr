@@ -6,7 +6,7 @@ struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
     let onSubmitSelection: ([String]) async -> Void
-    let statusForRatingKey: (String) -> DownloadStatus?
+    let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?
     @State private var selectedEpisodeIDs: Set<String> = []
@@ -133,7 +133,7 @@ struct ShowDownloadSelectionSheet: View {
 
                 Spacer(minLength: 0)
 
-                statusIndicator(for: episode.id)
+                statusIndicator(for: episode.identity)
             }
         }
         .buttonStyle(.plain)
@@ -142,8 +142,8 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     @ViewBuilder
-    private func statusIndicator(for ratingKey: String) -> some View {
-        switch statusForRatingKey(ratingKey) {
+    private func statusIndicator(for identity: MediaIdentity) -> some View {
+        switch statusForIdentity(identity) {
         case .completed:
             Image(systemName: "arrow.down.circle.fill")
                 .foregroundStyle(.green)
@@ -220,6 +220,7 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     private func isAlreadyDownloaded(episodeID: String) -> Bool {
-        statusForRatingKey(episodeID) == .completed
+        guard let episode = viewModel.episodes.first(where: { $0.id == episodeID }) else { return false }
+        return statusForIdentity(episode.identity) == .completed
     }
 }
