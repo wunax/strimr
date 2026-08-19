@@ -56,16 +56,12 @@ struct SignInView: View {
                     .foregroundStyle(.red)
             }
             Spacer()
-
-            Button {
-                returnToProviderSelection()
-            } label: {
-                Label("provider.change", systemImage: "chevron.left")
-            }
-            .buttonStyle(.link)
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .toolbar {
+            AuthenticationActionsMenu(onChangeProvider: returnToProviderSelection)
+        }
         .onDisappear { viewModel.cancelSignIn() }
     }
 

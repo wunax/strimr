@@ -64,16 +64,13 @@ struct SignInView: View {
             }
 
             Spacer()
-
-            Button {
-                returnToProviderSelection()
-            } label: {
-                Label("provider.change", systemImage: "chevron.left")
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
         }
         .padding(24)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                AuthenticationActionsMenu(onChangeProvider: returnToProviderSelection)
+            }
+        }
     }
 
     private func returnToProviderSelection() {
