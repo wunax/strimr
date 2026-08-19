@@ -21,9 +21,9 @@ struct ProfileSwitcherView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                AuthenticationActionsMenu(onSignOut: {
                     isShowingLogoutConfirmation = true
-                }
+                })
             }
 
             if let errorMessage = viewModel.errorMessage {

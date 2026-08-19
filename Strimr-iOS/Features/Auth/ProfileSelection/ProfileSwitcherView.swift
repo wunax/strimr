@@ -39,12 +39,9 @@ struct ProfileSwitcherView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(role: .destructive) {
+                AuthenticationActionsMenu(onSignOut: {
                     isShowingLogoutConfirmation = true
-                } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .accessibilityLabel("common.actions.logOut")
+                })
             }
         }
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {

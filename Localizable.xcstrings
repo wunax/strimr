@@ -799,6 +799,28 @@
         }
       }
     },
+    "downloads.menu.count %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloads (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargements (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载（%lld）"
+          }
+        }
+      }
+    },
     "downloads.offline.banner" : {
       "localizations" : {
         "en" : {

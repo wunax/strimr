@@ -21,6 +21,21 @@ struct JellyfinAuthenticationView: View {
                 )
             }
         }
+        #if os(iOS)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                AuthenticationActionsMenu(onChangeProvider: {
+                    Task { await sessionManager.requestProviderSelection() }
+                })
+            }
+        }
+        #elseif os(macOS)
+        .toolbar {
+            AuthenticationActionsMenu(onChangeProvider: {
+                Task { await sessionManager.requestProviderSelection() }
+            })
+        }
+        #endif
     }
 
     private func authenticationForm(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
@@ -164,11 +179,13 @@ struct JellyfinAuthenticationView: View {
                 .disabled(viewModel.isLoading)
             }
 
-            Button {
-                Task { await sessionManager.requestProviderSelection() }
-            } label: {
-                Label("provider.change", systemImage: "chevron.left")
-            }
+            #if os(tvOS)
+                Button {
+                    Task { await sessionManager.requestProviderSelection() }
+                } label: {
+                    Label("provider.change", systemImage: "chevron.left")
+                }
+            #endif
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)

@@ -13,12 +13,9 @@ struct SelectServerView: View {
         .padding(24)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(role: .destructive) {
+                AuthenticationActionsMenu(onSignOut: {
                     isShowingLogoutConfirmation = true
-                } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .accessibilityLabel("common.actions.logOut")
+                })
             }
         }
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {

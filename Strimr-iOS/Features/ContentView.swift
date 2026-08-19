@@ -26,14 +26,18 @@ struct ContentView: View {
                 case .needsProviderSelection:
                     ProviderSelectionView()
                 case .signedOut:
-                    SignInView(
-                        viewModel: SignInViewModel(
-                            sessionManager: sessionManager,
-                            context: plexApiContext,
-                        ),
-                    )
+                    NavigationStack {
+                        SignInView(
+                            viewModel: SignInViewModel(
+                                sessionManager: sessionManager,
+                                context: plexApiContext,
+                            ),
+                        )
+                    }
                 case .needsJellyfinAuthentication:
-                    JellyfinAuthenticationView()
+                    NavigationStack {
+                        JellyfinAuthenticationView()
+                    }
                 case .needsProfileSelection:
                     NavigationStack {
                         ProfileSwitcherView(

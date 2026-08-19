@@ -73,6 +73,14 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         items.filter { $0.status == .completed }
     }
 
+    var playableItems: [DownloadItem] {
+        completedItems.filter { localVideoURL(for: $0) != nil }
+    }
+
+    var playableCount: Int {
+        playableItems.count
+    }
+
     var shouldForceOfflineDownloads: Bool {
         isOffline
     }
