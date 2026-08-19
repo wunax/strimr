@@ -53,6 +53,10 @@ struct PlayableMediaItem: Identifiable, Hashable {
         item.id
     }
 
+    var identity: MediaIdentity {
+        item.identity
+    }
+
     var title: String {
         item.title
     }

@@ -17,9 +17,8 @@ enum DownloadStatus: String, Codable, Hashable {
 }
 
 struct DownloadedMediaMetadata: Codable, Hashable {
-    var provider: MediaProvider?
-    var serverIdentifier: String?
-    var ratingKey: String
+    var identity: MediaIdentity?
+    var itemID: String
     var guid: String
     var type: MediaKind
     var title: String
@@ -41,6 +40,154 @@ struct DownloadedMediaMetadata: Codable, Hashable {
     var videoFileName: String
     var fileSize: Int64?
     var createdAt: Date
+
+    init(
+        identity: MediaIdentity,
+        guid: String,
+        type: MediaKind,
+        title: String,
+        summary: String?,
+        genres: [String],
+        year: Int?,
+        duration: TimeInterval?,
+        viewCount: Int?,
+        contentRating: String?,
+        studio: String?,
+        tagline: String?,
+        parentRatingKey: String?,
+        grandparentRatingKey: String?,
+        grandparentTitle: String?,
+        parentTitle: String?,
+        parentIndex: Int?,
+        index: Int?,
+        posterFileName: String?,
+        videoFileName: String,
+        fileSize: Int64?,
+        createdAt: Date,
+    ) {
+        self.identity = identity
+        itemID = identity.itemID
+        self.guid = guid
+        self.type = type
+        self.title = title
+        self.summary = summary
+        self.genres = genres
+        self.year = year
+        self.duration = duration
+        self.viewCount = viewCount
+        self.contentRating = contentRating
+        self.studio = studio
+        self.tagline = tagline
+        self.parentRatingKey = parentRatingKey
+        self.grandparentRatingKey = grandparentRatingKey
+        self.grandparentTitle = grandparentTitle
+        self.parentTitle = parentTitle
+        self.parentIndex = parentIndex
+        self.index = index
+        self.posterFileName = posterFileName
+        self.videoFileName = videoFileName
+        self.fileSize = fileSize
+        self.createdAt = createdAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case identity
+        case itemID
+        case provider
+        case serverIdentifier
+        case ratingKey
+        case guid
+        case type
+        case title
+        case summary
+        case genres
+        case year
+        case duration
+        case viewCount
+        case contentRating
+        case studio
+        case tagline
+        case parentRatingKey
+        case grandparentRatingKey
+        case grandparentTitle
+        case parentTitle
+        case parentIndex
+        case index
+        case posterFileName
+        case videoFileName
+        case fileSize
+        case createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        itemID = try container.decodeIfPresent(String.self, forKey: .itemID)
+            ?? container.decode(String.self, forKey: .ratingKey)
+
+        if let decodedIdentity = try container.decodeIfPresent(MediaIdentity.self, forKey: .identity) {
+            identity = decodedIdentity
+            itemID = decodedIdentity.itemID
+        } else if
+            let provider = try container.decodeIfPresent(MediaProvider.self, forKey: .provider),
+            let serverIdentifier = try container.decodeIfPresent(String.self, forKey: .serverIdentifier)
+        {
+            identity = MediaIdentity(
+                server: ServerIdentity(provider: provider, id: serverIdentifier),
+                itemID: itemID,
+            )
+        } else {
+            identity = nil
+        }
+
+        guid = try container.decode(String.self, forKey: .guid)
+        type = try container.decode(MediaKind.self, forKey: .type)
+        title = try container.decode(String.self, forKey: .title)
+        summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        genres = try container.decode([String].self, forKey: .genres)
+        year = try container.decodeIfPresent(Int.self, forKey: .year)
+        duration = try container.decodeIfPresent(TimeInterval.self, forKey: .duration)
+        viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount)
+        contentRating = try container.decodeIfPresent(String.self, forKey: .contentRating)
+        studio = try container.decodeIfPresent(String.self, forKey: .studio)
+        tagline = try container.decodeIfPresent(String.self, forKey: .tagline)
+        parentRatingKey = try container.decodeIfPresent(String.self, forKey: .parentRatingKey)
+        grandparentRatingKey = try container.decodeIfPresent(String.self, forKey: .grandparentRatingKey)
+        grandparentTitle = try container.decodeIfPresent(String.self, forKey: .grandparentTitle)
+        parentTitle = try container.decodeIfPresent(String.self, forKey: .parentTitle)
+        parentIndex = try container.decodeIfPresent(Int.self, forKey: .parentIndex)
+        index = try container.decodeIfPresent(Int.self, forKey: .index)
+        posterFileName = try container.decodeIfPresent(String.self, forKey: .posterFileName)
+        videoFileName = try container.decode(String.self, forKey: .videoFileName)
+        fileSize = try container.decodeIfPresent(Int64.self, forKey: .fileSize)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(identity, forKey: .identity)
+        try container.encode(itemID, forKey: .itemID)
+        try container.encode(guid, forKey: .guid)
+        try container.encode(type, forKey: .type)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(summary, forKey: .summary)
+        try container.encode(genres, forKey: .genres)
+        try container.encodeIfPresent(year, forKey: .year)
+        try container.encodeIfPresent(duration, forKey: .duration)
+        try container.encodeIfPresent(viewCount, forKey: .viewCount)
+        try container.encodeIfPresent(contentRating, forKey: .contentRating)
+        try container.encodeIfPresent(studio, forKey: .studio)
+        try container.encodeIfPresent(tagline, forKey: .tagline)
+        try container.encodeIfPresent(parentRatingKey, forKey: .parentRatingKey)
+        try container.encodeIfPresent(grandparentRatingKey, forKey: .grandparentRatingKey)
+        try container.encodeIfPresent(grandparentTitle, forKey: .grandparentTitle)
+        try container.encodeIfPresent(parentTitle, forKey: .parentTitle)
+        try container.encodeIfPresent(parentIndex, forKey: .parentIndex)
+        try container.encodeIfPresent(index, forKey: .index)
+        try container.encodeIfPresent(posterFileName, forKey: .posterFileName)
+        try container.encode(videoFileName, forKey: .videoFileName)
+        try container.encodeIfPresent(fileSize, forKey: .fileSize)
+        try container.encode(createdAt, forKey: .createdAt)
+    }
 
     var subtitle: String? {
         switch type {
@@ -71,8 +218,12 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var errorMessage: String?
     var metadata: DownloadedMediaMetadata
 
-    var ratingKey: String {
-        metadata.ratingKey
+    var identity: MediaIdentity? {
+        metadata.identity
+    }
+
+    var itemID: String {
+        metadata.itemID
     }
 
     var isPlayable: Bool {
