@@ -42,6 +42,9 @@ struct SelectServerView: View {
             Button("common.actions.retry") {
                 viewModel.requestSelectionRetry()
             }
+            Button("serverSelection.customAddress.use") {
+                viewModel.requestCustomAddress()
+            }
             Button("common.actions.cancel", role: .cancel) {
                 viewModel.dismissSelectionError()
             }
@@ -49,9 +52,12 @@ struct SelectServerView: View {
             Text("serverSelection.error.connection.message")
         }
         .task { await viewModel.load() }
+        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
+            CustomServerAddressView(viewModel: viewModel)
+        }
         .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
             guard !isPresented else { return }
-            Task { await viewModel.retrySelectionAfterAlertDismissal() }
+            Task { await viewModel.handleSelectionErrorDismissal() }
         }
         .onAppear {
             if focusedServerID == nil, let firstServer = viewModel.servers.first {
