@@ -18,87 +18,11 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $coordinator.tab) {
-            Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
-                NavigationStack(path: coordinator.pathBinding(for: .home)) {
-                    HomeView(
-                        viewModel: homeViewModel,
-                        onSelectMedia: coordinator.showMediaDetail,
-                    )
-                    .navigationDestination(for: MainCoordinator.Route.self) {
-                        destination(for: $0)
-                    }
-                }
-            }
-
-            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
-                Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
-                    NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
-                        SeerrDiscoverView(
-                            viewModel: SeerrDiscoverViewModel(store: seerrStore),
-                            searchViewModel: SeerrSearchViewModel(store: seerrStore),
-                            onSelectMedia: coordinator.showSeerrMediaDetail,
-                        )
-                        .navigationDestination(for: SeerrMedia.self) { media in
-                            SeerrMediaDetailView(
-                                viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
-                            )
-                        }
-                    }
-                }
-            }
-
-            Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
-                NavigationStack(path: coordinator.pathBinding(for: .search)) {
-                    SearchView(
-                        viewModel: SearchViewModel(
-                            services: mediaServices,
-                            settingsManager: settingsManager,
-                        ),
-                        onSelectMedia: coordinator.showSearchResult,
-                    )
-                    .navigationDestination(for: MainCoordinator.Route.self) {
-                        destination(for: $0)
-                    }
-                }
-            }
-
-            Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
-                NavigationStack(path: coordinator.pathBinding(for: .library)) {
-                    LibraryView(
-                        viewModel: libraryViewModel,
-                        onSelectMedia: coordinator.showMediaDetail,
-                    )
-                    .navigationDestination(for: Library.self) { library in
-                        LibraryDetailView(
-                            library: library,
-                            onSelectMedia: coordinator.showMediaDetail,
-                        )
-                    }
-                    .navigationDestination(for: MainCoordinator.Route.self) {
-                        destination(for: $0)
-                    }
-                }
-            }
-
-            TabSection {
-                ForEach(navigationLibraries) { library in
-                    Tab(
-                        library.title,
-                        systemImage: library.iconName,
-                        value: MainCoordinator.Tab.libraryDetail(library.id),
-                    ) {
-                        NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
-                            LibraryDetailView(
-                                library: library,
-                                onSelectMedia: coordinator.showMediaDetail,
-                            )
-                            .navigationDestination(for: MainCoordinator.Route.self) {
-                                destination(for: $0)
-                            }
-                        }
-                    }
-                }
+        Group {
+            if #available(iOS 18.0, *) {
+                modernTabView
+            } else {
+                legacyTabView
             }
         }
         .environmentObject(coordinator)
@@ -123,6 +47,151 @@ struct MainTabView: View {
                     ),
                 )
                 .environment(plexApiContext)
+            }
+        }
+    }
+
+    @available(iOS 18.0, *)
+    private var modernTabView: some View {
+        TabView(selection: $coordinator.tab) {
+            Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
+                homeTabContent
+            }
+
+            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+                Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
+                    discoverTabContent
+                }
+            }
+
+            Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
+                searchTabContent
+            }
+
+            Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
+                libraryTabContent
+            }
+
+            TabSection {
+                ForEach(navigationLibraries) { library in
+                    Tab(
+                        library.title,
+                        systemImage: library.iconName,
+                        value: MainCoordinator.Tab.libraryDetail(library.id),
+                    ) {
+                        libraryDetailTabContent(library)
+                    }
+                }
+            }
+        }
+    }
+
+    private var legacyTabView: some View {
+        TabView(selection: $coordinator.tab) {
+            homeTabContent
+                .tabItem {
+                    Label("tabs.home", systemImage: "house.fill")
+                }
+                .tag(MainCoordinator.Tab.home)
+
+            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+                discoverTabContent
+                    .tabItem {
+                        Label("tabs.discover", systemImage: "sparkles")
+                    }
+                    .tag(MainCoordinator.Tab.seerrDiscover)
+            }
+
+            searchTabContent
+                .tabItem {
+                    Label("tabs.search", systemImage: "magnifyingglass")
+                }
+                .tag(MainCoordinator.Tab.search)
+
+            libraryTabContent
+                .tabItem {
+                    Label("tabs.libraries", systemImage: "rectangle.stack.fill")
+                }
+                .tag(MainCoordinator.Tab.library)
+
+            ForEach(navigationLibraries) { library in
+                libraryDetailTabContent(library)
+                    .tabItem {
+                        Label(library.title, systemImage: library.iconName)
+                    }
+                    .tag(MainCoordinator.Tab.libraryDetail(library.id))
+            }
+        }
+    }
+
+    private var homeTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .home)) {
+            HomeView(
+                viewModel: homeViewModel,
+                onSelectMedia: coordinator.showMediaDetail,
+            )
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
+            }
+        }
+    }
+
+    private var discoverTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
+            SeerrDiscoverView(
+                viewModel: SeerrDiscoverViewModel(store: seerrStore),
+                searchViewModel: SeerrSearchViewModel(store: seerrStore),
+                onSelectMedia: coordinator.showSeerrMediaDetail,
+            )
+            .navigationDestination(for: SeerrMedia.self) { media in
+                SeerrMediaDetailView(
+                    viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                )
+            }
+        }
+    }
+
+    private var searchTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .search)) {
+            SearchView(
+                viewModel: SearchViewModel(
+                    services: mediaServices,
+                    settingsManager: settingsManager,
+                ),
+                onSelectMedia: coordinator.showSearchResult,
+            )
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
+            }
+        }
+    }
+
+    private var libraryTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .library)) {
+            LibraryView(
+                viewModel: libraryViewModel,
+                onSelectMedia: coordinator.showMediaDetail,
+            )
+            .navigationDestination(for: Library.self) { library in
+                LibraryDetailView(
+                    library: library,
+                    onSelectMedia: coordinator.showMediaDetail,
+                )
+            }
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
+            }
+        }
+    }
+
+    private func libraryDetailTabContent(_ library: Library) -> some View {
+        NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
+            LibraryDetailView(
+                library: library,
+                onSelectMedia: coordinator.showMediaDetail,
+            )
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
             }
         }
     }

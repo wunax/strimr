@@ -26,7 +26,7 @@ Strimr is a third-party client for Plex and Jellyfin, built in Swift with native
 <small><sup>[1]</sup> Apple platforms do not support HDMI bitstream passthrough for Dolby TrueHD, DTS, DTS-HD MA, or DTS:X. These formats are decoded for playback and output either as **Dolby Digital Plus (compatibility mode, default)** or **lossless multichannel LPCM (lossless mode)**. Dolby Atmos (TrueHD) and DTS:X object metadata cannot be preserved due to tvOS limitations, while Dolby Atmos delivered as Dolby Digital Plus (E-AC3/JOC) is preserved via stream copy.</small>
 
 ## Platform Support
-- iOS 18.0 or later
+- iOS 17.0 or later
 - macOS 26.0 or later
 - tvOS 26.0 or later
 
