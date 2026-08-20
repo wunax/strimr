@@ -41,6 +41,7 @@ final class PlexAPIContext {
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     @ObservationIgnored private let clientIdKey = "strimr.plex.clientId"
     @ObservationIgnored private let connectionKeyPrefix = "strimr.plex.connection"
+    @ObservationIgnored private let customConnectionKeyPrefix = "strimr.plex.customConnection"
 
     init() {
         bootstrapTask = Task { [weak self] in
@@ -79,10 +80,16 @@ final class PlexAPIContext {
         resource?.clientIdentifier
     }
 
-    func selectServer(_ resource: PlexCloudResource) async throws {
+    func selectServer(_ resource: PlexCloudResource, customURL: URL? = nil) async throws {
         do {
-            let connection = try await resolveConnection(using: resource)
-            commitServerAccess(resource: resource, connection: connection)
+            if let customURL {
+                try await validateCustomConnection(customURL, using: resource)
+                storeCustomConnection(customURL, for: resource)
+                commitServerAccess(resource: resource, url: customURL)
+            } else {
+                let url = try await resolveServerURL(using: resource)
+                commitServerAccess(resource: resource, url: url)
+            }
         } catch {
             if Task.isCancelled || error.isCancellation {
                 throw error
@@ -151,8 +158,8 @@ final class PlexAPIContext {
         guard resource.clientIdentifier == serverIdentifier else {
             throw PlexServerAccessRecoveryError.serverUnavailable
         }
-        let connection = try await resolveConnection(using: resource)
-        commitServerAccess(resource: resource, connection: connection)
+        let url = try await resolveServerURL(using: resource)
+        commitServerAccess(resource: resource, url: url)
     }
 
     @discardableResult
@@ -185,6 +192,70 @@ final class PlexAPIContext {
         baseURLServer = nil
         authTokenServer = nil
         serverAccessGeneration &+= 1
+    }
+
+    static func normalizedCustomServerURL(_ value: String) throws -> URL {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty,
+              var components = URLComponents(string: normalized),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = components.host,
+              !host.isEmpty,
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil
+        else {
+            throw PlexAPIError.invalidURL
+        }
+
+        components.scheme = scheme
+        while components.path.hasSuffix("/") {
+            components.path.removeLast()
+        }
+        guard let url = components.url else {
+            throw PlexAPIError.invalidURL
+        }
+        return url
+    }
+
+    func customServerURL(for resource: PlexCloudResource) -> URL? {
+        loadCustomConnection(for: resource)
+    }
+
+    private func resolveServerURL(using resource: PlexCloudResource) async throws -> URL {
+        if let customURL = loadCustomConnection(for: resource),
+           try await isReachable(customURL, using: resource)
+        {
+            return customURL
+        }
+        return try await resolveConnection(using: resource).uri
+    }
+
+    private func validateCustomConnection(
+        _ url: URL,
+        using resource: PlexCloudResource,
+    ) async throws {
+        guard let accessToken = resource.accessToken else {
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        }
+        switch try await Self.connectionStatus(url, accessToken: accessToken) {
+        case .reachable:
+            return
+        case .unauthorized:
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        case .unavailable:
+            throw PlexServerAccessRecoveryError.connectionFailed
+        }
+    }
+
+    private func isReachable(
+        _ url: URL,
+        using resource: PlexCloudResource,
+    ) async throws -> Bool {
+        guard let accessToken = resource.accessToken else { return false }
+        return try await Self.connectionStatus(url, accessToken: accessToken) == .reachable
     }
 
     private func resolveConnection(
@@ -354,14 +425,11 @@ final class PlexAPIContext {
         }
     }
 
-    private func commitServerAccess(
-        resource: PlexCloudResource,
-        connection: PlexCloudResource.Connection,
-    ) {
+    private func commitServerAccess(resource: PlexCloudResource, url: URL) {
         self.resource = resource
-        baseURLServer = connection.uri
+        baseURLServer = url
         authTokenServer = resource.accessToken
-        storeConnection(connection.uri, for: resource)
+        storeConnection(url, for: resource)
         serverAccessGeneration &+= 1
     }
 
@@ -379,6 +447,10 @@ final class PlexAPIContext {
         "\(connectionKeyPrefix).\(resource.clientIdentifier)"
     }
 
+    private func customConnectionKey(for resource: PlexCloudResource) -> String {
+        "\(customConnectionKeyPrefix).\(resource.clientIdentifier)"
+    }
+
     private func loadSavedConnection(for resource: PlexCloudResource) -> URL? {
         do {
             guard let value = try keychain.string(forKey: connectionKey(for: resource)) else {
@@ -393,6 +465,25 @@ final class PlexAPIContext {
     private func storeConnection(_ url: URL, for resource: PlexCloudResource) {
         do {
             try keychain.setString(url.absoluteString, forKey: connectionKey(for: resource))
+        } catch {
+            return
+        }
+    }
+
+    private func loadCustomConnection(for resource: PlexCloudResource) -> URL? {
+        do {
+            guard let value = try keychain.string(forKey: customConnectionKey(for: resource)) else {
+                return nil
+            }
+            return URL(string: value)
+        } catch {
+            return nil
+        }
+    }
+
+    private func storeCustomConnection(_ url: URL, for resource: PlexCloudResource) {
+        do {
+            try keychain.setString(url.absoluteString, forKey: customConnectionKey(for: resource))
         } catch {
             return
         }

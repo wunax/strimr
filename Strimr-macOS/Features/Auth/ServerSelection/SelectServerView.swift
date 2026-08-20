@@ -81,13 +81,17 @@ struct SelectServerView: View {
         }
         .alert("serverSelection.error.connection.title", isPresented: $viewModel.isShowingSelectionError) {
             Button("common.actions.retry") { viewModel.requestSelectionRetry() }
+            Button("serverSelection.customAddress.use") { viewModel.requestCustomAddress() }
             Button("common.actions.cancel", role: .cancel) { viewModel.dismissSelectionError() }
         } message: {
             Text("serverSelection.error.connection.message")
         }
+        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
+            CustomServerAddressView(viewModel: viewModel)
+        }
         .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
             guard !isPresented else { return }
-            Task { await viewModel.retrySelectionAfterAlertDismissal() }
+            Task { await viewModel.handleSelectionErrorDismissal() }
         }
     }
 

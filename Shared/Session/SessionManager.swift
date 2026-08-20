@@ -246,10 +246,10 @@ final class SessionManager {
         }
     }
 
-    func selectServer(_ server: PlexCloudResource) async throws {
+    func selectServer(_ server: PlexCloudResource, customURL: URL? = nil) async throws {
         do {
             loadingPhase = .connection
-            try await context.selectServer(server)
+            try await context.selectServer(server, customURL: customURL)
             plexServer = server
             activatePlexServicesIfAvailable()
             serverContexts[server.clientIdentifier] = nil
