@@ -88,7 +88,6 @@ struct SelectServerView: View {
         }
         .sheet(isPresented: $viewModel.isShowingCustomAddress) {
             CustomServerAddressView(viewModel: viewModel)
-                .frame(minWidth: 480, minHeight: 300)
         }
         .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
             guard !isPresented else { return }
