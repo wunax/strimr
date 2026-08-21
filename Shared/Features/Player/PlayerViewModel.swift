@@ -47,6 +47,10 @@ final class PlayerViewModel {
         mediaServices
     }
 
+    var artworkServices: MediaServices? {
+        mediaServices
+    }
+
     var subtitleSearchTitlePlaceholder: String {
         media?.title ?? ""
     }
@@ -166,7 +170,7 @@ final class PlayerViewModel {
         Int(track.id) ?? track.sourceIndex
     }
 
-    func nextCommonPlayerViewModel() -> PlayerViewModel? {
+    func makeNextPlayerViewModel() -> PlayerViewModel? {
         guard var queue = mediaQueue,
               let mediaServices,
               queue.items.indices.contains(queue.currentIndex + 1)

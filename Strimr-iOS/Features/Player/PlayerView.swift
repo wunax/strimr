@@ -46,6 +46,7 @@ struct PlayerView: View {
     @State private var isShowingServerRecoveryAlert = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
+    @State private var nextEpisodePresentation = NextEpisodePresentation()
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -93,6 +94,7 @@ struct PlayerView: View {
                     startPlaybackIfNeeded(url: viewModel.playbackURL)
                 }
                 .onDisappear {
+                    nextEpisodePresentation.cancel()
                     viewModel.handleStop()
                     playerController.onPictureInPictureStartFailed = nil
                     hideControlsWorkItem?.cancel()
@@ -330,6 +332,19 @@ struct PlayerView: View {
                     .padding(.bottom, controlsVisible ? 150 : 32)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     .allowsHitTesting(false)
+            }
+
+            if nextEpisodePresentation.isPresented,
+               let services = viewModel.artworkServices
+            {
+                NextEpisodeOverlay(
+                    presentation: nextEpisodePresentation,
+                    services: services,
+                    onPlay: { nextViewModel in
+                        await startPlayback(using: nextViewModel)
+                    },
+                    onClose: { dismissPlayer(force: true) },
+                )
             }
         }
     }
@@ -825,34 +840,34 @@ struct PlayerView: View {
     private func handleEpisodeCompletion(for _: MediaItem) async {
         await viewModel.markPlaybackFinished()
 
-        guard sharePlayCoordinator.isInSession || settingsManager.playback.autoPlayNextEpisode else {
-            await MainActor.run {
-                dismissPlayer(force: true)
-            }
+        guard viewModel.usesCommonPlaybackQueue else {
+            await MainActor.run { dismissPlayer(force: true) }
             return
         }
 
-        if viewModel.usesCommonPlaybackQueue {
-            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
-                await MainActor.run { dismissPlayer(force: true) }
-                return
-            }
-            if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
-                await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
-                return
-            }
+        guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
+            await MainActor.run { dismissPlayer(force: true) }
+            return
+        }
+
+        if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
+            await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
+            return
+        }
+
+        let autoplay = settingsManager.playback.nextEpisodeAutoplay
+        if autoplay == .immediately {
             await startPlayback(using: nextViewModel)
-            return
+        } else {
+            nextEpisodePresentation.present(next: nextViewModel, mode: autoplay)
         }
-
-        await MainActor.run { dismissPlayer(force: true) }
     }
 
     private func handleMovieCompletion() async {
         await viewModel.markPlaybackFinished()
 
         if viewModel.usesCommonPlaybackQueue {
-            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+            guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
                 await MainActor.run { dismissPlayer(force: true) }
                 return
             }

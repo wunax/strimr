@@ -76,6 +76,7 @@ struct PlayerView: View {
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var shouldResumeAfterMediaLoad = false
     @State private var shouldPauseAfterMediaLoad = false
+    @State private var nextEpisodePresentation = NextEpisodePresentation()
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -125,7 +126,7 @@ struct PlayerView: View {
                     .tint(.white)
             }
 
-            if controlsVisible {
+            if controlsVisible, !nextEpisodePresentation.isPresented {
                 controls
                     .transition(.opacity)
             }
@@ -139,6 +140,19 @@ struct PlayerView: View {
             }
 
             keyboardCommands
+
+            if nextEpisodePresentation.isPresented,
+               let services = viewModel.artworkServices
+            {
+                NextEpisodeOverlay(
+                    presentation: nextEpisodePresentation,
+                    services: services,
+                    onPlay: { nextViewModel in
+                        await startPlayback(using: nextViewModel)
+                    },
+                    onClose: { closePlayer(force: true) },
+                )
+            }
         }
         .simultaneousGesture(
             TapGesture(count: 2)
@@ -171,6 +185,7 @@ struct PlayerView: View {
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
                 .onDisappear {
+                    nextEpisodePresentation.cancel()
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
                     fullscreenCoordinator.detach()
@@ -700,7 +715,12 @@ struct PlayerView: View {
                 .keyboardShortcut("c", modifiers: [])
 
             if !fullscreenCoordinator.isFullScreen {
-                Button(action: { closePlayer() }) { EmptyView() }
+                Button {
+                    nextEpisodePresentation.cancel()
+                    closePlayer()
+                } label: {
+                    EmptyView()
+                }
                     .keyboardShortcut(.escape, modifiers: [])
             }
         }
@@ -842,13 +862,51 @@ struct PlayerView: View {
     private func handlePlaybackEnded() async {
         await viewModel.markPlaybackFinished()
         let isSharePlayPlayback = participatesInSharePlay && sharePlayCoordinator.isInSession
-        guard isSharePlayPlayback || settingsManager.playback.autoPlayNextEpisode else {
+
+        if viewModel.media?.type == .episode {
+            guard viewModel.usesCommonPlaybackQueue else {
+                if isSharePlayPlayback {
+                    sharePlayCoordinator.leave()
+                    participatesInSharePlay = false
+                    closePlayer(force: true)
+                } else {
+                    playerController.pause()
+                }
+                return
+            }
+
+            guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
+                if isSharePlayPlayback {
+                    sharePlayCoordinator.leave()
+                    participatesInSharePlay = false
+                    closePlayer(force: true)
+                } else {
+                    playerController.pause()
+                }
+                return
+            }
+
+            if isSharePlayPlayback, let next = nextViewModel.media {
+                sharePlayCoordinator.updateToNextItem(next)
+                return
+            }
+
+            let autoplay = settingsManager.playback.nextEpisodeAutoplay
+            if autoplay == .immediately {
+                await startPlayback(using: nextViewModel)
+            } else {
+                nextEpisodePresentation.present(next: nextViewModel, mode: autoplay)
+            }
+            return
+        }
+
+        guard isSharePlayPlayback || settingsManager.playback.nextEpisodeAutoplay.isEnabled else {
             playerController.pause()
             return
         }
 
         if viewModel.usesCommonPlaybackQueue {
-            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+            guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
                 playerController.pause()
                 return
             }

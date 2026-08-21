@@ -49,6 +49,53 @@ enum SubtitleVerticalPosition: String, Codable, CaseIterable, Hashable {
     case top
 }
 
+enum NextEpisodeAutoplay: String, Codable, CaseIterable, Hashable {
+    case disabled
+    case immediately
+    case after5Seconds
+    case after10Seconds
+    case after15Seconds
+    case after30Seconds
+
+    var delaySeconds: Int? {
+        switch self {
+        case .disabled:
+            nil
+        case .immediately:
+            0
+        case .after5Seconds:
+            5
+        case .after10Seconds:
+            10
+        case .after15Seconds:
+            15
+        case .after30Seconds:
+            30
+        }
+    }
+
+    var isEnabled: Bool {
+        self != .disabled
+    }
+
+    var title: String {
+        switch self {
+        case .disabled:
+            String(localized: "settings.playback.nextEpisodeAutoplay.disabled")
+        case .immediately:
+            String(localized: "settings.playback.nextEpisodeAutoplay.immediately")
+        case .after5Seconds:
+            String(localized: "settings.playback.nextEpisodeAutoplay.after5Seconds")
+        case .after10Seconds:
+            String(localized: "settings.playback.nextEpisodeAutoplay.after10Seconds")
+        case .after15Seconds:
+            String(localized: "settings.playback.nextEpisodeAutoplay.after15Seconds")
+        case .after30Seconds:
+            String(localized: "settings.playback.nextEpisodeAutoplay.after30Seconds")
+        }
+    }
+}
+
 struct SubtitleAppearance: Equatable {
     let fontSize: Int
     let textColor: SubtitleTextColor
@@ -59,7 +106,7 @@ struct SubtitleAppearance: Equatable {
 }
 
 struct PlaybackSettings: Codable, Equatable {
-    var autoPlayNextEpisode = true
+    var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
     var autoSkipIntros = false
     var autoSkipCredits = false
     var losslessAudio = false
@@ -82,7 +129,10 @@ struct PlaybackSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        autoPlayNextEpisode = try container.decodeIfPresent(Bool.self, forKey: .autoPlayNextEpisode) ?? true
+        nextEpisodeAutoplay = try container.decodeIfPresent(
+            NextEpisodeAutoplay.self,
+            forKey: .nextEpisodeAutoplay,
+        ) ?? .after15Seconds
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false

@@ -32,8 +32,8 @@ final class SettingsManager {
         settings.downloads
     }
 
-    func setAutoPlayNextEpisode(_ enabled: Bool) {
-        settings.playback.autoPlayNextEpisode = enabled
+    func setNextEpisodeAutoplay(_ autoplay: NextEpisodeAutoplay) {
+        settings.playback.nextEpisodeAutoplay = autoplay
         persist()
     }
 
