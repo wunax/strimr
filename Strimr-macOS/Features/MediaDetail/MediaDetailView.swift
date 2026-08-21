@@ -323,7 +323,7 @@ struct MediaDetailView: View {
                 }
             }
 
-            HStack(alignment: .center, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
                 moreActionsMenu
 
                 if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
