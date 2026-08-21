@@ -31,7 +31,7 @@ final class NextEpisodePresentation {
         countdownTask = Task { [weak self] in
             guard let self else { return }
 
-            while let remaining = self.remainingSeconds, remaining > 0 {
+            while let remaining = remainingSeconds, remaining > 0 {
                 do {
                     try await Task.sleep(for: .seconds(1))
                 } catch {
@@ -39,10 +39,10 @@ final class NextEpisodePresentation {
                 }
 
                 guard !Task.isCancelled else { return }
-                self.remainingSeconds = remaining - 1
+                remainingSeconds = remaining - 1
             }
 
-            guard !Task.isCancelled, let next = self.takeNext() else { return }
+            guard !Task.isCancelled, let next = takeNext() else { return }
             await onComplete(next)
         }
     }

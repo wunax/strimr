@@ -721,7 +721,7 @@ struct PlayerView: View {
                 } label: {
                     EmptyView()
                 }
-                    .keyboardShortcut(.escape, modifiers: [])
+                .keyboardShortcut(.escape, modifiers: [])
             }
         }
         .frame(width: 0, height: 0)

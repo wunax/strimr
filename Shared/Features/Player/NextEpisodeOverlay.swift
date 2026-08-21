@@ -108,8 +108,8 @@ struct NextEpisodeOverlay: View {
                 .focused($focusedAction, equals: .play)
             #endif
             #if os(macOS)
-                .keyboardShortcut(.return, modifiers: [])
-                .keyboardShortcut(.space, modifiers: [])
+            .keyboardShortcut(.return, modifiers: [])
+            .keyboardShortcut(.space, modifiers: [])
             #endif
 
             Button {
@@ -181,7 +181,7 @@ struct NextEpisodeOverlay: View {
                 }
             }
             .padding(30)
-            .frame(maxWidth: 1_100)
+            .frame(maxWidth: 1100)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .padding(.horizontal, 60)
             .padding(.bottom, 48)
