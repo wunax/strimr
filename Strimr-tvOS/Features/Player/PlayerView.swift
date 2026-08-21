@@ -47,6 +47,7 @@ struct PlayerView: View {
     @State private var isShowingServerRecoveryAlert = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
+    @State private var nextEpisodePresentation = NextEpisodePresentation()
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -96,6 +97,7 @@ struct PlayerView: View {
                     startPlaybackIfNeeded(url: viewModel.playbackURL)
                 }
                 .onDisappear {
+                    nextEpisodePresentation.cancel()
                     viewModel.handleStop()
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
@@ -150,6 +152,11 @@ struct PlayerView: View {
                     Task { await handlePlaybackError(newValue) }
                 }
                 .onChange(of: controlsVisible) { _, isVisible in
+                    if nextEpisodePresentation.isPresented {
+                        focusedPlayerSurface = nil
+                        return
+                    }
+
                     if isVisible {
                         focusedPlayerSurface = nil
                         return
@@ -160,6 +167,15 @@ struct PlayerView: View {
                 .onChange(of: viewModel.activeSkipMarker != nil) { _, hasSkipOverlay in
                     guard !controlsVisible else { return }
                     focusHiddenControlsTarget(hasSkipOverlay: hasSkipOverlay)
+                }
+                .onChange(of: nextEpisodePresentation.isPresented) { _, isPresented in
+                    guard isPresented else { return }
+
+                    hideControlsWorkItem?.cancel()
+                    focusedPlayerSurface = nil
+                    withAnimation(.easeInOut) {
+                        controlsVisible = false
+                    }
                 }
                 .onChange(of: viewModel.position) { _, newValue in
                     guard !isScrubbing else { return }
@@ -350,6 +366,19 @@ struct PlayerView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     .allowsHitTesting(false)
             }
+
+            if nextEpisodePresentation.isPresented,
+               let services = viewModel.artworkServices
+            {
+                NextEpisodeOverlay(
+                    presentation: nextEpisodePresentation,
+                    services: services,
+                    onPlay: { nextViewModel in
+                        await startPlayback(using: nextViewModel)
+                    },
+                    onClose: { dismissPlayer(force: true) },
+                )
+            }
         }
     }
 
@@ -467,6 +496,12 @@ struct PlayerView: View {
     }
 
     private func handleExitCommand() {
+        if nextEpisodePresentation.isPresented {
+            nextEpisodePresentation.cancel()
+            dismissPlayer(force: true)
+            return
+        }
+
         if isShowingChapterTray {
             hideChapters()
             return
@@ -750,6 +785,8 @@ struct PlayerView: View {
     }
 
     private func showControls(temporarily: Bool) {
+        guard !nextEpisodePresentation.isPresented else { return }
+
         focusedPlayerSurface = nil
 
         withAnimation(.easeInOut) {
@@ -858,7 +895,7 @@ struct PlayerView: View {
     private func focusHiddenControlsTarget(hasSkipOverlay: Bool) {
         let target: PlayerFocusTarget = hasSkipOverlay ? .skipOverlay : .controlsProxy
         DispatchQueue.main.async {
-            guard !controlsVisible else { return }
+            guard !controlsVisible, !nextEpisodePresentation.isPresented else { return }
             focusedPlayerSurface = target
         }
     }
@@ -882,6 +919,8 @@ struct PlayerView: View {
     }
 
     private func handleMoveCommand(_ direction: MoveCommandDirection) {
+        guard !nextEpisodePresentation.isPresented else { return }
+
         switch direction {
         case .up:
             showControls(temporarily: true)
@@ -945,34 +984,34 @@ struct PlayerView: View {
     private func handleEpisodeCompletion(for _: MediaItem) async {
         await viewModel.markPlaybackFinished()
 
-        guard sharePlayCoordinator.isInSession || settingsManager.playback.autoPlayNextEpisode else {
-            await MainActor.run {
-                dismissPlayer()
-            }
+        guard viewModel.usesCommonPlaybackQueue else {
+            await MainActor.run { dismissPlayer() }
             return
         }
 
-        if viewModel.usesCommonPlaybackQueue {
-            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
-                await MainActor.run { dismissPlayer() }
-                return
-            }
-            if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
-                await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
-                return
-            }
+        guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
+            await MainActor.run { dismissPlayer() }
+            return
+        }
+
+        if sharePlayCoordinator.isInSession, let next = nextViewModel.media {
+            await MainActor.run { sharePlayCoordinator.updateToNextItem(next) }
+            return
+        }
+
+        let autoplay = settingsManager.playback.nextEpisodeAutoplay
+        if autoplay == .immediately {
             await startPlayback(using: nextViewModel)
-            return
+        } else {
+            nextEpisodePresentation.present(next: nextViewModel, mode: autoplay)
         }
-
-        await MainActor.run { dismissPlayer() }
     }
 
     private func handleMovieCompletion() async {
         await viewModel.markPlaybackFinished()
 
         if viewModel.usesCommonPlaybackQueue {
-            guard let nextViewModel = viewModel.nextCommonPlayerViewModel() else {
+            guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
                 await MainActor.run { dismissPlayer() }
                 return
             }

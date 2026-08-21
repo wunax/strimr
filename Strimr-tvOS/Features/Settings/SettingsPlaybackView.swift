@@ -11,7 +11,15 @@ struct SettingsPlaybackView: View {
     var body: some View {
         List {
             Section {
-                Toggle("settings.playback.autoPlayNext", isOn: viewModel.autoPlayNextBinding)
+                Picker(
+                    "settings.playback.nextEpisodeAutoplay",
+                    selection: viewModel.nextEpisodeAutoplayBinding,
+                ) {
+                    ForEach(viewModel.nextEpisodeAutoplayOptions, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.navigationLink)
 
                 Picker("settings.playback.rewind", selection: viewModel.rewindBinding) {
                     ForEach(viewModel.seekOptions, id: \.self) { seconds in

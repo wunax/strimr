@@ -125,6 +125,8 @@
 				Features/Player/Controls/PlayerChapterViews.swift,
 				Features/Player/Controls/PlayerTimelineView.swift,
 				Features/Player/Controls/SubtitleOverlayView.swift,
+				Features/Player/NextEpisodeOverlay.swift,
+				Features/Player/NextEpisodePresentation.swift,
 				Features/Player/PlaybackLauncher.swift,
 				Features/Player/PlaybackSettingsTrack.swift,
 				Features/Player/PlaybackSpeedOption.swift,
