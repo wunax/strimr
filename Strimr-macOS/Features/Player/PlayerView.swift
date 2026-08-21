@@ -70,6 +70,7 @@ struct PlayerView: View {
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
+    @State private var isShowingPlayQueue = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
@@ -126,9 +127,29 @@ struct PlayerView: View {
                     .tint(.white)
             }
 
-            if controlsVisible, !nextEpisodePresentation.isPresented {
+            if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented {
                 controls
                     .transition(.opacity)
+            }
+
+            if isShowingPlayQueue,
+               let services = viewModel.artworkServices
+            {
+                Color.black.opacity(0.16)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: hidePlayQueue)
+
+                PlayerQueueView(
+                    items: viewModel.queueItems,
+                    currentIndex: viewModel.queueCurrentIndex ?? 0,
+                    services: services,
+                    layout: .drawer,
+                    onSelect: selectQueueItem(at:),
+                    onClose: hidePlayQueue,
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
 
             if let automaticSkipFeedbackMessage {
@@ -253,6 +274,14 @@ struct PlayerView: View {
                 .onChange(of: isShowingChapterPopover) { _, isShowing in
                     if isShowing {
                         hideControlsWorkItem?.cancel()
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
+                .onChange(of: isShowingPlayQueue) { _, isShowing in
+                    if isShowing {
+                        hideControlsWorkItem?.cancel()
+                        restoreCursor()
                     } else {
                         showControls(temporarily: true)
                     }
@@ -493,6 +522,15 @@ struct PlayerView: View {
                         chapterButton
                     }
 
+                    if viewModel.hasNavigableQueue {
+                        Button {
+                            showPlayQueue()
+                        } label: {
+                            Image(systemName: "list.bullet.rectangle")
+                        }
+                        .accessibilityLabel(Text("player.queue.open"))
+                    }
+
                     Button {
                         toggleFullScreen()
                     } label: {
@@ -714,7 +752,14 @@ struct PlayerView: View {
             Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
 
-            if !fullscreenCoordinator.isFullScreen {
+            if isShowingPlayQueue {
+                Button {
+                    hidePlayQueue()
+                } label: {
+                    EmptyView()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            } else if !fullscreenCoordinator.isFullScreen {
                 Button {
                     nextEpisodePresentation.cancel()
                     closePlayer()
@@ -1109,6 +1154,11 @@ struct PlayerView: View {
     }
 
     private func toggleControlsVisibility() {
+        if isShowingPlayQueue {
+            hidePlayQueue()
+            return
+        }
+
         if controlsVisible {
             hideControls(force: true)
         } else {
@@ -1117,6 +1167,7 @@ struct PlayerView: View {
     }
 
     private func showControls(temporarily: Bool) {
+        guard !isShowingPlayQueue else { return }
         hideControlsWorkItem?.cancel()
         restoreCursor()
         withAnimation(.easeInOut) {
@@ -1128,9 +1179,46 @@ struct PlayerView: View {
         }
     }
 
+    private func showPlayQueue() {
+        guard viewModel.hasNavigableQueue, viewModel.artworkServices != nil else { return }
+        hideControlsWorkItem?.cancel()
+        restoreCursor()
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = true
+            controlsVisible = false
+        }
+    }
+
+    private func hidePlayQueue() {
+        guard isShowingPlayQueue else { return }
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = false
+        }
+    }
+
+    private func selectQueueItem(at index: Int) {
+        guard let currentIndex = viewModel.queueCurrentIndex,
+              index != currentIndex
+        else {
+            hidePlayQueue()
+            return
+        }
+
+        guard let nextViewModel = viewModel.makePlayerViewModel(
+            at: index,
+            shouldResumeFromOffset: true,
+        ) else { return }
+
+        hidePlayQueue()
+        Task {
+            await startPlayback(using: nextViewModel)
+        }
+    }
+
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
         guard
+            !isShowingPlayQueue,
             !playerController.isPaused,
             !isScrubbing,
             !isShowingError,

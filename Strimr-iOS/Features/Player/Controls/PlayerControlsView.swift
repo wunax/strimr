@@ -33,6 +33,8 @@ struct PlayerControlsView: View {
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
     var onStartPictureInPicture: () -> Void
+    var hasQueue: Bool
+    var onShowQueue: () -> Void
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -88,18 +90,27 @@ struct PlayerControlsView: View {
                     .opacity(isScrubbing ? 0 : 1)
                     .allowsHitTesting(!isScrubbing)
 
-                    PlayerTimelineView(
-                        position: $position,
-                        duration: duration,
-                        bufferedAhead: bufferedAhead,
-                        playbackPosition: bufferBasePosition,
-                        playbackRate: playbackRate,
-                        showsEndsAtTime: showsEndsAtTime,
-                        chapters: chapters,
-                        showsChaptersOnTimeline: showsChaptersOnTimeline,
-                        scrubPreview: scrubPreview,
-                        onEditingChanged: onScrubbingChanged,
-                    )
+                    ZStack(alignment: .bottom) {
+                        PlayerTimelineView(
+                            position: $position,
+                            duration: duration,
+                            bufferedAhead: bufferedAhead,
+                            playbackPosition: bufferBasePosition,
+                            playbackRate: playbackRate,
+                            showsEndsAtTime: showsEndsAtTime,
+                            chapters: chapters,
+                            showsChaptersOnTimeline: showsChaptersOnTimeline,
+                            scrubPreview: scrubPreview,
+                            onEditingChanged: onScrubbingChanged,
+                        )
+
+                        if hasQueue {
+                            PlayerQueueDisclosureButton(action: onShowQueue)
+                                .opacity(isScrubbing ? 0 : 1)
+                                .allowsHitTesting(!isScrubbing)
+                                .offset(y: 18)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

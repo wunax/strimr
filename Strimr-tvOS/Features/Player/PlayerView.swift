@@ -45,6 +45,7 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
+    @State private var isShowingPlayQueue = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
@@ -78,6 +79,9 @@ struct PlayerView: View {
             playerScene
                 .overlay {
                     playerOverlay
+                }
+                .overlay(alignment: .bottom) {
+                    playQueueOverlay
                 },
         )
 
@@ -282,6 +286,9 @@ struct PlayerView: View {
 
     private var subtitleBottomPadding: CGFloat {
         guard controlsVisible else { return 48 }
+        if isShowingPlayQueue {
+            return 330
+        }
         return isShowingChapterTray ? 520 : 380
     }
 
@@ -291,7 +298,7 @@ struct PlayerView: View {
         let hasSkipOverlay = activeMarker != nil
 
         return ZStack {
-            if !controlsVisible, !hasSkipOverlay {
+            if !controlsVisible, !isShowingPlayQueue, !hasSkipOverlay {
                 Color.clear
                     .contentShape(Rectangle())
                     .focusable()
@@ -308,7 +315,7 @@ struct PlayerView: View {
                 bufferingOverlay
             }
 
-            if controlsVisible {
+            if controlsVisible, !isShowingPlayQueue {
                 PlayerControlsView(
                     media: viewModel.media,
                     isPaused: viewModel.isPaused,
@@ -344,6 +351,8 @@ struct PlayerView: View {
                     },
                     onUserInteraction: { showControls(temporarily: true) },
                     isSharePlay: sharePlayCoordinator.isInSession,
+                    hasQueue: viewModel.hasNavigableQueue,
+                    onShowQueue: showPlayQueue,
                 )
                 .transition(.opacity)
             }
@@ -379,6 +388,30 @@ struct PlayerView: View {
                     onClose: { dismissPlayer(force: true) },
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var playQueueOverlay: some View {
+        if isShowingPlayQueue,
+           let services = viewModel.artworkServices
+        {
+            PlayerQueueView(
+                items: viewModel.queueItems,
+                currentIndex: viewModel.queueCurrentIndex ?? 0,
+                services: services,
+                layout: .carousel,
+                onSelect: selectQueueItem(at:),
+                onClose: hidePlayQueue,
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .onMoveCommand { direction in
+                if direction == .up {
+                    hidePlayQueue()
+                }
+            }
+            .onExitCommand(perform: hidePlayQueue)
         }
     }
 
@@ -480,6 +513,7 @@ struct PlayerView: View {
 
     private func showChapters() {
         guard viewModel.hasNavigableChapters else { return }
+        hidePlayQueue()
         hideControlsWorkItem?.cancel()
         withAnimation(.easeInOut) {
             isShowingChapterTray = true
@@ -502,6 +536,11 @@ struct PlayerView: View {
             return
         }
 
+        if isShowingPlayQueue {
+            hidePlayQueue()
+            return
+        }
+
         if isShowingChapterTray {
             hideChapters()
             return
@@ -521,6 +560,48 @@ struct PlayerView: View {
             isShowingChapterTray = false
         }
         showControls(temporarily: true)
+    }
+
+    private func showPlayQueue() {
+        guard viewModel.hasNavigableQueue,
+              viewModel.artworkServices != nil,
+              !isShowingChapterTray
+        else { return }
+
+        hideControlsWorkItem?.cancel()
+        focusedPlayerSurface = nil
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = true
+        }
+    }
+
+    private func hidePlayQueue() {
+        guard isShowingPlayQueue else { return }
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = false
+        }
+        DispatchQueue.main.async {
+            showControls(temporarily: true)
+        }
+    }
+
+    private func selectQueueItem(at index: Int) {
+        guard let currentIndex = viewModel.queueCurrentIndex,
+              index != currentIndex
+        else {
+            hidePlayQueue()
+            return
+        }
+
+        guard let nextViewModel = viewModel.makePlayerViewModel(
+            at: index,
+            shouldResumeFromOffset: true,
+        ) else { return }
+
+        hidePlayQueue()
+        Task {
+            await startPlayback(using: nextViewModel)
+        }
     }
 
     private func refreshTracks() {
