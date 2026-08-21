@@ -44,6 +44,7 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
+    @State private var isShowingPlayQueue = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
@@ -71,6 +72,9 @@ struct PlayerView: View {
                 .statusBarHidden()
                 .overlay {
                     playerOverlay
+                }
+                .overlay(alignment: .bottom) {
+                    playQueueOverlay
                 },
         )
 
@@ -271,7 +275,11 @@ struct PlayerView: View {
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
                 .onTapGesture {
-                    controlsVisible ? hideControls() : showControls(temporarily: true)
+                    if isShowingPlayQueue {
+                        hidePlayQueue()
+                    } else {
+                        controlsVisible ? hideControls() : showControls(temporarily: true)
+                    }
                 }
 
             if viewModel.isBuffering || isRecoveringServerAccess {
@@ -279,7 +287,7 @@ struct PlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
-            if controlsVisible {
+            if controlsVisible, !isShowingPlayQueue {
                 PlayerControlsView(
                     media: viewModel.media,
                     isPaused: viewModel.isPaused,
@@ -317,6 +325,8 @@ struct PlayerView: View {
                         && !playerController.isPictureInPictureActive
                         && !playerController.isPictureInPictureTransitioning,
                     onStartPictureInPicture: playerController.startPictureInPicture,
+                    hasQueue: viewModel.hasNavigableQueue,
+                    onShowQueue: showPlayQueue,
                 )
                 .transition(.opacity)
             }
@@ -346,6 +356,24 @@ struct PlayerView: View {
                     onClose: { dismissPlayer(force: true) },
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var playQueueOverlay: some View {
+        if isShowingPlayQueue,
+           let services = viewModel.artworkServices
+        {
+            PlayerQueueView(
+                items: viewModel.queueItems,
+                currentIndex: viewModel.queueCurrentIndex ?? 0,
+                services: services,
+                layout: .carousel,
+                onSelect: selectQueueItem(at:),
+                onClose: hidePlayQueue,
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -432,6 +460,41 @@ struct PlayerView: View {
         guard viewModel.hasNavigableChapters else { return }
         sheetPresentation.item = .chapters
         hideControlsWorkItem?.cancel()
+    }
+
+    private func showPlayQueue() {
+        guard viewModel.hasNavigableQueue, viewModel.artworkServices != nil else { return }
+        hideControlsWorkItem?.cancel()
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = true
+        }
+    }
+
+    private func hidePlayQueue() {
+        guard isShowingPlayQueue else { return }
+        withAnimation(.easeInOut) {
+            isShowingPlayQueue = false
+        }
+        showControls(temporarily: true)
+    }
+
+    private func selectQueueItem(at index: Int) {
+        guard let currentIndex = viewModel.queueCurrentIndex,
+              index != currentIndex
+        else {
+            hidePlayQueue()
+            return
+        }
+
+        guard let nextViewModel = viewModel.makePlayerViewModel(
+            at: index,
+            shouldResumeFromOffset: true,
+        ) else { return }
+
+        hidePlayQueue()
+        Task {
+            await startPlayback(using: nextViewModel)
+        }
     }
 
     private func selectChapter(_ chapter: MediaChapter) {

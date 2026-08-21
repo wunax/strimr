@@ -33,6 +33,8 @@ struct PlayerControlsView: View {
     var onSkipMarker: (() -> Void)?
     var onUserInteraction: () -> Void
     var isSharePlay: Bool
+    var hasQueue: Bool
+    var onShowQueue: () -> Void
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -189,6 +191,12 @@ struct PlayerControlsView: View {
                     }
                 }
             }
+            .overlay(alignment: .bottom) {
+                if hasQueue, !isShowingChapterTray {
+                    PlayerQueueDisclosureIndicator()
+                        .offset(y: 26)
+                }
+            }
         }
         .padding(.horizontal, 40)
         .padding(.vertical, 28)
@@ -203,8 +211,12 @@ struct PlayerControlsView: View {
                 focusedControl = isShowing ? nil : .chapters
             }
         }
-        .onMoveCommand { _ in
-            onUserInteraction()
+        .onMoveCommand { direction in
+            if direction == .down, hasQueue, !isShowingChapterTray {
+                onShowQueue()
+            } else {
+                onUserInteraction()
+            }
         }
     }
 

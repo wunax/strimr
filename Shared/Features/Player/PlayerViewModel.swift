@@ -59,6 +59,21 @@ final class PlayerViewModel {
         mediaServices != nil
     }
 
+    var queueItems: [PlaybackQueueItem] {
+        mediaQueue?.items ?? []
+    }
+
+    var queueCurrentIndex: Int? {
+        guard let mediaQueue,
+              mediaQueue.items.indices.contains(mediaQueue.currentIndex)
+        else { return nil }
+        return mediaQueue.currentIndex
+    }
+
+    var hasNavigableQueue: Bool {
+        queueItems.count > 1 && mediaServices != nil
+    }
+
     var currentRatingKey: String {
         media?.id ?? ratingKey
     }
@@ -171,16 +186,27 @@ final class PlayerViewModel {
     }
 
     func makeNextPlayerViewModel() -> PlayerViewModel? {
+        guard let queueCurrentIndex else { return nil }
+        return makePlayerViewModel(
+            at: queueCurrentIndex + 1,
+            shouldResumeFromOffset: false,
+        )
+    }
+
+    func makePlayerViewModel(
+        at index: Int,
+        shouldResumeFromOffset: Bool,
+    ) -> PlayerViewModel? {
         guard var queue = mediaQueue,
               let mediaServices,
-              queue.items.indices.contains(queue.currentIndex + 1)
+              queue.items.indices.contains(index)
         else { return nil }
 
-        queue.currentIndex += 1
+        queue.currentIndex = index
         return PlayerViewModel(
             queue: queue,
             services: mediaServices,
-            shouldResumeFromOffset: false,
+            shouldResumeFromOffset: shouldResumeFromOffset,
         )
     }
 
