@@ -320,49 +320,72 @@ struct MediaDetailView: View {
                     .controlSize(.large)
                 }
 
-                if viewModel.media.type == .show || viewModel.media.type == .season {
-                    Button("common.actions.shuffle", systemImage: "shuffle") {
-                        onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
-                    }
-                    .controlSize(.large)
-                }
+                moreActionsMenu
+            }
+        }
+    }
 
+    private var moreActionsMenu: some View {
+        Menu {
+            if viewModel.media.type == .show || viewModel.media.type == .season {
+                Button("common.actions.shuffle", systemImage: "shuffle") {
+                    onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
+                }
+            }
+
+            if viewModel.shouldShowMarkUnwatched {
+                Button("media.detail.watchAction.markWatched", systemImage: "checkmark.circle") {
+                    Task { await viewModel.markWatched() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+                Button("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill") {
+                    Task { await viewModel.markUnwatched() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            } else {
                 Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
                     Task { await viewModel.toggleWatchStatus() }
                 }
-                .disabled(viewModel.isUpdatingWatchStatus)
-
-                if viewModel.shouldShowWatchlistButton {
-                    Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
-                        Task { await viewModel.toggleWatchlistStatus() }
-                    }
-                    .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
-                }
-
-                if mediaServices.capabilities.downloads,
-                   [.movie, .episode, .season, .show].contains(viewModel.media.type)
-                {
-                    Button("downloads.action", systemImage: downloadIconName) {
-                        handleDownload()
-                    }
-                    .disabled(viewModel.isLoading || isDownloadInProgress)
-                }
-
-                if viewModel.primaryActionRatingKey != nil {
-                    Button {
-                        startSharePlay()
-                    } label: {
-                        if isStartingSharePlay {
-                            ProgressView()
-                        } else {
-                            Label("sharePlay.action", systemImage: "shareplay")
-                        }
-                    }
-                    .disabled(isStartingSharePlay)
-                    .accessibilityLabel(Text("sharePlay.action"))
-                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
             }
+
+            if viewModel.shouldShowWatchlistButton {
+                Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
+                    Task { await viewModel.toggleWatchlistStatus() }
+                }
+                .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+            }
+
+            if mediaServices.capabilities.downloads,
+               [.movie, .episode, .season, .show].contains(viewModel.media.type)
+            {
+                Button("downloads.action", systemImage: downloadIconName) {
+                    handleDownload()
+                }
+                .disabled(viewModel.isLoading || isDownloadInProgress)
+            }
+
+            if viewModel.primaryActionRatingKey != nil {
+                Button {
+                    startSharePlay()
+                } label: {
+                    if isStartingSharePlay {
+                        Label {
+                            Text("sharePlay.action")
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label("sharePlay.action", systemImage: "shareplay")
+                    }
+                }
+                .disabled(isStartingSharePlay)
+            }
+        } label: {
+            Label("common.actions.more", systemImage: "ellipsis")
         }
+        .controlSize(.large)
     }
 
     private var isStartingSharePlay: Bool {

@@ -437,6 +437,18 @@ struct MediaDetailHeaderSection: View {
                     )
                 }
 
+                if viewModel.shouldShowMarkUnwatched {
+                    Button {
+                        Task { await viewModel.markUnwatched() }
+                    } label: {
+                        Label(
+                            "media.detail.watchAction.markUnwatched",
+                            systemImage: "checkmark.circle.fill",
+                        )
+                    }
+                    .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+                }
+
                 Button(action: handleShuffle) {
                     Label("common.actions.shuffle", systemImage: "shuffle")
                 }

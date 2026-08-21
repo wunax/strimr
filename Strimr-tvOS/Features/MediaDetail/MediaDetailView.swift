@@ -244,20 +244,36 @@ struct MediaDetailView: View {
             }
             .disabled(sharePlayCoordinator.isActivating)
 
-            Button {
-                Task { await viewModel.toggleWatchStatus() }
-            } label: {
-                if viewModel.isUpdatingWatchStatus {
-                    Label {
-                        Text(viewModel.watchActionTitle)
-                    } icon: {
-                        ProgressView()
-                    }
-                } else {
-                    Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+            if viewModel.shouldShowMarkUnwatched {
+                Button {
+                    Task { await viewModel.markWatched() }
+                } label: {
+                    Label("media.detail.watchAction.markWatched", systemImage: "checkmark.circle")
                 }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+                Button {
+                    Task { await viewModel.markUnwatched() }
+                } label: {
+                    Label("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill")
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            } else {
+                Button {
+                    Task { await viewModel.toggleWatchStatus() }
+                } label: {
+                    if viewModel.isUpdatingWatchStatus {
+                        Label {
+                            Text(viewModel.watchActionTitle)
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+                    }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
             }
-            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
 
             if viewModel.shouldShowWatchlistButton {
                 Button {
@@ -404,6 +420,10 @@ struct MediaDetailView: View {
                                 onToggleWatchStatus: {
                                     Task { await viewModel.toggleWatchStatus(for: episode) }
                                 },
+                                onMarkUnwatched: {
+                                    Task { await viewModel.markUnwatched(for: episode) }
+                                },
+                                shouldShowMarkUnwatched: viewModel.shouldShowMarkUnwatched(for: episode),
                                 onFocus: {
                                     contextualEpisodeID = episode.id
                                     focusedMedia = episode
@@ -557,6 +577,8 @@ private struct EpisodeArtworkCard: View {
     let onPlayFromStart: () -> Void
     let onSharePlay: () -> Void
     let onToggleWatchStatus: () -> Void
+    let onMarkUnwatched: () -> Void
+    let shouldShowMarkUnwatched: Bool
     let onFocus: () -> Void
 
     @FocusState private var isFocused: Bool
@@ -618,6 +640,16 @@ private struct EpisodeArtworkCard: View {
                 Label(watchActionTitle, systemImage: watchActionIcon)
             }
             .disabled(isUpdatingWatchStatus)
+
+            if shouldShowMarkUnwatched {
+                Button(action: onMarkUnwatched) {
+                    Label(
+                        "media.detail.watchAction.markUnwatched",
+                        systemImage: "checkmark.circle.fill",
+                    )
+                }
+                .disabled(isUpdatingWatchStatus)
+            }
 
             if trackViewModel.hasTrackSelection(for: episode.id) {
                 Divider()
