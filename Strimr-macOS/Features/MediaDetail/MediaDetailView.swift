@@ -344,7 +344,7 @@ struct MediaDetailView: View {
                 }
             }
 
-            if viewModel.shouldShowMarkUnwatched {
+            if viewModel.shouldShowBothWatchActions {
                 Button("media.detail.watchAction.markWatched", systemImage: "checkmark.circle") {
                     Task { await viewModel.markWatched() }
                 }

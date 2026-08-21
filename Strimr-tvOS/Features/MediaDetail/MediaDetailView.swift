@@ -244,7 +244,7 @@ struct MediaDetailView: View {
             }
             .disabled(sharePlayCoordinator.isActivating)
 
-            if viewModel.shouldShowMarkUnwatched {
+            if viewModel.shouldShowBothWatchActions {
                 Button {
                     Task { await viewModel.markWatched() }
                 } label: {
@@ -423,7 +423,10 @@ struct MediaDetailView: View {
                                 onMarkUnwatched: {
                                     Task { await viewModel.markUnwatched(for: episode) }
                                 },
-                                shouldShowMarkUnwatched: viewModel.shouldShowMarkUnwatched(for: episode),
+                                shouldShowBothWatchActions: viewModel.shouldShowBothWatchActions(for: episode),
+                                onMarkWatched: {
+                                    Task { await viewModel.markWatched(for: episode) }
+                                },
                                 onFocus: {
                                     contextualEpisodeID = episode.id
                                     focusedMedia = episode
@@ -578,7 +581,8 @@ private struct EpisodeArtworkCard: View {
     let onSharePlay: () -> Void
     let onToggleWatchStatus: () -> Void
     let onMarkUnwatched: () -> Void
-    let shouldShowMarkUnwatched: Bool
+    let shouldShowBothWatchActions: Bool
+    let onMarkWatched: () -> Void
     let onFocus: () -> Void
 
     @FocusState private var isFocused: Bool
@@ -636,17 +640,25 @@ private struct EpisodeArtworkCard: View {
             }
             .disabled(isStartingSharePlay)
 
-            Button(action: onToggleWatchStatus) {
-                Label(watchActionTitle, systemImage: watchActionIcon)
-            }
-            .disabled(isUpdatingWatchStatus)
+            if shouldShowBothWatchActions {
+                Button(action: onMarkWatched) {
+                    Label(
+                        "media.detail.watchAction.markWatched",
+                        systemImage: "checkmark.circle",
+                    )
+                }
+                .disabled(isUpdatingWatchStatus)
 
-            if shouldShowMarkUnwatched {
                 Button(action: onMarkUnwatched) {
                     Label(
                         "media.detail.watchAction.markUnwatched",
                         systemImage: "checkmark.circle.fill",
                     )
+                }
+                .disabled(isUpdatingWatchStatus)
+            } else {
+                Button(action: onToggleWatchStatus) {
+                    Label(watchActionTitle, systemImage: watchActionIcon)
                 }
                 .disabled(isUpdatingWatchStatus)
             }

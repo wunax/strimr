@@ -547,12 +547,12 @@ final class MediaDetailViewModel {
         updatingWatchStatusIds.contains(item.id)
     }
 
-    var shouldShowMarkUnwatched: Bool {
-        shouldShowMarkUnwatched(for: media.mediaItem)
+    var shouldShowBothWatchActions: Bool {
+        shouldShowBothWatchActions(for: media.mediaItem)
     }
 
-    func shouldShowMarkUnwatched(for item: MediaItem) -> Bool {
-        !isWatched(item) && hasProgress(for: item)
+    func shouldShowBothWatchActions(for item: MediaItem) -> Bool {
+        hasProgress(for: item)
     }
 
     func progressFraction(for item: MediaItem) -> Double? {

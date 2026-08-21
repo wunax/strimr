@@ -437,7 +437,7 @@ struct MediaDetailHeaderSection: View {
                     )
                 }
 
-                if viewModel.shouldShowMarkUnwatched {
+                if viewModel.shouldShowBothWatchActions {
                     Button {
                         Task { await viewModel.markUnwatched() }
                     } label: {
@@ -527,12 +527,19 @@ struct MediaDetailHeaderSection: View {
         VStack(spacing: 2) {
             Button {
                 Task {
-                    await viewModel.toggleWatchStatus()
+                    if viewModel.shouldShowBothWatchActions {
+                        await viewModel.markWatched()
+                    } else {
+                        await viewModel.toggleWatchStatus()
+                    }
                 }
             } label: {
                 if viewModel.isUpdatingWatchStatus {
                     ProgressView()
                         .tint(.brandSecondaryForeground)
+                } else if viewModel.shouldShowBothWatchActions {
+                    Image(systemName: "checkmark.circle")
+                        .font(.headline.weight(.semibold))
                 } else {
                     Image(systemName: viewModel.watchActionIcon)
                         .font(.headline.weight(.semibold))
@@ -544,7 +551,11 @@ struct MediaDetailHeaderSection: View {
             .tint(.brandSecondary)
             .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
 
-            Text(viewModel.watchActionTitle)
+            Text(
+                viewModel.shouldShowBothWatchActions
+                    ? String(localized: "media.detail.watchAction.markWatched")
+                    : viewModel.watchActionTitle,
+            )
                 .font(.caption2)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: 48)
