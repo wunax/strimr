@@ -556,11 +556,11 @@ struct MediaDetailHeaderSection: View {
                     ? String(localized: "media.detail.watchAction.markWatched")
                     : viewModel.watchActionTitle,
             )
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 48)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+            .font(.caption2)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: 48)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
         }
     }
 
