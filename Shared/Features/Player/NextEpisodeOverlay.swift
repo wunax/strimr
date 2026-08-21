@@ -191,7 +191,9 @@ struct NextEpisodeOverlay: View {
                 focusedAction = .play
             }
         }
-        .focusSection()
+        #if os(tvOS)
+            .focusSection()
+        #endif
     }
 
     private var macLayout: some View {
