@@ -192,7 +192,7 @@ struct NextEpisodeOverlay: View {
             }
         }
         #if os(tvOS)
-            .focusSection()
+        .focusSection()
         #endif
     }
 
