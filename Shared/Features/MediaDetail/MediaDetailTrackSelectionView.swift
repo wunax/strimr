@@ -16,6 +16,10 @@ struct MediaDetailTrackButtons: View {
                     )
                 }
                 .disabled(viewModel.isUpdatingTracks)
+                .help(Text("player.settings.audio"))
+                .accessibilityLabel(
+                    Text(viewModel.selectedAudioTrackTitle ?? String(localized: "player.settings.audio")),
+                )
             }
 
             if !viewModel.subtitleTracks.isEmpty
@@ -27,6 +31,8 @@ struct MediaDetailTrackButtons: View {
                     Label(viewModel.selectedSubtitleTrackTitle, systemImage: "captions.bubble")
                 }
                 .disabled(viewModel.isUpdatingTracks)
+                .help(Text("player.settings.subtitles"))
+                .accessibilityLabel(Text(viewModel.selectedSubtitleTrackTitle))
             }
         }
         .buttonStyle(.bordered)

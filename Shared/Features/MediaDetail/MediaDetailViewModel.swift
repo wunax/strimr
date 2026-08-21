@@ -105,6 +105,19 @@ final class MediaDetailViewModel {
 
     func toggleWatchStatus(for target: MediaItem? = nil) async {
         let item = target ?? media.mediaItem
+        await setWatchStatus(!isWatched(item), for: item)
+    }
+
+    func markWatched(for target: MediaItem? = nil) async {
+        await setWatchStatus(true, for: target)
+    }
+
+    func markUnwatched(for target: MediaItem? = nil) async {
+        await setWatchStatus(false, for: target)
+    }
+
+    private func setWatchStatus(_ played: Bool, for target: MediaItem? = nil) async {
+        let item = target ?? media.mediaItem
         guard !isUpdatingWatchStatus(for: item) else { return }
 
         updatingWatchStatusIds.insert(item.id)
@@ -112,7 +125,7 @@ final class MediaDetailViewModel {
         defer { updatingWatchStatusIds.remove(item.id) }
 
         do {
-            try await services.detail.setPlayed(!isWatched(item), itemID: item.id)
+            try await services.detail.setPlayed(played, itemID: item.id)
             await loadCommonDetails(preservingExistingContent: true)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -532,6 +545,14 @@ final class MediaDetailViewModel {
 
     func isUpdatingWatchStatus(for item: MediaItem) -> Bool {
         updatingWatchStatusIds.contains(item.id)
+    }
+
+    var shouldShowBothWatchActions: Bool {
+        shouldShowBothWatchActions(for: media.mediaItem)
+    }
+
+    func shouldShowBothWatchActions(for item: MediaItem) -> Bool {
+        hasProgress(for: item)
     }
 
     func progressFraction(for item: MediaItem) -> Double? {

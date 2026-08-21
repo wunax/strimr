@@ -237,13 +237,6 @@ struct MediaDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
 
-            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
-                MediaDetailTrackButtons(
-                    viewModel: viewModel,
-                    onSearchSubtitles: { isShowingSubtitleSearch = true },
-                )
-            }
-
             if viewModel.media.mediaItem.shouldHideSpoilerSummary(
                 at: settingsManager.interface.spoilerProtection,
             ) {
@@ -276,93 +269,137 @@ struct MediaDetailView: View {
     }
 
     private var actionButtons: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                guard
-                    let ratingKey = viewModel.primaryActionRatingKey,
-                    let type = viewModel.primaryActionType
-                else { return }
-                onPlay(
-                    ratingKey,
-                    type,
-                    false,
-                    !viewModel.shouldPlayPrimaryActionFromStart,
-                )
-            } label: {
-                HStack(spacing: 12) {
-                    PlayProgressIcon(progress: viewModel.primaryActionProgress)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(viewModel.primaryActionTitle)
-                            .fontWeight(.semibold)
-                        if let detail = viewModel.primaryActionDetail {
-                            Text(detail)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 24) {
+            HStack(alignment: .center, spacing: 6) {
+                Button {
+                    guard
+                        let ratingKey = viewModel.primaryActionRatingKey,
+                        let type = viewModel.primaryActionType
+                    else { return }
+                    onPlay(
+                        ratingKey,
+                        type,
+                        false,
+                        !viewModel.shouldPlayPrimaryActionFromStart,
+                    )
+                } label: {
+                    HStack(spacing: 12) {
+                        PlayProgressIcon(progress: viewModel.primaryActionProgress)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(viewModel.primaryActionTitle)
+                                .fontWeight(.semibold)
+                            if let detail = viewModel.primaryActionDetail {
+                                Text(detail)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    .frame(minWidth: 240, alignment: .leading)
                 }
-                .frame(minWidth: 240, alignment: .leading)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.brandSecondary)
-            .foregroundStyle(.brandSecondaryForeground)
-            .disabled(viewModel.primaryActionRatingKey == nil)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.brandSecondary)
+                .foregroundStyle(.brandSecondaryForeground)
+                .disabled(viewModel.primaryActionRatingKey == nil)
 
-            HStack(spacing: 12) {
                 if viewModel.shouldShowPlayFromStartButton,
                    let ratingKey = viewModel.primaryActionRatingKey,
                    let type = viewModel.primaryActionType
                 {
-                    Button("common.actions.playFromStart", systemImage: "backward.end.fill") {
-                        onPlay(ratingKey, type, false, false)
-                    }
-                    .controlSize(.large)
-                }
-
-                if viewModel.media.type == .show || viewModel.media.type == .season {
-                    Button("common.actions.shuffle", systemImage: "shuffle") {
-                        onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
-                    }
-                    .controlSize(.large)
-                }
-
-                Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
-                    Task { await viewModel.toggleWatchStatus() }
-                }
-                .disabled(viewModel.isUpdatingWatchStatus)
-
-                if viewModel.shouldShowWatchlistButton {
-                    Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
-                        Task { await viewModel.toggleWatchlistStatus() }
-                    }
-                    .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
-                }
-
-                if mediaServices.capabilities.downloads,
-                   [.movie, .episode, .season, .show].contains(viewModel.media.type)
-                {
-                    Button("downloads.action", systemImage: downloadIconName) {
-                        handleDownload()
-                    }
-                    .disabled(viewModel.isLoading || isDownloadInProgress)
-                }
-
-                if viewModel.primaryActionRatingKey != nil {
                     Button {
-                        startSharePlay()
+                        onPlay(ratingKey, type, false, false)
                     } label: {
-                        if isStartingSharePlay {
-                            ProgressView()
-                        } else {
-                            Label("sharePlay.action", systemImage: "shareplay")
-                        }
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.title2.weight(.semibold))
                     }
-                    .disabled(isStartingSharePlay)
-                    .accessibilityLabel(Text("sharePlay.action"))
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .tint(.secondary)
+                    .frame(width: 52, height: 52)
+                    .buttonBorderShape(.capsule)
+                    .help(Text("media.detail.playFromStart"))
+                    .accessibilityLabel(Text("media.detail.playFromStart"))
+                }
+            }
+
+            HStack(alignment: .center, spacing: 12) {
+                moreActionsMenu
+
+                if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+                    MediaDetailTrackButtons(
+                        viewModel: viewModel,
+                        onSearchSubtitles: { isShowingSubtitleSearch = true },
+                    )
                 }
             }
         }
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            if viewModel.media.type == .show || viewModel.media.type == .season {
+                Button("common.actions.shuffle", systemImage: "shuffle") {
+                    onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
+                }
+            }
+
+            if viewModel.shouldShowBothWatchActions {
+                Button("media.detail.watchAction.markWatched", systemImage: "checkmark.circle") {
+                    Task { await viewModel.markWatched() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+                Button("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill") {
+                    Task { await viewModel.markUnwatched() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            } else {
+                Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
+                    Task { await viewModel.toggleWatchStatus() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            }
+
+            if viewModel.shouldShowWatchlistButton {
+                Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
+                    Task { await viewModel.toggleWatchlistStatus() }
+                }
+                .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+            }
+
+            if mediaServices.capabilities.downloads,
+               [.movie, .episode, .season, .show].contains(viewModel.media.type)
+            {
+                Button("downloads.action", systemImage: downloadIconName) {
+                    handleDownload()
+                }
+                .disabled(viewModel.isLoading || isDownloadInProgress)
+            }
+
+            if viewModel.primaryActionRatingKey != nil {
+                Button {
+                    startSharePlay()
+                } label: {
+                    if isStartingSharePlay {
+                        Label {
+                            Text("sharePlay.action")
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label("sharePlay.action", systemImage: "shareplay")
+                    }
+                }
+                .disabled(isStartingSharePlay)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .frame(width: 20, height: 20)
+        }
+        .controlSize(.large)
+        .help(Text("common.actions.more"))
+        .accessibilityLabel(Text("common.actions.more"))
     }
 
     private var isStartingSharePlay: Bool {

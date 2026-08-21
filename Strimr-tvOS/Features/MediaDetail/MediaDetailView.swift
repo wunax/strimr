@@ -244,20 +244,36 @@ struct MediaDetailView: View {
             }
             .disabled(sharePlayCoordinator.isActivating)
 
-            Button {
-                Task { await viewModel.toggleWatchStatus() }
-            } label: {
-                if viewModel.isUpdatingWatchStatus {
-                    Label {
-                        Text(viewModel.watchActionTitle)
-                    } icon: {
-                        ProgressView()
-                    }
-                } else {
-                    Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+            if viewModel.shouldShowBothWatchActions {
+                Button {
+                    Task { await viewModel.markWatched() }
+                } label: {
+                    Label("media.detail.watchAction.markWatched", systemImage: "checkmark.circle")
                 }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+
+                Button {
+                    Task { await viewModel.markUnwatched() }
+                } label: {
+                    Label("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill")
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            } else {
+                Button {
+                    Task { await viewModel.toggleWatchStatus() }
+                } label: {
+                    if viewModel.isUpdatingWatchStatus {
+                        Label {
+                            Text(viewModel.watchActionTitle)
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
+                    }
+                }
+                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
             }
-            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
 
             if viewModel.shouldShowWatchlistButton {
                 Button {
@@ -403,6 +419,13 @@ struct MediaDetailView: View {
                                 },
                                 onToggleWatchStatus: {
                                     Task { await viewModel.toggleWatchStatus(for: episode) }
+                                },
+                                onMarkUnwatched: {
+                                    Task { await viewModel.markUnwatched(for: episode) }
+                                },
+                                shouldShowBothWatchActions: viewModel.shouldShowBothWatchActions(for: episode),
+                                onMarkWatched: {
+                                    Task { await viewModel.markWatched(for: episode) }
                                 },
                                 onFocus: {
                                     contextualEpisodeID = episode.id
@@ -557,6 +580,9 @@ private struct EpisodeArtworkCard: View {
     let onPlayFromStart: () -> Void
     let onSharePlay: () -> Void
     let onToggleWatchStatus: () -> Void
+    let onMarkUnwatched: () -> Void
+    let shouldShowBothWatchActions: Bool
+    let onMarkWatched: () -> Void
     let onFocus: () -> Void
 
     @FocusState private var isFocused: Bool
@@ -614,10 +640,28 @@ private struct EpisodeArtworkCard: View {
             }
             .disabled(isStartingSharePlay)
 
-            Button(action: onToggleWatchStatus) {
-                Label(watchActionTitle, systemImage: watchActionIcon)
+            if shouldShowBothWatchActions {
+                Button(action: onMarkWatched) {
+                    Label(
+                        "media.detail.watchAction.markWatched",
+                        systemImage: "checkmark.circle",
+                    )
+                }
+                .disabled(isUpdatingWatchStatus)
+
+                Button(action: onMarkUnwatched) {
+                    Label(
+                        "media.detail.watchAction.markUnwatched",
+                        systemImage: "checkmark.circle.fill",
+                    )
+                }
+                .disabled(isUpdatingWatchStatus)
+            } else {
+                Button(action: onToggleWatchStatus) {
+                    Label(watchActionTitle, systemImage: watchActionIcon)
+                }
+                .disabled(isUpdatingWatchStatus)
             }
-            .disabled(isUpdatingWatchStatus)
 
             if trackViewModel.hasTrackSelection(for: episode.id) {
                 Divider()
