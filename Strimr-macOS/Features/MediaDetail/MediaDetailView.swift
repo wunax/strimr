@@ -237,13 +237,6 @@ struct MediaDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
 
-            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
-                MediaDetailTrackButtons(
-                    viewModel: viewModel,
-                    onSearchSubtitles: { isShowingSubtitleSearch = true },
-                )
-            }
-
             if viewModel.media.mediaItem.shouldHideSpoilerSummary(
                 at: settingsManager.interface.spoilerProtection,
             ) {
@@ -276,51 +269,69 @@ struct MediaDetailView: View {
     }
 
     private var actionButtons: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                guard
-                    let ratingKey = viewModel.primaryActionRatingKey,
-                    let type = viewModel.primaryActionType
-                else { return }
-                onPlay(
-                    ratingKey,
-                    type,
-                    false,
-                    !viewModel.shouldPlayPrimaryActionFromStart,
-                )
-            } label: {
-                HStack(spacing: 12) {
-                    PlayProgressIcon(progress: viewModel.primaryActionProgress)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(viewModel.primaryActionTitle)
-                            .fontWeight(.semibold)
-                        if let detail = viewModel.primaryActionDetail {
-                            Text(detail)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 24) {
+            HStack(alignment: .center, spacing: 6) {
+                Button {
+                    guard
+                        let ratingKey = viewModel.primaryActionRatingKey,
+                        let type = viewModel.primaryActionType
+                    else { return }
+                    onPlay(
+                        ratingKey,
+                        type,
+                        false,
+                        !viewModel.shouldPlayPrimaryActionFromStart,
+                    )
+                } label: {
+                    HStack(spacing: 12) {
+                        PlayProgressIcon(progress: viewModel.primaryActionProgress)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(viewModel.primaryActionTitle)
+                                .fontWeight(.semibold)
+                            if let detail = viewModel.primaryActionDetail {
+                                Text(detail)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    .frame(minWidth: 240, alignment: .leading)
                 }
-                .frame(minWidth: 240, alignment: .leading)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.brandSecondary)
-            .foregroundStyle(.brandSecondaryForeground)
-            .disabled(viewModel.primaryActionRatingKey == nil)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.brandSecondary)
+                .foregroundStyle(.brandSecondaryForeground)
+                .disabled(viewModel.primaryActionRatingKey == nil)
 
-            HStack(spacing: 12) {
                 if viewModel.shouldShowPlayFromStartButton,
                    let ratingKey = viewModel.primaryActionRatingKey,
                    let type = viewModel.primaryActionType
                 {
-                    Button("common.actions.playFromStart", systemImage: "backward.end.fill") {
+                    Button {
                         onPlay(ratingKey, type, false, false)
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.title2.weight(.semibold))
                     }
+                    .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .tint(.secondary)
+                    .frame(width: 52, height: 52)
+                    .buttonBorderShape(.capsule)
+                    .help(Text("media.detail.playFromStart"))
+                    .accessibilityLabel(Text("media.detail.playFromStart"))
                 }
+            }
 
+            HStack(alignment: .center, spacing: 16) {
                 moreActionsMenu
+
+                if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+                    MediaDetailTrackButtons(
+                        viewModel: viewModel,
+                        onSearchSubtitles: { isShowingSubtitleSearch = true },
+                    )
+                }
             }
         }
     }
@@ -383,9 +394,12 @@ struct MediaDetailView: View {
                 .disabled(isStartingSharePlay)
             }
         } label: {
-            Label("common.actions.more", systemImage: "ellipsis")
+            Image(systemName: "ellipsis")
+                .frame(width: 20, height: 20)
         }
         .controlSize(.large)
+        .help(Text("common.actions.more"))
+        .accessibilityLabel(Text("common.actions.more"))
     }
 
     private var isStartingSharePlay: Bool {
