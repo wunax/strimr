@@ -51,10 +51,10 @@ struct PlayerQueueView: View {
                 .padding(.vertical, carouselContentVerticalPadding)
             }
             #if os(iOS) || os(tvOS)
-                .scrollClipDisabled()
+            .scrollClipDisabled()
             #endif
             #if os(tvOS)
-                .focusSection()
+            .focusSection()
             #endif
         }
         .padding(.horizontal, 28)
@@ -255,11 +255,10 @@ struct PlayerQueueItemView: View {
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         }
         #if os(tvOS)
-            .scaleEffect(isCurrent ? 1.02 : 1)
+        .scaleEffect(isCurrent ? 1.02 : 1)
         #endif
     }
 
-    @ViewBuilder
     private var details: some View {
         VStack(alignment: .leading, spacing: 3) {
             if media.type == .episode {
