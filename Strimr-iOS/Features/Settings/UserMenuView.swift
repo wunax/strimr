@@ -18,10 +18,12 @@ struct UserMenuView: View {
                     Label("settings.title", systemImage: "gearshape.fill")
                 }
 
-                NavigationLink {
-                    DownloadsView()
-                } label: {
-                    Label("downloads.title", systemImage: "arrow.down.circle.fill")
+                if !settingsManager.interface.displayDownloadsTab {
+                    NavigationLink {
+                        DownloadsView()
+                    } label: {
+                        Label("downloads.title", systemImage: "arrow.down.circle.fill")
+                    }
                 }
 
                 if !settingsManager.interface.displayFavoritesTab {

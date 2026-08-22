@@ -168,6 +168,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplayDownloadsTab(_ enabled: Bool) {
+        settings.interface.displayDownloadsTab = enabled
+        persist()
+    }
+
     func setDisplaySeerrDiscoverTab(_ enabled: Bool) {
         settings.interface.displaySeerrDiscoverTab = enabled
         persist()

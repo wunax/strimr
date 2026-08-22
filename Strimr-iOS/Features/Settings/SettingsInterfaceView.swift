@@ -37,6 +37,9 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayPlaylists($0) },
                     ),
                 )
+            }
+
+            Section {
                 Toggle(
                     "settings.interface.displayFavoritesTab",
                     isOn: Binding(
@@ -46,6 +49,18 @@ struct SettingsInterfaceView: View {
                 )
             } footer: {
                 Text("settings.interface.displayFavoritesTab.description")
+            }
+
+            Section {
+                Toggle(
+                    "settings.interface.displayDownloadsTab",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayDownloadsTab },
+                        set: { settingsManager.setDisplayDownloadsTab($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.displayDownloadsTab.description")
             }
 
             Section {

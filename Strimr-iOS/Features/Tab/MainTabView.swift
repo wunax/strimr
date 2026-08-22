@@ -68,6 +68,12 @@ struct MainTabView: View {
                 searchTabContent
             }
 
+            if settingsManager.interface.displayDownloadsTab {
+                Tab("downloads.title", systemImage: "arrow.down.circle.fill", value: MainCoordinator.Tab.downloads) {
+                    downloadsTabContent
+                }
+            }
+
             Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
                 libraryTabContent
             }
@@ -113,6 +119,14 @@ struct MainTabView: View {
                     Label("tabs.search", systemImage: "magnifyingglass")
                 }
                 .tag(MainCoordinator.Tab.search)
+
+            if settingsManager.interface.displayDownloadsTab {
+                downloadsTabContent
+                    .tabItem {
+                        Label("downloads.title", systemImage: "arrow.down.circle.fill")
+                    }
+                    .tag(MainCoordinator.Tab.downloads)
+            }
 
             libraryTabContent
                 .tabItem {
@@ -195,6 +209,12 @@ struct MainTabView: View {
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
             }
+        }
+    }
+
+    private var downloadsTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .downloads)) {
+            DownloadsView()
         }
     }
 
