@@ -46,21 +46,11 @@ struct LibraryBrowseFilterOptions: Equatable, Sendable {
     var years: [LibraryBrowseValueOption] = []
 }
 
-struct LibraryGenre: Identifiable, Equatable, Sendable {
-    let id: String
-    let title: String
-}
-
 @MainActor
 @Observable
 final class LibraryBrowseSession {
     var query = LibraryBrowseQuery()
     @ObservationIgnored var externalQueryChangeHandler: (() -> Void)?
-
-    func selectGenre(id: String) {
-        query.genreIDs = [id]
-        externalQueryChangeHandler?()
-    }
 }
 
 @MainActor
@@ -74,7 +64,6 @@ protocol AdvancedLibraryBrowseService: AnyObject {
     ) async throws -> MediaPage<MediaDisplayItem>
 
     func browseFilterOptions(in library: Library) async throws -> LibraryBrowseFilterOptions
-    func genres(in library: Library) async throws -> [LibraryGenre]
 }
 
 struct LibraryBrowseFolderItem: Identifiable, Equatable {

@@ -200,37 +200,6 @@ struct JellyfinCatalogService {
         )
     }
 
-    func genres(parentID: String, includeTypes: String) async throws -> [LibraryGenre] {
-        guard let userID = context.connection?.userID else {
-            throw JellyfinAPIError.authenticationRequired
-        }
-        var startIndex = 0
-        let pageSize = 100
-        var values: [LibraryGenre] = []
-
-        while true {
-            let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
-                path: ["Genres"],
-                query: [
-                    URLQueryItem(name: "UserId", value: userID),
-                    URLQueryItem(name: "ParentId", value: parentID),
-                    URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
-                    URLQueryItem(name: "StartIndex", value: String(startIndex)),
-                    URLQueryItem(name: "Limit", value: String(pageSize)),
-                    URLQueryItem(name: "SortBy", value: "SortName"),
-                    URLQueryItem(name: "SortOrder", value: "Ascending"),
-                    URLQueryItem(name: "EnableImages", value: "false"),
-                ],
-            )
-            values.append(contentsOf: response.items.map { LibraryGenre(id: $0.id, title: $0.name) })
-            startIndex += response.items.count
-            if response.items.isEmpty || startIndex >= (response.totalRecordCount ?? startIndex) {
-                break
-            }
-        }
-        return values
-    }
-
     func item(id: String) async throws -> JellyfinItem {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired

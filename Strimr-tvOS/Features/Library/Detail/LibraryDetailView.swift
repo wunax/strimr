@@ -88,10 +88,6 @@ struct LibraryDetailView: View {
                     ),
                     onSelectMedia: onSelectMedia,
                 )
-            case .genres:
-                if let viewModel = LibraryGenresViewModel(library: library, services: mediaServices) {
-                    LibraryGenresView(viewModel: viewModel, onSelectGenre: selectGenre)
-                }
             case .collections:
                 LibraryCollectionsView(
                     viewModel: LibraryCollectionsViewModel(
@@ -193,7 +189,7 @@ struct LibraryDetailView: View {
         if mediaServices.provider == .jellyfin {
             return library.type == .collection || library.type == .playlist
                 ? [.browse]
-                : [.recommended, .browse, .genres]
+                : [.recommended, .browse]
         }
         return LibraryDetailTab.allCases.filter { tab in
             switch tab {
@@ -201,24 +197,16 @@ struct LibraryDetailView: View {
                 settingsManager.interface.displayCollections
             case .playlists:
                 settingsManager.interface.displayPlaylists
-            case .genres:
-                false
             default:
                 true
             }
         }
-    }
-
-    private func selectGenre(_ genre: LibraryGenre) {
-        browseSession.selectGenre(id: genre.id)
-        selectedTab = .browse
     }
 }
 
 enum LibraryDetailTab: String, CaseIterable, Identifiable {
     case recommended
     case browse
-    case genres
     case collections
     case playlists
 
@@ -232,8 +220,6 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "library.detail.tab.recommended"
         case .browse:
             "library.detail.tab.browse"
-        case .genres:
-            "library.detail.tab.genres"
         case .collections:
             "library.detail.tab.collections"
         case .playlists:
@@ -247,8 +233,6 @@ enum LibraryDetailTab: String, CaseIterable, Identifiable {
             "sparkles"
         case .browse:
             "square.grid.2x2.fill"
-        case .genres:
-            "theatermasks.fill"
         case .collections:
             "rectangle.stack.fill"
         case .playlists:

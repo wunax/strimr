@@ -337,13 +337,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
-    func genres(in library: Library) async throws -> [LibraryGenre] {
-        try await catalog.genres(
-            parentID: library.id,
-            includeTypes: library.type == .series ? "Series" : "Movie",
-        )
-    }
-
     func collections(in _: Library) async throws -> [CollectionMediaItem] {
         try await catalog.items(includeTypes: "BoxSet", limit: 100).items.compactMap {
             guard case let .collection(item) = MediaDisplayItem(jellyfinItem: $0, server: server) else { return nil }

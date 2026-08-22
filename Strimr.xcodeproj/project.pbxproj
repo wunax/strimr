@@ -110,7 +110,6 @@
 				Features/Library/LibraryBrowseControlsView.swift,
 				Features/Library/LibraryBrowseControlsViewModel.swift,
 				Features/Library/LibraryBrowseModels.swift,
-				Features/Library/LibraryGenresView.swift,
 				Features/Library/LibraryPlaylistsViewModel.swift,
 				Features/Library/LibraryRecommendedViewModel.swift,
 				Features/Library/LibraryViewModel.swift,
