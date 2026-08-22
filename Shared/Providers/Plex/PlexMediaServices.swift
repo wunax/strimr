@@ -756,13 +756,24 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
 @MainActor
 enum PlexMediaServicesFactory {
-    static func make(context: PlexAPIContext, sessionManager: SessionManager?) -> MediaServices? {
+    static func make(
+        context: PlexAPIContext,
+        sessionManager: SessionManager?,
+        favoritesStore: FavoritesStore? = nil,
+    ) -> MediaServices? {
         guard let snapshot = try? context.serverAccessSnapshot() else { return nil }
         let identity = ServerIdentity(provider: .plex, id: snapshot.serverIdentifier)
+        let store = favoritesStore ?? sessionManager?.localFavoritesStore ?? FavoritesStore()
+        let profileID = sessionManager?.localFavoritesProfileIdentifier ?? "default"
         let adapter = PlexMediaServiceAdapter(
             context: context,
             sessionManager: sessionManager,
             server: identity,
+        )
+        let favorites = PlexFavoritesService(
+            context: context,
+            store: store,
+            scope: .plex(serverID: identity.id, profileID: profileID),
         )
         let services = MediaServices(
             provider: .plex,
@@ -773,6 +784,7 @@ enum PlexMediaServicesFactory {
             search: adapter,
             artwork: adapter,
             detail: adapter,
+            favorites: favorites,
             playback: adapter,
             downloads: adapter,
             authorization: adapter,

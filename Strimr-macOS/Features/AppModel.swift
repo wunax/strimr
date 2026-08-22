@@ -17,6 +17,7 @@ final class AppModel: PlaybackPresenting {
         case search
         case downloads
         case libraries
+        case favorites
         case library(String)
         case settings
 
@@ -27,6 +28,7 @@ final class AppModel: PlaybackPresenting {
             case .search: "search"
             case .downloads: "downloads"
             case .libraries: "libraries"
+            case .favorites: "favorites"
             case let .library(id): "library-\(id)"
             case .settings: "settings"
             }

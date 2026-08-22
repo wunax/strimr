@@ -259,6 +259,7 @@ struct MediaDetailView: View {
 
             if let error = viewModel.errorMessage
                 ?? viewModel.watchActionErrorMessage
+                ?? viewModel.favoriteActionErrorMessage
                 ?? viewModel.trackSelectionErrorMessage
             {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -366,6 +367,17 @@ struct MediaDetailView: View {
                     Task { await viewModel.toggleWatchlistStatus() }
                 }
                 .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+            }
+
+            if viewModel.shouldShowFavoriteButton {
+                Button(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon) {
+                    Task { await viewModel.toggleFavoriteStatus() }
+                }
+                .disabled(
+                    viewModel.isLoading
+                        || viewModel.isLoadingFavoriteStatus
+                        || viewModel.isUpdatingFavoriteStatus,
+                )
             }
 
             if mediaServices.capabilities.downloads,

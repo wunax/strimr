@@ -78,6 +78,11 @@ struct MediaDetailHeaderSection: View {
                         .foregroundStyle(.red)
                 }
 
+                if let favoriteActionErrorMessage = viewModel.favoriteActionErrorMessage {
+                    Label(favoriteActionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                        .foregroundStyle(.red)
+                }
+
                 if let trackSelectionErrorMessage = viewModel.trackSelectionErrorMessage {
                     Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
                         .foregroundStyle(.red)
@@ -434,6 +439,19 @@ struct MediaDetailHeaderSection: View {
                         viewModel.isLoading
                             || viewModel.isLoadingWatchlistStatus
                             || viewModel.isUpdatingWatchlistStatus,
+                    )
+                }
+
+                if viewModel.shouldShowFavoriteButton {
+                    Button {
+                        Task { await viewModel.toggleFavoriteStatus() }
+                    } label: {
+                        Label(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon)
+                    }
+                    .disabled(
+                        viewModel.isLoading
+                            || viewModel.isLoadingFavoriteStatus
+                            || viewModel.isUpdatingFavoriteStatus,
                     )
                 }
 

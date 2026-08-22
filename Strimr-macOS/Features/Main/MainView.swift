@@ -33,6 +33,7 @@ struct MainView: View {
                     sidebarLabel("tabs.search", systemImage: "magnifyingglass", item: .search)
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
+                    sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
                 }
 
                 if !navigationLibraries.isEmpty {
@@ -149,6 +150,8 @@ struct MainView: View {
                 .navigationDestination(for: Library.self) { library in
                     LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
                 }
+        case .favorites:
+            FavoritesView(services: mediaServices, onSelectMedia: appModel.showMedia)
         case let .library(id):
             if let library = libraryStore.libraries.first(where: { $0.id == id }) {
                 LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)

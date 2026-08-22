@@ -77,7 +77,7 @@ extension MediaItem {
                 playCount: jellyfinItem.userData?.playCount ?? 0,
                 resumePosition: jellyfinItem.resumePosition,
                 unplayedItemCount: jellyfinItem.userData?.unplayedItemCount,
-                isFavorite: false,
+                isFavorite: jellyfinItem.userData?.isFavorite ?? false,
             ),
             grandparentTitle: jellyfinItem.seriesName,
             parentTitle: jellyfinItem.seasonName,

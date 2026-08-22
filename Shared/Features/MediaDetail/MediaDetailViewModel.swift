@@ -54,6 +54,13 @@ final class MediaDetailViewModel {
     var isLoadingWatchlistStatus = false
     var isUpdatingWatchlistStatus = false
     private var isWatchlisted = false
+    var isLoadingFavoriteStatus = false
+    var isUpdatingFavoriteStatus = false
+    private(set) var isFavorite = false
+    var favoriteActionErrorMessage: String?
+    private var favoriteStatusByID: [String: Bool] = [:]
+    private var loadingFavoriteStatusIDs: Set<String> = []
+    private var updatingFavoriteStatusIDs: Set<String> = []
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
     init(
@@ -145,6 +152,45 @@ final class MediaDetailViewModel {
             await loadWatchlistStatus()
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func toggleFavoriteStatus(for target: MediaItem? = nil) async {
+        let item = target ?? media.mediaItem
+        guard shouldShowFavoriteButton(for: item) else { return }
+
+        let isPrimaryItem = item.id == media.mediaItem.id
+        if isPrimaryItem {
+            guard !isUpdatingFavoriteStatus else { return }
+            isUpdatingFavoriteStatus = true
+        }
+        guard updatingFavoriteStatusIDs.insert(item.id).inserted else {
+            if isPrimaryItem {
+                isUpdatingFavoriteStatus = false
+            }
+            return
+        }
+
+        favoriteActionErrorMessage = nil
+        defer {
+            updatingFavoriteStatusIDs.remove(item.id)
+            if isPrimaryItem {
+                isUpdatingFavoriteStatus = false
+            }
+        }
+
+        do {
+            let updatedValue = !isFavorite(for: item)
+            try await services.favorites.setFavorite(updatedValue, media: item)
+            guard !Task.isCancelled else { return }
+            favoriteStatusByID[item.id] = updatedValue
+            if isPrimaryItem {
+                isFavorite = updatedValue
+            }
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            favoriteActionErrorMessage = error.localizedDescription
             ErrorReporter.capture(error)
         }
     }
@@ -263,6 +309,59 @@ final class MediaDetailViewModel {
             isWatchlisted = false
             ErrorReporter.capture(error)
         }
+    }
+
+    private func loadFavoriteStatus() async {
+        guard shouldShowFavoriteButton else {
+            isFavorite = false
+            return
+        }
+
+        isLoadingFavoriteStatus = true
+        defer { isLoadingFavoriteStatus = false }
+
+        do {
+            isFavorite = try await services.favorites.isFavorite(media.mediaItem)
+            favoriteStatusByID[media.mediaItem.id] = isFavorite
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            isFavorite = false
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func loadFavoriteStatus(for item: MediaItem) async {
+        guard shouldShowFavoriteButton(for: item) else { return }
+        guard item.id != media.mediaItem.id else {
+            await loadFavoriteStatus()
+            return
+        }
+        guard loadingFavoriteStatusIDs.insert(item.id).inserted else { return }
+        defer { loadingFavoriteStatusIDs.remove(item.id) }
+
+        do {
+            favoriteStatusByID[item.id] = try await services.favorites.isFavorite(item)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    func isFavorite(for item: MediaItem) -> Bool {
+        if item.id == media.mediaItem.id {
+            return isFavorite
+        }
+        return favoriteStatusByID[item.id] ?? item.watchState.isFavorite
+    }
+
+    func isLoadingFavoriteStatus(for item: MediaItem) -> Bool {
+        item.id == media.mediaItem.id
+            ? isLoadingFavoriteStatus
+            : loadingFavoriteStatusIDs.contains(item.id)
+    }
+
+    func isUpdatingFavoriteStatus(for item: MediaItem) -> Bool {
+        updatingFavoriteStatusIDs.contains(item.id)
     }
 
     var runtimeText: String? {
@@ -518,6 +617,33 @@ final class MediaDetailViewModel {
 
     var watchlistActionIcon: String {
         isWatchlisted ? "bookmark.fill" : "bookmark"
+    }
+
+    var favoriteActionTitle: String {
+        favoriteActionTitle(for: media.mediaItem)
+    }
+
+    var favoriteActionIcon: String {
+        favoriteActionIcon(for: media.mediaItem)
+    }
+
+    var shouldShowFavoriteButton: Bool {
+        shouldShowFavoriteButton(for: media.mediaItem)
+    }
+
+    func favoriteActionTitle(for item: MediaItem) -> String {
+        isFavorite(for: item)
+            ? String(localized: "media.detail.favorite.remove")
+            : String(localized: "media.detail.favorite.add")
+    }
+
+    func favoriteActionIcon(for item: MediaItem) -> String {
+        isFavorite(for: item) ? "star.fill" : "star"
+    }
+
+    func shouldShowFavoriteButton(for item: MediaItem) -> Bool {
+        services.capabilities.favorites
+            && [.movie, .series, .season, .episode].contains(item.type)
     }
 
     var shouldShowWatchlistButton: Bool {
@@ -843,6 +969,7 @@ final class MediaDetailViewModel {
             await resolveFallbackPlaybackTarget(preservingExistingContent: preservingExistingContent)
             await loadTrackSelection(preservingExistingContent: preservingExistingContent)
             await loadWatchlistStatus()
+            await loadFavoriteStatus()
             let artworkPath = resolveArtwork()
             await loadBackdropGradient(path: artworkPath)
         } catch {

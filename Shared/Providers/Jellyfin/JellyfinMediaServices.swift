@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
     MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
-    AdvancedLibraryBrowseService, MediaAuthorizationService
+    AdvancedLibraryBrowseService, MediaFavoritesService, MediaAuthorizationService
 {
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
@@ -23,6 +23,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     var supportsWatchlist: Bool {
         false
+    }
+
+    var supportsFavorites: Bool {
+        true
     }
 
     var supportsRemoteSubtitleSearch: Bool {
@@ -63,6 +67,18 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     func mediaItem(id: String) async throws -> MediaItem {
         try await MediaItem(jellyfinItem: catalog.item(id: id), server: server)
+    }
+
+    func favorites() async throws -> [MediaItem] {
+        try await catalog.favoriteItems().map { MediaItem(jellyfinItem: $0, server: server) }
+    }
+
+    func isFavorite(_ media: MediaItem) async throws -> Bool {
+        try await catalog.isFavorite(itemID: media.id)
+    }
+
+    func setFavorite(_ favorite: Bool, media: MediaItem) async throws {
+        try await catalog.setFavorite(favorite, itemID: media.id)
     }
 
     func searchSubtitles(
@@ -899,6 +915,10 @@ enum JellyfinMediaServicesFactory {
     static func make(context: JellyfinAPIContext, capabilities: ProviderCapabilities) -> MediaServices? {
         guard let connection = context.connection else { return nil }
         let adapter = JellyfinMediaServiceAdapter(context: context, server: connection.serverIdentity)
+        let favorites = JellyfinFavoritesService(
+            context: context,
+            server: connection.serverIdentity,
+        )
         let services = MediaServices(
             provider: .jellyfin,
             identity: connection.serverIdentity,
@@ -908,6 +928,7 @@ enum JellyfinMediaServicesFactory {
             search: adapter,
             artwork: adapter,
             detail: adapter,
+            favorites: favorites,
             playback: adapter,
             downloads: adapter,
             authorization: adapter,

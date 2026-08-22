@@ -155,6 +155,23 @@ struct MediaDetailView: View {
         } message: {
             Text(bindableViewModel.watchActionErrorMessage ?? "")
         }
+        .alert(
+            "media.detail.favorite.error.title",
+            isPresented: Binding(
+                get: { bindableViewModel.favoriteActionErrorMessage != nil },
+                set: {
+                    if !$0 {
+                        bindableViewModel.favoriteActionErrorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                bindableViewModel.favoriteActionErrorMessage = nil
+            }
+        } message: {
+            Text(bindableViewModel.favoriteActionErrorMessage ?? "")
+        }
     }
 
     private var contextualEpisode: MediaItem? {
@@ -218,6 +235,7 @@ struct MediaDetailView: View {
         sharePlayCoordinator.isActivating
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
+            || viewModel.isUpdatingFavoriteStatus
             || viewModel.isUpdatingTracks
     }
 
@@ -293,6 +311,27 @@ struct MediaDetailView: View {
                     viewModel.isLoading
                         || viewModel.isLoadingWatchlistStatus
                         || viewModel.isUpdatingWatchlistStatus,
+                )
+            }
+
+            if viewModel.shouldShowFavoriteButton {
+                Button {
+                    Task { await viewModel.toggleFavoriteStatus() }
+                } label: {
+                    if viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus {
+                        Label {
+                            Text(viewModel.favoriteActionTitle)
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon)
+                    }
+                }
+                .disabled(
+                    viewModel.isLoading
+                        || viewModel.isLoadingFavoriteStatus
+                        || viewModel.isUpdatingFavoriteStatus,
                 )
             }
 
@@ -607,7 +646,10 @@ private struct EpisodeArtworkCard: View {
         .overlay(alignment: .trailing) {
             if isFocused {
                 Group {
-                    if isStartingSharePlay || isUpdatingWatchStatus {
+                    if isStartingSharePlay
+                        || isUpdatingWatchStatus
+                        || trackViewModel.isUpdatingFavoriteStatus(for: episode)
+                    {
                         ProgressView()
                     } else {
                         Image(systemName: "ellipsis")
@@ -663,6 +705,31 @@ private struct EpisodeArtworkCard: View {
                 .disabled(isUpdatingWatchStatus)
             }
 
+            if trackViewModel.shouldShowFavoriteButton(for: episode) {
+                Button {
+                    Task { await trackViewModel.toggleFavoriteStatus(for: episode) }
+                } label: {
+                    if trackViewModel.isLoadingFavoriteStatus(for: episode)
+                        || trackViewModel.isUpdatingFavoriteStatus(for: episode)
+                    {
+                        Label {
+                            Text(trackViewModel.favoriteActionTitle(for: episode))
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label(
+                            trackViewModel.favoriteActionTitle(for: episode),
+                            systemImage: trackViewModel.favoriteActionIcon(for: episode),
+                        )
+                    }
+                }
+                .disabled(
+                    trackViewModel.isLoadingFavoriteStatus(for: episode)
+                        || trackViewModel.isUpdatingFavoriteStatus(for: episode),
+                )
+            }
+
             if trackViewModel.hasTrackSelection(for: episode.id) {
                 Divider()
                 MediaDetailTrackMenuItems(viewModel: trackViewModel, ratingKey: episode.id)
@@ -675,6 +742,7 @@ private struct EpisodeArtworkCard: View {
         .onChange(of: isFocused) { _, focused in
             if focused {
                 onFocus()
+                Task { await trackViewModel.loadFavoriteStatus(for: episode) }
             }
         }
     }

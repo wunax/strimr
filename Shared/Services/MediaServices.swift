@@ -34,6 +34,7 @@ final class MediaServices {
     let search: any MediaSearchService
     let artwork: any MediaArtworkService
     let detail: any MediaDetailService
+    let favorites: any MediaFavoritesService
     let playback: any MediaPlaybackService
     let downloads: any MediaDownloadService
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
@@ -51,6 +52,7 @@ final class MediaServices {
         search: any MediaSearchService,
         artwork: any MediaArtworkService,
         detail: any MediaDetailService,
+        favorites: any MediaFavoritesService,
         playback: any MediaPlaybackService,
         downloads: any MediaDownloadService,
         authorization: any MediaAuthorizationService,
@@ -63,6 +65,7 @@ final class MediaServices {
         self.search = search
         self.artwork = artwork
         self.detail = detail
+        self.favorites = favorites
         self.playback = playback
         self.downloads = downloads
         authorizationService = authorization

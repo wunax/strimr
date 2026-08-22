@@ -135,6 +135,14 @@ protocol MediaDetailService: AnyObject {
 }
 
 @MainActor
+protocol MediaFavoritesService: AnyObject {
+    var supportsFavorites: Bool { get }
+    func favorites() async throws -> [MediaItem]
+    func isFavorite(_ media: MediaItem) async throws -> Bool
+    func setFavorite(_ favorite: Bool, media: MediaItem) async throws
+}
+
+@MainActor
 protocol MediaPlaybackService: AnyObject {
     var serverAccessGeneration: Int { get }
     func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue

@@ -84,6 +84,20 @@ struct MainTabView: View {
                 }
             }
 
+            if settingsManager.interface.displayFavoritesTab {
+                Tab("tabs.favorites", systemImage: "star.fill", value: MainCoordinator.Tab.favorites) {
+                    NavigationStack(path: coordinator.pathBinding(for: .favorites)) {
+                        FavoritesView(
+                            services: mediaServices,
+                            onSelectMedia: coordinator.showMediaDetail,
+                        )
+                        .navigationDestination(for: MainCoordinator.Route.self) { route in
+                            destination(for: route)
+                        }
+                    }
+                }
+            }
+
             ForEach(navigationLibraries) { library in
                 Tab(
                     library.title,
@@ -109,7 +123,15 @@ struct MainTabView: View {
                             switch route {
                             case .settings:
                                 SettingsView()
+                            case .favorites:
+                                FavoritesView(
+                                    services: mediaServices,
+                                    onSelectMedia: coordinator.showMediaDetail,
+                                )
                             }
+                        }
+                        .navigationDestination(for: MainCoordinator.Route.self) { route in
+                            destination(for: route)
                         }
                 }
             }
