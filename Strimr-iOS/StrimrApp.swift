@@ -17,10 +17,12 @@ struct StrimrApp: App {
         let context = PlexAPIContext()
         let jellyfinContext = JellyfinAPIContext()
         let store = LibraryStore(context: context)
+        let favoritesStore = FavoritesStore()
         let sessionManager = SessionManager(
             context: context,
             jellyfinContext: jellyfinContext,
             libraryStore: store,
+            favoritesStore: favoritesStore,
         )
         let settingsManager = SettingsManager()
         let downloadManager = DownloadManager(settingsManager: settingsManager)

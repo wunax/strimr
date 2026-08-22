@@ -43,6 +43,7 @@ final class SessionManager {
     @ObservationIgnored private let context: PlexAPIContext
     @ObservationIgnored private let jellyfinContext: JellyfinAPIContext
     @ObservationIgnored private let libraryStore: LibraryStore
+    @ObservationIgnored private let favoritesStore: FavoritesStore
     private(set) var status: Status = .hydrating
     private(set) var loadingPhase: LoadingPhase = .preparing
     private(set) var provider: MediaProvider?
@@ -67,10 +68,12 @@ final class SessionManager {
         context: PlexAPIContext,
         jellyfinContext: JellyfinAPIContext,
         libraryStore: LibraryStore,
+        favoritesStore: FavoritesStore,
     ) {
         self.context = context
         self.jellyfinContext = jellyfinContext
         self.libraryStore = libraryStore
+        self.favoritesStore = favoritesStore
         context.configureServerAccessRecovery { [weak self] force in
             guard let self else {
                 throw PlexServerAccessRecoveryError.connectionFailed
@@ -81,6 +84,19 @@ final class SessionManager {
             self?.invalidateJellyfinSession()
         }
         Task { await hydrate() }
+    }
+
+    var localFavoritesStore: FavoritesStore {
+        favoritesStore
+    }
+
+    var localFavoritesProfileIdentifier: String {
+        guard let user else { return "default" }
+        return user.uuid
+            ?? user.id.map(String.init)
+            ?? user.username
+            ?? user.title
+            ?? "default"
     }
 
     func hydrate() async {
@@ -606,7 +622,11 @@ final class SessionManager {
     }
 
     private func activatePlexServicesIfAvailable() {
-        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: self) else { return }
+        guard let services = PlexMediaServicesFactory.make(
+            context: context,
+            sessionManager: self,
+            favoritesStore: favoritesStore,
+        ) else { return }
         mediaServices = services
         libraryStore.configure(service: services.library)
     }

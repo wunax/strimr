@@ -12,6 +12,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case home
         case search
         case library
+        case favorites
         case more
         case seerrDiscover
         case libraryDetail(String)
@@ -29,6 +30,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var homePath = NavigationPath()
     @Published var searchPath = NavigationPath()
     @Published var libraryPath = NavigationPath()
+    @Published var favoritesPath = NavigationPath()
     @Published var morePath = NavigationPath()
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
@@ -51,6 +53,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.searchPath
                 case .library:
                     self.libraryPath
+                case .favorites:
+                    self.favoritesPath
                 case .more:
                     self.morePath
                 case .seerrDiscover:
@@ -67,6 +71,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.searchPath = newValue
                 case .library:
                     self.libraryPath = newValue
+                case .favorites:
+                    self.favoritesPath = newValue
                 case .more:
                     self.morePath = newValue
                 case .seerrDiscover:
@@ -95,8 +101,12 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .library:
             libraryPath.append(route)
             recordMediaRoute(media, depth: libraryPath.count, tab: tab)
+        case .favorites:
+            favoritesPath.append(route)
+            recordMediaRoute(media, depth: favoritesPath.count, tab: tab)
         case .more:
-            break
+            morePath.append(route)
+            recordMediaRoute(media, depth: morePath.count, tab: tab)
         case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
@@ -123,7 +133,11 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             pop(path: &searchPath, to: destinationDepth, tab: tab)
         case .library:
             pop(path: &libraryPath, to: destinationDepth, tab: tab)
-        case .more, .seerrDiscover:
+        case .favorites:
+            pop(path: &favoritesPath, to: destinationDepth, tab: tab)
+        case .more:
+            pop(path: &morePath, to: destinationDepth, tab: tab)
+        case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
@@ -188,8 +202,10 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
+        case .favorites:
+            favoritesPath.append(route)
         case .more:
-            break
+            morePath.append(route)
         case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
@@ -209,8 +225,10 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
+        case .favorites:
+            favoritesPath.append(route)
         case .more:
-            break
+            morePath.append(route)
         case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
@@ -230,8 +248,10 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
+        case .favorites:
+            favoritesPath.append(route)
         case .more:
-            break
+            morePath.append(route)
         case .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
@@ -251,7 +271,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
-        case .more, .seerrDiscover:
+        case .favorites, .more, .seerrDiscover:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
@@ -264,7 +284,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         switch tab {
         case .seerrDiscover:
             seerrDiscoverPath.append(media)
-        case .home, .search, .library, .more:
+        case .home, .search, .library, .favorites, .more:
             break
         case .libraryDetail:
             break

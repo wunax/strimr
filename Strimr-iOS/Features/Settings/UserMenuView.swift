@@ -3,6 +3,10 @@ import SwiftUI
 @MainActor
 struct UserMenuView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(MediaServices.self) private var mediaServices
+    @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(\.dismiss) private var dismiss
     @State private var isShowingLogoutConfirmation = false
 
     var body: some View {
@@ -18,6 +22,20 @@ struct UserMenuView: View {
                     DownloadsView()
                 } label: {
                     Label("downloads.title", systemImage: "arrow.down.circle.fill")
+                }
+
+                if !settingsManager.interface.displayFavoritesTab {
+                    NavigationLink {
+                        FavoritesView(
+                            services: mediaServices,
+                            onSelectMedia: { media in
+                                dismiss()
+                                coordinator.showMediaDetail(media)
+                            },
+                        )
+                    } label: {
+                        Label("tabs.favorites", systemImage: "star.fill")
+                    }
                 }
 
                 if sessionManager.mediaServices?.capabilities.profiles == true {

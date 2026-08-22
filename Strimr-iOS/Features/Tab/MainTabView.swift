@@ -72,6 +72,12 @@ struct MainTabView: View {
                 libraryTabContent
             }
 
+            if settingsManager.interface.displayFavoritesTab {
+                Tab("tabs.favorites", systemImage: "star.fill", value: MainCoordinator.Tab.favorites) {
+                    favoritesTabContent
+                }
+            }
+
             TabSection {
                 ForEach(navigationLibraries) { library in
                     Tab(
@@ -113,6 +119,14 @@ struct MainTabView: View {
                     Label("tabs.libraries", systemImage: "rectangle.stack.fill")
                 }
                 .tag(MainCoordinator.Tab.library)
+
+            if settingsManager.interface.displayFavoritesTab {
+                favoritesTabContent
+                    .tabItem {
+                        Label("tabs.favorites", systemImage: "star.fill")
+                    }
+                    .tag(MainCoordinator.Tab.favorites)
+            }
 
             ForEach(navigationLibraries) { library in
                 libraryDetailTabContent(library)
@@ -178,6 +192,18 @@ struct MainTabView: View {
                     onSelectMedia: coordinator.showMediaDetail,
                 )
             }
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
+            }
+        }
+    }
+
+    private var favoritesTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .favorites)) {
+            FavoritesView(
+                services: mediaServices,
+                onSelectMedia: coordinator.showMediaDetail,
+            )
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
             }

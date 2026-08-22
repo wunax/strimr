@@ -241,6 +241,66 @@ struct JellyfinCatalogService {
         )
     }
 
+    func favoriteItems() async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        let query = commonUserQuery + [
+            URLQueryItem(name: "IncludeItemTypes", value: "Movie,Series,Season,Episode"),
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "IsFavorite", value: "true"),
+            URLQueryItem(name: "Fields", value: Self.cardFields),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+            URLQueryItem(name: "EnableImages", value: "true"),
+        ]
+        do {
+            return try await paginatedItems(path: ["Items"], query: query)
+        } catch let error as JellyfinAPIError where error == .itemUnavailable {
+            return try await paginatedItems(
+                path: ["Users", userID, "Items"],
+                query: query.filter { $0.name.lowercased() != "userid" },
+            )
+        }
+    }
+
+    func isFavorite(itemID: String) async throws -> Bool {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        let query = commonUserQuery + [
+            URLQueryItem(name: "Fields", value: Self.detailFields),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+        ]
+        do {
+            let item: JellyfinItem = try await context.get(path: ["Items", itemID], query: query)
+            return item.userData?.isFavorite == true
+        } catch let error as JellyfinAPIError where error == .itemUnavailable {
+            let item: JellyfinItem = try await context.get(
+                path: ["Users", userID, "Items", itemID],
+                query: query.filter { $0.name.lowercased() != "userid" },
+            )
+            return item.userData?.isFavorite == true
+        }
+    }
+
+    func setFavorite(_ favorite: Bool, itemID: String) async throws {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        do {
+            try await context.send(
+                path: ["UserFavoriteItems", itemID],
+                method: favorite ? "POST" : "DELETE",
+                query: commonUserQuery,
+            )
+        } catch let error as JellyfinAPIError where error == .itemUnavailable {
+            try await context.send(
+                path: ["Users", userID, "FavoriteItems", itemID],
+                method: favorite ? "POST" : "DELETE",
+            )
+        }
+    }
+
     func seasons(seriesID: String) async throws -> [JellyfinItem] {
         let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
             path: ["Shows", seriesID, "Seasons"],

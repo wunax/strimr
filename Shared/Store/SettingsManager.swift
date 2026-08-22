@@ -163,6 +163,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplayFavoritesTab(_ enabled: Bool) {
+        settings.interface.displayFavoritesTab = enabled
+        persist()
+    }
+
     func setDisplaySeerrDiscoverTab(_ enabled: Bool) {
         settings.interface.displaySeerrDiscoverTab = enabled
         persist()

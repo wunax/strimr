@@ -2,11 +2,13 @@ import SwiftUI
 
 enum MoreRoute: Hashable {
     case settings
+    case favorites
 }
 
 @MainActor
 struct MoreView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(SettingsManager.self) private var settingsManager
 
     var body: some View {
         ZStack {
@@ -23,6 +25,15 @@ struct MoreView: View {
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
+
+                    if !settingsManager.interface.displayFavoritesTab {
+                        NavigationLink(value: MoreRoute.favorites) {
+                            Label("tabs.favorites", systemImage: "star.fill")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
 
                     if sessionManager.mediaServices?.capabilities.profiles == true {
                         Button {

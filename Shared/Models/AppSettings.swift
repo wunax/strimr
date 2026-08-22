@@ -208,6 +208,7 @@ struct InterfaceSettings: Codable, Equatable {
     var navigationLibraryIds: [String] = []
     var displayCollections = true
     var displayPlaylists = true
+    var displayFavoritesTab = false
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled = true
     var spoilerProtection = SpoilerProtectionLevel.off
@@ -220,6 +221,7 @@ struct InterfaceSettings: Codable, Equatable {
         navigationLibraryIds = try container.decodeIfPresent([String].self, forKey: .navigationLibraryIds) ?? []
         displayCollections = try container.decodeIfPresent(Bool.self, forKey: .displayCollections) ?? true
         displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
+        displayFavoritesTab = try container.decodeIfPresent(Bool.self, forKey: .displayFavoritesTab) ?? false
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(
             Bool.self,
