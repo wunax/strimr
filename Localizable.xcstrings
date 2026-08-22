@@ -9702,6 +9702,50 @@
         }
       }
     },
+    "settings.interface.displayDownloadsTab" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Downloads tab"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’onglet Téléchargements"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示下载标签页"
+          }
+        }
+      }
+    },
+    "settings.interface.displayDownloadsTab.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Downloads as a main tab instead of placing it in the user menu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher Téléchargements comme onglet principal au lieu de le placer dans le menu utilisateur."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将下载显示为主标签页，而不是放在用户菜单中。"
+          }
+        }
+      }
+    },
     "settings.interface.displayPlaylists" : {
       "localizations" : {
         "en" : {

@@ -11,6 +11,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     enum Tab: Hashable {
         case home
         case search
+        case downloads
         case library
         case favorites
         case more
@@ -29,6 +30,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var tab: Tab = .home
     @Published var homePath = NavigationPath()
     @Published var searchPath = NavigationPath()
+    @Published var downloadsPath = NavigationPath()
     @Published var libraryPath = NavigationPath()
     @Published var favoritesPath = NavigationPath()
     @Published var morePath = NavigationPath()
@@ -51,6 +53,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.homePath
                 case .search:
                     self.searchPath
+                case .downloads:
+                    self.downloadsPath
                 case .library:
                     self.libraryPath
                 case .favorites:
@@ -69,6 +73,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.homePath = newValue
                 case .search:
                     self.searchPath = newValue
+                case .downloads:
+                    self.downloadsPath = newValue
                 case .library:
                     self.libraryPath = newValue
                 case .favorites:
@@ -98,6 +104,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .search:
             searchPath.append(route)
             recordMediaRoute(media, depth: searchPath.count, tab: tab)
+        case .downloads:
+            break
         case .library:
             libraryPath.append(route)
             recordMediaRoute(media, depth: libraryPath.count, tab: tab)
@@ -131,6 +139,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             pop(path: &homePath, to: destinationDepth, tab: tab)
         case .search:
             pop(path: &searchPath, to: destinationDepth, tab: tab)
+        case .downloads:
+            break
         case .library:
             pop(path: &libraryPath, to: destinationDepth, tab: tab)
         case .favorites:
@@ -200,6 +210,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             homePath.append(route)
         case .search:
             searchPath.append(route)
+        case .downloads:
+            break
         case .library:
             libraryPath.append(route)
         case .favorites:
@@ -223,6 +235,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             homePath.append(route)
         case .search:
             searchPath.append(route)
+        case .downloads:
+            break
         case .library:
             libraryPath.append(route)
         case .favorites:
@@ -246,6 +260,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             homePath.append(route)
         case .search:
             searchPath.append(route)
+        case .downloads:
+            break
         case .library:
             libraryPath.append(route)
         case .favorites:
@@ -271,7 +287,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
-        case .favorites, .more, .seerrDiscover:
+        case .favorites, .more, .seerrDiscover, .downloads:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
@@ -284,7 +300,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         switch tab {
         case .seerrDiscover:
             seerrDiscoverPath.append(media)
-        case .home, .search, .library, .favorites, .more:
+        case .home, .search, .downloads, .library, .favorites, .more:
             break
         case .libraryDetail:
             break
