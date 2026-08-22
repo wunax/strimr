@@ -16,6 +16,7 @@ struct PlayerControlsView: View {
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
+    var onShowQualitySettings: () -> Void
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
@@ -179,6 +180,12 @@ struct PlayerControlsView: View {
                         systemImage: "speedometer",
                         accessibilityLabel: String(localized: "player.settings.speed"),
                         action: onShowSpeedSettings,
+                    )
+
+                    PlayerSettingButton(
+                        systemImage: "gauge.with.dots.needle.33percent",
+                        accessibilityLabel: String(localized: "player.settings.quality"),
+                        action: onShowQualitySettings,
                     )
 
                     if chapters.count >= 2 {

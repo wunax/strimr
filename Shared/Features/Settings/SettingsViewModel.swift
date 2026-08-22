@@ -18,6 +18,13 @@ final class SettingsViewModel {
         self.settingsManager = settingsManager
     }
 
+    var qualityPresetBinding: Binding<TranscodeQualityPreset> {
+        Binding(
+            get: { self.settingsManager.playback.qualityPreset },
+            set: { self.settingsManager.setPlaybackQualityPreset($0) },
+        )
+    }
+
     var nextEpisodeAutoplayBinding: Binding<NextEpisodeAutoplay> {
         Binding(
             get: { self.settingsManager.playback.nextEpisodeAutoplay },

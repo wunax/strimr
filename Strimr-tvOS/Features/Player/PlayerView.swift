@@ -49,6 +49,7 @@ struct PlayerView: View {
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
+    @State private var qualityNoticeMessage: String?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -119,7 +120,7 @@ struct PlayerView: View {
                     handleExitCommand()
                 }
                 .task {
-                    await viewModel.load()
+                    await viewModel.load(quality: settingsManager.playback.qualityPreset)
                 },
         )
 
@@ -259,6 +260,21 @@ struct PlayerView: View {
             } message: {
                 Text(serverRecoveryMessage)
             }
+            .alert(
+                "player.settings.quality",
+                isPresented: Binding(
+                    get: { qualityNoticeMessage != nil },
+                    set: {
+                        if !$0 {
+                            qualityNoticeMessage = nil
+                        }
+                    },
+                ),
+            ) {
+                Button("common.actions.done") { qualityNoticeMessage = nil }
+            } message: {
+                Text(qualityNoticeMessage ?? "")
+            }
     }
 
     private var playerScene: some View {
@@ -332,6 +348,7 @@ struct PlayerView: View {
                     onShowAudioSettings: showAudioSettings,
                     onShowSubtitleSettings: showSubtitleSettings,
                     onShowSpeedSettings: showSpeedSettings,
+                    onShowQualitySettings: showQualitySettings,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     scrubPreview: playerController.scrubPreview,
@@ -462,6 +479,11 @@ struct PlayerView: View {
                 onSelect: selectPlaybackRate(_:),
                 onClose: { sheetPresentation.item = nil },
             )
+        case .quality:
+            PlayerQualitySelectionView(
+                selectedQuality: viewModel.selectedQuality,
+                onSelect: { selectQuality($0) },
+            )
         case .subtitleSearch:
             if let services = viewModel.subtitleSearchServices {
                 SubtitleSearchView(
@@ -509,6 +531,36 @@ struct PlayerView: View {
     private func showSpeedSettings() {
         sheetPresentation.item = .speed
         showControls(temporarily: true)
+    }
+
+    private func showQualitySettings() {
+        sheetPresentation.item = .quality
+        showControls(temporarily: true)
+    }
+
+    private func selectQuality(_ quality: TranscodeQualityPreset, force: Bool = false) {
+        guard force || quality != viewModel.selectedQuality else { return }
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        sheetPresentation.item = nil
+        Task {
+            do {
+                let url = try await viewModel.changeQuality(to: quality, force: force)
+                activePlaybackURL = nil
+                startPlayback(
+                    url: url,
+                    startPosition: position,
+                    resetTrackSelection: true,
+                    shouldResumeAfterLoad: !wasPaused,
+                    shouldPauseAfterLoad: wasPaused,
+                )
+                qualityNoticeMessage = viewModel.qualityFallbackMessage
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                qualityNoticeMessage = error.localizedDescription
+            }
+        }
     }
 
     private func showChapters() {
@@ -606,7 +658,9 @@ struct PlayerView: View {
 
     private func refreshTracks() {
         Task {
-            let tracks = playerController.trackList()
+            let tracks = viewModel.isTranscoding
+                ? viewModel.sourcePlayerTracks()
+                : playerController.trackList()
 
             let audio = tracks.filter { $0.type == .audio }
             let subtitles = tracks.filter { $0.type == .subtitle }
@@ -667,7 +721,6 @@ struct PlayerView: View {
 
     private func selectAudioTrack(_ id: Int?) {
         selectedAudioTrackID = id
-        playerController.selectAudioTrack(id: id)
 
         guard
             let id,
@@ -678,21 +731,29 @@ struct PlayerView: View {
 
         Task {
             await viewModel.persistStreamSelection(for: track)
+            if viewModel.isTranscoding {
+                selectQuality(viewModel.selectedQuality, force: true)
+            } else {
+                playerController.selectAudioTrack(id: id)
+            }
         }
     }
 
     private func selectSubtitleTrack(_ id: Int?) {
         selectedSubtitleTrackID = id
-        playerController.selectSubtitleTrack(
-            id: id,
-            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-        )
-
         Task {
             let track = id.flatMap { selectedID in
                 subtitleTracks.first(where: { $0.id == selectedID })
             }
             await viewModel.persistSubtitleStreamSelection(for: track)
+            if viewModel.isTranscoding {
+                selectQuality(viewModel.selectedQuality, force: true)
+            } else {
+                playerController.selectSubtitleTrack(
+                    id: id,
+                    styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                )
+            }
         }
     }
 
@@ -1258,6 +1319,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case audio
     case subtitle
     case speed
+    case quality
     case subtitleSearch
 
     var id: String {
@@ -1272,6 +1334,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.subtitles"
         case .speed:
             "player.settings.speed"
+        case .quality:
+            "player.settings.quality"
         case .subtitleSearch:
             "subtitles.search.title"
         }

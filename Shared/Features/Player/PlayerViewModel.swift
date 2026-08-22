@@ -20,6 +20,12 @@ final class PlayerViewModel {
     var preferredAudioStreamFFIndex: Int?
     var preferredSubtitleStreamID: Int?
     var terminationMessage: String?
+    var selectedQuality: TranscodeQualityPreset = .original
+    var qualityFallbackMessage: String?
+
+    var isTranscoding: Bool {
+        playbackPlan?.method == .transcode
+    }
 
     var resumePosition: Double? {
         media?.viewOffset
@@ -129,6 +135,7 @@ final class PlayerViewModel {
         self.localPlaybackURL = localPlaybackURL
         media = localMedia
         playbackURL = localPlaybackURL
+        selectedQuality = .original
     }
 
     func chapter(at time: Double) -> MediaChapter? {
@@ -181,6 +188,35 @@ final class PlayerViewModel {
         }
     }
 
+    func sourcePlayerTracks() -> [PlayerTrack] {
+        guard let playbackPlan else { return [] }
+        return playbackPlan.tracks.map { track in
+            let providerStreamID = providerStreamID(for: track)
+            let isSelected = switch track.kind {
+            case .audio:
+                playbackPlan.selectedAudioIndex == track.sourceIndex
+            case .subtitle:
+                playbackPlan.selectedSubtitleIndex == providerStreamID
+                    || playbackPlan.selectedSubtitleIndex == track.sourceIndex
+            }
+            return PlayerTrack(
+                id: track.sourceIndex,
+                ffIndex: track.sourceIndex,
+                providerStreamID: providerStreamID,
+                type: track.kind == .audio ? .audio : .subtitle,
+                title: track.title,
+                language: track.language,
+                codec: track.codec,
+                isDefault: track.isDefault,
+                isForced: track.isForced,
+                isHearingImpaired: track.isHearingImpaired,
+                isCommentary: false,
+                isExternal: track.isExternal,
+                isSelected: isSelected,
+            )
+        }
+    }
+
     private func providerStreamID(for track: PlaybackTrack) -> Int {
         Int(track.id) ?? track.sourceIndex
     }
@@ -203,14 +239,16 @@ final class PlayerViewModel {
         else { return nil }
 
         queue.currentIndex = index
-        return PlayerViewModel(
+        let viewModel = PlayerViewModel(
             queue: queue,
             services: mediaServices,
             shouldResumeFromOffset: shouldResumeFromOffset,
         )
+        viewModel.selectedQuality = selectedQuality
+        return viewModel
     }
 
-    func load() async {
+    func load(quality: TranscodeQualityPreset? = nil) async {
         if let localPlaybackURL, let localMedia {
             media = localMedia
             playbackURL = localPlaybackURL
@@ -229,9 +267,13 @@ final class PlayerViewModel {
         defer { isLoading = false }
 
         do {
+            if let quality {
+                selectedQuality = quality
+            }
             let plan = try await mediaServices.playback.prepare(
                 media: media,
                 resume: shouldResumeFromOffsetFlag,
+                quality: selectedQuality,
             )
             apply(plan: plan)
         } catch {
@@ -249,15 +291,41 @@ final class PlayerViewModel {
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
 
         do {
+            let previousPlan = playbackPlan
             let plan = try await mediaServices.playback.prepare(
                 media: media,
                 resume: shouldResumeFromOffsetFlag,
+                quality: selectedQuality,
             )
             apply(plan: plan)
+            if let previousPlan {
+                await mediaServices.playback.release(plan: previousPlan)
+            }
             return plan.url
         } catch {
             throw translatedServerAccessError(error, using: mediaServices.playback)
         }
+    }
+
+    func changeQuality(to quality: TranscodeQualityPreset, force: Bool = false) async throws -> URL {
+        guard !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
+        if !force, quality == selectedQuality, let playbackURL {
+            return playbackURL
+        }
+
+        let previousPlan = playbackPlan
+        let plan = try await mediaServices.playback.prepare(
+            media: media,
+            resume: false,
+            quality: quality,
+        )
+        selectedQuality = quality
+        apply(plan: plan)
+        if let previousPlan {
+            await mediaServices.playback.release(plan: previousPlan)
+        }
+        return plan.url
     }
 
     func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
@@ -323,9 +391,11 @@ final class PlayerViewModel {
             do {
                 try await mediaServices.playback.reportStopped(plan: playbackPlan, position: position)
             } catch {
-                guard !Task.isCancelled, !error.isCancellation else { return }
-                ErrorReporter.capture(error)
+                if !Task.isCancelled, !error.isCancellation {
+                    ErrorReporter.capture(error)
+                }
             }
+            await mediaServices.playback.release(plan: playbackPlan)
         }
     }
 
@@ -337,9 +407,11 @@ final class PlayerViewModel {
                 position: media?.duration ?? duration ?? position,
             )
         } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            ErrorReporter.capture(error)
+            if !Task.isCancelled, !error.isCancellation {
+                ErrorReporter.capture(error)
+            }
         }
+        await mediaServices.playback.release(plan: playbackPlan)
     }
 
     func automaticSkipMarker(
@@ -417,6 +489,8 @@ final class PlayerViewModel {
         media = plan.media
         playbackURL = plan.url
         playbackHTTPHeaders = plan.httpHeaders
+        selectedQuality = plan.requestedQuality
+        qualityFallbackMessage = plan.qualityFallbackMessage
         preferredAudioStreamFFIndex = plan.selectedAudioIndex
         preferredSubtitleStreamID = plan.selectedSubtitleIndex
         chapters = plan.chapters

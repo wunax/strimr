@@ -11,6 +11,16 @@ struct SettingsPlaybackView: View {
     var body: some View {
         List {
             Section {
+                Picker("settings.playback.quality", selection: viewModel.qualityPresetBinding) {
+                    ForEach(TranscodeQualityPreset.displayOrder) { preset in
+                        Text(preset.title).tag(preset)
+                    }
+                }
+            } footer: {
+                Text("settings.playback.quality.footer")
+            }
+
+            Section {
                 Picker(
                     "settings.playback.nextEpisodeAutoplay",
                     selection: viewModel.nextEpisodeAutoplayBinding,

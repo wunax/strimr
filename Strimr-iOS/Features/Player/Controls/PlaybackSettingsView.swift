@@ -6,15 +6,32 @@ struct PlaybackSettingsView: View {
     var selectedAudioTrackID: Int?
     var selectedSubtitleTrackID: Int?
     var playbackRate: Float
+    var quality: TranscodeQualityPreset
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
     var onSearchSubtitles: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
+    var onSelectQuality: (TranscodeQualityPreset) -> Void
     var onClose: () -> Void
 
     var body: some View {
         NavigationStack {
             List {
+                Section("player.settings.quality") {
+                    Picker(
+                        "player.settings.quality",
+                        selection: Binding(
+                            get: { quality },
+                            set: { onSelectQuality($0) },
+                        ),
+                    ) {
+                        ForEach(TranscodeQualityPreset.displayOrder) { preset in
+                            Text(preset.title).tag(preset)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
                 Section("player.settings.audio") {
                     if audioTracks.isEmpty {
                         Text("player.settings.audio.empty")

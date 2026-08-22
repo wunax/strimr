@@ -282,6 +282,17 @@ final class JellyfinAPIContext {
         return authorizationHeaders()
     }
 
+    func stopEncoding(playSessionID: String) async throws {
+        try await send(
+            path: ["Videos", "ActiveEncodings"],
+            method: "DELETE",
+            query: [
+                URLQueryItem(name: "DeviceId", value: deviceID),
+                URLQueryItem(name: "PlaySessionId", value: playSessionID),
+            ],
+        )
+    }
+
     private func request<Response: Decodable & Sendable>(
         path: [String],
         method: String,
