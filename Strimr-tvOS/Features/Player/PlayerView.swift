@@ -264,7 +264,11 @@ struct PlayerView: View {
                 "player.settings.quality",
                 isPresented: Binding(
                     get: { qualityNoticeMessage != nil },
-                    set: { if !$0 { qualityNoticeMessage = nil } },
+                    set: {
+                        if !$0 {
+                            qualityNoticeMessage = nil
+                        }
+                    },
                 ),
             ) {
                 Button("common.actions.done") { qualityNoticeMessage = nil }

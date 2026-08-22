@@ -175,7 +175,7 @@ final class PlaybackRepository {
         burnsSubtitles: Bool,
         usesTransportStreamFallback: Bool,
     ) -> [URLQueryItem] {
-        let bitrate = quality.maximumVideoBitrateKbps ?? 12_000
+        let bitrate = quality.maximumVideoBitrateKbps ?? 12000
         let videoTarget = if usesTransportStreamFallback {
             "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,ac3,eac3,mp3)"
         } else {
@@ -258,10 +258,12 @@ private struct PlexTranscodeDecisionResponse: Decodable {
         }
 
         var allowsTranscode: Bool {
-            let codes = [generalDecisionCode, transcodeDecisionCode, mdeDecisionCode].compactMap { $0 }
-            guard !codes.contains(where: { $0 >= 2_000 }) else { return false }
-            if transcodeDecisionCode == 1_000 || generalDecisionCode == 1_000 { return false }
-            return transcodeDecisionCode == 1_001 || generalDecisionCode == 1_001 || !codes.isEmpty
+            let codes = [generalDecisionCode, transcodeDecisionCode, mdeDecisionCode].compactMap(\.self)
+            guard !codes.contains(where: { $0 >= 2000 }) else { return false }
+            if transcodeDecisionCode == 1000 || generalDecisionCode == 1000 {
+                return false
+            }
+            return transcodeDecisionCode == 1001 || generalDecisionCode == 1001 || !codes.isEmpty
         }
 
         struct Metadata: Decodable {
@@ -299,8 +301,12 @@ private struct PlexTranscodeDecisionResponse: Decodable {
 
 private extension KeyedDecodingContainer {
     func flexibleInt(forKey key: Key) -> Int? {
-        if let value = try? decode(Int.self, forKey: key) { return value }
-        if let value = try? decode(String.self, forKey: key) { return Int(value) }
+        if let value = try? decode(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return Int(value)
+        }
         return nil
     }
 }

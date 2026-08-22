@@ -449,7 +449,7 @@ private extension TranscodeQualityPreset {
 
     var jellyfinMaximumStreamingBitrate: Int? {
         maximumVideoBitrateKbps.map {
-            ($0 + Self.jellyfinAudioOverheadKbps) * 1_000
+            ($0 + Self.jellyfinAudioOverheadKbps) * 1000
         }
     }
 

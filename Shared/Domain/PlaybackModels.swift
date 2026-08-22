@@ -17,20 +17,24 @@ enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, 
     case p1080_8mbps
     case p1080_12mbps
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
-    var isOriginal: Bool { self == .original }
+    var isOriginal: Bool {
+        self == .original
+    }
 
     var maximumVideoBitrateKbps: Int? {
         switch self {
         case .original: nil
         case .p240_320: 320
         case .p360_700: 700
-        case .p480_1_5mbps: 1_500
-        case .p720_2mbps: 2_000
-        case .p720_4mbps: 4_000
-        case .p1080_8mbps: 8_000
-        case .p1080_12mbps: 12_000
+        case .p480_1_5mbps: 1500
+        case .p720_2mbps: 2000
+        case .p720_4mbps: 4000
+        case .p1080_8mbps: 8000
+        case .p1080_12mbps: 12000
         }
     }
 
@@ -41,7 +45,7 @@ enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, 
         case .p360_700: 360
         case .p480_1_5mbps: 480
         case .p720_2mbps, .p720_4mbps: 720
-        case .p1080_8mbps, .p1080_12mbps: 1_080
+        case .p1080_8mbps, .p1080_12mbps: 1080
         }
     }
 
@@ -51,8 +55,8 @@ enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, 
         case .p240_320: 426
         case .p360_700: 640
         case .p480_1_5mbps: 854
-        case .p720_2mbps, .p720_4mbps: 1_280
-        case .p1080_8mbps, .p1080_12mbps: 1_920
+        case .p720_2mbps, .p720_4mbps: 1280
+        case .p1080_8mbps, .p1080_12mbps: 1920
         }
     }
 
@@ -60,10 +64,10 @@ enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, 
         guard let bitrate = maximumVideoBitrateKbps,
               let height = maximumHeight
         else { return String(localized: "quality.original") }
-        if bitrate < 1_000 {
+        if bitrate < 1000 {
             return String(localized: "quality.preset.kbps \(String(height)) \(String(bitrate))")
         }
-        let bitrateText = bitrate == 1_500 ? "1.5" : String(bitrate / 1_000)
+        let bitrateText = bitrate == 1500 ? "1.5" : String(bitrate / 1000)
         return String(localized: "quality.preset.mbps \(String(height)) \(bitrateText)")
     }
 
@@ -77,7 +81,6 @@ enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, 
         .p360_700,
         .p240_320,
     ]
-
 }
 
 enum PlaybackTrackKind: String, Sendable {
