@@ -415,6 +415,7 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let supportsDirectStream: Bool?
     let supportsTranscoding: Bool?
     let transcodingURL: String?
+    let bitrate: Int?
     let defaultAudioStreamIndex: Int?
     let defaultSubtitleStreamIndex: Int?
     let mediaStreams: [JellyfinMediaStream]?
@@ -427,6 +428,7 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
         case supportsDirectStream = "SupportsDirectStream"
         case supportsTranscoding = "SupportsTranscoding"
         case transcodingURL = "TranscodingUrl"
+        case bitrate = "Bitrate"
         case defaultAudioStreamIndex = "DefaultAudioStreamIndex"
         case defaultSubtitleStreamIndex = "DefaultSubtitleStreamIndex"
         case mediaStreams = "MediaStreams"
@@ -446,6 +448,9 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     let isExternal: Bool?
     let deliveryMethod: String?
     let deliveryURL: String?
+    let bitrate: Int?
+    let width: Int?
+    let height: Int?
 
     private enum CodingKeys: String, CodingKey {
         case index = "Index"
@@ -460,6 +465,9 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
         case isExternal = "IsExternal"
         case deliveryMethod = "DeliveryMethod"
         case deliveryURL = "DeliveryUrl"
+        case bitrate = "BitRate"
+        case width = "Width"
+        case height = "Height"
     }
 }
 

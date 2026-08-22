@@ -37,6 +37,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setPlaybackQualityPreset(_ preset: TranscodeQualityPreset) {
+        settings.playback.qualityPreset = preset
+        persist()
+    }
+
     func setAutoSkipIntros(_ enabled: Bool) {
         settings.playback.autoSkipIntros = enabled
         persist()

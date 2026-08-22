@@ -13,6 +13,11 @@ struct JellyfinPlaybackPlan: Sendable {
     let mediaStreams: [JellyfinMediaStream]
     let chapters: [JellyfinChapter]
     let externalSubtitles: [ExternalSubtitleTrack]
+    let method: PlaybackMethod
+    let playMethod: String
+    let requestedQuality: TranscodeQualityPreset
+    let effectiveQuality: TranscodeQualityPreset
+    let qualityFallbackMessage: String?
 }
 
 enum JellyfinSubtitleStreamPreference: Sendable {
@@ -46,6 +51,7 @@ struct JellyfinPlaybackService {
         item: JellyfinItem,
         resume: Bool = true,
         trackSelection: JellyfinTrackSelectionOverride? = nil,
+        quality: TranscodeQualityPreset = .original,
     ) async throws -> JellyfinPlaybackPlan {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -56,7 +62,8 @@ struct JellyfinPlaybackService {
             startTimeTicks: resume ? (item.userData?.playbackPositionTicks ?? 0) : 0,
             audioStreamIndex: trackSelection?.audioStreamIndex,
             subtitleStreamIndex: trackSelection?.subtitlePreference.requestIndex,
-            deviceProfile: .strimrDirectPlay,
+            quality: quality,
+            deviceProfile: .strimr(quality: quality),
         )
         let info: JellyfinPlaybackInfo = try await context.post(
             path: ["Items", item.id, "PlaybackInfo"],
@@ -65,21 +72,32 @@ struct JellyfinPlaybackService {
         )
 
         guard info.errorCode == nil,
-              let source = info.mediaSources?.first(where: { $0.supportsDirectPlay == true }),
+              let source = preferredSource(in: info, quality: quality),
               let playSessionID = info.playSessionID,
               !playSessionID.isEmpty
         else {
             throw JellyfinAPIError.noPlayableSource
         }
 
-        let streamURL = try context.url(
-            path: ["Videos", item.id, "stream"],
-            query: [
-                URLQueryItem(name: "Static", value: "true"),
-                URLQueryItem(name: "MediaSourceId", value: source.id),
-                URLQueryItem(name: "PlaySessionId", value: playSessionID),
-            ],
-        )
+        let transcodeURL = source.transcodingURL.flatMap {
+            URL(string: $0, relativeTo: context.connection?.baseURL)?.absoluteURL
+        }
+        let isTranscoding = !quality.isOriginal && transcodeURL != nil
+        let qualityIsSatisfied = quality.isOriginal
+            || isTranscoding
+            || sourceSatisfies(source, quality: quality)
+        let streamURL = if let transcodeURL, isTranscoding {
+            transcodeURL
+        } else {
+            try context.url(
+                path: ["Videos", item.id, "stream"],
+                query: [
+                    URLQueryItem(name: "Static", value: "true"),
+                    URLQueryItem(name: "MediaSourceId", value: source.id),
+                    URLQueryItem(name: "PlaySessionId", value: playSessionID),
+                ],
+            )
+        }
         let headers = try context.playbackHeaders()
         let streams = source.mediaStreams ?? []
         let audioStreams = streams.filter { $0.type.lowercased() == "audio" }
@@ -111,7 +129,47 @@ struct JellyfinPlaybackService {
             mediaStreams: streams,
             chapters: item.chapters ?? [],
             externalSubtitles: externalSubtitles,
+            method: isTranscoding ? .transcode : .directPlay,
+            playMethod: isTranscoding ? "Transcode" : "DirectPlay",
+            requestedQuality: quality,
+            effectiveQuality: qualityIsSatisfied ? quality : .original,
+            qualityFallbackMessage: !qualityIsSatisfied
+                ? String(localized: "player.quality.fallback")
+                : nil,
         )
+    }
+
+    private func sourceSatisfies(
+        _ source: JellyfinMediaSource,
+        quality: TranscodeQualityPreset,
+    ) -> Bool {
+        guard let maximumBitrate = quality.jellyfinMaximumStreamingBitrate,
+              let maximumWidth = quality.maximumWidth,
+              let maximumHeight = quality.maximumHeight,
+              let video = source.mediaStreams?.first(where: { $0.type.lowercased() == "video" }),
+              let width = video.width,
+              let height = video.height
+        else { return false }
+
+        let streamBitrates = source.mediaStreams?.compactMap(\.bitrate) ?? []
+        let sourceBitrate = source.bitrate ?? (streamBitrates.isEmpty ? nil : streamBitrates.reduce(0, +))
+        guard let sourceBitrate else { return false }
+        return sourceBitrate <= maximumBitrate
+            && width <= maximumWidth
+            && height <= maximumHeight
+    }
+
+    private func preferredSource(
+        in info: JellyfinPlaybackInfo,
+        quality: TranscodeQualityPreset,
+    ) -> JellyfinMediaSource? {
+        if !quality.isOriginal,
+           let transcoding = info.mediaSources?.first(where: { $0.transcodingURL?.isEmpty == false })
+        {
+            return transcoding
+        }
+        return info.mediaSources?.first(where: { $0.supportsDirectPlay == true })
+            ?? info.mediaSources?.first
     }
 
     private func defaultSubtitleStreamIndex(
@@ -185,7 +243,7 @@ struct JellyfinPlaybackService {
             playSessionID: plan.playSessionID,
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
             isPaused: true,
-            playMethod: "DirectPlay",
+            playMethod: plan.playMethod,
         )
         let data = try JSONEncoder().encode(body)
         try await context.send(path: ["Sessions", "Playing", "Stopped"], method: "POST", body: data)
@@ -203,7 +261,7 @@ struct JellyfinPlaybackService {
             playSessionID: plan.playSessionID,
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
             isPaused: isPaused,
-            playMethod: "DirectPlay",
+            playMethod: plan.playMethod,
         )
         let data = try JSONEncoder().encode(body)
         try await context.send(path: path, method: "POST", body: data)
@@ -219,9 +277,26 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
     let autoOpenLiveStream = true
     let enableDirectPlay = true
     let enableDirectStream = false
-    let enableTranscoding = false
-    let maxStreamingBitrate = 140_000_000
+    let enableTranscoding: Bool
+    let maxStreamingBitrate: Int
     let deviceProfile: JellyfinDeviceProfile
+
+    init(
+        userID: String,
+        startTimeTicks: Int64,
+        audioStreamIndex: Int?,
+        subtitleStreamIndex: Int?,
+        quality: TranscodeQualityPreset,
+        deviceProfile: JellyfinDeviceProfile,
+    ) {
+        self.userID = userID
+        self.startTimeTicks = startTimeTicks
+        self.audioStreamIndex = audioStreamIndex
+        self.subtitleStreamIndex = subtitleStreamIndex
+        enableTranscoding = !quality.isOriginal
+        maxStreamingBitrate = quality.jellyfinMaximumStreamingBitrate ?? 140_000_000
+        self.deviceProfile = deviceProfile
+    }
 
     private enum CodingKeys: String, CodingKey {
         case userID = "UserId"
@@ -243,9 +318,9 @@ private struct JellyfinDeviceProfile: Encodable {
     let maxStreamingBitrate: Int
     let maxStaticBitrate: Int
     let directPlayProfiles: [DirectPlayProfile]
-    let transcodingProfiles: [EmptyProfile]
+    let transcodingProfiles: [TranscodingProfile]
     let containerProfiles: [EmptyProfile]
-    let codecProfiles: [EmptyProfile]
+    let codecProfiles: [CodecProfile]
     let subtitleProfiles: [SubtitleProfile]
     let responseProfiles: [EmptyProfile]
 
@@ -273,6 +348,48 @@ private struct JellyfinDeviceProfile: Encodable {
         }
     }
 
+    struct TranscodingProfile: Encodable {
+        let container: String
+        let type: String
+        let videoCodec: String
+        let audioCodec: String
+        let protocolName: String
+
+        private enum CodingKeys: String, CodingKey {
+            case container = "Container"
+            case type = "Type"
+            case videoCodec = "VideoCodec"
+            case audioCodec = "AudioCodec"
+            case protocolName = "Protocol"
+        }
+    }
+
+    struct CodecProfile: Encodable {
+        let type: String
+        let codec: String
+        let conditions: [ProfileCondition]
+
+        private enum CodingKeys: String, CodingKey {
+            case type = "Type"
+            case codec = "Codec"
+            case conditions = "Conditions"
+        }
+    }
+
+    struct ProfileCondition: Encodable {
+        let condition: String
+        let property: String
+        let value: String
+        let isRequired: Bool
+
+        private enum CodingKeys: String, CodingKey {
+            case condition = "Condition"
+            case property = "Property"
+            case value = "Value"
+            case isRequired = "IsRequired"
+        }
+    }
+
     struct EmptyProfile: Encodable {}
 
     private enum CodingKeys: String, CodingKey {
@@ -287,33 +404,78 @@ private struct JellyfinDeviceProfile: Encodable {
         case responseProfiles = "ResponseProfiles"
     }
 
-    static let strimrDirectPlay = JellyfinDeviceProfile(
-        name: "Strimr Direct Play",
-        maxStreamingBitrate: 140_000_000,
-        maxStaticBitrate: 140_000_000,
-        directPlayProfiles: [
-            DirectPlayProfile(
-                container: "mp4,m4v,mov,mkv,webm,avi,mpegts,ts,m2ts",
-                audioCodec: "aac,ac3,eac3,truehd,dts,flac,opus,vorbis,mp3,alac,pcm_s16le,pcm_s24le",
-                videoCodec: "h264,hevc,av1,vp8,vp9,mpeg2video,mpeg4,vc1",
+    static func strimr(quality: TranscodeQualityPreset) -> JellyfinDeviceProfile {
+        let maxBitrate = quality.jellyfinMaximumStreamingBitrate ?? 140_000_000
+        return JellyfinDeviceProfile(
+            name: quality.isOriginal ? "Strimr Direct Play" : "Strimr Quality Transcode",
+            maxStreamingBitrate: maxBitrate,
+            maxStaticBitrate: maxBitrate,
+            directPlayProfiles: [
+                DirectPlayProfile(
+                    container: "mp4,m4v,mov,mkv,webm,avi,mpegts,ts,m2ts",
+                    audioCodec: "aac,ac3,eac3,truehd,dts,flac,opus,vorbis,mp3,alac,pcm_s16le,pcm_s24le",
+                    videoCodec: "h264,hevc,av1,vp8,vp9,mpeg2video,mpeg4,vc1",
+                    type: "Video",
+                ),
+            ],
+            transcodingProfiles: quality.isOriginal ? [] : [
+                TranscodingProfile(
+                    container: "ts",
+                    type: "Video",
+                    videoCodec: "hevc,h264",
+                    audioCodec: "aac,mp3,ac3,eac3,flac,opus",
+                    protocolName: "hls",
+                ),
+            ],
+            containerProfiles: [],
+            codecProfiles: quality.jellyfinResolutionCodecProfiles,
+            subtitleProfiles: [
+                SubtitleProfile(format: "srt", method: "External"),
+                SubtitleProfile(format: "ass", method: "External"),
+                SubtitleProfile(format: "ssa", method: "External"),
+                SubtitleProfile(format: "vtt", method: "External"),
+                SubtitleProfile(format: "subrip", method: "Embed"),
+                SubtitleProfile(format: "ass", method: "Embed"),
+                SubtitleProfile(format: "pgssub", method: "Embed"),
+                SubtitleProfile(format: "dvdsub", method: "Embed"),
+            ],
+            responseProfiles: [],
+        )
+    }
+}
+
+private extension TranscodeQualityPreset {
+    static let jellyfinAudioOverheadKbps = 192
+
+    var jellyfinMaximumStreamingBitrate: Int? {
+        maximumVideoBitrateKbps.map {
+            ($0 + Self.jellyfinAudioOverheadKbps) * 1_000
+        }
+    }
+
+    var jellyfinResolutionCodecProfiles: [JellyfinDeviceProfile.CodecProfile] {
+        guard let maximumWidth, let maximumHeight else { return [] }
+        return [
+            JellyfinDeviceProfile.CodecProfile(
                 type: "Video",
+                codec: "h264,hevc,av1,vp8,vp9,mpeg2video,mpeg4,vc1",
+                conditions: [
+                    JellyfinDeviceProfile.ProfileCondition(
+                        condition: "LessThanEqual",
+                        property: "Width",
+                        value: String(maximumWidth),
+                        isRequired: false,
+                    ),
+                    JellyfinDeviceProfile.ProfileCondition(
+                        condition: "LessThanEqual",
+                        property: "Height",
+                        value: String(maximumHeight),
+                        isRequired: false,
+                    ),
+                ],
             ),
-        ],
-        transcodingProfiles: [],
-        containerProfiles: [],
-        codecProfiles: [],
-        subtitleProfiles: [
-            SubtitleProfile(format: "srt", method: "External"),
-            SubtitleProfile(format: "ass", method: "External"),
-            SubtitleProfile(format: "ssa", method: "External"),
-            SubtitleProfile(format: "vtt", method: "External"),
-            SubtitleProfile(format: "subrip", method: "Embed"),
-            SubtitleProfile(format: "ass", method: "Embed"),
-            SubtitleProfile(format: "pgssub", method: "Embed"),
-            SubtitleProfile(format: "dvdsub", method: "Embed"),
-        ],
-        responseProfiles: [],
-    )
+        ]
+    }
 }
 
 private struct JellyfinPlaybackReport: Encodable {

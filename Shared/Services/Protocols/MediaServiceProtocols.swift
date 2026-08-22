@@ -147,7 +147,12 @@ protocol MediaPlaybackService: AnyObject {
     var serverAccessGeneration: Int { get }
     func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue
-    func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan
+    func prepare(
+        media: MediaItem,
+        resume: Bool,
+        quality: TranscodeQualityPreset,
+    ) async throws -> PlaybackPlan
+    func release(plan: PlaybackPlan) async
     func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
     func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
     func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws

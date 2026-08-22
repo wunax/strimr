@@ -78,6 +78,7 @@ struct PlayerView: View {
     @State private var shouldResumeAfterMediaLoad = false
     @State private var shouldPauseAfterMediaLoad = false
     @State private var nextEpisodePresentation = NextEpisodePresentation()
+    @State private var qualityNoticeMessage: String?
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -202,7 +203,7 @@ struct PlayerView: View {
                             ratingKey: viewModel.currentRatingKey,
                         )
                     }
-                    await viewModel.load()
+                    await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
                 .onDisappear {
@@ -339,6 +340,17 @@ struct PlayerView: View {
                 Button("common.actions.done", role: .cancel) {}
             } message: {
                 Text(subtitleSearchErrorMessage)
+            }
+            .alert(
+                "player.settings.quality",
+                isPresented: Binding(
+                    get: { qualityNoticeMessage != nil },
+                    set: { if !$0 { qualityNoticeMessage = nil } },
+                ),
+            ) {
+                Button("common.actions.done") { qualityNoticeMessage = nil }
+            } message: {
+                Text(qualityNoticeMessage ?? "")
             }
             .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
                 Button("sharePlay.leave.action", role: .destructive) {
@@ -517,6 +529,7 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
+                    qualityMenu
 
                     if viewModel.hasNavigableChapters {
                         chapterButton
@@ -626,7 +639,12 @@ struct PlayerView: View {
                     Button {
                         selectedAudioTrackID = track.id
                         playerController.selectAudioTrack(id: track.id)
-                        Task { await viewModel.persistStreamSelection(for: track) }
+                        Task {
+                            await viewModel.persistStreamSelection(for: track)
+                            if viewModel.isTranscoding {
+                                selectQuality(viewModel.selectedQuality, force: true)
+                            }
+                        }
                     } label: {
                         if selectedAudioTrackID == track.id {
                             Label(playerTrackTitle(track), systemImage: "checkmark")
@@ -649,7 +667,12 @@ struct PlayerView: View {
                     id: nil,
                     styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 )
-                Task { await viewModel.persistSubtitleStreamSelection(for: nil) }
+                Task {
+                    await viewModel.persistSubtitleStreamSelection(for: nil)
+                    if viewModel.isTranscoding {
+                        selectQuality(viewModel.selectedQuality, force: true)
+                    }
+                }
             } label: {
                 if selectedSubtitleTrackID == nil {
                     Label("player.settings.subtitles.off", systemImage: "checkmark")
@@ -664,7 +687,12 @@ struct PlayerView: View {
                         id: track.id,
                         styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                     )
-                    Task { await viewModel.persistSubtitleStreamSelection(for: track) }
+                    Task {
+                        await viewModel.persistSubtitleStreamSelection(for: track)
+                        if viewModel.isTranscoding {
+                            selectQuality(viewModel.selectedQuality, force: true)
+                        }
+                    }
                 } label: {
                     if selectedSubtitleTrackID == track.id {
                         Label(playerTrackTitle(track), systemImage: "checkmark")
@@ -713,6 +741,60 @@ struct PlayerView: View {
         }
     }
 
+    private var qualityMenu: some View {
+        Menu {
+            ForEach(TranscodeQualityPreset.displayOrder) { preset in
+                Button {
+                    selectQuality(preset)
+                } label: {
+                    if viewModel.selectedQuality == preset {
+                        Label(preset.title, systemImage: "checkmark")
+                    } else {
+                        Text(preset.title)
+                    }
+                }
+            }
+        } label: {
+            Label("player.settings.quality", systemImage: "gauge.with.dots.needle.33percent")
+        }
+    }
+
+    private func selectQuality(_ quality: TranscodeQualityPreset, force: Bool = false) {
+        guard force || quality != viewModel.selectedQuality else { return }
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        Task {
+            do {
+                let url = try await viewModel.changeQuality(to: quality, force: force)
+                loadedURL = url
+                shouldPauseAfterMediaLoad = wasPaused
+                shouldResumeAfterMediaLoad = !wasPaused
+                playerController.load(
+                    url: url,
+                    httpHeaders: viewModel.playbackHTTPHeaders,
+                    startPosition: position,
+                    preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
+                    losslessAudio: settingsManager.playback.losslessAudio,
+                    styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                    mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+                    providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
+                    externalSubtitles: viewModel.externalSubtitleTracks(),
+                    scrubThumbnailSource: viewModel.scrubThumbnailSource,
+                    showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+                    generatesMissingScrubThumbnailPreviews:
+                    settingsManager.playback.generateMissingScrubThumbnailPreviews,
+                    autoplay: !wasPaused,
+                )
+                playerController.setPlaybackRate(playbackRate)
+                qualityNoticeMessage = viewModel.qualityFallbackMessage
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                qualityNoticeMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
@@ -721,7 +803,9 @@ struct PlayerView: View {
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             )
             selectedSubtitleTrackID = id
-            let tracks = playerController.trackList()
+            let tracks = viewModel.isTranscoding
+                ? viewModel.sourcePlayerTracks()
+                : playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
         } catch {

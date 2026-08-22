@@ -513,14 +513,19 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return try await queue(startingWith: MediaItem(plexItem: item, server: server), shuffle: shuffle)
     }
 
-    func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan {
+    func prepare(
+        media: MediaItem,
+        resume: Bool,
+        quality: TranscodeQualityPreset,
+    ) async throws -> PlaybackPlan {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: media.id,
             params: .init(checkFiles: true, includeChapters: true, includeMarkers: true),
         )
         guard let item = response.mediaContainer.metadata?.first,
-              let part = item.media?.first?.parts.first,
-              let url = try MediaRepository(context: context).mediaURL(path: part.key)
+              let selectedMedia = item.media?.first,
+              let part = selectedMedia.parts.first,
+              let directURL = try MediaRepository(context: context).mediaURL(path: part.key)
         else { throw PlexAPIError.invalidURL }
         let streams = item.media?.first?.parts.first?.stream ?? []
         let tracks = streams.compactMap { stream -> PlaybackTrack? in
@@ -565,6 +570,45 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let selectedSubtitleIndex = streams.first {
             $0.streamType == .subtitle && $0.selected == true
         }?.id
+        let selectedAudioStreamID = streams.first {
+            $0.streamType == .audio && $0.selected == true
+        }?.id
+        let burnsSubtitles = streams.contains {
+            $0.streamType == .subtitle && $0.selected == true && $0.key == nil
+        }
+        var playbackURL = directURL
+        var playbackMethod = PlaybackMethod.directPlay
+        var transcodeSessionID: String?
+        var effectiveQuality = TranscodeQualityPreset.original
+        var qualityFallbackMessage: String?
+        if !quality.isOriginal, selectedMedia.satisfies(quality: quality) {
+            effectiveQuality = quality
+        } else if !quality.isOriginal {
+            do {
+                let candidateTranscodeSessionID = UUID().uuidString
+                if let transcodeURL = try await PlaybackRepository(context: context).transcodeURL(
+                    ratingKey: item.ratingKey,
+                    mediaIndex: 0,
+                    partIndex: 0,
+                    quality: quality,
+                    playbackSessionIdentifier: playbackSessionID,
+                    transcodeSessionIdentifier: candidateTranscodeSessionID,
+                    audioStreamID: selectedAudioStreamID,
+                    burnsSubtitles: burnsSubtitles,
+                ) {
+                    playbackURL = transcodeURL
+                    playbackMethod = .transcode
+                    transcodeSessionID = candidateTranscodeSessionID
+                    effectiveQuality = quality
+                } else {
+                    qualityFallbackMessage = String(localized: "player.quality.fallback")
+                }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { throw error }
+                ErrorReporter.capture(error)
+                qualityFallbackMessage = String(localized: "player.quality.fallback")
+            }
+        }
         let sourceChapters = (item.chapters ?? []).filter(\.isValid)
         let chapters = sourceChapters.enumerated().map { _, chapter in
             MediaChapter(
@@ -579,11 +623,15 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
         return PlaybackPlan(
             media: MediaItem(plexItem: item, server: server),
-            url: url,
+            url: playbackURL,
             httpHeaders: [:],
-            method: .directPlay,
+            method: playbackMethod,
+            requestedQuality: quality,
+            effectiveQuality: effectiveQuality,
+            qualityFallbackMessage: qualityFallbackMessage,
             mediaSourceID: nil,
             playSessionID: playbackSessionID,
+            transcodeSessionID: transcodeSessionID,
             initialPosition: initialPosition,
             selectedAudioIndex: selectedAudioIndex,
             selectedSubtitleIndex: selectedSubtitleIndex,
@@ -603,12 +651,31 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
+    func release(plan: PlaybackPlan) async {
+        guard plan.method == .transcode,
+              let sessionIdentifier = plan.transcodeSessionID
+        else { return }
+        do {
+            try await PlaybackRepository(context: context).stopTranscode(
+                sessionIdentifier: sessionIdentifier,
+            )
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
     func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
         try await report(plan: plan, position: position, state: isPaused ? .paused : .playing)
     }
 
     func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
         try await report(plan: plan, position: position, state: isPaused ? .paused : .playing)
+        if plan.method == .transcode, isPaused, let sessionIdentifier = plan.transcodeSessionID {
+            try? await PlaybackRepository(context: context).pingTranscode(
+                sessionIdentifier: sessionIdentifier,
+            )
+        }
     }
 
     func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws {
@@ -616,7 +683,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
-        try await prepare(media: media, resume: false).externalSubtitles
+        try await prepare(media: media, resume: false, quality: .original).externalSubtitles
     }
 
     func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
@@ -751,6 +818,21 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     services: services,
                 )
             }
+    }
+}
+
+private extension PlexMedia {
+    func satisfies(quality: TranscodeQualityPreset) -> Bool {
+        guard let bitrate,
+              let width,
+              let height,
+              let maximumVideoBitrate = quality.maximumVideoBitrateKbps,
+              let maximumWidth = quality.maximumWidth,
+              let maximumHeight = quality.maximumHeight
+        else { return false }
+        return bitrate <= maximumVideoBitrate + 192
+            && width <= maximumWidth
+            && height <= maximumHeight
     }
 }
 

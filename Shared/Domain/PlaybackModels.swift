@@ -3,7 +3,81 @@ import Foundation
 
 enum PlaybackMethod: String, Sendable {
     case directPlay
+    case transcode
     case offline
+}
+
+enum TranscodeQualityPreset: String, Codable, CaseIterable, Sendable, Hashable, Identifiable {
+    case original
+    case p240_320
+    case p360_700
+    case p480_1_5mbps
+    case p720_2mbps
+    case p720_4mbps
+    case p1080_8mbps
+    case p1080_12mbps
+
+    var id: String { rawValue }
+
+    var isOriginal: Bool { self == .original }
+
+    var maximumVideoBitrateKbps: Int? {
+        switch self {
+        case .original: nil
+        case .p240_320: 320
+        case .p360_700: 700
+        case .p480_1_5mbps: 1_500
+        case .p720_2mbps: 2_000
+        case .p720_4mbps: 4_000
+        case .p1080_8mbps: 8_000
+        case .p1080_12mbps: 12_000
+        }
+    }
+
+    var maximumHeight: Int? {
+        switch self {
+        case .original: nil
+        case .p240_320: 240
+        case .p360_700: 360
+        case .p480_1_5mbps: 480
+        case .p720_2mbps, .p720_4mbps: 720
+        case .p1080_8mbps, .p1080_12mbps: 1_080
+        }
+    }
+
+    var maximumWidth: Int? {
+        switch self {
+        case .original: nil
+        case .p240_320: 426
+        case .p360_700: 640
+        case .p480_1_5mbps: 854
+        case .p720_2mbps, .p720_4mbps: 1_280
+        case .p1080_8mbps, .p1080_12mbps: 1_920
+        }
+    }
+
+    var title: String {
+        guard let bitrate = maximumVideoBitrateKbps,
+              let height = maximumHeight
+        else { return String(localized: "quality.original") }
+        if bitrate < 1_000 {
+            return String(localized: "quality.preset.kbps \(String(height)) \(String(bitrate))")
+        }
+        let bitrateText = bitrate == 1_500 ? "1.5" : String(bitrate / 1_000)
+        return String(localized: "quality.preset.mbps \(String(height)) \(bitrateText)")
+    }
+
+    static let displayOrder: [TranscodeQualityPreset] = [
+        .original,
+        .p1080_12mbps,
+        .p1080_8mbps,
+        .p720_4mbps,
+        .p720_2mbps,
+        .p480_1_5mbps,
+        .p360_700,
+        .p240_320,
+    ]
+
 }
 
 enum PlaybackTrackKind: String, Sendable {
@@ -87,8 +161,12 @@ struct PlaybackPlan: Sendable {
     let url: URL
     let httpHeaders: [String: String]
     let method: PlaybackMethod
+    let requestedQuality: TranscodeQualityPreset
+    let effectiveQuality: TranscodeQualityPreset
+    let qualityFallbackMessage: String?
     let mediaSourceID: String?
     let playSessionID: String?
+    let transcodeSessionID: String?
     let initialPosition: TimeInterval?
     let selectedAudioIndex: Int?
     let selectedSubtitleIndex: Int?

@@ -12146,6 +12146,55 @@
         }
       }
     },
+    "player.quality.fallback" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The server could not provide the selected quality. Playing the original instead." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le serveur n’a pas pu fournir la qualité sélectionnée. Lecture de l’original à la place." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务器无法提供所选画质，已改为播放原始画质。" } }
+      }
+    },
+    "player.settings.quality" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Quality" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Qualité" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "画质" } }
+      }
+    },
+    "quality.original" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Original" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Originale" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "原始画质" } }
+      }
+    },
+    "quality.preset.kbps %@ %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Up to %@p · %@ Kbps" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jusqu’à %@p · %@ kbit/s" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最高 %@p · %@ Kbps" } }
+      }
+    },
+    "quality.preset.mbps %@ %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Up to %@p · %@ Mbps" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jusqu’à %@p · %@ Mbit/s" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最高 %@p · %@ Mbps" } }
+      }
+    },
+    "settings.playback.quality" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Default quality" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Qualité par défaut" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "默认画质" } }
+      }
+    },
+    "settings.playback.quality.footer" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lower qualities ask your media server to transcode during playback and use less bandwidth." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Les qualités inférieures demandent au serveur de transcoder pendant la lecture et utilisent moins de bande passante." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "较低画质会要求媒体服务器在播放时进行转码，以减少带宽使用。" } }
+      }
+    },
     "tabs.search" : {
       "localizations" : {
         "en" : {

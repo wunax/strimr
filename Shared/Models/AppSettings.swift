@@ -106,6 +106,7 @@ struct SubtitleAppearance: Equatable {
 }
 
 struct PlaybackSettings: Codable, Equatable {
+    var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
     var autoSkipIntros = false
     var autoSkipCredits = false
@@ -129,6 +130,10 @@ struct PlaybackSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        qualityPreset = try container.decodeIfPresent(
+            TranscodeQualityPreset.self,
+            forKey: .qualityPreset,
+        ) ?? .original
         nextEpisodeAutoplay = try container.decodeIfPresent(
             NextEpisodeAutoplay.self,
             forKey: .nextEpisodeAutoplay,

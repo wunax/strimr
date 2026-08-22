@@ -615,12 +615,17 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return try await queue(startingWith: MediaItem(jellyfinItem: item, server: server), shuffle: shuffle)
     }
 
-    func prepare(media: MediaItem, resume: Bool) async throws -> PlaybackPlan {
+    func prepare(
+        media: MediaItem,
+        resume: Bool,
+        quality: TranscodeQualityPreset,
+    ) async throws -> PlaybackPlan {
         let item = try await catalog.item(id: media.id)
         let plan = try await playbackService.prepare(
             item: item,
             resume: resume,
             trackSelection: trackSelectionOverrides[item.id],
+            quality: quality,
         )
         activePlans[plan.playSessionID] = plan
         let segments = await (try? catalog.mediaSegments(itemID: item.id)) ?? []
@@ -679,9 +684,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             media: MediaItem(jellyfinItem: item, server: server),
             url: plan.url,
             httpHeaders: plan.headers,
-            method: .directPlay,
+            method: plan.method,
+            requestedQuality: plan.requestedQuality,
+            effectiveQuality: plan.effectiveQuality,
+            qualityFallbackMessage: plan.qualityFallbackMessage,
             mediaSourceID: plan.mediaSourceID,
             playSessionID: plan.playSessionID,
+            transcodeSessionID: plan.method == .transcode ? plan.playSessionID : nil,
             initialPosition: plan.initialPosition,
             selectedAudioIndex: plan.preferredAudioStreamIndex,
             selectedSubtitleIndex: plan.preferredSubtitleStreamIndex,
@@ -725,6 +734,18 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             },
             scrubThumbnailSource: scrubSource,
         )
+    }
+
+    func release(plan: PlaybackPlan) async {
+        guard let playSessionID = plan.playSessionID else { return }
+        activePlans[playSessionID] = nil
+        guard plan.method == .transcode else { return }
+        do {
+            try await context.stopEncoding(playSessionID: playSessionID)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
     }
 
     private func preferredMediaSource(for item: JellyfinItem) -> JellyfinMediaSource? {

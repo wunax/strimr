@@ -352,10 +352,13 @@ struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, Sendable {
 struct PlexMedia: Codable, Equatable {
     let id: Int
     let videoResolution: String?
+    let bitrate: Int?
+    let width: Int?
+    let height: Int?
     let parts: [PlexPart]
 
     private enum CodingKeys: String, CodingKey {
-        case id, videoResolution
+        case id, videoResolution, bitrate, width, height
         case parts = "Part"
     }
 }
