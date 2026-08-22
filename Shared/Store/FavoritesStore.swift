@@ -47,7 +47,7 @@ final class FavoritesStore {
 
     private func persist() {
         do {
-            defaults.set(try JSONEncoder().encode(recordsByScope), forKey: storageKey)
+            try defaults.set(JSONEncoder().encode(recordsByScope), forKey: storageKey)
         } catch {
             ErrorReporter.capture(error)
         }

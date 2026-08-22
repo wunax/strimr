@@ -7,7 +7,9 @@ enum FavoriteCategory: String, CaseIterable, Hashable, Identifiable {
     case seasons
     case episodes
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var title: String {
         switch self {
