@@ -146,6 +146,7 @@ private struct QueueResponse: Decodable {
         struct Queue: Decodable { let id: Int }
         private enum CodingKeys: String, CodingKey { case queues = "DownloadQueue" }
     }
+
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }
 
@@ -165,6 +166,7 @@ private struct AddResponse: Decodable {
                 ?? container.decodeIfPresent([Item].self, forKey: .downloadQueueItems)
         }
     }
+
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }
 
@@ -180,13 +182,16 @@ private struct ItemsResponse: Decodable {
                 let progress: Double?
                 let error: Bool?
             }
+
             private enum CodingKeys: String, CodingKey {
                 case id
                 case status
                 case transcodeSession = "TranscodeSession"
             }
         }
+
         private enum CodingKeys: String, CodingKey { case items = "DownloadQueueItem" }
     }
+
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }

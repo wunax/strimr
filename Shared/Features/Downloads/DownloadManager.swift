@@ -340,7 +340,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         pendingRequestsByItemID[item.id] = nil
         persistState()
         refreshStorageSummary()
-        if let server { startNextQueuedTransfer(on: server) }
+        if let server {
+            startNextQueuedTransfer(on: server)
+        }
     }
 
     func setBackgroundEventsCompletionHandler(_ handler: @escaping () -> Void) {
@@ -567,7 +569,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 do {
                     switch try await services.downloads.refreshDownloadPreparation(reference) {
                     case let .preparing(progress):
-                        if let progress { items[index].progress = progress }
+                        if let progress {
+                            items[index].progress = progress
+                        }
                         persistState()
                     case let .ready(request, sidecars):
                         sidecarsByItemID[itemID] = sidecars
@@ -807,7 +811,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         if let reference, let server, let services = servicesByServer[server] {
             Task { await services.downloads.cancelDownloadPreparation(reference) }
         }
-        if let server { startNextQueuedTransfer(on: server) }
+        if let server {
+            startNextQueuedTransfer(on: server)
+        }
     }
 
     nonisolated func urlSession(

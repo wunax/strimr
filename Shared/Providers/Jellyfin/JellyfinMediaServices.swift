@@ -889,19 +889,19 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         subtitle stream: JellyfinMediaStream,
     ) throws -> [MediaDownloadSidecar] {
         let fileExtension = stream.downloadSubtitleExtension
-        let subtitleURL: URL
-        if let deliveryURL = stream.deliveryURL,
-           let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?.absoluteURL
+        let subtitleURL: URL = if let deliveryURL = stream.deliveryURL,
+                                  let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?
+                                  .absoluteURL
         {
-            subtitleURL = resolved
+            resolved
         } else {
-            subtitleURL = try context.url(path: [
+            try context.url(path: [
                 "Videos", itemID, source.id, "Subtitles", String(stream.index), "0",
                 "Stream.\(fileExtension)",
             ])
         }
-        return [MediaDownloadSidecar(
-            request: try context.mediaRequest(url: subtitleURL),
+        return try [MediaDownloadSidecar(
+            request: context.mediaRequest(url: subtitleURL),
             fileExtension: fileExtension,
             title: stream.displayTitle ?? stream.title,
             language: stream.language,
@@ -1064,7 +1064,9 @@ private extension JellyfinMediaSource {
         if let language = preference.audioLanguage,
            let match = audio.first(where: {
                $0.language?.localizedCaseInsensitiveCompare(language) == .orderedSame
-                   && (preference.audioTitle == nil || $0.displayTitle == preference.audioTitle || $0.title == preference.audioTitle)
+                   &&
+                   (preference.audioTitle == nil || $0.displayTitle == preference.audioTitle || $0
+                       .title == preference.audioTitle)
            }) ?? audio.first(where: { $0.language?.localizedCaseInsensitiveCompare(language) == .orderedSame })
         {
             return match
@@ -1081,7 +1083,9 @@ private extension JellyfinMediaSource {
         let subtitles = (mediaStreams ?? []).filter { stream in
             stream.type.lowercased() == "subtitle" && stream.isDownloadableTextSubtitle
         }
-        if let index, let exact = subtitles.first(where: { $0.index == index }) { return exact }
+        if let index, let exact = subtitles.first(where: { $0.index == index }) {
+            return exact
+        }
         return subtitles.first(where: {
             $0.language?.localizedCaseInsensitiveCompare(language ?? "") == .orderedSame
                 && $0.isForced == isForced

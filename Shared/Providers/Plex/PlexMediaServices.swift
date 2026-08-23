@@ -752,8 +752,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
         switch status.status {
         case "available":
-            return .ready(
-                request: try repository.mediaRequest(queueID: queueID, itemID: itemID),
+            return try .ready(
+                request: repository.mediaRequest(queueID: queueID, itemID: itemID),
                 sidecars: [],
             )
         case "failed", "error", "cancelled":

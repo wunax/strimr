@@ -84,7 +84,7 @@ enum MediaDownloadSubtitlePreference: Codable, Hashable, Sendable {
         language: String?,
         title: String?,
         codec: String,
-        isForced: Bool
+        isForced: Bool,
     )
 }
 
