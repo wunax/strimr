@@ -9,6 +9,7 @@ struct MainTabView: View {
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
     @Environment(MediaServices.self) var mediaServices
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator = MainCoordinator()
 
     var body: some View {
@@ -84,6 +85,25 @@ struct MainTabView: View {
                 }
             }
 
+            if mediaServices.liveTVStore.isAvailable {
+                Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
+                    NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
+                        LiveTVView(
+                            store: mediaServices.liveTVStore,
+                            onPlayLive: { coordinator.showLivePlayer(context: $0, services: mediaServices) },
+                            onPlayRecording: { media in
+                                Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(ratingKey: media.id, type: media.type) }
+                            },
+                            onOpenLibrary: { libraryID in
+                                guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                                coordinator.tab = .library
+                                coordinator.libraryPath = NavigationPath([library])
+                            },
+                        )
+                    }
+                }
+            }
+
             if settingsManager.interface.displayFavoritesTab {
                 Tab("tabs.favorites", systemImage: "star.fill", value: MainCoordinator.Tab.favorites) {
                     NavigationStack(path: coordinator.pathBinding(for: .favorites)) {
@@ -146,6 +166,19 @@ struct MainTabView: View {
                 ),
             )
         }
+        .task(id: mediaServices.identity) {
+            if await mediaServices.liveTVStore.refreshAvailability() == false {
+                coordinator.resetLiveTVNavigation()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                if await mediaServices.liveTVStore.refreshAvailability() == false {
+                    coordinator.resetLiveTVNavigation()
+                }
+            }
+        }
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }
             defer { topShelfDeepLinkRouter.clear(action) }
@@ -171,18 +204,18 @@ struct MainTabView: View {
         }
         .overlay {
             if coordinator.isPresentingPlayer,
-               let queue = coordinator.selectedMediaQueue,
                let services = coordinator.selectedMediaServices
             {
-                PlayerWrapper(
-                    viewModel: PlayerViewModel(
-                        queue: queue,
-                        services: services,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
-                    ),
-                    onExit: coordinator.resetPlayer,
-                )
-                .environment(plexApiContext)
+                if let queue = coordinator.selectedMediaQueue {
+                    PlayerWrapper(
+                        viewModel: PlayerViewModel(queue: queue, services: services, shouldResumeFromOffset: coordinator.shouldResumeFromOffset),
+                        onExit: coordinator.resetPlayer,
+                    )
+                    .environment(plexApiContext)
+                } else if let context = coordinator.selectedLiveTVContext {
+                    PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services), onExit: coordinator.resetPlayer)
+                        .environment(plexApiContext)
+                }
             }
         }
     }

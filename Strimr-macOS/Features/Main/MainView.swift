@@ -8,6 +8,7 @@ struct MainView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
@@ -34,6 +35,9 @@ struct MainView: View {
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
+                    if mediaServices.liveTVStore.isAvailable {
+                        sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
+                    }
                 }
 
                 if !navigationLibraries.isEmpty {
@@ -74,6 +78,19 @@ struct MainView: View {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
+            }
+        }
+        .task(id: mediaServices.identity) {
+            if await mediaServices.liveTVStore.refreshAvailability() == false {
+                appModel.resetLiveTVNavigation()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                if await mediaServices.liveTVStore.refreshAvailability() == false {
+                    appModel.resetLiveTVNavigation()
+                }
             }
         }
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
@@ -152,6 +169,19 @@ struct MainView: View {
                 }
         case .favorites:
             FavoritesView(services: mediaServices, onSelectMedia: appModel.showMedia)
+        case .liveTV:
+            LiveTVView(
+                store: mediaServices.liveTVStore,
+                onPlayLive: { appModel.showLivePlayer(context: $0, services: mediaServices) },
+                onPlayRecording: { media in
+                    Task { await PlaybackLauncher(services: mediaServices, coordinator: appModel).play(ratingKey: media.id, type: media.type) }
+                },
+                onOpenLibrary: { libraryID in
+                    guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                    appModel.selection = .libraries
+                    appModel.showLibrary(library)
+                },
+            )
         case let .library(id):
             if let library = libraryStore.libraries.first(where: { $0.id == id }) {
                 LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)

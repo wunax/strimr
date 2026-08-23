@@ -36,6 +36,13 @@ struct PlayerControlsView: View {
     var isSharePlay: Bool
     var hasQueue: Bool
     var onShowQueue: () -> Void
+    var isLive: Bool
+    var behindLiveSeconds: Double
+    var onGoLive: () -> Void
+    var canSwitchPreviousChannel: Bool
+    var canSwitchNextChannel: Bool
+    var onPreviousChannel: () -> Void
+    var onNextChannel: () -> Void
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -126,6 +133,19 @@ struct PlayerControlsView: View {
                 .padding(.horizontal, 24)
             }
 
+            if isLive {
+                HStack {
+                    if behindLiveSeconds < 2 {
+                        Text("livetv.player.live").font(.headline.monospacedDigit())
+                    } else {
+                        Text("livetv.player.behind \(Int(behindLiveSeconds / 60))").font(.headline.monospacedDigit())
+                    }
+                    Spacer()
+                    Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: onGoLive)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(behindLiveSeconds < 2)
+                }
+            } else {
             PlayerTimelineView(
                 position: $position,
                 duration: duration,
@@ -138,6 +158,7 @@ struct PlayerControlsView: View {
                 scrubPreview: scrubPreview,
                 onEditingChanged: onScrubbingChanged,
             )
+            }
 
             ZStack {
                 HStack(spacing: 42) {
@@ -155,6 +176,15 @@ struct PlayerControlsView: View {
                 }
 
                 HStack(spacing: 48) {
+                    if isLive {
+                        PlayerIconButton(
+                            systemName: "chevron.up",
+                            accessibilityLabel: String(localized: "livetv.player.previousChannel"),
+                            action: onPreviousChannel,
+                        )
+                        .disabled(!canSwitchPreviousChannel)
+                    }
+
                     PlayerIconButton(
                         systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
                         accessibilityLabel: String(localized: "player.controls.rewindSeconds \(seekBackwardSeconds)"),
@@ -171,22 +201,33 @@ struct PlayerControlsView: View {
                         ),
                         action: onSeekForward,
                     )
+
+                    if isLive {
+                        PlayerIconButton(
+                            systemName: "chevron.down",
+                            accessibilityLabel: String(localized: "livetv.player.nextChannel"),
+                            action: onNextChannel,
+                        )
+                        .disabled(!canSwitchNextChannel)
+                    }
                 }
 
                 HStack(spacing: 42) {
                     Spacer()
 
-                    PlayerSettingButton(
-                        systemImage: "speedometer",
-                        accessibilityLabel: String(localized: "player.settings.speed"),
-                        action: onShowSpeedSettings,
-                    )
+                    if !isLive {
+                        PlayerSettingButton(
+                            systemImage: "speedometer",
+                            accessibilityLabel: String(localized: "player.settings.speed"),
+                            action: onShowSpeedSettings,
+                        )
 
-                    PlayerSettingButton(
-                        systemImage: "gauge.with.dots.needle.33percent",
-                        accessibilityLabel: String(localized: "player.settings.quality"),
-                        action: onShowQualitySettings,
-                    )
+                        PlayerSettingButton(
+                            systemImage: "gauge.with.dots.needle.33percent",
+                            accessibilityLabel: String(localized: "player.settings.quality"),
+                            action: onShowQualitySettings,
+                        )
+                    }
 
                     if chapters.count >= 2 {
                         PlayerSettingButton(

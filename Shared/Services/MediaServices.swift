@@ -36,6 +36,8 @@ final class MediaServices {
     let detail: any MediaDetailService
     let favorites: any MediaFavoritesService
     let playback: any MediaPlaybackService
+    let liveTV: any MediaLiveTVService
+    let liveTVStore: LiveTVStore
     let downloads: any MediaDownloadService
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
 
@@ -54,6 +56,7 @@ final class MediaServices {
         detail: any MediaDetailService,
         favorites: any MediaFavoritesService,
         playback: any MediaPlaybackService,
+        liveTV: any MediaLiveTVService,
         downloads: any MediaDownloadService,
         authorization: any MediaAuthorizationService,
     ) {
@@ -67,6 +70,8 @@ final class MediaServices {
         self.detail = detail
         self.favorites = favorites
         self.playback = playback
+        self.liveTV = liveTV
+        liveTVStore = LiveTVStore(service: liveTV)
         self.downloads = downloads
         authorizationService = authorization
     }

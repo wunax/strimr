@@ -45,12 +45,18 @@ nonisolated struct JellyfinUserPolicy: Codable, Hashable, Sendable {
     let enableMediaPlayback: Bool?
     let enableContentDownloading: Bool?
     let enableSubtitleManagement: Bool?
+    let enableLiveTVAccess: Bool?
+    let enableLiveTVManagement: Bool?
+    let enableContentDeletion: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case isAdministrator = "IsAdministrator"
         case enableMediaPlayback = "EnableMediaPlayback"
         case enableContentDownloading = "EnableContentDownloading"
         case enableSubtitleManagement = "EnableSubtitleManagement"
+        case enableLiveTVAccess = "EnableLiveTvAccess"
+        case enableLiveTVManagement = "EnableLiveTvManagement"
+        case enableContentDeletion = "EnableContentDeletion"
     }
 }
 
@@ -410,11 +416,14 @@ nonisolated struct JellyfinChapter: Decodable, Identifiable, Hashable, Sendable 
 nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let id: String
     let name: String?
+    let path: String?
     let container: String?
     let supportsDirectPlay: Bool?
     let supportsDirectStream: Bool?
     let supportsTranscoding: Bool?
     let transcodingURL: String?
+    let liveStreamID: String?
+    let requiredHTTPHeaders: [String: String]?
     let bitrate: Int?
     let defaultAudioStreamIndex: Int?
     let defaultSubtitleStreamIndex: Int?
@@ -423,11 +432,14 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
+        case path = "Path"
         case container = "Container"
         case supportsDirectPlay = "SupportsDirectPlay"
         case supportsDirectStream = "SupportsDirectStream"
         case supportsTranscoding = "SupportsTranscoding"
         case transcodingURL = "TranscodingUrl"
+        case liveStreamID = "LiveStreamId"
+        case requiredHTTPHeaders = "RequiredHttpHeaders"
         case bitrate = "Bitrate"
         case defaultAudioStreamIndex = "DefaultAudioStreamIndex"
         case defaultSubtitleStreamIndex = "DefaultSubtitleStreamIndex"

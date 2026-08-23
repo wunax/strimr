@@ -1125,6 +1125,7 @@ enum JellyfinMediaServicesFactory {
             context: context,
             server: connection.serverIdentity,
         )
+        let liveTV = JellyfinLiveTVService(context: context, server: connection.serverIdentity)
         let services = MediaServices(
             provider: .jellyfin,
             identity: connection.serverIdentity,
@@ -1136,6 +1137,7 @@ enum JellyfinMediaServicesFactory {
             detail: adapter,
             favorites: favorites,
             playback: adapter,
+            liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
         )

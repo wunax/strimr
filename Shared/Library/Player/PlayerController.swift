@@ -23,6 +23,10 @@ final class PlayerController {
     var position = 0.0
     var sourcePosition = 0.0
     var bufferedAhead = 0.0
+    var isLive = false
+    var liveEdgeTime = 0.0
+    var behindLiveSeconds = 0.0
+    var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
@@ -118,6 +122,9 @@ final class PlayerController {
         scrubThumbnailSource: ScrubThumbnailSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
+        isLive: Bool = false,
+        nativeRemoteHLS: Bool = false,
+        dvrWindowSeconds: TimeInterval? = nil,
         autoplay: Bool = true,
     ) {
         deactivateASSRendering()
@@ -155,6 +162,10 @@ final class PlayerController {
                     options: LoadOptions(
                         httpHeaders: httpHeaders,
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
+                        isLive: isLive,
+                        dvrWindowSeconds: dvrWindowSeconds,
+                        liveJoinProfile: .fastZap,
+                        nativeRemoteHLS: nativeRemoteHLS,
                         preserveASSMarkup: true,
                         prepareNativeSubtitles: Self.preparesNativeSubtitles,
                         externalSubtitles: externalSubtitles.map(\.track),
@@ -193,7 +204,11 @@ final class PlayerController {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 deactivateASSRendering()
-                ErrorReporter.capture(error)
+                if isLive {
+                    LiveTVErrorReporting.capture(error)
+                } else {
+                    ErrorReporter.capture(error)
+                }
                 errorMessage = error.localizedDescription
             }
         }
@@ -208,6 +223,10 @@ final class PlayerController {
         } else {
             engine.togglePlayPause()
         }
+    }
+
+    func seekToLiveEdge() {
+        Task { await engine.seekToLiveEdge() }
     }
 
     func pause() {
@@ -790,6 +809,26 @@ final class PlayerController {
             .sink { [weak self] duration in
                 self?.duration = duration > 0 ? duration : nil
             }
+            .store(in: &cancellables)
+
+        engine.$isLive
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.isLive = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$liveEdgeTime
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.liveEdgeTime = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$behindLiveSeconds
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.behindLiveSeconds = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$seekableLiveRange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.seekableLiveRange = $0 }
             .store(in: &cancellables)
 
         engine.$videoFormat

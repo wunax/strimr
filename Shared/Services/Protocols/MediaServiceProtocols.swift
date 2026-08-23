@@ -229,6 +229,47 @@ protocol MediaPlaybackService: AnyObject {
 }
 
 @MainActor
+protocol LiveTVPlaybackSession: AnyObject {
+    var channel: LiveTVChannel { get }
+    var backgroundPolicy: LiveTVBackgroundPolicy { get }
+    var captureRange: LiveTVCaptureRange? { get }
+    func source(offsetFromCaptureStart: TimeInterval?) async throws -> LiveTVPlaybackSource
+    func report(position: TimeInterval, isPaused: Bool) async throws -> LiveTVCaptureRange?
+    func recover() async throws -> any LiveTVPlaybackSession
+    func stop() async
+}
+
+@MainActor
+protocol MediaDVRService: AnyObject {
+    var supportsCompletedRecordings: Bool { get }
+    var canManageRecordings: Bool { get }
+    var canDeleteRecordings: Bool { get }
+    func upcomingRecordings() async throws -> [DVRRecording]
+    func recordingRules() async throws -> [DVRRecordingRule]
+    func completedRecordings() async throws -> [DVRRecording]
+    func recordingTemplate(for program: LiveTVProgram) async throws -> DVRRecordingTemplate
+    func schedule(_ request: DVRRecordingRequest) async throws
+    func update(rule: DVRRecordingRule, options: [String: String]) async throws
+    func cancel(recordingID: String) async throws
+    func delete(ruleID: String) async throws
+    func deleteCompleted(recordingID: String) async throws
+    func reloadGuide() async throws
+}
+
+@MainActor
+protocol MediaLiveTVService: AnyObject {
+    var dvr: (any MediaDVRService)? { get }
+    var supportsServerCaptureBuffer: Bool { get }
+    func isAvailable() async throws -> Bool
+    func channels() async throws -> [LiveTVChannel]
+    func programs(from: Date, to: Date) async throws -> [LiveTVProgram]
+    func onNow() async throws -> [LiveTVOnNowSection]
+    func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws
+    func reorderFavorites(_ channels: [LiveTVChannel]) async throws
+    func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession
+}
+
+@MainActor
 protocol MediaDownloadService: AnyObject {
     func prepareDownload(
         itemID: String,

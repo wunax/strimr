@@ -940,6 +940,7 @@ enum PlexMediaServicesFactory {
             store: store,
             scope: .plex(serverID: identity.id, profileID: profileID),
         )
+        let liveTV = PlexLiveTVService(context: context)
         let services = MediaServices(
             provider: .plex,
             identity: identity,
@@ -951,6 +952,7 @@ enum PlexMediaServicesFactory {
             detail: adapter,
             favorites: favorites,
             playback: adapter,
+            liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
         )

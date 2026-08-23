@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(MediaServices.self) var mediaServices
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
     @State var libraryViewModel: LibraryViewModel
@@ -35,6 +36,19 @@ struct MainTabView: View {
                 ),
             )
         }
+        .task(id: mediaServices.identity) {
+            if await mediaServices.liveTVStore.refreshAvailability() == false {
+                coordinator.resetLiveTVNavigation()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                if await mediaServices.liveTVStore.refreshAvailability() == false {
+                    coordinator.resetLiveTVNavigation()
+                }
+            }
+        }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let queue = coordinator.selectedMediaQueue,
                let services = coordinator.selectedMediaServices
@@ -47,6 +61,11 @@ struct MainTabView: View {
                     ),
                 )
                 .environment(plexApiContext)
+            } else if let context = coordinator.selectedLiveTVContext,
+                      let services = coordinator.selectedMediaServices
+            {
+                PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services))
+                    .environment(plexApiContext)
             }
         }
     }
@@ -76,6 +95,12 @@ struct MainTabView: View {
 
             Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
                 libraryTabContent
+            }
+
+            if mediaServices.liveTVStore.isAvailable {
+                Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
+                    liveTVTabContent
+                }
             }
 
             if settingsManager.interface.displayFavoritesTab {
@@ -133,6 +158,12 @@ struct MainTabView: View {
                     Label("tabs.libraries", systemImage: "rectangle.stack.fill")
                 }
                 .tag(MainCoordinator.Tab.library)
+
+            if mediaServices.liveTVStore.isAvailable {
+                liveTVTabContent
+                    .tabItem { Label("livetv.title", systemImage: "tv") }
+                    .tag(MainCoordinator.Tab.liveTV)
+            }
 
             if settingsManager.interface.displayFavoritesTab {
                 favoritesTabContent
@@ -227,6 +258,23 @@ struct MainTabView: View {
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
             }
+        }
+    }
+
+    private var liveTVTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
+            LiveTVView(
+                store: mediaServices.liveTVStore,
+                onPlayLive: { coordinator.showLivePlayer(context: $0, services: mediaServices) },
+                onPlayRecording: { media in
+                    Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(ratingKey: media.id, type: media.type) }
+                },
+                onOpenLibrary: { libraryID in
+                    guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                    coordinator.tab = .library
+                    coordinator.libraryPath = NavigationPath([library])
+                },
+            )
         }
     }
 

@@ -19,6 +19,7 @@ final class AppModel: PlaybackPresenting {
         case downloads
         case libraries
         case favorites
+        case liveTV
         case library(String)
         case settings
 
@@ -30,6 +31,7 @@ final class AppModel: PlaybackPresenting {
             case .downloads: "downloads"
             case .libraries: "libraries"
             case .favorites: "favorites"
+            case .liveTV: "liveTV"
             case let .library(id): "library-\(id)"
             case .settings: "settings"
             }
@@ -54,6 +56,7 @@ final class AppModel: PlaybackPresenting {
         let localExternalSubtitles: [ExternalSubtitleTrack]
         let mediaQueue: PlaybackQueue?
         let mediaServices: MediaServices?
+        let liveTVContext: LiveTVLaunchContext?
 
         init(queue: PlaybackQueue, services: MediaServices, shouldResumeFromOffset: Bool) {
             self.shouldResumeFromOffset = shouldResumeFromOffset
@@ -62,6 +65,7 @@ final class AppModel: PlaybackPresenting {
             localExternalSubtitles = []
             mediaQueue = queue
             mediaServices = services
+            liveTVContext = nil
         }
 
         init(
@@ -75,6 +79,17 @@ final class AppModel: PlaybackPresenting {
             self.localExternalSubtitles = localExternalSubtitles
             mediaQueue = nil
             mediaServices = nil
+            liveTVContext = nil
+        }
+
+        init(liveTVContext: LiveTVLaunchContext, services: MediaServices) {
+            shouldResumeFromOffset = false
+            localMedia = nil
+            localPlaybackURL = nil
+            localExternalSubtitles = []
+            mediaQueue = nil
+            mediaServices = services
+            self.liveTVContext = liveTVContext
         }
     }
 
@@ -181,6 +196,15 @@ final class AppModel: PlaybackPresenting {
             services: services,
             shouldResumeFromOffset: shouldResumeFromOffset,
         )
+    }
+
+    func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices) {
+        playerPresentation = PlayerPresentation(liveTVContext: context, services: services)
+    }
+
+    func resetLiveTVNavigation() {
+        paths[.liveTV] = NavigationPath()
+        if selection == .liveTV { selection = .home }
     }
 
     func resetPlayer(ifPresenting presentationID: UUID? = nil) {

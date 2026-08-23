@@ -76,6 +76,31 @@ final class PlexServerNetworkClient {
         }
     }
 
+    func json(
+        path: String,
+        queryItems: [URLQueryItem]? = nil,
+        method: String = "GET",
+        headers: [String: String] = [:],
+    ) async throws -> [String: Any] {
+        let result = try await data(
+            path: path,
+            queryItems: queryItems,
+            method: method,
+            headers: headers,
+        )
+        guard let response = result.response as? HTTPURLResponse,
+              200 ..< 300 ~= response.statusCode
+        else {
+            throw PlexAPIError.requestFailed(
+                statusCode: (result.response as? HTTPURLResponse)?.statusCode ?? -1,
+            )
+        }
+        guard let object = try JSONSerialization.jsonObject(with: result.data) as? [String: Any] else {
+            throw PlexAPIError.invalidResponse
+        }
+        return object
+    }
+
     func download(
         path: String,
         queryItems: [URLQueryItem]? = nil,

@@ -7,6 +7,7 @@ protocol PlaybackPresenting: AnyObject {
         services: MediaServices,
         shouldResumeFromOffset: Bool,
     )
+    func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices)
 }
 
 struct PlaybackLauncher {
