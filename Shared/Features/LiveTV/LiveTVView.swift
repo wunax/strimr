@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct LiveTVView: View {
+    private enum GuideFocusItem: Hashable {
+        case favorite(String)
+        case channel(String)
+        case program(String)
+        case onNowProgram(String)
+    }
+
     enum LiveTVSection: String, CaseIterable, Identifiable {
         case guide
         case onNow
@@ -27,6 +34,9 @@ struct LiveTVView: View {
     @State private var pendingRecordingDeletion: DVRRecording?
     @State private var isManagingFavorites = false
     @State private var selectedRule: DVRRecordingRule?
+    #if os(tvOS)
+        @FocusState private var focusedGuideItem: GuideFocusItem?
+    #endif
 
     var body: some View {
         VStack(spacing: 12) {
@@ -167,24 +177,50 @@ struct LiveTVView: View {
     }
 
     private func guideRow(_ channel: LiveTVChannel) -> some View {
-        HStack(spacing: 0) {
+        #if os(tvOS)
+            let isFavoriteFocused = focusedGuideItem == .favorite(channel.id)
+            let isChannelFocused = focusedGuideItem == .channel(channel.id)
+        #else
+            let isFavoriteFocused = false
+            let isChannelFocused = false
+        #endif
+
+        return HStack(spacing: 0) {
             HStack(spacing: 8) {
-                Button { Task { await store.toggleFavorite(channel) } } label: {
-                    Image(systemName: channel.isFavorite ? "star.fill" : "star")
-                        .foregroundStyle(channel.isFavorite ? .yellow : .secondary)
+                Group {
+                    #if os(tvOS)
+                        guideFavoriteLabel(channel, isFocused: isFavoriteFocused)
+                            .focusable()
+                            .focused($focusedGuideItem, equals: .favorite(channel.id))
+                            .onTapGesture { Task { await store.toggleFavorite(channel) } }
+                            .accessibilityAddTraits(.isButton)
+                    #else
+                        Button { Task { await store.toggleFavorite(channel) } } label: {
+                            guideFavoriteLabel(channel, isFocused: false)
+                        }
+                        .buttonStyle(.plain)
+                    #endif
                 }
-                .buttonStyle(.plain)
+                .animation(.easeOut(duration: 0.15), value: isFavoriteFocused)
                 .accessibilityLabel(
                     Text(channel.isFavorite ? "livetv.favorite.remove" : "livetv.favorite.add"),
                 )
 
-                Button { tune(channel) } label: {
-                    Text(channel.displayTitle)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                Group {
+                    #if os(tvOS)
+                        guideChannelLabel(channel, isFocused: isChannelFocused)
+                            .focusable()
+                            .focused($focusedGuideItem, equals: .channel(channel.id))
+                            .onTapGesture { tune(channel) }
+                            .accessibilityAddTraits(.isButton)
+                    #else
+                        Button { tune(channel) } label: {
+                            guideChannelLabel(channel, isFocused: false)
+                        }
+                        .buttonStyle(.plain)
+                    #endif
                 }
-                .buttonStyle(.plain)
+                .animation(.easeOut(duration: 0.15), value: isChannelFocused)
                 .accessibilityLabel(Text("livetv.channel.watch \(channel.displayTitle)"))
             }
             .frame(width: 160, alignment: .leading)
@@ -197,29 +233,130 @@ struct LiveTVView: View {
                     ForEach(programs) { program in
                         let visibleStart = max(program.startDate, store.guideStart)
                         let visibleEnd = min(program.endDate, store.guideEnd)
-                        Button { selectedProgram = program } label: {
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text(program.title).font(.headline).lineLimit(1)
-                                    if program.recordingID != nil || program.seriesRecordingID != nil {
-                                        Image(systemName: "record.circle.fill").foregroundStyle(.red)
-                                    }
+                        #if os(tvOS)
+                            let isFocused = focusedGuideItem == .program(program.id)
+                        #else
+                            let isFocused = false
+                        #endif
+                        Group {
+                            #if os(tvOS)
+                                guideProgramLabel(
+                                    program,
+                                    width: max(4, visibleEnd.timeIntervalSince(visibleStart) / 15 - 4),
+                                    isFocused: isFocused,
+                                )
+                                .focusable()
+                                .focused($focusedGuideItem, equals: .program(program.id))
+                                .onTapGesture { selectedProgram = program }
+                                .accessibilityAddTraits(.isButton)
+                            #else
+                                Button { selectedProgram = program } label: {
+                                    guideProgramLabel(
+                                        program,
+                                        width: max(4, visibleEnd.timeIntervalSince(visibleStart) / 15 - 4),
+                                        isFocused: false,
+                                    )
                                 }
-                                Text(program.startDate, format: .dateTime.hour().minute()).font(.caption)
-                            }
-                            .padding(8)
-                            .frame(width: max(4, visibleEnd.timeIntervalSince(visibleStart) / 15 - 4), height: 64, alignment: .leading)
-                            .background(program.isCurrentlyAiring ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .buttonStyle(.plain)
+                            #endif
                         }
-                        .buttonStyle(.plain)
                         .offset(x: visibleStart.timeIntervalSince(store.guideStart) / 15)
+                        .zIndex(isFocused ? 1 : 0)
+                        .animation(.easeOut(duration: 0.15), value: isFocused)
                     }
                 }
             }
             .frame(width: 1440, height: 64, alignment: .leading)
             .clipped()
         }
+    }
+
+    private func guideFavoriteLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
+        Image(systemName: channel.isFavorite ? "star.fill" : "star")
+            .foregroundStyle(channel.isFavorite ? .yellow : .secondary)
+            .frame(width: 34, height: 34)
+            .background {
+                Circle()
+                    .fill(.white.opacity(isFocused ? 0.18 : 0))
+            }
+            .overlay {
+                Circle()
+                    .stroke(.white.opacity(isFocused ? 0.9 : 0), lineWidth: 2)
+            }
+            .scaleEffect(isFocused ? 1.08 : 1)
+            .contentShape(Circle())
+    }
+
+    private func guideChannelLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
+        Text(channel.displayTitle)
+            .lineLimit(2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.white.opacity(isFocused ? 0.16 : 0))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.white.opacity(isFocused ? 0.85 : 0), lineWidth: 2)
+            }
+            .scaleEffect(isFocused ? 1.025 : 1)
+            .contentShape(Rectangle())
+    }
+
+    private func guideProgramLabel(_ program: LiveTVProgram, width: CGFloat, isFocused: Bool) -> some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(program.title)
+                    .font(guideProgramTitleFont)
+                    .lineLimit(1)
+                if program.recordingID != nil || program.seriesRecordingID != nil {
+                    Image(systemName: "record.circle.fill").foregroundStyle(.red)
+                }
+            }
+            Text(program.startDate, format: .dateTime.hour().minute())
+                .font(guideProgramTimeFont)
+        }
+        .padding(8)
+        .frame(width: width, height: 64, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(guideProgramBackground(program, isFocused: isFocused))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(
+                    program.isCurrentlyAiring ? Color.accentColor : Color.white,
+                    lineWidth: isFocused ? 3 : 0,
+                )
+        }
+        .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: 10, y: 5)
+        .scaleEffect(isFocused ? 1.025 : 1)
+        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func guideProgramBackground(_ program: LiveTVProgram, isFocused: Bool) -> Color {
+        if program.isCurrentlyAiring {
+            return Color.accentColor.opacity(isFocused ? 0.42 : 0.25)
+        }
+        return Color.secondary.opacity(isFocused ? 0.28 : 0.12)
+    }
+
+    private var guideProgramTitleFont: Font {
+        #if os(tvOS)
+            .subheadline
+        #else
+            .headline
+        #endif
+    }
+
+    private var guideProgramTimeFont: Font {
+        #if os(tvOS)
+            .caption2
+        #else
+            .caption
+        #endif
     }
 
     private var onNow: some View {
@@ -234,41 +371,79 @@ struct LiveTVView: View {
                         ScrollView(.horizontal) {
                             LazyHStack {
                                 ForEach(row.programs) { program in
-                                    Button { program.isCurrentlyAiring ? tune(program) : (selectedProgram = program) } label: {
-                                        VStack(alignment: .leading) {
-                                            Group {
-                                                if let artworkPath = program.artPath ?? program.thumbPath {
-                                                    ArtworkPathView(
-                                                        path: artworkPath,
-                                                        width: 480,
-                                                        height: 270,
-                                                    )
-                                                } else {
-                                                    MediaArtworkPlaceholder(mediaKind: .episode)
-                                                }
+                                    #if os(tvOS)
+                                        let isFocused = focusedGuideItem == .onNowProgram(program.id)
+                                    #else
+                                        let isFocused = false
+                                    #endif
+                                    Group {
+                                        #if os(tvOS)
+                                            onNowProgramCard(program, isFocused: isFocused)
+                                                .focusable()
+                                                .focused($focusedGuideItem, equals: .onNowProgram(program.id))
+                                                .onTapGesture { openOnNowProgram(program) }
+                                                .accessibilityAddTraits(.isButton)
+                                        #else
+                                            Button { openOnNowProgram(program) } label: {
+                                                onNowProgramCard(program, isFocused: false)
                                             }
-                                            .frame(width: 240, height: 135)
-                                            .mediaArtworkStyle(.compact)
-                                            Text(program.title)
-                                                .font(.headline)
-                                                .lineLimit(1)
-                                                .truncationMode(.tail)
-                                            Text(channelName(program.channelID))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                                .truncationMode(.tail)
-                                        }
-                                        .frame(width: 240, alignment: .leading)
+                                            .buttonStyle(.plain)
+                                        #endif
                                     }
-                                    .buttonStyle(.plain)
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityLabel(
+                                        Text(
+                                            "livetv.onNow.program.accessibility \(program.title) \(channelName(program.channelID))",
+                                        ),
+                                    )
                                 }
                             }
                         }
+                        .scrollClipDisabled()
                     }
                 }
             }
             .padding()
+        }
+    }
+
+    private func onNowProgramCard(_ program: LiveTVProgram, isFocused: Bool) -> some View {
+        VStack(alignment: .leading) {
+            Group {
+                if let artworkPath = program.artPath ?? program.thumbPath {
+                    ArtworkPathView(
+                        path: artworkPath,
+                        width: 480,
+                        height: 270,
+                    )
+                } else {
+                    MediaArtworkPlaceholder(mediaKind: .episode)
+                }
+            }
+            .frame(width: 240, height: 135)
+            .mediaArtworkStyle(.compact)
+            .scaleEffect(isFocused ? 1.12 : 1)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+
+            Text(program.title)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text(channelName(program.channelID))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .frame(width: 240, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private func openOnNowProgram(_ program: LiveTVProgram) {
+        if program.isCurrentlyAiring {
+            tune(program)
+        } else {
+            selectedProgram = program
         }
     }
 
