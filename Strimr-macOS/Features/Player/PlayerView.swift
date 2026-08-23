@@ -537,7 +537,9 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
-                    qualityMenu
+                    if !viewModel.isLocalPlayback {
+                        qualityMenu
+                    }
 
                     if viewModel.hasNavigableChapters {
                         chapterButton
