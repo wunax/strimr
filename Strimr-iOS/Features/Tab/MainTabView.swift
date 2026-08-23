@@ -49,6 +49,11 @@ struct MainTabView: View {
                 }
             }
         }
+        .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
+            if !isDisplayed {
+                coordinator.resetLiveTVNavigation()
+            }
+        }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let queue = coordinator.selectedMediaQueue,
                let services = coordinator.selectedMediaServices
@@ -97,7 +102,7 @@ struct MainTabView: View {
                 libraryTabContent
             }
 
-            if mediaServices.liveTVStore.isAvailable {
+            if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     liveTVTabContent
                 }
@@ -159,7 +164,7 @@ struct MainTabView: View {
                 }
                 .tag(MainCoordinator.Tab.library)
 
-            if mediaServices.liveTVStore.isAvailable {
+            if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
                 liveTVTabContent
                     .tabItem { Label("livetv.title", systemImage: "tv") }
                     .tag(MainCoordinator.Tab.liveTV)

@@ -85,7 +85,7 @@ struct MainTabView: View {
                 }
             }
 
-            if mediaServices.liveTVStore.isAvailable {
+            if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
                         LiveTVView(
@@ -177,6 +177,11 @@ struct MainTabView: View {
                 if await mediaServices.liveTVStore.refreshAvailability() == false {
                     coordinator.resetLiveTVNavigation()
                 }
+            }
+        }
+        .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
+            if !isDisplayed {
+                coordinator.resetLiveTVNavigation()
             }
         }
         .task(id: topShelfDeepLinkRouter.pendingAction) {

@@ -49,6 +49,18 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Toggle(
+                    "settings.interface.displayLiveTVTab",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayLiveTVTab },
+                        set: { settingsManager.setDisplayLiveTVTab($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.displayLiveTVTab.description")
+            }
+
+            Section {
                 Picker(
                     "settings.interface.spoilerProtection.title",
                     selection: Binding(

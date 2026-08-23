@@ -11374,6 +11374,50 @@
         }
       }
     },
+    "settings.interface.displayLiveTVTab" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Live TV tab"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’onglet TV en direct"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示电视直播标签页"
+          }
+        }
+      }
+    },
+    "settings.interface.displayLiveTVTab.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Live TV in the main navigation when it is available on the selected server."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la TV en direct dans la navigation principale lorsqu’elle est disponible sur le serveur sélectionné."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当所选服务器提供电视直播时，在主导航中显示。"
+          }
+        }
+      }
+    },
     "settings.interface.displayPlaylists" : {
       "localizations" : {
         "en" : {

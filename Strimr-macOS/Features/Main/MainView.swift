@@ -35,7 +35,7 @@ struct MainView: View {
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
-                    if mediaServices.liveTVStore.isAvailable {
+                    if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
                         sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
                     }
                 }
@@ -91,6 +91,11 @@ struct MainView: View {
                 if await mediaServices.liveTVStore.refreshAvailability() == false {
                     appModel.resetLiveTVNavigation()
                 }
+            }
+        }
+        .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
+            if !isDisplayed {
+                appModel.resetLiveTVNavigation()
             }
         }
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
