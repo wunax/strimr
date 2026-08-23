@@ -2,13 +2,14 @@ import Foundation
 
 enum DownloadStatus: String, Codable, Hashable {
     case queued
+    case preparing
     case downloading
     case completed
     case failed
 
     var isActive: Bool {
         switch self {
-        case .queued, .downloading:
+        case .queued, .preparing, .downloading:
             true
         case .completed, .failed:
             false
@@ -39,6 +40,14 @@ struct DownloadedMediaMetadata: Codable, Hashable {
     var posterFileName: String?
     var videoFileName: String
     var fileSize: Int64?
+    var requestedQuality: TranscodeQualityPreset
+    var effectiveQuality: TranscodeQualityPreset
+    var audioTitle: String?
+    var subtitleTitle: String?
+    var subtitleFileName: String?
+    var subtitleLanguage: String?
+    var subtitleCodec: String?
+    var subtitleIsForced: Bool
     var createdAt: Date
 
     init(
@@ -63,6 +72,10 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         posterFileName: String?,
         videoFileName: String,
         fileSize: Int64?,
+        requestedQuality: TranscodeQualityPreset,
+        effectiveQuality: TranscodeQualityPreset,
+        audioTitle: String?,
+        subtitleTitle: String?,
         createdAt: Date,
     ) {
         self.identity = identity
@@ -87,6 +100,14 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         self.posterFileName = posterFileName
         self.videoFileName = videoFileName
         self.fileSize = fileSize
+        self.requestedQuality = requestedQuality
+        self.effectiveQuality = effectiveQuality
+        self.audioTitle = audioTitle
+        self.subtitleTitle = subtitleTitle
+        subtitleFileName = nil
+        subtitleLanguage = nil
+        subtitleCodec = nil
+        subtitleIsForced = false
         self.createdAt = createdAt
     }
 
@@ -116,6 +137,14 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         case posterFileName
         case videoFileName
         case fileSize
+        case requestedQuality
+        case effectiveQuality
+        case audioTitle
+        case subtitleTitle
+        case subtitleFileName
+        case subtitleLanguage
+        case subtitleCodec
+        case subtitleIsForced
         case createdAt
     }
 
@@ -159,6 +188,20 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         posterFileName = try container.decodeIfPresent(String.self, forKey: .posterFileName)
         videoFileName = try container.decode(String.self, forKey: .videoFileName)
         fileSize = try container.decodeIfPresent(Int64.self, forKey: .fileSize)
+        requestedQuality = try container.decodeIfPresent(
+            TranscodeQualityPreset.self,
+            forKey: .requestedQuality,
+        ) ?? .original
+        effectiveQuality = try container.decodeIfPresent(
+            TranscodeQualityPreset.self,
+            forKey: .effectiveQuality,
+        ) ?? requestedQuality
+        audioTitle = try container.decodeIfPresent(String.self, forKey: .audioTitle)
+        subtitleTitle = try container.decodeIfPresent(String.self, forKey: .subtitleTitle)
+        subtitleFileName = try container.decodeIfPresent(String.self, forKey: .subtitleFileName)
+        subtitleLanguage = try container.decodeIfPresent(String.self, forKey: .subtitleLanguage)
+        subtitleCodec = try container.decodeIfPresent(String.self, forKey: .subtitleCodec)
+        subtitleIsForced = try container.decodeIfPresent(Bool.self, forKey: .subtitleIsForced) ?? false
         createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 
@@ -186,6 +229,14 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         try container.encodeIfPresent(posterFileName, forKey: .posterFileName)
         try container.encode(videoFileName, forKey: .videoFileName)
         try container.encodeIfPresent(fileSize, forKey: .fileSize)
+        try container.encode(requestedQuality, forKey: .requestedQuality)
+        try container.encode(effectiveQuality, forKey: .effectiveQuality)
+        try container.encodeIfPresent(audioTitle, forKey: .audioTitle)
+        try container.encodeIfPresent(subtitleTitle, forKey: .subtitleTitle)
+        try container.encodeIfPresent(subtitleFileName, forKey: .subtitleFileName)
+        try container.encodeIfPresent(subtitleLanguage, forKey: .subtitleLanguage)
+        try container.encodeIfPresent(subtitleCodec, forKey: .subtitleCodec)
+        try container.encode(subtitleIsForced, forKey: .subtitleIsForced)
         try container.encode(createdAt, forKey: .createdAt)
     }
 
@@ -215,6 +266,8 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var bytesWritten: Int64
     var totalBytes: Int64
     var taskIdentifier: Int?
+    var remoteReference: MediaDownloadRemoteReference?
+    var trackPreference: MediaDownloadTrackPreference?
     var errorMessage: String?
     var metadata: DownloadedMediaMetadata
 

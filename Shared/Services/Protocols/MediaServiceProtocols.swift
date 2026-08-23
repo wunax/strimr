@@ -39,7 +39,73 @@ struct MediaTrackSelection {
 
 struct MediaDownloadPreparation {
     let media: MediaItem
+    let requestedQuality: TranscodeQualityPreset
+    let effectiveQuality: TranscodeQualityPreset
+    let request: URLRequest?
+    let remoteReference: MediaDownloadRemoteReference?
+    let sidecars: [MediaDownloadSidecar]
+    let audioTitle: String?
+    let subtitleTitle: String?
+}
+
+struct MediaDownloadTrackPreference: Codable, Hashable, Sendable {
+    var audioStreamIndex: Int?
+    var audioLanguage: String?
+    var audioTitle: String?
+    var subtitle: MediaDownloadSubtitlePreference
+
+    nonisolated static let serverDefault = MediaDownloadTrackPreference(
+        audioStreamIndex: nil,
+        audioLanguage: nil,
+        audioTitle: nil,
+        subtitle: .off,
+    )
+
+    nonisolated var matchingAcrossItems: MediaDownloadTrackPreference {
+        var preference = self
+        preference.audioStreamIndex = nil
+        if case let .track(_, language, title, codec, isForced) = subtitle {
+            preference.subtitle = .track(
+                streamIndex: nil,
+                language: language,
+                title: title,
+                codec: codec,
+                isForced: isForced,
+            )
+        }
+        return preference
+    }
+}
+
+enum MediaDownloadSubtitlePreference: Codable, Hashable, Sendable {
+    case off
+    case track(
+        streamIndex: Int?,
+        language: String?,
+        title: String?,
+        codec: String,
+        isForced: Bool
+    )
+}
+
+struct MediaDownloadSidecar {
     let request: URLRequest
+    let fileExtension: String
+    let title: String?
+    let language: String?
+    let codec: String
+    let isForced: Bool
+}
+
+enum MediaDownloadRemoteReference: Codable, Hashable, Sendable {
+    case plex(queueID: Int, itemID: Int)
+    case jellyfin(playSessionID: String)
+}
+
+enum MediaDownloadPreparationUpdate {
+    case preparing(progress: Double?)
+    case ready(request: URLRequest, sidecars: [MediaDownloadSidecar])
+    case failed(message: String)
 }
 
 enum MediaServerAccessRecoveryError: Error, Equatable {
@@ -164,6 +230,18 @@ protocol MediaPlaybackService: AnyObject {
 
 @MainActor
 protocol MediaDownloadService: AnyObject {
-    func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation
+    func prepareDownload(
+        itemID: String,
+        quality: TranscodeQualityPreset,
+        tracks: MediaDownloadTrackPreference,
+    ) async throws -> MediaDownloadPreparation
+    func refreshDownloadPreparation(
+        _ reference: MediaDownloadRemoteReference,
+    ) async throws -> MediaDownloadPreparationUpdate
+    func downloadSidecars(
+        itemID: String,
+        tracks: MediaDownloadTrackPreference,
+    ) async throws -> [MediaDownloadSidecar]
+    func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]
 }

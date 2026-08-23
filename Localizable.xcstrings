@@ -1086,6 +1086,48 @@
         }
       }
     },
+    "downloads.options.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Download Options" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Options de téléchargement" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下载选项" } }
+      }
+    },
+    "downloads.options.quality" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Quality" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Qualité" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "质量" } }
+      }
+    },
+    "downloads.options.tracks" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tracks" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pistes" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "轨道" } }
+      }
+    },
+    "downloads.options.audio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Audio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Audio" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "音频" } }
+      }
+    },
+    "downloads.options.subtitles" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subtitles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sous-titres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "字幕" } }
+      }
+    },
+    "downloads.options.subtitles.off" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Off" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Désactivés" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关闭" } }
+      }
+    },
     "downloads.status.completed %@" : {
       "localizations" : {
         "en" : {
@@ -1172,6 +1214,13 @@
             "value" : "下载已中断"
           }
         }
+      }
+    },
+    "downloads.status.preparing %lld" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Preparing on server • %lld%%" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Préparation sur le serveur • %lld%%" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务器准备中 • %lld%%" } }
       }
     },
     "downloads.status.queued" : {
@@ -9404,6 +9453,20 @@
             "value" : "管理下载"
           }
         }
+      }
+    },
+    "settings.downloads.quality" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Default Quality" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Qualité par défaut" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "默认质量" } }
+      }
+    },
+    "settings.downloads.quality.footer" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lower qualities use server transcoding to save storage space." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Les qualités inférieures utilisent le transcodage du serveur pour économiser de l’espace." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "较低质量使用服务器转码以节省存储空间。" } }
       }
     },
     "settings.downloads.title" : {

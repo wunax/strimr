@@ -10,6 +10,7 @@ struct MediaDetailView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @State private var viewModel: MediaDetailViewModel
     @State private var isShowingShowDownloadSheet = false
+    @State private var isShowingDownloadOptions = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
     @State private var isShowingSubtitleSearch = false
     let onSelectMedia: (MediaItem) -> Void
@@ -65,14 +66,46 @@ struct MediaDetailView: View {
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             ShowDownloadSelectionSheet(
                 viewModel: viewModel,
-                onSubmitSelection: { episodeIDs in
+                services: mediaServices,
+                defaultQuality: settingsManager.downloads.qualityPreset,
+                onSubmitSelection: { episodeIDs, quality, tracks in
                     for episodeID in episodeIDs {
-                        await downloadManager.enqueueItem(itemID: episodeID, services: mediaServices)
+                        await downloadManager.enqueueItem(
+                            itemID: episodeID,
+                            quality: quality,
+                            tracks: tracks,
+                            services: mediaServices,
+                        )
                     }
                 },
                 statusForIdentity: downloadManager.status,
             )
             .frame(minWidth: 520, minHeight: 600)
+        }
+        .sheet(isPresented: $isShowingDownloadOptions) {
+            DownloadConfirmationSheet(
+                itemID: viewModel.media.id,
+                services: mediaServices,
+                defaultQuality: settingsManager.downloads.qualityPreset,
+            ) { quality, tracks in
+                if viewModel.media.type == .season {
+                    await downloadManager.enqueueItems(
+                        itemID: viewModel.media.id,
+                        kind: .season,
+                        quality: quality,
+                        tracks: tracks,
+                        services: mediaServices,
+                    )
+                } else {
+                    await downloadManager.enqueueItem(
+                        itemID: viewModel.media.id,
+                        quality: quality,
+                        tracks: tracks,
+                        services: mediaServices,
+                    )
+                }
+            }
+            .frame(minWidth: 480, minHeight: 420)
         }
         .sheet(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = viewModel.trackRatingKey {
@@ -466,15 +499,9 @@ struct MediaDetailView: View {
         case .show:
             isShowingShowDownloadSheet = true
         case .season:
-            Task {
-                await downloadManager.enqueueItems(
-                    itemID: viewModel.media.id,
-                    kind: .season,
-                    services: mediaServices,
-                )
-            }
+            isShowingDownloadOptions = true
         case .movie, .episode:
-            Task { await downloadManager.enqueueItem(itemID: viewModel.media.id, services: mediaServices) }
+            isShowingDownloadOptions = true
         }
     }
 
@@ -483,14 +510,14 @@ struct MediaDetailView: View {
     }
 
     private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .downloading
+        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
     }
 
     private var downloadIconName: String {
         switch downloadStatus {
         case .completed: "checkmark.circle.fill"
         case .failed: "exclamationmark.circle"
-        case .queued, .downloading: "arrow.down.circle.fill"
+        case .queued, .preparing, .downloading: "arrow.down.circle.fill"
         case nil: "arrow.down.circle"
         }
     }

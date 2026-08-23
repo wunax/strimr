@@ -198,6 +198,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDownloadQualityPreset(_ preset: TranscodeQualityPreset) {
+        settings.downloads.qualityPreset = preset
+        persist()
+    }
+
     private func persist() {
         do {
             let data = try JSONEncoder().encode(settings)

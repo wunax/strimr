@@ -5,15 +5,21 @@ import SwiftUI
 struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
-    let onSubmitSelection: ([String]) async -> Void
+    let services: MediaServices
+    let defaultQuality: TranscodeQualityPreset
+    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaDownloadTrackPreference) async -> Void
     let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?
     @State private var selectedEpisodeIDs: Set<String> = []
     @State private var isSubmitting = false
+    @State private var optionsModel: DownloadOptionsViewModel?
 
     var body: some View {
         List {
+            if let optionsModel {
+                DownloadOptionsSections(model: optionsModel)
+            }
             seasonSection
             quickActionsSection
             episodesSection
@@ -31,7 +37,10 @@ struct ShowDownloadSelectionSheet: View {
         .task { await initializeSheet() }
         .onChange(of: selectedSeasonID) { _, seasonID in
             guard let seasonID else { return }
-            Task { await viewModel.selectSeason(id: seasonID) }
+            Task {
+                await viewModel.selectSeason(id: seasonID)
+                configureOptionsModel()
+            }
         }
     }
 
@@ -124,6 +133,17 @@ struct ShowDownloadSelectionSheet: View {
         if viewModel.selectedSeasonId != seasonID || viewModel.episodes.isEmpty {
             await viewModel.selectSeason(id: seasonID)
         }
+        configureOptionsModel()
+    }
+
+    private func configureOptionsModel() {
+        guard let episodeID = viewModel.episodes.first?.id else { return }
+        optionsModel = DownloadOptionsViewModel(
+            itemID: episodeID,
+            services: services,
+            defaultQuality: optionsModel?.quality ?? defaultQuality,
+        )
+        Task { await optionsModel?.loadTracksIfNeeded() }
     }
 
     private func submitSelection() {
@@ -131,7 +151,11 @@ struct ShowDownloadSelectionSheet: View {
         guard !episodeIDs.isEmpty else { return }
         isSubmitting = true
         Task {
-            await onSubmitSelection(episodeIDs)
+            await onSubmitSelection(
+                episodeIDs,
+                optionsModel?.quality ?? defaultQuality,
+                (optionsModel?.preference ?? .serverDefault).matchingAcrossItems,
+            )
             isSubmitting = false
             dismiss()
         }

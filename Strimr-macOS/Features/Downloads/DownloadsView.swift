@@ -84,6 +84,7 @@ struct DownloadsView: View {
                 if let subtitle = item.metadata.subtitle {
                     Text(subtitle).foregroundStyle(.secondary).lineLimit(1)
                 }
+                qualityView(for: item)
                 statusView(for: item)
             }
 
@@ -95,6 +96,12 @@ struct DownloadsView: View {
             }
         }
         .padding(.vertical, 5)
+    }
+
+    private func qualityView(for item: DownloadItem) -> some View {
+        Text(item.metadata.effectiveQuality.title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -117,6 +124,12 @@ struct DownloadsView: View {
         switch item.status {
         case .queued:
             Text("downloads.status.queued").foregroundStyle(.secondary)
+        case .preparing:
+            VStack(alignment: .leading, spacing: 4) {
+                ProgressView(value: item.progress).tint(.brandSecondary)
+                Text("downloads.status.preparing \(Int((item.progress * 100).rounded()))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         case .downloading:
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: item.progress).tint(.brandSecondary)
@@ -134,7 +147,11 @@ struct DownloadsView: View {
 
     private func play(_ item: DownloadItem) {
         guard item.isPlayable, let url = downloadManager.localVideoURL(for: item) else { return }
-        appModel.showDownloadedPlayer(media: downloadManager.localMediaItem(for: item), url: url)
+        appModel.showDownloadedPlayer(
+            media: downloadManager.localMediaItem(for: item),
+            url: url,
+            externalSubtitles: downloadManager.localExternalSubtitles(for: item),
+        )
     }
 
     private func formattedBytes(_ value: Int64) -> String {

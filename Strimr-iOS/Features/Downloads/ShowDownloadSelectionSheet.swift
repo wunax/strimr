@@ -5,15 +5,21 @@ import SwiftUI
 struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
-    let onSubmitSelection: ([String]) async -> Void
+    let services: MediaServices
+    let defaultQuality: TranscodeQualityPreset
+    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaDownloadTrackPreference) async -> Void
     let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?
     @State private var selectedEpisodeIDs: Set<String> = []
     @State private var isSubmitting = false
+    @State private var optionsModel: DownloadOptionsViewModel?
 
     var body: some View {
         List {
+            if let optionsModel {
+                DownloadOptionsSections(model: optionsModel)
+            }
             seasonSection
             quickActionsSection
             episodesSection
@@ -40,6 +46,7 @@ struct ShowDownloadSelectionSheet: View {
             guard let newSeasonID else { return }
             Task {
                 await viewModel.selectSeason(id: newSeasonID)
+                configureOptionsModel()
             }
         }
     }
@@ -147,7 +154,7 @@ struct ShowDownloadSelectionSheet: View {
         case .completed:
             Image(systemName: "arrow.down.circle.fill")
                 .foregroundStyle(.green)
-        case .downloading:
+        case .preparing, .downloading:
             ProgressView()
                 .controlSize(.small)
         case .queued:
@@ -195,6 +202,17 @@ struct ShowDownloadSelectionSheet: View {
         if viewModel.selectedSeasonId != initialSeasonID || viewModel.episodes.isEmpty {
             await viewModel.selectSeason(id: initialSeasonID)
         }
+        configureOptionsModel()
+    }
+
+    private func configureOptionsModel() {
+        guard let episodeID = viewModel.episodes.first?.id else { return }
+        optionsModel = DownloadOptionsViewModel(
+            itemID: episodeID,
+            services: services,
+            defaultQuality: optionsModel?.quality ?? defaultQuality,
+        )
+        Task { await optionsModel?.loadTracksIfNeeded() }
     }
 
     private func submitSelection() {
@@ -205,7 +223,11 @@ struct ShowDownloadSelectionSheet: View {
 
         isSubmitting = true
         Task {
-            await onSubmitSelection(orderedEpisodeIDs)
+            await onSubmitSelection(
+                orderedEpisodeIDs,
+                optionsModel?.quality ?? defaultQuality,
+                (optionsModel?.preference ?? .serverDefault).matchingAcrossItems,
+            )
             isSubmitting = false
             dismiss()
         }
