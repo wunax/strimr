@@ -12,6 +12,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private let playbackSessionID = UUID().uuidString
     private var queueItemIDs: [String: Int] = [:]
     private var subtitleResults: [String: PlexSubtitleSearchResult] = [:]
+    private var downloadQueueID: Int?
     weak var services: MediaServices?
 
     init(context: PlexAPIContext, sessionManager: SessionManager?, server: ServerIdentity) {
@@ -686,25 +687,107 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         try await prepare(media: media, resume: false, quality: .original).externalSubtitles
     }
 
-    func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
+    func prepareDownload(
+        itemID: String,
+        quality: TranscodeQualityPreset,
+        tracks _: MediaDownloadTrackPreference,
+    ) async throws -> MediaDownloadPreparation {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
             params: .init(checkFiles: true),
         )
         guard let item = response.mediaContainer.metadata?.first,
-              let path = item.media?.first?.parts.first?.key,
+              let selectedMedia = item.media?.first,
+              let path = selectedMedia.parts.first?.key,
               let url = try MediaRepository(context: context).mediaURL(path: path)
         else { throw PlexAPIError.invalidURL }
-        return MediaDownloadPreparation(
-            media: MediaItem(plexItem: item, server: server),
-            request: URLRequest(url: url),
+        let media = MediaItem(plexItem: item, server: server)
+        guard !quality.isOriginal, !selectedMedia.satisfies(quality: quality) else {
+            return MediaDownloadPreparation(
+                media: media,
+                requestedQuality: quality,
+                effectiveQuality: quality.isOriginal ? .original : quality,
+                request: URLRequest(url: url),
+                remoteReference: nil,
+                sidecars: [],
+                audioTitle: nil,
+                subtitleTitle: nil,
+            )
+        }
+        let repository = try DownloadQueueRepository(context: context)
+        let queueID: Int
+        if let downloadQueueID {
+            queueID = downloadQueueID
+        } else {
+            queueID = try await repository.createQueue()
+            downloadQueueID = queueID
+        }
+        let queueItemID = try await repository.add(
+            ratingKey: item.ratingKey,
+            queueID: queueID,
+            quality: quality,
         )
+        return MediaDownloadPreparation(
+            media: media,
+            requestedQuality: quality,
+            effectiveQuality: quality,
+            request: nil,
+            remoteReference: .plex(queueID: queueID, itemID: queueItemID),
+            sidecars: [],
+            audioTitle: nil,
+            subtitleTitle: nil,
+        )
+    }
+
+    func refreshDownloadPreparation(
+        _ reference: MediaDownloadRemoteReference,
+    ) async throws -> MediaDownloadPreparationUpdate {
+        guard case let .plex(queueID, itemID) = reference else {
+            return .failed(message: String(localized: "downloads.status.failed"))
+        }
+        let repository = try DownloadQueueRepository(context: context)
+        let status = try await repository.status(queueID: queueID, itemID: itemID)
+        if status.hasError {
+            return .failed(message: String(localized: "downloads.status.failed"))
+        }
+        switch status.status {
+        case "available":
+            return try .ready(
+                request: repository.mediaRequest(queueID: queueID, itemID: itemID),
+                sidecars: [],
+            )
+        case "failed", "error", "cancelled":
+            return .failed(message: String(localized: "downloads.status.failed"))
+        default:
+            return .preparing(progress: status.progress)
+        }
+    }
+
+    func downloadSidecars(
+        itemID _: String,
+        tracks _: MediaDownloadTrackPreference,
+    ) async throws -> [MediaDownloadSidecar] {
+        []
+    }
+
+    func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async {
+        guard case let .plex(queueID, itemID) = reference else { return }
+        do {
+            try await DownloadQueueRepository(context: context).delete(
+                queueID: queueID,
+                itemID: itemID,
+            )
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
     }
 
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem] {
         switch kind {
         case .movie, .episode:
-            return try await [prepareDownload(itemID: itemID).media]
+            let response = try await MetadataRepository(context: context).getMetadata(ratingKey: itemID)
+            return (response.mediaContainer.metadata ?? []).map(mapMediaItem)
         case .season:
             let response = try await MetadataRepository(context: context)
                 .getMetadataChildren(ratingKey: itemID)

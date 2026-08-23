@@ -414,6 +414,7 @@ struct PlayerView: View {
             selectedSubtitleTrackID: selectedSubtitleTrackID,
             playbackRate: playbackRate,
             quality: viewModel.selectedQuality,
+            showsQualitySelection: !viewModel.isLocalPlayback,
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
             onSearchSubtitles: viewModel.canSearchSubtitles

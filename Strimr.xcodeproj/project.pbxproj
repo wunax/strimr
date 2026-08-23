@@ -215,6 +215,7 @@
 				Repository/Plex/AuthRepository.swift,
 				Repository/Plex/CollectionRepository.swift,
 				Repository/Plex/DiscoverWatchlistRepository.swift,
+				Repository/Plex/DownloadQueueRepository.swift,
 				Repository/Plex/HubRepository.swift,
 				Repository/Plex/ImageRepository.swift,
 				Repository/Plex/MediaRepository.swift,

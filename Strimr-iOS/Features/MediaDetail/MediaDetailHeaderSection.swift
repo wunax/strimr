@@ -17,6 +17,7 @@ struct MediaDetailHeaderSection: View {
     let onSelectParentSeries: () -> Void
     var onSearchSubtitles: () -> Void = {}
     @State private var isShowingShowDownloadSheet = false
+    @State private var isShowingDownloadOptions = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
     var body: some View {
@@ -101,13 +102,44 @@ struct MediaDetailHeaderSection: View {
             NavigationStack {
                 ShowDownloadSelectionSheet(
                     viewModel: viewModel,
-                    onSubmitSelection: { episodeIDs in
+                    services: mediaServices,
+                    defaultQuality: settingsManager.downloads.qualityPreset,
+                    onSubmitSelection: { episodeIDs, quality, tracks in
                         for episodeID in episodeIDs {
-                            await downloadManager.enqueueItem(itemID: episodeID, services: mediaServices)
+                            await downloadManager.enqueueItem(
+                                itemID: episodeID,
+                                quality: quality,
+                                tracks: tracks,
+                                services: mediaServices,
+                            )
                         }
                     },
                     statusForIdentity: downloadManager.status,
                 )
+            }
+        }
+        .sheet(isPresented: $isShowingDownloadOptions) {
+            DownloadConfirmationSheet(
+                itemID: viewModel.media.id,
+                services: mediaServices,
+                defaultQuality: settingsManager.downloads.qualityPreset,
+            ) { quality, tracks in
+                if viewModel.media.mediaKind == .season {
+                    await downloadManager.enqueueItems(
+                        itemID: viewModel.media.id,
+                        kind: .season,
+                        quality: quality,
+                        tracks: tracks,
+                        services: mediaServices,
+                    )
+                } else {
+                    await downloadManager.enqueueItem(
+                        itemID: viewModel.media.id,
+                        quality: quality,
+                        tracks: tracks,
+                        services: mediaServices,
+                    )
+                }
             }
         }
         .sheet(item: $sharePlaySharingRequest, onDismiss: {
@@ -644,17 +676,9 @@ struct MediaDetailHeaderSection: View {
         case .series:
             isShowingShowDownloadSheet = true
         case .season:
-            Task {
-                await downloadManager.enqueueItems(
-                    itemID: viewModel.media.id,
-                    kind: .season,
-                    services: mediaServices,
-                )
-            }
+            isShowingDownloadOptions = true
         case .movie, .episode:
-            Task {
-                await downloadManager.enqueueItem(itemID: viewModel.media.id, services: mediaServices)
-            }
+            isShowingDownloadOptions = true
         case .collection, .playlist, .folder, .unknown:
             break
         }
@@ -665,7 +689,7 @@ struct MediaDetailHeaderSection: View {
     }
 
     private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .downloading
+        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
     }
 
     private var downloadIconName: String {
@@ -674,7 +698,7 @@ struct MediaDetailHeaderSection: View {
             "checkmark.circle.fill"
         case .failed:
             "exclamationmark.circle"
-        case .queued, .downloading:
+        case .queued, .preparing, .downloading:
             "arrow.down.circle.fill"
         case nil:
             "arrow.down.circle"

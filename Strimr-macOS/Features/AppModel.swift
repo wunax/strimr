@@ -1,3 +1,4 @@
+import AetherEngine
 import Observation
 import SwiftUI
 
@@ -50,6 +51,7 @@ final class AppModel: PlaybackPresenting {
         let shouldResumeFromOffset: Bool
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
+        let localExternalSubtitles: [ExternalSubtitleTrack]
         let mediaQueue: PlaybackQueue?
         let mediaServices: MediaServices?
 
@@ -57,14 +59,20 @@ final class AppModel: PlaybackPresenting {
             self.shouldResumeFromOffset = shouldResumeFromOffset
             localMedia = nil
             localPlaybackURL = nil
+            localExternalSubtitles = []
             mediaQueue = queue
             mediaServices = services
         }
 
-        init(localMedia: MediaItem, localPlaybackURL: URL) {
+        init(
+            localMedia: MediaItem,
+            localPlaybackURL: URL,
+            localExternalSubtitles: [ExternalSubtitleTrack],
+        ) {
             shouldResumeFromOffset = false
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
+            self.localExternalSubtitles = localExternalSubtitles
             mediaQueue = nil
             mediaServices = nil
         }
@@ -151,8 +159,16 @@ final class AppModel: PlaybackPresenting {
         append(.seerr(media))
     }
 
-    func showDownloadedPlayer(media: MediaItem, url: URL) {
-        playerPresentation = PlayerPresentation(localMedia: media, localPlaybackURL: url)
+    func showDownloadedPlayer(
+        media: MediaItem,
+        url: URL,
+        externalSubtitles: [ExternalSubtitleTrack],
+    ) {
+        playerPresentation = PlayerPresentation(
+            localMedia: media,
+            localPlaybackURL: url,
+            localExternalSubtitles: externalSubtitles,
+        )
     }
 
     func showPlayer(

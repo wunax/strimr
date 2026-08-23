@@ -22,7 +22,11 @@ struct PlayerWindowView: View {
         for presentation: AppModel.PlayerPresentation,
     ) -> PlayerViewModel? {
         if let media = presentation.localMedia, let url = presentation.localPlaybackURL {
-            return PlayerViewModel(localMedia: media, localPlaybackURL: url)
+            return PlayerViewModel(
+                localMedia: media,
+                localPlaybackURL: url,
+                localExternalSubtitles: presentation.localExternalSubtitles,
+            )
         }
         if let queue = presentation.mediaQueue, let services = presentation.mediaServices {
             return PlayerViewModel(
@@ -533,7 +537,9 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
-                    qualityMenu
+                    if !viewModel.isLocalPlayback {
+                        qualityMenu
+                    }
 
                     if viewModel.hasNavigableChapters {
                         chapterButton

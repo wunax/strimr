@@ -107,6 +107,7 @@ final class PlayerViewModel {
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
     @ObservationIgnored private let localMedia: MediaItem?
     @ObservationIgnored private let localPlaybackURL: URL?
+    @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
     @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
 
     init(
@@ -123,16 +124,22 @@ final class PlayerViewModel {
         shouldResumeFromOffsetFlag = shouldResumeFromOffset
         localMedia = nil
         localPlaybackURL = nil
+        localExternalSubtitles = []
         media = currentMedia
     }
 
-    init(localMedia: MediaItem, localPlaybackURL: URL) {
+    init(
+        localMedia: MediaItem,
+        localPlaybackURL: URL,
+        localExternalSubtitles: [ExternalSubtitleTrack] = [],
+    ) {
         ratingKey = localMedia.id
         mediaServices = nil
         mediaQueue = nil
         shouldResumeFromOffsetFlag = false
         self.localMedia = localMedia
         self.localPlaybackURL = localPlaybackURL
+        self.localExternalSubtitles = localExternalSubtitles
         media = localMedia
         playbackURL = localPlaybackURL
         selectedQuality = .original
@@ -176,6 +183,11 @@ final class PlayerViewModel {
     }
 
     func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
+        if isLocalPlayback {
+            return localExternalSubtitles.enumerated().map { index, track in
+                PlayerExternalSubtitle(track: track, providerStreamID: -(index + 1))
+            }
+        }
         guard let playbackPlan else { return [] }
         let subtitleTracks = playbackPlan.tracks.filter {
             $0.kind == .subtitle && $0.isExternal

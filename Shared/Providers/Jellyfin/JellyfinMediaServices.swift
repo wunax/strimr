@@ -794,16 +794,130 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await playbackService.externalSubtitles(item: catalog.item(id: media.id))
     }
 
-    func prepareDownload(itemID: String) async throws -> MediaDownloadPreparation {
+    func prepareDownload(
+        itemID: String,
+        quality: TranscodeQualityPreset,
+        tracks: MediaDownloadTrackPreference,
+    ) async throws -> MediaDownloadPreparation {
         let item = try await catalog.item(id: itemID)
         guard item.isPlayable, item.canDownload != false else {
             throw JellyfinAPIError.permissionDenied
         }
-        let url = try context.url(path: ["Items", item.id, "Download"])
+        let media = MediaItem(jellyfinItem: item, server: server)
+        guard !quality.isOriginal,
+              let source = item.mediaSources?.first,
+              !source.satisfiesDownloadQuality(quality)
+        else {
+            let url = try context.url(path: ["Items", item.id, "Download"])
+            return try MediaDownloadPreparation(
+                media: media,
+                requestedQuality: quality,
+                effectiveQuality: quality.isOriginal ? .original : quality,
+                request: context.mediaRequest(url: url),
+                remoteReference: nil,
+                sidecars: [],
+                audioTitle: nil,
+                subtitleTitle: nil,
+            )
+        }
+
+        let audio = source.resolveAudioStream(preference: tracks)
+        let subtitle = source.resolveSubtitleStream(preference: tracks.subtitle)
+        let playSessionID = UUID().uuidString.lowercased()
+        var query = [
+            URLQueryItem(name: "Static", value: "false"),
+            URLQueryItem(name: "MediaSourceId", value: source.id),
+            URLQueryItem(name: "PlaySessionId", value: playSessionID),
+            URLQueryItem(name: "VideoCodec", value: "h264"),
+            URLQueryItem(name: "AudioCodec", value: "aac"),
+            URLQueryItem(name: "AllowVideoStreamCopy", value: "false"),
+            URLQueryItem(name: "AllowAudioStreamCopy", value: "false"),
+            URLQueryItem(name: "AudioBitRate", value: "192000"),
+            URLQueryItem(name: "TranscodingMaxAudioChannels", value: "6"),
+        ]
+        if let bitrate = quality.maximumVideoBitrateKbps {
+            query.append(URLQueryItem(name: "VideoBitRate", value: String(bitrate * 1000)))
+        }
+        if let width = quality.maximumWidth {
+            query.append(URLQueryItem(name: "MaxWidth", value: String(width)))
+        }
+        if let height = quality.maximumHeight {
+            query.append(URLQueryItem(name: "MaxHeight", value: String(height)))
+        }
+        if let audio {
+            query.append(URLQueryItem(name: "AudioStreamIndex", value: String(audio.index)))
+        }
+
+        let url = try context.url(path: ["Videos", item.id, "stream.mp4"], query: query)
+        let sidecars = try subtitle.map {
+            try makeDownloadSidecars(itemID: item.id, source: source, subtitle: $0)
+        } ?? []
+
         return try MediaDownloadPreparation(
-            media: MediaItem(jellyfinItem: item, server: server),
+            media: media,
+            requestedQuality: quality,
+            effectiveQuality: quality,
             request: context.mediaRequest(url: url),
+            remoteReference: .jellyfin(playSessionID: playSessionID),
+            sidecars: sidecars,
+            audioTitle: audio?.displayTitle ?? audio?.title ?? audio?.language,
+            subtitleTitle: subtitle?.displayTitle ?? subtitle?.title ?? subtitle?.language,
         )
+    }
+
+    func refreshDownloadPreparation(
+        _: MediaDownloadRemoteReference,
+    ) async throws -> MediaDownloadPreparationUpdate {
+        .failed(message: String(localized: "downloads.status.failed"))
+    }
+
+    func downloadSidecars(
+        itemID: String,
+        tracks: MediaDownloadTrackPreference,
+    ) async throws -> [MediaDownloadSidecar] {
+        guard case .track = tracks.subtitle else { return [] }
+        let item = try await catalog.item(id: itemID)
+        guard let source = item.mediaSources?.first,
+              let stream = source.resolveSubtitleStream(preference: tracks.subtitle)
+        else { return [] }
+        return try makeDownloadSidecars(itemID: item.id, source: source, subtitle: stream)
+    }
+
+    private func makeDownloadSidecars(
+        itemID: String,
+        source: JellyfinMediaSource,
+        subtitle stream: JellyfinMediaStream,
+    ) throws -> [MediaDownloadSidecar] {
+        let fileExtension = stream.downloadSubtitleExtension
+        let subtitleURL: URL = if let deliveryURL = stream.deliveryURL,
+                                  let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?
+                                  .absoluteURL
+        {
+            resolved
+        } else {
+            try context.url(path: [
+                "Videos", itemID, source.id, "Subtitles", String(stream.index), "0",
+                "Stream.\(fileExtension)",
+            ])
+        }
+        return try [MediaDownloadSidecar(
+            request: context.mediaRequest(url: subtitleURL),
+            fileExtension: fileExtension,
+            title: stream.displayTitle ?? stream.title,
+            language: stream.language,
+            codec: stream.codec ?? fileExtension,
+            isForced: stream.isForced == true,
+        )]
+    }
+
+    func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async {
+        guard case let .jellyfin(playSessionID) = reference else { return }
+        do {
+            try await context.stopEncoding(playSessionID: playSessionID)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
     }
 
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem] {
@@ -921,6 +1035,84 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             case .unknown: ""
             }
         }.filter { !$0.isEmpty }.joined(separator: ",")
+    }
+}
+
+private extension JellyfinMediaSource {
+    func satisfiesDownloadQuality(_ quality: TranscodeQualityPreset) -> Bool {
+        guard let maximumBitrate = quality.maximumVideoBitrateKbps,
+              let maximumWidth = quality.maximumWidth,
+              let maximumHeight = quality.maximumHeight,
+              let video = mediaStreams?.first(where: { $0.type.lowercased() == "video" }),
+              let width = video.width,
+              let height = video.height
+        else { return false }
+        let sourceBitrate = bitrate ?? mediaStreams?.compactMap(\.bitrate).reduce(0, +)
+        guard let sourceBitrate else { return false }
+        return sourceBitrate <= (maximumBitrate + 192) * 1000
+            && width <= maximumWidth
+            && height <= maximumHeight
+    }
+
+    func resolveAudioStream(preference: MediaDownloadTrackPreference) -> JellyfinMediaStream? {
+        let audio = (mediaStreams ?? []).filter { $0.type.lowercased() == "audio" }
+        if let index = preference.audioStreamIndex,
+           let exact = audio.first(where: { $0.index == index })
+        {
+            return exact
+        }
+        if let language = preference.audioLanguage,
+           let match = audio.first(where: {
+               $0.language?.localizedCaseInsensitiveCompare(language) == .orderedSame
+                   &&
+                   (preference.audioTitle == nil || $0.displayTitle == preference.audioTitle || $0
+                       .title == preference.audioTitle)
+           }) ?? audio.first(where: { $0.language?.localizedCaseInsensitiveCompare(language) == .orderedSame })
+        {
+            return match
+        }
+        return defaultAudioStreamIndex.flatMap { index in audio.first(where: { $0.index == index }) }
+            ?? audio.first(where: { $0.isDefault == true })
+            ?? audio.first
+    }
+
+    func resolveSubtitleStream(
+        preference: MediaDownloadSubtitlePreference,
+    ) -> JellyfinMediaStream? {
+        guard case let .track(index, language, title, codec, isForced) = preference else { return nil }
+        let subtitles = (mediaStreams ?? []).filter { stream in
+            stream.type.lowercased() == "subtitle" && stream.isDownloadableTextSubtitle
+        }
+        if let index, let exact = subtitles.first(where: { $0.index == index }) {
+            return exact
+        }
+        return subtitles.first(where: {
+            $0.language?.localizedCaseInsensitiveCompare(language ?? "") == .orderedSame
+                && $0.isForced == isForced
+                && ($0.codec?.localizedCaseInsensitiveCompare(codec) == .orderedSame)
+                && (title == nil || $0.displayTitle == title || $0.title == title)
+        }) ?? subtitles.first(where: {
+            $0.language?.localizedCaseInsensitiveCompare(language ?? "") == .orderedSame
+                && $0.isForced == isForced
+        })
+    }
+}
+
+extension JellyfinMediaStream {
+    var isDownloadableTextSubtitle: Bool {
+        guard type.lowercased() == "subtitle" else { return false }
+        let normalized = codec?.lowercased() ?? ""
+        return ["srt", "subrip", "ass", "ssa", "vtt", "webvtt"].contains(normalized)
+    }
+
+    var downloadSubtitleExtension: String {
+        switch codec?.lowercased() {
+        case "subrip": "srt"
+        case "webvtt": "vtt"
+        case "ssa": "ssa"
+        case "ass": "ass"
+        default: codec?.lowercased() ?? "srt"
+        }
     }
 }
 

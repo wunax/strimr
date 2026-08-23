@@ -83,5 +83,10 @@ struct ContentView: View {
                 await sessionManager.hydrate()
             }
         }
+        .onChange(of: sessionManager.mediaServices?.identity, initial: true) { _, _ in
+            if let services = sessionManager.mediaServices {
+                downloadManager.register(services: services)
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(AppModel.self) private var appModel
+    @Environment(DownloadManager.self) private var downloadManager
 
     init() {
         ErrorReporter.start()
@@ -68,6 +69,11 @@ struct ContentView: View {
         .onChange(of: appModel.playerPresentation?.id) { _, presentationID in
             guard presentationID != nil else { return }
             openWindow(id: AppModel.playerWindowID)
+        }
+        .onChange(of: sessionManager.mediaServices?.identity, initial: true) { _, _ in
+            if let services = sessionManager.mediaServices {
+                downloadManager.register(services: services)
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 import Network
 import Observation
@@ -21,6 +22,10 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private var progressByTaskIdentifier: [Int: Double] = [:]
     @ObservationIgnored private var isLoadingPersistedState = false
     @ObservationIgnored private var ignoredCompletionIDs: Set<String> = []
+    @ObservationIgnored private var servicesByServer: [ServerIdentity: MediaServices] = [:]
+    @ObservationIgnored private var preparationTasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private var pendingRequestsByItemID: [String: URLRequest] = [:]
+    @ObservationIgnored private var sidecarsByItemID: [String: [MediaDownloadSidecar]] = [:]
     @ObservationIgnored private let downloadsDirectory: URL
     @ObservationIgnored private let indexFileURL: URL
     @ObservationIgnored private var backgroundSession: URLSession!
@@ -107,6 +112,21 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         return FileManager.default.fileExists(atPath: fileURL.path) ? fileURL : nil
     }
 
+    func localExternalSubtitles(for item: DownloadItem) -> [ExternalSubtitleTrack] {
+        guard let fileName = item.metadata.subtitleFileName else { return [] }
+        let url = downloadsDirectory
+            .appendingPathComponent(item.id, isDirectory: true)
+            .appendingPathComponent(fileName, isDirectory: false)
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        return [ExternalSubtitleTrack(
+            url: url,
+            name: item.metadata.subtitleTitle,
+            language: item.metadata.subtitleLanguage,
+            isForced: item.metadata.subtitleIsForced,
+            formatHint: item.metadata.subtitleCodec,
+        )]
+    }
+
     func localMediaItem(for item: DownloadItem) -> MediaItem {
         let identity = item.identity ?? MediaIdentity(
             server: ServerIdentity(provider: .plex, id: "legacy-download:\(item.id)"),
@@ -148,21 +168,51 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         )
     }
 
-    func enqueueItem(itemID: String, services: MediaServices) async {
+    func register(services: MediaServices) {
+        servicesByServer[services.identity] = services
+        for item in items where item.identity?.server == services.identity && item.status == .preparing {
+            startPreparationPolling(for: item.id, services: services)
+        }
+        startNextQueuedTransfer(on: services.identity)
+    }
+
+    func enqueueItem(
+        itemID: String,
+        quality: TranscodeQualityPreset? = nil,
+        tracks: MediaDownloadTrackPreference = .serverDefault,
+        services: MediaServices,
+    ) async {
+        register(services: services)
         do {
-            let preparation = try await services.downloads.prepareDownload(itemID: itemID)
-            try await enqueue(preparation, services: services)
+            let effectiveQuality = quality ?? settingsManager.downloads.qualityPreset
+            let preparation = try await services.downloads.prepareDownload(
+                itemID: itemID,
+                quality: effectiveQuality,
+                tracks: tracks,
+            )
+            try await enqueue(preparation, tracks: tracks, services: services)
         } catch {
             handleDownloadError(error)
         }
     }
 
-    func enqueueItems(itemID: String, kind: MediaKind, services: MediaServices) async {
+    func enqueueItems(
+        itemID: String,
+        kind: MediaKind,
+        quality: TranscodeQualityPreset? = nil,
+        tracks: MediaDownloadTrackPreference = .serverDefault,
+        services: MediaServices,
+    ) async {
         do {
             let media = try await services.downloads.downloadableItems(itemID: itemID, kind: kind)
             for item in media {
                 guard !Task.isCancelled else { return }
-                await enqueueItem(itemID: item.id, services: services)
+                await enqueueItem(
+                    itemID: item.id,
+                    quality: quality,
+                    tracks: tracks,
+                    services: services,
+                )
             }
         } catch {
             handleDownloadError(error)
@@ -184,7 +234,11 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         await enqueueItems(itemID: itemID, kind: .series, services: services)
     }
 
-    private func enqueue(_ preparation: MediaDownloadPreparation, services: MediaServices) async throws {
+    private func enqueue(
+        _ preparation: MediaDownloadPreparation,
+        tracks: MediaDownloadTrackPreference,
+        services: MediaServices,
+    ) async throws {
         let mediaItem = preparation.media
         guard !isAlreadyScheduled(for: mediaItem.identity) else { return }
         guard mediaItem.kind == .movie || mediaItem.kind == .episode else { return }
@@ -199,15 +253,6 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             services: services,
             destinationFolder: folderURL,
         )
-        var request = preparation.request
-        if settingsManager.downloads.wifiOnly {
-            request.allowsCellularAccess = false
-            request.allowsConstrainedNetworkAccess = false
-            request.allowsExpensiveNetworkAccess = false
-        }
-        let task = backgroundSession.downloadTask(with: request)
-        task.taskDescription = id
-
         let metadata = DownloadedMediaMetadata(
             identity: mediaItem.identity,
             guid: mediaItem.guid,
@@ -230,26 +275,58 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             posterFileName: posterFileName,
             videoFileName: "video",
             fileSize: nil,
+            requestedQuality: preparation.requestedQuality,
+            effectiveQuality: preparation.effectiveQuality,
+            audioTitle: preparation.audioTitle,
+            subtitleTitle: preparation.subtitleTitle,
             createdAt: Date(),
         )
+        let shouldQueue = preparation.remoteReference != nil && hasActiveTranscode(on: mediaItem.identity.server)
+        let initialStatus: DownloadStatus = if shouldQueue {
+            .queued
+        } else if preparation.request == nil {
+            .preparing
+        } else {
+            .downloading
+        }
         items.append(DownloadItem(
             id: id,
-            status: .downloading,
+            status: initialStatus,
             progress: 0,
             bytesWritten: 0,
             totalBytes: 0,
-            taskIdentifier: task.taskIdentifier,
+            taskIdentifier: nil,
+            remoteReference: preparation.remoteReference,
+            trackPreference: tracks,
             errorMessage: nil,
             metadata: metadata,
         ))
+        sidecarsByItemID[id] = preparation.sidecars
+        if shouldQueue, let request = preparation.request {
+            pendingRequestsByItemID[id] = request
+        }
         persistState()
-        task.resume()
+        if shouldQueue {
+            return
+        } else if let request = preparation.request {
+            startTransfer(itemID: id, request: request)
+        } else {
+            startPreparationPolling(for: id, services: services)
+        }
     }
 
     func delete(_ item: DownloadItem) async {
+        let server = item.identity?.server
+        preparationTasks.removeValue(forKey: item.id)?.cancel()
         if let taskIdentifier = item.taskIdentifier {
             ignoredCompletionIDs.insert(item.id)
             await cancelTask(with: taskIdentifier)
+        }
+        if let reference = item.remoteReference,
+           let server = item.identity?.server,
+           let services = servicesByServer[server]
+        {
+            await services.downloads.cancelDownloadPreparation(reference)
         }
 
         let folderURL = downloadsDirectory.appendingPathComponent(item.id, isDirectory: true)
@@ -259,8 +336,13 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
         items.removeAll { $0.id == item.id }
         progressByTaskIdentifier.removeValue(forKey: item.taskIdentifier ?? -1)
+        sidecarsByItemID[item.id] = nil
+        pendingRequestsByItemID[item.id] = nil
         persistState()
         refreshStorageSummary()
+        if let server {
+            startNextQueuedTransfer(on: server)
+        }
     }
 
     func setBackgroundEventsCompletionHandler(_ handler: @escaping () -> Void) {
@@ -333,6 +415,14 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func isAlreadyScheduled(for identity: MediaIdentity) -> Bool {
         items.contains { item in
             item.identity == identity && item.status != .failed
+        }
+    }
+
+    private func hasActiveTranscode(on server: ServerIdentity) -> Bool {
+        items.contains {
+            $0.identity?.server == server
+                && $0.remoteReference != nil
+                && ($0.status == .preparing || $0.status == .downloading)
         }
     }
 
@@ -423,6 +513,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             if let taskIdentifier = items[index].taskIdentifier, runningTaskIDs.contains(taskIdentifier) {
                 items[index].status = .downloading
                 items[index].errorMessage = nil
+            } else if items[index].status == .preparing {
+                continue
             } else if items[index].status.isActive {
                 items[index].status = .failed
                 items[index].errorMessage = String(localized: "downloads.status.interrupted")
@@ -444,6 +536,125 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func cancelTask(with identifier: Int) async {
         let tasks = await allTasks()
         tasks.first { $0.taskIdentifier == identifier }?.cancel()
+    }
+
+    private func startTransfer(itemID: String, request sourceRequest: URLRequest) {
+        guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
+        var request = sourceRequest
+        if settingsManager.downloads.wifiOnly {
+            request.allowsCellularAccess = false
+            request.allowsConstrainedNetworkAccess = false
+            request.allowsExpensiveNetworkAccess = false
+        }
+        let task = backgroundSession.downloadTask(with: request)
+        task.taskDescription = itemID
+        items[index].status = .downloading
+        items[index].progress = 0
+        items[index].taskIdentifier = task.taskIdentifier
+        items[index].errorMessage = nil
+        persistState()
+        task.resume()
+    }
+
+    private func startPreparationPolling(for itemID: String, services: MediaServices) {
+        guard preparationTasks[itemID] == nil else { return }
+        preparationTasks[itemID] = Task { [weak self] in
+            guard let self else { return }
+            defer { preparationTasks[itemID] = nil }
+            while !Task.isCancelled {
+                guard let index = items.firstIndex(where: { $0.id == itemID }),
+                      items[index].status == .preparing,
+                      let reference = items[index].remoteReference
+                else { return }
+                do {
+                    switch try await services.downloads.refreshDownloadPreparation(reference) {
+                    case let .preparing(progress):
+                        if let progress {
+                            items[index].progress = progress
+                        }
+                        persistState()
+                    case let .ready(request, sidecars):
+                        sidecarsByItemID[itemID] = sidecars
+                        startTransfer(itemID: itemID, request: request)
+                        return
+                    case let .failed(message):
+                        items[index].status = .failed
+                        items[index].errorMessage = message
+                        persistState()
+                        await services.downloads.cancelDownloadPreparation(reference)
+                        if let server = items[index].identity?.server {
+                            startNextQueuedTransfer(on: server)
+                        }
+                        return
+                    }
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { return }
+                    if !isOffline {
+                        ErrorReporter.capture(error)
+                    }
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    private func startNextQueuedTransfer(on server: ServerIdentity) {
+        guard !hasActiveTranscode(on: server),
+              let services = servicesByServer[server],
+              let item = items
+              .filter({ $0.identity?.server == server && $0.status == .queued })
+              .min(by: { $0.createdAt < $1.createdAt }),
+              preparationTasks[item.id] == nil
+        else { return }
+
+        if let request = pendingRequestsByItemID.removeValue(forKey: item.id) {
+            startTransfer(itemID: item.id, request: request)
+            return
+        }
+        if case .plex? = item.remoteReference {
+            guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+            items[index].status = .preparing
+            persistState()
+            startPreparationPolling(for: item.id, services: services)
+            return
+        }
+
+        preparationTasks[item.id] = Task { [weak self] in
+            guard let self else { return }
+            defer { preparationTasks[item.id] = nil }
+            do {
+                let preparation = try await services.downloads.prepareDownload(
+                    itemID: item.itemID,
+                    quality: item.metadata.requestedQuality,
+                    tracks: item.trackPreference ?? .serverDefault,
+                )
+                guard let index = items.firstIndex(where: { $0.id == item.id }),
+                      items[index].status == .queued
+                else { return }
+                items[index].remoteReference = preparation.remoteReference
+                items[index].metadata.effectiveQuality = preparation.effectiveQuality
+                items[index].metadata.audioTitle = preparation.audioTitle
+                items[index].metadata.subtitleTitle = preparation.subtitleTitle
+                sidecarsByItemID[item.id] = preparation.sidecars
+                persistState()
+                if let request = preparation.request {
+                    startTransfer(itemID: item.id, request: request)
+                } else {
+                    items[index].status = .preparing
+                    persistState()
+                    startPreparationPolling(for: item.id, services: services)
+                }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation,
+                      let index = items.firstIndex(where: { $0.id == item.id })
+                else { return }
+                items[index].status = .failed
+                items[index].errorMessage = error.localizedDescription
+                persistState()
+                ErrorReporter.capture(error)
+                startNextQueuedTransfer(on: server)
+            }
+        }
     }
 
     private func sanitizeFileName(_ value: String) -> String {
@@ -492,15 +703,79 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             items[index].metadata.videoFileName = destination.lastPathComponent
             items[index].metadata.fileSize = fileSize
 
+            await persistSidecars(forItemAt: index, folderURL: destination.deletingLastPathComponent())
+
+            if let reference = items[index].remoteReference,
+               let server = items[index].identity?.server,
+               let services = servicesByServer[server]
+            {
+                await services.downloads.cancelDownloadPreparation(reference)
+                items[index].remoteReference = nil
+            }
+
             persistMetadataFile(for: items[index])
             persistState()
             refreshStorageSummary()
+            if let server = items[index].identity?.server {
+                startNextQueuedTransfer(on: server)
+            }
         } catch {
             items[index].status = .failed
             items[index].taskIdentifier = nil
             items[index].errorMessage = error.localizedDescription
             persistState()
+            if let server = items[index].identity?.server {
+                startNextQueuedTransfer(on: server)
+            }
         }
+    }
+
+    private func persistSidecars(forItemAt index: Int, folderURL: URL) async {
+        let itemID = items[index].id
+        if sidecarsByItemID[itemID] == nil,
+           let server = items[index].identity?.server,
+           let services = servicesByServer[server]
+        {
+            do {
+                sidecarsByItemID[itemID] = try await services.downloads.downloadSidecars(
+                    itemID: items[index].itemID,
+                    tracks: items[index].trackPreference ?? .serverDefault,
+                )
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+        guard let sidecar = sidecarsByItemID[itemID]?.first else { return }
+        do {
+            var request = sidecar.request
+            if settingsManager.downloads.wifiOnly {
+                request.allowsCellularAccess = false
+                request.allowsConstrainedNetworkAccess = false
+                request.allowsExpensiveNetworkAccess = false
+            }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  200 ..< 300 ~= httpResponse.statusCode,
+                  !data.isEmpty
+            else { return }
+            let fileName = "subtitle.\(sanitizeFileName(sidecar.fileExtension))"
+            let url = folderURL.appendingPathComponent(fileName, isDirectory: false)
+            try data.write(to: url, options: .atomic)
+            try setExcludedFromBackup(at: url)
+            items[index].metadata.subtitleFileName = fileName
+            items[index].metadata.subtitleTitle = sidecar.title
+            items[index].metadata.subtitleLanguage = sidecar.language
+            items[index].metadata.subtitleCodec = sidecar.codec
+            items[index].metadata.subtitleIsForced = sidecar.isForced
+            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?
+                .int64Value ?? 0
+            items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + size
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+        sidecarsByItemID[itemID] = nil
     }
 
     private nonisolated static func stageDownloadFile(at location: URL) throws -> URL {
@@ -530,7 +805,15 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         items[index].status = .failed
         items[index].taskIdentifier = nil
         items[index].errorMessage = error.localizedDescription
+        let reference = items[index].remoteReference
+        let server = items[index].identity?.server
         persistState()
+        if let reference, let server, let services = servicesByServer[server] {
+            Task { await services.downloads.cancelDownloadPreparation(reference) }
+        }
+        if let server {
+            startNextQueuedTransfer(on: server)
+        }
     }
 
     nonisolated func urlSession(

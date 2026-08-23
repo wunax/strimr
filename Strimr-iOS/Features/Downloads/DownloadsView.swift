@@ -29,6 +29,7 @@ struct DownloadsView: View {
                     viewModel: PlayerViewModel(
                         localMedia: downloadManager.localMediaItem(for: item),
                         localPlaybackURL: localURL,
+                        localExternalSubtitles: downloadManager.localExternalSubtitles(for: item),
                     ),
                 )
             }
@@ -120,12 +121,19 @@ struct DownloadsView: View {
                         .lineLimit(1)
                 }
 
+                qualityView(for: item)
                 statusView(for: item)
             }
 
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
+    }
+
+    private func qualityView(for item: DownloadItem) -> some View {
+        Text(item.metadata.effectiveQuality.title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -160,6 +168,14 @@ struct DownloadsView: View {
             Text("downloads.status.queued")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        case .preparing:
+            VStack(alignment: .leading, spacing: 4) {
+                ProgressView(value: item.progress)
+                    .tint(.brandSecondary)
+                Text("downloads.status.preparing \(Int((item.progress * 100).rounded()))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         case .downloading:
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: item.progress)

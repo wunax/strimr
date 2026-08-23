@@ -240,12 +240,17 @@ struct InterfaceSettings: Codable, Equatable {
 
 struct DownloadSettings: Codable, Equatable {
     var wifiOnly = true
+    var qualityPreset = TranscodeQualityPreset.original
 
     init() {}
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         wifiOnly = try container.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+        qualityPreset = try container.decodeIfPresent(
+            TranscodeQualityPreset.self,
+            forKey: .qualityPreset,
+        ) ?? .original
     }
 }
 
