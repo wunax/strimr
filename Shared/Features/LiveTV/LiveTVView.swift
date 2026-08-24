@@ -754,6 +754,14 @@ private struct LiveTVProgramDetailView: View {
     @State private var errorMessage: String?
     @State private var isSubmittingRecording = false
 
+    private var selectedRecordingMode: DVRRecordingMode {
+        recordsSeries ? .series : .single
+    }
+
+    private var selectedRecordingTemplate: DVRRecordingModeTemplate? {
+        template?.template(for: selectedRecordingMode)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -764,20 +772,23 @@ private struct LiveTVProgramDetailView: View {
                     if let summary = program.summary { Text(summary) }
                     if program.isCurrentlyAiring { ProgressView(value: program.progress) }
                 }
-                if let template, !program.isScheduledForRecording {
+                if let template, let modeTemplate = selectedRecordingTemplate, !program.isScheduledForRecording {
                     if !template.libraries.isEmpty {
                         Picker("livetv.recording.library", selection: $targetLibraryID) {
                             ForEach(template.libraries) { Text($0.title).tag(Optional($0.id)) }
                         }
                     }
                     if template.supportsSingle && template.supportsSeries {
-                        Picker("livetv.recording.mode", selection: $recordsSeries) {
+                        Picker("livetv.recording.mode", selection: Binding(
+                            get: { recordsSeries },
+                            set: { selectRecordingMode(series: $0) },
+                        )) {
                             Text("livetv.record").tag(false)
                             Text("livetv.recordSeries").tag(true)
                         }
                         .pickerStyle(.segmented)
                     }
-                    ForEach(template.options.filter { recordsSeries || !template.seriesOnlyOptionIDs.contains($0.id) }) { option in
+                    ForEach(modeTemplate.options) { option in
                         optionEditor(option)
                     }
                 }
@@ -799,13 +810,13 @@ private struct LiveTVProgramDetailView: View {
                             }
                             .disabled(isSubmittingRecording)
                         } else {
-                            if template?.supportsSingle == true {
-                                Button("livetv.record") { schedule(series: false) }
-                                    .disabled(template == nil || isSubmittingRecording)
-                            }
-                            if template?.supportsSeries == true {
-                                Button("livetv.recordSeries") { schedule(series: true) }
-                                    .disabled(template == nil || isSubmittingRecording)
+                            if selectedRecordingTemplate != nil {
+                                Button {
+                                    schedule(series: recordsSeries)
+                                } label: {
+                                    Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
+                                }
+                                .disabled(isSubmittingRecording)
                             }
                         }
                     }
@@ -817,9 +828,8 @@ private struct LiveTVProgramDetailView: View {
                 do {
                     let value = try await dvr.recordingTemplate(for: program)
                     template = value
-                    recordsSeries = !value.supportsSingle && value.supportsSeries
-                    optionValues = Dictionary(uniqueKeysWithValues: value.options.map { ($0.id, $0.defaultValue) })
-                    targetLibraryID = value.defaultLibraryID
+                    let initialMode = value.preferredMode ?? (value.supportsSingle ? .single : .series)
+                    selectRecordingMode(series: initialMode == .series)
                 } catch {
                     guard !Task.isCancelled, !error.isCancellation else { return }
                     LiveTVErrorReporting.capture(error)
@@ -827,6 +837,17 @@ private struct LiveTVProgramDetailView: View {
                 }
             }
         }
+    }
+
+    private func selectRecordingMode(series: Bool) {
+        recordsSeries = series
+        guard let modeTemplate = selectedRecordingTemplate else {
+            optionValues = [:]
+            targetLibraryID = nil
+            return
+        }
+        optionValues = Dictionary(uniqueKeysWithValues: modeTemplate.options.map { ($0.id, $0.defaultValue) })
+        targetLibraryID = modeTemplate.defaultLibraryID
     }
 
     @ViewBuilder private func optionEditor(_ option: DVRRecordingOption) -> some View {

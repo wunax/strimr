@@ -232,39 +232,35 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             query: userQuery(),
         )
         let (timer, details) = try await (timerTask, detailsTask)
-        let seriesOnlyOptionIDs: Set<String> = [
-            "recordNewOnly",
-            "recordAnyTime",
-            "recordAnyChannel",
-            "keepUpTo",
-            "keepUntil",
-            "skipEpisodesInLibrary",
+        let supportsSeries = details.isSeries == true
+            || details.seriesID?.isEmpty == false
+            || details.seriesName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty == false
+        let singleOptions = [
+            DVRRecordingOption(id: "prePaddingSeconds", title: String(localized: "livetv.recording.prePadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PrePaddingSeconds"]) ?? 0)),
+            DVRRecordingOption(id: "postPaddingSeconds", title: String(localized: "livetv.recording.postPadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PostPaddingSeconds"]) ?? 0)),
+        ]
+        let seriesOptions = [
+            singleOptions[0],
+            singleOptions[1],
+            DVRRecordingOption(id: "recordNewOnly", title: String(localized: "livetv.recording.newOnly"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordNewOnly"]) ?? false)),
+            DVRRecordingOption(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyTime"]) ?? true)),
+            DVRRecordingOption(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyChannel"]) ?? false)),
+            DVRRecordingOption(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(integer(timer["KeepUpTo"]) ?? 0)),
+            DVRRecordingOption(
+                id: "keepUntil",
+                title: String(localized: "livetv.recording.keepUntil"),
+                summary: nil,
+                kind: .choice(Self.keepUntilChoices()),
+                defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted",
+            ),
+            DVRRecordingOption(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["SkipEpisodesInLibrary"]) ?? false)),
         ]
         return DVRRecordingTemplate(
             programID: program.id,
-            supportsSingle: true,
-            supportsSeries: details.isSeries == true
-                || details.seriesID?.isEmpty == false
-                || details.seriesName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty == false,
+            single: DVRRecordingModeTemplate(options: singleOptions, defaultLibraryID: nil),
+            series: supportsSeries ? DVRRecordingModeTemplate(options: seriesOptions, defaultLibraryID: nil) : nil,
+            preferredMode: .single,
             libraries: [],
-            defaultLibraryID: nil,
-            options: [
-                .init(id: "prePaddingSeconds", title: String(localized: "livetv.recording.prePadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PrePaddingSeconds"]) ?? 0)),
-                .init(id: "postPaddingSeconds", title: String(localized: "livetv.recording.postPadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PostPaddingSeconds"]) ?? 0)),
-                .init(id: "recordNewOnly", title: String(localized: "livetv.recording.newOnly"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordNewOnly"]) ?? false)),
-                .init(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyTime"]) ?? true)),
-                .init(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyChannel"]) ?? false)),
-                .init(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(integer(timer["KeepUpTo"]) ?? 0)),
-                .init(
-                    id: "keepUntil",
-                    title: String(localized: "livetv.recording.keepUntil"),
-                    summary: nil,
-                    kind: .choice(Self.keepUntilChoices()),
-                    defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted",
-                ),
-                .init(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["SkipEpisodesInLibrary"]) ?? false)),
-            ],
-            seriesOnlyOptionIDs: seriesOnlyOptionIDs,
         )
     }
 

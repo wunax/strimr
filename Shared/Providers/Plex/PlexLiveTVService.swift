@@ -164,43 +164,64 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         let container = mediaContainer(root) ?? [:]
         let templates = dictionaries(container["SubscriptionTemplate"])
         let subscriptions = templates.flatMap { dictionaries($0["MediaSubscription"]) }
-        let selected = subscriptions.first(where: { bool($0["selected"]) == true }) ?? subscriptions.first ?? [:]
-        let settings = dictionaries(selected["Setting"]).filter { bool($0["hidden"]) != true && bool($0["advanced"]) != true }
-        let options = settings.compactMap { setting -> DVRRecordingOption? in
-            guard let id = string(setting["id"]), let title = string(setting["label"]) else { return nil }
-            let enumValues = string(setting["enumValues"])
-            let kind: DVRRecordingOptionKind
-            if let enumValues, !enumValues.isEmpty {
-                kind = .choice(enumValues.split(separator: "|").map { value in
-                    let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
-                    return DVRRecordingOptionChoice(id: parts[0], title: parts.count > 1 ? parts[1] : parts[0])
-                })
-            } else if string(setting["type"])?.lowercased() == "bool" {
-                kind = .toggle
-            } else if string(setting["type"])?.lowercased().contains("int") == true {
-                kind = .integer
-            } else {
-                kind = .text
-            }
-            return DVRRecordingOption(
-                id: id,
-                title: title,
-                summary: string(setting["summary"]),
-                kind: kind,
-                defaultValue: string(setting["value"] ?? setting["default"]) ?? "",
-            )
-        }
+        let selected = subscriptions.first(where: { bool($0["selected"]) == true }) ?? subscriptions.first
+        let singleSubscription = subscriptions.first(where: { int($0["type"]) == 4 })
+            ?? (subscriptions.count == 1 && int(subscriptions[0]["type"]) == nil ? subscriptions[0] : nil)
+        let seriesSubscription = subscriptions.first(where: { int($0["type"]) == 2 })
         let libraries = try await PlexMediaServiceAdapter(context: context, sessionManager: nil, server: try context.serverAccessSnapshot().serverIdentity).libraries()
             .filter { $0.type == .movie || $0.type == .series }
         return DVRRecordingTemplate(
             programID: program.id,
-            supportsSingle: subscriptions.contains { int($0["type"]) == 4 } || subscriptions.count == 1,
-            supportsSeries: subscriptions.contains { int($0["type"]) == 2 },
+            single: singleSubscription.map { subscription in
+                DVRRecordingModeTemplate(
+                    options: recordingOptions(from: dictionaries(subscription["Setting"])),
+                    defaultLibraryID: string(subscription["targetLibrarySectionID"]),
+                )
+            },
+            series: seriesSubscription.map { subscription in
+                DVRRecordingModeTemplate(
+                    options: recordingOptions(from: dictionaries(subscription["Setting"])),
+                    defaultLibraryID: string(subscription["targetLibrarySectionID"]),
+                )
+            },
+            preferredMode: selected.flatMap { subscription in
+                switch int(subscription["type"]) {
+                case 2: return .series
+                case 4: return .single
+                default: return nil
+                }
+            } ?? (singleSubscription != nil ? .single : seriesSubscription != nil ? .series : nil),
             libraries: libraries,
-            defaultLibraryID: string(selected["targetLibrarySectionID"]),
-            options: options,
-            seriesOnlyOptionIDs: [],
         )
+    }
+
+    private func recordingOptions(from settings: [[String: Any]]) -> [DVRRecordingOption] {
+        settings
+            .filter { bool($0["hidden"]) != true && bool($0["advanced"]) != true }
+            .compactMap { setting -> DVRRecordingOption? in
+                guard let id = string(setting["id"]), let title = string(setting["label"]) else { return nil }
+                let enumValues = string(setting["enumValues"])
+                let kind: DVRRecordingOptionKind
+                if let enumValues, !enumValues.isEmpty {
+                    kind = .choice(enumValues.split(separator: "|").map { value in
+                        let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
+                        return DVRRecordingOptionChoice(id: parts[0], title: parts.count > 1 ? parts[1] : parts[0])
+                    })
+                } else if string(setting["type"])?.lowercased() == "bool" {
+                    kind = .toggle
+                } else if string(setting["type"])?.lowercased().contains("int") == true {
+                    kind = .integer
+                } else {
+                    kind = .text
+                }
+                return DVRRecordingOption(
+                    id: id,
+                    title: title,
+                    summary: string(setting["summary"]),
+                    kind: kind,
+                    defaultValue: string(setting["value"] ?? setting["default"]) ?? "",
+                )
+            }
     }
 
     func schedule(_ request: DVRRecordingRequest) async throws {

@@ -171,14 +171,32 @@ struct DVRRecordingOption: Identifiable, Hashable, Sendable {
     let defaultValue: String
 }
 
+enum DVRRecordingMode: Hashable, Sendable {
+    case single
+    case series
+}
+
+struct DVRRecordingModeTemplate: Hashable, Sendable {
+    let options: [DVRRecordingOption]
+    let defaultLibraryID: String?
+}
+
 struct DVRRecordingTemplate: Hashable, Sendable {
     let programID: String
-    let supportsSingle: Bool
-    let supportsSeries: Bool
+    let single: DVRRecordingModeTemplate?
+    let series: DVRRecordingModeTemplate?
+    let preferredMode: DVRRecordingMode?
     let libraries: [Library]
-    let defaultLibraryID: String?
-    let options: [DVRRecordingOption]
-    let seriesOnlyOptionIDs: Set<String>
+
+    var supportsSingle: Bool { single != nil }
+    var supportsSeries: Bool { series != nil }
+
+    func template(for mode: DVRRecordingMode) -> DVRRecordingModeTemplate? {
+        switch mode {
+        case .single: return single
+        case .series: return series
+        }
+    }
 }
 
 struct DVRRecordingRequest: Sendable {
