@@ -543,13 +543,23 @@ struct LiveTVView: View {
             }
             Section("livetv.dvr.rules") {
                 ForEach(store.recordingRules) { rule in
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Button { selectedRule = rule } label: {
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(rule.title)
-                                if let library = rule.targetLibraryTitle { Text(library).font(.caption).foregroundStyle(.secondary) }
+                                Text(rule.modeTitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if let library = rule.targetLibraryTitle {
+                                    Label(library, systemImage: "rectangle.stack")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                         if let libraryID = rule.targetLibraryID {
                             Button("livetv.dvr.openLibrary", systemImage: "rectangle.stack") { onOpenLibrary(libraryID) }
                         }
@@ -687,28 +697,65 @@ private extension DVRRecordingStatus {
     }
 }
 
+private extension DVRRecordingRule {
+    var modeTitle: LocalizedStringKey {
+        isSeries ? "livetv.recording.rule.series" : "livetv.recording.rule.episode"
+    }
+}
+
 private struct DVRRuleEditView: View {
     let rule: DVRRecordingRule
     let dvr: (any MediaDVRService)?
     let onChanged: () async -> Void
+    private let baselineValues: [String: String]
 
     @Environment(\.dismiss) private var dismiss
     @State private var values: [String: String]
     @State private var errorMessage: String?
+    @State private var isSaving = false
 
     init(rule: DVRRecordingRule, dvr: (any MediaDVRService)?, onChanged: @escaping () async -> Void) {
         self.rule = rule
         self.dvr = dvr
         self.onChanged = onChanged
-        _values = State(initialValue: rule.optionValues)
+        let initialValues = Dictionary(uniqueKeysWithValues: rule.options.map { option in
+            (option.id, rule.optionValues[option.id] ?? option.resolvedValue)
+        })
+        baselineValues = initialValues
+        _values = State(initialValue: initialValues)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Text(rule.title).font(.title2.bold())
-                ForEach(values.keys.sorted(), id: \.self) { key in
-                    TextField(key, text: Binding(get: { values[key] ?? "" }, set: { values[key] = $0 }))
+                Section {
+                    Text(rule.title).font(.title2.bold())
+                    HStack {
+                        Label("livetv.recording.mode", systemImage: "record.circle")
+                        Spacer()
+                        Text(rule.modeTitle)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let library = rule.targetLibraryTitle {
+                        HStack {
+                            Label("livetv.recording.library", systemImage: "rectangle.stack")
+                            Spacer()
+                            Text(library)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                if rule.options.isEmpty {
+                    Section {
+                        Text("livetv.dvr.noEditableOptions")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section("livetv.dvr.options") {
+                        ForEach(rule.options) { option in
+                            optionEditor(option)
+                        }
+                    }
                 }
                 if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
             }
@@ -716,20 +763,87 @@ private struct DVRRuleEditView: View {
             .toolbar {
                 Button("common.cancel") { dismiss() }
                 Button("common.done") { save() }
+                    .disabled(isSaving)
             }
         }
     }
 
+    @ViewBuilder
+    private func optionEditor(_ option: DVRRecordingOption) -> some View {
+        switch option.kind {
+        case .toggle:
+            Toggle(isOn: Binding(
+                get: { isTruthy(values[option.id] ?? option.resolvedValue) },
+                set: { values[option.id] = String($0) },
+            )) {
+                optionLabel(option)
+            }
+        case let .choice(choices):
+            let currentValue = values[option.id] ?? option.resolvedValue
+            let choices = choices + (choices.contains(where: { $0.id == currentValue })
+                ? []
+                : [DVRRecordingOptionChoice(id: currentValue, title: currentValue)])
+            Picker(selection: valueBinding(option)) {
+                ForEach(choices) { choice in
+                    Text(choice.title).tag(choice.id)
+                }
+            } label: {
+                optionLabel(option)
+            }
+        case .integer, .text:
+            VStack(alignment: .leading, spacing: 6) {
+                optionLabel(option)
+                TextField(
+                    option.title,
+                    text: valueBinding(option),
+                )
+                .multilineTextAlignment(.leading)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func optionLabel(_ option: DVRRecordingOption) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(option.title)
+            if let summary = option.summary, !summary.isEmpty {
+                Text(summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func valueBinding(_ option: DVRRecordingOption) -> Binding<String> {
+        Binding(
+            get: { values[option.id] ?? option.resolvedValue },
+            set: { values[option.id] = $0 },
+        )
+    }
+
+    private func isTruthy(_ value: String) -> Bool {
+        ["true", "1", "yes"].contains(value.lowercased())
+    }
+
     private func save() {
         guard let dvr else { return }
+        let changedValues = values.filter { key, value in baselineValues[key] != value }
+        guard !changedValues.isEmpty else {
+            dismiss()
+            return
+        }
+        isSaving = true
         Task {
             do {
-                try await dvr.update(rule: rule, options: values)
+                try await dvr.update(rule: rule, options: changedValues)
+                guard !Task.isCancelled else { return }
                 await onChanged()
                 dismiss()
             } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
                 LiveTVErrorReporting.capture(error)
                 errorMessage = String(localized: "livetv.dvr.updateError")
+                isSaving = false
             }
         }
     }

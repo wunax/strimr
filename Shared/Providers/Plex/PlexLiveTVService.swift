@@ -199,7 +199,8 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         settings
             .filter { bool($0["hidden"]) != true && bool($0["advanced"]) != true }
             .compactMap { setting -> DVRRecordingOption? in
-                guard let id = string(setting["id"]), let title = string(setting["label"]) else { return nil }
+                guard let id = string(setting["id"]) else { return nil }
+                let title = string(setting["label"]) ?? id
                 let enumValues = string(setting["enumValues"])
                 let kind: DVRRecordingOptionKind
                 if let enumValues, !enumValues.isEmpty {
@@ -220,6 +221,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                     summary: string(setting["summary"]),
                     kind: kind,
                     defaultValue: string(setting["value"] ?? setting["default"]) ?? "",
+                    currentValue: string(setting["value"]),
                 )
             }
     }
@@ -358,16 +360,18 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
 
     private func parseRule(_ item: [String: Any]) -> DVRRecordingRule? {
         guard let id = string(item["key"] ?? item["id"]) else { return nil }
+        let settings = dictionaries(item["Setting"])
         return DVRRecordingRule(
             id: id,
             title: string(item["title"]) ?? String(localized: "livetv.recording.rule"),
             isSeries: int(item["type"]) == 2,
             targetLibraryID: string(item["targetLibrarySectionID"]),
             targetLibraryTitle: string(item["librarySectionTitle"]),
-            optionValues: Dictionary(uniqueKeysWithValues: dictionaries(item["Setting"]).compactMap { setting in
+            optionValues: Dictionary(uniqueKeysWithValues: settings.compactMap { setting in
                 guard let id = string(setting["id"]), let value = string(setting["value"]) else { return nil }
                 return (id, value)
             }),
+            options: recordingOptions(from: settings),
         )
     }
 

@@ -149,6 +149,25 @@ struct DVRRecordingRule: Identifiable, Hashable, Sendable {
     let targetLibraryID: String?
     let targetLibraryTitle: String?
     let optionValues: [String: String]
+    let options: [DVRRecordingOption]
+
+    init(
+        id: String,
+        title: String,
+        isSeries: Bool,
+        targetLibraryID: String?,
+        targetLibraryTitle: String?,
+        optionValues: [String: String],
+        options: [DVRRecordingOption] = [],
+    ) {
+        self.id = id
+        self.title = title
+        self.isSeries = isSeries
+        self.targetLibraryID = targetLibraryID
+        self.targetLibraryTitle = targetLibraryTitle
+        self.optionValues = optionValues
+        self.options = options
+    }
 }
 
 enum DVRRecordingOptionKind: Hashable, Sendable {
@@ -169,6 +188,25 @@ struct DVRRecordingOption: Identifiable, Hashable, Sendable {
     let summary: String?
     let kind: DVRRecordingOptionKind
     let defaultValue: String
+    let currentValue: String?
+
+    init(
+        id: String,
+        title: String,
+        summary: String?,
+        kind: DVRRecordingOptionKind,
+        defaultValue: String,
+        currentValue: String? = nil,
+    ) {
+        self.id = id
+        self.title = title
+        self.summary = summary
+        self.kind = kind
+        self.defaultValue = defaultValue
+        self.currentValue = currentValue
+    }
+
+    var resolvedValue: String { currentValue ?? defaultValue }
 }
 
 enum DVRRecordingMode: Hashable, Sendable {

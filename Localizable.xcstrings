@@ -5165,6 +5165,50 @@
         }
       }
     },
+    "livetv.dvr.options" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Options"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options d’enregistrement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制选项"
+          }
+        }
+      }
+    },
+    "livetv.dvr.noEditableOptions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This rule has no editable options."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette règle ne comporte aucune option modifiable."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此规则没有可编辑的选项。"
+          }
+        }
+      }
+    },
     "livetv.dvr.unsupported" : {
       "localizations" : {
         "en" : {
@@ -6305,6 +6349,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "录制规则"
+          }
+        }
+      }
+    },
+    "livetv.recording.rule.episode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Episode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer l’épisode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制单集"
+          }
+        }
+      }
+    },
+    "livetv.recording.rule.series" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer la série"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制系列节目"
           }
         }
       }

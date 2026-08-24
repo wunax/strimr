@@ -197,6 +197,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 targetLibraryID: nil,
                 targetLibraryTitle: nil,
                 optionValues: timer.optionValues,
+                options: recordingOptions(values: timer.optionValues, includeSeriesOptions: true, current: true),
             )
         }
     }
@@ -235,26 +236,9 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         let supportsSeries = details.isSeries == true
             || details.seriesID?.isEmpty == false
             || details.seriesName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty == false
-        let singleOptions = [
-            DVRRecordingOption(id: "prePaddingSeconds", title: String(localized: "livetv.recording.prePadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PrePaddingSeconds"]) ?? 0)),
-            DVRRecordingOption(id: "postPaddingSeconds", title: String(localized: "livetv.recording.postPadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PostPaddingSeconds"]) ?? 0)),
-        ]
-        let seriesOptions = [
-            singleOptions[0],
-            singleOptions[1],
-            DVRRecordingOption(id: "recordNewOnly", title: String(localized: "livetv.recording.newOnly"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordNewOnly"]) ?? false)),
-            DVRRecordingOption(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyTime"]) ?? true)),
-            DVRRecordingOption(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyChannel"]) ?? false)),
-            DVRRecordingOption(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(integer(timer["KeepUpTo"]) ?? 0)),
-            DVRRecordingOption(
-                id: "keepUntil",
-                title: String(localized: "livetv.recording.keepUntil"),
-                summary: nil,
-                kind: .choice(Self.keepUntilChoices()),
-                defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted",
-            ),
-            DVRRecordingOption(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["SkipEpisodesInLibrary"]) ?? false)),
-        ]
+        let values = recordingOptionValues(from: timer)
+        let singleOptions = recordingOptions(values: values, includeSeriesOptions: false, current: false)
+        let seriesOptions = recordingOptions(values: values, includeSeriesOptions: true, current: false)
         return DVRRecordingTemplate(
             programID: program.id,
             single: DVRRecordingModeTemplate(options: singleOptions, defaultLibraryID: nil),
@@ -431,6 +415,96 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             .init(id: "UntilWatched", title: String(localized: "livetv.recording.keepUntil.watched")),
             .init(id: "UntilDate", title: String(localized: "livetv.recording.keepUntil.date")),
         ]
+    }
+
+    private func recordingOptionValues(from timer: [String: Any]) -> [String: String] {
+        [
+            "prePaddingSeconds": String(integer(timer["PrePaddingSeconds"]) ?? 0),
+            "postPaddingSeconds": String(integer(timer["PostPaddingSeconds"]) ?? 0),
+            "recordNewOnly": String(boolean(timer["RecordNewOnly"]) ?? false),
+            "recordAnyTime": String(boolean(timer["RecordAnyTime"]) ?? true),
+            "recordAnyChannel": String(boolean(timer["RecordAnyChannel"]) ?? false),
+            "keepUpTo": String(integer(timer["KeepUpTo"]) ?? 0),
+            "keepUntil": string(timer["KeepUntil"]) ?? "UntilDeleted",
+            "skipEpisodesInLibrary": String(boolean(timer["SkipEpisodesInLibrary"]) ?? false),
+        ]
+    }
+
+    private func recordingOptions(
+        values: [String: String],
+        includeSeriesOptions: Bool,
+        current: Bool,
+    ) -> [DVRRecordingOption] {
+        func option(
+            _ id: String,
+            title: String,
+            kind: DVRRecordingOptionKind,
+            fallback: String,
+        ) -> DVRRecordingOption {
+            DVRRecordingOption(
+                id: id,
+                title: title,
+                summary: nil,
+                kind: kind,
+                defaultValue: values[id] ?? fallback,
+                currentValue: current ? values[id] : nil,
+            )
+        }
+
+        var options = [
+            option(
+                "prePaddingSeconds",
+                title: String(localized: "livetv.recording.prePadding"),
+                kind: .integer,
+                fallback: "0",
+            ),
+            option(
+                "postPaddingSeconds",
+                title: String(localized: "livetv.recording.postPadding"),
+                kind: .integer,
+                fallback: "0",
+            ),
+        ]
+        guard includeSeriesOptions else { return options }
+        options.append(contentsOf: [
+            option(
+                "recordNewOnly",
+                title: String(localized: "livetv.recording.newOnly"),
+                kind: .toggle,
+                fallback: "false",
+            ),
+            option(
+                "recordAnyTime",
+                title: String(localized: "livetv.recording.anyTime"),
+                kind: .toggle,
+                fallback: "true",
+            ),
+            option(
+                "recordAnyChannel",
+                title: String(localized: "livetv.recording.anyChannel"),
+                kind: .toggle,
+                fallback: "false",
+            ),
+            option(
+                "keepUpTo",
+                title: String(localized: "livetv.recording.keepUpTo"),
+                kind: .integer,
+                fallback: "0",
+            ),
+            option(
+                "keepUntil",
+                title: String(localized: "livetv.recording.keepUntil"),
+                kind: .choice(Self.keepUntilChoices()),
+                fallback: "UntilDeleted",
+            ),
+            option(
+                "skipEpisodesInLibrary",
+                title: String(localized: "livetv.recording.skipInLibrary"),
+                kind: .toggle,
+                fallback: "false",
+            ),
+        ])
+        return options
     }
 
     private func integer(_ value: Any?) -> Int? {
