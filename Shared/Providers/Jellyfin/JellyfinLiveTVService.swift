@@ -86,16 +86,72 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func onNow() async throws -> [LiveTVOnNowSection] {
-        let response: JellyfinQueryResult<JellyfinLiveProgramDTO> = try await context.get(
+        async let now = fetchProgramHub(
             path: ["LiveTv", "Programs", "Recommended"],
             query: userQuery() + [
                 URLQueryItem(name: "IsAiring", value: "true"),
-                URLQueryItem(name: "EnableImages", value: "true"),
-                URLQueryItem(name: "Limit", value: "60"),
+                URLQueryItem(name: "Limit", value: "9"),
+                URLQueryItem(name: "ImageTypeLimit", value: "1"),
+                URLQueryItem(name: "EnableImageTypes", value: "Primary,Thumb,Backdrop"),
+                URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+                URLQueryItem(name: "Fields", value: "ChannelInfo,PrimaryImageAspectRatio"),
             ],
         )
-        let programs = response.items.compactMap(mapProgram)
-        return programs.isEmpty ? [] : [LiveTVOnNowSection(id: "now", title: String(localized: "livetv.onNow"), programs: programs)]
+        async let series = fetchProgramHub(
+            path: ["LiveTv", "Programs"],
+            query: upcomingHubQuery(
+                filters: [
+                    URLQueryItem(name: "IsMovie", value: "false"),
+                    URLQueryItem(name: "IsSports", value: "false"),
+                    URLQueryItem(name: "IsKids", value: "false"),
+                    URLQueryItem(name: "IsNews", value: "false"),
+                    URLQueryItem(name: "IsSeries", value: "true"),
+                ],
+                fields: "ChannelInfo,PrimaryImageAspectRatio",
+            ),
+        )
+        async let movies = fetchProgramHub(
+            path: ["LiveTv", "Programs"],
+            query: upcomingHubQuery(
+                filters: [URLQueryItem(name: "IsMovie", value: "true")],
+                fields: "ChannelInfo",
+            ),
+        )
+        async let sports = fetchProgramHub(
+            path: ["LiveTv", "Programs"],
+            query: upcomingHubQuery(
+                filters: [URLQueryItem(name: "IsSports", value: "true")],
+                fields: "ChannelInfo,PrimaryImageAspectRatio",
+            ),
+        )
+        async let kids = fetchProgramHub(
+            path: ["LiveTv", "Programs"],
+            query: upcomingHubQuery(
+                filters: [URLQueryItem(name: "IsKids", value: "true")],
+                fields: "ChannelInfo,PrimaryImageAspectRatio",
+            ),
+        )
+        async let news = fetchProgramHub(
+            path: ["LiveTv", "Programs"],
+            query: upcomingHubQuery(
+                filters: [URLQueryItem(name: "IsNews", value: "true")],
+                fields: "ChannelInfo,PrimaryImageAspectRatio",
+            ),
+        )
+
+        let values = try await (now, series, movies, sports, kids, news)
+        let sections: [(id: String, title: String, programs: [LiveTVProgram])] = [
+            ("now", String(localized: "livetv.onNow"), values.0),
+            ("series", String(localized: "livetv.onNow.series"), values.1),
+            ("movies", String(localized: "livetv.onNow.movies"), values.2),
+            ("sports", String(localized: "livetv.onNow.sports"), values.3),
+            ("kids", String(localized: "livetv.onNow.kids"), values.4),
+            ("news", String(localized: "livetv.onNow.news"), values.5),
+        ]
+        return sections.compactMap { section in
+            guard !section.programs.isEmpty else { return nil }
+            return LiveTVOnNowSection(id: section.id, title: section.title, programs: section.programs)
+        }
     }
 
     func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws {
@@ -270,6 +326,21 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             recordingStatus: item.timerID?.isEmpty == false ? Self.recordingStatus(from: item.status) : nil,
             providerGUID: nil,
         )
+    }
+
+    private func fetchProgramHub(path: [String], query: [URLQueryItem]) async throws -> [LiveTVProgram] {
+        let response: JellyfinQueryResult<JellyfinLiveProgramDTO> = try await context.get(path: path, query: query)
+        return response.items.compactMap(mapProgram)
+    }
+
+    private func upcomingHubQuery(filters: [URLQueryItem], fields: String) -> [URLQueryItem] {
+        userQuery() + [
+            URLQueryItem(name: "HasAired", value: "false"),
+            URLQueryItem(name: "Limit", value: "9"),
+            URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+            URLQueryItem(name: "Fields", value: fields),
+            URLQueryItem(name: "EnableImageTypes", value: "Primary,Thumb"),
+        ] + filters
     }
 
     private func mapTimer(_ timer: JellyfinTimerDTO) -> DVRRecording {
