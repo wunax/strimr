@@ -166,10 +166,39 @@ final class LiveTVStore {
             upcomingRecordings = values.0
             recordingRules = values.1
             completedRecordings = values.2
+            applyRecordingState(values.0)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             LiveTVErrorReporting.capture(error)
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func applyRecordingState(_ recordings: [DVRRecording]) {
+        var recordingsByProgramID: [String: DVRRecording] = [:]
+        for recording in recordings {
+            guard let programID = recording.programID else { continue }
+            if recordingsByProgramID[programID]?.status != .recording || recording.status == .recording {
+                recordingsByProgramID[programID] = recording
+            }
+        }
+
+        func updated(_ program: LiveTVProgram) -> LiveTVProgram {
+            var program = program
+            if let recording = recordingsByProgramID[program.id] {
+                program.recordingID = recording.id
+                program.recordingStatus = recording.status
+            } else if program.recordingStatus == nil, program.recordingID != nil || program.seriesRecordingID != nil {
+                program.recordingStatus = .scheduled
+            }
+            return program
+        }
+
+        programs = programs.map(updated)
+        onNowSections = onNowSections.map { section in
+            var section = section
+            section.programs = section.programs.map(updated)
+            return section
         }
     }
 

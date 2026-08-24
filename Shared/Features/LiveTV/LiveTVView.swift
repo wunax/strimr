@@ -689,6 +689,7 @@ private struct LiveTVProgramDetailView: View {
     @State private var optionValues: [String: String] = [:]
     @State private var targetLibraryID: String?
     @State private var errorMessage: String?
+    @State private var isSubmittingRecording = false
 
     var body: some View {
         NavigationStack {
@@ -700,7 +701,7 @@ private struct LiveTVProgramDetailView: View {
                     if let summary = program.summary { Text(summary) }
                     if program.isCurrentlyAiring { ProgressView(value: program.progress) }
                 }
-                if let template {
+                if let template, !program.isScheduledForRecording {
                     if !template.libraries.isEmpty {
                         Picker("livetv.recording.library", selection: $targetLibraryID) {
                             ForEach(template.libraries) { Text($0.title).tag(Optional($0.id)) }
@@ -729,18 +730,27 @@ private struct LiveTVProgramDetailView: View {
                         }
                     }
                     if dvr?.canManageRecordings == true {
-                        Button {
-                            schedule(series: recordsSeries)
-                        } label: {
-                            Text(recordsSeries ? String(localized: "livetv.recordSeries") : String(localized: "livetv.record"))
+                        if program.isScheduledForRecording {
+                            Button("livetv.stopRecord", role: .destructive) {
+                                stopRecording()
+                            }
+                            .disabled(isSubmittingRecording)
+                        } else {
+                            if template?.supportsSingle == true {
+                                Button("livetv.record") { schedule(series: false) }
+                                    .disabled(template == nil || isSubmittingRecording)
+                            }
+                            if template?.supportsSeries == true {
+                                Button("livetv.recordSeries") { schedule(series: true) }
+                                    .disabled(template == nil || isSubmittingRecording)
+                            }
                         }
-                        .disabled(template == nil)
                     }
                     Button("common.done") { dismiss() }
                 }
             }
             .task {
-                guard let dvr, dvr.canManageRecordings else { return }
+                guard !program.isScheduledForRecording, let dvr, dvr.canManageRecordings else { return }
                 do {
                     let value = try await dvr.recordingTemplate(for: program)
                     template = value
@@ -787,6 +797,8 @@ private struct LiveTVProgramDetailView: View {
 
     private func schedule(series: Bool) {
         guard let dvr else { return }
+        recordsSeries = series
+        isSubmittingRecording = true
         Task {
             do {
                 try await dvr.schedule(.init(program: program, recordsSeries: series, targetLibraryID: targetLibraryID, options: optionValues))
@@ -801,6 +813,24 @@ private struct LiveTVProgramDetailView: View {
                     LiveTVErrorReporting.capture(error)
                 }
                 errorMessage = error.localizedDescription
+                isSubmittingRecording = false
+            }
+        }
+    }
+
+    private func stopRecording() {
+        guard let dvr, let recordingID = program.recordingID ?? program.seriesRecordingID else { return }
+        isSubmittingRecording = true
+        Task {
+            do {
+                try await dvr.cancel(recordingID: recordingID)
+                await onChanged()
+                dismiss()
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                errorMessage = error.localizedDescription
+                isSubmittingRecording = false
             }
         }
     }

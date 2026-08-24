@@ -51,9 +51,16 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
     let episodeNumber: Int?
     let isLive: Bool
     let isPremiere: Bool
-    let recordingID: String?
+    var recordingID: String?
     let seriesRecordingID: String?
+    var recordingStatus: DVRRecordingStatus?
     let providerGUID: String?
+
+    var isRecording: Bool { recordingStatus == .recording }
+
+    var isScheduledForRecording: Bool {
+        recordingStatus != nil || recordingID != nil || seriesRecordingID != nil
+    }
 
     var isCurrentlyAiring: Bool {
         let now = Date()
@@ -70,7 +77,7 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
 struct LiveTVOnNowSection: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
-    let programs: [LiveTVProgram]
+    var programs: [LiveTVProgram]
 }
 
 struct LiveTVCaptureRange: Hashable, Sendable {

@@ -170,7 +170,12 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func recordingTemplate(for program: LiveTVProgram) async throws -> DVRRecordingTemplate {
-        let timer = try await timerDefaults(for: program.id)
+        async let timerTask = timerDefaults(for: program.id)
+        async let detailsTask: JellyfinLiveProgramDTO = context.get(
+            path: ["LiveTv", "Programs", program.id],
+            query: userQuery(),
+        )
+        let (timer, details) = try await (timerTask, detailsTask)
         let seriesOnlyOptionIDs: Set<String> = [
             "recordNewOnly",
             "recordAnyTime",
@@ -182,7 +187,9 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         return DVRRecordingTemplate(
             programID: program.id,
             supportsSingle: true,
-            supportsSeries: program.seriesTitle != nil,
+            supportsSeries: details.isSeries == true
+                || details.seriesID?.isEmpty == false
+                || details.seriesName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty == false,
             libraries: [],
             defaultLibraryID: nil,
             options: [
@@ -192,7 +199,13 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 .init(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyTime"]) ?? true)),
                 .init(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyChannel"]) ?? false)),
                 .init(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(integer(timer["KeepUpTo"]) ?? 0)),
-                .init(id: "keepUntil", title: String(localized: "livetv.recording.keepUntil"), summary: nil, kind: .text, defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted"),
+                .init(
+                    id: "keepUntil",
+                    title: String(localized: "livetv.recording.keepUntil"),
+                    summary: nil,
+                    kind: .choice(Self.keepUntilChoices()),
+                    defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted",
+                ),
                 .init(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["SkipEpisodesInLibrary"]) ?? false)),
             ],
             seriesOnlyOptionIDs: seriesOnlyOptionIDs,
@@ -254,18 +267,13 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             isPremiere: item.isPremiere ?? false,
             recordingID: item.timerID?.isEmpty == false ? item.timerID : nil,
             seriesRecordingID: item.timerID?.isEmpty == false ? item.seriesTimerID : nil,
+            recordingStatus: item.timerID?.isEmpty == false ? Self.recordingStatus(from: item.status) : nil,
             providerGUID: nil,
         )
     }
 
     private func mapTimer(_ timer: JellyfinTimerDTO) -> DVRRecording {
-        let status: DVRRecordingStatus = switch timer.status?.lowercased() {
-        case "inprogress": .recording
-        case "completed": .completed
-        case "cancelled": .cancelled
-        case "error", "conflictednotok": .error
-        default: .scheduled
-        }
+        let status = Self.recordingStatus(from: timer.status) ?? .scheduled
         return DVRRecording(
             id: timer.id ?? UUID().uuidString,
             title: timer.name ?? String(localized: "livetv.program.unknown"),
@@ -277,6 +285,18 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             playableMedia: nil,
             errorMessage: nil,
         )
+    }
+
+    private static func recordingStatus(from rawValue: String?) -> DVRRecordingStatus? {
+        switch rawValue?.lowercased() {
+        case "new", "scheduled": .scheduled
+        case "inprogress", "grabbing", "recording": .recording
+        case "completed", "complete": .completed
+        case "cancelled", "canceled": .cancelled
+        case "error", "conflictednotok": .error
+        case "conflictedok": .scheduled
+        default: nil
+        }
     }
 
     private func timerDefaults(for programID: String) async throws -> [String: Any] {
@@ -335,6 +355,15 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         if let value = parseBool(options["skipEpisodesInLibrary"]) {
             timer["SkipEpisodesInLibrary"] = value
         }
+    }
+
+    private static func keepUntilChoices() -> [DVRRecordingOptionChoice] {
+        [
+            .init(id: "UntilDeleted", title: String(localized: "livetv.recording.keepUntil.deleted")),
+            .init(id: "UntilSpaceNeeded", title: String(localized: "livetv.recording.keepUntil.spaceNeeded")),
+            .init(id: "UntilWatched", title: String(localized: "livetv.recording.keepUntil.watched")),
+            .init(id: "UntilDate", title: String(localized: "livetv.recording.keepUntil.date")),
+        ]
     }
 
     private func integer(_ value: Any?) -> Int? {
@@ -560,6 +589,7 @@ nonisolated private struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let overview: String?
     let channelID: String?
     let seriesName: String?
+    let seriesID: String?
     let startDate: String?
     let endDate: String?
     let imageTags: [String: String]?
@@ -567,14 +597,16 @@ nonisolated private struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let indexNumber: Int?
     let isLive: Bool?
     let isPremiere: Bool?
+    let isSeries: Bool?
     let timerID: String?
     let seriesTimerID: String?
+    let status: String?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"; case name = "Name"; case overview = "Overview"; case channelID = "ChannelId"
-        case seriesName = "SeriesName"; case startDate = "StartDate"; case endDate = "EndDate"
+        case seriesName = "SeriesName"; case seriesID = "SeriesId"; case startDate = "StartDate"; case endDate = "EndDate"
         case imageTags = "ImageTags"; case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
-        case isLive = "IsLive"; case isPremiere = "IsPremiere"; case timerID = "TimerId"; case seriesTimerID = "SeriesTimerId"
+        case isLive = "IsLive"; case isPremiere = "IsPremiere"; case isSeries = "IsSeries"; case timerID = "TimerId"; case seriesTimerID = "SeriesTimerId"; case status = "Status"
     }
 }
 

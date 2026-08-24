@@ -136,7 +136,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 channelTitle: program.flatMap { program in lastPrograms.first(where: { $0.id == program.id })?.title },
                 startDate: program?.startDate,
                 endDate: program?.endDate,
-                status: rawStatus == "grabbing" ? .recording : rawStatus == "error" ? .error : .scheduled,
+                status: Self.recordingStatus(from: rawStatus) ?? .scheduled,
                 programID: program?.id,
                 playableMedia: nil,
                 errorMessage: string(operation["error"]),
@@ -318,8 +318,20 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 isPremiere: bool(metadata["premiere"]) ?? false,
                 recordingID: string(metadata["subscriptionID"]),
                 seriesRecordingID: string(metadata["grandparentSubscriptionID"]),
+                recordingStatus: Self.recordingStatus(from: string(metadata["status"])),
                 providerGUID: string(metadata["guid"]) ?? "plex://\(provider)/\(ratingKey)",
             )
+        }
+    }
+
+    private static func recordingStatus(from rawValue: String?) -> DVRRecordingStatus? {
+        switch rawValue?.lowercased() {
+        case "scheduled", "new": .scheduled
+        case "grabbing", "inprogress", "recording": .recording
+        case "completed", "complete": .completed
+        case "cancelled", "canceled": .cancelled
+        case "error": .error
+        default: nil
         }
     }
 
