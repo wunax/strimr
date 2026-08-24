@@ -199,6 +199,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
             libraries: libraries,
             defaultLibraryID: string(selected["targetLibrarySectionID"]),
             options: options,
+            seriesOnlyOptionIDs: [],
         )
     }
 

@@ -171,6 +171,7 @@ struct DVRRecordingTemplate: Hashable, Sendable {
     let libraries: [Library]
     let defaultLibraryID: String?
     let options: [DVRRecordingOption]
+    let seriesOnlyOptionIDs: Set<String>
 }
 
 struct DVRRecordingRequest: Sendable {

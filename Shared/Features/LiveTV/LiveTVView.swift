@@ -685,6 +685,7 @@ private struct LiveTVProgramDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var template: DVRRecordingTemplate?
+    @State private var recordsSeries = false
     @State private var optionValues: [String: String] = [:]
     @State private var targetLibraryID: String?
     @State private var errorMessage: String?
@@ -705,7 +706,16 @@ private struct LiveTVProgramDetailView: View {
                             ForEach(template.libraries) { Text($0.title).tag(Optional($0.id)) }
                         }
                     }
-                    ForEach(template.options) { option in optionEditor(option) }
+                    if template.supportsSingle && template.supportsSeries {
+                        Picker("livetv.recording.mode", selection: $recordsSeries) {
+                            Text("livetv.record").tag(false)
+                            Text("livetv.recordSeries").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    ForEach(template.options.filter { recordsSeries || !template.seriesOnlyOptionIDs.contains($0.id) }) { option in
+                        optionEditor(option)
+                    }
                 }
                 if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
             }
@@ -719,8 +729,12 @@ private struct LiveTVProgramDetailView: View {
                         }
                     }
                     if dvr?.canManageRecordings == true {
-                        Button("livetv.record") { schedule(series: false) }
-                        if template?.supportsSeries == true { Button("livetv.recordSeries") { schedule(series: true) } }
+                        Button {
+                            schedule(series: recordsSeries)
+                        } label: {
+                            Text(recordsSeries ? String(localized: "livetv.recordSeries") : String(localized: "livetv.record"))
+                        }
+                        .disabled(template == nil)
                     }
                     Button("common.done") { dismiss() }
                 }
@@ -730,6 +744,7 @@ private struct LiveTVProgramDetailView: View {
                 do {
                     let value = try await dvr.recordingTemplate(for: program)
                     template = value
+                    recordsSeries = !value.supportsSingle && value.supportsSeries
                     optionValues = Dictionary(uniqueKeysWithValues: value.options.map { ($0.id, $0.defaultValue) })
                     targetLibraryID = value.defaultLibraryID
                 } catch {
@@ -753,7 +768,16 @@ private struct LiveTVProgramDetailView: View {
                 ForEach(choices) { Text($0.title).tag($0.id) }
             }
         case .integer, .text:
-            TextField(option.title, text: valueBinding(option))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(option.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField(text: valueBinding(option)) {
+                    Text(option.title)
+                }
+                    .multilineTextAlignment(.leading)
+            }
         }
     }
 
@@ -770,7 +794,12 @@ private struct LiveTVProgramDetailView: View {
                 dismiss()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
-                LiveTVErrorReporting.capture(error)
+                switch error {
+                case let error as JellyfinAPIError where error == .recordingConflict:
+                    break
+                default:
+                    LiveTVErrorReporting.capture(error)
+                }
                 errorMessage = error.localizedDescription
             }
         }

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "%lld" : {
       "shouldTranslate" : false
     },
@@ -5778,6 +5781,28 @@
         }
       }
     },
+    "livetv.recording.alreadyScheduled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already scheduled"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déjà programmé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已计划"
+          }
+        }
+      }
+    },
     "livetv.recording.anyChannel" : {
       "localizations" : {
         "en" : {
@@ -5906,6 +5931,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "录制媒体库"
+          }
+        }
+      }
+    },
+    "livetv.recording.mode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode d’enregistrement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制模式"
           }
         }
       }

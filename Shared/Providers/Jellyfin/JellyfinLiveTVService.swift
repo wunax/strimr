@@ -119,9 +119,15 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     func upcomingRecordings() async throws -> [DVRRecording] {
         let response: JellyfinQueryResult<JellyfinTimerDTO> = try await context.get(
             path: ["LiveTv", "Timers"],
-            query: [URLQueryItem(name: "IsScheduled", value: "true")],
         )
-        return response.items.map(mapTimer)
+        return response.items
+            .filter { timer in
+                switch timer.status?.lowercased() {
+                case "cancelled", "completed": false
+                default: true
+                }
+            }
+            .map(mapTimer)
     }
 
     func recordingRules() async throws -> [DVRRecordingRule] {
@@ -164,10 +170,15 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func recordingTemplate(for program: LiveTVProgram) async throws -> DVRRecordingTemplate {
-        let timer: JellyfinSeriesTimerDTO = try await context.get(
-            path: ["LiveTv", "Timers", "Defaults"],
-            query: [URLQueryItem(name: "ProgramId", value: program.id)],
-        )
+        let timer = try await timerDefaults(for: program.id)
+        let seriesOnlyOptionIDs: Set<String> = [
+            "recordNewOnly",
+            "recordAnyTime",
+            "recordAnyChannel",
+            "keepUpTo",
+            "keepUntil",
+            "skipEpisodesInLibrary",
+        ]
         return DVRRecordingTemplate(
             programID: program.id,
             supportsSingle: true,
@@ -175,65 +186,37 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             libraries: [],
             defaultLibraryID: nil,
             options: [
-                .init(id: "prePaddingSeconds", title: String(localized: "livetv.recording.prePadding"), summary: nil, kind: .integer, defaultValue: String(timer.prePaddingSeconds ?? 0)),
-                .init(id: "postPaddingSeconds", title: String(localized: "livetv.recording.postPadding"), summary: nil, kind: .integer, defaultValue: String(timer.postPaddingSeconds ?? 0)),
-                .init(id: "recordNewOnly", title: String(localized: "livetv.recording.newOnly"), summary: nil, kind: .toggle, defaultValue: String(timer.recordNewOnly ?? false)),
-                .init(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(timer.recordAnyTime ?? true)),
-                .init(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(timer.recordAnyChannel ?? false)),
-                .init(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(timer.keepUpTo ?? 0)),
-                .init(id: "keepUntil", title: String(localized: "livetv.recording.keepUntil"), summary: nil, kind: .text, defaultValue: timer.keepUntil ?? "UntilDeleted"),
-                .init(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(timer.skipEpisodesInLibrary ?? false)),
+                .init(id: "prePaddingSeconds", title: String(localized: "livetv.recording.prePadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PrePaddingSeconds"]) ?? 0)),
+                .init(id: "postPaddingSeconds", title: String(localized: "livetv.recording.postPadding"), summary: nil, kind: .integer, defaultValue: String(integer(timer["PostPaddingSeconds"]) ?? 0)),
+                .init(id: "recordNewOnly", title: String(localized: "livetv.recording.newOnly"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordNewOnly"]) ?? false)),
+                .init(id: "recordAnyTime", title: String(localized: "livetv.recording.anyTime"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyTime"]) ?? true)),
+                .init(id: "recordAnyChannel", title: String(localized: "livetv.recording.anyChannel"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["RecordAnyChannel"]) ?? false)),
+                .init(id: "keepUpTo", title: String(localized: "livetv.recording.keepUpTo"), summary: nil, kind: .integer, defaultValue: String(integer(timer["KeepUpTo"]) ?? 0)),
+                .init(id: "keepUntil", title: String(localized: "livetv.recording.keepUntil"), summary: nil, kind: .text, defaultValue: string(timer["KeepUntil"]) ?? "UntilDeleted"),
+                .init(id: "skipEpisodesInLibrary", title: String(localized: "livetv.recording.skipInLibrary"), summary: nil, kind: .toggle, defaultValue: String(boolean(timer["SkipEpisodesInLibrary"]) ?? false)),
             ],
+            seriesOnlyOptionIDs: seriesOnlyOptionIDs,
         )
     }
 
     func schedule(_ request: DVRRecordingRequest) async throws {
-        if request.recordsSeries {
-            var timer: JellyfinSeriesTimerDTO = try await context.get(
-                path: ["LiveTv", "Timers", "Defaults"],
-                query: [URLQueryItem(name: "ProgramId", value: request.program.id)],
-            )
-            timer.programID = request.program.id
-            timer.channelID = request.program.channelID
-            timer.prePaddingSeconds = Int(request.options["prePaddingSeconds"] ?? "") ?? timer.prePaddingSeconds
-            timer.postPaddingSeconds = Int(request.options["postPaddingSeconds"] ?? "") ?? timer.postPaddingSeconds
-            timer.recordNewOnly = parseBool(request.options["recordNewOnly"]) ?? timer.recordNewOnly
-            timer.recordAnyTime = parseBool(request.options["recordAnyTime"]) ?? timer.recordAnyTime
-            timer.recordAnyChannel = parseBool(request.options["recordAnyChannel"]) ?? timer.recordAnyChannel
-            timer.keepUpTo = Int(request.options["keepUpTo"] ?? "") ?? timer.keepUpTo
-            timer.keepUntil = request.options["keepUntil"] ?? timer.keepUntil
-            timer.skipEpisodesInLibrary = parseBool(request.options["skipEpisodesInLibrary"]) ?? timer.skipEpisodesInLibrary
-            try await context.send(path: ["LiveTv", "SeriesTimers"], method: "POST", body: JSONEncoder().encode(timer))
-        } else {
-            let timer = JellyfinTimerDTO(
-                id: nil,
-                programID: request.program.id,
-                seriesTimerID: nil,
-                channelID: request.program.channelID,
-                channelName: channelTitle(request.program.channelID),
-                name: request.program.title,
-                overview: request.program.summary,
-                startDate: Self.iso.string(from: request.program.startDate),
-                endDate: Self.iso.string(from: request.program.endDate),
-                status: "New",
-                prePaddingSeconds: Int(request.options["prePaddingSeconds"] ?? "") ?? 0,
-                postPaddingSeconds: Int(request.options["postPaddingSeconds"] ?? "") ?? 0,
-            )
-            try await context.send(path: ["LiveTv", "Timers"], method: "POST", body: JSONEncoder().encode(timer))
+        var timer = try await timerDefaults(for: request.program.id)
+        timer["ProgramId"] = request.program.id
+        timer["ChannelId"] = request.program.channelID
+        applyOptions(request.options, to: &timer, includeSeriesOptions: request.recordsSeries)
+
+        do {
+            try await postTimer(timer, path: ["LiveTv", request.recordsSeries ? "SeriesTimers" : "Timers"])
+        } catch JellyfinAPIError.httpStatus(400) where !request.recordsSeries {
+            throw JellyfinAPIError.recordingConflict
         }
     }
 
     func update(rule: DVRRecordingRule, options: [String: String]) async throws {
-        var timer: JellyfinSeriesTimerDTO = try await context.get(path: ["LiveTv", "SeriesTimers", rule.id])
-        timer.prePaddingSeconds = Int(options["prePaddingSeconds"] ?? "") ?? timer.prePaddingSeconds
-        timer.postPaddingSeconds = Int(options["postPaddingSeconds"] ?? "") ?? timer.postPaddingSeconds
-        timer.recordNewOnly = parseBool(options["recordNewOnly"]) ?? timer.recordNewOnly
-        timer.recordAnyTime = parseBool(options["recordAnyTime"]) ?? timer.recordAnyTime
-        timer.recordAnyChannel = parseBool(options["recordAnyChannel"]) ?? timer.recordAnyChannel
-        timer.keepUpTo = Int(options["keepUpTo"] ?? "") ?? timer.keepUpTo
-        timer.keepUntil = options["keepUntil"] ?? timer.keepUntil
-        timer.skipEpisodesInLibrary = parseBool(options["skipEpisodesInLibrary"]) ?? timer.skipEpisodesInLibrary
-        try await context.send(path: ["LiveTv", "SeriesTimers", rule.id], method: "POST", body: JSONEncoder().encode(timer))
+        let data = try await context.rawData(path: ["LiveTv", "SeriesTimers", rule.id])
+        var timer = try rawObject(data)
+        applyOptions(options, to: &timer, includeSeriesOptions: true)
+        try await postTimer(timer, path: ["LiveTv", "SeriesTimers", rule.id])
     }
 
     func cancel(recordingID: String) async throws {
@@ -269,8 +252,8 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             episodeNumber: item.indexNumber,
             isLive: item.isLive ?? false,
             isPremiere: item.isPremiere ?? false,
-            recordingID: item.timerID,
-            seriesRecordingID: item.seriesTimerID,
+            recordingID: item.timerID?.isEmpty == false ? item.timerID : nil,
+            seriesRecordingID: item.timerID?.isEmpty == false ? item.seriesTimerID : nil,
             providerGUID: nil,
         )
     }
@@ -280,7 +263,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         case "inprogress": .recording
         case "completed": .completed
         case "cancelled": .cancelled
-        case "error": .error
+        case "error", "conflictednotok": .error
         default: .scheduled
         }
         return DVRRecording(
@@ -296,7 +279,82 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         )
     }
 
-    private func channelTitle(_ id: String) -> String? { lastChannels.first(where: { $0.id == id })?.title }
+    private func timerDefaults(for programID: String) async throws -> [String: Any] {
+        let data = try await context.rawData(
+            path: ["LiveTv", "Timers", "Defaults"],
+            query: [URLQueryItem(name: "ProgramId", value: programID)],
+        )
+        return try rawObject(data)
+    }
+
+    private func rawObject(_ data: Data) throws -> [String: Any] {
+        do {
+            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw JellyfinAPIError.invalidResponse
+            }
+            return object
+        } catch let error as JellyfinAPIError {
+            throw error
+        } catch {
+            throw JellyfinAPIError.invalidResponse
+        }
+    }
+
+    private func postTimer(_ timer: [String: Any], path: [String]) async throws {
+        let body = try JSONSerialization.data(withJSONObject: timer)
+        try await context.send(path: path, method: "POST", body: body)
+    }
+
+    private func applyOptions(
+        _ options: [String: String],
+        to timer: inout [String: Any],
+        includeSeriesOptions: Bool,
+    ) {
+        if let value = Int(options["prePaddingSeconds"] ?? "") {
+            timer["PrePaddingSeconds"] = value
+        }
+        if let value = Int(options["postPaddingSeconds"] ?? "") {
+            timer["PostPaddingSeconds"] = value
+        }
+        guard includeSeriesOptions else { return }
+        if let value = parseBool(options["recordNewOnly"]) {
+            timer["RecordNewOnly"] = value
+        }
+        if let value = parseBool(options["recordAnyTime"]) {
+            timer["RecordAnyTime"] = value
+        }
+        if let value = parseBool(options["recordAnyChannel"]) {
+            timer["RecordAnyChannel"] = value
+        }
+        if let value = Int(options["keepUpTo"] ?? "") {
+            timer["KeepUpTo"] = value
+        }
+        if let value = options["keepUntil"], !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            timer["KeepUntil"] = value
+        }
+        if let value = parseBool(options["skipEpisodesInLibrary"]) {
+            timer["SkipEpisodesInLibrary"] = value
+        }
+    }
+
+    private func integer(_ value: Any?) -> Int? {
+        if let value = value as? Int { return value }
+        if let value = value as? NSNumber { return value.intValue }
+        if let value = value as? String { return Int(value) }
+        return nil
+    }
+
+    private func boolean(_ value: Any?) -> Bool? {
+        if let value = value as? Bool { return value }
+        if let value = value as? NSNumber { return value.boolValue }
+        if let value = value as? String { return parseBool(value) }
+        return nil
+    }
+
+    private func string(_ value: Any?) -> String? {
+        value as? String
+    }
+
     private func userQuery() -> [URLQueryItem] { [URLQueryItem(name: "UserId", value: context.connection?.userID)] }
     private var favoritesKey: String { "strimr.jellyfin.liveTV.favorites.\(server.id).\(context.connection?.userID ?? "")" }
     private func favoriteOrder() -> [String] { UserDefaults.standard.stringArray(forKey: favoritesKey) ?? [] }
