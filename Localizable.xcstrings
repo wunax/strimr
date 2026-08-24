@@ -5456,19 +5456,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Next Day"
+            "value" : "Next 6 Hours"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jour suivant"
+            "value" : "6 heures suivantes"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "后一天"
+            "value" : "后6小时"
           }
         }
       }
@@ -5522,19 +5522,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Previous"
+            "value" : "Previous 6 Hours"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Précédent"
+            "value" : "6 heures précédentes"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一时段"
+            "value" : "前6小时"
           }
         }
       }

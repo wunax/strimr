@@ -123,15 +123,7 @@ struct LiveTVView: View {
 
     private var guide: some View {
         VStack(spacing: 8) {
-            HStack {
-                Button("livetv.guide.previous", systemImage: "chevron.left") { Task { await store.shiftGuide(hours: -6) } }
-                Spacer()
-                Text(store.guideStart, format: .dateTime.weekday().month().day())
-                Spacer()
-                Button("livetv.guide.now") { Task { await store.jumpToNow() } }
-                Button("livetv.guide.next", systemImage: "chevron.right") { Task { await store.shiftGuide(hours: 24) } }
-            }
-            .padding(.horizontal)
+            guideNavigation
 
             if displayedChannels.isEmpty {
                 emptyState("livetv.empty.favorites", systemImage: "star")
@@ -163,6 +155,77 @@ struct LiveTVView: View {
                 }
             }
         }
+    }
+
+    private var guideNavigation: some View {
+        ViewThatFits(in: .horizontal) {
+            ZStack {
+                guideDateLabel
+                    .fixedSize(horizontal: true, vertical: false)
+                HStack(spacing: 12) {
+                    Button("livetv.guide.previous", systemImage: "chevron.left") {
+                        shiftGuide(hours: -6)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 8)
+                    HStack(spacing: 12) {
+                        Button("livetv.guide.now") {
+                            Task { await store.jumpToNow() }
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
+                        Button("livetv.guide.next", systemImage: "chevron.right") {
+                            shiftGuide(hours: 6)
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+            }
+
+            ZStack {
+                guideDateLabel
+                    .minimumScaleFactor(0.8)
+                HStack {
+                    guideArrowButton(systemName: "chevron.left", label: "livetv.guide.previous") {
+                        shiftGuide(hours: -6)
+                    }
+                    Spacer(minLength: 0)
+                    HStack(spacing: 8) {
+                        Button {
+                            Task { await store.jumpToNow() }
+                        } label: {
+                            Image(systemName: "dot.circle")
+                                .frame(minWidth: 44, minHeight: 44)
+                        }
+                        .accessibilityLabel(Text("livetv.guide.now"))
+                        guideArrowButton(systemName: "chevron.right", label: "livetv.guide.next") {
+                            shiftGuide(hours: 6)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private var guideDateLabel: some View {
+        Text(store.guideStart, format: .dateTime.weekday().month().day())
+            .lineLimit(1)
+    }
+
+    private func guideArrowButton(
+        systemName: String,
+        label: LocalizedStringKey,
+        action: @escaping () -> Void,
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .frame(minWidth: 44, minHeight: 44)
+        }
+        .accessibilityLabel(Text(label))
+    }
+
+    private func shiftGuide(hours: Int) {
+        Task { await store.shiftGuide(hours: hours) }
     }
 
     private var guideHeader: some View {
