@@ -31,6 +31,7 @@ struct LiveTVView: View {
     @State private var section = LiveTVSection.guide
     @State private var favoritesOnly = false
     @State private var selectedProgram: LiveTVProgram?
+    @State private var pendingRecordingCancellation: DVRRecording?
     @State private var pendingRecordingDeletion: DVRRecording?
     @State private var isManagingFavorites = false
     @State private var selectedRule: DVRRecordingRule?
@@ -93,6 +94,22 @@ struct LiveTVView: View {
         }
         .sheet(item: $selectedRule) { rule in
             DVRRuleEditView(rule: rule, dvr: store.dvr) { await store.refreshDVR() }
+        }
+        .confirmationDialog(
+            "livetv.recording.cancel.confirm",
+            isPresented: Binding(
+                get: { pendingRecordingCancellation != nil },
+                set: { if !$0 { pendingRecordingCancellation = nil } },
+            ),
+            titleVisibility: .visible,
+        ) {
+            Button("livetv.recording.cancel", role: .destructive) {
+                cancelPendingRecording()
+            }
+        } message: {
+            if let recording = pendingRecordingCancellation {
+                Text(recording.title)
+            }
         }
         .confirmationDialog(
             "livetv.recording.delete.confirm",
@@ -521,10 +538,7 @@ struct LiveTVView: View {
             Section("livetv.dvr.upcoming") {
                 if store.upcomingRecordings.isEmpty { Text("livetv.empty.recordings") }
                 ForEach(store.upcomingRecordings) { recording in
-                    recordingRow(recording)
-                        .contextMenu {
-                            Button("common.cancel", role: .destructive) { cancel(recording) }
-                        }
+                    upcomingRecordingRow(recording)
                 }
             }
             Section("livetv.dvr.rules") {
@@ -573,6 +587,27 @@ struct LiveTVView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func upcomingRecordingRow(_ recording: DVRRecording) -> some View {
+        if store.dvr?.canManageRecordings == true {
+            Button {
+                requestCancellation(for: recording)
+            } label: {
+                recordingRow(recording)
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button("livetv.recording.cancel", role: .destructive) {
+                    requestCancellation(for: recording)
+                }
+            }
+        } else {
+            recordingRow(recording)
+        }
     }
 
     private func tune(_ program: LiveTVProgram, fromStart: Bool = false) {
@@ -596,13 +631,20 @@ struct LiveTVView: View {
         store.channels.first { $0.id == id }?.displayTitle ?? ""
     }
 
-    private func cancel(_ recording: DVRRecording) {
-        guard let dvr = store.dvr else { return }
+    private func requestCancellation(for recording: DVRRecording) {
+        guard store.dvr?.canManageRecordings == true else { return }
+        pendingRecordingCancellation = recording
+    }
+
+    private func cancelPendingRecording() {
+        guard let recording = pendingRecordingCancellation, let dvr = store.dvr else { return }
+        pendingRecordingCancellation = nil
         Task {
             do {
                 try await dvr.cancel(recordingID: recording.id)
                 await store.refreshDVR()
             } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
                 LiveTVErrorReporting.capture(error)
             }
         }
