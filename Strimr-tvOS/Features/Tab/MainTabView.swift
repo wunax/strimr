@@ -92,10 +92,14 @@ struct MainTabView: View {
                             store: mediaServices.liveTVStore,
                             onPlayLive: { coordinator.showLivePlayer(context: $0, services: mediaServices) },
                             onPlayRecording: { media in
-                                Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(ratingKey: media.id, type: media.type) }
+                                Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(
+                                    ratingKey: media.id,
+                                    type: media.type,
+                                ) }
                             },
                             onOpenLibrary: { libraryID in
-                                guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                                guard let library = libraryStore.libraries.first(where: { $0.id == libraryID })
+                                else { return }
                                 coordinator.tab = .library
                                 coordinator.libraryPath = NavigationPath([library])
                             },
@@ -213,13 +217,20 @@ struct MainTabView: View {
             {
                 if let queue = coordinator.selectedMediaQueue {
                     PlayerWrapper(
-                        viewModel: PlayerViewModel(queue: queue, services: services, shouldResumeFromOffset: coordinator.shouldResumeFromOffset),
+                        viewModel: PlayerViewModel(
+                            queue: queue,
+                            services: services,
+                            shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                        ),
                         onExit: coordinator.resetPlayer,
                     )
                     .environment(plexApiContext)
                 } else if let context = coordinator.selectedLiveTVContext {
-                    PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services), onExit: coordinator.resetPlayer)
-                        .environment(plexApiContext)
+                    PlayerWrapper(
+                        viewModel: PlayerViewModel(live: context, services: services),
+                        onExit: coordinator.resetPlayer,
+                    )
+                    .environment(plexApiContext)
                 }
             }
         }

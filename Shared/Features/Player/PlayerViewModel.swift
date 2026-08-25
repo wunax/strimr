@@ -22,16 +22,26 @@ final class PlayerViewModel {
     var terminationMessage: String?
     var selectedQuality: TranscodeQualityPreset = .original
     var qualityFallbackMessage: String?
-    var isLivePlayback: Bool { liveContext != nil }
-    var liveChannel: LiveTVChannel? { liveContext?.channel }
+    var isLivePlayback: Bool {
+        liveContext != nil
+    }
+
+    var liveChannel: LiveTVChannel? {
+        liveContext?.channel
+    }
+
     var liveProgram: LiveTVProgram?
     var liveCaptureRange: LiveTVCaptureRange?
     var liveNativeRemoteHLS = false
-    var liveDVRWindowSeconds: TimeInterval? { liveCaptureRange?.duration }
+    var liveDVRWindowSeconds: TimeInterval? {
+        liveCaptureRange?.duration
+    }
+
     var canSwitchToPreviousLiveChannel: Bool {
         guard let liveContext else { return false }
         return liveContext.selectedIndex > 0
     }
+
     var canSwitchToNextLiveChannel: Bool {
         guard let liveContext else { return false }
         return liveContext.selectedIndex + 1 < liveContext.channels.count

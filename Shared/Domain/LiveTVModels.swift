@@ -56,7 +56,9 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
     var recordingStatus: DVRRecordingStatus?
     let providerGUID: String?
 
-    var isRecording: Bool { recordingStatus == .recording }
+    var isRecording: Bool {
+        recordingStatus == .recording
+    }
 
     var isScheduledForRecording: Bool {
         recordingStatus != nil || recordingID != nil || seriesRecordingID != nil
@@ -84,7 +86,9 @@ struct LiveTVCaptureRange: Hashable, Sendable {
     let startDate: Date
     let endDate: Date
 
-    var duration: TimeInterval { max(0, endDate.timeIntervalSince(startDate)) }
+    var duration: TimeInterval {
+        max(0, endDate.timeIntervalSince(startDate))
+    }
 }
 
 enum LiveTVBackgroundPolicy: Equatable, Sendable {
@@ -110,7 +114,7 @@ struct LiveTVLaunchContext: Sendable {
         channels: [LiveTVChannel],
         selectedIndex: Int,
         program: LiveTVProgram? = nil,
-        startsFromBeginning: Bool = false
+        startsFromBeginning: Bool = false,
     ) {
         self.channels = channels
         self.selectedIndex = selectedIndex
@@ -118,7 +122,9 @@ struct LiveTVLaunchContext: Sendable {
         self.startsFromBeginning = startsFromBeginning
     }
 
-    var channel: LiveTVChannel { channels[selectedIndex] }
+    var channel: LiveTVChannel {
+        channels[selectedIndex]
+    }
 }
 
 enum DVRRecordingStatus: String, Codable, Hashable, Sendable {
@@ -206,7 +212,9 @@ struct DVRRecordingOption: Identifiable, Hashable, Sendable {
         self.currentValue = currentValue
     }
 
-    var resolvedValue: String { currentValue ?? defaultValue }
+    var resolvedValue: String {
+        currentValue ?? defaultValue
+    }
 }
 
 enum DVRRecordingMode: Hashable, Sendable {
@@ -226,13 +234,18 @@ struct DVRRecordingTemplate: Hashable, Sendable {
     let preferredMode: DVRRecordingMode?
     let libraries: [Library]
 
-    var supportsSingle: Bool { single != nil }
-    var supportsSeries: Bool { series != nil }
+    var supportsSingle: Bool {
+        single != nil
+    }
+
+    var supportsSeries: Bool {
+        series != nil
+    }
 
     func template(for mode: DVRRecordingMode) -> DVRRecordingModeTemplate? {
         switch mode {
-        case .single: return single
-        case .series: return series
+        case .single: single
+        case .series: series
         }
     }
 }
@@ -244,8 +257,8 @@ struct DVRRecordingRequest: Sendable {
     let options: [String: String]
 }
 
-extension String {
-    fileprivate var nilIfEmpty: String? {
+private extension String {
+    var nilIfEmpty: String? {
         let value = trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
     }

@@ -272,7 +272,10 @@ struct MainTabView: View {
                 store: mediaServices.liveTVStore,
                 onPlayLive: { coordinator.showLivePlayer(context: $0, services: mediaServices) },
                 onPlayRecording: { media in
-                    Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(ratingKey: media.id, type: media.type) }
+                    Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(
+                        ratingKey: media.id,
+                        type: media.type,
+                    ) }
                 },
                 onOpenLibrary: { libraryID in
                     guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }

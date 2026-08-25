@@ -32,11 +32,11 @@ import SwiftUI
     }
 
     private struct GuideScrollViewConfigurator: UIViewRepresentable {
-        func makeUIView(context: Context) -> GuideScrollViewConfiguratorView {
+        func makeUIView(context _: Context) -> GuideScrollViewConfiguratorView {
             GuideScrollViewConfiguratorView(frame: .zero)
         }
 
-        func updateUIView(_ view: GuideScrollViewConfiguratorView, context: Context) {
+        func updateUIView(_ view: GuideScrollViewConfiguratorView, context _: Context) {
             view.setNeedsLayout()
         }
     }
@@ -55,7 +55,10 @@ struct LiveTVView: View {
         case onNow
         case dvr
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
+
         var title: LocalizedStringKey {
             switch self {
             case .guide: "livetv.section.guide"
@@ -141,7 +144,11 @@ struct LiveTVView: View {
             "livetv.recording.cancel.confirm",
             isPresented: Binding(
                 get: { pendingRecordingCancellation != nil },
-                set: { if !$0 { pendingRecordingCancellation = nil } },
+                set: {
+                    if !$0 {
+                        pendingRecordingCancellation = nil
+                    }
+                },
             ),
             titleVisibility: .visible,
         ) {
@@ -157,7 +164,11 @@ struct LiveTVView: View {
             "livetv.recording.delete.confirm",
             isPresented: Binding(
                 get: { pendingRecordingDeletion != nil },
-                set: { if !$0 { pendingRecordingDeletion = nil } },
+                set: {
+                    if !$0 {
+                        pendingRecordingDeletion = nil
+                    }
+                },
             ),
             titleVisibility: .visible,
         ) {
@@ -212,7 +223,7 @@ struct LiveTVView: View {
                         }
                     }
                     #if os(iOS)
-                        .background(GuideScrollViewConfigurator())
+                    .background(GuideScrollViewConfigurator())
                     #endif
                 }
             }
@@ -293,7 +304,7 @@ struct LiveTVView: View {
     private var guideHeader: some View {
         HStack(spacing: 0) {
             Text("livetv.channel").frame(width: 170, alignment: .leading)
-            ForEach(0..<12, id: \.self) { index in
+            ForEach(0 ..< 12, id: \.self) { index in
                 Text(store.guideStart.addingTimeInterval(Double(index) * 1800), format: .dateTime.hour().minute())
                     .font(.caption)
                     .frame(width: 120, alignment: .leading)
@@ -350,7 +361,8 @@ struct LiveTVView: View {
             }
             .frame(width: 160, alignment: .leading)
 
-            let programs = store.programs.filter { $0.channelID == channel.id && $0.endDate > store.guideStart && $0.startDate < store.guideEnd }
+            let programs = store.programs
+                .filter { $0.channelID == channel.id && $0.endDate > store.guideStart && $0.startDate < store.guideEnd }
             ZStack(alignment: .leading) {
                 if programs.isEmpty {
                     Text("livetv.guide.noData").foregroundStyle(.secondary)
@@ -581,7 +593,9 @@ struct LiveTVView: View {
             }
 
             Section("livetv.dvr.upcoming") {
-                if store.upcomingRecordings.isEmpty { Text("livetv.empty.recordings") }
+                if store.upcomingRecordings.isEmpty {
+                    Text("livetv.empty.recordings")
+                }
                 ForEach(store.upcomingRecordings) { recording in
                     upcomingRecordingRow(recording)
                 }
@@ -606,7 +620,8 @@ struct LiveTVView: View {
                         }
                         .buttonStyle(.plain)
                         if let libraryID = rule.targetLibraryID {
-                            Button("livetv.dvr.openLibrary", systemImage: "rectangle.stack") { onOpenLibrary(libraryID) }
+                            Button("livetv.dvr.openLibrary", systemImage: "rectangle.stack") { onOpenLibrary(libraryID)
+                            }
                         }
                     }
                     .contextMenu {
@@ -617,7 +632,11 @@ struct LiveTVView: View {
             if store.dvr?.supportsCompletedRecordings == true {
                 Section("livetv.dvr.completed") {
                     ForEach(store.completedRecordings) { recording in
-                        Button { if let media = recording.playableMedia { onPlayRecording(media) } } label: {
+                        Button {
+                            if let media = recording.playableMedia {
+                                onPlayRecording(media)
+                            }
+                        } label: {
                             recordingRow(recording)
                         }
                         .contextMenu {
@@ -635,8 +654,12 @@ struct LiveTVView: View {
         VStack(alignment: .leading) {
             Text(recording.title)
             HStack {
-                if let channel = recording.channelTitle { Text(channel) }
-                if let start = recording.startDate { Text(start, format: .dateTime.weekday().hour().minute()) }
+                if let channel = recording.channelTitle {
+                    Text(channel)
+                }
+                if let start = recording.startDate {
+                    Text(start, format: .dateTime.weekday().hour().minute())
+                }
                 Text(recording.status.localizedTitle)
             }
             .font(.caption)
@@ -722,7 +745,9 @@ struct LiveTVView: View {
             Spacer()
             Image(systemName: systemImage).font(.largeTitle).foregroundStyle(.secondary)
             Text(key).multilineTextAlignment(.center).foregroundStyle(.secondary)
-            if let message = store.errorMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
+            if let message = store.errorMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -802,7 +827,9 @@ private struct DVRRuleEditView: View {
                         }
                     }
                 }
-                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
             }
             .navigationTitle("livetv.dvr.editRule")
             .toolbar {
@@ -847,7 +874,6 @@ private struct DVRRuleEditView: View {
         }
     }
 
-    @ViewBuilder
     private func optionLabel(_ option: DVRRecordingOption) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(option.title)
@@ -902,7 +928,9 @@ private struct FavoriteChannelOrderView: View {
     var body: some View {
         NavigationStack {
             List {
-                if favorites.isEmpty { Text("livetv.empty.favorites") }
+                if favorites.isEmpty {
+                    Text("livetv.empty.favorites")
+                }
                 ForEach(Array(favorites.enumerated()), id: \.element.id) { index, channel in
                     HStack {
                         Image(systemName: "star.fill").foregroundStyle(.yellow)
@@ -968,10 +996,20 @@ private struct LiveTVProgramDetailView: View {
             Form {
                 Section {
                     Text(program.title).font(.title2.bold())
-                    if let channel { Text(channel.displayTitle) }
-                    Text(program.startDate.formatted(date: .abbreviated, time: .shortened) + " – " + program.endDate.formatted(date: .omitted, time: .shortened))
-                    if let summary = program.summary { Text(summary) }
-                    if program.isCurrentlyAiring { ProgressView(value: program.progress) }
+                    if let channel {
+                        Text(channel.displayTitle)
+                    }
+                    Text(program.startDate.formatted(date: .abbreviated, time: .shortened) + " – " + program.endDate
+                        .formatted(
+                            date: .omitted,
+                            time: .shortened,
+                        ))
+                    if let summary = program.summary {
+                        Text(summary)
+                    }
+                    if program.isCurrentlyAiring {
+                        ProgressView(value: program.progress)
+                    }
                 }
                 if let template, let modeTemplate = selectedRecordingTemplate, !program.isScheduledForRecording {
                     if !template.libraries.isEmpty {
@@ -979,7 +1017,7 @@ private struct LiveTVProgramDetailView: View {
                             ForEach(template.libraries) { Text($0.title).tag(Optional($0.id)) }
                         }
                     }
-                    if template.supportsSingle && template.supportsSeries {
+                    if template.supportsSingle, template.supportsSeries {
                         Picker("livetv.recording.mode", selection: Binding(
                             get: { recordsSeries },
                             set: { selectRecordingMode(series: $0) },
@@ -993,7 +1031,9 @@ private struct LiveTVProgramDetailView: View {
                         optionEditor(option)
                     }
                 }
-                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
             }
             .navigationTitle("livetv.program.details")
             .toolbar {
@@ -1071,7 +1111,7 @@ private struct LiveTVProgramDetailView: View {
                 TextField(text: valueBinding(option)) {
                     Text(option.title)
                 }
-                    .multilineTextAlignment(.leading)
+                .multilineTextAlignment(.leading)
             }
         }
     }
@@ -1086,7 +1126,12 @@ private struct LiveTVProgramDetailView: View {
         isSubmittingRecording = true
         Task {
             do {
-                try await dvr.schedule(.init(program: program, recordsSeries: series, targetLibraryID: targetLibraryID, options: optionValues))
+                try await dvr.schedule(.init(
+                    program: program,
+                    recordsSeries: series,
+                    targetLibraryID: targetLibraryID,
+                    options: optionValues,
+                ))
                 await onChanged()
                 dismiss()
             } catch {

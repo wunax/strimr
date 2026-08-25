@@ -31,12 +31,19 @@ final class LiveTVStore {
         self.service = service
     }
 
-    var isAvailable: Bool { availability == .available }
-    var dvr: (any MediaDVRService)? { service.dvr }
+    var isAvailable: Bool {
+        availability == .available
+    }
+
+    var dvr: (any MediaDVRService)? {
+        service.dvr
+    }
 
     @discardableResult
     func refreshAvailability() async -> Bool {
-        if let availabilityTask { return await availabilityTask.value }
+        if let availabilityTask {
+            return await availabilityTask.value
+        }
         let previous = availability
         let task = Task { @MainActor [service] in
             do {
@@ -53,7 +60,9 @@ final class LiveTVStore {
                 guard !Task.isCancelled, !error.isCancellation else { return previous == .available }
                 LiveTVErrorReporting.capture(error)
                 // A transient failure must not erase a previously working destination.
-                if previous == .unknown { availability = .unavailable }
+                if previous == .unknown {
+                    availability = .unavailable
+                }
                 return previous == .available
             }
         }
@@ -104,7 +113,9 @@ final class LiveTVStore {
         }
         contentTask = task
         await task.value
-        if loadGeneration == generation { contentTask = nil }
+        if loadGeneration == generation {
+            contentTask = nil
+        }
     }
 
     func shiftGuide(hours: Int) async {
@@ -137,10 +148,10 @@ final class LiveTVStore {
         let order = Dictionary(uniqueKeysWithValues: favoriteIDs.enumerated().map { ($1, $0) })
         channels.sort { lhs, rhs in
             switch (order[lhs.id], order[rhs.id]) {
-            case let (a?, b?): return a < b
-            case (_?, nil): return true
-            case (nil, _?): return false
-            case (nil, nil): return lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
+            case let (a?, b?): a < b
+            case (_?, nil): true
+            case (nil, _?): false
+            case (nil, nil): lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
             }
         }
     }

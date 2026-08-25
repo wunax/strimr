@@ -353,6 +353,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
 
     func resetLiveTVNavigation() {
         liveTVPath = NavigationPath()
-        if tab == .liveTV { tab = .home }
+        if tab == .liveTV {
+            tab = .home
+        }
     }
 }

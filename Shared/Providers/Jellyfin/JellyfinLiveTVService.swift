@@ -13,13 +13,23 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         catalog = JellyfinCatalogService(context: context)
     }
 
-    var dvr: (any MediaDVRService)? { self }
-    var supportsServerCaptureBuffer: Bool { false }
-    var supportsCompletedRecordings: Bool { true }
+    var dvr: (any MediaDVRService)? {
+        self
+    }
+
+    var supportsServerCaptureBuffer: Bool {
+        false
+    }
+
+    var supportsCompletedRecordings: Bool {
+        true
+    }
+
     var canManageRecordings: Bool {
         context.currentUser?.policy?.isAdministrator == true
             || context.currentUser?.policy?.enableLiveTVManagement == true
     }
+
     var canDeleteRecordings: Bool {
         context.currentUser?.policy?.isAdministrator == true
             || context.currentUser?.policy?.enableContentDeletion == true
@@ -61,10 +71,10 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             )
         }.sorted { lhs, rhs in
             switch (order[lhs.id], order[rhs.id]) {
-            case let (a?, b?): return a < b
-            case (_?, nil): return true
-            case (nil, _?): return false
-            case (nil, nil): return lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
+            case let (a?, b?): a < b
+            case (_?, nil): true
+            case (nil, _?): false
+            case (nil, nil): lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
             }
         }
         return lastChannels
@@ -158,7 +168,9 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         try await catalog.setFavorite(favorite, itemID: channel.id)
         var order = favoriteOrder()
         order.removeAll { $0 == channel.id }
-        if favorite { order.append(channel.id) }
+        if favorite {
+            order.append(channel.id)
+        }
         storeFavoriteOrder(order)
     }
 
@@ -187,7 +199,10 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func recordingRules() async throws -> [DVRRecordingRule] {
-        let response: JellyfinQueryResult<JellyfinSeriesTimerDTO> = try await context.get(path: ["LiveTv", "SeriesTimers"])
+        let response: JellyfinQueryResult<JellyfinSeriesTimerDTO> = try await context.get(path: [
+            "LiveTv",
+            "SeriesTimers",
+        ])
         return response.items.compactMap { timer in
             guard let id = timer.id else { return nil }
             return DVRRecordingRule(
@@ -286,7 +301,8 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     private func mapProgram(_ item: JellyfinLiveProgramDTO) -> LiveTVProgram? {
-        guard let start = Self.date(item.startDate), let end = Self.date(item.endDate), let channelID = item.channelID else { return nil }
+        guard let start = Self.date(item.startDate), let end = Self.date(item.endDate),
+              let channelID = item.channelID else { return nil }
         return LiveTVProgram(
             id: item.id,
             channelID: channelID,
@@ -508,16 +524,28 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     private func integer(_ value: Any?) -> Int? {
-        if let value = value as? Int { return value }
-        if let value = value as? NSNumber { return value.intValue }
-        if let value = value as? String { return Int(value) }
+        if let value = value as? Int {
+            return value
+        }
+        if let value = value as? NSNumber {
+            return value.intValue
+        }
+        if let value = value as? String {
+            return Int(value)
+        }
         return nil
     }
 
     private func boolean(_ value: Any?) -> Bool? {
-        if let value = value as? Bool { return value }
-        if let value = value as? NSNumber { return value.boolValue }
-        if let value = value as? String { return parseBool(value) }
+        if let value = value as? Bool {
+            return value
+        }
+        if let value = value as? NSNumber {
+            return value.boolValue
+        }
+        if let value = value as? String {
+            return parseBool(value)
+        }
         return nil
     }
 
@@ -525,10 +553,21 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         value as? String
     }
 
-    private func userQuery() -> [URLQueryItem] { [URLQueryItem(name: "UserId", value: context.connection?.userID)] }
-    private var favoritesKey: String { "strimr.jellyfin.liveTV.favorites.\(server.id).\(context.connection?.userID ?? "")" }
-    private func favoriteOrder() -> [String] { UserDefaults.standard.stringArray(forKey: favoritesKey) ?? [] }
-    private func storeFavoriteOrder(_ ids: [String]) { UserDefaults.standard.set(ids, forKey: favoritesKey) }
+    private func userQuery() -> [URLQueryItem] {
+        [URLQueryItem(name: "UserId", value: context.connection?.userID)]
+    }
+
+    private var favoritesKey: String {
+        "strimr.jellyfin.liveTV.favorites.\(server.id).\(context.connection?.userID ?? "")"
+    }
+
+    private func favoriteOrder() -> [String] {
+        UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
+    }
+
+    private func storeFavoriteOrder(_ ids: [String]) {
+        UserDefaults.standard.set(ids, forKey: favoritesKey)
+    }
 
     private static let iso: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -556,7 +595,16 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
     private let playMethod: String
     private var didReportStarted = false
 
-    private init(channel: LiveTVChannel, context: JellyfinAPIContext, url: URL, headers: [String: String], playSessionID: String, mediaSourceID: String, liveStreamID: String?, playMethod: String) {
+    private init(
+        channel: LiveTVChannel,
+        context: JellyfinAPIContext,
+        url: URL,
+        headers: [String: String],
+        playSessionID: String,
+        mediaSourceID: String,
+        liveStreamID: String?,
+        playMethod: String,
+    ) {
         self.channel = channel
         self.context = context
         self.url = url
@@ -567,7 +615,10 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
         self.playMethod = playMethod
     }
 
-    static func start(channel: LiveTVChannel, context: JellyfinAPIContext) async throws -> JellyfinLiveTVPlaybackSession {
+    static func start(
+        channel: LiveTVChannel,
+        context: JellyfinAPIContext,
+    ) async throws -> JellyfinLiveTVPlaybackSession {
         guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
         let request = JellyfinLivePlaybackInfoRequest(userID: userID)
         let info: JellyfinPlaybackInfo = try await context.post(
@@ -635,18 +686,35 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
         return nil
     }
 
-    func recover() async throws -> any LiveTVPlaybackSession { try await Self.start(channel: channel, context: context) }
+    func recover() async throws -> any LiveTVPlaybackSession {
+        try await Self.start(channel: channel, context: context)
+    }
 
     func stop() async {
-        let report = JellyfinLivePlaybackReport(itemID: channel.id, mediaSourceID: mediaSourceID, playSessionID: playSessionID, positionTicks: 0, isPaused: true, playMethod: playMethod)
+        let report = JellyfinLivePlaybackReport(
+            itemID: channel.id,
+            mediaSourceID: mediaSourceID,
+            playSessionID: playSessionID,
+            positionTicks: 0,
+            isPaused: true,
+            playMethod: playMethod,
+        )
         do {
-            try await context.send(path: ["Sessions", "Playing", "Stopped"], method: "POST", body: JSONEncoder().encode(report))
+            try await context.send(
+                path: ["Sessions", "Playing", "Stopped"],
+                method: "POST",
+                body: JSONEncoder().encode(report),
+            )
         } catch {
             LiveTVErrorReporting.capture(error)
         }
         if let liveStreamID {
             do {
-                try await context.send(path: ["LiveStreams", "Close"], method: "POST", query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)])
+                try await context.send(
+                    path: ["LiveStreams", "Close"],
+                    method: "POST",
+                    query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)],
+                )
             } catch {
                 LiveTVErrorReporting.capture(error)
             }
@@ -691,7 +759,7 @@ private struct JellyfinLivePlaybackInfoRequest: Encodable {
     }
 }
 
-nonisolated private struct JellyfinLivePlaybackReport: Encodable {
+private nonisolated struct JellyfinLivePlaybackReport: Encodable {
     let itemID: String
     let mediaSourceID: String
     let playSessionID: String
@@ -709,7 +777,7 @@ nonisolated private struct JellyfinLivePlaybackReport: Encodable {
     }
 }
 
-nonisolated private struct JellyfinLiveChannelDTO: Decodable, Sendable {
+private nonisolated struct JellyfinLiveChannelDTO: Decodable, Sendable {
     let id: String
     let name: String
     let number: String?
@@ -724,7 +792,7 @@ nonisolated private struct JellyfinLiveChannelDTO: Decodable, Sendable {
     }
 }
 
-nonisolated private struct JellyfinLiveProgramDTO: Decodable, Sendable {
+private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let id: String
     let name: String
     let overview: String?
@@ -747,11 +815,12 @@ nonisolated private struct JellyfinLiveProgramDTO: Decodable, Sendable {
         case id = "Id"; case name = "Name"; case overview = "Overview"; case channelID = "ChannelId"
         case seriesName = "SeriesName"; case seriesID = "SeriesId"; case startDate = "StartDate"; case endDate = "EndDate"
         case imageTags = "ImageTags"; case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
-        case isLive = "IsLive"; case isPremiere = "IsPremiere"; case isSeries = "IsSeries"; case timerID = "TimerId"; case seriesTimerID = "SeriesTimerId"; case status = "Status"
+        case isLive = "IsLive"; case isPremiere = "IsPremiere"; case isSeries = "IsSeries"; case timerID =
+            "TimerId"; case seriesTimerID = "SeriesTimerId"; case status = "Status"
     }
 }
 
-nonisolated private struct JellyfinTimerDTO: Codable, Sendable {
+private nonisolated struct JellyfinTimerDTO: Codable, Sendable {
     var id: String?
     var programID: String?
     var seriesTimerID: String?
@@ -773,7 +842,7 @@ nonisolated private struct JellyfinTimerDTO: Codable, Sendable {
     }
 }
 
-nonisolated private struct JellyfinSeriesTimerDTO: Codable, Sendable {
+private nonisolated struct JellyfinSeriesTimerDTO: Codable, Sendable {
     var id: String?
     var programID: String?
     var channelID: String?
@@ -802,13 +871,14 @@ nonisolated private struct JellyfinSeriesTimerDTO: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"; case programID = "ProgramId"; case channelID = "ChannelId"; case name = "Name"
-        case prePaddingSeconds = "PrePaddingSeconds"; case postPaddingSeconds = "PostPaddingSeconds"; case recordNewOnly = "RecordNewOnly"
+        case prePaddingSeconds = "PrePaddingSeconds"; case postPaddingSeconds =
+            "PostPaddingSeconds"; case recordNewOnly = "RecordNewOnly"
         case recordAnyTime = "RecordAnyTime"; case recordAnyChannel = "RecordAnyChannel"; case keepUpTo = "KeepUpTo"
         case keepUntil = "KeepUntil"; case skipEpisodesInLibrary = "SkipEpisodesInLibrary"
     }
 }
 
-nonisolated private func parseBool(_ value: String?) -> Bool? {
+private nonisolated func parseBool(_ value: String?) -> Bool? {
     guard let value else { return nil }
     switch value.lowercased() {
     case "true", "1", "yes": return true

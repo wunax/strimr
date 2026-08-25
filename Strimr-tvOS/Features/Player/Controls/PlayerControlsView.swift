@@ -146,18 +146,18 @@ struct PlayerControlsView: View {
                         .disabled(behindLiveSeconds < 2)
                 }
             } else {
-            PlayerTimelineView(
-                position: $position,
-                duration: duration,
-                bufferedAhead: bufferedAhead,
-                playbackPosition: bufferBasePosition,
-                playbackRate: playbackRate,
-                showsEndsAtTime: showsEndsAtTime,
-                chapters: chapters,
-                showsChaptersOnTimeline: showsChaptersOnTimeline,
-                scrubPreview: scrubPreview,
-                onEditingChanged: onScrubbingChanged,
-            )
+                PlayerTimelineView(
+                    position: $position,
+                    duration: duration,
+                    bufferedAhead: bufferedAhead,
+                    playbackPosition: bufferBasePosition,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: showsEndsAtTime,
+                    chapters: chapters,
+                    showsChaptersOnTimeline: showsChaptersOnTimeline,
+                    scrubPreview: scrubPreview,
+                    onEditingChanged: onScrubbingChanged,
+                )
             }
 
             ZStack {

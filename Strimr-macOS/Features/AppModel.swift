@@ -204,7 +204,9 @@ final class AppModel: PlaybackPresenting {
 
     func resetLiveTVNavigation() {
         paths[.liveTV] = NavigationPath()
-        if selection == .liveTV { selection = .home }
+        if selection == .liveTV {
+            selection = .home
+        }
     }
 
     func resetPlayer(ifPresenting presentationID: UUID? = nil) {

@@ -102,37 +102,42 @@ struct PlayerControlsView: View {
                             if behindLiveSeconds < 2 {
                                 Text("livetv.player.live").font(.headline.monospacedDigit())
                             } else {
-                                Text("livetv.player.behind \(Int(behindLiveSeconds / 60))").font(.headline.monospacedDigit())
+                                Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
+                                    .font(.headline.monospacedDigit())
                             }
                             Spacer()
-                            Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: onGoLive)
-                                .buttonStyle(.borderedProminent)
-                                .disabled(behindLiveSeconds < 2)
+                            Button(
+                                "livetv.player.goLive",
+                                systemImage: "dot.radiowaves.left.and.right",
+                                action: onGoLive,
+                            )
+                            .buttonStyle(.borderedProminent)
+                            .disabled(behindLiveSeconds < 2)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 12)
                     } else {
-                    ZStack(alignment: .bottom) {
-                        PlayerTimelineView(
-                            position: $position,
-                            duration: duration,
-                            bufferedAhead: bufferedAhead,
-                            playbackPosition: bufferBasePosition,
-                            playbackRate: playbackRate,
-                            showsEndsAtTime: showsEndsAtTime,
-                            chapters: chapters,
-                            showsChaptersOnTimeline: showsChaptersOnTimeline,
-                            scrubPreview: scrubPreview,
-                            onEditingChanged: onScrubbingChanged,
-                        )
+                        ZStack(alignment: .bottom) {
+                            PlayerTimelineView(
+                                position: $position,
+                                duration: duration,
+                                bufferedAhead: bufferedAhead,
+                                playbackPosition: bufferBasePosition,
+                                playbackRate: playbackRate,
+                                showsEndsAtTime: showsEndsAtTime,
+                                chapters: chapters,
+                                showsChaptersOnTimeline: showsChaptersOnTimeline,
+                                scrubPreview: scrubPreview,
+                                onEditingChanged: onScrubbingChanged,
+                            )
 
-                        if hasQueue {
-                            PlayerQueueDisclosureButton(action: onShowQueue)
-                                .opacity(isScrubbing ? 0 : 1)
-                                .allowsHitTesting(!isScrubbing)
-                                .offset(y: 18)
+                            if hasQueue {
+                                PlayerQueueDisclosureButton(action: onShowQueue)
+                                    .opacity(isScrubbing ? 0 : 1)
+                                    .allowsHitTesting(!isScrubbing)
+                                    .offset(y: 18)
+                            }
                         }
-                    }
                     }
                 }
             }
