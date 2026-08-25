@@ -1,5 +1,47 @@
 import SwiftUI
 
+#if os(iOS)
+    import UIKit
+#endif
+
+#if os(iOS)
+    private final class GuideScrollViewConfiguratorView: UIView {
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            configureScrollView()
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            configureScrollView()
+        }
+
+        private func configureScrollView() {
+            var ancestor = superview
+            while let current = ancestor {
+                if let scrollView = current as? UIScrollView {
+                    scrollView.bounces = false
+                    scrollView.alwaysBounceHorizontal = false
+                    scrollView.alwaysBounceVertical = false
+                    scrollView.isDirectionalLockEnabled = true
+                    return
+                }
+                ancestor = current.superview
+            }
+        }
+    }
+
+    private struct GuideScrollViewConfigurator: UIViewRepresentable {
+        func makeUIView(context: Context) -> GuideScrollViewConfiguratorView {
+            GuideScrollViewConfiguratorView(frame: .zero)
+        }
+
+        func updateUIView(_ view: GuideScrollViewConfiguratorView, context: Context) {
+            view.setNeedsLayout()
+        }
+    }
+#endif
+
 struct LiveTVView: View {
     private enum GuideFocusItem: Hashable {
         case favorite(String)
@@ -169,6 +211,9 @@ struct LiveTVView: View {
                             }
                         }
                     }
+                    #if os(iOS)
+                        .background(GuideScrollViewConfigurator())
+                    #endif
                 }
             }
         }
