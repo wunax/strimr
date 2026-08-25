@@ -367,7 +367,10 @@ struct LiveTVView: View {
             .frame(width: 160, alignment: .leading)
 
             let programs = store.programs
-                .filter { $0.channelIdentity == channel.identity && $0.endDate > store.guideStart && $0.startDate < store.guideEnd }
+                .filter {
+                    $0.channelIdentity == channel.identity && $0.endDate > store.guideStart && $0.startDate < store
+                        .guideEnd
+                }
             ZStack(alignment: .leading) {
                 if programs.isEmpty {
                     Text("livetv.guide.noData").foregroundStyle(.secondary)
@@ -1088,7 +1091,11 @@ private struct LiveTVProgramDetailView: View {
                 recordingActionConfirmationTitle,
                 isPresented: Binding(
                     get: { pendingProgramRecordingAction != nil },
-                    set: { if !$0 { pendingProgramRecordingAction = nil } },
+                    set: {
+                        if !$0 {
+                            pendingProgramRecordingAction = nil
+                        }
+                    },
                 ),
                 titleVisibility: .visible,
             ) {

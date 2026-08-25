@@ -68,7 +68,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 dvrID: nil,
                 isHD: item.isHD ?? false,
                 isFavorite: item.userData?.isFavorite ?? storedOrder.contains(item.id),
-        )
+            )
         }.sorted { lhs, rhs in
             switch (order[lhs.providerID], order[rhs.providerID]) {
             case let (a?, b?): a < b
@@ -715,7 +715,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
                     path: ["LiveStreams", "Close"],
                     method: "POST",
                     query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)],
-            )
+                )
             } catch {
                 LiveTVErrorReporting.capture(error)
             }

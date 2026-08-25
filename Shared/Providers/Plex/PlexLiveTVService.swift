@@ -360,7 +360,8 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     private func enabledChannelIDs(for dvrID: String?) -> Set<String>? {
-        let mappings = dvrs.first(where: { string($0["key"]) == dvrID }).map { dictionaries($0["ChannelMapping"]) } ?? []
+        let mappings = dvrs.first(where: { string($0["key"]) == dvrID })
+            .map { dictionaries($0["ChannelMapping"]) } ?? []
         guard !mappings.isEmpty else { return nil }
         return Set(mappings.compactMap { bool($0["enabled"]) == true ? string($0["channelKey"]) : nil })
     }
@@ -467,7 +468,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     private func favoriteKey(for channel: LiveTVChannel) -> FavoriteChannelKey {
-        return FavoriteChannelKey(
+        FavoriteChannelKey(
             source: "server://\(context.serverIdentifier ?? "")/\(channel.lineupID ?? "")",
             providerID: channel.providerID,
         )

@@ -712,16 +712,16 @@ final class PlayerViewModel {
         liveTimelineTask = Task { @MainActor [weak self] in
             guard let self else { return }
             defer { self.finishLiveTimelineReport(generation: generation) }
-            guard self.liveSessionGeneration == generation, !self.isLiveReportingSuspended else { return }
+            guard liveSessionGeneration == generation, !isLiveReportingSuspended else { return }
             do {
                 let captureRange = try await session.report(
-                    position: self.position,
+                    position: position,
                     isPaused: state == .paused,
                 )
-                guard self.liveSessionGeneration == generation else { return }
-                self.liveCaptureRange = captureRange
+                guard liveSessionGeneration == generation else { return }
+                liveCaptureRange = captureRange
             } catch {
-                guard self.liveSessionGeneration == generation,
+                guard liveSessionGeneration == generation,
                       !Task.isCancelled,
                       !error.isCancellation
                 else { return }
