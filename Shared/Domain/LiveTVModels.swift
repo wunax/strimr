@@ -18,8 +18,19 @@ private struct SanitizedLiveTVError: LocalizedError {
     }
 }
 
+struct LiveTVChannelIdentity: Hashable, Sendable {
+    let providerID: String
+    let lineupID: String?
+    let dvrID: String?
+}
+
+struct LiveTVProgramIdentity: Hashable, Sendable {
+    let providerID: String
+    let channel: LiveTVChannelIdentity
+}
+
 struct LiveTVChannel: Identifiable, Hashable, Sendable {
-    let id: String
+    let providerID: String
     let title: String
     let callSign: String?
     let number: String?
@@ -29,6 +40,14 @@ struct LiveTVChannel: Identifiable, Hashable, Sendable {
     let dvrID: String?
     let isHD: Bool
     var isFavorite: Bool
+
+    var identity: LiveTVChannelIdentity {
+        LiveTVChannelIdentity(providerID: providerID, lineupID: lineupID, dvrID: dvrID)
+    }
+
+    var id: LiveTVChannelIdentity {
+        identity
+    }
 
     var displayTitle: String {
         let name = callSign?.nilIfEmpty ?? title
@@ -40,6 +59,7 @@ struct LiveTVChannel: Identifiable, Hashable, Sendable {
 struct LiveTVProgram: Identifiable, Hashable, Sendable {
     let id: String
     let channelID: String
+    let channelIdentity: LiveTVChannelIdentity
     let title: String
     let seriesTitle: String?
     let summary: String?
@@ -55,6 +75,10 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
     let seriesRecordingID: String?
     var recordingStatus: DVRRecordingStatus?
     let providerGUID: String?
+
+    var identity: LiveTVProgramIdentity {
+        LiveTVProgramIdentity(providerID: id, channel: channelIdentity)
+    }
 
     var isRecording: Bool {
         recordingStatus == .recording

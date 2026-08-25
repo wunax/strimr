@@ -130,7 +130,7 @@ final class LiveTVStore {
         do {
             try await service.setFavorite(!channel.isFavorite, channel: channel)
             channels = channels.map { item in
-                guard item.id == channel.id else { return item }
+                guard item.identity == channel.identity else { return item }
                 var item = item
                 item.isFavorite.toggle()
                 return item
@@ -144,7 +144,7 @@ final class LiveTVStore {
 
     func reorderFavorites(_ favorites: [LiveTVChannel]) async throws {
         try await service.reorderFavorites(favorites)
-        let favoriteIDs = favorites.map(\.id)
+        let favoriteIDs = favorites.map(\.identity)
         let order = Dictionary(uniqueKeysWithValues: favoriteIDs.enumerated().map { ($1, $0) })
         channels.sort { lhs, rhs in
             switch (order[lhs.id], order[rhs.id]) {

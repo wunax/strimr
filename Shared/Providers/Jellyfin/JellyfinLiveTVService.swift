@@ -58,7 +58,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         let order = Dictionary(uniqueKeysWithValues: storedOrder.enumerated().map { ($1, $0) })
         lastChannels = response.items.map { item in
             LiveTVChannel(
-                id: item.id,
+                providerID: item.id,
                 title: item.name,
                 callSign: item.callSign,
                 number: item.number,
@@ -68,9 +68,9 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 dvrID: nil,
                 isHD: item.isHD ?? false,
                 isFavorite: item.userData?.isFavorite ?? storedOrder.contains(item.id),
-            )
+        )
         }.sorted { lhs, rhs in
-            switch (order[lhs.id], order[rhs.id]) {
+            switch (order[lhs.providerID], order[rhs.providerID]) {
             case let (a?, b?): a < b
             case (_?, nil): true
             case (nil, _?): false
@@ -165,17 +165,17 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws {
-        try await catalog.setFavorite(favorite, itemID: channel.id)
+        try await catalog.setFavorite(favorite, itemID: channel.providerID)
         var order = favoriteOrder()
-        order.removeAll { $0 == channel.id }
+        order.removeAll { $0 == channel.providerID }
         if favorite {
-            order.append(channel.id)
+            order.append(channel.providerID)
         }
         storeFavoriteOrder(order)
     }
 
     func reorderFavorites(_ channels: [LiveTVChannel]) async throws {
-        storeFavoriteOrder(channels.map(\.id))
+        storeFavoriteOrder(channels.map(\.providerID))
     }
 
     func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
@@ -306,6 +306,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         return LiveTVProgram(
             id: item.id,
             channelID: channelID,
+            channelIdentity: LiveTVChannelIdentity(providerID: channelID, lineupID: nil, dvrID: nil),
             title: item.name,
             seriesTitle: item.seriesName,
             summary: item.overview,
@@ -622,7 +623,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
         guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
         let request = JellyfinLivePlaybackInfoRequest(userID: userID)
         let info: JellyfinPlaybackInfo = try await context.post(
-            path: ["Items", channel.id, "PlaybackInfo"],
+            path: ["Items", channel.providerID, "PlaybackInfo"],
             query: [URLQueryItem(name: "UserId", value: userID)],
             body: request,
         )
@@ -673,7 +674,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
 
     func report(position: TimeInterval, isPaused: Bool) async throws -> LiveTVCaptureRange? {
         let report = JellyfinLivePlaybackReport(
-            itemID: channel.id,
+            itemID: channel.providerID,
             mediaSourceID: mediaSourceID,
             playSessionID: playSessionID,
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
@@ -692,7 +693,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
 
     func stop() async {
         let report = JellyfinLivePlaybackReport(
-            itemID: channel.id,
+            itemID: channel.providerID,
             mediaSourceID: mediaSourceID,
             playSessionID: playSessionID,
             positionTicks: 0,
@@ -714,7 +715,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
                     path: ["LiveStreams", "Close"],
                     method: "POST",
                     query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)],
-                )
+            )
             } catch {
                 LiveTVErrorReporting.capture(error)
             }

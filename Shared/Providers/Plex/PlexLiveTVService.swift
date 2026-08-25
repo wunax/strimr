@@ -8,6 +8,11 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         let gridPath: String
     }
 
+    private struct FavoriteChannelKey: Hashable {
+        let source: String
+        let providerID: String
+    }
+
     private let context: PlexAPIContext
     private let network: PlexServerNetworkClient
     private var dvrs: [[String: Any]] = []
@@ -46,10 +51,11 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
 
     func channels() async throws -> [LiveTVChannel] {
         try await ensureDiscovered()
-        let favorites = await (try? favoriteChannelIDs()) ?? []
-        let enabled = enabledChannelIDs()
+        let favorites = await (try? favoriteChannelKeys()) ?? []
         var result: [LiveTVChannel] = []
         for provider in providers {
+            guard let dvrID = matchingDVRID(provider: provider) else { continue }
+            let enabled = enabledChannelIDs(for: dvrID)
             let paths = provider.identifier.hasPrefix("tv.plex.providers.epg")
                 ? ["/lineups/plex/channels", "/\(provider.identifier)/lineups/dvr/channels"]
                 : ["/\(provider.identifier)/lineups/dvr/channels"]
@@ -59,14 +65,13 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 else { continue }
                 let raw = dictionaries(container["Channel"] ?? container["Metadata"])
                 let parsed = raw.compactMap { item -> LiveTVChannel? in
-                    let id = string(item["key"] ?? item["ratingKey"] ?? item["identifier"] ?? item["id"])
-                    guard let id, !id.isEmpty else { return nil }
-                    if let enabled, !enabled.contains(id) {
+                    let providerID = string(item["key"] ?? item["ratingKey"] ?? item["identifier"] ?? item["id"])
+                    guard let providerID, !providerID.isEmpty else { return nil }
+                    if let enabled, !enabled.contains(providerID) {
                         return nil
                     }
-                    let dvrID = matchingDVRID(provider: provider)
-                    return LiveTVChannel(
-                        id: id,
+                    var channel = LiveTVChannel(
+                        providerID: providerID,
                         title: string(item["title"] ?? item["callSign"]) ?? String(localized: "livetv.channel.unknown"),
                         callSign: string(item["callSign"]),
                         number: string(item["number"] ?? item["channelNumber"] ?? item["channelVcn"]),
@@ -75,8 +80,10 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                         lineupID: provider.identifier,
                         dvrID: dvrID,
                         isHD: bool(item["hd"]) ?? false,
-                        isFavorite: favorites.contains(id),
+                        isFavorite: false,
                     )
+                    channel.isFavorite = favorites.contains(favoriteKey(for: channel))
+                    return channel
                 }
                 result.append(contentsOf: parsed)
                 if !parsed.isEmpty {
@@ -91,6 +98,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         try await ensureDiscovered()
         var result: [LiveTVProgram] = []
         for provider in providers {
+            guard let dvrID = matchingDVRID(provider: provider) else { continue }
             let root = try await network.json(
                 path: provider.gridPath,
                 queryItems: [
@@ -103,7 +111,9 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
             for hub in dictionaries(container["Hub"]) {
                 metadata.append(contentsOf: dictionaries(hub["Metadata"]))
             }
-            result.append(contentsOf: metadata.flatMap { parsePrograms($0, provider: provider.identifier) })
+            result.append(contentsOf: metadata.flatMap {
+                parsePrograms($0, provider: provider.identifier, dvrID: dvrID)
+            })
         }
         lastPrograms = uniquePrograms(result).sorted { $0.startDate < $1.startDate }
         return lastPrograms
@@ -121,14 +131,15 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws {
-        var ids = try await favoriteChannelIDs()
+        var keys = try await favoriteChannelKeys()
+        let key = favoriteKey(for: channel)
         if favorite {
-            ids.insert(channel.id)
+            keys.insert(key)
         } else {
-            ids.remove(channel.id)
+            keys.remove(key)
         }
         let allChannels = try await channels()
-        try await writeFavorites(allChannels.filter { ids.contains($0.id) })
+        try await writeFavorites(allChannels.filter { keys.contains(favoriteKey(for: $0)) })
     }
 
     func reorderFavorites(_ channels: [LiveTVChannel]) async throws {
@@ -136,7 +147,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
-        guard let dvrID = channel.dvrID ?? dvrs.first.flatMap({ string($0["key"]) }) else {
+        guard let dvrID = channel.dvrID else {
             throw PlexAPIError.invalidResponse
         }
         do {
@@ -348,18 +359,24 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         }
     }
 
-    private func enabledChannelIDs() -> Set<String>? {
-        let mappings = dvrs.flatMap { dictionaries($0["ChannelMapping"]) }
+    private func enabledChannelIDs(for dvrID: String?) -> Set<String>? {
+        let mappings = dvrs.first(where: { string($0["key"]) == dvrID }).map { dictionaries($0["ChannelMapping"]) } ?? []
         guard !mappings.isEmpty else { return nil }
         return Set(mappings.compactMap { bool($0["enabled"]) == true ? string($0["channelKey"]) : nil })
     }
 
     private func matchingDVRID(provider: EPGProvider) -> String? {
-        dvrs.first(where: { string($0["lineup"]) == provider.identifier }).flatMap { string($0["key"]) }
-            ?? dvrs.first.flatMap { string($0["key"]) }
+        let matches = dvrs
+            .filter { string($0["lineup"]) == provider.identifier }
+            .compactMap { string($0["key"]) }
+        if matches.count == 1 {
+            return matches[0]
+        }
+        guard matches.isEmpty, dvrs.count == 1 else { return nil }
+        return dvrs.first.flatMap { string($0["key"]) }
     }
 
-    private func parsePrograms(_ metadata: [String: Any], provider: String) -> [LiveTVProgram] {
+    private func parsePrograms(_ metadata: [String: Any], provider: String, dvrID: String? = nil) -> [LiveTVProgram] {
         let media = dictionaries(metadata["Media"])
         let airings = media.isEmpty ? [metadata] : media
         return airings.compactMap { airing in
@@ -371,9 +388,15 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 ?? dictionaries(metadata["Channel"]).first.flatMap { string($0["id"]) }
             guard let channel else { return nil }
             let ratingKey = string(metadata["ratingKey"] ?? metadata["key"]) ?? "\(channel)-\(Int(start))"
+            let channelIdentity = LiveTVChannelIdentity(
+                providerID: channel,
+                lineupID: provider.isEmpty ? nil : provider,
+                dvrID: dvrID,
+            )
             return LiveTVProgram(
                 id: "\(ratingKey)-\(Int(start))",
                 channelID: channel,
+                channelIdentity: channelIdentity,
                 title: string(metadata["title"]) ?? String(localized: "livetv.program.unknown"),
                 seriesTitle: string(metadata["grandparentTitle"]),
                 summary: string(metadata["summary"]),
@@ -421,7 +444,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         )
     }
 
-    private func favoriteChannelIDs() async throws -> Set<String> {
+    private func favoriteChannelKeys() async throws -> Set<FavoriteChannelKey> {
         let snapshot = try context.serverAccessSnapshot()
         var request = URLRequest(url: URL(string: "https://epg.provider.plex.tv/settings/favoriteChannels")!)
         request.setValue(context.authTokenCloud ?? snapshot.authToken, forHTTPHeaderField: "X-Plex-Token")
@@ -435,7 +458,19 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         let root = object as? [String: Any] ?? [:]
         let entries = dictionaries(root["MediaContainer"]).flatMap { dictionaries($0["FavoriteChannel"]) }
             + dictionaries(root["FavoriteChannel"])
-        return Set(entries.compactMap { string($0["id"] ?? $0["key"]) })
+        return Set(entries.compactMap { entry in
+            guard let providerID = string(entry["id"] ?? entry["key"]),
+                  let source = string(entry["source"])
+            else { return nil }
+            return FavoriteChannelKey(source: source, providerID: providerID)
+        })
+    }
+
+    private func favoriteKey(for channel: LiveTVChannel) -> FavoriteChannelKey {
+        return FavoriteChannelKey(
+            source: "server://\(context.serverIdentifier ?? "")/\(channel.lineupID ?? "")",
+            providerID: channel.providerID,
+        )
     }
 
     private func writeFavorites(_ channels: [LiveTVChannel]) async throws {
@@ -449,7 +484,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "FavoriteChannel": channels.map { [
                 "source": "server://\(snapshot.serverIdentifier)/\($0.lineupID ?? "")",
-                "id": $0.id,
+                "id": $0.providerID,
                 "title": $0.title,
                 "vcn": $0.number ?? "",
             ] },
@@ -508,7 +543,7 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
         let sessionIdentifier = UUID().uuidString
         let network = PlexServerNetworkClient(context: context)
         let root = try await network.json(
-            path: "/livetv/dvrs/\(dvrID)/channels/\(channel.id)/tune",
+            path: "/livetv/dvrs/\(dvrID)/channels/\(channel.providerID)/tune",
             queryItems: [URLQueryItem(name: "X-Plex-Session-Identifier", value: sessionIdentifier)],
             method: "POST",
         )
@@ -522,7 +557,7 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
         guard let metadata, let path = string(metadata["key"]) else {
             throw PlexAPIError.invalidResponse
         }
-        let ratingKey = string(metadata["ratingKey"]) ?? channel.id
+        let ratingKey = string(metadata["ratingKey"]) ?? channel.providerID
         let streams = dictionaries(metadata["Media"]).flatMap { media in
             dictionaries(media["Part"]).flatMap { dictionaries($0["Stream"]) }
         } + dictionaries(metadata["Stream"])
@@ -685,13 +720,13 @@ private func plexCaptureRange(from value: [String: Any]?) -> LiveTVCaptureRange?
 }
 
 private func unique(_ channels: [LiveTVChannel]) -> [LiveTVChannel] {
-    var ids: Set<String> = []
-    return channels.filter { ids.insert($0.id).inserted }
+    var identities: Set<LiveTVChannelIdentity> = []
+    return channels.filter { identities.insert($0.identity).inserted }
 }
 
 private func uniquePrograms(_ programs: [LiveTVProgram]) -> [LiveTVProgram] {
-    var ids: Set<String> = []
-    return programs.filter { ids.insert($0.id).inserted }
+    var identities: Set<LiveTVProgramIdentity> = []
+    return programs.filter { identities.insert($0.identity).inserted }
 }
 
 private func channelSort(_ lhs: LiveTVChannel, _ rhs: LiveTVChannel) -> Bool {

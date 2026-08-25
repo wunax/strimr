@@ -4,6 +4,11 @@ import SwiftUI
     import UIKit
 #endif
 
+private enum LiveTVProgramRecordingAction {
+    case cancelRecording(String)
+    case deleteSeriesRule(String)
+}
+
 #if os(iOS)
     private final class GuideScrollViewConfiguratorView: UIView {
         override func didMoveToWindow() {
@@ -44,10 +49,10 @@ import SwiftUI
 
 struct LiveTVView: View {
     private enum GuideFocusItem: Hashable {
-        case favorite(String)
-        case channel(String)
-        case program(String)
-        case onNowProgram(String)
+        case favorite(LiveTVChannelIdentity)
+        case channel(LiveTVChannelIdentity)
+        case program(LiveTVProgramIdentity)
+        case onNowProgram(LiveTVProgramIdentity)
     }
 
     enum LiveTVSection: String, CaseIterable, Identifiable {
@@ -126,7 +131,7 @@ struct LiveTVView: View {
         .sheet(item: $selectedProgram) { program in
             LiveTVProgramDetailView(
                 program: program,
-                channel: store.channels.first { $0.id == program.channelID },
+                channel: store.channels.first { $0.identity == program.channelIdentity },
                 dvr: store.dvr,
                 supportsWatchFromStart: store.service.supportsServerCaptureBuffer,
                 onWatch: { tune(program) },
@@ -314,8 +319,8 @@ struct LiveTVView: View {
 
     private func guideRow(_ channel: LiveTVChannel) -> some View {
         #if os(tvOS)
-            let isFavoriteFocused = focusedGuideItem == .favorite(channel.id)
-            let isChannelFocused = focusedGuideItem == .channel(channel.id)
+            let isFavoriteFocused = focusedGuideItem == .favorite(channel.identity)
+            let isChannelFocused = focusedGuideItem == .channel(channel.identity)
         #else
             let isFavoriteFocused = false
             let isChannelFocused = false
@@ -327,7 +332,7 @@ struct LiveTVView: View {
                     #if os(tvOS)
                         guideFavoriteLabel(channel, isFocused: isFavoriteFocused)
                             .focusable()
-                            .focused($focusedGuideItem, equals: .favorite(channel.id))
+                            .focused($focusedGuideItem, equals: .favorite(channel.identity))
                             .onTapGesture { Task { await store.toggleFavorite(channel) } }
                             .accessibilityAddTraits(.isButton)
                     #else
@@ -346,7 +351,7 @@ struct LiveTVView: View {
                     #if os(tvOS)
                         guideChannelLabel(channel, isFocused: isChannelFocused)
                             .focusable()
-                            .focused($focusedGuideItem, equals: .channel(channel.id))
+                            .focused($focusedGuideItem, equals: .channel(channel.identity))
                             .onTapGesture { tune(channel) }
                             .accessibilityAddTraits(.isButton)
                     #else
@@ -362,16 +367,16 @@ struct LiveTVView: View {
             .frame(width: 160, alignment: .leading)
 
             let programs = store.programs
-                .filter { $0.channelID == channel.id && $0.endDate > store.guideStart && $0.startDate < store.guideEnd }
+                .filter { $0.channelIdentity == channel.identity && $0.endDate > store.guideStart && $0.startDate < store.guideEnd }
             ZStack(alignment: .leading) {
                 if programs.isEmpty {
                     Text("livetv.guide.noData").foregroundStyle(.secondary)
                 } else {
-                    ForEach(programs) { program in
+                    ForEach(programs, id: \.identity) { program in
                         let visibleStart = max(program.startDate, store.guideStart)
                         let visibleEnd = min(program.endDate, store.guideEnd)
                         #if os(tvOS)
-                            let isFocused = focusedGuideItem == .program(program.id)
+                            let isFocused = focusedGuideItem == .program(program.identity)
                         #else
                             let isFocused = false
                         #endif
@@ -383,7 +388,7 @@ struct LiveTVView: View {
                                     isFocused: isFocused,
                                 )
                                 .focusable()
-                                .focused($focusedGuideItem, equals: .program(program.id))
+                                .focused($focusedGuideItem, equals: .program(program.identity))
                                 .onTapGesture { selectedProgram = program }
                                 .accessibilityAddTraits(.isButton)
                             #else
@@ -507,9 +512,9 @@ struct LiveTVView: View {
                         Text(row.title).font(.title2.bold())
                         ScrollView(.horizontal) {
                             LazyHStack {
-                                ForEach(row.programs) { program in
+                                ForEach(row.programs, id: \.identity) { program in
                                     #if os(tvOS)
-                                        let isFocused = focusedGuideItem == .onNowProgram(program.id)
+                                        let isFocused = focusedGuideItem == .onNowProgram(program.identity)
                                     #else
                                         let isFocused = false
                                     #endif
@@ -517,7 +522,7 @@ struct LiveTVView: View {
                                         #if os(tvOS)
                                             onNowProgramCard(program, isFocused: isFocused)
                                                 .focusable()
-                                                .focused($focusedGuideItem, equals: .onNowProgram(program.id))
+                                                .focused($focusedGuideItem, equals: .onNowProgram(program.identity))
                                                 .onTapGesture { openOnNowProgram(program) }
                                                 .accessibilityAddTraits(.isButton)
                                         #else
@@ -530,7 +535,7 @@ struct LiveTVView: View {
                                     .accessibilityElement(children: .combine)
                                     .accessibilityLabel(
                                         Text(
-                                            "livetv.onNow.program.accessibility \(program.title) \(channelName(program.channelID))",
+                                            "livetv.onNow.program.accessibility \(program.title) \(channelName(program.channelIdentity))",
                                         ),
                                     )
                                 }
@@ -566,7 +571,7 @@ struct LiveTVView: View {
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.tail)
-            Text(channelName(program.channelID))
+            Text(channelName(program.channelIdentity))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -689,7 +694,7 @@ struct LiveTVView: View {
     }
 
     private func tune(_ program: LiveTVProgram, fromStart: Bool = false) {
-        guard let index = store.channels.firstIndex(where: { $0.id == program.channelID }) else { return }
+        guard let index = store.channels.firstIndex(where: { $0.identity == program.channelIdentity }) else { return }
         onPlayLive(
             LiveTVLaunchContext(
                 channels: store.channels,
@@ -701,12 +706,12 @@ struct LiveTVView: View {
     }
 
     private func tune(_ channel: LiveTVChannel) {
-        guard let index = store.channels.firstIndex(where: { $0.id == channel.id }) else { return }
+        guard let index = store.channels.firstIndex(where: { $0.identity == channel.identity }) else { return }
         onPlayLive(LiveTVLaunchContext(channels: store.channels, selectedIndex: index))
     }
 
-    private func channelName(_ id: String) -> String {
-        store.channels.first { $0.id == id }?.displayTitle ?? ""
+    private func channelName(_ identity: LiveTVChannelIdentity) -> String {
+        store.channels.first { $0.identity == identity }?.displayTitle ?? ""
     }
 
     private func requestCancellation(for recording: DVRRecording) {
@@ -982,6 +987,7 @@ private struct LiveTVProgramDetailView: View {
     @State private var targetLibraryID: String?
     @State private var errorMessage: String?
     @State private var isSubmittingRecording = false
+    @State private var pendingProgramRecordingAction: LiveTVProgramRecordingAction?
 
     private var selectedRecordingMode: DVRRecordingMode {
         recordsSeries ? .series : .single
@@ -989,6 +995,15 @@ private struct LiveTVProgramDetailView: View {
 
     private var selectedRecordingTemplate: DVRRecordingModeTemplate? {
         template?.template(for: selectedRecordingMode)
+    }
+
+    private var recordingActionConfirmationTitle: LocalizedStringKey {
+        switch pendingProgramRecordingAction {
+        case .deleteSeriesRule:
+            "livetv.recording.stopSeries.confirm"
+        case .cancelRecording, nil:
+            "livetv.recording.cancel.confirm"
+        }
     }
 
     var body: some View {
@@ -1045,24 +1060,52 @@ private struct LiveTVProgramDetailView: View {
                         }
                     }
                     if dvr?.canManageRecordings == true {
-                        if program.isScheduledForRecording {
+                        if let recordingID = program.recordingID {
                             Button("livetv.stopRecord", role: .destructive) {
-                                stopRecording()
+                                pendingProgramRecordingAction = .cancelRecording(recordingID)
                             }
                             .disabled(isSubmittingRecording)
-                        } else {
-                            if selectedRecordingTemplate != nil {
-                                Button {
-                                    schedule(series: recordsSeries)
-                                } label: {
-                                    Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
-                                }
-                                .disabled(isSubmittingRecording)
+                        }
+                        if let seriesRecordingID = program.seriesRecordingID {
+                            Button("livetv.recording.stopSeries", role: .destructive) {
+                                pendingProgramRecordingAction = .deleteSeriesRule(seriesRecordingID)
                             }
+                            .disabled(isSubmittingRecording)
+                        }
+                        if !program.isScheduledForRecording, selectedRecordingTemplate != nil {
+                            Button {
+                                schedule(series: recordsSeries)
+                            } label: {
+                                Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
+                            }
+                            .disabled(isSubmittingRecording)
                         }
                     }
                     Button("common.done") { dismiss() }
                 }
+            }
+            .confirmationDialog(
+                recordingActionConfirmationTitle,
+                isPresented: Binding(
+                    get: { pendingProgramRecordingAction != nil },
+                    set: { if !$0 { pendingProgramRecordingAction = nil } },
+                ),
+                titleVisibility: .visible,
+            ) {
+                switch pendingProgramRecordingAction {
+                case let .cancelRecording(recordingID):
+                    Button("livetv.recording.cancel", role: .destructive) {
+                        submitRecordingAction(.cancelRecording(recordingID))
+                    }
+                case let .deleteSeriesRule(ruleID):
+                    Button("livetv.recording.stopSeries", role: .destructive) {
+                        submitRecordingAction(.deleteSeriesRule(ruleID))
+                    }
+                case nil:
+                    EmptyView()
+                }
+            } message: {
+                Text(program.title)
             }
             .task {
                 guard !program.isScheduledForRecording, let dvr, dvr.canManageRecordings else { return }
@@ -1148,12 +1191,26 @@ private struct LiveTVProgramDetailView: View {
         }
     }
 
-    private func stopRecording() {
-        guard let dvr, let recordingID = program.recordingID ?? program.seriesRecordingID else { return }
+    private func submitRecordingAction(_ action: LiveTVProgramRecordingAction) {
+        guard let dvr else { return }
+        pendingProgramRecordingAction = nil
         isSubmittingRecording = true
         Task {
             do {
-                try await dvr.cancel(recordingID: recordingID)
+                switch action {
+                case let .cancelRecording(recordingID):
+                    guard !recordingID.isEmpty else {
+                        isSubmittingRecording = false
+                        return
+                    }
+                    try await dvr.cancel(recordingID: recordingID)
+                case let .deleteSeriesRule(ruleID):
+                    guard !ruleID.isEmpty else {
+                        isSubmittingRecording = false
+                        return
+                    }
+                    try await dvr.delete(ruleID: ruleID)
+                }
                 await onChanged()
                 dismiss()
             } catch {

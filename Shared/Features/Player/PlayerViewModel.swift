@@ -138,6 +138,9 @@ final class PlayerViewModel {
     @ObservationIgnored private var isSwitchingLiveChannel = false
     @ObservationIgnored private var isLiveReportingSuspended = false
     @ObservationIgnored private var pendingLiveSessionToStop: (any LiveTVPlaybackSession)?
+    @ObservationIgnored private var liveSessionGeneration = 0
+    @ObservationIgnored private var liveTimelineTask: Task<Void, Never>?
+    @ObservationIgnored private var pendingLiveTimelineState: TimelineState?
 
     init(
         queue: PlaybackQueue,
@@ -178,7 +181,7 @@ final class PlayerViewModel {
         liveContext = context
         mediaServices = services
         mediaQueue = nil
-        ratingKey = context.channel.id
+        ratingKey = context.channel.providerID
         shouldResumeFromOffsetFlag = false
         localMedia = nil
         localPlaybackURL = nil
@@ -329,7 +332,7 @@ final class PlayerViewModel {
                     }
                     : nil
                 let source = try await session.source(offsetFromCaptureStart: offset)
-                liveSession = session
+                adoptLiveSession(session)
                 apply(liveSource: source)
                 liveProgram = source.program ?? liveContext.program
                 return
@@ -363,9 +366,10 @@ final class PlayerViewModel {
         if let liveSession {
             let replacement = try await liveSession.recover()
             let source = try await replacement.source(offsetFromCaptureStart: nil)
-            await liveSession.stop()
-            self.liveSession = replacement
+            let previous = liveSession
+            adoptLiveSession(replacement)
             apply(liveSource: source)
+            await previous.stop()
             return source.url
         }
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
@@ -469,12 +473,19 @@ final class PlayerViewModel {
     func handleStop() {
         if let liveSession {
             self.liveSession = nil
+            invalidateLiveReporting()
             let pending = pendingLiveSessionToStop
             pendingLiveSessionToStop = nil
             Task {
                 await liveSession.stop()
                 await pending?.stop()
             }
+            return
+        }
+        if let pending = pendingLiveSessionToStop {
+            pendingLiveSessionToStop = nil
+            invalidateLiveReporting()
+            Task { await pending.stop() }
             return
         }
         guard let mediaServices, let playbackPlan else { return }
@@ -494,18 +505,29 @@ final class PlayerViewModel {
         isLiveReportingSuspended = true
         guard let liveSession, liveSession.backgroundPolicy == .stopAndExit else { return false }
         self.liveSession = nil
+        invalidateLiveReporting()
+        let pending = pendingLiveSessionToStop
+        pendingLiveSessionToStop = nil
         await liveSession.stop()
+        await pending?.stop()
         return true
     }
 
     func leaveLiveBackground() {
         isLiveReportingSuspended = false
+        if liveSession != nil {
+            reportTimeline(state: playbackState, force: true)
+        }
     }
 
     func markPlaybackFinished() async {
         if let liveSession {
             self.liveSession = nil
+            invalidateLiveReporting()
+            let pending = pendingLiveSessionToStop
+            pendingLiveSessionToStop = nil
             await liveSession.stop()
+            await pending?.stop()
             return
         }
         guard let mediaServices, let playbackPlan else { return }
@@ -607,7 +629,7 @@ final class PlayerViewModel {
             let source = try await replacement.source(offsetFromCaptureStart: nil)
             let previous = liveSession
             liveContext = replacementContext
-            liveSession = replacement
+            adoptLiveSession(replacement)
             pendingLiveSessionToStop = previous
             media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
             apply(liveSource: source)
@@ -664,7 +686,71 @@ final class PlayerViewModel {
 
         lastTimelineSentAt = now
         lastTimelineState = state
+
+        if let liveSession {
+            guard !isLiveReportingSuspended else { return }
+            if liveTimelineTask != nil {
+                pendingLiveTimelineState = state
+                return
+            }
+            startLiveTimelineReport(
+                session: liveSession,
+                generation: liveSessionGeneration,
+                state: state,
+            )
+            return
+        }
+
         Task { await sendTimeline(state: state) }
+    }
+
+    private func startLiveTimelineReport(
+        session: any LiveTVPlaybackSession,
+        generation: Int,
+        state: TimelineState,
+    ) {
+        liveTimelineTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.finishLiveTimelineReport(generation: generation) }
+            guard self.liveSessionGeneration == generation, !self.isLiveReportingSuspended else { return }
+            do {
+                let captureRange = try await session.report(
+                    position: self.position,
+                    isPaused: state == .paused,
+                )
+                guard self.liveSessionGeneration == generation else { return }
+                self.liveCaptureRange = captureRange
+            } catch {
+                guard self.liveSessionGeneration == generation,
+                      !Task.isCancelled,
+                      !error.isCancellation
+                else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+    }
+
+    private func finishLiveTimelineReport(generation: Int) {
+        guard liveSessionGeneration == generation else { return }
+        liveTimelineTask = nil
+        guard let pendingState = pendingLiveTimelineState,
+              let liveSession,
+              !isLiveReportingSuspended
+        else { return }
+        pendingLiveTimelineState = nil
+        startLiveTimelineReport(session: liveSession, generation: generation, state: pendingState)
+    }
+
+    private func adoptLiveSession(_ session: any LiveTVPlaybackSession) {
+        invalidateLiveReporting()
+        liveSession = session
+    }
+
+    private func invalidateLiveReporting() {
+        liveSessionGeneration += 1
+        liveTimelineTask?.cancel()
+        liveTimelineTask = nil
+        pendingLiveTimelineState = nil
     }
 
     private func sendTimeline(state: TimelineState) async {
@@ -703,7 +789,7 @@ final class PlayerViewModel {
 
     private static func liveMedia(channel: LiveTVChannel, server: ServerIdentity) -> MediaItem {
         MediaItem(
-            id: channel.id, identity: MediaIdentity(server: server, itemID: channel.id),
+            id: channel.providerID, identity: MediaIdentity(server: server, itemID: channel.providerID),
             guid: "livetv://\(server.provider.rawValue)/channel", summary: nil,
             title: channel.displayTitle, type: .movie, parentRatingKey: nil,
             grandparentRatingKey: nil, genres: [], year: nil, duration: nil,
