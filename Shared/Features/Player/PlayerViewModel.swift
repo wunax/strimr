@@ -22,6 +22,30 @@ final class PlayerViewModel {
     var terminationMessage: String?
     var selectedQuality: TranscodeQualityPreset = .original
     var qualityFallbackMessage: String?
+    var isLivePlayback: Bool {
+        liveContext != nil
+    }
+
+    var liveChannel: LiveTVChannel? {
+        liveContext?.channel
+    }
+
+    var liveProgram: LiveTVProgram?
+    var liveCaptureRange: LiveTVCaptureRange?
+    var liveNativeRemoteHLS = false
+    var liveDVRWindowSeconds: TimeInterval? {
+        liveCaptureRange?.duration
+    }
+
+    var canSwitchToPreviousLiveChannel: Bool {
+        guard let liveContext else { return false }
+        return liveContext.selectedIndex > 0
+    }
+
+    var canSwitchToNextLiveChannel: Bool {
+        guard let liveContext else { return false }
+        return liveContext.selectedIndex + 1 < liveContext.channels.count
+    }
 
     var isTranscoding: Bool {
         playbackPlan?.method == .transcode
@@ -62,7 +86,7 @@ final class PlayerViewModel {
     }
 
     var usesCommonPlaybackQueue: Bool {
-        mediaServices != nil
+        mediaServices != nil && !isLivePlayback
     }
 
     var queueItems: [PlaybackQueueItem] {
@@ -109,6 +133,14 @@ final class PlayerViewModel {
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
     @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
+    @ObservationIgnored private var liveContext: LiveTVLaunchContext?
+    @ObservationIgnored private var liveSession: (any LiveTVPlaybackSession)?
+    @ObservationIgnored private var isSwitchingLiveChannel = false
+    @ObservationIgnored private var isLiveReportingSuspended = false
+    @ObservationIgnored private var pendingLiveSessionToStop: (any LiveTVPlaybackSession)?
+    @ObservationIgnored private var liveSessionGeneration = 0
+    @ObservationIgnored private var liveTimelineTask: Task<Void, Never>?
+    @ObservationIgnored private var pendingLiveTimelineState: TimelineState?
 
     init(
         queue: PlaybackQueue,
@@ -142,6 +174,19 @@ final class PlayerViewModel {
         self.localExternalSubtitles = localExternalSubtitles
         media = localMedia
         playbackURL = localPlaybackURL
+        selectedQuality = .original
+    }
+
+    init(live context: LiveTVLaunchContext, services: MediaServices) {
+        liveContext = context
+        mediaServices = services
+        mediaQueue = nil
+        ratingKey = context.channel.providerID
+        shouldResumeFromOffsetFlag = false
+        localMedia = nil
+        localPlaybackURL = nil
+        localExternalSubtitles = []
+        media = Self.liveMedia(channel: context.channel, server: services.identity)
         selectedQuality = .original
     }
 
@@ -279,6 +324,19 @@ final class PlayerViewModel {
         defer { isLoading = false }
 
         do {
+            if let liveContext {
+                let session = try await mediaServices.liveTV.startPlayback(channel: liveContext.channel)
+                let offset = liveContext.startsFromBeginning
+                    ? session.captureRange.flatMap { range in
+                        liveContext.program.map { max(0, $0.startDate.timeIntervalSince(range.startDate)) }
+                    }
+                    : nil
+                let source = try await session.source(offsetFromCaptureStart: offset)
+                adoptLiveSession(session)
+                apply(liveSource: source)
+                liveProgram = source.program ?? liveContext.program
+                return
+            }
             if let quality {
                 selectedQuality = quality
             }
@@ -291,14 +349,28 @@ final class PlayerViewModel {
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
-            ErrorReporter.capture(error)
-            errorMessage = error.localizedDescription
+            if isLivePlayback {
+                LiveTVErrorReporting.capture(error)
+                errorMessage = String(localized: "livetv.playback.error")
+            } else {
+                ErrorReporter.capture(error)
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
     func refreshPlaybackSource() async throws -> URL {
         if let localPlaybackURL {
             return localPlaybackURL
+        }
+        if let liveSession {
+            let replacement = try await liveSession.recover()
+            let source = try await replacement.source(offsetFromCaptureStart: nil)
+            let previous = liveSession
+            adoptLiveSession(replacement)
+            apply(liveSource: source)
+            await previous.stop()
+            return source.url
         }
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
 
@@ -320,6 +392,7 @@ final class PlayerViewModel {
     }
 
     func changeQuality(to quality: TranscodeQualityPreset, force: Bool = false) async throws -> URL {
+        guard !isLivePlayback else { throw PlayerPlaybackError.missingPlaybackURL }
         guard !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
         if !force, quality == selectedQuality, let playbackURL {
@@ -398,6 +471,23 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        if let liveSession {
+            self.liveSession = nil
+            invalidateLiveReporting()
+            let pending = pendingLiveSessionToStop
+            pendingLiveSessionToStop = nil
+            Task {
+                await liveSession.stop()
+                await pending?.stop()
+            }
+            return
+        }
+        if let pending = pendingLiveSessionToStop {
+            pendingLiveSessionToStop = nil
+            invalidateLiveReporting()
+            Task { await pending.stop() }
+            return
+        }
         guard let mediaServices, let playbackPlan else { return }
         Task {
             do {
@@ -411,7 +501,35 @@ final class PlayerViewModel {
         }
     }
 
+    func enterLiveBackground() async -> Bool {
+        isLiveReportingSuspended = true
+        guard let liveSession, liveSession.backgroundPolicy == .stopAndExit else { return false }
+        self.liveSession = nil
+        invalidateLiveReporting()
+        let pending = pendingLiveSessionToStop
+        pendingLiveSessionToStop = nil
+        await liveSession.stop()
+        await pending?.stop()
+        return true
+    }
+
+    func leaveLiveBackground() {
+        isLiveReportingSuspended = false
+        if liveSession != nil {
+            reportTimeline(state: playbackState, force: true)
+        }
+    }
+
     func markPlaybackFinished() async {
+        if let liveSession {
+            self.liveSession = nil
+            invalidateLiveReporting()
+            let pending = pendingLiveSessionToStop
+            pendingLiveSessionToStop = nil
+            await liveSession.stop()
+            await pending?.stop()
+            return
+        }
         guard let mediaServices, let playbackPlan else { return }
         do {
             try await mediaServices.playback.reportStopped(
@@ -420,7 +538,7 @@ final class PlayerViewModel {
             )
         } catch {
             if !Task.isCancelled, !error.isCancellation {
-                ErrorReporter.capture(error)
+                LiveTVErrorReporting.capture(error)
             }
         }
         await mediaServices.playback.release(plan: playbackPlan)
@@ -496,6 +614,51 @@ final class PlayerViewModel {
         chapters = []
     }
 
+    func switchLiveChannel(by offset: Int) async throws -> URL {
+        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices else {
+            throw PlayerPlaybackError.missingPlaybackURL
+        }
+        let index = context.selectedIndex + offset
+        guard context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
+        isSwitchingLiveChannel = true
+        defer { isSwitchingLiveChannel = false }
+
+        let replacementContext = LiveTVLaunchContext(channels: context.channels, selectedIndex: index)
+        let replacement = try await mediaServices.liveTV.startPlayback(channel: replacementContext.channel)
+        do {
+            let source = try await replacement.source(offsetFromCaptureStart: nil)
+            let previous = liveSession
+            liveContext = replacementContext
+            adoptLiveSession(replacement)
+            pendingLiveSessionToStop = previous
+            media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
+            apply(liveSource: source)
+            return source.url
+        } catch {
+            await replacement.stop()
+            throw error
+        }
+    }
+
+    func confirmLiveChannelSwitch() {
+        guard let pendingLiveSessionToStop else { return }
+        self.pendingLiveSessionToStop = nil
+        Task { await pendingLiveSessionToStop.stop() }
+    }
+
+    private func apply(liveSource source: LiveTVPlaybackSource) {
+        playbackURL = source.url
+        playbackHTTPHeaders = source.httpHeaders
+        liveProgram = source.program
+        liveCaptureRange = source.captureRange
+        liveNativeRemoteHLS = source.nativeRemoteHLS
+        duration = source.captureRange?.duration
+        markers = []
+        chapters = []
+        scrubThumbnailSource = nil
+        errorMessage = nil
+    }
+
     private func apply(plan: PlaybackPlan) {
         playbackPlan = plan
         media = plan.media
@@ -513,7 +676,7 @@ final class PlayerViewModel {
     }
 
     private func reportTimeline(state: TimelineState, force: Bool = false) {
-        guard mediaServices != nil, playbackPlan != nil else { return }
+        guard liveSession != nil || (mediaServices != nil && playbackPlan != nil) else { return }
         let now = Date()
         let stateChanged = lastTimelineState != state
         let intervalElapsed = lastTimelineSentAt.map {
@@ -523,10 +686,84 @@ final class PlayerViewModel {
 
         lastTimelineSentAt = now
         lastTimelineState = state
+
+        if let liveSession {
+            guard !isLiveReportingSuspended else { return }
+            if liveTimelineTask != nil {
+                pendingLiveTimelineState = state
+                return
+            }
+            startLiveTimelineReport(
+                session: liveSession,
+                generation: liveSessionGeneration,
+                state: state,
+            )
+            return
+        }
+
         Task { await sendTimeline(state: state) }
     }
 
+    private func startLiveTimelineReport(
+        session: any LiveTVPlaybackSession,
+        generation: Int,
+        state: TimelineState,
+    ) {
+        liveTimelineTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.finishLiveTimelineReport(generation: generation) }
+            guard liveSessionGeneration == generation, !isLiveReportingSuspended else { return }
+            do {
+                let captureRange = try await session.report(
+                    position: position,
+                    isPaused: state == .paused,
+                )
+                guard liveSessionGeneration == generation else { return }
+                liveCaptureRange = captureRange
+            } catch {
+                guard liveSessionGeneration == generation,
+                      !Task.isCancelled,
+                      !error.isCancellation
+                else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+    }
+
+    private func finishLiveTimelineReport(generation: Int) {
+        guard liveSessionGeneration == generation else { return }
+        liveTimelineTask = nil
+        guard let pendingState = pendingLiveTimelineState,
+              let liveSession,
+              !isLiveReportingSuspended
+        else { return }
+        pendingLiveTimelineState = nil
+        startLiveTimelineReport(session: liveSession, generation: generation, state: pendingState)
+    }
+
+    private func adoptLiveSession(_ session: any LiveTVPlaybackSession) {
+        invalidateLiveReporting()
+        liveSession = session
+    }
+
+    private func invalidateLiveReporting() {
+        liveSessionGeneration += 1
+        liveTimelineTask?.cancel()
+        liveTimelineTask = nil
+        pendingLiveTimelineState = nil
+    }
+
     private func sendTimeline(state: TimelineState) async {
+        if let liveSession {
+            guard !isLiveReportingSuspended else { return }
+            do {
+                liveCaptureRange = try await liveSession.report(position: position, isPaused: state == .paused)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+            return
+        }
         guard let mediaServices, let playbackPlan else { return }
         do {
             if didReportPlaybackStarted {
@@ -548,6 +785,21 @@ final class PlayerViewModel {
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
             ErrorReporter.capture(error)
         }
+    }
+
+    private static func liveMedia(channel: LiveTVChannel, server: ServerIdentity) -> MediaItem {
+        MediaItem(
+            id: channel.providerID, identity: MediaIdentity(server: server, itemID: channel.providerID),
+            guid: "livetv://\(server.provider.rawValue)/channel", summary: nil,
+            title: channel.displayTitle, type: .movie, parentRatingKey: nil,
+            grandparentRatingKey: nil, genres: [], year: nil, duration: nil,
+            videoResolution: channel.isHD ? "HD" : nil, rating: nil, ratings: [],
+            contentRating: nil, studio: nil, tagline: nil, thumbPath: channel.thumbPath,
+            artPath: channel.artPath, artworkCornerColors: nil, viewOffset: nil,
+            viewCount: nil, childCount: nil, leafCount: nil, viewedLeafCount: nil,
+            grandparentTitle: nil, parentTitle: nil, parentIndex: nil, index: nil,
+            grandparentThumbPath: nil, grandparentArtPath: nil, parentThumbPath: nil,
+        )
     }
 
     private func translatedServerAccessError(

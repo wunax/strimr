@@ -10,6 +10,7 @@ enum JellyfinAPIError: LocalizedError, Equatable {
     case permissionDenied
     case itemUnavailable
     case noPlayableSource
+    case recordingConflict
     case invalidResponse
     case httpStatus(Int)
 
@@ -31,6 +32,8 @@ enum JellyfinAPIError: LocalizedError, Equatable {
             String(localized: "jellyfin.errors.itemUnavailable")
         case .noPlayableSource:
             String(localized: "jellyfin.errors.noDirectPlaySource")
+        case .recordingConflict:
+            String(localized: "livetv.recording.alreadyScheduled")
         case .invalidResponse, .httpStatus:
             String(localized: "jellyfin.errors.invalidResponse")
         }
@@ -243,6 +246,22 @@ final class JellyfinAPIContext {
             body: body,
         )
         try validateStatus(response.statusCode)
+    }
+
+    func rawData(
+        path: [String],
+        method: String = "GET",
+        query: [URLQueryItem] = [],
+        body: Data? = nil,
+    ) async throws -> Data {
+        let (data, response) = try await authenticatedRequest(
+            path: path,
+            method: method,
+            query: query,
+            body: body,
+        )
+        try validateStatus(response.statusCode)
+        return data
     }
 
     func mediaRequest(url: URL) throws -> URLRequest {

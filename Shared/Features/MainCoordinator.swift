@@ -14,6 +14,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case downloads
         case library
         case favorites
+        case liveTV
         case more
         case seerrDiscover
         case libraryDetail(String)
@@ -33,6 +34,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var downloadsPath = NavigationPath()
     @Published var libraryPath = NavigationPath()
     @Published var favoritesPath = NavigationPath()
+    @Published var liveTVPath = NavigationPath()
     @Published var morePath = NavigationPath()
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
@@ -44,6 +46,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var shouldResumeFromOffset = true
     @Published var selectedMediaQueue: PlaybackQueue?
     @Published var selectedMediaServices: MediaServices?
+    @Published var selectedLiveTVContext: LiveTVLaunchContext?
 
     func pathBinding(for tab: Tab) -> Binding<NavigationPath> {
         Binding(
@@ -59,6 +62,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.libraryPath
                 case .favorites:
                     self.favoritesPath
+                case .liveTV:
+                    self.liveTVPath
                 case .more:
                     self.morePath
                 case .seerrDiscover:
@@ -79,6 +84,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.libraryPath = newValue
                 case .favorites:
                     self.favoritesPath = newValue
+                case .liveTV:
+                    self.liveTVPath = newValue
                 case .more:
                     self.morePath = newValue
                 case .seerrDiscover:
@@ -112,6 +119,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .favorites:
             favoritesPath.append(route)
             recordMediaRoute(media, depth: favoritesPath.count, tab: tab)
+        case .liveTV:
+            liveTVPath.append(route)
+            recordMediaRoute(media, depth: liveTVPath.count, tab: tab)
         case .more:
             morePath.append(route)
             recordMediaRoute(media, depth: morePath.count, tab: tab)
@@ -145,6 +155,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             pop(path: &libraryPath, to: destinationDepth, tab: tab)
         case .favorites:
             pop(path: &favoritesPath, to: destinationDepth, tab: tab)
+        case .liveTV:
+            pop(path: &liveTVPath, to: destinationDepth, tab: tab)
         case .more:
             pop(path: &morePath, to: destinationDepth, tab: tab)
         case .seerrDiscover:
@@ -216,6 +228,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             libraryPath.append(route)
         case .favorites:
             favoritesPath.append(route)
+        case .liveTV:
+            liveTVPath.append(route)
         case .more:
             morePath.append(route)
         case .seerrDiscover:
@@ -241,6 +255,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             libraryPath.append(route)
         case .favorites:
             favoritesPath.append(route)
+        case .liveTV:
+            liveTVPath.append(route)
         case .more:
             morePath.append(route)
         case .seerrDiscover:
@@ -266,6 +282,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             libraryPath.append(route)
         case .favorites:
             favoritesPath.append(route)
+        case .liveTV:
+            liveTVPath.append(route)
         case .more:
             morePath.append(route)
         case .seerrDiscover:
@@ -287,7 +305,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
-        case .favorites, .more, .seerrDiscover, .downloads:
+        case .favorites, .liveTV, .more, .seerrDiscover, .downloads:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()
@@ -300,7 +318,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         switch tab {
         case .seerrDiscover:
             seerrDiscoverPath.append(media)
-        case .home, .search, .downloads, .library, .favorites, .more:
+        case .home, .search, .downloads, .library, .favorites, .liveTV, .more:
             break
         case .libraryDetail:
             break
@@ -318,10 +336,25 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         isPresentingPlayer = true
     }
 
+    func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices) {
+        selectedLiveTVContext = context
+        selectedMediaServices = services
+        selectedMediaQueue = nil
+        isPresentingPlayer = true
+    }
+
     func resetPlayer() {
         selectedMediaQueue = nil
         selectedMediaServices = nil
+        selectedLiveTVContext = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
+    }
+
+    func resetLiveTVNavigation() {
+        liveTVPath = NavigationPath()
+        if tab == .liveTV {
+            tab = .home
+        }
     }
 }

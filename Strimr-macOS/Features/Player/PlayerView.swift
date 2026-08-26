@@ -35,6 +35,9 @@ struct PlayerWindowView: View {
                 shouldResumeFromOffset: presentation.shouldResumeFromOffset,
             )
         }
+        if let context = presentation.liveTVContext, let services = presentation.mediaServices {
+            return PlayerViewModel(live: context, services: services)
+        }
         return nil
     }
 }
@@ -493,6 +496,37 @@ struct PlayerView: View {
                 }
 
                 HStack(spacing: 18) {
+                    if viewModel.isLivePlayback {
+                        Button {
+                            switchLiveChannel(by: -1)
+                        } label: {
+                            Image(systemName: "chevron.up")
+                        }
+                        .disabled(!viewModel.canSwitchToPreviousLiveChannel)
+                        .accessibilityLabel(Text("livetv.player.previousChannel"))
+
+                        Button {
+                            playerController.seekToLiveEdge()
+                        } label: {
+                            Label(
+                                playerController.behindLiveSeconds < 2
+                                    ? String(localized: "livetv.player.live")
+                                    : String(localized: "livetv.player.goLive"),
+                                systemImage: "dot.radiowaves.left.and.right",
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(playerController.behindLiveSeconds < 2)
+
+                        Button {
+                            switchLiveChannel(by: 1)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                        }
+                        .disabled(!viewModel.canSwitchToNextLiveChannel)
+                        .accessibilityLabel(Text("livetv.player.nextChannel"))
+                    }
+
                     Button {
                         playerController.seek(by: -Double(settingsManager.playback.seekBackwardSeconds))
                     } label: {
@@ -537,7 +571,7 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
-                    if !viewModel.isLocalPlayback {
+                    if !viewModel.isLocalPlayback, !viewModel.isLivePlayback {
                         qualityMenu
                     }
 
@@ -793,6 +827,9 @@ struct PlayerView: View {
                     showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
                     generatesMissingScrubThumbnailPreviews:
                     settingsManager.playback.generateMissingScrubThumbnailPreviews,
+                    isLive: viewModel.isLivePlayback,
+                    nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
+                    dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
                     autoplay: !wasPaused,
                 )
                 playerController.setPlaybackRate(playbackRate)
@@ -886,6 +923,7 @@ struct PlayerView: View {
             openWindow(id: AppModel.playerWindowID)
         }
         playerController.onMediaLoaded = {
+            viewModel.confirmLiveChannelSwitch()
             let tracks = playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
@@ -958,6 +996,9 @@ struct PlayerView: View {
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            isLive: viewModel.isLivePlayback,
+            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
+            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)
@@ -1085,6 +1126,21 @@ struct PlayerView: View {
         playerController.pause()
     }
 
+    private func switchLiveChannel(by offset: Int) {
+        Task {
+            do {
+                let url = try await viewModel.switchLiveChannel(by: offset)
+                playerController.stop()
+                loadedURL = nil
+                startPlaybackIfNeeded(url)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showError(String(localized: "livetv.playback.error"))
+            }
+        }
+    }
+
     private var serverRecoveryMessage: String {
         switch serverRecoveryError {
         case .accountUnauthorized:
@@ -1155,6 +1211,9 @@ struct PlayerView: View {
                 showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
                 generatesMissingScrubThumbnailPreviews:
                 settingsManager.playback.generateMissingScrubThumbnailPreviews,
+                isLive: viewModel.isLivePlayback,
+                nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
+                dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
                 autoplay: !isSharePlay,
             )
             playerController.setPlaybackRate(playbackRate)

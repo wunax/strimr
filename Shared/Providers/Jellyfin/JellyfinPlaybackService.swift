@@ -313,7 +313,7 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
     }
 }
 
-private struct JellyfinDeviceProfile: Encodable {
+struct JellyfinDeviceProfile: Encodable {
     let name: String
     let maxStreamingBitrate: Int
     let maxStaticBitrate: Int
@@ -438,6 +438,39 @@ private struct JellyfinDeviceProfile: Encodable {
                 SubtitleProfile(format: "ass", method: "Embed"),
                 SubtitleProfile(format: "pgssub", method: "Embed"),
                 SubtitleProfile(format: "dvdsub", method: "Embed"),
+            ],
+            responseProfiles: [],
+        )
+    }
+
+    static func liveTV() -> JellyfinDeviceProfile {
+        JellyfinDeviceProfile(
+            name: "Strimr Live TV",
+            maxStreamingBitrate: 120_000_000,
+            maxStaticBitrate: 100_000_000,
+            directPlayProfiles: [
+                DirectPlayProfile(
+                    container: "hls,mp4,m4v,mov,mkv,webm,ts,mpegts,m2ts",
+                    audioCodec: "aac,mp3,mp2,ac3,eac3,flac,opus,vorbis,dts",
+                    videoCodec: "h264,hevc,h265,vp8,vp9,av1,mpeg4,mpeg2video",
+                    type: "Video",
+                ),
+            ],
+            transcodingProfiles: [
+                TranscodingProfile(
+                    container: "ts",
+                    type: "Video",
+                    videoCodec: "hevc,h264",
+                    audioCodec: "aac,mp3,mp2,ac3,eac3,flac,opus",
+                    protocolName: "hls",
+                ),
+            ],
+            containerProfiles: [],
+            codecProfiles: [],
+            subtitleProfiles: [
+                SubtitleProfile(format: "vtt", method: "External"),
+                SubtitleProfile(format: "ass", method: "External"),
+                SubtitleProfile(format: "ssa", method: "External"),
             ],
             responseProfiles: [],
         )

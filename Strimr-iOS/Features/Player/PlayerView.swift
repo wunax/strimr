@@ -343,6 +343,13 @@ struct PlayerView: View {
                     onStartPictureInPicture: playerController.startPictureInPicture,
                     hasQueue: viewModel.hasNavigableQueue,
                     onShowQueue: showPlayQueue,
+                    isLive: viewModel.isLivePlayback,
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    onGoLive: playerController.seekToLiveEdge,
+                    canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+                    canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+                    onPreviousChannel: { switchLiveChannel(by: -1) },
+                    onNextChannel: { switchLiveChannel(by: 1) },
                 )
                 .transition(.opacity)
             }
@@ -698,6 +705,7 @@ struct PlayerView: View {
     private func handleMediaLoaded() {
         guard awaitingMediaLoad else { return }
         awaitingMediaLoad = false
+        viewModel.confirmLiveChannelSwitch()
         refreshTracks()
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
@@ -779,12 +787,29 @@ struct PlayerView: View {
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            isLive: viewModel.isLivePlayback,
+            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
+            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)
         shouldResumeAfterMediaLoad = shouldResumeAfterLoad
         shouldPauseAfterMediaLoad = shouldPauseAfterLoad
         showControls(temporarily: true)
+    }
+
+    private func switchLiveChannel(by offset: Int) {
+        Task {
+            do {
+                let url = try await viewModel.switchLiveChannel(by: offset)
+                playerController.stop()
+                startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showPlaybackError(String(localized: "livetv.playback.error"))
+            }
+        }
     }
 
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
@@ -801,6 +826,13 @@ struct PlayerView: View {
     }
 
     private func preparePlaybackForBackground() {
+        if viewModel.isLivePlayback {
+            Task {
+                if await viewModel.enterLiveBackground() {
+                    dismissPlayer()
+                }
+            }
+        }
         guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground else { return }
         guard !playerController.isPictureInPictureActive,
               !playerController.isPictureInPictureTransitioning
@@ -814,6 +846,7 @@ struct PlayerView: View {
     }
 
     private func reloadPlaybackAfterBackgroundIfNeeded() {
+        viewModel.leaveLiveBackground()
         guard needsPlaybackReloadAfterBackground, let url = activePlaybackURL else { return }
 
         needsPlaybackReloadAfterBackground = false

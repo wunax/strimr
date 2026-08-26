@@ -35,6 +35,13 @@ struct PlayerControlsView: View {
     var onStartPictureInPicture: () -> Void
     var hasQueue: Bool
     var onShowQueue: () -> Void
+    var isLive: Bool
+    var behindLiveSeconds: Double
+    var onGoLive: () -> Void
+    var canSwitchPreviousChannel: Bool
+    var canSwitchNextChannel: Bool
+    var onPreviousChannel: () -> Void
+    var onNextChannel: () -> Void
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -90,25 +97,46 @@ struct PlayerControlsView: View {
                     .opacity(isScrubbing ? 0 : 1)
                     .allowsHitTesting(!isScrubbing)
 
-                    ZStack(alignment: .bottom) {
-                        PlayerTimelineView(
-                            position: $position,
-                            duration: duration,
-                            bufferedAhead: bufferedAhead,
-                            playbackPosition: bufferBasePosition,
-                            playbackRate: playbackRate,
-                            showsEndsAtTime: showsEndsAtTime,
-                            chapters: chapters,
-                            showsChaptersOnTimeline: showsChaptersOnTimeline,
-                            scrubPreview: scrubPreview,
-                            onEditingChanged: onScrubbingChanged,
-                        )
+                    if isLive {
+                        HStack {
+                            if behindLiveSeconds < 2 {
+                                Text("livetv.player.live").font(.headline.monospacedDigit())
+                            } else {
+                                Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
+                                    .font(.headline.monospacedDigit())
+                            }
+                            Spacer()
+                            Button(
+                                "livetv.player.goLive",
+                                systemImage: "dot.radiowaves.left.and.right",
+                                action: onGoLive,
+                            )
+                            .buttonStyle(.borderedProminent)
+                            .disabled(behindLiveSeconds < 2)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                    } else {
+                        ZStack(alignment: .bottom) {
+                            PlayerTimelineView(
+                                position: $position,
+                                duration: duration,
+                                bufferedAhead: bufferedAhead,
+                                playbackPosition: bufferBasePosition,
+                                playbackRate: playbackRate,
+                                showsEndsAtTime: showsEndsAtTime,
+                                chapters: chapters,
+                                showsChaptersOnTimeline: showsChaptersOnTimeline,
+                                scrubPreview: scrubPreview,
+                                onEditingChanged: onScrubbingChanged,
+                            )
 
-                        if hasQueue {
-                            PlayerQueueDisclosureButton(action: onShowQueue)
-                                .opacity(isScrubbing ? 0 : 1)
-                                .allowsHitTesting(!isScrubbing)
-                                .offset(y: 18)
+                            if hasQueue {
+                                PlayerQueueDisclosureButton(action: onShowQueue)
+                                    .opacity(isScrubbing ? 0 : 1)
+                                    .allowsHitTesting(!isScrubbing)
+                                    .offset(y: 18)
+                            }
                         }
                     }
                 }
@@ -124,6 +152,11 @@ struct PlayerControlsView: View {
                 onSeekForward: onSeekForward,
                 seekBackwardSeconds: seekBackwardSeconds,
                 seekForwardSeconds: seekForwardSeconds,
+                isLive: isLive,
+                canSwitchPreviousChannel: canSwitchPreviousChannel,
+                canSwitchNextChannel: canSwitchNextChannel,
+                onPreviousChannel: onPreviousChannel,
+                onNextChannel: onNextChannel,
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
@@ -259,8 +292,46 @@ private struct PrimaryControls: View {
     var onSeekForward: () -> Void
     var seekBackwardSeconds: Int
     var seekForwardSeconds: Int
+    var isLive: Bool
+    var canSwitchPreviousChannel: Bool
+    var canSwitchNextChannel: Bool
+    var onPreviousChannel: () -> Void
+    var onNextChannel: () -> Void
 
     var body: some View {
+        Group {
+            if isLive {
+                ZStack {
+                    HStack {
+                        PlayerIconButton(
+                            systemName: "chevron.left",
+                            accessibilityLabel: String(localized: "livetv.player.previousChannel"),
+                            action: onPreviousChannel,
+                        )
+                        .disabled(!canSwitchPreviousChannel)
+
+                        Spacer()
+
+                        PlayerIconButton(
+                            systemName: "chevron.right",
+                            accessibilityLabel: String(localized: "livetv.player.nextChannel"),
+                            action: onNextChannel,
+                        )
+                        .disabled(!canSwitchNextChannel)
+                    }
+
+                    transportControls
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+            } else {
+                transportControls
+            }
+        }
+        .padding(.bottom, 4)
+    }
+
+    private var transportControls: some View {
         HStack(spacing: 26) {
             PlayerIconButton(
                 systemName: iconName(prefix: "gobackward", seconds: seekBackwardSeconds),
@@ -276,7 +347,6 @@ private struct PrimaryControls: View {
                 action: onSeekForward,
             )
         }
-        .padding(.bottom, 4)
     }
 
     private func iconName(prefix: String, seconds: Int) -> String {
