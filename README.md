@@ -1,3 +1,6 @@
+> [!NOTE]
+> Jellyfin support is currently available only in beta through [TestFlight](https://testflight.apple.com/join/nayaffkP).
+
 <p align="center">
   <img src=".github/assets/strimr-wordmark.jpg" alt="Strimr" width="100%" />
 </p>
