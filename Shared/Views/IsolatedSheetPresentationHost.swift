@@ -5,6 +5,11 @@ import SwiftUI
 @Observable
 final class IsolatedSheetPresentation<Item: Identifiable> {
     var item: Item?
+
+    // Work around https://github.com/swiftlang/swift/issues/87462.
+    // Remove this workaround when Swift 6.4 is adopted, which should include the fix.
+    @inline(never)
+    deinit {}
 }
 
 struct IsolatedSheetPresentationHost<Item: Identifiable, SheetContent: View>: View, Equatable {
