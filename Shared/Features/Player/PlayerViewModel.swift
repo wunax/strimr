@@ -816,7 +816,7 @@ private enum TimelineState: Equatable {
     case playing
 }
 
-private enum PlayerPlaybackError: LocalizedError {
+enum PlayerPlaybackError: LocalizedError {
     case missingPlaybackURL
     case missingExternalSubtitle
 

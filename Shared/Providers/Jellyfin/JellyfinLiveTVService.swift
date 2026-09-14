@@ -37,11 +37,17 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
 
     func isAvailable() async throws -> Bool {
         guard context.currentUser?.policy?.enableLiveTVAccess != false else { return false }
-        let response: JellyfinQueryResult<JellyfinLiveChannelDTO> = try await context.get(
-            path: ["LiveTv", "Channels"],
-            query: userQuery() + [URLQueryItem(name: "Limit", value: "1")],
-        )
-        return response.totalRecordCount.map { $0 > 0 } ?? !response.items.isEmpty
+        do {
+            let response: JellyfinQueryResult<JellyfinLiveChannelDTO> = try await context.get(
+                path: ["LiveTv", "Channels"],
+                query: userQuery() + [URLQueryItem(name: "Limit", value: "1")],
+            )
+            return response.totalRecordCount.map { $0 > 0 } ?? !response.items.isEmpty
+        } catch let error as JellyfinAPIError
+            where error == .authenticationRequired || error == .permissionDenied
+        {
+            return false
+        }
     }
 
     func channels() async throws -> [LiveTVChannel] {

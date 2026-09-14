@@ -141,7 +141,7 @@ final class SignInViewModel {
     }
 }
 
-private enum SignInError: Error {
+enum SignInError: Error {
     case authSessionFailed
 }
 

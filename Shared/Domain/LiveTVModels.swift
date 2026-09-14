@@ -4,17 +4,84 @@ import Foundation
 enum LiveTVErrorReporting {
     static func capture(_ error: Error) {
         guard !error.isCancellation else { return }
-        let error = error as NSError
-        ErrorReporter.capture(SanitizedLiveTVError(domain: error.domain, code: error.code))
+        ErrorReporter.capture(normalizedError(from: error))
     }
-}
 
-private struct SanitizedLiveTVError: LocalizedError {
-    let domain: String
-    let code: Int
+    private static func normalizedError(from error: Error) -> NSError {
+        let underlying = error as NSError
+        var userInfo: [String: Any] = [
+            "underlying_domain": underlying.domain,
+            "underlying_code": underlying.code,
+        ]
 
-    var errorDescription: String? {
-        "Live TV operation failed (\(domain), code \(code))."
+        let provider: String
+        let code: Int
+        let statusCode: Int?
+
+        switch error {
+        case let error as PlexAPIError:
+            provider = "plex"
+            code = plexCode(for: error)
+            statusCode = plexStatusCode(for: error)
+        case let error as JellyfinAPIError:
+            provider = "jellyfin"
+            code = jellyfinCode(for: error)
+            statusCode = jellyfinStatusCode(for: error)
+        default:
+            provider = "unknown"
+            code = underlying.code
+            statusCode = nil
+        }
+
+        userInfo["provider"] = provider
+        if let statusCode {
+            userInfo["http_status"] = statusCode
+        }
+        userInfo[NSLocalizedDescriptionKey] = "Live TV operation failed (\(provider), code \(code))."
+
+        return NSError(
+            domain: "Strimr.LiveTV",
+            code: code,
+            userInfo: userInfo,
+        )
+    }
+
+    private static func plexCode(for error: PlexAPIError) -> Int {
+        switch error {
+        case .invalidURL: 1001
+        case .invalidResponse: 1002
+        case .missingAuthToken: 1003
+        case .missingConnection: 1004
+        case .unreachableServer: 1005
+        case let .requestFailed(statusCode): statusCode
+        case .decodingFailed: 1006
+        }
+    }
+
+    private static func plexStatusCode(for error: PlexAPIError) -> Int? {
+        guard case let .requestFailed(statusCode) = error else { return nil }
+        return statusCode
+    }
+
+    private static func jellyfinCode(for error: JellyfinAPIError) -> Int {
+        switch error {
+        case .invalidServerURL: 1101
+        case .unsupportedServer: 1102
+        case .serverUnreachable: 1103
+        case .invalidCredentials: 1104
+        case .authenticationRequired: 1105
+        case .permissionDenied: 1106
+        case .itemUnavailable: 1107
+        case .noPlayableSource: 1108
+        case .recordingConflict: 1109
+        case .invalidResponse: 1110
+        case let .httpStatus(statusCode): statusCode
+        }
+    }
+
+    private static func jellyfinStatusCode(for error: JellyfinAPIError) -> Int? {
+        guard case let .httpStatus(statusCode) = error else { return nil }
+        return statusCode
     }
 }
 
