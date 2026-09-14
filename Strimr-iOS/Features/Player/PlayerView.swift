@@ -23,6 +23,8 @@ struct PlayerView: View {
     @State private var selectedSubtitleTrackID: Int?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
+    @State private var pendingRecoveryAudioTrackID: Int?
+    @State private var pendingRecoverySubtitleTrackID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
     @State private var playbackRate: Float = 1.0
     @State private var appliedPreferredAudio = false
@@ -570,10 +572,10 @@ struct PlayerView: View {
                 if shouldRestoreTracksAfterLoad {
                     let audioID = pendingRecoveryAudioProviderStreamID.flatMap { providerStreamID in
                         audio.first { $0.providerStreamID == providerStreamID }?.id
-                    }
+                    } ?? pendingRecoveryAudioTrackID
                     let subtitleID = pendingRecoverySubtitleProviderStreamID.flatMap { providerStreamID in
                         subtitles.first { $0.providerStreamID == providerStreamID }?.id
-                    }
+                    } ?? pendingRecoverySubtitleTrackID
                     selectedAudioTrackID = audioID
                     selectedSubtitleTrackID = subtitleID
                     playerController.selectAudioTrack(id: audioID)
@@ -583,6 +585,8 @@ struct PlayerView: View {
                     )
                     pendingRecoveryAudioProviderStreamID = nil
                     pendingRecoverySubtitleProviderStreamID = nil
+                    pendingRecoveryAudioTrackID = nil
+                    pendingRecoverySubtitleTrackID = nil
                     shouldRestoreTracksAfterLoad = false
                 } else {
                     applyPreferredTracksIfNeeded(audioTracks: audio, subtitleTracks: subtitles)
@@ -770,14 +774,27 @@ struct PlayerView: View {
             appliedPreferredSubtitle = false
             selectedAudioTrackID = nil
             selectedSubtitleTrackID = nil
+            pendingRecoveryAudioProviderStreamID = nil
+            pendingRecoverySubtitleProviderStreamID = nil
+            pendingRecoveryAudioTrackID = nil
+            pendingRecoverySubtitleTrackID = nil
+            shouldRestoreTracksAfterLoad = false
         }
         appliedResumeOffset = startPosition != nil
         awaitingMediaLoad = true
+        let preferredAudioTrackID: Int?
+        if !resetTrackSelection, shouldRestoreTracksAfterLoad, !viewModel.isTranscoding {
+            preferredAudioTrackID = pendingRecoveryAudioProviderStreamID.flatMap {
+                viewModel.ffIndex(forProviderStreamID: $0)
+            } ?? pendingRecoveryAudioTrackID ?? viewModel.preferredAudioStreamFFIndex
+        } else {
+            preferredAudioTrackID = viewModel.preferredAudioStreamFFIndex
+        }
         playerController.load(
             url: url,
             httpHeaders: viewModel.playbackHTTPHeaders,
             startPosition: startPosition,
-            preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
+            preferredAudioTrackID: preferredAudioTrackID,
             losslessAudio: settingsManager.playback.losslessAudio,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -840,6 +857,7 @@ struct PlayerView: View {
 
         backgroundPlaybackPosition = max(playerController.position, viewModel.position)
         wasPlayingBeforeBackground = !viewModel.isPaused
+        captureTrackSelectionForReload()
         needsPlaybackReloadAfterBackground = true
         playerController.stop()
         viewModel.handlePlaybackState(isPaused: true, isBuffering: false)
@@ -861,6 +879,18 @@ struct PlayerView: View {
             shouldPauseAfterLoad: !wasPlayingBeforeBackground,
         )
         wasPlayingBeforeBackground = false
+    }
+
+    private func captureTrackSelectionForReload() {
+        pendingRecoveryAudioTrackID = selectedAudioTrackID
+        pendingRecoverySubtitleTrackID = selectedSubtitleTrackID
+        pendingRecoveryAudioProviderStreamID = audioTracks.first {
+            $0.id == selectedAudioTrackID
+        }?.providerStreamID
+        pendingRecoverySubtitleProviderStreamID = subtitleTracks.first {
+            $0.id == selectedSubtitleTrackID
+        }?.providerStreamID
+        shouldRestoreTracksAfterLoad = true
     }
 
     private func showControls(temporarily: Bool) {
