@@ -45,8 +45,19 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     func isAvailable() async throws -> Bool {
-        try await discover()
-        return !dvrs.isEmpty
+        do {
+            try await discover()
+            return !dvrs.isEmpty
+        } catch let error as PlexAPIError {
+            switch error {
+            case .requestFailed(statusCode: 401), .requestFailed(statusCode: 403):
+                dvrs = []
+                providers = []
+                return false
+            default:
+                throw error
+            }
+        }
     }
 
     func channels() async throws -> [LiveTVChannel] {

@@ -168,7 +168,7 @@ final class ASSRenderCoordinator {
     }
 }
 
-private enum ASSFontCacheError: LocalizedError, Sendable {
+enum ASSFontCacheError: LocalizedError, Sendable {
     case createDirectoryFailed
     case writeAttachmentFailed
 

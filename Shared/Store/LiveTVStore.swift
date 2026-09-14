@@ -26,6 +26,7 @@ final class LiveTVStore {
     @ObservationIgnored private var availabilityTask: Task<Bool, Never>?
     @ObservationIgnored private var contentTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var didReportAvailabilityError = false
 
     init(service: any MediaLiveTVService) {
         self.service = service
@@ -40,7 +41,10 @@ final class LiveTVStore {
     }
 
     @discardableResult
-    func refreshAvailability() async -> Bool {
+    func refreshAvailability(force: Bool = false) async -> Bool {
+        if !force, availability != .unknown {
+            return availability == .available
+        }
         if let availabilityTask {
             return await availabilityTask.value
         }
@@ -58,12 +62,12 @@ final class LiveTVStore {
                 return available
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return previous == .available }
-                LiveTVErrorReporting.capture(error)
-                // A transient failure must not erase a previously working destination.
-                if previous == .unknown {
-                    availability = .unavailable
+                availability = .unavailable
+                if !didReportAvailabilityError {
+                    didReportAvailabilityError = true
+                    LiveTVErrorReporting.capture(error)
                 }
-                return previous == .available
+                return false
             }
         }
         availabilityTask = task
@@ -73,7 +77,7 @@ final class LiveTVStore {
     }
 
     func load(start: Date? = nil, force: Bool = false) async {
-        guard await refreshAvailability() else { return }
+        guard await refreshAvailability(force: force) else { return }
         if let contentTask, !force {
             await contentTask.value
             return

@@ -462,7 +462,7 @@ final class SharePlayCoordinator {
     }
 }
 
-private enum SharePlayError: Error {
+enum SharePlayError: Error {
     case serverUnavailable
     case mediaUnavailable
 }

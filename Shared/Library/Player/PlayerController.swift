@@ -896,13 +896,13 @@ final class PlayerController {
     }
 }
 
-private struct ExternalSubtitleTrackMappingError: LocalizedError {
+struct ExternalSubtitleTrackMappingError: LocalizedError {
     var errorDescription: String? {
         "AetherEngine returned an unexpected external subtitle track table."
     }
 }
 
-private struct ExternalSubtitleRegistrationError: LocalizedError {
+struct ExternalSubtitleRegistrationError: LocalizedError {
     var errorDescription: String? {
         String(localized: "subtitles.search.activation.error")
     }

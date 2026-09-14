@@ -139,7 +139,7 @@ private struct SubtitleSelectionState {
     let selectedStreamIDs: Set<Int>
 }
 
-private struct PlexSubtitleAttachmentTimeoutError: LocalizedError {
+struct PlexSubtitleAttachmentTimeoutError: LocalizedError {
     var errorDescription: String? {
         String(localized: "subtitles.search.activation.error")
     }
