@@ -21,8 +21,8 @@ struct MediaCard: View {
         VStack(alignment: .leading, spacing: labelSpacing) {
             artwork
             #if os(tvOS)
-            .scaleEffect(isFocused ? 1.12 : 1)
-            .animation(.easeOut(duration: 0.15), value: isFocused)
+                .scaleEffect(isFocused ? 1.12 : 1)
+                .animation(.easeOut(duration: 0.15), value: isFocused)
             #endif
 
             if showsLabels {

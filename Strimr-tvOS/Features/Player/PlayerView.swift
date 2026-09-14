@@ -881,13 +881,14 @@ struct PlayerView: View {
         }
         appliedResumeOffset = startPosition != nil
         awaitingMediaLoad = true
-        let preferredAudioTrackID: Int?
-        if !resetTrackSelection, shouldRestoreTracksAfterLoad, !viewModel.isTranscoding {
-            preferredAudioTrackID = pendingRecoveryAudioProviderStreamID.flatMap {
+        let preferredAudioTrackID: Int? = if !resetTrackSelection, shouldRestoreTracksAfterLoad,
+                                             !viewModel.isTranscoding
+        {
+            pendingRecoveryAudioProviderStreamID.flatMap {
                 viewModel.ffIndex(forProviderStreamID: $0)
             } ?? pendingRecoveryAudioTrackID ?? viewModel.preferredAudioStreamFFIndex
         } else {
-            preferredAudioTrackID = viewModel.preferredAudioStreamFFIndex
+            viewModel.preferredAudioStreamFFIndex
         }
         playerController.load(
             url: url,
