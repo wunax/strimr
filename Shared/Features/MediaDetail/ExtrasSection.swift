@@ -34,7 +34,6 @@ struct ExtrasSection: View {
                     )
                 }
                 .padding(.horizontal, extrasSectionHorizontalPadding)
-                .padding(.bottom, 32)
             }
             .textCase(nil)
         }
