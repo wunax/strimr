@@ -145,6 +145,8 @@ struct MediaDetailHeaderSection: View {
         }
         .sheet(isPresented: $isShowingFileInfo) {
             MediaFileInfoView(viewModel: viewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(item: $sharePlaySharingRequest, onDismiss: {
             Task { await sharePlayCoordinator.sharingPresentationDidEnd() }

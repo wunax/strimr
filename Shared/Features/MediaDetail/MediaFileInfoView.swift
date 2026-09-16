@@ -17,7 +17,9 @@ struct MediaFileInfoView: View {
                         emptyState
                     }
                 }
-                .padding(.horizontal, 28)
+                .frame(maxWidth: 1_000, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 24)
                 .padding(.vertical, 24)
             }
             .navigationTitle("media.fileInfo.title")
@@ -35,24 +37,23 @@ struct MediaFileInfoView: View {
     }
 
     private func fileInfoContent(_ fileInfo: MediaFileInfo) -> some View {
-        LazyVStack(alignment: .leading, spacing: 28) {
-            VStack(alignment: .leading, spacing: 8) {
+        LazyVStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(viewModel.media.title)
                     .font(.title2.weight(.semibold))
+                    .lineLimit(2)
+
                 if let summary = fileInfo.firstVersion?.summaryLabels, !summary.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(summary, id: \.self) { label in
-                                Text(label)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, 5)
-                                    .background(.secondary.opacity(0.14), in: Capsule())
-                            }
+                    MediaFileInfoFlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                        ForEach(Array(summary.enumerated()), id: \.offset) { _, label in
+                            Text(label)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(.secondary.opacity(0.14), in: Capsule())
                         }
                     }
-                    .scrollClipDisabled()
                 }
             }
 
@@ -94,63 +95,139 @@ private struct MediaFileInfoVersionView: View {
     let version: MediaFileVersion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(verbatim: versionTitle)
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(verbatim: versionTitle)
+                    .font(.title3.weight(.semibold))
 
-            infoSection("media.fileInfo.summary", systemImage: "info.circle") {
-                field("media.fileInfo.container", version.container?.uppercased())
-                field("media.fileInfo.duration", version.durationText)
-                field("media.fileInfo.size", version.totalSizeText)
-                field("media.fileInfo.bitrate", version.bitrateText)
-                field("media.fileInfo.resolution", version.resolutionText)
-                field("media.fileInfo.aspectRatio", version.aspectRatio)
-                field("media.fileInfo.videoCodec", combined(version.videoCodec, version.videoProfile))
-                field("media.fileInfo.frameRate", version.videoFrameRate)
-                field("media.fileInfo.audioCodec", combined(version.audioCodec, version.audioProfile))
-                field("media.fileInfo.channels", version.audioChannels.map { "\($0)" })
+                if let title = version.title, !title.isEmpty {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            if hasGeneralFields {
+                infoCard("media.fileInfo.general", systemImage: "doc.text") {
+                    infoGrid {
+                        field("media.fileInfo.container", version.container?.uppercased())
+                        field("media.fileInfo.duration", version.durationText)
+                        field("media.fileInfo.size", version.totalSizeText)
+                        field("media.fileInfo.bitrate", version.bitrateText)
+                        field("media.fileInfo.aspectRatio", version.aspectRatio)
+                    }
+                }
+            }
+
+            if hasVideoFields {
+                infoCard("media.fileInfo.video", systemImage: "film") {
+                    infoGrid {
+                        field("media.fileInfo.resolution", version.resolutionText)
+                        field("media.fileInfo.videoCodec", combined(version.videoCodec, version.videoProfile))
+                        field("media.fileInfo.frameRate", version.videoFrameRate)
+                    }
+                }
+            }
+
+            if hasAudioFields {
+                infoCard("media.fileInfo.audio", systemImage: "waveform") {
+                    infoGrid {
+                        field("media.fileInfo.audioCodec", combined(version.audioCodec, version.audioProfile))
+                        field("media.fileInfo.channels", version.audioChannels.map { "\($0)" })
+                    }
+                }
             }
 
             if !version.parts.isEmpty {
-                infoSection("media.fileInfo.file", systemImage: "doc") {
-                    ForEach(Array(version.parts.enumerated()), id: \.offset) { index, part in
-                        MediaFileInfoPartView(index: index, part: part)
+                MediaFileInfoDisclosureCard(
+                    titleKey: "media.fileInfo.file",
+                    systemImage: "doc",
+                ) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(Array(version.parts.enumerated()), id: \.offset) { index, part in
+                            MediaFileInfoPartView(index: index, part: part)
+                        }
                     }
                 }
             }
 
             if !version.attachments.isEmpty {
-                infoSection("media.fileInfo.attachments", systemImage: "paperclip") {
-                    ForEach(Array(version.attachments.enumerated()), id: \.offset) { _, attachment in
-                        VStack(alignment: .leading, spacing: 6) {
-                            field("media.fileInfo.fileName", attachment.fileName)
-                            field("media.fileInfo.codec", attachment.codec)
-                            field("media.fileInfo.mimeType", attachment.mimeType)
-                            Divider()
+                MediaFileInfoDisclosureCard(
+                    titleKey: "media.fileInfo.attachments",
+                    systemImage: "paperclip",
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(Array(version.attachments.enumerated()), id: \.offset) { index, attachment in
+                            infoGrid {
+                                field("media.fileInfo.fileName", attachment.fileName)
+                                field("media.fileInfo.codec", attachment.codec)
+                                field("media.fileInfo.mimeType", attachment.mimeType)
+                            }
+
+                            if index < version.attachments.count - 1 {
+                                Divider()
+                            }
                         }
                     }
                 }
             }
         }
-        .padding(20)
-        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var versionTitle: String {
         String(localized: "media.fileInfo.version \(index + 1)")
     }
 
+    private var hasGeneralFields: Bool {
+        [
+            version.container,
+            version.durationText,
+            version.totalSizeText,
+            version.bitrateText,
+            version.aspectRatio,
+        ].contains { $0?.isEmpty == false }
+    }
+
+    private var hasVideoFields: Bool {
+        [
+            version.resolutionText,
+            combined(version.videoCodec, version.videoProfile),
+            version.videoFrameRate,
+        ].contains { $0?.isEmpty == false }
+    }
+
+    private var hasAudioFields: Bool {
+        [
+            combined(version.audioCodec, version.audioProfile),
+            version.audioChannels.map { "\($0)" },
+        ].contains { $0?.isEmpty == false }
+    }
+
     @ViewBuilder
-    private func infoSection<Content: View>(
+    private func infoCard<Content: View>(
         _ titleKey: LocalizedStringKey,
         systemImage: String,
         @ViewBuilder content: () -> Content,
-    ) -> some View where Content: View {
-        VStack(alignment: .leading, spacing: 12) {
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             Label(titleKey, systemImage: systemImage)
                 .font(.headline)
             content()
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    @ViewBuilder
+    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            alignment: .leading,
+            spacing: 12,
+            content: content,
+        )
     }
 
     @ViewBuilder
@@ -179,32 +256,46 @@ private struct MediaFileInfoPartView: View {
     let part: MediaFilePart
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(verbatim: fileTitle)
                 .font(.subheadline.weight(.semibold))
-            field("media.fileInfo.fileName", part.fileName)
-            field("media.fileInfo.path", part.path)
-            field("media.fileInfo.size", part.sizeText)
-            field("media.fileInfo.container", part.container?.uppercased())
-            field("media.fileInfo.duration", part.durationText)
-            if let exists = part.exists {
-                field("media.fileInfo.filePresent", exists ? String(localized: "media.fileInfo.yes") : String(localized: "media.fileInfo.no"))
-            }
-            if let accessible = part.accessible {
-                field("media.fileInfo.fileReadable", accessible ? String(localized: "media.fileInfo.yes") : String(localized: "media.fileInfo.no"))
-            }
-            if let id = part.id {
-                field("media.fileInfo.fileId", id)
+
+            infoGrid {
+                field("media.fileInfo.fileName", part.fileName)
+                field("media.fileInfo.path", part.path)
+                field("media.fileInfo.size", part.sizeText)
+                field("media.fileInfo.container", part.container?.uppercased())
+                field("media.fileInfo.duration", part.durationText)
+                if let exists = part.exists {
+                    field(
+                        "media.fileInfo.filePresent",
+                        exists ? String(localized: "media.fileInfo.yes") : String(localized: "media.fileInfo.no"),
+                    )
+                }
+                if let accessible = part.accessible {
+                    field(
+                        "media.fileInfo.fileReadable",
+                        accessible ? String(localized: "media.fileInfo.yes") : String(localized: "media.fileInfo.no"),
+                    )
+                }
+                if let id = part.id {
+                    field("media.fileInfo.fileId", id)
+                }
             }
 
             ForEach([MediaFileStreamKind.video, .audio, .subtitle, .other], id: \.self) { kind in
                 let streams = part.streams.filter { $0.kind == kind }
                 if !streams.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(kind.titleKey, systemImage: kind.systemImage)
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(Array(streams.enumerated()), id: \.offset) { _, stream in
-                            MediaFileInfoStreamView(stream: stream)
+                    MediaFileInfoDisclosureCard(
+                        titleKey: kind.titleKey,
+                        systemImage: kind.systemImage,
+                        initiallyExpanded: false,
+                        style: .nested,
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(streams.enumerated()), id: \.offset) { _, stream in
+                                MediaFileInfoStreamView(stream: stream)
+                            }
                         }
                     }
                 }
@@ -218,6 +309,16 @@ private struct MediaFileInfoPartView: View {
     }
 
     @ViewBuilder
+    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            alignment: .leading,
+            spacing: 12,
+            content: content,
+        )
+    }
+
+    @ViewBuilder
     private func field(_ labelKey: LocalizedStringKey, _ value: String?) -> some View {
         if let value, !value.isEmpty {
             MediaFileInfoField(label: labelKey, value: value)
@@ -225,57 +326,137 @@ private struct MediaFileInfoPartView: View {
     }
 }
 
+private struct MediaFileInfoDisclosureCard<Content: View>: View {
+    enum Style: Equatable {
+        case card
+        case nested
+    }
+
+    let titleKey: LocalizedStringKey
+    let systemImage: String
+    let style: Style
+    private let content: () -> Content
+
+    @State private var isExpanded: Bool
+
+    init(
+        titleKey: LocalizedStringKey,
+        systemImage: String,
+        initiallyExpanded: Bool = false,
+        style: Style = .card,
+        @ViewBuilder content: @escaping () -> Content,
+    ) {
+        self.titleKey = titleKey
+        self.systemImage = systemImage
+        self.style = style
+        self.content = content
+        _isExpanded = State(initialValue: initiallyExpanded)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            #if os(tvOS)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    disclosureLabel
+                }
+                .buttonStyle(.plain)
+
+                if isExpanded {
+                    content()
+                        .padding(.top, 12)
+                }
+            #else
+                DisclosureGroup(isExpanded: $isExpanded) {
+                    content()
+                        .padding(.top, 12)
+                } label: {
+                    disclosureLabel
+                }
+            #endif
+        }
+        .padding(style == .card ? 16 : 0)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            if style == .card {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.primary.opacity(0.055))
+            }
+        }
+    }
+
+    private var disclosureLabel: some View {
+        HStack(spacing: 8) {
+            Label(titleKey, systemImage: systemImage)
+                .font(style == .card ? .headline : .subheadline.weight(.semibold))
+
+            Spacer(minLength: 8)
+
+            #if os(tvOS)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            #endif
+        }
+        .contentShape(Rectangle())
+    }
+}
+
 private struct MediaFileInfoStreamView: View {
     let stream: MediaFileStream
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(stream.headline)
                 .font(.callout.weight(.semibold))
+                .lineLimit(2)
 
-            HStack(spacing: 6) {
-                ForEach(flagKeys, id: \.self) { key in
-                    Text(LocalizedStringKey(key))
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
-                        .background(.secondary.opacity(0.14), in: Capsule())
+            if !flagKeys.isEmpty {
+                MediaFileInfoFlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(flagKeys, id: \.self) { key in
+                        Text(LocalizedStringKey(key))
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(.secondary.opacity(0.14), in: Capsule())
+                    }
                 }
             }
 
-            field("media.fileInfo.codec", stream.codec)
-            field("media.fileInfo.codecTag", stream.codecTag)
-            field("media.fileInfo.profile", stream.profile)
-            field("media.fileInfo.language", stream.language)
-            field("media.fileInfo.languageCode", stream.languageCode)
-            field("media.fileInfo.bitrate", stream.bitrateText)
-            field("media.fileInfo.resolution", stream.resolutionText)
-            field("media.fileInfo.frameRate", stream.frameRateText)
-            field("media.fileInfo.bitDepth", stream.bitDepth.map { "\($0)-bit" })
-            field("media.fileInfo.dynamicRange", stream.dynamicRange)
-            field("media.fileInfo.pixelFormat", stream.pixelFormat)
-            field("media.fileInfo.colorSpace", stream.colorSpace)
-            field("media.fileInfo.colorTransfer", stream.colorTransfer)
-            field("media.fileInfo.aspectRatio", stream.aspectRatio)
-            field("media.fileInfo.channels", stream.channelsText)
-            field("media.fileInfo.sampleRate", stream.sampleRateText)
-            field("media.fileInfo.spatialAudio", stream.spatialFormat)
-            field("media.fileInfo.subtitleFormat", stream.subtitleFormat)
-            field("media.fileInfo.path", stream.path)
-            if let index = stream.index {
-                field("media.fileInfo.streamIndex", String(index))
-            }
-            if let id = stream.id {
-                field("media.fileInfo.streamId", id)
+            infoGrid {
+                field("media.fileInfo.codec", stream.codec)
+                field("media.fileInfo.codecTag", stream.codecTag)
+                field("media.fileInfo.profile", stream.profile)
+                field("media.fileInfo.language", stream.language)
+                field("media.fileInfo.languageCode", stream.languageCode)
+                field("media.fileInfo.bitrate", stream.bitrateText)
+                field("media.fileInfo.resolution", stream.resolutionText)
+                field("media.fileInfo.frameRate", stream.frameRateText)
+                field("media.fileInfo.bitDepth", stream.bitDepth.map { "\($0)-bit" })
+                field("media.fileInfo.dynamicRange", stream.dynamicRange)
+                field("media.fileInfo.pixelFormat", stream.pixelFormat)
+                field("media.fileInfo.colorSpace", stream.colorSpace)
+                field("media.fileInfo.colorTransfer", stream.colorTransfer)
+                field("media.fileInfo.aspectRatio", stream.aspectRatio)
+                field("media.fileInfo.channels", stream.channelsText)
+                field("media.fileInfo.sampleRate", stream.sampleRateText)
+                field("media.fileInfo.spatialAudio", stream.spatialFormat)
+                field("media.fileInfo.subtitleFormat", stream.subtitleFormat)
+                field("media.fileInfo.path", stream.path)
+                if let index = stream.index {
+                    field("media.fileInfo.streamIndex", String(index))
+                }
+                if let id = stream.id {
+                    field("media.fileInfo.streamId", id)
+                }
             }
         }
-        .padding(.vertical, 10)
-        .padding(.leading, 12)
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(.secondary.opacity(0.35))
-                .frame(width: 3)
-        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
     }
 
     private var flagKeys: [String] {
@@ -286,6 +467,16 @@ private struct MediaFileInfoStreamView: View {
             stream.isExternal == true ? "media.fileInfo.external" : nil,
             stream.isHearingImpaired == true ? "media.fileInfo.hearingImpaired" : nil,
         ].compactMap { $0 }
+    }
+
+    @ViewBuilder
+    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            alignment: .leading,
+            spacing: 12,
+            content: content,
+        )
     }
 
     @ViewBuilder
@@ -301,13 +492,109 @@ private struct MediaFileInfoField: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            Spacer(minLength: 4)
+
             Text(value)
                 .font(.callout)
+                .multilineTextAlignment(.trailing)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct MediaFileInfoFlowLayout: Layout {
+    let horizontalSpacing: CGFloat
+    let verticalSpacing: CGFloat
+
+    typealias Cache = ()
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Cache,
+    ) -> CGSize {
+        let rows = rows(for: subviews, maxWidth: proposal.width ?? .greatestFiniteMagnitude)
+        let width = proposal.width ?? rows.map { row in
+            row.reduce(CGFloat.zero) { result, item in
+                max(result, item.offset + item.size.width)
+            }
+        }.max() ?? 0
+        let height = rows.reduce(CGFloat.zero) { result, row in
+            result + (row.map(\.size.height).max() ?? 0)
+        } + CGFloat(max(0, rows.count - 1)) * verticalSpacing
+
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Cache,
+    ) {
+        let rows = rows(for: subviews, maxWidth: bounds.width)
+        var y = bounds.minY
+
+        for row in rows {
+            let rowHeight = row.map(\.size.height).max() ?? 0
+            for item in row {
+                let point = CGPoint(
+                    x: bounds.minX + item.offset + item.size.width / 2,
+                    y: y + rowHeight / 2,
+                )
+                subviews[item.index].place(
+                    at: point,
+                    anchor: .center,
+                    proposal: ProposedViewSize(item.size),
+                )
+            }
+            y += rowHeight + verticalSpacing
+        }
+    }
+
+    private func rows(
+        for subviews: Subviews,
+        maxWidth: CGFloat,
+    ) -> [[FlowItem]] {
+        var rows: [[FlowItem]] = []
+        var currentRow: [FlowItem] = []
+        var currentWidth: CGFloat = 0
+
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let spacing = currentRow.isEmpty ? 0 : horizontalSpacing
+            let wouldOverflow = maxWidth.isFinite && currentWidth + spacing + size.width > maxWidth
+
+            if wouldOverflow, !currentRow.isEmpty {
+                rows.append(currentRow)
+                currentRow = []
+                currentWidth = 0
+            }
+
+            let rowSpacing = currentRow.isEmpty ? 0 : horizontalSpacing
+            currentRow.append(FlowItem(index: index, offset: currentWidth + rowSpacing, size: size))
+            currentWidth += rowSpacing + size.width
+        }
+
+        if !currentRow.isEmpty {
+            rows.append(currentRow)
+        }
+
+        return rows
+    }
+
+    private struct FlowItem {
+        let index: Int
+        let offset: CGFloat
+        let size: CGSize
     }
 }
 

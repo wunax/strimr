@@ -125,7 +125,7 @@ struct MediaDetailView: View {
         }
         .sheet(isPresented: $isShowingFileInfo) {
             MediaFileInfoView(viewModel: viewModel)
-                .frame(minWidth: 620, minHeight: 640)
+                .frame(minWidth: 820, idealWidth: 920, minHeight: 620, idealHeight: 700)
         }
         .sheet(item: $sharePlaySharingRequest, onDismiss: {
             Task { await sharePlayCoordinator.sharingPresentationDidEnd() }

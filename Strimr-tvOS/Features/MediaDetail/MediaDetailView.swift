@@ -92,6 +92,7 @@ struct MediaDetailView: View {
         }
         .sheet(isPresented: $isShowingFileInfo) {
             MediaFileInfoView(viewModel: bindableViewModel)
+                .frame(minWidth: 900, idealWidth: 1_080, minHeight: 560, idealHeight: 680)
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
