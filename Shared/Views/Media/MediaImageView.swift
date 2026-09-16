@@ -94,7 +94,7 @@ struct MediaArtworkPlaceholder: View {
             "tv.fill"
         case .season, .collection:
             "rectangle.stack.fill"
-        case .episode:
+        case .episode, .clip:
             "play.rectangle.fill"
         case .playlist:
             "music.note.list"

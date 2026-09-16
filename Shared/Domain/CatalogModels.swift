@@ -68,6 +68,6 @@ struct MediaPage<Element: Sendable>: Sendable {
 
 extension MediaKind {
     var isPlayable: Bool {
-        self == .movie || self == .series || self == .season || self == .episode
+        self == .movie || self == .series || self == .season || self == .episode || self == .clip
     }
 }

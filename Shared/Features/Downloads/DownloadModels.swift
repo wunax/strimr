@@ -253,7 +253,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
             return parentTitle
         case .series:
             return nil
-        case .collection, .playlist, .folder, .unknown:
+        case .clip, .collection, .playlist, .folder, .unknown:
             return nil
         }
     }

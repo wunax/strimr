@@ -210,6 +210,35 @@ struct JellyfinCatalogService {
         )
     }
 
+    func extras(for itemID: String) async throws -> [JellyfinItem] {
+        var items: [JellyfinItem] = []
+        var errors: [Error] = []
+
+        do {
+            try await items.append(contentsOf: fetchExtraItems(path: ["Items", itemID, "LocalTrailers"]))
+        } catch {
+            errors.append(error)
+        }
+
+        do {
+            try await items.append(contentsOf: fetchExtraItems(path: ["Items", itemID, "SpecialFeatures"]))
+        } catch {
+            errors.append(error)
+        }
+
+        if items.isEmpty, let error = errors.first {
+            throw error
+        }
+
+        var seenIDs = Set<String>()
+        return items.filter { item in
+            item.isPlayable
+                && item.kind == .clip
+                && item.mediaSources?.isEmpty == false
+                && seenIDs.insert(item.id).inserted
+        }
+    }
+
     func favoriteItems() async throws -> [JellyfinItem] {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -372,9 +401,22 @@ struct JellyfinCatalogService {
         case .playlist:
             return try await playlistItems(id: item.id, fields: "Chapters,Trickplay")
                 .filter(\.isPlayable)
+        case .clip:
+            return [item]
         case .folder, .unknown:
             return []
         }
+    }
+
+    private func fetchExtraItems(path: [String]) async throws -> [JellyfinItem] {
+        try await context.get(
+            path: path,
+            query: commonUserQuery + [
+                URLQueryItem(name: "Fields", value: Self.playbackFields),
+                URLQueryItem(name: "ImageTypeLimit", value: "3"),
+                URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Logo"),
+            ],
+        )
     }
 
     private func collectionPlaybackItems(id: String) async throws -> [JellyfinItem] {

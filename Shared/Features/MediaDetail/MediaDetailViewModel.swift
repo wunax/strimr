@@ -32,6 +32,7 @@ final class MediaDetailViewModel {
     var episodes: [MediaItem] = []
     var cast: [CastMember] = []
     var relatedHubs: [Hub] = []
+    var extras: [MediaItem] = []
     var selectedSeasonId: String?
     var isLoadingSeasons = false
     var isLoadingEpisodes = false
@@ -39,6 +40,7 @@ final class MediaDetailViewModel {
     var seasonsErrorMessage: String?
     var episodesErrorMessage: String?
     var relatedHubsErrorMessage: String?
+    var isLoadingExtras = false
     var audioTracks: [MediaTrackMetadata] = []
     var subtitleTracks: [MediaTrackMetadata] = []
     var selectedAudioStreamID: Int?
@@ -62,6 +64,12 @@ final class MediaDetailViewModel {
     private var loadingFavoriteStatusIDs: Set<String> = []
     private var updatingFavoriteStatusIDs: Set<String> = []
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    @ObservationIgnored private var extrasTask: Task<Void, Never>?
+    @ObservationIgnored private var extrasLoadedFor: MediaIdentity?
+
+    deinit {
+        extrasTask?.cancel()
+    }
 
     init(
         media: PlayableMediaItem,
@@ -402,6 +410,8 @@ final class MediaDetailViewModel {
             return media.mediaItem.grandparentTitle ?? media.mediaItem.parentTitle
         case .movie, .show:
             return media.secondaryLabel
+        case .clip:
+            return media.secondaryLabel
         }
     }
 
@@ -433,7 +443,7 @@ final class MediaDetailViewModel {
         let timeLeft = target.shouldResumeFromOffset ? timeLeftText(for: target.item) : nil
 
         switch media.type {
-        case .movie, .episode:
+        case .movie, .episode, .clip:
             return timeLeft
         case .show, .season:
             let episodeLabel = seasonEpisodeLabel(for: target.item)
@@ -583,7 +593,7 @@ final class MediaDetailViewModel {
 
     private var primaryPlaybackTarget: MediaDetailPlaybackTarget? {
         switch media.type {
-        case .movie, .episode:
+        case .movie, .episode, .clip:
             return MediaDetailPlaybackTarget(
                 item: media.mediaItem,
                 type: media.mediaKind,
@@ -812,7 +822,7 @@ final class MediaDetailViewModel {
         }
 
         switch media.type {
-        case .movie, .episode:
+        case .movie, .episode, .clip:
             fallbackPlaybackTarget = nil
         case .season:
             fallbackPlaybackTarget = playbackFallback(from: episodes, sortBySeason: false)
@@ -932,6 +942,9 @@ final class MediaDetailViewModel {
         if !preservingExistingContent {
             cast = []
             relatedHubs = []
+            extrasTask?.cancel()
+            extras = []
+            extrasLoadedFor = nil
             onDeckItem = nil
             fallbackPlaybackTarget = nil
         }
@@ -953,6 +966,7 @@ final class MediaDetailViewModel {
             cast = content.cast
             relatedHubs = content.relatedHubs
             relatedHubsErrorMessage = nil
+            loadExtras(for: media.mediaItem)
 
             switch media.type {
             case .show:
@@ -962,7 +976,7 @@ final class MediaDetailViewModel {
                 }
             case .season where resolutionMode == .selectedMedia:
                 selectedSeasonId = media.id
-            case .movie, .episode, .season:
+            case .movie, .episode, .season, .clip:
                 selectedSeasonId = nil
             }
 
@@ -978,6 +992,40 @@ final class MediaDetailViewModel {
             if !preservingExistingContent {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func loadExtras(for target: MediaItem) {
+        guard target.type == .movie || target.type == .series else {
+            extrasTask?.cancel()
+            extras = []
+            extrasLoadedFor = nil
+            isLoadingExtras = false
+            return
+        }
+
+        guard extrasLoadedFor != target.identity else { return }
+
+        extrasTask?.cancel()
+        extras = []
+        isLoadingExtras = true
+        let targetIdentity = target.identity
+        extrasTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let fetchedExtras = try await services.detail.fetchExtras(for: target)
+                guard !Task.isCancelled, media.identity == targetIdentity else { return }
+                extras = fetchedExtras.filter { $0.type == .clip }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation, media.identity == targetIdentity else { return }
+                extras = []
+                ErrorReporter.capture(error)
+            }
+
+            guard !Task.isCancelled, media.identity == targetIdentity else { return }
+            extrasLoadedFor = targetIdentity
+            isLoadingExtras = false
         }
     }
 }

@@ -18,6 +18,8 @@ struct Library: Identifiable, Equatable, Hashable {
             "rectangle.stack.fill"
         case .playlist:
             "music.note.list"
+        case .clip:
+            "play.rectangle.fill"
         case .folder, .unknown:
             "questionmark.square.fill"
         }

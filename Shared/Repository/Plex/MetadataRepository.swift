@@ -48,4 +48,8 @@ final class MetadataRepository {
     func getMetadataGrandChildren(ratingKey: String) async throws -> PlexItemMediaContainer {
         try await network.request(path: "/library/metadata/\(ratingKey)/grandchildren")
     }
+
+    func getMetadataExtras(ratingKey: String) async throws -> PlexItemMediaContainer {
+        try await network.request(path: "/library/metadata/\(ratingKey)/extras")
+    }
 }

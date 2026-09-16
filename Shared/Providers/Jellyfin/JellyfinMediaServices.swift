@@ -69,6 +69,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await MediaItem(jellyfinItem: catalog.item(id: id), server: server)
     }
 
+    func fetchExtras(for media: MediaItem) async throws -> [MediaItem] {
+        try await catalog.extras(for: media.id).map { MediaItem(jellyfinItem: $0, server: server) }
+    }
+
     func favorites() async throws -> [MediaItem] {
         try await catalog.favoriteItems().map { MediaItem(jellyfinItem: $0, server: server) }
     }
@@ -477,7 +481,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             } else {
                 seriesID = nil
             }
-        case .movie, .series, .collection, .playlist, .folder, .unknown:
+        case .movie, .series, .clip, .collection, .playlist, .folder, .unknown:
             seriesID = nil
         }
 
@@ -1029,6 +1033,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             case .series: "Series"
             case .season: "Season"
             case .episode: "Episode"
+            case .clip: "Video"
             case .collection: "BoxSet"
             case .playlist: "Playlist"
             case .folder: "Folder"

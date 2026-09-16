@@ -146,7 +146,7 @@ struct MediaItem: Identifiable, Hashable {
         }
 
         let isPlayed = switch kind {
-        case .movie, .episode:
+        case .movie, .episode, .clip:
             (viewCount ?? 0) > 0
         case .series, .season:
             if let leafCount, let viewedLeafCount, leafCount > 0 {
@@ -192,6 +192,10 @@ struct MediaItem: Identifiable, Hashable {
             return thumbPath ?? grandparentArtPath ?? artPath
         }
 
+        if type == .clip {
+            return thumbPath ?? artPath
+        }
+
         return grandparentArtPath ?? artPath
     }
 
@@ -216,7 +220,7 @@ struct MediaItem: Identifiable, Hashable {
             guard let childCount else { return nil }
             return String(localized: "media.labels.elementsCount \(childCount)")
 
-        case .playlist, .folder, .unknown:
+        case .clip, .playlist, .folder, .unknown:
             return nil
         }
     }
@@ -235,7 +239,7 @@ struct MediaItem: Identifiable, Hashable {
             grandparentRatingKey ?? parentRatingKey ?? id
         case .season:
             parentRatingKey ?? id
-        case .movie, .series:
+        case .movie, .series, .clip:
             id
         case .collection, .playlist, .folder, .unknown:
             id

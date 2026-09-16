@@ -185,6 +185,7 @@ protocol MediaDetailService: AnyObject {
     ) async throws -> [RemoteSubtitleResult]
     func installSubtitle(itemID: String, result: RemoteSubtitleResult) async throws
     func details(for media: MediaItem) async throws -> MediaDetailContent
+    func fetchExtras(for media: MediaItem) async throws -> [MediaItem]
     func seasons(for series: MediaItem) async throws -> [MediaItem]
     func episodes(for season: MediaItem, seriesID: String?) async throws -> [MediaItem]
     func allEpisodes(for series: MediaItem) async throws -> [MediaItem]

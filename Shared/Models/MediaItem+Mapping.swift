@@ -2,8 +2,13 @@ import Foundation
 
 extension MediaItem {
     init(plexItem: PlexItem, server: ServerIdentity? = nil) {
-        let isPlayed = switch plexItem.type.mediaKind {
-        case .movie, .episode:
+        let type: MediaKind = if plexItem.type == .clip || plexItem.subtype == .clip {
+            .clip
+        } else {
+            plexItem.type.mediaKind
+        }
+        let isPlayed = switch type {
+        case .movie, .episode, .clip:
             (plexItem.viewCount ?? 0) > 0
         case .series, .season:
             if let leafCount = plexItem.leafCount,
@@ -34,7 +39,7 @@ extension MediaItem {
             guid: plexItem.guid,
             summary: plexItem.summary,
             title: plexItem.title,
-            type: plexItem.type.mediaKind,
+            type: type,
             parentRatingKey: plexItem.parentRatingKey,
             grandparentRatingKey: plexItem.grandparentRatingKey,
             genres: plexItem.genres?.map(\.tag) ?? [],

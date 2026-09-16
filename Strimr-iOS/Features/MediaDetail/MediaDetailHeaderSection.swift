@@ -679,6 +679,8 @@ struct MediaDetailHeaderSection: View {
             isShowingDownloadOptions = true
         case .movie, .episode:
             isShowingDownloadOptions = true
+        case .clip:
+            break
         case .collection, .playlist, .folder, .unknown:
             break
         }
