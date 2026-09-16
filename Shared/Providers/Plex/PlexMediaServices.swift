@@ -543,6 +543,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         media: MediaItem,
         resume: Bool,
         quality: TranscodeQualityPreset,
+        trackPreference: MediaTrackPreference?,
     ) async throws -> PlaybackPlan {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: media.id,
@@ -554,6 +555,56 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
               let directURL = try MediaRepository(context: context).mediaURL(path: part.key)
         else { throw PlexAPIError.invalidURL }
         let streams = item.media?.first?.parts.first?.stream ?? []
+        let serverAudio = streams.first {
+            $0.streamType == .audio && $0.selected == true
+        }
+        let serverSubtitle = streams.first {
+            $0.streamType == .subtitle && $0.selected == true
+        }
+        let preferredAudio = trackPreference.flatMap {
+            resolveAudioStream(preference: $0, streams: streams)
+        }
+        let preferredSubtitle: PlexPartStream? = switch trackPreference?.subtitle {
+        case .off:
+            nil
+        case .track:
+            trackPreference.flatMap { resolveSubtitleStream(preference: $0, streams: streams) }
+                ?? serverSubtitle
+        case .serverDefault, nil:
+            serverSubtitle
+        }
+        let selectedAudioStream = preferredAudio ?? serverAudio
+        let selectedSubtitleStream = preferredSubtitle
+        if let trackPreference {
+            let shouldUpdateAudio = preferredAudio?.id != serverAudio?.id
+                && preferredAudio?.id != nil
+            let shouldUpdateSubtitle: Bool = switch trackPreference.subtitle {
+            case .off:
+                serverSubtitle != nil
+            case .track:
+                preferredSubtitle?.id != serverSubtitle?.id && preferredSubtitle?.id != nil
+            case .serverDefault:
+                false
+            }
+            if shouldUpdateAudio || shouldUpdateSubtitle {
+                let subtitleStreamID: Int? = switch trackPreference.subtitle {
+                case .off: shouldUpdateSubtitle ? 0 : nil
+                case .track: shouldUpdateSubtitle ? preferredSubtitle?.id : nil
+                case .serverDefault: nil
+                }
+                do {
+                    try await PlaybackRepository(context: context).setPreferredStreams(
+                        partId: part.id,
+                        audioStreamId: shouldUpdateAudio ? preferredAudio?.id : nil,
+                        subtitleStreamId: subtitleStreamID,
+                        applyToAllParts: true,
+                    )
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { throw error }
+                    ErrorReporter.capture(error)
+                }
+            }
+        }
         let tracks = streams.compactMap { stream -> PlaybackTrack? in
             let kind: PlaybackTrackKind
             switch stream.streamType {
@@ -590,18 +641,10 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             )
         }
         let initialPosition = resume ? item.viewOffset.map { TimeInterval($0) / 1000 } : nil
-        let selectedAudioIndex = streams.first {
-            $0.streamType == .audio && $0.selected == true
-        }?.index
-        let selectedSubtitleIndex = streams.first {
-            $0.streamType == .subtitle && $0.selected == true
-        }?.id
-        let selectedAudioStreamID = streams.first {
-            $0.streamType == .audio && $0.selected == true
-        }?.id
-        let burnsSubtitles = streams.contains {
-            $0.streamType == .subtitle && $0.selected == true && $0.key == nil
-        }
+        let selectedAudioIndex = selectedAudioStream?.index
+        let selectedSubtitleIndex = selectedSubtitleStream?.id
+        let selectedAudioStreamID = selectedAudioStream?.id
+        let burnsSubtitles = selectedSubtitleStream?.key == nil
         var playbackURL = directURL
         var playbackMethod = PlaybackMethod.directPlay
         var transcodeSessionID: String?
@@ -661,6 +704,10 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             initialPosition: initialPosition,
             selectedAudioIndex: selectedAudioIndex,
             selectedSubtitleIndex: selectedSubtitleIndex,
+            subtitleSelectionIsOff: trackPreference.map {
+                if case .off = $0.subtitle { return true }
+                return false
+            } ?? false,
             tracks: tracks,
             externalSubtitles: subtitles,
             chapters: chapters,
@@ -691,11 +738,21 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
     }
 
-    func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
+    func reportStarted(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection _: PlaybackStreamSelection?,
+    ) async throws {
         try await report(plan: plan, position: position, state: isPaused ? .paused : .playing)
     }
 
-    func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
+    func reportProgress(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection _: PlaybackStreamSelection?,
+    ) async throws {
         try await report(plan: plan, position: position, state: isPaused ? .paused : .playing)
         if plan.method == .transcode, isPaused, let sessionIdentifier = plan.transcodeSessionID {
             try? await PlaybackRepository(context: context).pingTranscode(
@@ -704,18 +761,27 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
     }
 
-    func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws {
+    func reportStopped(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        currentSelection _: PlaybackStreamSelection?,
+    ) async throws {
         try await report(plan: plan, position: position, state: .stopped)
     }
 
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
-        try await prepare(media: media, resume: false, quality: .original).externalSubtitles
+        try await prepare(
+            media: media,
+            resume: false,
+            quality: .original,
+            trackPreference: nil,
+        ).externalSubtitles
     }
 
     func prepareDownload(
         itemID: String,
         quality: TranscodeQualityPreset,
-        tracks _: MediaDownloadTrackPreference,
+        tracks _: MediaTrackPreference,
     ) async throws -> MediaDownloadPreparation {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
@@ -790,7 +856,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func downloadSidecars(
         itemID _: String,
-        tracks _: MediaDownloadTrackPreference,
+        tracks _: MediaTrackPreference,
     ) async throws -> [MediaDownloadSidecar] {
         []
     }
@@ -830,6 +896,101 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         case .clip, .collection, .playlist, .folder, .unknown:
             return []
         }
+    }
+
+    private func resolveAudioStream(
+        preference: MediaTrackPreference,
+        streams: [PlexPartStream],
+    ) -> PlexPartStream? {
+        let audio = streams.filter { $0.streamType == .audio }
+        if let streamID = preference.audioStreamIndex,
+           let exact = audio.first(where: { $0.id == streamID })
+        {
+            return exact
+        }
+        let candidates = audio.filter { stream in
+            guard let language = preference.audioLanguage else { return true }
+            return normalized(stream.language) == normalized(language)
+        }
+        guard preference.audioLanguage != nil || preference.audioTitle != nil || preference.audioCodec != nil else {
+            return nil
+        }
+        return candidates
+            .map { stream in (stream, audioMatchScore(stream, preference: preference)) }
+            .filter { $0.1 > 0 }
+            .max { $0.1 < $1.1 }?.0
+    }
+
+    private func resolveSubtitleStream(
+        preference: MediaTrackPreference,
+        streams: [PlexPartStream],
+    ) -> PlexPartStream? {
+        guard case let .track(streamID, language, title, codec, isForced, isHearingImpaired) = preference.subtitle else {
+            return nil
+        }
+        let subtitles = streams.filter { $0.streamType == .subtitle }
+        if let streamID,
+           let exact = subtitles.first(where: { $0.id == streamID })
+        {
+            return exact
+        }
+        let candidates = subtitles.filter { stream in
+            guard let language else { return true }
+            return normalized(stream.language) == normalized(language)
+        }
+        guard language != nil || title != nil || !codec.isEmpty else { return nil }
+        return candidates
+            .map { stream in
+                (stream, subtitleMatchScore(
+                    stream,
+                    language: language,
+                    title: title,
+                    codec: codec,
+                    isForced: isForced,
+                    isHearingImpaired: isHearingImpaired,
+                ))
+            }
+            .filter { $0.1 > 0 }
+            .max { $0.1 < $1.1 }?.0
+    }
+
+    private func audioMatchScore(
+        _ stream: PlexPartStream,
+        preference: MediaTrackPreference,
+    ) -> Int {
+        var score = 0
+        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) { score += 4 }
+        if let title = preference.audioTitle,
+           normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
+        { score += 3 }
+        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) { score += 2 }
+        if let hearingImpaired = preference.audioIsHearingImpaired,
+           stream.hearingImpaired == hearingImpaired
+        { score += 1 }
+        return score
+    }
+
+    private func subtitleMatchScore(
+        _ stream: PlexPartStream,
+        language: String?,
+        title: String?,
+        codec: String,
+        isForced: Bool,
+        isHearingImpaired: Bool?,
+    ) -> Int {
+        var score = 0
+        if let language, normalized(stream.language) == normalized(language) { score += 4 }
+        if let title,
+           normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
+        { score += 3 }
+        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) { score += 2 }
+        if stream.forced == isForced { score += 1 }
+        if let isHearingImpaired, stream.hearingImpaired == isHearingImpaired { score += 1 }
+        return score
+    }
+
+    private func normalized(_ value: String?) -> String {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
     }
 
     private func report(
@@ -950,6 +1111,7 @@ enum PlexMediaServicesFactory {
         context: PlexAPIContext,
         sessionManager: SessionManager?,
         favoritesStore: FavoritesStore? = nil,
+        trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
     ) -> MediaServices? {
         guard let snapshot = try? context.serverAccessSnapshot() else { return nil }
         let identity = ServerIdentity(provider: .plex, id: snapshot.serverIdentifier)
@@ -980,6 +1142,8 @@ enum PlexMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
+            trackSelectionCoordinator: trackSelectionCoordinator ?? sessionManager?.trackSelectionCoordinator,
+            trackSelectionAccountIdentifier: profileID,
         )
         adapter.services = services
         return services

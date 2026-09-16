@@ -4,7 +4,8 @@ import Foundation
 @MainActor
 final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, MediaSearchService,
     MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
-    AdvancedLibraryBrowseService, MediaFavoritesService, MediaAuthorizationService
+    AdvancedLibraryBrowseService, MediaFavoritesService, MediaAuthorizationService,
+    MediaTrackSelectionMemoryService
 {
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
@@ -12,6 +13,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     private let server: ServerIdentity
     private var activePlans: [String: JellyfinPlaybackPlan] = [:]
     private var trackSelectionOverrides: [String: JellyfinTrackSelectionOverride] = [:]
+    private var enabledTrackSelectionMemory: Set<PlaybackTrackKind> = []
     weak var services: MediaServices?
 
     init(context: JellyfinAPIContext, server: ServerIdentity) {
@@ -574,6 +576,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         trackSelectionOverrides[itemID] = selectionOverride
     }
 
+    func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws {
+        guard !enabledTrackSelectionMemory.contains(kind) else { return }
+        try await context.enableTrackSelectionMemory(for: kind)
+        enabledTrackSelectionMemory.insert(kind)
+    }
+
     func collectionItems(id: String) async throws -> [MediaDisplayItem] {
         try await childItems(id: id)
     }
@@ -623,12 +631,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         media: MediaItem,
         resume: Bool,
         quality: TranscodeQualityPreset,
+        trackPreference: MediaTrackPreference?,
     ) async throws -> PlaybackPlan {
         let item = try await catalog.item(id: media.id)
         let plan = try await playbackService.prepare(
             item: item,
             resume: resume,
             trackSelection: trackSelectionOverrides[item.id],
+            trackPreference: trackPreference,
             quality: quality,
         )
         activePlans[plan.playSessionID] = plan
@@ -698,6 +708,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             initialPosition: plan.initialPosition,
             selectedAudioIndex: plan.preferredAudioStreamIndex,
             selectedSubtitleIndex: plan.preferredSubtitleStreamIndex,
+            subtitleSelectionIsOff: plan.subtitleSelectionIsOff,
             tracks: tracks,
             externalSubtitles: plan.externalSubtitles,
             chapters: plan.chapters.enumerated().map { index, chapter in
@@ -778,20 +789,48 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return selectionOverride
     }
 
-    func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
+    func reportStarted(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
         guard let source = sourcePlan(for: plan) else { return }
-        try await playbackService.reportStarted(plan: source, position: position, isPaused: isPaused)
+        try await playbackService.reportStarted(
+            plan: source,
+            position: position,
+            isPaused: isPaused,
+            currentSelection: currentSelection,
+        )
     }
 
-    func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
+    func reportProgress(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
         guard let source = sourcePlan(for: plan) else { return }
-        try await playbackService.reportProgress(plan: source, position: position, isPaused: isPaused)
+        try await playbackService.reportProgress(
+            plan: source,
+            position: position,
+            isPaused: isPaused,
+            currentSelection: currentSelection,
+        )
     }
 
-    func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws {
+    func reportStopped(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
         guard let source = sourcePlan(for: plan) else { return }
         defer { activePlans[source.playSessionID] = nil }
-        try await playbackService.reportStopped(plan: source, position: position)
+        try await playbackService.reportStopped(
+            plan: source,
+            position: position,
+            currentSelection: currentSelection,
+        )
     }
 
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
@@ -801,7 +840,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func prepareDownload(
         itemID: String,
         quality: TranscodeQualityPreset,
-        tracks: MediaDownloadTrackPreference,
+        tracks: MediaTrackPreference,
     ) async throws -> MediaDownloadPreparation {
         let item = try await catalog.item(id: itemID)
         guard item.isPlayable, item.canDownload != false else {
@@ -877,7 +916,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     func downloadSidecars(
         itemID: String,
-        tracks: MediaDownloadTrackPreference,
+        tracks: MediaTrackPreference,
     ) async throws -> [MediaDownloadSidecar] {
         guard case .track = tracks.subtitle else { return [] }
         let item = try await catalog.item(id: itemID)
@@ -1059,7 +1098,7 @@ private extension JellyfinMediaSource {
             && height <= maximumHeight
     }
 
-    func resolveAudioStream(preference: MediaDownloadTrackPreference) -> JellyfinMediaStream? {
+    func resolveAudioStream(preference: MediaTrackPreference) -> JellyfinMediaStream? {
         let audio = (mediaStreams ?? []).filter { $0.type.lowercased() == "audio" }
         if let index = preference.audioStreamIndex,
            let exact = audio.first(where: { $0.index == index })
@@ -1082,9 +1121,9 @@ private extension JellyfinMediaSource {
     }
 
     func resolveSubtitleStream(
-        preference: MediaDownloadSubtitlePreference,
+        preference: MediaSubtitlePreference,
     ) -> JellyfinMediaStream? {
-        guard case let .track(index, language, title, codec, isForced) = preference else { return nil }
+        guard case let .track(index, language, title, codec, isForced, _) = preference else { return nil }
         let subtitles = (mediaStreams ?? []).filter { stream in
             stream.type.lowercased() == "subtitle" && stream.isDownloadableTextSubtitle
         }
@@ -1123,7 +1162,11 @@ extension JellyfinMediaStream {
 
 @MainActor
 enum JellyfinMediaServicesFactory {
-    static func make(context: JellyfinAPIContext, capabilities: ProviderCapabilities) -> MediaServices? {
+    static func make(
+        context: JellyfinAPIContext,
+        capabilities: ProviderCapabilities,
+        trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
+    ) -> MediaServices? {
         guard let connection = context.connection else { return nil }
         let adapter = JellyfinMediaServiceAdapter(context: context, server: connection.serverIdentity)
         let favorites = JellyfinFavoritesService(
@@ -1145,6 +1188,8 @@ enum JellyfinMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
+            trackSelectionCoordinator: trackSelectionCoordinator,
+            trackSelectionAccountIdentifier: connection.userID,
         )
         adapter.services = services
         return services

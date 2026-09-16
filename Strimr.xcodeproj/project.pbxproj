@@ -253,6 +253,7 @@
 				Store/LiveTVStore.swift,
 				Store/SeerrStore.swift,
 				Store/SettingsManager.swift,
+				Store/TrackSelectionStore.swift,
 				Views/FolderCard.swift,
 				Views/IsolatedSheetPresentationHost.swift,
 				Views/Media/ArtworkResourceView.swift,

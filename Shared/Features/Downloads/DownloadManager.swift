@@ -179,7 +179,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     func enqueueItem(
         itemID: String,
         quality: TranscodeQualityPreset? = nil,
-        tracks: MediaDownloadTrackPreference = .serverDefault,
+        tracks: MediaTrackPreference = .serverDefault,
         services: MediaServices,
     ) async {
         register(services: services)
@@ -200,7 +200,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         itemID: String,
         kind: MediaKind,
         quality: TranscodeQualityPreset? = nil,
-        tracks: MediaDownloadTrackPreference = .serverDefault,
+        tracks: MediaTrackPreference = .serverDefault,
         services: MediaServices,
     ) async {
         do {
@@ -236,7 +236,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func enqueue(
         _ preparation: MediaDownloadPreparation,
-        tracks: MediaDownloadTrackPreference,
+        tracks: MediaTrackPreference,
         services: MediaServices,
     ) async throws {
         let mediaItem = preparation.media

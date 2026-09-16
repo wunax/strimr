@@ -8867,6 +8867,28 @@
         }
       }
     },
+    "player.settings.tracks.reset" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset remembered track choices"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser les choix de pistes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置记住的音轨选择"
+          }
+        }
+      }
+    },
     "player.settings.subtitles.off" : {
       "localizations" : {
         "en" : {
@@ -12336,6 +12358,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无损音频"
+          }
+        }
+      }
+    },
+    "settings.playback.rememberTrackSelections" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember audio and subtitle selections"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoriser les choix audio et sous-titres"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记住音频和字幕选择"
+          }
+        }
+      }
+    },
+    "settings.playback.rememberTrackSelections.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reuse your manual track choices for this movie or series when the matching track is available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réutilise vos choix manuels pour ce film ou cette série lorsque la piste correspondante est disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当存在匹配的音轨时，在此电影或剧集中重复使用手动选择。"
           }
         }
       }

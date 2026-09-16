@@ -429,6 +429,9 @@ struct PlayerView: View {
             onSearchSubtitles: viewModel.canSearchSubtitles
                 ? { sheetPresentation.item = .subtitleSearch }
                 : nil,
+            onResetTrackSelections: viewModel.canResetRememberedTrackSelections
+                ? { viewModel.resetRememberedTrackSelections() }
+                : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onSelectQuality: { selectQuality($0) },
             onClose: { sheetPresentation.item = nil },
@@ -597,7 +600,13 @@ struct PlayerView: View {
                         selectedAudioTrackID = activeAudio
                     }
 
-                    if selectedSubtitleTrackID == nil,
+                    if viewModel.preferredSubtitleSelectionIsOff {
+                        selectedSubtitleTrackID = nil
+                        playerController.selectSubtitleTrack(
+                            id: nil,
+                            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                        )
+                    } else if selectedSubtitleTrackID == nil,
                        let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id
                     {
                         selectedSubtitleTrackID = activeSubtitle

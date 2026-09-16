@@ -33,14 +33,17 @@ final class DownloadOptionsViewModel {
         }
     }
 
-    var preference: MediaDownloadTrackPreference {
+    var preference: MediaTrackPreference {
         guard showsTrackSelection else { return .serverDefault }
         let audio = audioTracks.first(where: { $0.id == selectedAudioID })
         let subtitle = subtitleTracks.first(where: { $0.id == selectedSubtitleID })
-        return MediaDownloadTrackPreference(
+        return MediaTrackPreference(
             audioStreamIndex: audio?.sourceIndex ?? audio?.id,
             audioLanguage: audio?.language,
             audioTitle: audio?.displayTitle,
+            audioCodec: audio?.codec,
+            audioIsHearingImpaired: audio?.isHearingImpaired,
+            audioIsCommentary: nil,
             subtitle: subtitle.map {
                 .track(
                     streamIndex: $0.sourceIndex ?? $0.id ?? 0,
@@ -48,6 +51,7 @@ final class DownloadOptionsViewModel {
                     title: $0.displayTitle,
                     codec: $0.codec,
                     isForced: $0.isForced,
+                    isHearingImpaired: $0.isHearingImpaired,
                 )
             } ?? .off,
         )
@@ -117,14 +121,14 @@ struct DownloadOptionsSections: View {
 struct DownloadConfirmationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: DownloadOptionsViewModel
-    let onDownload: (TranscodeQualityPreset, MediaDownloadTrackPreference) async -> Void
+    let onDownload: (TranscodeQualityPreset, MediaTrackPreference) async -> Void
     @State private var isSubmitting = false
 
     init(
         itemID: String,
         services: MediaServices,
         defaultQuality: TranscodeQualityPreset,
-        onDownload: @escaping (TranscodeQualityPreset, MediaDownloadTrackPreference) async -> Void,
+        onDownload: @escaping (TranscodeQualityPreset, MediaTrackPreference) async -> Void,
     ) {
         _model = State(initialValue: DownloadOptionsViewModel(
             itemID: itemID,

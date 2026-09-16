@@ -39,6 +39,8 @@ final class MediaServices {
     let liveTV: any MediaLiveTVService
     let liveTVStore: LiveTVStore
     let downloads: any MediaDownloadService
+    let trackSelectionCoordinator: TrackSelectionCoordinator?
+    let trackSelectionAccountIdentifier: String?
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
 
     var authorization: MediaAuthorization {
@@ -59,6 +61,8 @@ final class MediaServices {
         liveTV: any MediaLiveTVService,
         downloads: any MediaDownloadService,
         authorization: any MediaAuthorizationService,
+        trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
+        trackSelectionAccountIdentifier: String? = nil,
     ) {
         self.provider = provider
         self.identity = identity
@@ -73,6 +77,8 @@ final class MediaServices {
         self.liveTV = liveTV
         liveTVStore = LiveTVStore(service: liveTV)
         self.downloads = downloads
+        self.trackSelectionCoordinator = trackSelectionCoordinator
+        self.trackSelectionAccountIdentifier = trackSelectionAccountIdentifier
         authorizationService = authorization
     }
 }

@@ -18,16 +18,22 @@ struct StrimrApp: App {
         let jellyfinContext = JellyfinAPIContext()
         let store = LibraryStore(context: context)
         let favoritesStore = FavoritesStore()
+        let settingsManager = SettingsManager()
+        let trackSelectionCoordinator = TrackSelectionCoordinator(
+            store: TrackSelectionStore(),
+            settingsManager: settingsManager,
+        )
         let sessionManager = SessionManager(
             context: context,
             jellyfinContext: jellyfinContext,
             libraryStore: store,
             favoritesStore: favoritesStore,
+            trackSelectionCoordinator: trackSelectionCoordinator,
         )
         _plexApiContext = State(initialValue: context)
         _jellyfinAPIContext = State(initialValue: jellyfinContext)
         _sessionManager = State(initialValue: sessionManager)
-        _settingsManager = State(initialValue: SettingsManager())
+        _settingsManager = State(initialValue: settingsManager)
         _libraryStore = State(initialValue: store)
         _mediaFocusModel = State(initialValue: MediaFocusModel())
         _seerrStore = State(initialValue: SeerrStore())
