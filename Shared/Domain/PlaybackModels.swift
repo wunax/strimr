@@ -173,6 +173,7 @@ struct PlaybackPlan: Sendable {
     let initialPosition: TimeInterval?
     let selectedAudioIndex: Int?
     let selectedSubtitleIndex: Int?
+    let subtitleSelectionIsOff: Bool
     let tracks: [PlaybackTrack]
     let externalSubtitles: [ExternalSubtitleTrack]
     let chapters: [MediaChapter]

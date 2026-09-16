@@ -10,6 +10,7 @@ struct JellyfinPlaybackPlan: Sendable {
     let initialPosition: TimeInterval?
     let preferredAudioStreamIndex: Int?
     let preferredSubtitleStreamIndex: Int?
+    let subtitleSelectionIsOff: Bool
     let mediaStreams: [JellyfinMediaStream]
     let chapters: [JellyfinChapter]
     let externalSubtitles: [ExternalSubtitleTrack]
@@ -51,24 +52,20 @@ struct JellyfinPlaybackService {
         item: JellyfinItem,
         resume: Bool = true,
         trackSelection: JellyfinTrackSelectionOverride? = nil,
+        trackPreference: MediaTrackPreference? = nil,
         quality: TranscodeQualityPreset = .original,
     ) async throws -> JellyfinPlaybackPlan {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
         }
 
-        let body = JellyfinPlaybackInfoRequest(
+        var appliedTrackSelection = trackSelection ?? initialTrackSelection(for: trackPreference)
+        var info = try await requestPlaybackInfo(
+            item: item,
             userID: userID,
-            startTimeTicks: resume ? (item.userData?.playbackPositionTicks ?? 0) : 0,
-            audioStreamIndex: trackSelection?.audioStreamIndex,
-            subtitleStreamIndex: trackSelection?.subtitlePreference.requestIndex,
+            resume: resume,
+            trackSelection: appliedTrackSelection,
             quality: quality,
-            deviceProfile: .strimr(quality: quality),
-        )
-        let info: JellyfinPlaybackInfo = try await context.post(
-            path: ["Items", item.id, "PlaybackInfo"],
-            query: [URLQueryItem(name: "UserId", value: userID)],
-            body: body,
         )
 
         guard info.errorCode == nil,
@@ -79,13 +76,38 @@ struct JellyfinPlaybackService {
             throw JellyfinAPIError.noPlayableSource
         }
 
-        let transcodeURL = source.transcodingURL.flatMap {
+        let streams = source.mediaStreams ?? []
+
+        if trackSelection == nil,
+           let trackPreference,
+           let resolvedSelection = resolveTrackSelection(trackPreference, source: source),
+           resolvedSelection.audioStreamIndex != nil
+           || resolvedSelection.subtitlePreference.requestIndex != nil
+           || isSubtitleOff(resolvedSelection.subtitlePreference)
+        {
+            info = try await requestPlaybackInfo(
+                item: item,
+                userID: userID,
+                resume: resume,
+                trackSelection: resolvedSelection,
+                quality: quality,
+            )
+            appliedTrackSelection = resolvedSelection
+        }
+
+        guard let resolvedSource = preferredSource(in: info, quality: quality) else {
+            throw JellyfinAPIError.noPlayableSource
+        }
+        guard let resolvedPlaySessionID = info.playSessionID, !resolvedPlaySessionID.isEmpty else {
+            throw JellyfinAPIError.noPlayableSource
+        }
+        let transcodeURL = resolvedSource.transcodingURL.flatMap {
             URL(string: $0, relativeTo: context.connection?.baseURL)?.absoluteURL
         }
         let isTranscoding = !quality.isOriginal && transcodeURL != nil
         let qualityIsSatisfied = quality.isOriginal
             || isTranscoding
-            || sourceSatisfies(source, quality: quality)
+            || sourceSatisfies(resolvedSource, quality: quality)
         let streamURL = if let transcodeURL, isTranscoding {
             transcodeURL
         } else {
@@ -93,27 +115,35 @@ struct JellyfinPlaybackService {
                 path: ["Videos", item.id, "stream"],
                 query: [
                     URLQueryItem(name: "Static", value: "true"),
-                    URLQueryItem(name: "MediaSourceId", value: source.id),
-                    URLQueryItem(name: "PlaySessionId", value: playSessionID),
+                    URLQueryItem(name: "MediaSourceId", value: resolvedSource.id),
+                    URLQueryItem(name: "PlaySessionId", value: resolvedPlaySessionID),
                 ],
             )
         }
         let headers = try context.playbackHeaders()
-        let streams = source.mediaStreams ?? []
-        let audioStreams = streams.filter { $0.type.lowercased() == "audio" }
-        let subtitleStreams = streams.filter { $0.type.lowercased() == "subtitle" }
-        let selectedAudioStreamIndex = trackSelection?.audioStreamIndex.flatMap { selectedIndex in
-            audioStreams.contains(where: { $0.index == selectedIndex }) ? selectedIndex : nil
-        } ?? defaultAudioStreamIndex(source: source, streams: audioStreams)
-        let selectedSubtitleStreamIndex: Int? = switch trackSelection?.subtitlePreference {
+        let effectiveStreams = resolvedSource.mediaStreams ?? streams
+        let effectiveAudioStreams = effectiveStreams.filter { $0.type.lowercased() == "audio" }
+        let effectiveSubtitleStreams = effectiveStreams.filter { $0.type.lowercased() == "subtitle" }
+        let selectedAudioStreamIndex = appliedTrackSelection?.audioStreamIndex.flatMap { selectedIndex in
+            effectiveAudioStreams.contains(where: { $0.index == selectedIndex }) ? selectedIndex : nil
+        } ?? trackPreference.flatMap { resolveAudioStream($0, streams: effectiveAudioStreams)?.index }
+            ?? defaultAudioStreamIndex(source: resolvedSource, streams: effectiveAudioStreams)
+        let selectedSubtitleStreamIndex: Int? = switch appliedTrackSelection?.subtitlePreference {
         case .off:
             nil
         case let .stream(selectedIndex):
-            subtitleStreams.contains(where: { $0.index == selectedIndex })
+            effectiveSubtitleStreams.contains(where: { $0.index == selectedIndex })
                 ? selectedIndex
-                : defaultSubtitleStreamIndex(source: source, streams: subtitleStreams)
+                : defaultSubtitleStreamIndex(source: resolvedSource, streams: effectiveSubtitleStreams)
         case .serverDefault, nil:
-            defaultSubtitleStreamIndex(source: source, streams: subtitleStreams)
+            if appliedTrackSelection == nil, let trackPreference,
+               case .track = trackPreference.subtitle,
+               let preferred = resolveSubtitleStream(trackPreference, streams: effectiveSubtitleStreams)
+            {
+                preferred.index
+            } else {
+                defaultSubtitleStreamIndex(source: resolvedSource, streams: effectiveSubtitleStreams)
+            }
         }
         let externalSubtitles = externalSubtitles(streams: streams, headers: headers)
 
@@ -121,12 +151,13 @@ struct JellyfinPlaybackService {
             item: item,
             url: streamURL,
             headers: headers,
-            mediaSourceID: source.id,
-            playSessionID: playSessionID,
+            mediaSourceID: resolvedSource.id,
+            playSessionID: resolvedPlaySessionID,
             initialPosition: resume ? item.resumePosition : nil,
             preferredAudioStreamIndex: selectedAudioStreamIndex,
             preferredSubtitleStreamIndex: selectedSubtitleStreamIndex,
-            mediaStreams: streams,
+            subtitleSelectionIsOff: isSubtitleOff(appliedTrackSelection?.subtitlePreference),
+            mediaStreams: effectiveStreams,
             chapters: item.chapters ?? [],
             externalSubtitles: externalSubtitles,
             method: isTranscoding ? .transcode : .directPlay,
@@ -137,6 +168,110 @@ struct JellyfinPlaybackService {
                 ? String(localized: "player.quality.fallback")
                 : nil,
         )
+    }
+
+    private func requestPlaybackInfo(
+        item: JellyfinItem,
+        userID: String,
+        resume: Bool,
+        trackSelection: JellyfinTrackSelectionOverride?,
+        quality: TranscodeQualityPreset,
+    ) async throws -> JellyfinPlaybackInfo {
+        let body = JellyfinPlaybackInfoRequest(
+            userID: userID,
+            startTimeTicks: resume ? (item.userData?.playbackPositionTicks ?? 0) : 0,
+            audioStreamIndex: trackSelection?.audioStreamIndex,
+            subtitleStreamIndex: trackSelection?.subtitlePreference.requestIndex,
+            quality: quality,
+            deviceProfile: .strimr(quality: quality),
+        )
+        return try await context.post(
+            path: ["Items", item.id, "PlaybackInfo"],
+            query: [URLQueryItem(name: "UserId", value: userID)],
+            body: body,
+        )
+    }
+
+    private func initialTrackSelection(for preference: MediaTrackPreference?) -> JellyfinTrackSelectionOverride? {
+        guard let preference else { return nil }
+        if case .off = preference.subtitle {
+            return JellyfinTrackSelectionOverride(
+                audioStreamIndex: nil,
+                subtitlePreference: .off,
+            )
+        }
+        return nil
+    }
+
+    private func resolveTrackSelection(
+        _ preference: MediaTrackPreference,
+        source: JellyfinMediaSource,
+    ) -> JellyfinTrackSelectionOverride? {
+        let streams = source.mediaStreams ?? []
+        let audio = resolveAudioStream(preference, streams: streams.filter { $0.type.lowercased() == "audio" })
+        let subtitle: JellyfinSubtitleStreamPreference = switch preference.subtitle {
+        case .serverDefault:
+            .serverDefault
+        case .off:
+            .off
+        case .track:
+            resolveSubtitleStream(preference, streams: streams.filter { $0.type.lowercased() == "subtitle" })
+                .map { .stream($0.index) } ?? .serverDefault
+        }
+        guard audio != nil || subtitle.requestIndex != nil || isSubtitleOff(subtitle) else { return nil }
+        return JellyfinTrackSelectionOverride(
+            audioStreamIndex: audio?.index,
+            subtitlePreference: subtitle,
+        )
+    }
+
+    private func resolveAudioStream(
+        _ preference: MediaTrackPreference,
+        streams: [JellyfinMediaStream],
+    ) -> JellyfinMediaStream? {
+        TrackSelectionMatcher.bestAudioMatch(
+            preference: preference,
+            candidates: streams,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: [stream.index],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.isForced,
+                    isHearingImpaired: stream.isHearingImpaired,
+                )
+            },
+        )
+    }
+
+    private func resolveSubtitleStream(
+        _ preference: MediaTrackPreference,
+        streams: [JellyfinMediaStream],
+    ) -> JellyfinMediaStream? {
+        TrackSelectionMatcher.bestSubtitleMatch(
+            preference: preference.subtitle,
+            candidates: streams,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: [stream.index],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.isForced,
+                    isHearingImpaired: stream.isHearingImpaired,
+                )
+            },
+        )
+    }
+
+    private func isSubtitleOff(_ preference: JellyfinSubtitleStreamPreference?) -> Bool {
+        if case .off = preference {
+            return true
+        }
+        return false
     }
 
     private func sourceSatisfies(
@@ -223,20 +358,41 @@ struct JellyfinPlaybackService {
         }
     }
 
-    func reportStarted(plan: JellyfinPlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
-        try await sendReport(path: ["Sessions", "Playing"], plan: plan, position: position, isPaused: isPaused)
+    func reportStarted(
+        plan: JellyfinPlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
+        try await sendReport(
+            path: ["Sessions", "Playing"],
+            plan: plan,
+            position: position,
+            isPaused: isPaused,
+            currentSelection: currentSelection,
+        )
     }
 
-    func reportProgress(plan: JellyfinPlaybackPlan, position: TimeInterval, isPaused: Bool) async throws {
+    func reportProgress(
+        plan: JellyfinPlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
         try await sendReport(
             path: ["Sessions", "Playing", "Progress"],
             plan: plan,
             position: position,
             isPaused: isPaused,
+            currentSelection: currentSelection,
         )
     }
 
-    func reportStopped(plan: JellyfinPlaybackPlan, position: TimeInterval) async throws {
+    func reportStopped(
+        plan: JellyfinPlaybackPlan,
+        position: TimeInterval,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws {
         let body = JellyfinPlaybackReport(
             itemID: plan.item.id,
             mediaSourceID: plan.mediaSourceID,
@@ -244,6 +400,7 @@ struct JellyfinPlaybackService {
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
             isPaused: true,
             playMethod: plan.playMethod,
+            currentSelection: currentSelection,
         )
         let data = try JSONEncoder().encode(body)
         try await context.send(path: ["Sessions", "Playing", "Stopped"], method: "POST", body: data)
@@ -254,6 +411,7 @@ struct JellyfinPlaybackService {
         plan: JellyfinPlaybackPlan,
         position: TimeInterval,
         isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
     ) async throws {
         let body = JellyfinPlaybackReport(
             itemID: plan.item.id,
@@ -262,6 +420,7 @@ struct JellyfinPlaybackService {
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
             isPaused: isPaused,
             playMethod: plan.playMethod,
+            currentSelection: currentSelection,
         )
         let data = try JSONEncoder().encode(body)
         try await context.send(path: path, method: "POST", body: data)
@@ -518,6 +677,8 @@ private struct JellyfinPlaybackReport: Encodable {
     let positionTicks: Int64
     let isPaused: Bool
     let playMethod: String
+    let audioStreamIndex: Int?
+    let subtitleStreamIndex: Int?
     let canSeek = true
     let isMuted = false
     let repeatMode = "RepeatNone"
@@ -529,8 +690,33 @@ private struct JellyfinPlaybackReport: Encodable {
         case positionTicks = "PositionTicks"
         case isPaused = "IsPaused"
         case playMethod = "PlayMethod"
+        case audioStreamIndex = "AudioStreamIndex"
+        case subtitleStreamIndex = "SubtitleStreamIndex"
         case canSeek = "CanSeek"
         case isMuted = "IsMuted"
         case repeatMode = "RepeatMode"
+    }
+
+    init(
+        itemID: String,
+        mediaSourceID: String,
+        playSessionID: String,
+        positionTicks: Int64,
+        isPaused: Bool,
+        playMethod: String,
+        currentSelection: PlaybackStreamSelection?,
+    ) {
+        self.itemID = itemID
+        self.mediaSourceID = mediaSourceID
+        self.playSessionID = playSessionID
+        self.positionTicks = positionTicks
+        self.isPaused = isPaused
+        self.playMethod = playMethod
+        audioStreamIndex = currentSelection?.audioStreamIndex
+        subtitleStreamIndex = if let currentSelection {
+            currentSelection.subtitleIsOff ? -1 : currentSelection.subtitleStreamIndex
+        } else {
+            nil
+        }
     }
 }

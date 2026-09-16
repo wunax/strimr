@@ -507,6 +507,23 @@ final class MediaDetailViewModel {
             ?? String(localized: "player.settings.subtitles.off")
     }
 
+    private var rememberedTrackSelectionScope: TrackSelectionScope? {
+        switch media.type {
+        case .movie:
+            .media(media.mediaItem.identity)
+        case .show:
+            .series(media.mediaItem.identity)
+        case .season, .episode:
+            media.mediaItem.hierarchy.seriesID.map(TrackSelectionScope.series)
+        case .clip:
+            nil
+        }
+    }
+
+    private var trackSelectionAccountIdentifier: String {
+        services.trackSelectionAccountIdentifier ?? "default"
+    }
+
     func selectAudioStream(id: Int) async {
         guard
             let ratingKey = trackRatingKey,
@@ -520,6 +537,19 @@ final class MediaDetailViewModel {
 
         do {
             try await services.detail.selectAudioTrack(id: id, itemID: ratingKey)
+            if trackRatingKey == ratingKey,
+               let track = audioTracks.first(where: { $0.id == id }),
+               let scope = rememberedTrackSelectionScope,
+               let coordinator = services.trackSelectionCoordinator
+            {
+                coordinator.rememberAudio(
+                    track,
+                    forScope: scope,
+                    server: services.identity,
+                    accountIdentifier: trackSelectionAccountIdentifier,
+                )
+                await synchronizeServerTrackMemory(for: .audio)
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
                 if trackRatingKey == ratingKey {
@@ -548,6 +578,22 @@ final class MediaDetailViewModel {
 
         do {
             try await services.detail.selectSubtitleTrack(id: id, itemID: ratingKey)
+            let selectedTrack = id.flatMap { selectedID in
+                subtitleTracks.first(where: { $0.id == selectedID })
+            }
+            if trackRatingKey == ratingKey,
+               id == nil || selectedTrack != nil,
+               let scope = rememberedTrackSelectionScope,
+               let coordinator = services.trackSelectionCoordinator
+            {
+                coordinator.rememberSubtitle(
+                    selectedTrack,
+                    forScope: scope,
+                    server: services.identity,
+                    accountIdentifier: trackSelectionAccountIdentifier,
+                )
+                await synchronizeServerTrackMemory(for: .subtitle)
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else {
                 if trackRatingKey == ratingKey {
@@ -876,8 +922,22 @@ final class MediaDetailViewModel {
             trackPartFile = selection.filePath
             audioTracks = selection.audioTracks
             subtitleTracks = selection.subtitleTracks
-            selectedAudioStreamID = selection.selectedAudioTrackID
-            selectedSubtitleStreamID = selection.selectedSubtitleTrackID
+            let rememberedSelection = rememberedTrackSelectionScope.flatMap { scope in
+                services.trackSelectionCoordinator?.resolvedSelection(
+                    for: scope,
+                    audioTracks: selection.audioTracks,
+                    subtitleTracks: selection.subtitleTracks,
+                    server: services.identity,
+                    accountIdentifier: trackSelectionAccountIdentifier,
+                    matchingAcrossItems: media.type != .movie,
+                )
+            }
+            selectedAudioStreamID = rememberedSelection?.audioTrackID ?? selection.selectedAudioTrackID
+            selectedSubtitleStreamID = if rememberedSelection?.subtitleIsOff == true {
+                nil
+            } else {
+                rememberedSelection?.subtitleTrackID ?? selection.selectedSubtitleTrackID
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -886,6 +946,18 @@ final class MediaDetailViewModel {
                 clearTrackSelection()
                 trackSelectionErrorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func synchronizeServerTrackMemory(for kind: PlaybackTrackKind) async {
+        guard services.trackSelectionCoordinator?.isEnabled == true,
+              let memoryService = services.playback as? any MediaTrackSelectionMemoryService
+        else { return }
+        do {
+            try await memoryService.enableTrackSelectionMemory(for: kind)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
         }
     }
 

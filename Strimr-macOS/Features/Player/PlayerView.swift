@@ -754,6 +754,14 @@ struct PlayerView: View {
                 }
                 .tint(.secondary)
             }
+            if viewModel.canResetRememberedTrackSelections {
+                Divider()
+                Button {
+                    viewModel.resetRememberedTrackSelections()
+                } label: {
+                    Label("player.settings.tracks.reset", systemImage: "arrow.counterclockwise")
+                }
+            }
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
         }
@@ -947,8 +955,14 @@ struct PlayerView: View {
             } else {
                 selectedAudioTrackID = audioTracks.first(where: \.isSelected)?.id
 
-                if let preferredSubtitle = viewModel.preferredSubtitleStreamID,
-                   let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitle })
+                if viewModel.preferredSubtitleSelectionIsOff {
+                    selectedSubtitleTrackID = nil
+                    playerController.selectSubtitleTrack(
+                        id: nil,
+                        styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+                    )
+                } else if let preferredSubtitle = viewModel.preferredSubtitleStreamID,
+                          let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitle })
                 {
                     selectedSubtitleTrackID = track.id
                     playerController.selectSubtitleTrack(

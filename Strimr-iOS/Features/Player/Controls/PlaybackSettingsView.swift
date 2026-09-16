@@ -11,6 +11,7 @@ struct PlaybackSettingsView: View {
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
     var onSearchSubtitles: (() -> Void)?
+    var onResetTrackSelections: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
     var onSelectQuality: (TranscodeQualityPreset) -> Void
     var onClose: () -> Void
@@ -93,6 +94,13 @@ struct PlaybackSettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                }
+
+                if let onResetTrackSelections {
+                    Section {
+                        Button("player.settings.tracks.reset", action: onResetTrackSelections)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .listStyle(.insetGrouped)

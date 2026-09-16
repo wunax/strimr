@@ -267,7 +267,7 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var totalBytes: Int64
     var taskIdentifier: Int?
     var remoteReference: MediaDownloadRemoteReference?
-    var trackPreference: MediaDownloadTrackPreference?
+    var trackPreference: MediaTrackPreference?
     var errorMessage: String?
     var metadata: DownloadedMediaMetadata
 

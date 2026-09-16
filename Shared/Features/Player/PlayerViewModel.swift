@@ -19,6 +19,7 @@ final class PlayerViewModel {
     var isPaused = false
     var preferredAudioStreamFFIndex: Int?
     var preferredSubtitleStreamID: Int?
+    var preferredSubtitleSelectionIsOff = false
     var terminationMessage: String?
     var selectedQuality: TranscodeQualityPreset = .original
     var qualityFallbackMessage: String?
@@ -87,6 +88,10 @@ final class PlayerViewModel {
 
     var usesCommonPlaybackQueue: Bool {
         mediaServices != nil && !isLivePlayback
+    }
+
+    var canResetRememberedTrackSelections: Bool {
+        media?.trackSelectionScope != nil && mediaServices?.trackSelectionCoordinator != nil
     }
 
     var queueItems: [PlaybackQueueItem] {
@@ -344,6 +349,7 @@ final class PlayerViewModel {
                 media: media,
                 resume: shouldResumeFromOffsetFlag,
                 quality: selectedQuality,
+                trackPreference: rememberedTrackPreference,
             )
             apply(plan: plan)
         } catch {
@@ -380,6 +386,7 @@ final class PlayerViewModel {
                 media: media,
                 resume: shouldResumeFromOffsetFlag,
                 quality: selectedQuality,
+                trackPreference: rememberedTrackPreference,
             )
             apply(plan: plan)
             if let previousPlan {
@@ -404,6 +411,7 @@ final class PlayerViewModel {
             media: media,
             resume: false,
             quality: quality,
+            trackPreference: rememberedTrackPreference,
         )
         selectedQuality = quality
         apply(plan: plan)
@@ -491,7 +499,11 @@ final class PlayerViewModel {
         guard let mediaServices, let playbackPlan else { return }
         Task {
             do {
-                try await mediaServices.playback.reportStopped(plan: playbackPlan, position: position)
+                try await mediaServices.playback.reportStopped(
+                    plan: playbackPlan,
+                    position: position,
+                    currentSelection: currentPlaybackStreamSelection,
+                )
             } catch {
                 if !Task.isCancelled, !error.isCancellation {
                     ErrorReporter.capture(error)
@@ -535,6 +547,7 @@ final class PlayerViewModel {
             try await mediaServices.playback.reportStopped(
                 plan: playbackPlan,
                 position: media?.duration ?? duration ?? position,
+                currentSelection: currentPlaybackStreamSelection,
             )
         } catch {
             if !Task.isCancelled, !error.isCancellation {
@@ -581,6 +594,20 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
         }
+        if track.type == .audio, let media {
+            preferredAudioStreamFFIndex = track.ffIndex ?? track.providerStreamID
+            let coordinator = mediaServices.trackSelectionCoordinator
+            coordinator?.rememberAudio(
+                track,
+                for: media,
+                server: mediaServices.identity,
+                accountIdentifier: mediaServices.trackSelectionAccountIdentifier ?? "default",
+            )
+            await synchronizeServerTrackMemory(
+                kind: .audio,
+                coordinator: coordinator,
+            )
+        }
     }
 
     func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
@@ -592,6 +619,21 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
         }
+        preferredSubtitleStreamID = streamID
+        preferredSubtitleSelectionIsOff = track == nil
+        if let media {
+            let coordinator = mediaServices.trackSelectionCoordinator
+            coordinator?.rememberSubtitle(
+                track,
+                for: media,
+                server: mediaServices.identity,
+                accountIdentifier: mediaServices.trackSelectionAccountIdentifier ?? "default",
+            )
+            await synchronizeServerTrackMemory(
+                kind: .subtitle,
+                coordinator: coordinator,
+            )
+        }
     }
 
     private var playbackState: TimelineState {
@@ -601,6 +643,21 @@ final class PlayerViewModel {
         return isPaused ? .paused : .playing
     }
 
+    private func synchronizeServerTrackMemory(
+        kind: PlaybackTrackKind,
+        coordinator: TrackSelectionCoordinator?,
+    ) async {
+        guard coordinator?.isEnabled == true,
+              let memoryService = mediaServices?.playback as? any MediaTrackSelectionMemoryService
+        else { return }
+        do {
+            try await memoryService.enableTrackSelectionMemory(for: kind)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
     private func activeMarker(where predicate: (SkipSegment) -> Bool) -> SkipSegment? {
         markers.first { predicate($0) && $0.contains(time: position) }
     }
@@ -608,6 +665,7 @@ final class PlayerViewModel {
     private func resetPlaybackMetadata() {
         preferredAudioStreamFFIndex = nil
         preferredSubtitleStreamID = nil
+        preferredSubtitleSelectionIsOff = false
         scrubThumbnailSource = nil
         automaticSkipMarkerInFlight = nil
         markers = []
@@ -668,6 +726,7 @@ final class PlayerViewModel {
         qualityFallbackMessage = plan.qualityFallbackMessage
         preferredAudioStreamFFIndex = plan.selectedAudioIndex
         preferredSubtitleStreamID = plan.selectedSubtitleIndex
+        preferredSubtitleSelectionIsOff = plan.subtitleSelectionIsOff
         chapters = plan.chapters
         markers = plan.skipSegments
         scrubThumbnailSource = plan.scrubThumbnailSource
@@ -771,12 +830,14 @@ final class PlayerViewModel {
                     plan: playbackPlan,
                     position: position,
                     isPaused: state == .paused,
+                    currentSelection: currentPlaybackStreamSelection,
                 )
             } else {
                 try await mediaServices.playback.reportStarted(
                     plan: playbackPlan,
                     position: position,
                     isPaused: state == .paused,
+                    currentSelection: currentPlaybackStreamSelection,
                 )
                 didReportPlaybackStarted = true
             }
@@ -785,6 +846,40 @@ final class PlayerViewModel {
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
             ErrorReporter.capture(error)
         }
+    }
+
+    func resetRememberedTrackSelections() {
+        guard let mediaServices, let media,
+              let coordinator = mediaServices.trackSelectionCoordinator
+        else { return }
+        coordinator.reset(
+            for: media,
+            server: mediaServices.identity,
+            accountIdentifier: mediaServices.trackSelectionAccountIdentifier ?? "default",
+        )
+    }
+
+    private var rememberedTrackPreference: MediaTrackPreference? {
+        guard let mediaServices, let media,
+              let coordinator = mediaServices.trackSelectionCoordinator
+        else { return nil }
+        return coordinator.preference(
+            for: media,
+            server: mediaServices.identity,
+            accountIdentifier: mediaServices.trackSelectionAccountIdentifier ?? "default",
+        )
+    }
+
+    private var currentPlaybackStreamSelection: PlaybackStreamSelection? {
+        guard !isLivePlayback,
+              !isLocalPlayback,
+              mediaServices?.trackSelectionCoordinator?.isEnabled == true
+        else { return nil }
+        return PlaybackStreamSelection(
+            audioStreamIndex: preferredAudioStreamFFIndex,
+            subtitleStreamIndex: preferredSubtitleStreamID,
+            subtitleIsOff: preferredSubtitleSelectionIsOff,
+        )
     }
 
     private static func liveMedia(channel: LiveTVChannel, server: ServerIdentity) -> MediaItem {

@@ -79,11 +79,24 @@ struct SettingsPlaybackView: View {
             }
 
             Section {
-                Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
+                    Text("settings.playback.losslessAudio.footer")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle(
+                        "settings.playback.rememberTrackSelections",
+                        isOn: viewModel.rememberTrackSelectionsBinding,
+                    )
+                    Text("settings.playback.rememberTrackSelections.footer")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             } header: {
                 Text("settings.playback.audio.title")
-            } footer: {
-                Text("settings.playback.losslessAudio.footer")
             }
         }
         .navigationTitle("settings.playback.title")

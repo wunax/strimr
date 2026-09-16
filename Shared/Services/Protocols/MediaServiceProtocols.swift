@@ -48,36 +48,50 @@ struct MediaDownloadPreparation {
     let subtitleTitle: String?
 }
 
-struct MediaDownloadTrackPreference: Codable, Hashable, Sendable {
+struct MediaTrackPreference: Codable, Hashable, Sendable {
     var audioStreamIndex: Int?
     var audioLanguage: String?
     var audioTitle: String?
-    var subtitle: MediaDownloadSubtitlePreference
+    var audioCodec: String?
+    var audioIsHearingImpaired: Bool?
+    var audioIsCommentary: Bool?
+    var subtitle: MediaSubtitlePreference
 
-    nonisolated static let serverDefault = MediaDownloadTrackPreference(
+    nonisolated static let serverDefault = MediaTrackPreference(
         audioStreamIndex: nil,
         audioLanguage: nil,
         audioTitle: nil,
-        subtitle: .off,
+        audioCodec: nil,
+        audioIsHearingImpaired: nil,
+        audioIsCommentary: nil,
+        subtitle: .serverDefault,
     )
 
-    nonisolated var matchingAcrossItems: MediaDownloadTrackPreference {
+    nonisolated var matchingAcrossItems: MediaTrackPreference {
         var preference = self
         preference.audioStreamIndex = nil
-        if case let .track(_, language, title, codec, isForced) = subtitle {
+        if case let .track(_, language, title, codec, isForced, isHearingImpaired) = subtitle {
             preference.subtitle = .track(
                 streamIndex: nil,
                 language: language,
                 title: title,
                 codec: codec,
                 isForced: isForced,
+                isHearingImpaired: isHearingImpaired,
             )
         }
         return preference
     }
 }
 
-enum MediaDownloadSubtitlePreference: Codable, Hashable, Sendable {
+struct PlaybackStreamSelection: Sendable, Hashable {
+    let audioStreamIndex: Int?
+    let subtitleStreamIndex: Int?
+    let subtitleIsOff: Bool
+}
+
+enum MediaSubtitlePreference: Codable, Hashable, Sendable {
+    case serverDefault
     case off
     case track(
         streamIndex: Int?,
@@ -85,7 +99,13 @@ enum MediaDownloadSubtitlePreference: Codable, Hashable, Sendable {
         title: String?,
         codec: String,
         isForced: Bool,
+        isHearingImpaired: Bool?,
     )
+}
+
+@MainActor
+protocol MediaTrackSelectionMemoryService: AnyObject {
+    func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws
 }
 
 struct MediaDownloadSidecar {
@@ -218,11 +238,26 @@ protocol MediaPlaybackService: AnyObject {
         media: MediaItem,
         resume: Bool,
         quality: TranscodeQualityPreset,
+        trackPreference: MediaTrackPreference?,
     ) async throws -> PlaybackPlan
     func release(plan: PlaybackPlan) async
-    func reportStarted(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
-    func reportProgress(plan: PlaybackPlan, position: TimeInterval, isPaused: Bool) async throws
-    func reportStopped(plan: PlaybackPlan, position: TimeInterval) async throws
+    func reportStarted(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws
+    func reportProgress(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        isPaused: Bool,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws
+    func reportStopped(
+        plan: PlaybackPlan,
+        position: TimeInterval,
+        currentSelection: PlaybackStreamSelection?,
+    ) async throws
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack]
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError?
     func recoverServerAccessIfUnauthorized() async throws -> Bool
@@ -275,14 +310,14 @@ protocol MediaDownloadService: AnyObject {
     func prepareDownload(
         itemID: String,
         quality: TranscodeQualityPreset,
-        tracks: MediaDownloadTrackPreference,
+        tracks: MediaTrackPreference,
     ) async throws -> MediaDownloadPreparation
     func refreshDownloadPreparation(
         _ reference: MediaDownloadRemoteReference,
     ) async throws -> MediaDownloadPreparationUpdate
     func downloadSidecars(
         itemID: String,
-        tracks: MediaDownloadTrackPreference,
+        tracks: MediaTrackPreference,
     ) async throws -> [MediaDownloadSidecar]
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]

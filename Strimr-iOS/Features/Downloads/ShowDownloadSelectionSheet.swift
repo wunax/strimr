@@ -7,7 +7,7 @@ struct ShowDownloadSelectionSheet: View {
     @Bindable var viewModel: MediaDetailViewModel
     let services: MediaServices
     let defaultQuality: TranscodeQualityPreset
-    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaDownloadTrackPreference) async -> Void
+    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaTrackPreference) async -> Void
     let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?

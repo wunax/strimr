@@ -18,13 +18,18 @@ struct StrimrApp: App {
         let jellyfinContext = JellyfinAPIContext()
         let store = LibraryStore(context: context)
         let favoritesStore = FavoritesStore()
+        let settingsManager = SettingsManager()
+        let trackSelectionCoordinator = TrackSelectionCoordinator(
+            store: TrackSelectionStore(),
+            settingsManager: settingsManager,
+        )
         let sessionManager = SessionManager(
             context: context,
             jellyfinContext: jellyfinContext,
             libraryStore: store,
             favoritesStore: favoritesStore,
+            trackSelectionCoordinator: trackSelectionCoordinator,
         )
-        let settingsManager = SettingsManager()
         let downloadManager = DownloadManager(settingsManager: settingsManager)
         _plexApiContext = State(initialValue: context)
         _jellyfinAPIContext = State(initialValue: jellyfinContext)

@@ -53,6 +53,13 @@ final class SettingsViewModel {
         )
     }
 
+    var rememberTrackSelectionsBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.rememberTrackSelections },
+            set: { self.settingsManager.setRememberTrackSelections($0) },
+        )
+    }
+
     var showChaptersOnTimelineBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showChaptersOnTimeline },

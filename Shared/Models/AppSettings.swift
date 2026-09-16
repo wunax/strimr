@@ -111,6 +111,7 @@ struct PlaybackSettings: Codable, Equatable {
     var autoSkipIntros = false
     var autoSkipCredits = false
     var losslessAudio = false
+    var rememberTrackSelections = true
     var showChaptersOnTimeline = true
     var showEndsAtTime = true
     var showClock = false
@@ -141,6 +142,10 @@ struct PlaybackSettings: Codable, Equatable {
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
+        rememberTrackSelections = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .rememberTrackSelections,
+        ) ?? true
         showChaptersOnTimeline = try container.decodeIfPresent(
             Bool.self,
             forKey: .showChaptersOnTimeline,

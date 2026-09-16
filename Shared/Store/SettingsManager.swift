@@ -57,6 +57,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setRememberTrackSelections(_ enabled: Bool) {
+        settings.playback.rememberTrackSelections = enabled
+        persist()
+    }
+
     func setShowChaptersOnTimeline(_ enabled: Bool) {
         settings.playback.showChaptersOnTimeline = enabled
         persist()

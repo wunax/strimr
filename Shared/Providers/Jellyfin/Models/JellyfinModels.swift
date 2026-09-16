@@ -31,12 +31,52 @@ nonisolated struct JellyfinUser: Codable, Hashable, Sendable {
     let name: String
     let serverID: String?
     let policy: JellyfinUserPolicy?
+    let configuration: JellyfinUserConfiguration?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
         case serverID = "ServerId"
         case policy = "Policy"
+        case configuration = "Configuration"
+    }
+}
+
+nonisolated struct JellyfinUserConfiguration: Codable, Hashable, Sendable {
+    let audioLanguagePreference: String?
+    let castReceiverID: String?
+    let displayCollectionsView: Bool?
+    let displayMissingEpisodes: Bool?
+    let enableLocalPassword: Bool?
+    let enableNextEpisodeAutoPlay: Bool?
+    let groupedFolders: [String]?
+    let hidePlayedInLatest: Bool?
+    let latestItemsExcludes: [String]?
+    let myMediaExcludes: [String]?
+    let orderedViews: [String]?
+    let playDefaultAudioTrack: Bool?
+    let rememberAudioSelections: Bool?
+    let rememberSubtitleSelections: Bool?
+    let subtitleLanguagePreference: String?
+    let subtitleMode: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case audioLanguagePreference = "AudioLanguagePreference"
+        case castReceiverID = "CastReceiverId"
+        case displayCollectionsView = "DisplayCollectionsView"
+        case displayMissingEpisodes = "DisplayMissingEpisodes"
+        case enableLocalPassword = "EnableLocalPassword"
+        case enableNextEpisodeAutoPlay = "EnableNextEpisodeAutoPlay"
+        case groupedFolders = "GroupedFolders"
+        case hidePlayedInLatest = "HidePlayedInLatest"
+        case latestItemsExcludes = "LatestItemsExcludes"
+        case myMediaExcludes = "MyMediaExcludes"
+        case orderedViews = "OrderedViews"
+        case playDefaultAudioTrack = "PlayDefaultAudioTrack"
+        case rememberAudioSelections = "RememberAudioSelections"
+        case rememberSubtitleSelections = "RememberSubtitleSelections"
+        case subtitleLanguagePreference = "SubtitleLanguagePreference"
+        case subtitleMode = "SubtitleMode"
     }
 }
 

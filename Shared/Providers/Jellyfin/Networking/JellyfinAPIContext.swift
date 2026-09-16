@@ -264,6 +264,27 @@ final class JellyfinAPIContext {
         return data
     }
 
+    func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws {
+        guard let connection else { throw JellyfinAPIError.authenticationRequired }
+        let key = kind == .audio ? "RememberAudioSelections" : "RememberSubtitleSelections"
+        let data = try await rawData(path: ["Users", connection.userID])
+        var user = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        var configuration = user["Configuration"] as? [String: Any] ?? [:]
+        if (configuration[key] as? NSNumber)?.boolValue == true || configuration[key] as? Bool == true {
+            return
+        }
+        configuration[key] = true
+        user["Configuration"] = configuration
+        let configurationData = try JSONSerialization.data(withJSONObject: configuration)
+        try await send(
+            path: ["Users", "Configuration"],
+            method: "POST",
+            query: [URLQueryItem(name: "UserId", value: connection.userID)],
+            body: configurationData,
+        )
+        _ = try? await refreshCurrentUser()
+    }
+
     func mediaRequest(url: URL) throws -> URLRequest {
         guard accessToken != nil else { throw JellyfinAPIError.authenticationRequired }
         var request = URLRequest(url: url)

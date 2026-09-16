@@ -7,6 +7,7 @@ struct PlayerTrackSelectionView: View {
     var showOffOption: Bool
     var onSelect: (Int?) -> Void
     var onSearchSubtitles: (() -> Void)?
+    var onResetTrackSelections: (() -> Void)?
     var onClose: () -> Void
 
     var body: some View {
@@ -50,6 +51,17 @@ struct PlayerTrackSelectionView: View {
                         isSelected: false,
                         systemImage: "magnifyingglass",
                         action: onSearchSubtitles,
+                    )
+                    .padding(.horizontal, 24)
+                }
+
+                if let onResetTrackSelections {
+                    TrackSelectionRow(
+                        title: String(localized: "player.settings.tracks.reset"),
+                        subtitle: nil,
+                        isSelected: false,
+                        systemImage: "arrow.counterclockwise",
+                        action: onResetTrackSelections,
                     )
                     .padding(.horizontal, 24)
                 }
