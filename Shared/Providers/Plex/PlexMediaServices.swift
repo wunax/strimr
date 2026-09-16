@@ -905,113 +905,43 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         streams: [PlexPartStream],
     ) -> PlexPartStream? {
         let audio = streams.filter { $0.streamType == .audio }
-        if let streamID = preference.audioStreamIndex,
-           let exact = audio.first(where: { $0.id == streamID })
-        {
-            return exact
-        }
-        let candidates = audio.filter { stream in
-            guard let language = preference.audioLanguage else { return true }
-            return normalized(stream.language) == normalized(language)
-        }
-        guard preference.audioLanguage != nil || preference.audioTitle != nil || preference.audioCodec != nil else {
-            return nil
-        }
-        return candidates
-            .map { stream in (stream, audioMatchScore(stream, preference: preference)) }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }?.0
+        return TrackSelectionMatcher.bestAudioMatch(
+            preference: preference,
+            candidates: audio,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: stream.id.map { [$0] } ?? [],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.forced,
+                    isHearingImpaired: stream.hearingImpaired,
+                )
+            },
+        )
     }
 
     private func resolveSubtitleStream(
         preference: MediaTrackPreference,
         streams: [PlexPartStream],
     ) -> PlexPartStream? {
-        guard case let .track(streamID, language, title, codec, isForced, isHearingImpaired) = preference.subtitle
-        else {
-            return nil
-        }
         let subtitles = streams.filter { $0.streamType == .subtitle }
-        if let streamID,
-           let exact = subtitles.first(where: { $0.id == streamID })
-        {
-            return exact
-        }
-        let candidates = subtitles.filter { stream in
-            guard let language else { return true }
-            return normalized(stream.language) == normalized(language)
-        }
-        guard language != nil || title != nil || !codec.isEmpty else { return nil }
-        return candidates
-            .map { stream in
-                (stream, subtitleMatchScore(
-                    stream,
-                    language: language,
-                    title: title,
-                    codec: codec,
-                    isForced: isForced,
-                    isHearingImpaired: isHearingImpaired,
-                ))
-            }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }?.0
-    }
-
-    private func audioMatchScore(
-        _ stream: PlexPartStream,
-        preference: MediaTrackPreference,
-    ) -> Int {
-        var score = 0
-        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) {
-            score += 4
-        }
-        if let title = preference.audioTitle,
-           normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
-        {
-            score += 3
-        }
-        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) {
-            score += 2
-        }
-        if let hearingImpaired = preference.audioIsHearingImpaired,
-           stream.hearingImpaired == hearingImpaired
-        {
-            score += 1
-        }
-        return score
-    }
-
-    private func subtitleMatchScore(
-        _ stream: PlexPartStream,
-        language: String?,
-        title: String?,
-        codec: String,
-        isForced: Bool,
-        isHearingImpaired: Bool?,
-    ) -> Int {
-        var score = 0
-        if let language, normalized(stream.language) == normalized(language) {
-            score += 4
-        }
-        if let title,
-           normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
-        {
-            score += 3
-        }
-        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) {
-            score += 2
-        }
-        if stream.forced == isForced {
-            score += 1
-        }
-        if let isHearingImpaired, stream.hearingImpaired == isHearingImpaired {
-            score += 1
-        }
-        return score
-    }
-
-    private func normalized(_ value: String?) -> String {
-        value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return TrackSelectionMatcher.bestSubtitleMatch(
+            preference: preference.subtitle,
+            candidates: subtitles,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: stream.id.map { [$0] } ?? [],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.forced,
+                    isHearingImpaired: stream.hearingImpaired,
+                )
+            },
+        )
     }
 
     private func report(

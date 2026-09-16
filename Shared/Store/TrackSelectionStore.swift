@@ -211,116 +211,25 @@ final class TrackSelectionCoordinator {
         preference: MediaTrackPreference,
         tracks: [MediaTrackMetadata],
     ) -> Int? {
-        let audioTracks = tracks
-        if let streamIndex = preference.audioStreamIndex,
-           let exact = audioTracks.first(where: { $0.id == streamIndex || $0.sourceIndex == streamIndex })
-        {
-            return exact.id ?? exact.sourceIndex
+        guard let match = TrackSelectionMatcher.bestAudioMatch(
+            preference: preference,
+            candidates: tracks,
+            descriptor: \.trackSelectionMatchDescriptor,
+        ) else {
+            return nil
         }
-        guard preference.audioLanguage != nil
-            || preference.audioTitle != nil
-            || preference.audioCodec != nil
-        else { return nil }
-        let candidates = audioTracks.filter { track in
-            guard let language = preference.audioLanguage else { return true }
-            return normalized(track.language) == normalized(language)
-        }
-        return candidates
-            .map { track in (track, audioMatchScore(track, preference: preference)) }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }
-            .flatMap { $0.0.id ?? $0.0.sourceIndex }
+        return match.id ?? match.sourceIndex
     }
 
     private func resolveSubtitleTrack(
         preference: MediaTrackPreference,
         tracks: [MediaTrackMetadata],
     ) -> Int? {
-        guard case let .track(streamIndex, language, title, codec, isForced, isHearingImpaired) = preference.subtitle
-        else {
-            return nil
-        }
-        if let streamIndex,
-           let exact = tracks.first(where: { $0.id == streamIndex || $0.sourceIndex == streamIndex })
-        {
-            return exact.id ?? exact.sourceIndex
-        }
-        guard language != nil || title != nil || !codec.isEmpty else { return nil }
-        let candidates = tracks.filter { track in
-            guard let language else { return true }
-            return normalized(track.language) == normalized(language)
-        }
-        return candidates
-            .map { track in
-                (track, subtitleMatchScore(
-                    track,
-                    language: language,
-                    title: title,
-                    codec: codec,
-                    isForced: isForced,
-                    isHearingImpaired: isHearingImpaired,
-                ))
-            }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }
-            .flatMap { $0.0.id ?? $0.0.sourceIndex }
-    }
-
-    private func audioMatchScore(
-        _ track: MediaTrackMetadata,
-        preference: MediaTrackPreference,
-    ) -> Int {
-        var score = 0
-        if let language = preference.audioLanguage, normalized(track.language) == normalized(language) {
-            score += 4
-        }
-        if let title = preference.audioTitle,
-           normalized(track.displayTitle) == normalized(title) || normalized(track.title) == normalized(title)
-        {
-            score += 3
-        }
-        if let codec = preference.audioCodec, normalized(track.codec) == normalized(codec) {
-            score += 2
-        }
-        if let hearingImpaired = preference.audioIsHearingImpaired,
-           track.isHearingImpaired == hearingImpaired
-        {
-            score += 1
-        }
-        return score
-    }
-
-    private func subtitleMatchScore(
-        _ track: MediaTrackMetadata,
-        language: String?,
-        title: String?,
-        codec: String,
-        isForced: Bool,
-        isHearingImpaired: Bool?,
-    ) -> Int {
-        var score = 0
-        if let language, normalized(track.language) == normalized(language) {
-            score += 4
-        }
-        if let title,
-           normalized(track.displayTitle) == normalized(title) || normalized(track.title) == normalized(title)
-        {
-            score += 3
-        }
-        if !codec.isEmpty, normalized(track.codec) == normalized(codec) {
-            score += 2
-        }
-        if track.isForced == isForced {
-            score += 1
-        }
-        if let isHearingImpaired, track.isHearingImpaired == isHearingImpaired {
-            score += 1
-        }
-        return score
-    }
-
-    private func normalized(_ value: String?) -> String {
-        value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        TrackSelectionMatcher.bestSubtitleMatch(
+            preference: preference.subtitle,
+            candidates: tracks,
+            descriptor: \.trackSelectionMatchDescriptor,
+        ).flatMap { $0.id ?? $0.sourceIndex }
     }
 
     func rememberAudio(

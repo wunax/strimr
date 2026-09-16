@@ -229,105 +229,42 @@ struct JellyfinPlaybackService {
         _ preference: MediaTrackPreference,
         streams: [JellyfinMediaStream],
     ) -> JellyfinMediaStream? {
-        if let index = preference.audioStreamIndex,
-           let exact = streams.first(where: { $0.index == index })
-        {
-            return exact
-        }
-        let candidates = streams.filter { stream in
-            guard let language = preference.audioLanguage else { return true }
-            return normalized(stream.language) == normalized(language)
-        }
-        guard preference.audioLanguage != nil || preference.audioTitle != nil || preference.audioCodec != nil else {
-            return nil
-        }
-        return candidates
-            .map { stream in
-                (stream, audioMatchScore(stream, preference: preference))
-            }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }?.0
+        TrackSelectionMatcher.bestAudioMatch(
+            preference: preference,
+            candidates: streams,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: [stream.index],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.isForced,
+                    isHearingImpaired: stream.isHearingImpaired,
+                )
+            },
+        )
     }
 
     private func resolveSubtitleStream(
         _ preference: MediaTrackPreference,
         streams: [JellyfinMediaStream],
     ) -> JellyfinMediaStream? {
-        guard case let .track(index, language, title, codec, isForced, isHearingImpaired) = preference.subtitle else {
-            return nil
-        }
-        if let index, let exact = streams.first(where: { $0.index == index }) {
-            return exact
-        }
-        let candidates = streams.filter { stream in
-            guard let language else { return true }
-            return normalized(stream.language) == normalized(language)
-        }
-        guard language != nil || title != nil || !codec.isEmpty else { return nil }
-        return candidates
-            .map { stream in
-                (stream, subtitleMatchScore(
-                    stream,
-                    language: language,
-                    title: title,
-                    codec: codec,
-                    isForced: isForced,
-                    isHearingImpaired: isHearingImpaired,
-                ))
-            }
-            .filter { $0.1 > 0 }
-            .max { $0.1 < $1.1 }?.0
-    }
-
-    private func audioMatchScore(
-        _ stream: JellyfinMediaStream,
-        preference: MediaTrackPreference,
-    ) -> Int {
-        var score = 0
-        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) {
-            score += 4
-        }
-        if let title = preference.audioTitle,
-           normalized(stream.displayTitle ?? stream.title) == normalized(title)
-        {
-            score += 3
-        }
-        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) {
-            score += 2
-        }
-        if let hearingImpaired = preference.audioIsHearingImpaired,
-           stream.isHearingImpaired == hearingImpaired
-        {
-            score += 1
-        }
-        return score
-    }
-
-    private func subtitleMatchScore(
-        _ stream: JellyfinMediaStream,
-        language: String?,
-        title: String?,
-        codec: String,
-        isForced: Bool,
-        isHearingImpaired: Bool?,
-    ) -> Int {
-        var score = 0
-        if let language, normalized(stream.language) == normalized(language) {
-            score += 4
-        }
-        if let title, normalized(stream.displayTitle ?? stream.title) == normalized(title) {
-            score += 3
-        }
-        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) {
-            score += 2
-        }
-        if stream.isForced == isForced {
-            score += 1
-        }
-        if let isHearingImpaired, stream.isHearingImpaired == isHearingImpaired {
-            score += 1
-        }
-        return score
+        TrackSelectionMatcher.bestSubtitleMatch(
+            preference: preference.subtitle,
+            candidates: streams,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: [stream.index],
+                    language: stream.language,
+                    title: stream.title,
+                    displayTitle: stream.displayTitle,
+                    codec: stream.codec,
+                    isForced: stream.isForced,
+                    isHearingImpaired: stream.isHearingImpaired,
+                )
+            },
+        )
     }
 
     private func isSubtitleOff(_ preference: JellyfinSubtitleStreamPreference?) -> Bool {
@@ -335,10 +272,6 @@ struct JellyfinPlaybackService {
             return true
         }
         return false
-    }
-
-    private func normalized(_ value: String?) -> String {
-        value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
     }
 
     private func sourceSatisfies(
