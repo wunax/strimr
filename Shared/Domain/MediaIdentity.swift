@@ -20,6 +20,7 @@ enum MediaKind: String, Codable, Hashable, Sendable {
     case series
     case season
     case episode
+    case clip
     case collection
     case playlist
     case folder

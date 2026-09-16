@@ -5,6 +5,7 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
     case show
     case season
     case episode
+    case clip
     case collection
     case playlist
     case unknown
@@ -15,7 +16,7 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
 
     var isPlayable: Bool {
         switch self {
-        case .movie, .show, .season, .episode:
+        case .movie, .show, .season, .episode, .clip:
             true
         case .collection, .playlist, .unknown:
             false
@@ -36,6 +37,7 @@ extension PlexItemType {
         case .show: .series
         case .season: .season
         case .episode: .episode
+        case .clip: .clip
         case .collection: .collection
         case .playlist: .playlist
         case .unknown: .unknown
@@ -50,6 +52,7 @@ extension MediaKind {
         case .series: .show
         case .season: .season
         case .episode: .episode
+        case .clip: .clip
         case .collection: .collection
         case .playlist: .playlist
         case .folder, .unknown: .unknown

@@ -66,6 +66,10 @@ struct MediaDetailView: View {
                     onSelectPerson: onSelectPerson,
                 )
 
+                ExtrasSection(viewModel: bindableViewModel) { extra in
+                    onPlay(extra.id, .clip)
+                }
+
                 RelatedHubsSection(
                     viewModel: bindableViewModel,
                     onSelectMedia: onSelectMedia,

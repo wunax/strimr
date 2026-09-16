@@ -52,6 +52,9 @@ struct MediaDetailView: View {
                         viewModel: viewModel,
                         onSelectPerson: onSelectPerson,
                     )
+                    ExtrasSection(viewModel: viewModel) { extra in
+                        onPlay(extra.id, .clip, false, true)
+                    }
                     RelatedHubsSection(viewModel: viewModel) { media in
                         if case let .playable(item) = media {
                             onSelectMedia(item)
@@ -502,6 +505,8 @@ struct MediaDetailView: View {
             isShowingDownloadOptions = true
         case .movie, .episode:
             isShowingDownloadOptions = true
+        case .clip:
+            break
         }
     }
 

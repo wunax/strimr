@@ -91,6 +91,16 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return MediaItem(plexItem: item, server: server)
     }
 
+    func fetchExtras(for media: MediaItem) async throws -> [MediaItem] {
+        let response = try await MetadataRepository(context: context).getMetadataExtras(ratingKey: media.id)
+        return (response.mediaContainer.metadata ?? [])
+            .filter {
+                ($0.type == .clip || $0.subtype == .clip)
+                    && $0.media?.contains(where: { !$0.parts.isEmpty }) == true
+            }
+            .map { MediaItem(plexItem: $0, server: server) }
+    }
+
     func searchSubtitles(
         itemID: String,
         language: String,
@@ -477,6 +487,21 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue {
+        if media.type == .clip {
+            queueItemIDs = [:]
+            let item = PlaybackQueueItem(
+                id: UUID(),
+                media: media,
+                providerQueueItemID: nil,
+            )
+            return PlaybackQueue(
+                id: UUID(),
+                items: [item],
+                currentIndex: 0,
+                isShuffled: shuffle,
+            )
+        }
+
         let response = try await PlayQueueRepository(context: context).createQueue(
             for: media.id,
             itemType: media.type.plexType,
@@ -802,7 +827,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 try await items.append(contentsOf: downloadableItems(itemID: season.ratingKey, kind: .season))
             }
             return items
-        case .collection, .playlist, .folder, .unknown:
+        case .clip, .collection, .playlist, .folder, .unknown:
             return []
         }
     }
@@ -837,7 +862,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             } else {
                 seriesID = nil
             }
-        case .movie, .series, .collection, .playlist, .folder, .unknown:
+        case .movie, .series, .clip, .collection, .playlist, .folder, .unknown:
             seriesID = nil
         }
         guard let seriesID else { return nil }

@@ -5,6 +5,7 @@ enum PlayableItemType: String, Codable, Hashable {
     case show
     case season
     case episode
+    case clip
 
     init?(mediaKind: MediaKind) {
         switch mediaKind {
@@ -16,6 +17,8 @@ enum PlayableItemType: String, Codable, Hashable {
             self = .season
         case .episode:
             self = .episode
+        case .clip:
+            self = .clip
         case .collection, .playlist, .folder, .unknown:
             return nil
         }
@@ -31,6 +34,8 @@ enum PlayableItemType: String, Codable, Hashable {
             .season
         case .episode:
             .episode
+        case .clip:
+            .clip
         }
     }
 }

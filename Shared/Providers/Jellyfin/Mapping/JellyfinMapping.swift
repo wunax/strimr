@@ -94,7 +94,7 @@ extension MediaDisplayItem {
     init?(jellyfinItem: JellyfinItem, server: ServerIdentity) {
         let media = MediaItem(jellyfinItem: jellyfinItem, server: server)
         switch jellyfinItem.kind {
-        case .movie, .series, .season, .episode:
+        case .movie, .series, .season, .episode, .clip:
             self = .playable(media)
         case .collection:
             self = .collection(

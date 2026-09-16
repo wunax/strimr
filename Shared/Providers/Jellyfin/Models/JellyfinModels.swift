@@ -237,6 +237,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case "series": .series
         case "season": .season
         case "episode": .episode
+        case "video", "trailer": .clip
         case "boxset": .collection
         case "playlist": .playlist
         case "folder", "collectionfolder": .folder
@@ -245,7 +246,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     }
 
     var isPlayable: Bool {
-        kind == .movie || kind == .episode
+        kind == .movie || kind == .episode || kind == .clip
     }
 
     var duration: TimeInterval? {
@@ -270,7 +271,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
             productionYear.map(String.init)
         case .episode:
             name
-        case .series, .season, .collection, .playlist, .folder, .unknown:
+        case .series, .season, .clip, .collection, .playlist, .folder, .unknown:
             nil
         }
     }

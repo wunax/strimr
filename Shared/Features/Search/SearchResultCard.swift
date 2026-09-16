@@ -122,6 +122,8 @@ private struct TypeBadge: View {
             String(localized: "search.badge.season")
         case .episode:
             String(localized: "search.badge.episode")
+        case .clip:
+            String(localized: "search.badge.clip")
         case .collection:
             String(localized: "search.badge.collection")
         case .playlist:
@@ -141,6 +143,8 @@ private struct TypeBadge: View {
             .orange
         case .episode:
             .purple
+        case .clip:
+            .brandPrimary
         case .collection:
             .teal
         case .playlist:
@@ -165,6 +169,8 @@ private extension SearchResultCard {
                 ?? media.secondaryLabel
                 ?? media.playableItem?.parentTitle
                 ?? String(localized: "search.fallback.episode")
+        case .clip:
+            media.title
         case .collection:
             media.secondaryLabel ?? String(localized: "search.fallback.collection")
         case .playlist:
