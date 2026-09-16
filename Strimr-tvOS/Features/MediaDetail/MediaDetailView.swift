@@ -13,6 +13,7 @@ struct MediaDetailView: View {
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
+    @State private var isShowingFileInfo = false
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -88,6 +89,9 @@ struct MediaDetailView: View {
                     await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
                 }
             }
+        }
+        .sheet(isPresented: $isShowingFileInfo) {
+            MediaFileInfoView(viewModel: bindableViewModel)
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
@@ -344,6 +348,15 @@ struct MediaDetailView: View {
                     viewModel: viewModel,
                     onSearchSubtitles: { isShowingSubtitleSearch = true },
                 )
+            }
+
+            if viewModel.canShowFileInfo {
+                Divider()
+                Button {
+                    isShowingFileInfo = true
+                } label: {
+                    Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
+                }
             }
         } label: {
             Image(systemName: "arrow.counterclockwise")

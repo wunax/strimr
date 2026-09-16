@@ -6793,6 +6793,370 @@
         }
       }
     },
+    "media.fileInfo.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File Information" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Informations du fichier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件信息" } }
+      }
+    },
+    "media.fileInfo.loading" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Loading file information…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Chargement des informations du fichier…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在加载文件信息…" } }
+      }
+    },
+    "media.fileInfo.unavailable" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File information is unavailable." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Informations de fichier indisponibles." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件信息不可用。" } }
+      }
+    },
+    "media.fileInfo.error" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not load file information." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les informations du fichier." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法加载文件信息。" } }
+      }
+    },
+    "media.fileInfo.version %lld" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Version %lld" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Version %lld" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "版本 %lld" } }
+      }
+    },
+    "media.fileInfo.summary" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Summary" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Résumé" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "摘要" } }
+      }
+    },
+    "media.fileInfo.container" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Container" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Conteneur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "容器" } }
+      }
+    },
+    "media.fileInfo.duration" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Duration" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Durée" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时长" } }
+      }
+    },
+    "media.fileInfo.size" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Size" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Taille" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "大小" } }
+      }
+    },
+    "media.fileInfo.bitrate" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Bitrate" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Débit" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "码率" } }
+      }
+    },
+    "media.fileInfo.resolution" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Resolution" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Résolution" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分辨率" } }
+      }
+    },
+    "media.fileInfo.aspectRatio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Aspect ratio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Format d’image" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "画幅比例" } }
+      }
+    },
+    "media.fileInfo.videoCodec" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Video codec" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Codec vidéo" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "视频编码" } }
+      }
+    },
+    "media.fileInfo.frameRate" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Frame rate" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fréquence d’image" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "帧率" } }
+      }
+    },
+    "media.fileInfo.audioCodec" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Audio codec" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Codec audio" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "音频编码" } }
+      }
+    },
+    "media.fileInfo.channels" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Channels" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Canaux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "声道" } }
+      }
+    },
+    "media.fileInfo.file" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fichier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件" } }
+      }
+    },
+    "media.fileInfo.file %lld" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File %lld" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fichier %lld" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件 %lld" } }
+      }
+    },
+    "media.fileInfo.video" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Video" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vidéo" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "视频" } }
+      }
+    },
+    "media.fileInfo.audio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Audio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Audio" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "音频" } }
+      }
+    },
+    "media.fileInfo.subtitles" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subtitles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sous-titres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "字幕" } }
+      }
+    },
+    "media.fileInfo.other" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Autre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "其他" } }
+      }
+    },
+    "media.fileInfo.attachments" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Attachments" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pièces jointes" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附件" } }
+      }
+    },
+    "media.fileInfo.fileName" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File name" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nom du fichier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件名" } }
+      }
+    },
+    "media.fileInfo.path" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Path" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Chemin" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "路径" } }
+      }
+    },
+    "media.fileInfo.filePresent" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File present" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fichier présent" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件存在" } }
+      }
+    },
+    "media.fileInfo.fileReadable" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File readable" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fichier lisible" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件可读" } }
+      }
+    },
+    "media.fileInfo.fileId" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "File ID" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ID du fichier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件 ID" } }
+      }
+    },
+    "media.fileInfo.yes" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Yes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Oui" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "是" } }
+      }
+    },
+    "media.fileInfo.no" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Non" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "否" } }
+      }
+    },
+    "media.fileInfo.codec" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Codec" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Codec" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编码" } }
+      }
+    },
+    "media.fileInfo.codecTag" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Codec tag" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Identifiant du codec" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编码标签" } }
+      }
+    },
+    "media.fileInfo.profile" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Profile" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Profil" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "配置" } }
+      }
+    },
+    "media.fileInfo.language" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Language" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
+      }
+    },
+    "media.fileInfo.languageCode" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Language code" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Code langue" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言代码" } }
+      }
+    },
+    "media.fileInfo.bitDepth" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Bit depth" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Profondeur de couleur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "位深" } }
+      }
+    },
+    "media.fileInfo.dynamicRange" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Dynamic range" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Plage dynamique" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "动态范围" } }
+      }
+    },
+    "media.fileInfo.pixelFormat" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pixel format" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Format de pixel" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "像素格式" } }
+      }
+    },
+    "media.fileInfo.colorSpace" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Color space" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Espace colorimétrique" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "色彩空间" } }
+      }
+    },
+    "media.fileInfo.colorTransfer" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Color transfer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Transfert de couleur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "色彩传输" } }
+      }
+    },
+    "media.fileInfo.sampleRate" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sample rate" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fréquence d’échantillonnage" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "采样率" } }
+      }
+    },
+    "media.fileInfo.spatialAudio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spatial audio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Audio spatial" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "空间音频" } }
+      }
+    },
+    "media.fileInfo.subtitleFormat" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subtitle format" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Format des sous-titres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "字幕格式" } }
+      }
+    },
+    "media.fileInfo.mimeType" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "MIME type" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Type MIME" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MIME 类型" } }
+      }
+    },
+    "media.fileInfo.streamIndex" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Stream index" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Index du flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "流索引" } }
+      }
+    },
+    "media.fileInfo.streamId" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Stream ID" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ID du flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "流 ID" } }
+      }
+    },
+    "media.fileInfo.default" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Default" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Par défaut" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "默认" } }
+      }
+    },
+    "media.fileInfo.selected" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Selected" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sélectionné" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已选" } }
+      }
+    },
+    "media.fileInfo.forced" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forced" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Forcé" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "强制" } }
+      }
+    },
+    "media.fileInfo.external" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "External" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Externe" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "外部" } }
+      }
+    },
+    "media.fileInfo.hearingImpaired" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hearing impaired" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Malentendant" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "听障" } }
+      }
+    },
+    "media.fileInfo.track" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Track" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Piste" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "轨道" } }
+      }
+    },
     "media.detail.cast.empty" : {
       "localizations" : {
         "en" : {

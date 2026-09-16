@@ -459,6 +459,15 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let name: String?
     let path: String?
     let container: String?
+    let runTimeTicks: Int64?
+    let size: Int64?
+    let type: String?
+    let protocolName: String?
+    let videoType: String?
+    let isRemote: Bool?
+    let isInfiniteStream: Bool?
+    let eTag: String?
+    let timestamp: String?
     let supportsDirectPlay: Bool?
     let supportsDirectStream: Bool?
     let supportsTranscoding: Bool?
@@ -469,12 +478,22 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let defaultAudioStreamIndex: Int?
     let defaultSubtitleStreamIndex: Int?
     let mediaStreams: [JellyfinMediaStream]?
+    let mediaAttachments: [JellyfinMediaAttachment]?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
         case path = "Path"
         case container = "Container"
+        case runTimeTicks = "RunTimeTicks"
+        case size = "Size"
+        case type = "Type"
+        case protocolName = "Protocol"
+        case videoType = "VideoType"
+        case isRemote = "IsRemote"
+        case isInfiniteStream = "IsInfiniteStream"
+        case eTag = "ETag"
+        case timestamp = "Timestamp"
         case supportsDirectPlay = "SupportsDirectPlay"
         case supportsDirectStream = "SupportsDirectStream"
         case supportsTranscoding = "SupportsTranscoding"
@@ -485,6 +504,7 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
         case defaultAudioStreamIndex = "DefaultAudioStreamIndex"
         case defaultSubtitleStreamIndex = "DefaultSubtitleStreamIndex"
         case mediaStreams = "MediaStreams"
+        case mediaAttachments = "MediaAttachments"
     }
 }
 
@@ -502,6 +522,39 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     let deliveryMethod: String?
     let deliveryURL: String?
     let bitrate: Int?
+    let profile: String?
+    let level: String?
+    let codecTag: String?
+    let realFrameRate: Double?
+    let averageFrameRate: Double?
+    let isInterlaced: Bool?
+    let bitDepth: Int?
+    let refFrames: Int?
+    let pixelFormat: String?
+    let colorSpace: String?
+    let colorRange: String?
+    let colorPrimaries: String?
+    let colorTransfer: String?
+    let aspectRatio: String?
+    let isAnamorphic: Bool?
+    let videoRange: String?
+    let videoRangeType: String?
+    let hdr10PlusPresent: Bool?
+    let dolbyVisionProfile: Int?
+    let dolbyVisionLevel: Int?
+    let dolbyVisionVersion: String?
+    let dolbyVisionCompatibilityID: Int?
+    let channels: Int?
+    let channelLayout: String?
+    let sampleRate: Int?
+    let spatialFormat: String?
+    let subtitleFormat: String?
+    let path: String?
+    let timeBase: String?
+    let rotation: Int?
+    let isTextSubtitle: Bool?
+    let supportsExternalStream: Bool?
+    let comment: String?
     let width: Int?
     let height: Int?
 
@@ -519,8 +572,57 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
         case deliveryMethod = "DeliveryMethod"
         case deliveryURL = "DeliveryUrl"
         case bitrate = "BitRate"
+        case profile = "Profile"
+        case level = "Level"
+        case codecTag = "CodecTag"
+        case realFrameRate = "RealFrameRate"
+        case averageFrameRate = "AverageFrameRate"
+        case isInterlaced = "IsInterlaced"
+        case bitDepth = "BitDepth"
+        case refFrames = "RefFrames"
+        case pixelFormat = "PixelFormat"
+        case colorSpace = "ColorSpace"
+        case colorRange = "ColorRange"
+        case colorPrimaries = "ColorPrimaries"
+        case colorTransfer = "ColorTransfer"
+        case aspectRatio = "AspectRatio"
+        case isAnamorphic = "IsAnamorphic"
+        case videoRange = "VideoRange"
+        case videoRangeType = "VideoRangeType"
+        case hdr10PlusPresent = "Hdr10PlusPresent"
+        case dolbyVisionProfile = "DoviProfile"
+        case dolbyVisionLevel = "DoviLevel"
+        case dolbyVisionVersion = "DoviVersion"
+        case dolbyVisionCompatibilityID = "DoviTitle"
+        case channels = "Channels"
+        case channelLayout = "ChannelLayout"
+        case sampleRate = "SampleRate"
+        case spatialFormat = "SpatialFormat"
+        case subtitleFormat = "SubtitleFormat"
+        case path = "Path"
+        case timeBase = "TimeBase"
+        case rotation = "Rotation"
+        case isTextSubtitle = "IsTextSubtitle"
+        case supportsExternalStream = "SupportsExternalStream"
+        case comment = "Comment"
         case width = "Width"
         case height = "Height"
+    }
+}
+
+nonisolated struct JellyfinMediaAttachment: Decodable, Hashable, Sendable {
+    let index: Int?
+    let fileName: String?
+    let mimeType: String?
+    let codec: String?
+    let codecTag: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case index = "Index"
+        case fileName = "FileName"
+        case mimeType = "MimeType"
+        case codec = "Codec"
+        case codecTag = "CodecTag"
     }
 }
 

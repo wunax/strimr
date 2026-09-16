@@ -450,6 +450,20 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
+    func fileInfo(for media: MediaItem) async throws -> MediaFileInfo? {
+        let response = try await MetadataRepository(context: context).getMetadata(
+            ratingKey: media.id,
+            params: .init(checkFiles: true, includeStreams: true),
+        )
+        guard let plexMedia = response.mediaContainer.metadata?.first?.media,
+              !plexMedia.isEmpty
+        else {
+            return nil
+        }
+
+        return MediaFileInfo(versions: plexMedia.map(mapFileInfoVersion))
+    }
+
     func selectAudioTrack(id: Int, itemID: String) async throws {
         let partID = try await mediaPartID(itemID: itemID)
         try await PlaybackRepository(context: context).setPreferredStreams(partId: partID, audioStreamId: id)
@@ -990,6 +1004,111 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             throw PlexAPIError.invalidResponse
         }
         return partID
+    }
+
+    private func mapFileInfoVersion(_ media: PlexMedia) -> MediaFileVersion {
+        MediaFileVersion(
+            id: String(media.id),
+            title: media.title,
+            container: media.container,
+            bitrateKbps: media.bitrate,
+            duration: media.duration.map { TimeInterval($0) / 1_000 },
+            width: media.width,
+            height: media.height,
+            aspectRatio: media.aspectRatio.map { String(format: "%.2f", $0) },
+            videoResolution: media.videoResolution,
+            videoCodec: media.videoCodec,
+            videoProfile: media.videoProfile,
+            videoFrameRate: media.videoFrameRate,
+            audioCodec: media.audioCodec,
+            audioProfile: media.audioProfile,
+            audioChannels: media.audioChannels,
+            parts: media.parts.map(mapFileInfoPart),
+            attachments: [],
+        )
+    }
+
+    private func mapFileInfoPart(_ part: PlexPart) -> MediaFilePart {
+        MediaFilePart(
+            id: String(part.id),
+            path: part.file,
+            sizeBytes: part.size,
+            container: part.container,
+            duration: part.duration.map { TimeInterval($0) / 1_000 },
+            exists: part.exists,
+            accessible: part.accessible,
+            streams: (part.stream ?? []).map(mapFileInfoStream),
+        )
+    }
+
+    private func mapFileInfoStream(_ stream: PlexPartStream) -> MediaFileStream {
+        let kind: MediaFileStreamKind = switch stream.streamType {
+        case .video:
+            .video
+        case .audio:
+            .audio
+        case .subtitle:
+            .subtitle
+        }
+
+        return MediaFileStream(
+            kind: kind,
+            id: stream.id.map(String.init),
+            index: stream.index,
+            title: stream.title,
+            displayTitle: stream.extendedDisplayTitle ?? stream.displayTitle,
+            codec: stream.codec,
+            codecTag: stream.codecID,
+            profile: stream.profile,
+            language: stream.language,
+            languageCode: stream.languageCode ?? stream.languageTag,
+            bitrateKbps: stream.bitrate,
+            isDefault: stream.isDefault,
+            isForced: stream.forced,
+            isSelected: stream.selected,
+            isExternal: kind == .subtitle && stream.key != nil,
+            isHearingImpaired: stream.hearingImpaired,
+            width: stream.width,
+            height: stream.height,
+            frameRate: stream.frameRate,
+            bitDepth: stream.bitDepth,
+            dynamicRange: plexDynamicRange(stream),
+            pixelFormat: stream.pixelFormat,
+            colorSpace: stream.colorSpace,
+            colorTransfer: stream.colorTransfer,
+            aspectRatio: stream.pixelAspectRatio,
+            channels: stream.channels,
+            channelLayout: stream.audioChannelLayout,
+            sampleRate: stream.samplingRate,
+            spatialFormat: plexSpatialFormat(stream),
+            subtitleFormat: stream.format,
+            path: stream.key,
+        )
+    }
+
+    private func plexDynamicRange(_ stream: PlexPartStream) -> String? {
+        if stream.dolbyVisionPresent == true {
+            if stream.dolbyVisionCompatibilityID == 1 || stream.dolbyVisionCompatibilityID == 6 {
+                return "Dolby Vision (HDR10)"
+            }
+            return "Dolby Vision"
+        }
+
+        switch stream.colorTransfer?.lowercased() {
+        case "smpte2084":
+            return "HDR10"
+        case "arib-std-b67":
+            return "HLG"
+        default:
+            return nil
+        }
+    }
+
+    private func plexSpatialFormat(_ stream: PlexPartStream) -> String? {
+        let text = [stream.title, stream.displayTitle, stream.extendedDisplayTitle]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+        return text.contains("atmos") ? "Atmos" : nil
     }
 
     private func mapMediaItem(_ item: PlexItem) -> MediaItem {
