@@ -607,7 +607,7 @@ struct PlayerView: View {
                             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                         )
                     } else if selectedSubtitleTrackID == nil,
-                       let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id
+                              let activeSubtitle = subtitles.first(where: { $0.isSelected })?.id
                     {
                         selectedSubtitleTrackID = activeSubtitle
                     }

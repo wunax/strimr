@@ -91,7 +91,7 @@ final class TrackSelectionStore {
     private func persist() {
         do {
             let envelope = Envelope(version: schemaVersion, records: records)
-            defaults.set(try JSONEncoder().encode(envelope), forKey: storageKey)
+            try defaults.set(JSONEncoder().encode(envelope), forKey: storageKey)
         } catch {
             ErrorReporter.capture(error)
         }
@@ -195,11 +195,10 @@ final class TrackSelectionCoordinator {
         audioTracks: [MediaTrackMetadata],
         subtitleTracks: [MediaTrackMetadata],
     ) -> TrackSelectionResolution {
-        let subtitleIsOff: Bool
-        if case .off = preference.subtitle {
-            subtitleIsOff = true
+        let subtitleIsOff = if case .off = preference.subtitle {
+            true
         } else {
-            subtitleIsOff = false
+            false
         }
         return TrackSelectionResolution(
             audioTrackID: resolveAudioTrack(preference: preference, tracks: audioTracks),
@@ -237,7 +236,8 @@ final class TrackSelectionCoordinator {
         preference: MediaTrackPreference,
         tracks: [MediaTrackMetadata],
     ) -> Int? {
-        guard case let .track(streamIndex, language, title, codec, isForced, isHearingImpaired) = preference.subtitle else {
+        guard case let .track(streamIndex, language, title, codec, isForced, isHearingImpaired) = preference.subtitle
+        else {
             return nil
         }
         if let streamIndex,
@@ -271,14 +271,22 @@ final class TrackSelectionCoordinator {
         preference: MediaTrackPreference,
     ) -> Int {
         var score = 0
-        if let language = preference.audioLanguage, normalized(track.language) == normalized(language) { score += 4 }
+        if let language = preference.audioLanguage, normalized(track.language) == normalized(language) {
+            score += 4
+        }
         if let title = preference.audioTitle,
            normalized(track.displayTitle) == normalized(title) || normalized(track.title) == normalized(title)
-        { score += 3 }
-        if let codec = preference.audioCodec, normalized(track.codec) == normalized(codec) { score += 2 }
+        {
+            score += 3
+        }
+        if let codec = preference.audioCodec, normalized(track.codec) == normalized(codec) {
+            score += 2
+        }
         if let hearingImpaired = preference.audioIsHearingImpaired,
            track.isHearingImpaired == hearingImpaired
-        { score += 1 }
+        {
+            score += 1
+        }
         return score
     }
 
@@ -291,13 +299,23 @@ final class TrackSelectionCoordinator {
         isHearingImpaired: Bool?,
     ) -> Int {
         var score = 0
-        if let language, normalized(track.language) == normalized(language) { score += 4 }
+        if let language, normalized(track.language) == normalized(language) {
+            score += 4
+        }
         if let title,
            normalized(track.displayTitle) == normalized(title) || normalized(track.title) == normalized(title)
-        { score += 3 }
-        if !codec.isEmpty, normalized(track.codec) == normalized(codec) { score += 2 }
-        if track.isForced == isForced { score += 1 }
-        if let isHearingImpaired, track.isHearingImpaired == isHearingImpaired { score += 1 }
+        {
+            score += 3
+        }
+        if !codec.isEmpty, normalized(track.codec) == normalized(codec) {
+            score += 2
+        }
+        if track.isForced == isForced {
+            score += 1
+        }
+        if let isHearingImpaired, track.isHearingImpaired == isHearingImpaired {
+            score += 1
+        }
         return score
     }
 

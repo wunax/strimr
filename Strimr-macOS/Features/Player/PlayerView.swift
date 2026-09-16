@@ -962,7 +962,7 @@ struct PlayerView: View {
                         styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                     )
                 } else if let preferredSubtitle = viewModel.preferredSubtitleStreamID,
-                   let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitle })
+                          let track = subtitleTracks.first(where: { $0.providerStreamID == preferredSubtitle })
                 {
                     selectedSubtitleTrackID = track.id
                     playerController.selectSubtitleTrack(

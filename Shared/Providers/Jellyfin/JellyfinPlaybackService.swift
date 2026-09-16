@@ -82,8 +82,8 @@ struct JellyfinPlaybackService {
            let trackPreference,
            let resolvedSelection = resolveTrackSelection(trackPreference, source: source),
            resolvedSelection.audioStreamIndex != nil
-               || resolvedSelection.subtitlePreference.requestIndex != nil
-               || isSubtitleOff(resolvedSelection.subtitlePreference)
+           || resolvedSelection.subtitlePreference.requestIndex != nil
+           || isSubtitleOff(resolvedSelection.subtitlePreference)
         {
             info = try await requestPlaybackInfo(
                 item: item,
@@ -284,12 +284,22 @@ struct JellyfinPlaybackService {
         preference: MediaTrackPreference,
     ) -> Int {
         var score = 0
-        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) { score += 4 }
-        if let title = preference.audioTitle, normalized(stream.displayTitle ?? stream.title) == normalized(title) { score += 3 }
-        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) { score += 2 }
+        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) {
+            score += 4
+        }
+        if let title = preference.audioTitle,
+           normalized(stream.displayTitle ?? stream.title) == normalized(title)
+        {
+            score += 3
+        }
+        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) {
+            score += 2
+        }
         if let hearingImpaired = preference.audioIsHearingImpaired,
            stream.isHearingImpaired == hearingImpaired
-        { score += 1 }
+        {
+            score += 1
+        }
         return score
     }
 
@@ -302,16 +312,28 @@ struct JellyfinPlaybackService {
         isHearingImpaired: Bool?,
     ) -> Int {
         var score = 0
-        if let language, normalized(stream.language) == normalized(language) { score += 4 }
-        if let title, normalized(stream.displayTitle ?? stream.title) == normalized(title) { score += 3 }
-        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) { score += 2 }
-        if stream.isForced == isForced { score += 1 }
-        if let isHearingImpaired, stream.isHearingImpaired == isHearingImpaired { score += 1 }
+        if let language, normalized(stream.language) == normalized(language) {
+            score += 4
+        }
+        if let title, normalized(stream.displayTitle ?? stream.title) == normalized(title) {
+            score += 3
+        }
+        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) {
+            score += 2
+        }
+        if stream.isForced == isForced {
+            score += 1
+        }
+        if let isHearingImpaired, stream.isHearingImpaired == isHearingImpaired {
+            score += 1
+        }
         return score
     }
 
     private func isSubtitleOff(_ preference: JellyfinSubtitleStreamPreference?) -> Bool {
-        if case .off = preference { return true }
+        if case .off = preference {
+            return true
+        }
         return false
     }
 

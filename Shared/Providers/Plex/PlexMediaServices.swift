@@ -705,7 +705,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             selectedAudioIndex: selectedAudioIndex,
             selectedSubtitleIndex: selectedSubtitleIndex,
             subtitleSelectionIsOff: trackPreference.map {
-                if case .off = $0.subtitle { return true }
+                if case .off = $0.subtitle {
+                    return true
+                }
                 return false
             } ?? false,
             tracks: tracks,
@@ -925,7 +927,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         preference: MediaTrackPreference,
         streams: [PlexPartStream],
     ) -> PlexPartStream? {
-        guard case let .track(streamID, language, title, codec, isForced, isHearingImpaired) = preference.subtitle else {
+        guard case let .track(streamID, language, title, codec, isForced, isHearingImpaired) = preference.subtitle
+        else {
             return nil
         }
         let subtitles = streams.filter { $0.streamType == .subtitle }
@@ -959,14 +962,22 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         preference: MediaTrackPreference,
     ) -> Int {
         var score = 0
-        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) { score += 4 }
+        if let language = preference.audioLanguage, normalized(stream.language) == normalized(language) {
+            score += 4
+        }
         if let title = preference.audioTitle,
            normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
-        { score += 3 }
-        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) { score += 2 }
+        {
+            score += 3
+        }
+        if let codec = preference.audioCodec, normalized(stream.codec) == normalized(codec) {
+            score += 2
+        }
         if let hearingImpaired = preference.audioIsHearingImpaired,
            stream.hearingImpaired == hearingImpaired
-        { score += 1 }
+        {
+            score += 1
+        }
         return score
     }
 
@@ -979,13 +990,23 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         isHearingImpaired: Bool?,
     ) -> Int {
         var score = 0
-        if let language, normalized(stream.language) == normalized(language) { score += 4 }
+        if let language, normalized(stream.language) == normalized(language) {
+            score += 4
+        }
         if let title,
            normalized(stream.displayTitle) == normalized(title) || normalized(stream.title) == normalized(title)
-        { score += 3 }
-        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) { score += 2 }
-        if stream.forced == isForced { score += 1 }
-        if let isHearingImpaired, stream.hearingImpaired == isHearingImpaired { score += 1 }
+        {
+            score += 3
+        }
+        if !codec.isEmpty, normalized(stream.codec) == normalized(codec) {
+            score += 2
+        }
+        if stream.forced == isForced {
+            score += 1
+        }
+        if let isHearingImpaired, stream.hearingImpaired == isHearingImpaired {
+            score += 1
+        }
         return score
     }
 

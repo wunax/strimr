@@ -582,7 +582,7 @@ final class MediaDetailViewModel {
                 subtitleTracks.first(where: { $0.id == selectedID })
             }
             if trackRatingKey == ratingKey,
-               (id == nil || selectedTrack != nil),
+               id == nil || selectedTrack != nil,
                let scope = rememberedTrackSelectionScope,
                let coordinator = services.trackSelectionCoordinator
             {
