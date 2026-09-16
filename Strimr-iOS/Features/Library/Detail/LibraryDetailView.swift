@@ -23,14 +23,9 @@ struct LibraryDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if availableTabs.count > 1 {
-                Picker("library.detail.tabPicker", selection: $selectedTab) {
-                    ForEach(availableTabs) { tab in
-                        Text(tab.title).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
+                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
             }
 
             Group {
@@ -102,30 +97,6 @@ struct LibraryDetailView: View {
             default:
                 true
             }
-        }
-    }
-}
-
-enum LibraryDetailTab: String, CaseIterable, Identifiable {
-    case recommended
-    case browse
-    case collections
-    case playlists
-
-    var id: String {
-        rawValue
-    }
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .recommended:
-            "library.detail.tab.recommended"
-        case .browse:
-            "library.detail.tab.browse"
-        case .collections:
-            "library.detail.tab.collections"
-        case .playlists:
-            "library.detail.tab.playlists"
         }
     }
 }
