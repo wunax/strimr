@@ -192,6 +192,10 @@ struct MediaItem: Identifiable, Hashable {
             return thumbPath ?? grandparentArtPath ?? artPath
         }
 
+        if type == .clip {
+            return thumbPath ?? artPath
+        }
+
         return grandparentArtPath ?? artPath
     }
 
