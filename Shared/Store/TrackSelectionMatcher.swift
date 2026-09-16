@@ -46,7 +46,7 @@ enum TrackSelectionMatcher {
             }
             if let title = preference.audioTitle,
                normalized(track.displayTitle) == normalized(title)
-                   || normalized(track.title) == normalized(title)
+               || normalized(track.title) == normalized(title)
             {
                 score += 3
             }
@@ -98,7 +98,7 @@ enum TrackSelectionMatcher {
             }
             if let title,
                normalized(track.displayTitle) == normalized(title)
-                   || normalized(track.title) == normalized(title)
+               || normalized(track.title) == normalized(title)
             {
                 score += 3
             }
