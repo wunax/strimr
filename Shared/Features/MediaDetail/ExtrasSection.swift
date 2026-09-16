@@ -5,14 +5,6 @@ struct ExtrasSection: View {
     @Bindable var viewModel: MediaDetailViewModel
     let onPlay: (MediaItem) -> Void
 
-    init(
-        viewModel: MediaDetailViewModel,
-        onPlay: @escaping (MediaItem) -> Void,
-    ) {
-        self.viewModel = viewModel
-        self.onPlay = onPlay
-    }
-
     var body: some View {
         if !viewModel.extras.isEmpty {
             Section {

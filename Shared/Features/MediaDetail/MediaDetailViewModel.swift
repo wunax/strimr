@@ -1014,18 +1014,18 @@ final class MediaDetailViewModel {
             guard let self else { return }
 
             do {
-                let fetchedExtras = try await self.services.detail.fetchExtras(for: target)
-                guard !Task.isCancelled, self.media.identity == targetIdentity else { return }
-                self.extras = fetchedExtras.filter { $0.type == .clip }
+                let fetchedExtras = try await services.detail.fetchExtras(for: target)
+                guard !Task.isCancelled, media.identity == targetIdentity else { return }
+                extras = fetchedExtras.filter { $0.type == .clip }
             } catch {
-                guard !Task.isCancelled, !error.isCancellation, self.media.identity == targetIdentity else { return }
-                self.extras = []
+                guard !Task.isCancelled, !error.isCancellation, media.identity == targetIdentity else { return }
+                extras = []
                 ErrorReporter.capture(error)
             }
 
-            guard !Task.isCancelled, self.media.identity == targetIdentity else { return }
-            self.extrasLoadedFor = targetIdentity
-            self.isLoadingExtras = false
+            guard !Task.isCancelled, media.identity == targetIdentity else { return }
+            extrasLoadedFor = targetIdentity
+            isLoadingExtras = false
         }
     }
 }

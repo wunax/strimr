@@ -215,13 +215,13 @@ struct JellyfinCatalogService {
         var errors: [Error] = []
 
         do {
-            items.append(contentsOf: try await fetchExtraItems(path: ["Items", itemID, "LocalTrailers"]))
+            try await items.append(contentsOf: fetchExtraItems(path: ["Items", itemID, "LocalTrailers"]))
         } catch {
             errors.append(error)
         }
 
         do {
-            items.append(contentsOf: try await fetchExtraItems(path: ["Items", itemID, "SpecialFeatures"]))
+            try await items.append(contentsOf: fetchExtraItems(path: ["Items", itemID, "SpecialFeatures"]))
         } catch {
             errors.append(error)
         }
