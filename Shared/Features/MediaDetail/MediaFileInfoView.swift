@@ -3,6 +3,12 @@ import SwiftUI
 struct MediaFileInfoView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
+    let targetMedia: MediaItem?
+
+    init(viewModel: MediaDetailViewModel, targetMedia: MediaItem? = nil) {
+        _viewModel = Bindable(viewModel)
+        self.targetMedia = targetMedia
+    }
 
     var body: some View {
         NavigationStack {
@@ -32,14 +38,14 @@ struct MediaFileInfoView: View {
             #endif
         }
         .task {
-            await viewModel.loadFileInfo()
+            await viewModel.loadFileInfo(for: targetMedia)
         }
     }
 
     private func fileInfoContent(_ fileInfo: MediaFileInfo) -> some View {
         LazyVStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(viewModel.media.title)
+                Text(targetMedia?.title ?? viewModel.media.title)
                     .font(.title2.weight(.semibold))
                     .lineLimit(2)
 
@@ -80,7 +86,7 @@ struct MediaFileInfoView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                Task { await viewModel.loadFileInfo(forceReload: true) }
+                Task { await viewModel.loadFileInfo(for: targetMedia, forceReload: true) }
             } label: {
                 Label("common.actions.retry", systemImage: "arrow.clockwise")
             }

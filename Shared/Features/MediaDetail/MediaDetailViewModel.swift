@@ -55,6 +55,7 @@ final class MediaDetailViewModel {
     @ObservationIgnored private(set) var trackRatingKey: String?
     @ObservationIgnored private var requestedTrackRatingKey: String?
     @ObservationIgnored private var requestedFileInfoID: String?
+    @ObservationIgnored private var fileInfoMediaID: String?
     private var updatingWatchStatusIds: Set<String> = []
     var watchActionErrorMessage: String?
     var isLoadingWatchlistStatus = false
@@ -492,6 +493,10 @@ final class MediaDetailViewModel {
         [.movie, .episode, .clip].contains(media.type)
     }
 
+    func canShowFileInfo(for item: MediaItem) -> Bool {
+        [.movie, .episode, .clip].contains(item.type)
+    }
+
     var canSearchSubtitles: Bool {
         services.detail.supportsRemoteSubtitleSearch
             && services.authorization.canManageSubtitles
@@ -623,15 +628,25 @@ final class MediaDetailViewModel {
     }
 
     func loadFileInfo(forceReload: Bool = false) async {
-        guard canShowFileInfo else {
+        await loadFileInfo(for: nil, forceReload: forceReload)
+    }
+
+    func loadFileInfo(for target: MediaItem?, forceReload: Bool = false) async {
+        let target = target ?? media.mediaItem
+        guard canShowFileInfo(for: target) else {
             fileInfo = nil
             fileInfoErrorMessage = nil
             return
         }
 
-        let mediaID = media.mediaItem.id
-        guard forceReload || fileInfo == nil else { return }
+        let mediaID = target.id
+        guard forceReload || fileInfo == nil || fileInfoMediaID != mediaID else { return }
         guard !isLoadingFileInfo else { return }
+
+        if fileInfoMediaID != mediaID {
+            fileInfo = nil
+            fileInfoErrorMessage = nil
+        }
 
         requestedFileInfoID = mediaID
         isLoadingFileInfo = true
@@ -643,9 +658,10 @@ final class MediaDetailViewModel {
         }
 
         do {
-            let result = try await services.detail.fileInfo(for: media.mediaItem)
+            let result = try await services.detail.fileInfo(for: target)
             guard requestedFileInfoID == mediaID, !Task.isCancelled else { return }
             fileInfo = result
+            fileInfoMediaID = mediaID
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             guard requestedFileInfoID == mediaID else { return }
@@ -1056,6 +1072,7 @@ final class MediaDetailViewModel {
             cast = []
             relatedHubs = []
             fileInfo = nil
+            fileInfoMediaID = nil
             fileInfoErrorMessage = nil
             extrasTask?.cancel()
             extras = []

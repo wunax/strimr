@@ -13,7 +13,7 @@ struct MediaDetailView: View {
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
-    @State private var isShowingFileInfo = false
+    @State private var fileInfoMedia: MediaItem?
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -90,8 +90,8 @@ struct MediaDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $isShowingFileInfo) {
-            MediaFileInfoView(viewModel: bindableViewModel)
+        .sheet(item: $fileInfoMedia) { media in
+            MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
                 .frame(minWidth: 900, idealWidth: 1_080, minHeight: 560, idealHeight: 680)
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
@@ -354,7 +354,7 @@ struct MediaDetailView: View {
             if viewModel.canShowFileInfo {
                 Divider()
                 Button {
-                    isShowingFileInfo = true
+                    fileInfoMedia = viewModel.media.mediaItem
                 } label: {
                     Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                 }
@@ -487,6 +487,9 @@ struct MediaDetailView: View {
                                     contextualEpisodeID = episode.id
                                     focusedMedia = episode
                                     Task { await viewModel.loadTrackSelection(for: episode.id) }
+                                },
+                                onFileInfo: {
+                                    fileInfoMedia = episode
                                 },
                             )
                             .id(episode.id)
@@ -640,6 +643,7 @@ private struct EpisodeArtworkCard: View {
     let shouldShowBothWatchActions: Bool
     let onMarkWatched: () -> Void
     let onFocus: () -> Void
+    let onFileInfo: () -> Void
 
     @FocusState private var isFocused: Bool
 
@@ -750,6 +754,11 @@ private struct EpisodeArtworkCard: View {
             if trackViewModel.hasTrackSelection(for: episode.id) {
                 Divider()
                 MediaDetailTrackMenuItems(viewModel: trackViewModel, ratingKey: episode.id)
+            }
+
+            Divider()
+            Button(action: onFileInfo) {
+                Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
             }
         }
         .onPlayPauseCommand(perform: onPlay)
