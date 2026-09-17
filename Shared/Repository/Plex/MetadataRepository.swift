@@ -6,6 +6,7 @@ final class MetadataRepository {
 
     struct PlexMetadataParams: QueryItemConvertible {
         var checkFiles: Bool?
+        var includeStreams: Bool?
         var includeChapters: Bool?
         var includeMarkers: Bool?
         var includeOnDeck: Bool?
@@ -13,6 +14,7 @@ final class MetadataRepository {
         var queryItems: [URLQueryItem] {
             [
                 URLQueryItem.makeBoolFlag("checkFiles", checkFiles),
+                URLQueryItem.makeBoolFlag("includeStreams", includeStreams),
                 URLQueryItem.makeBoolFlag("includeChapters", includeChapters),
                 URLQueryItem.makeBoolFlag("includeMarkers", includeMarkers),
                 URLQueryItem.makeBoolFlag("includeOnDeck", includeOnDeck),

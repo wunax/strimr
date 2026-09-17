@@ -48,9 +48,14 @@ final class MediaDetailViewModel {
     var isLoadingTracks = false
     var isUpdatingTracks = false
     var trackSelectionErrorMessage: String?
+    var fileInfo: MediaFileInfo?
+    var isLoadingFileInfo = false
+    var fileInfoErrorMessage: String?
     @ObservationIgnored private var trackPartFile: String?
     @ObservationIgnored private(set) var trackRatingKey: String?
     @ObservationIgnored private var requestedTrackRatingKey: String?
+    @ObservationIgnored private var requestedFileInfoID: String?
+    @ObservationIgnored private var fileInfoMediaID: String?
     private var updatingWatchStatusIds: Set<String> = []
     var watchActionErrorMessage: String?
     var isLoadingWatchlistStatus = false
@@ -484,6 +489,14 @@ final class MediaDetailViewModel {
         !audioTracks.isEmpty || !subtitleTracks.isEmpty
     }
 
+    var canShowFileInfo: Bool {
+        [.movie, .episode, .clip].contains(media.type)
+    }
+
+    func canShowFileInfo(for item: MediaItem) -> Bool {
+        [.movie, .episode, .clip].contains(item.type)
+    }
+
     var canSearchSubtitles: Bool {
         services.detail.supportsRemoteSubtitleSearch
             && services.authorization.canManageSubtitles
@@ -612,6 +625,50 @@ final class MediaDetailViewModel {
     func loadTrackSelection(for ratingKey: String) async {
         guard trackRatingKey != ratingKey else { return }
         await loadTrackSelection(for: ratingKey, preservingExistingContent: false)
+    }
+
+    func loadFileInfo(forceReload: Bool = false) async {
+        await loadFileInfo(for: nil, forceReload: forceReload)
+    }
+
+    func loadFileInfo(for target: MediaItem?, forceReload: Bool = false) async {
+        let target = target ?? media.mediaItem
+        guard canShowFileInfo(for: target) else {
+            fileInfo = nil
+            fileInfoErrorMessage = nil
+            return
+        }
+
+        let mediaID = target.id
+        guard forceReload || fileInfo == nil || fileInfoMediaID != mediaID else { return }
+        guard !isLoadingFileInfo else { return }
+
+        if fileInfoMediaID != mediaID {
+            fileInfo = nil
+            fileInfoErrorMessage = nil
+        }
+
+        requestedFileInfoID = mediaID
+        isLoadingFileInfo = true
+        fileInfoErrorMessage = nil
+        defer {
+            if requestedFileInfoID == mediaID || requestedFileInfoID == nil {
+                isLoadingFileInfo = false
+            }
+        }
+
+        do {
+            let result = try await services.detail.fileInfo(for: target)
+            guard requestedFileInfoID == mediaID, !Task.isCancelled else { return }
+            fileInfo = result
+            fileInfoMediaID = mediaID
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            guard requestedFileInfoID == mediaID else { return }
+            fileInfo = nil
+            fileInfoErrorMessage = error.localizedDescription
+            ErrorReporter.capture(error)
+        }
     }
 
     func refreshTrackSelectionAfterSubtitleAttachment() async {
@@ -1014,6 +1071,9 @@ final class MediaDetailViewModel {
         if !preservingExistingContent {
             cast = []
             relatedHubs = []
+            fileInfo = nil
+            fileInfoMediaID = nil
+            fileInfoErrorMessage = nil
             extrasTask?.cancel()
             extras = []
             extrasLoadedFor = nil
