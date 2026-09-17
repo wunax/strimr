@@ -1,5 +1,47 @@
 import SwiftUI
 
+private enum MediaFileInfoLayout {
+#if os(tvOS)
+    static let outerHorizontalPadding: CGFloat = 32
+    static let outerVerticalPadding: CGFloat = 32
+    static let contentSpacing: CGFloat = 32
+    static let versionSpacing: CGFloat = 24
+    static let partListSpacing: CGFloat = 20
+    static let attachmentListSpacing: CGFloat = 18
+    static let subsectionSpacing: CGFloat = 18
+    static let cardContentSpacing: CGFloat = 18
+    static let cardPadding: CGFloat = 20
+    static let gridSpacing: CGFloat = 16
+    static let disclosureContentPadding: CGFloat = 16
+    static let nestedLabelSpacing: CGFloat = 12
+    static let streamSpacing: CGFloat = 16
+    static let streamPadding: CGFloat = 16
+    static let streamListSpacing: CGFloat = 14
+    static let disclosureSpacing: CGFloat = 20
+    static let nestedLabelVerticalPadding: CGFloat = 4
+    static let partVerticalPadding: CGFloat = 6
+#else
+    static let outerHorizontalPadding: CGFloat = 24
+    static let outerVerticalPadding: CGFloat = 24
+    static let contentSpacing: CGFloat = 24
+    static let versionSpacing: CGFloat = 16
+    static let partListSpacing: CGFloat = 16
+    static let attachmentListSpacing: CGFloat = 14
+    static let subsectionSpacing: CGFloat = 14
+    static let cardContentSpacing: CGFloat = 14
+    static let cardPadding: CGFloat = 16
+    static let gridSpacing: CGFloat = 12
+    static let disclosureContentPadding: CGFloat = 12
+    static let nestedLabelSpacing: CGFloat = 8
+    static let streamSpacing: CGFloat = 12
+    static let streamPadding: CGFloat = 12
+    static let streamListSpacing: CGFloat = 10
+    static let disclosureSpacing: CGFloat = 0
+    static let nestedLabelVerticalPadding: CGFloat = 0
+    static let partVerticalPadding: CGFloat = 4
+#endif
+}
+
 struct MediaFileInfoView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MediaDetailViewModel
@@ -12,23 +54,8 @@ struct MediaFileInfoView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical) {
-                Group {
-                    if viewModel.isLoadingFileInfo {
-                        ProgressView("media.fileInfo.loading")
-                            .frame(maxWidth: .infinity, minHeight: 180)
-                    } else if let fileInfo = viewModel.fileInfo, !fileInfo.versions.isEmpty {
-                        fileInfoContent(fileInfo)
-                    } else {
-                        emptyState
-                    }
-                }
-                .frame(maxWidth: 1_000, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 24)
-            }
-            .navigationTitle("media.fileInfo.title")
+            fileInfoScrollView
+                .navigationTitle("media.fileInfo.title")
             #if !os(tvOS)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -42,8 +69,30 @@ struct MediaFileInfoView: View {
         }
     }
 
+    private var fileInfoScrollView: some View {
+        ScrollView(.vertical) {
+            Group {
+                if viewModel.isLoadingFileInfo {
+                    ProgressView("media.fileInfo.loading")
+                        .frame(maxWidth: .infinity, minHeight: 180)
+                } else if let fileInfo = viewModel.fileInfo, !fileInfo.versions.isEmpty {
+                    fileInfoContent(fileInfo)
+                } else {
+                    emptyState
+                }
+            }
+            .frame(maxWidth: 1_000, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, MediaFileInfoLayout.outerHorizontalPadding)
+            .padding(.vertical, MediaFileInfoLayout.outerVerticalPadding)
+        }
+        #if os(tvOS)
+            .focusSection()
+        #endif
+    }
+
     private func fileInfoContent(_ fileInfo: MediaFileInfo) -> some View {
-        LazyVStack(alignment: .leading, spacing: 24) {
+        LazyVStack(alignment: .leading, spacing: MediaFileInfoLayout.contentSpacing) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(targetMedia?.title ?? viewModel.media.title)
                     .font(.title2.weight(.semibold))
@@ -101,7 +150,7 @@ private struct MediaFileInfoVersionView: View {
     let version: MediaFileVersion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: MediaFileInfoLayout.versionSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(verbatim: versionTitle)
                     .font(.title3.weight(.semibold))
@@ -150,7 +199,7 @@ private struct MediaFileInfoVersionView: View {
                     titleKey: "media.fileInfo.file",
                     systemImage: "doc",
                 ) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: MediaFileInfoLayout.partListSpacing) {
                         ForEach(Array(version.parts.enumerated()), id: \.offset) { index, part in
                             MediaFileInfoPartView(index: index, part: part)
                         }
@@ -163,7 +212,7 @@ private struct MediaFileInfoVersionView: View {
                     titleKey: "media.fileInfo.attachments",
                     systemImage: "paperclip",
                 ) {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: MediaFileInfoLayout.attachmentListSpacing) {
                         ForEach(Array(version.attachments.enumerated()), id: \.offset) { index, attachment in
                             infoGrid {
                                 field("media.fileInfo.fileName", attachment.fileName)
@@ -216,14 +265,17 @@ private struct MediaFileInfoVersionView: View {
         systemImage: String,
         @ViewBuilder content: () -> Content,
     ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: MediaFileInfoLayout.cardContentSpacing) {
             Label(titleKey, systemImage: systemImage)
                 .font(.headline)
             content()
         }
-        .padding(16)
+        .padding(MediaFileInfoLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 14))
+        #if os(tvOS)
+            .focusable()
+        #endif
     }
 
     @ViewBuilder
@@ -231,7 +283,7 @@ private struct MediaFileInfoVersionView: View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
-            spacing: 12,
+            spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
         )
     }
@@ -262,7 +314,7 @@ private struct MediaFileInfoPartView: View {
     let part: MediaFilePart
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: MediaFileInfoLayout.subsectionSpacing) {
             Text(verbatim: fileTitle)
                 .font(.subheadline.weight(.semibold))
 
@@ -289,25 +341,27 @@ private struct MediaFileInfoPartView: View {
                 }
             }
 
-            ForEach([MediaFileStreamKind.video, .audio, .subtitle, .other], id: \.self) { kind in
-                let streams = part.streams.filter { $0.kind == kind }
-                if !streams.isEmpty {
-                    MediaFileInfoDisclosureCard(
-                        titleKey: kind.titleKey,
-                        systemImage: kind.systemImage,
-                        initiallyExpanded: false,
-                        style: .nested,
-                    ) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(streams.enumerated()), id: \.offset) { _, stream in
-                                MediaFileInfoStreamView(stream: stream)
+            VStack(alignment: .leading, spacing: MediaFileInfoLayout.disclosureSpacing) {
+                ForEach([MediaFileStreamKind.video, .audio, .subtitle, .other], id: \.self) { kind in
+                    let streams = part.streams.filter { $0.kind == kind }
+                    if !streams.isEmpty {
+                        MediaFileInfoDisclosureCard(
+                            titleKey: kind.titleKey,
+                            systemImage: kind.systemImage,
+                            initiallyExpanded: false,
+                            style: .nested,
+                        ) {
+                            VStack(alignment: .leading, spacing: MediaFileInfoLayout.streamListSpacing) {
+                                ForEach(Array(streams.enumerated()), id: \.offset) { _, stream in
+                                    MediaFileInfoStreamView(stream: stream)
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, MediaFileInfoLayout.partVerticalPadding)
     }
 
     private var fileTitle: String {
@@ -319,7 +373,7 @@ private struct MediaFileInfoPartView: View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
-            spacing: 12,
+            spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
         )
     }
@@ -373,18 +427,18 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
 
                 if isExpanded {
                     content()
-                        .padding(.top, 12)
+                        .padding(.top, MediaFileInfoLayout.disclosureContentPadding)
                 }
             #else
                 DisclosureGroup(isExpanded: $isExpanded) {
                     content()
-                        .padding(.top, 12)
+                        .padding(.top, MediaFileInfoLayout.disclosureContentPadding)
                 } label: {
                     disclosureLabel
                 }
             #endif
         }
-        .padding(style == .card ? 16 : 0)
+        .padding(style == .card ? MediaFileInfoLayout.cardPadding : 0)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             if style == .card {
@@ -395,7 +449,7 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
     }
 
     private var disclosureLabel: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: MediaFileInfoLayout.nestedLabelSpacing) {
             Label(titleKey, systemImage: systemImage)
                 .font(style == .card ? .headline : .subheadline.weight(.semibold))
 
@@ -408,6 +462,9 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
             #endif
         }
         .contentShape(Rectangle())
+        #if os(tvOS)
+            .padding(.vertical, style == .nested ? MediaFileInfoLayout.nestedLabelVerticalPadding : 0)
+        #endif
     }
 }
 
@@ -415,7 +472,7 @@ private struct MediaFileInfoStreamView: View {
     let stream: MediaFileStream
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: MediaFileInfoLayout.streamSpacing) {
             Text(stream.headline)
                 .font(.callout.weight(.semibold))
                 .lineLimit(2)
@@ -460,7 +517,7 @@ private struct MediaFileInfoStreamView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(MediaFileInfoLayout.streamPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
     }
@@ -480,7 +537,7 @@ private struct MediaFileInfoStreamView: View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
-            spacing: 12,
+            spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
         )
     }

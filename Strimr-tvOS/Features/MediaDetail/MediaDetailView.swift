@@ -92,7 +92,8 @@ struct MediaDetailView: View {
         }
         .sheet(item: $fileInfoMedia) { media in
             MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
-                .frame(minWidth: 900, idealWidth: 1_080, minHeight: 560, idealHeight: 680)
+                .frame(minWidth: 900, idealWidth: 1_080, minHeight: 640, idealHeight: 760)
+                .presentationDetents([.height(760)])
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
