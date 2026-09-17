@@ -88,9 +88,9 @@ struct MediaFileVersion: Hashable, Sendable {
         }
     }
 
-    nonisolated private static func formatBitrate(_ value: Int) -> String {
-        if value >= 1_000 {
-            return String(format: "%.1f Mbps", Double(value) / 1_000)
+    private nonisolated static func formatBitrate(_ value: Int) -> String {
+        if value >= 1000 {
+            return String(format: "%.1f Mbps", Double(value) / 1000)
         }
         return "\(value) kbps"
     }
@@ -172,8 +172,8 @@ struct MediaFileStream: Hashable, Sendable {
 
     var bitrateText: String? {
         guard let bitrateKbps else { return nil }
-        if bitrateKbps >= 1_000 {
-            return String(format: "%.1f Mbps", Double(bitrateKbps) / 1_000)
+        if bitrateKbps >= 1000 {
+            return String(format: "%.1f Mbps", Double(bitrateKbps) / 1000)
         }
         return "\(bitrateKbps) kbps"
     }
@@ -190,10 +190,10 @@ struct MediaFileStream: Hashable, Sendable {
 
     var sampleRateText: String? {
         guard let sampleRate else { return nil }
-        if sampleRate % 1_000 == 0 {
-            return "\(sampleRate / 1_000) kHz"
+        if sampleRate % 1000 == 0 {
+            return "\(sampleRate / 1000) kHz"
         }
-        return "\(Double(sampleRate) / 1_000) kHz"
+        return "\(Double(sampleRate) / 1000) kHz"
     }
 }
 

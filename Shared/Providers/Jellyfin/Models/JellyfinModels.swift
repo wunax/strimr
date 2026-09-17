@@ -810,7 +810,7 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     }
 
     private static func dolbyVisionVersion(major: Int?, minor: Int?) -> String? {
-        return switch (major, minor) {
+        switch (major, minor) {
         case let (major?, minor?):
             "\(major).\(minor)"
         case let (major?, nil):

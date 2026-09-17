@@ -1,45 +1,45 @@
 import SwiftUI
 
 private enum MediaFileInfoLayout {
-#if os(tvOS)
-    static let outerHorizontalPadding: CGFloat = 32
-    static let outerVerticalPadding: CGFloat = 32
-    static let contentSpacing: CGFloat = 32
-    static let versionSpacing: CGFloat = 24
-    static let partListSpacing: CGFloat = 20
-    static let attachmentListSpacing: CGFloat = 18
-    static let subsectionSpacing: CGFloat = 18
-    static let cardContentSpacing: CGFloat = 18
-    static let cardPadding: CGFloat = 20
-    static let gridSpacing: CGFloat = 16
-    static let disclosureContentPadding: CGFloat = 16
-    static let nestedLabelSpacing: CGFloat = 12
-    static let streamSpacing: CGFloat = 16
-    static let streamPadding: CGFloat = 16
-    static let streamListSpacing: CGFloat = 14
-    static let disclosureSpacing: CGFloat = 20
-    static let nestedLabelVerticalPadding: CGFloat = 4
-    static let partVerticalPadding: CGFloat = 6
-#else
-    static let outerHorizontalPadding: CGFloat = 24
-    static let outerVerticalPadding: CGFloat = 24
-    static let contentSpacing: CGFloat = 24
-    static let versionSpacing: CGFloat = 16
-    static let partListSpacing: CGFloat = 16
-    static let attachmentListSpacing: CGFloat = 14
-    static let subsectionSpacing: CGFloat = 14
-    static let cardContentSpacing: CGFloat = 14
-    static let cardPadding: CGFloat = 16
-    static let gridSpacing: CGFloat = 12
-    static let disclosureContentPadding: CGFloat = 12
-    static let nestedLabelSpacing: CGFloat = 8
-    static let streamSpacing: CGFloat = 12
-    static let streamPadding: CGFloat = 12
-    static let streamListSpacing: CGFloat = 10
-    static let disclosureSpacing: CGFloat = 0
-    static let nestedLabelVerticalPadding: CGFloat = 0
-    static let partVerticalPadding: CGFloat = 4
-#endif
+    #if os(tvOS)
+        static let outerHorizontalPadding: CGFloat = 32
+        static let outerVerticalPadding: CGFloat = 32
+        static let contentSpacing: CGFloat = 32
+        static let versionSpacing: CGFloat = 24
+        static let partListSpacing: CGFloat = 20
+        static let attachmentListSpacing: CGFloat = 18
+        static let subsectionSpacing: CGFloat = 18
+        static let cardContentSpacing: CGFloat = 18
+        static let cardPadding: CGFloat = 20
+        static let gridSpacing: CGFloat = 16
+        static let disclosureContentPadding: CGFloat = 16
+        static let nestedLabelSpacing: CGFloat = 12
+        static let streamSpacing: CGFloat = 16
+        static let streamPadding: CGFloat = 16
+        static let streamListSpacing: CGFloat = 14
+        static let disclosureSpacing: CGFloat = 20
+        static let nestedLabelVerticalPadding: CGFloat = 4
+        static let partVerticalPadding: CGFloat = 6
+    #else
+        static let outerHorizontalPadding: CGFloat = 24
+        static let outerVerticalPadding: CGFloat = 24
+        static let contentSpacing: CGFloat = 24
+        static let versionSpacing: CGFloat = 16
+        static let partListSpacing: CGFloat = 16
+        static let attachmentListSpacing: CGFloat = 14
+        static let subsectionSpacing: CGFloat = 14
+        static let cardContentSpacing: CGFloat = 14
+        static let cardPadding: CGFloat = 16
+        static let gridSpacing: CGFloat = 12
+        static let disclosureContentPadding: CGFloat = 12
+        static let nestedLabelSpacing: CGFloat = 8
+        static let streamSpacing: CGFloat = 12
+        static let streamPadding: CGFloat = 12
+        static let streamListSpacing: CGFloat = 10
+        static let disclosureSpacing: CGFloat = 0
+        static let nestedLabelVerticalPadding: CGFloat = 0
+        static let partVerticalPadding: CGFloat = 4
+    #endif
 }
 
 struct MediaFileInfoView: View {
@@ -81,13 +81,13 @@ struct MediaFileInfoView: View {
                     emptyState
                 }
             }
-            .frame(maxWidth: 1_000, alignment: .leading)
+            .frame(maxWidth: 1000, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, MediaFileInfoLayout.outerHorizontalPadding)
             .padding(.vertical, MediaFileInfoLayout.outerVerticalPadding)
         }
         #if os(tvOS)
-            .focusSection()
+        .focusSection()
         #endif
     }
 
@@ -260,10 +260,10 @@ private struct MediaFileInfoVersionView: View {
     }
 
     @ViewBuilder
-    private func infoCard<Content: View>(
+    private func infoCard(
         _ titleKey: LocalizedStringKey,
         systemImage: String,
-        @ViewBuilder content: () -> Content,
+        @ViewBuilder content: () -> some View,
     ) -> some View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.cardContentSpacing) {
             Label(titleKey, systemImage: systemImage)
@@ -278,8 +278,7 @@ private struct MediaFileInfoVersionView: View {
         #endif
     }
 
-    @ViewBuilder
-    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
@@ -368,8 +367,7 @@ private struct MediaFileInfoPartView: View {
         String(localized: "media.fileInfo.file \(index + 1)")
     }
 
-    @ViewBuilder
-    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
@@ -529,11 +527,10 @@ private struct MediaFileInfoStreamView: View {
             stream.isForced == true ? "media.fileInfo.forced" : nil,
             stream.isExternal == true ? "media.fileInfo.external" : nil,
             stream.isHearingImpaired == true ? "media.fileInfo.hearingImpaired" : nil,
-        ].compactMap { $0 }
+        ].compactMap(\.self)
     }
 
-    @ViewBuilder
-    private func infoGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
             alignment: .leading,
@@ -577,12 +574,12 @@ private struct MediaFileInfoFlowLayout: Layout {
     let horizontalSpacing: CGFloat
     let verticalSpacing: CGFloat
 
-    typealias Cache = ()
+    typealias Cache = Void
 
     func sizeThatFits(
         proposal: ProposedViewSize,
         subviews: Subviews,
-        cache: inout Cache,
+        cache _: inout Cache,
     ) -> CGSize {
         let rows = rows(for: subviews, maxWidth: proposal.width ?? .greatestFiniteMagnitude)
         let width = proposal.width ?? rows.map { row in
@@ -599,9 +596,9 @@ private struct MediaFileInfoFlowLayout: Layout {
 
     func placeSubviews(
         in bounds: CGRect,
-        proposal: ProposedViewSize,
+        proposal _: ProposedViewSize,
         subviews: Subviews,
-        cache: inout Cache,
+        cache _: inout Cache,
     ) {
         let rows = rows(for: subviews, maxWidth: bounds.width)
         var y = bounds.minY
