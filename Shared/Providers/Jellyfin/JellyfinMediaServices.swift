@@ -902,14 +902,28 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     private static func dynamicRange(for stream: JellyfinMediaStream) -> String? {
         let value = stream.videoRangeType ?? stream.videoRange
         switch value?.lowercased() {
-        case "dolbyvision", "dovi":
+        case "4", "dovi", "dolbyvision":
             return "Dolby Vision"
-        case "hdr10plus", "hdr10+":
-            return "HDR10+"
-        case "hdr10":
+        case "2", "hdr10":
             return "HDR10"
-        case "hlg":
+        case "3", "hlg":
             return "HLG"
+        case "5", "doviwithhdr10":
+            return "Dolby Vision (HDR10)"
+        case "6", "doviwithhlg":
+            return "Dolby Vision (HLG)"
+        case "7", "doviwithsdr":
+            return "Dolby Vision (SDR)"
+        case "8", "doviwithel":
+            return "Dolby Vision (EL)"
+        case "9", "doviwithhdr10plus":
+            return "Dolby Vision (HDR10+)"
+        case "10", "doviwithelhdr10plus":
+            return "Dolby Vision (EL/HDR10+)"
+        case "12", "hdr10plus", "hdr10+":
+            return "HDR10+"
+        case nil, "", "0", "1", "unknown", "sdr":
+            return nil
         default:
             return value
         }

@@ -624,7 +624,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             switch stream.streamType {
             case .audio: kind = .audio
             case .subtitle: kind = .subtitle
-            case .video: return nil
+            case .video, .unknown: return nil
             }
             guard let index = stream.index else { return nil }
             return PlaybackTrack(
@@ -1049,6 +1049,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             .audio
         case .subtitle:
             .subtitle
+        case .unknown:
+            .other
         }
 
         return MediaFileStream(

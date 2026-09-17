@@ -1,10 +1,87 @@
 import Foundation
 
 private extension KeyedDecodingContainer {
-    func decodePlexBoolIfPresent(forKey key: Key) throws -> Bool? {
-        guard contains(key) else { return nil }
-        if try decodeNil(forKey: key) { return nil }
+    func decodePlexStringIfPresent(forKey key: Key) -> String? {
+        if let value = try? decode(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(Int.self, forKey: key) {
+            return String(value)
+        }
+        if let value = try? decode(Double.self, forKey: key) {
+            return String(value)
+        }
+        if let value = try? decode(Bool.self, forKey: key) {
+            return value ? "true" : "false"
+        }
+        return nil
+    }
 
+    func decodePlexIntIfPresent(forKey key: Key) -> Int? {
+        if let value = try? decode(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let integer = Int(trimmed) {
+                return integer
+            }
+            if let decimal = Double(trimmed),
+               decimal.isFinite,
+               decimal >= Double(Int.min),
+               decimal <= Double(Int.max)
+            {
+                return Int(decimal)
+            }
+        }
+        if let value = try? decode(Double.self, forKey: key),
+           value.isFinite,
+           value >= Double(Int.min),
+           value <= Double(Int.max)
+        {
+            return Int(value)
+        }
+        return nil
+    }
+
+    func decodePlexInt64IfPresent(forKey key: Key) -> Int64? {
+        if let value = try? decode(Int64.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let integer = Int64(trimmed) {
+                return integer
+            }
+            if let decimal = Double(trimmed),
+               decimal.isFinite,
+               decimal >= Double(Int64.min),
+               decimal <= Double(Int64.max)
+            {
+                return Int64(decimal)
+            }
+        }
+        if let value = try? decode(Double.self, forKey: key),
+           value.isFinite,
+           value >= Double(Int64.min),
+           value <= Double(Int64.max)
+        {
+            return Int64(value)
+        }
+        return nil
+    }
+
+    func decodePlexDoubleIfPresent(forKey key: Key) -> Double? {
+        if let value = try? decode(Double.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return Double(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return nil
+    }
+
+    func decodePlexBoolIfPresent(forKey key: Key) -> Bool? {
         if let value = try? decode(Bool.self, forKey: key) {
             return value
         }
@@ -54,8 +131,24 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(String.self)
-        self = PlexItemType(rawValue: rawValue) ?? .unknown
+        if let rawValue = try? container.decode(String.self) {
+            self = PlexItemType(rawValue: rawValue.lowercased()) ?? .unknown
+            return
+        }
+        if let rawValue = try? container.decode(Int.self) {
+            self = switch rawValue {
+            case 1: .movie
+            case 2: .show
+            case 3: .season
+            case 4: .episode
+            case 12: .clip
+            case 15, 16: .playlist
+            case 18: .collection
+            default: .unknown
+            }
+            return
+        }
+        self = .unknown
     }
 }
 
@@ -298,9 +391,33 @@ struct PlexChapter: Codable, Equatable, Hashable {
 
 struct PlexPartStream: Codable, Equatable, Hashable {
     enum PlexPartStreamType: Int, Codable, Equatable {
+        case unknown = 0
         case video = 1
         case audio = 2
         case subtitle = 3
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let rawValue = try? container.decode(Int.self) {
+                self = PlexPartStreamType(rawValue: rawValue) ?? .unknown
+                return
+            }
+            if let rawValue = try? container.decode(String.self) {
+                self = switch rawValue.lowercased() {
+                case "1", "video": .video
+                case "2", "audio": .audio
+                case "3", "subtitle", "subtitles": .subtitle
+                default: .unknown
+                }
+                return
+            }
+            self = .unknown
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
     }
 
     let id: Int?
@@ -381,6 +498,73 @@ struct PlexPartStream: Codable, Equatable, Hashable {
         case dolbyVisionEnhancementLayerPresent = "DOVIELPresent"
         case dolbyVisionRPUPresent = "DOVIRPUPresent"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let title = container.decodePlexStringIfPresent(forKey: .title)
+        let codec = container.decodePlexStringIfPresent(forKey: .codec) ?? ""
+
+        id = container.decodePlexIntIfPresent(forKey: .id)
+        index = container.decodePlexIntIfPresent(forKey: .index)
+        self.codec = codec
+        streamType = (try? container.decode(PlexPartStreamType.self, forKey: .streamType)) ?? .unknown
+        selected = container.decodePlexBoolIfPresent(forKey: .selected)
+        self.title = title
+        displayTitle = container.decodePlexStringIfPresent(forKey: .displayTitle) ?? title ?? codec
+        extendedDisplayTitle = container.decodePlexStringIfPresent(forKey: .extendedDisplayTitle)
+        key = container.decodePlexStringIfPresent(forKey: .key)
+        language = container.decodePlexStringIfPresent(forKey: .language)
+        languageCode = container.decodePlexStringIfPresent(forKey: .languageCode)
+        languageTag = container.decodePlexStringIfPresent(forKey: .languageTag)
+        forced = container.decodePlexBoolIfPresent(forKey: .forced)
+        hearingImpaired = container.decodePlexBoolIfPresent(forKey: .hearingImpaired)
+        isDefault = container.decodePlexBoolIfPresent(forKey: .isDefault)
+        bitrate = container.decodePlexIntIfPresent(forKey: .bitrate)
+        codecID = container.decodePlexStringIfPresent(forKey: .codecID)
+        profile = container.decodePlexStringIfPresent(forKey: .profile)
+        level = container.decodePlexIntIfPresent(forKey: .level)
+        dub = container.decodePlexBoolIfPresent(forKey: .dub)
+        original = container.decodePlexBoolIfPresent(forKey: .original)
+        width = container.decodePlexIntIfPresent(forKey: .width)
+        height = container.decodePlexIntIfPresent(forKey: .height)
+        codedWidth = container.decodePlexIntIfPresent(forKey: .codedWidth)
+        codedHeight = container.decodePlexIntIfPresent(forKey: .codedHeight)
+        frameRate = container.decodePlexDoubleIfPresent(forKey: .frameRate)
+        scanType = container.decodePlexStringIfPresent(forKey: .scanType)
+        anamorphic = container.decodePlexBoolIfPresent(forKey: .anamorphic)
+        bitDepth = container.decodePlexIntIfPresent(forKey: .bitDepth)
+        refFrames = container.decodePlexIntIfPresent(forKey: .refFrames)
+        pixelFormat = container.decodePlexStringIfPresent(forKey: .pixelFormat)
+        colorSpace = container.decodePlexStringIfPresent(forKey: .colorSpace)
+        colorRange = container.decodePlexStringIfPresent(forKey: .colorRange)
+        colorPrimaries = container.decodePlexStringIfPresent(forKey: .colorPrimaries)
+        colorTransfer = container.decodePlexStringIfPresent(forKey: .colorTransfer)
+        chromaSubsampling = container.decodePlexStringIfPresent(forKey: .chromaSubsampling)
+        chromaLocation = container.decodePlexStringIfPresent(forKey: .chromaLocation)
+        pixelAspectRatio = container.decodePlexStringIfPresent(forKey: .pixelAspectRatio)
+        channels = container.decodePlexIntIfPresent(forKey: .channels)
+        audioChannelLayout = container.decodePlexStringIfPresent(forKey: .audioChannelLayout)
+        samplingRate = container.decodePlexIntIfPresent(forKey: .samplingRate)
+        streamIdentifier = container.decodePlexStringIfPresent(forKey: .streamIdentifier)
+        format = container.decodePlexStringIfPresent(forKey: .format)
+        providerTitle = container.decodePlexStringIfPresent(forKey: .providerTitle)
+        score = container.decodePlexIntIfPresent(forKey: .score)
+        transient = container.decodePlexBoolIfPresent(forKey: .transient)
+        sourceKey = container.decodePlexStringIfPresent(forKey: .sourceKey)
+        comment = container.decodePlexStringIfPresent(forKey: .comment)
+        descriptions = container.decodePlexBoolIfPresent(forKey: .descriptions)
+        headerCompression = container.decodePlexBoolIfPresent(forKey: .headerCompression)
+        dolbyVisionPresent = container.decodePlexBoolIfPresent(forKey: .dolbyVisionPresent)
+        dolbyVisionProfile = container.decodePlexIntIfPresent(forKey: .dolbyVisionProfile)
+        dolbyVisionLevel = container.decodePlexIntIfPresent(forKey: .dolbyVisionLevel)
+        dolbyVisionVersion = container.decodePlexStringIfPresent(forKey: .dolbyVisionVersion)
+        dolbyVisionCompatibilityID = container.decodePlexIntIfPresent(forKey: .dolbyVisionCompatibilityID)
+        dolbyVisionBaseLayerPresent = container.decodePlexBoolIfPresent(forKey: .dolbyVisionBaseLayerPresent)
+        dolbyVisionEnhancementLayerPresent = container.decodePlexBoolIfPresent(
+            forKey: .dolbyVisionEnhancementLayerPresent,
+        )
+        dolbyVisionRPUPresent = container.decodePlexBoolIfPresent(forKey: .dolbyVisionRPUPresent)
+    }
 }
 
 extension MediaTrackMetadata {
@@ -426,22 +610,34 @@ struct PlexPart: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        key = try container.decode(String.self, forKey: .key)
-        file = try container.decodeIfPresent(String.self, forKey: .file)
-        size = try container.decodeIfPresent(Int64.self, forKey: .size)
-        self.container = try container.decodeIfPresent(String.self, forKey: .container)
-        duration = try container.decodeIfPresent(Int.self, forKey: .duration)
-        optimizedForStreaming = try container.decodePlexBoolIfPresent(forKey: .optimizedForStreaming)
-        has64bitOffsets = try container.decodePlexBoolIfPresent(forKey: .has64bitOffsets)
-        hasThumbnail = try container.decodePlexBoolIfPresent(forKey: .hasThumbnail)
-        indexes = try container.decodeIfPresent(String.self, forKey: .indexes)
-        packetLength = try container.decodeIfPresent(Int.self, forKey: .packetLength)
-        failureBIFResultCode = try container.decodeIfPresent(Int.self, forKey: .failureBIFResultCode)
-        failureBIFRetryCount = try container.decodeIfPresent(Int.self, forKey: .failureBIFRetryCount)
-        exists = try container.decodePlexBoolIfPresent(forKey: .exists)
-        accessible = try container.decodePlexBoolIfPresent(forKey: .accessible)
-        stream = try container.decodeIfPresent([PlexPartStream].self, forKey: .stream)
+        guard let decodedID = container.decodePlexIntIfPresent(forKey: .id) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing Plex part id."),
+            )
+        }
+        guard let decodedKey = container.decodePlexStringIfPresent(forKey: .key) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.key,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing Plex part key."),
+            )
+        }
+        id = decodedID
+        key = decodedKey
+        file = container.decodePlexStringIfPresent(forKey: .file)
+        size = container.decodePlexInt64IfPresent(forKey: .size)
+        self.container = container.decodePlexStringIfPresent(forKey: .container)
+        duration = container.decodePlexIntIfPresent(forKey: .duration)
+        optimizedForStreaming = container.decodePlexBoolIfPresent(forKey: .optimizedForStreaming)
+        has64bitOffsets = container.decodePlexBoolIfPresent(forKey: .has64bitOffsets)
+        hasThumbnail = container.decodePlexBoolIfPresent(forKey: .hasThumbnail)
+        indexes = container.decodePlexStringIfPresent(forKey: .indexes)
+        packetLength = container.decodePlexIntIfPresent(forKey: .packetLength)
+        failureBIFResultCode = container.decodePlexIntIfPresent(forKey: .failureBIFResultCode)
+        failureBIFRetryCount = container.decodePlexIntIfPresent(forKey: .failureBIFRetryCount)
+        exists = container.decodePlexBoolIfPresent(forKey: .exists)
+        accessible = container.decodePlexBoolIfPresent(forKey: .accessible)
+        stream = try? container.decodeIfPresent([PlexPartStream].self, forKey: .stream)
     }
 }
 
@@ -514,28 +710,34 @@ struct PlexMedia: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        title = try container.decodeIfPresent(String.self, forKey: .title)
-        self.container = try container.decodeIfPresent(String.self, forKey: .container)
-        videoResolution = try container.decodeIfPresent(String.self, forKey: .videoResolution)
-        bitrate = try container.decodeIfPresent(Int.self, forKey: .bitrate)
-        duration = try container.decodeIfPresent(Int.self, forKey: .duration)
-        width = try container.decodeIfPresent(Int.self, forKey: .width)
-        height = try container.decodeIfPresent(Int.self, forKey: .height)
-        aspectRatio = try container.decodeIfPresent(Double.self, forKey: .aspectRatio)
-        videoCodec = try container.decodeIfPresent(String.self, forKey: .videoCodec)
-        videoProfile = try container.decodeIfPresent(String.self, forKey: .videoProfile)
-        videoFrameRate = try container.decodeIfPresent(String.self, forKey: .videoFrameRate)
-        audioCodec = try container.decodeIfPresent(String.self, forKey: .audioCodec)
-        audioProfile = try container.decodeIfPresent(String.self, forKey: .audioProfile)
-        audioChannels = try container.decodeIfPresent(Int.self, forKey: .audioChannels)
-        optimizedForStreaming = try container.decodePlexBoolIfPresent(forKey: .optimizedForStreaming)
-        has64bitOffsets = try container.decodePlexBoolIfPresent(forKey: .has64bitOffsets)
-        proxyType = try container.decodeIfPresent(Int.self, forKey: .proxyType)
-        target = try container.decodeIfPresent(String.self, forKey: .target)
-        deletedAt = try container.decodeIfPresent(Int.self, forKey: .deletedAt)
-        displayOffset = try container.decodeIfPresent(Int.self, forKey: .displayOffset)
-        parts = try container.decodeIfPresent([PlexPart].self, forKey: .parts) ?? []
+        guard let decodedID = container.decodePlexIntIfPresent(forKey: .id) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing Plex media id."),
+            )
+        }
+        id = decodedID
+        title = container.decodePlexStringIfPresent(forKey: .title)
+        self.container = container.decodePlexStringIfPresent(forKey: .container)
+        videoResolution = container.decodePlexStringIfPresent(forKey: .videoResolution)
+        bitrate = container.decodePlexIntIfPresent(forKey: .bitrate)
+        duration = container.decodePlexIntIfPresent(forKey: .duration)
+        width = container.decodePlexIntIfPresent(forKey: .width)
+        height = container.decodePlexIntIfPresent(forKey: .height)
+        aspectRatio = container.decodePlexDoubleIfPresent(forKey: .aspectRatio)
+        videoCodec = container.decodePlexStringIfPresent(forKey: .videoCodec)
+        videoProfile = container.decodePlexStringIfPresent(forKey: .videoProfile)
+        videoFrameRate = container.decodePlexStringIfPresent(forKey: .videoFrameRate)
+        audioCodec = container.decodePlexStringIfPresent(forKey: .audioCodec)
+        audioProfile = container.decodePlexStringIfPresent(forKey: .audioProfile)
+        audioChannels = container.decodePlexIntIfPresent(forKey: .audioChannels)
+        optimizedForStreaming = container.decodePlexBoolIfPresent(forKey: .optimizedForStreaming)
+        has64bitOffsets = container.decodePlexBoolIfPresent(forKey: .has64bitOffsets)
+        proxyType = container.decodePlexIntIfPresent(forKey: .proxyType)
+        target = container.decodePlexStringIfPresent(forKey: .target)
+        deletedAt = container.decodePlexIntIfPresent(forKey: .deletedAt)
+        displayOffset = container.decodePlexIntIfPresent(forKey: .displayOffset)
+        parts = (try? container.decodeIfPresent([PlexPart].self, forKey: .parts)) ?? []
     }
 }
 
