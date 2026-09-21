@@ -1,5 +1,76 @@
 import Foundation
 
+private extension KeyedDecodingContainer {
+    nonisolated func decodeJellyfinStringIfPresent(forKey key: Key) -> String? {
+        if let value = try? decode(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(Int.self, forKey: key) {
+            return String(value)
+        }
+        if let value = try? decode(Double.self, forKey: key) {
+            return String(value)
+        }
+        return nil
+    }
+
+    nonisolated func decodeJellyfinIntIfPresent(forKey key: Key) -> Int? {
+        if let value = try? decode(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        if let value = try? decode(Double.self, forKey: key), value.isFinite {
+            return Int(value)
+        }
+        return nil
+    }
+
+    nonisolated func decodeJellyfinInt64IfPresent(forKey key: Key) -> Int64? {
+        if let value = try? decode(Int64.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return Int64(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        if let value = try? decode(Double.self, forKey: key), value.isFinite {
+            return Int64(value)
+        }
+        return nil
+    }
+
+    nonisolated func decodeJellyfinDoubleIfPresent(forKey key: Key) -> Double? {
+        if let value = try? decode(Double.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return Double(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return nil
+    }
+
+    nonisolated func decodeJellyfinBoolIfPresent(forKey key: Key) -> Bool? {
+        if let value = try? decode(Bool.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(Int.self, forKey: key) {
+            return value != 0
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "true", "yes", "y", "on", "1":
+                return true
+            case "false", "no", "n", "off", "0", "":
+                return false
+            default:
+                return nil
+            }
+        }
+        return nil
+    }
+}
+
 nonisolated struct JellyfinPublicSystemInfo: Decodable, Hashable, Sendable {
     let id: String
     let serverName: String
@@ -459,6 +530,15 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let name: String?
     let path: String?
     let container: String?
+    let runTimeTicks: Int64?
+    let size: Int64?
+    let type: String?
+    let protocolName: String?
+    let videoType: String?
+    let isRemote: Bool?
+    let isInfiniteStream: Bool?
+    let eTag: String?
+    let timestamp: String?
     let supportsDirectPlay: Bool?
     let supportsDirectStream: Bool?
     let supportsTranscoding: Bool?
@@ -469,12 +549,22 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     let defaultAudioStreamIndex: Int?
     let defaultSubtitleStreamIndex: Int?
     let mediaStreams: [JellyfinMediaStream]?
+    let mediaAttachments: [JellyfinMediaAttachment]?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
         case path = "Path"
         case container = "Container"
+        case runTimeTicks = "RunTimeTicks"
+        case size = "Size"
+        case type = "Type"
+        case protocolName = "Protocol"
+        case videoType = "VideoType"
+        case isRemote = "IsRemote"
+        case isInfiniteStream = "IsInfiniteStream"
+        case eTag = "ETag"
+        case timestamp = "Timestamp"
         case supportsDirectPlay = "SupportsDirectPlay"
         case supportsDirectStream = "SupportsDirectStream"
         case supportsTranscoding = "SupportsTranscoding"
@@ -485,6 +575,35 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
         case defaultAudioStreamIndex = "DefaultAudioStreamIndex"
         case defaultSubtitleStreamIndex = "DefaultSubtitleStreamIndex"
         case mediaStreams = "MediaStreams"
+        case mediaAttachments = "MediaAttachments"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = container.decodeJellyfinStringIfPresent(forKey: .name)
+        path = container.decodeJellyfinStringIfPresent(forKey: .path)
+        self.container = container.decodeJellyfinStringIfPresent(forKey: .container)
+        runTimeTicks = container.decodeJellyfinInt64IfPresent(forKey: .runTimeTicks)
+        size = container.decodeJellyfinInt64IfPresent(forKey: .size)
+        type = container.decodeJellyfinStringIfPresent(forKey: .type)
+        protocolName = container.decodeJellyfinStringIfPresent(forKey: .protocolName)
+        videoType = container.decodeJellyfinStringIfPresent(forKey: .videoType)
+        isRemote = container.decodeJellyfinBoolIfPresent(forKey: .isRemote)
+        isInfiniteStream = container.decodeJellyfinBoolIfPresent(forKey: .isInfiniteStream)
+        eTag = container.decodeJellyfinStringIfPresent(forKey: .eTag)
+        timestamp = container.decodeJellyfinStringIfPresent(forKey: .timestamp)
+        supportsDirectPlay = container.decodeJellyfinBoolIfPresent(forKey: .supportsDirectPlay)
+        supportsDirectStream = container.decodeJellyfinBoolIfPresent(forKey: .supportsDirectStream)
+        supportsTranscoding = container.decodeJellyfinBoolIfPresent(forKey: .supportsTranscoding)
+        transcodingURL = container.decodeJellyfinStringIfPresent(forKey: .transcodingURL)
+        liveStreamID = container.decodeJellyfinStringIfPresent(forKey: .liveStreamID)
+        requiredHTTPHeaders = try? container.decodeIfPresent([String: String].self, forKey: .requiredHTTPHeaders)
+        bitrate = container.decodeJellyfinIntIfPresent(forKey: .bitrate)
+        defaultAudioStreamIndex = container.decodeJellyfinIntIfPresent(forKey: .defaultAudioStreamIndex)
+        defaultSubtitleStreamIndex = container.decodeJellyfinIntIfPresent(forKey: .defaultSubtitleStreamIndex)
+        mediaStreams = try? container.decodeIfPresent([JellyfinMediaStream].self, forKey: .mediaStreams)
+        mediaAttachments = try? container.decodeIfPresent([JellyfinMediaAttachment].self, forKey: .mediaAttachments)
     }
 }
 
@@ -502,6 +621,40 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     let deliveryMethod: String?
     let deliveryURL: String?
     let bitrate: Int?
+    let profile: String?
+    let level: Double?
+    let codecTag: String?
+    let realFrameRate: Double?
+    let averageFrameRate: Double?
+    let isInterlaced: Bool?
+    let bitDepth: Int?
+    let refFrames: Int?
+    let pixelFormat: String?
+    let colorSpace: String?
+    let colorRange: String?
+    let colorPrimaries: String?
+    let colorTransfer: String?
+    let aspectRatio: String?
+    let isAnamorphic: Bool?
+    let videoRange: String?
+    let videoRangeType: String?
+    let hdr10PlusPresent: Bool?
+    let dolbyVisionProfile: Int?
+    let dolbyVisionLevel: Int?
+    let dolbyVisionVersion: String?
+    let dolbyVisionCompatibilityID: Int?
+    let dolbyVisionTitle: String?
+    let channels: Int?
+    let channelLayout: String?
+    let sampleRate: Int?
+    let spatialFormat: String?
+    let subtitleFormat: String?
+    let path: String?
+    let timeBase: String?
+    let rotation: Int?
+    let isTextSubtitle: Bool?
+    let supportsExternalStream: Bool?
+    let comment: String?
     let width: Int?
     let height: Int?
 
@@ -519,8 +672,170 @@ nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
         case deliveryMethod = "DeliveryMethod"
         case deliveryURL = "DeliveryUrl"
         case bitrate = "BitRate"
+        case profile = "Profile"
+        case level = "Level"
+        case codecTag = "CodecTag"
+        case realFrameRate = "RealFrameRate"
+        case averageFrameRate = "AverageFrameRate"
+        case isInterlaced = "IsInterlaced"
+        case bitDepth = "BitDepth"
+        case refFrames = "RefFrames"
+        case pixelFormat = "PixelFormat"
+        case colorSpace = "ColorSpace"
+        case colorRange = "ColorRange"
+        case colorPrimaries = "ColorPrimaries"
+        case colorTransfer = "ColorTransfer"
+        case aspectRatio = "AspectRatio"
+        case isAnamorphic = "IsAnamorphic"
+        case videoRange = "VideoRange"
+        case videoRangeType = "VideoRangeType"
+        case hdr10PlusPresent = "Hdr10PlusPresentFlag"
+        case legacyHdr10PlusPresent = "Hdr10PlusPresent"
+        case dolbyVisionProfile = "DvProfile"
+        case legacyDolbyVisionProfile = "DoviProfile"
+        case dolbyVisionLevel = "DvLevel"
+        case legacyDolbyVisionLevel = "DoviLevel"
+        case dolbyVisionVersion = "DoviVersion"
+        case dolbyVisionVersionMajor = "DvVersionMajor"
+        case dolbyVisionVersionMinor = "DvVersionMinor"
+        case dolbyVisionCompatibilityID = "DvBlSignalCompatibilityId"
+        case legacyDolbyVisionCompatibilityID = "DOVIBLCompatID"
+        case dolbyVisionTitle = "VideoDoViTitle"
+        case channels = "Channels"
+        case channelLayout = "ChannelLayout"
+        case sampleRate = "SampleRate"
+        case spatialFormat = "AudioSpatialFormat"
+        case legacySpatialFormat = "SpatialFormat"
+        case subtitleFormat = "SubtitleFormat"
+        case path = "Path"
+        case timeBase = "TimeBase"
+        case rotation = "Rotation"
+        case isTextSubtitle = "IsTextSubtitle"
+        case supportsExternalStream = "SupportsExternalStream"
+        case comment = "Comment"
         case width = "Width"
         case height = "Height"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        index = container.decodeJellyfinIntIfPresent(forKey: .index) ?? -1
+        type = Self.normalizedMediaStreamType(container.decodeJellyfinStringIfPresent(forKey: .type)) ?? "unknown"
+        codec = container.decodeJellyfinStringIfPresent(forKey: .codec)
+        title = container.decodeJellyfinStringIfPresent(forKey: .title)
+        displayTitle = container.decodeJellyfinStringIfPresent(forKey: .displayTitle)
+        language = container.decodeJellyfinStringIfPresent(forKey: .language)
+        isDefault = container.decodeJellyfinBoolIfPresent(forKey: .isDefault)
+        isForced = container.decodeJellyfinBoolIfPresent(forKey: .isForced)
+        isHearingImpaired = container.decodeJellyfinBoolIfPresent(forKey: .isHearingImpaired)
+        isExternal = container.decodeJellyfinBoolIfPresent(forKey: .isExternal)
+        deliveryMethod = container.decodeJellyfinStringIfPresent(forKey: .deliveryMethod)
+        deliveryURL = container.decodeJellyfinStringIfPresent(forKey: .deliveryURL)
+        bitrate = container.decodeJellyfinIntIfPresent(forKey: .bitrate)
+        profile = container.decodeJellyfinStringIfPresent(forKey: .profile)
+        level = container.decodeJellyfinDoubleIfPresent(forKey: .level)
+        codecTag = container.decodeJellyfinStringIfPresent(forKey: .codecTag)
+        realFrameRate = container.decodeJellyfinDoubleIfPresent(forKey: .realFrameRate)
+        averageFrameRate = container.decodeJellyfinDoubleIfPresent(forKey: .averageFrameRate)
+        isInterlaced = container.decodeJellyfinBoolIfPresent(forKey: .isInterlaced)
+        bitDepth = container.decodeJellyfinIntIfPresent(forKey: .bitDepth)
+        refFrames = container.decodeJellyfinIntIfPresent(forKey: .refFrames)
+        pixelFormat = container.decodeJellyfinStringIfPresent(forKey: .pixelFormat)
+        colorSpace = container.decodeJellyfinStringIfPresent(forKey: .colorSpace)
+        colorRange = container.decodeJellyfinStringIfPresent(forKey: .colorRange)
+        colorPrimaries = container.decodeJellyfinStringIfPresent(forKey: .colorPrimaries)
+        colorTransfer = container.decodeJellyfinStringIfPresent(forKey: .colorTransfer)
+        aspectRatio = container.decodeJellyfinStringIfPresent(forKey: .aspectRatio)
+        isAnamorphic = container.decodeJellyfinBoolIfPresent(forKey: .isAnamorphic)
+        videoRange = container.decodeJellyfinStringIfPresent(forKey: .videoRange)
+        videoRangeType = container.decodeJellyfinStringIfPresent(forKey: .videoRangeType)
+        hdr10PlusPresent = container.decodeJellyfinBoolIfPresent(forKey: .hdr10PlusPresent)
+            ?? container.decodeJellyfinBoolIfPresent(forKey: .legacyHdr10PlusPresent)
+
+        dolbyVisionProfile = container.decodeJellyfinIntIfPresent(forKey: .dolbyVisionProfile)
+            ?? container.decodeJellyfinIntIfPresent(forKey: .legacyDolbyVisionProfile)
+        dolbyVisionLevel = container.decodeJellyfinIntIfPresent(forKey: .dolbyVisionLevel)
+            ?? container.decodeJellyfinIntIfPresent(forKey: .legacyDolbyVisionLevel)
+        let versionMajor = container.decodeJellyfinIntIfPresent(forKey: .dolbyVisionVersionMajor)
+        let versionMinor = container.decodeJellyfinIntIfPresent(forKey: .dolbyVisionVersionMinor)
+        dolbyVisionVersion = container.decodeJellyfinStringIfPresent(forKey: .dolbyVisionVersion)
+            ?? Self.dolbyVisionVersion(major: versionMajor, minor: versionMinor)
+        dolbyVisionCompatibilityID = container.decodeJellyfinIntIfPresent(forKey: .dolbyVisionCompatibilityID)
+            ?? container.decodeJellyfinIntIfPresent(forKey: .legacyDolbyVisionCompatibilityID)
+        dolbyVisionTitle = container.decodeJellyfinStringIfPresent(forKey: .dolbyVisionTitle)
+
+        channels = container.decodeJellyfinIntIfPresent(forKey: .channels)
+        channelLayout = container.decodeJellyfinStringIfPresent(forKey: .channelLayout)
+        sampleRate = container.decodeJellyfinIntIfPresent(forKey: .sampleRate)
+        let rawSpatialFormat = container.decodeJellyfinStringIfPresent(forKey: .spatialFormat)
+            ?? container.decodeJellyfinStringIfPresent(forKey: .legacySpatialFormat)
+        spatialFormat = Self.normalizedSpatialFormat(rawSpatialFormat)
+        subtitleFormat = container.decodeJellyfinStringIfPresent(forKey: .subtitleFormat)
+        path = container.decodeJellyfinStringIfPresent(forKey: .path)
+        timeBase = container.decodeJellyfinStringIfPresent(forKey: .timeBase)
+        rotation = container.decodeJellyfinIntIfPresent(forKey: .rotation)
+        isTextSubtitle = container.decodeJellyfinBoolIfPresent(forKey: .isTextSubtitle)
+        supportsExternalStream = container.decodeJellyfinBoolIfPresent(forKey: .supportsExternalStream)
+        comment = container.decodeJellyfinStringIfPresent(forKey: .comment)
+        width = container.decodeJellyfinIntIfPresent(forKey: .width)
+        height = container.decodeJellyfinIntIfPresent(forKey: .height)
+    }
+
+    private static func normalizedMediaStreamType(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "0":
+            "audio"
+        case "1":
+            "video"
+        case "2":
+            "subtitle"
+        default:
+            value
+        }
+    }
+
+    private static func normalizedSpatialFormat(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "0", "none":
+            nil
+        case "1", "dolbyatmos", "dolby atmos", "atmos":
+            "Atmos"
+        case "2", "dtsx", "dts:x":
+            "DTS:X"
+        default:
+            value
+        }
+    }
+
+    private static func dolbyVisionVersion(major: Int?, minor: Int?) -> String? {
+        switch (major, minor) {
+        case let (major?, minor?):
+            "\(major).\(minor)"
+        case let (major?, nil):
+            String(major)
+        case let (nil, minor?):
+            String(minor)
+        default:
+            nil
+        }
+    }
+}
+
+nonisolated struct JellyfinMediaAttachment: Decodable, Hashable, Sendable {
+    let index: Int?
+    let fileName: String?
+    let mimeType: String?
+    let codec: String?
+    let codecTag: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case index = "Index"
+        case fileName = "FileName"
+        case mimeType = "MimeType"
+        case codec = "Codec"
+        case codecTag = "CodecTag"
     }
 }
 

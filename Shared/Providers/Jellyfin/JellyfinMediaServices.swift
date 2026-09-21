@@ -469,6 +469,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
+    func fileInfo(for media: MediaItem) async throws -> MediaFileInfo? {
+        let item = try await catalog.item(id: media.id)
+        guard let sources = item.mediaSources, !sources.isEmpty else { return nil }
+        return MediaFileInfo(versions: sources.map(mapFileInfoVersion))
+    }
+
     private func parentSeries(for item: JellyfinItem) async throws -> MediaItem? {
         let seriesID: String?
         switch item.kind {
@@ -765,6 +771,170 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     private func preferredMediaSource(for item: JellyfinItem) -> JellyfinMediaSource? {
         item.mediaSources?.first(where: { $0.supportsDirectPlay == true }) ?? item.mediaSources?.first
+    }
+
+    private func mapFileInfoVersion(_ source: JellyfinMediaSource) -> MediaFileVersion {
+        let streams = source.mediaStreams ?? []
+        let video = streams.first(where: { $0.type.lowercased() == "video" })
+        let audio = streams.first(where: { $0.type.lowercased() == "audio" })
+        let duration = source.runTimeTicks.map { JellyfinTime.seconds(fromTicks: $0) }
+        let frameRate = video.flatMap { $0.realFrameRate ?? $0.averageFrameRate }
+
+        return MediaFileVersion(
+            id: source.id,
+            title: source.name,
+            container: source.container,
+            bitrateKbps: source.bitrate.map(Self.kilobitsPerSecond),
+            duration: duration,
+            width: video?.width,
+            height: video?.height,
+            aspectRatio: video?.aspectRatio,
+            videoResolution: Self.videoResolution(width: video?.width, height: video?.height),
+            videoCodec: video?.codec,
+            videoProfile: video?.profile,
+            videoFrameRate: frameRate.map(Self.formatFrameRate),
+            audioCodec: audio?.codec,
+            audioProfile: audio?.profile,
+            audioChannels: audio?.channels,
+            parts: [MediaFilePart(
+                id: source.id,
+                path: source.path,
+                sizeBytes: source.size,
+                container: source.container,
+                duration: duration,
+                exists: nil,
+                accessible: nil,
+                streams: streams.map {
+                    mapFileInfoStream(
+                        $0,
+                        defaultAudioIndex: source.defaultAudioStreamIndex,
+                        defaultSubtitleIndex: source.defaultSubtitleStreamIndex,
+                    )
+                },
+            )],
+            attachments: (source.mediaAttachments ?? []).map {
+                MediaFileAttachment(
+                    index: $0.index,
+                    fileName: $0.fileName,
+                    mimeType: $0.mimeType,
+                    codec: $0.codec ?? $0.codecTag,
+                )
+            },
+        )
+    }
+
+    private func mapFileInfoStream(
+        _ stream: JellyfinMediaStream,
+        defaultAudioIndex: Int?,
+        defaultSubtitleIndex: Int?,
+    ) -> MediaFileStream {
+        let kind: MediaFileStreamKind = switch stream.type.lowercased() {
+        case "video":
+            .video
+        case "audio":
+            .audio
+        case "subtitle":
+            .subtitle
+        default:
+            .other
+        }
+        let isDefault: Bool? = switch kind {
+        case .audio:
+            stream.isDefault ?? defaultAudioIndex.map { $0 == stream.index }
+        case .subtitle:
+            stream.isDefault ?? defaultSubtitleIndex.map { $0 == stream.index }
+        default:
+            stream.isDefault
+        }
+
+        return MediaFileStream(
+            kind: kind,
+            id: String(stream.index),
+            index: stream.index,
+            title: stream.title,
+            displayTitle: stream.displayTitle,
+            codec: stream.codec,
+            codecTag: stream.codecTag,
+            profile: stream.profile,
+            language: stream.language,
+            languageCode: stream.language,
+            bitrateKbps: stream.bitrate.map(Self.kilobitsPerSecond),
+            isDefault: isDefault,
+            isForced: stream.isForced,
+            isSelected: isDefault,
+            isExternal: stream.isExternal ?? (stream.deliveryMethod?.lowercased() == "external"),
+            isHearingImpaired: stream.isHearingImpaired,
+            width: stream.width,
+            height: stream.height,
+            frameRate: stream.realFrameRate ?? stream.averageFrameRate,
+            bitDepth: stream.bitDepth,
+            dynamicRange: Self.dynamicRange(for: stream),
+            pixelFormat: stream.pixelFormat,
+            colorSpace: stream.colorSpace,
+            colorTransfer: stream.colorTransfer,
+            aspectRatio: stream.aspectRatio,
+            channels: stream.channels,
+            channelLayout: stream.channelLayout,
+            sampleRate: stream.sampleRate,
+            spatialFormat: stream.spatialFormat,
+            subtitleFormat: stream.subtitleFormat ?? (kind == .subtitle ? stream.codec : nil),
+            path: stream.path ?? stream.deliveryURL,
+        )
+    }
+
+    private static func kilobitsPerSecond(_ bitsPerSecond: Int) -> Int {
+        max(1, Int((Double(bitsPerSecond) / 1000).rounded()))
+    }
+
+    private static func videoResolution(width: Int?, height: Int?) -> String? {
+        guard let height else { return nil }
+        if height >= 2160 {
+            return "4K"
+        }
+        if height >= 1440 {
+            return "1440p"
+        }
+        if height >= 1080 {
+            return "1080p"
+        }
+        if height >= 720 {
+            return "720p"
+        }
+        return width.map { "\($0) × \(height)" } ?? "\(height)p"
+    }
+
+    private static func formatFrameRate(_ frameRate: Double) -> String {
+        String(format: "%.3g fps", frameRate)
+    }
+
+    private static func dynamicRange(for stream: JellyfinMediaStream) -> String? {
+        let value = stream.videoRangeType ?? stream.videoRange
+        switch value?.lowercased() {
+        case "4", "dovi", "dolbyvision":
+            return "Dolby Vision"
+        case "2", "hdr10":
+            return "HDR10"
+        case "3", "hlg":
+            return "HLG"
+        case "5", "doviwithhdr10":
+            return "Dolby Vision (HDR10)"
+        case "6", "doviwithhlg":
+            return "Dolby Vision (HLG)"
+        case "7", "doviwithsdr":
+            return "Dolby Vision (SDR)"
+        case "8", "doviwithel":
+            return "Dolby Vision (EL)"
+        case "9", "doviwithhdr10plus":
+            return "Dolby Vision (HDR10+)"
+        case "10", "doviwithelhdr10plus":
+            return "Dolby Vision (EL/HDR10+)"
+        case "12", "hdr10plus", "hdr10+":
+            return "HDR10+"
+        case nil, "", "0", "1", "unknown", "sdr":
+            return nil
+        default:
+            return value
+        }
     }
 
     private func validatedTrackSelectionOverride(

@@ -21,6 +21,8 @@
 		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
 		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
+		F000000000000011 /* MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* MediaFileInfo.swift */; };
+		F000000000000012 /* MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* MediaFileInfoView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +56,8 @@
 		E984D56C30039AD10077A7EA /* TVServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = TVServices.framework; path = Library/Frameworks/TVServices.framework; sourceTree = DEVELOPER_DIR; };
 		E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9C448F32EF3034900D2895B /* Strimr-tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F000000000000001 /* MediaFileInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Models/MediaFileInfo.swift"; sourceTree = "<group>"; };
+		F000000000000002 /* MediaFileInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Features/MediaDetail/MediaFileInfoView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -75,6 +79,22 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */;
+		};
+		F000000000000101 /* Exceptions for "Shared" folder in "Strimr-macOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Features/MediaDetail/MediaFileInfoView.swift,
+				Models/MediaFileInfo.swift,
+			);
+			target = E95F5852300A95A000D50438 /* Strimr-macOS */;
+		};
+		F000000000000102 /* Exceptions for "Shared" folder in "Strimr-iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Features/MediaDetail/MediaFileInfoView.swift,
+				Models/MediaFileInfo.swift,
 			);
 			target = E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */;
 		};
@@ -122,6 +142,7 @@
 				Features/MediaDetail/ExtrasSection.swift,
 				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
 				Features/MediaDetail/MediaDetailViewModel.swift,
+				Features/MediaDetail/MediaFileInfoView.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
 				Features/PersonDetail/PersonDetailView.swift,
 				Features/PersonDetail/PersonDetailViewModel.swift,
@@ -178,6 +199,7 @@
 				"Models/MediaItem+Mapping.swift",
 				"Models/MediaItem+WatchStatus.swift",
 				Models/MediaRating.swift,
+				Models/MediaFileInfo.swift,
 				Models/Person.swift,
 				Models/PlayableMediaItem.swift,
 				Models/PlaylistMediaItem.swift,
@@ -328,6 +350,8 @@
 		E9C449012EF30A9500D2895B /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				F000000000000101 /* Exceptions for "Shared" folder in "Strimr-macOS" target */,
+				F000000000000102 /* Exceptions for "Shared" folder in "Strimr-iOS" target */,
 				E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */,
 			);
 			path = Shared;
@@ -613,6 +637,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F000000000000011 /* MediaFileInfo.swift in Sources */,
+				F000000000000012 /* MediaFileInfoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -627,6 +653,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F000000000000011 /* MediaFileInfo.swift in Sources */,
+				F000000000000012 /* MediaFileInfoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -634,6 +662,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F000000000000011 /* MediaFileInfo.swift in Sources */,
+				F000000000000012 /* MediaFileInfoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

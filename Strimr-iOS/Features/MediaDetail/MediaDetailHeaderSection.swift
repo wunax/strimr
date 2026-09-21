@@ -18,6 +18,7 @@ struct MediaDetailHeaderSection: View {
     var onSearchSubtitles: () -> Void = {}
     @State private var isShowingShowDownloadSheet = false
     @State private var isShowingDownloadOptions = false
+    @State private var isShowingFileInfo = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
 
     var body: some View {
@@ -141,6 +142,11 @@ struct MediaDetailHeaderSection: View {
                     )
                 }
             }
+        }
+        .sheet(isPresented: $isShowingFileInfo) {
+            MediaFileInfoView(viewModel: viewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(item: $sharePlaySharingRequest, onDismiss: {
             Task { await sharePlayCoordinator.sharingPresentationDidEnd() }
@@ -508,6 +514,15 @@ struct MediaDetailHeaderSection: View {
                         Label("sharePlay.action", systemImage: "shareplay")
                     }
                     .disabled(isStartingSharePlay)
+                }
+
+                if viewModel.canShowFileInfo {
+                    Divider()
+                    Button {
+                        isShowingFileInfo = true
+                    } label: {
+                        Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis")
