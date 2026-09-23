@@ -39,7 +39,11 @@ struct DownloadsView: View {
             "downloads.cellular.confirmation.title",
             isPresented: Binding(
                 get: { downloadUsingCellular != nil },
-                set: { if !$0 { downloadUsingCellular = nil } },
+                set: {
+                    if !$0 {
+                        downloadUsingCellular = nil
+                    }
+                },
             ),
             titleVisibility: .visible,
         ) {
