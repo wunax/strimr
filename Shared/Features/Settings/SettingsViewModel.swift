@@ -7,7 +7,11 @@ final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
     let nextEpisodeAutoplayOptions = NextEpisodeAutoplay.allCases
-    let subtitleFontSizeOptions = [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40]
+    #if os(tvOS)
+        let subtitleFontSizeOptions = Array(stride(from: 12, through: 80, by: 2))
+    #else
+        let subtitleFontSizeOptions = Array(stride(from: 12, through: 40, by: 2))
+    #endif
     let subtitleTextColorOptions = SubtitleTextColor.allCases
     let subtitleFontWeightOptions = SubtitleFontWeight.allCases
     let subtitleBackgroundStrengthOptions = SubtitleBackgroundStrength.allCases
