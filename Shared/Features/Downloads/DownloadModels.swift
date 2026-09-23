@@ -268,6 +268,7 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var taskIdentifier: Int?
     var remoteReference: MediaDownloadRemoteReference?
     var trackPreference: MediaTrackPreference?
+    var allowsCellularAccess: Bool? = nil
     var errorMessage: String?
     var metadata: DownloadedMediaMetadata
 
