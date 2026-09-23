@@ -6,6 +6,7 @@ struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SettingsManager.self) private var settingsManager
     @State private var selectedDownload: DownloadItem?
+    @State private var downloadUsingCellular: DownloadItem?
 
     var body: some View {
         List {
@@ -33,6 +34,31 @@ struct DownloadsView: View {
                     ),
                 )
             }
+        }
+        .confirmationDialog(
+            "downloads.cellular.confirmation.title",
+            isPresented: Binding(
+                get: { downloadUsingCellular != nil },
+                set: {
+                    if !$0 {
+                        downloadUsingCellular = nil
+                    }
+                },
+            ),
+            titleVisibility: .visible,
+        ) {
+            Button("downloads.cellular.confirmation.confirm") {
+                guard let item = downloadUsingCellular else { return }
+                downloadUsingCellular = nil
+                Task {
+                    await downloadManager.useCellularData(for: item)
+                }
+            }
+            Button("common.actions.cancel", role: .cancel) {
+                downloadUsingCellular = nil
+            }
+        } message: {
+            Text("downloads.cellular.confirmation.message")
         }
     }
 
@@ -177,13 +203,35 @@ struct DownloadsView: View {
                     .foregroundStyle(.secondary)
             }
         case .downloading:
-            VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: item.progress)
-                    .tint(.brandSecondary)
+            if isWaitingForWiFi(item) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label("downloads.status.waitingForWiFi", systemImage: "wifi")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
-                Text("downloads.status.downloading \(Int((item.progress * 100).rounded()))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("downloads.status.waitingForWiFi.description")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        downloadUsingCellular = item
+                    } label: {
+                        Label("downloads.action.cellular", systemImage: "cellularbars")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.brandSecondary)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: item.progress)
+                        .tint(.brandSecondary)
+
+                    Text("downloads.status.downloading \(Int((item.progress * 100).rounded()))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         case .completed:
             let size = item.metadata.fileSize ?? item.totalBytes
@@ -199,6 +247,13 @@ struct DownloadsView: View {
 
     private func formattedBytes(_ value: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    private func isWaitingForWiFi(_ item: DownloadItem) -> Bool {
+        (item.allowsCellularAccess.map { !$0 } ?? settingsManager.downloads.wifiOnly)
+            && downloadManager.isOnWiFi == false
+            && item.progress == 0
+            && item.taskIdentifier != nil
     }
 
     private func isSpoilerProtected(_ item: DownloadItem) -> Bool {

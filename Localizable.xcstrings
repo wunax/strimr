@@ -825,6 +825,28 @@
         }
       }
     },
+    "downloads.action.cellular" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download over cellular"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger via le réseau mobile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用蜂窝网络下载"
+          }
+        }
+      }
+    },
     "downloads.empty.message" : {
       "localizations" : {
         "en" : {
@@ -865,6 +887,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无下载"
+          }
+        }
+      }
+    },
+    "downloads.cellular.confirmation.confirm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow and Download"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser et télécharger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许并下载"
+          }
+        }
+      }
+    },
+    "downloads.cellular.confirmation.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This download may use a large amount of cellular data. Only this download will use mobile data."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce téléchargement peut consommer beaucoup de données mobiles. Seul ce téléchargement utilisera le réseau mobile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此下载可能会消耗大量蜂窝数据。只有此下载会使用移动网络。"
+          }
+        }
+      }
+    },
+    "downloads.cellular.confirmation.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download over cellular?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger via le réseau mobile ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要使用蜂窝网络下载吗？"
           }
         }
       }
@@ -1349,6 +1437,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载中 • %lld%%"
+          }
+        }
+      }
+    },
+    "downloads.status.waitingForWiFi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente du Wi-Fi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待 Wi-Fi"
+          }
+        }
+      }
+    },
+    "downloads.status.waitingForWiFi.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download will start when a Wi-Fi connection is available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le téléchargement démarrera dès qu’une connexion Wi-Fi sera disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接到 Wi-Fi 后将开始下载。"
           }
         }
       }

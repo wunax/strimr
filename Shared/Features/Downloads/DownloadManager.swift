@@ -11,7 +11,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private(set) var items: [DownloadItem] = []
     private(set) var isOffline = false
-    private(set) var isOnWiFi = false
+    private(set) var isOnWiFi: Bool?
     private(set) var storageSummary: DownloadStorageSummary = .empty
     private(set) var lastErrorMessage: String?
 
@@ -96,6 +96,46 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     func progress(for identity: MediaIdentity) -> Double? {
         latestItem(for: identity)?.progress
+    }
+
+    func useCellularData(for item: DownloadItem) async {
+        guard let initialIndex = items.firstIndex(where: { $0.id == item.id }),
+              items[initialIndex].status == .downloading,
+              let currentTaskIdentifier = items[initialIndex].taskIdentifier
+        else { return }
+
+        let tasks = await allTasks()
+        guard let currentTask = tasks.first(where: { $0.taskIdentifier == currentTaskIdentifier }),
+              var request = currentTask.originalRequest ?? currentTask.currentRequest,
+              let index = items.firstIndex(where: { $0.id == item.id }),
+              items[index].taskIdentifier == currentTaskIdentifier
+        else {
+            let error = NSError(
+                domain: "Strimr.DownloadManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Unable to allow cellular access for this download."],
+            )
+            handleDownloadError(error)
+            return
+        }
+
+        request.allowsCellularAccess = true
+        request.allowsConstrainedNetworkAccess = true
+        request.allowsExpensiveNetworkAccess = true
+
+        let replacementTask = backgroundSession.downloadTask(with: request)
+        replacementTask.taskDescription = item.id
+        items[index].allowsCellularAccess = true
+        items[index].progress = 0
+        items[index].bytesWritten = 0
+        items[index].totalBytes = 0
+        items[index].taskIdentifier = replacementTask.taskIdentifier
+        items[index].errorMessage = nil
+        progressByTaskIdentifier.removeValue(forKey: currentTaskIdentifier)
+        persistState()
+
+        currentTask.cancel()
+        replacementTask.resume()
     }
 
     func localVideoURL(for item: DownloadItem) -> URL? {
@@ -496,10 +536,11 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func itemIndex(for task: URLSessionTask) -> Int? {
-        if let description = task.taskDescription,
-           let descriptionIndex = items.firstIndex(where: { $0.id == description })
-        {
-            return descriptionIndex
+        if let description = task.taskDescription {
+            guard let index = items.firstIndex(where: { $0.id == description }),
+                  items[index].taskIdentifier == task.taskIdentifier
+            else { return nil }
+            return index
         }
 
         return items.firstIndex(where: { $0.taskIdentifier == task.taskIdentifier })
@@ -541,13 +582,14 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func startTransfer(itemID: String, request sourceRequest: URLRequest) {
         guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
         var request = sourceRequest
-        if settingsManager.downloads.wifiOnly {
-            request.allowsCellularAccess = false
-            request.allowsConstrainedNetworkAccess = false
-            request.allowsExpensiveNetworkAccess = false
-        }
+        let allowsCellularAccess = items[index].allowsCellularAccess
+            ?? !settingsManager.downloads.wifiOnly
+        request.allowsCellularAccess = allowsCellularAccess
+        request.allowsConstrainedNetworkAccess = allowsCellularAccess
+        request.allowsExpensiveNetworkAccess = allowsCellularAccess
         let task = backgroundSession.downloadTask(with: request)
         task.taskDescription = itemID
+        items[index].allowsCellularAccess = allowsCellularAccess
         items[index].status = .downloading
         items[index].progress = 0
         items[index].taskIdentifier = task.taskIdentifier
@@ -677,7 +719,10 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func completeDownload(task: URLSessionDownloadTask, stagedLocation: URL) async {
-        guard let index = itemIndex(for: task) else { return }
+        guard let index = itemIndex(for: task) else {
+            try? FileManager.default.removeItem(at: stagedLocation)
+            return
+        }
         let item = items[index]
         let destination = resolveDownloadDestination(for: item, response: task.response)
 
@@ -749,11 +794,11 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         guard let sidecar = sidecarsByItemID[itemID]?.first else { return }
         do {
             var request = sidecar.request
-            if settingsManager.downloads.wifiOnly {
-                request.allowsCellularAccess = false
-                request.allowsConstrainedNetworkAccess = false
-                request.allowsExpensiveNetworkAccess = false
-            }
+            let allowsCellularAccess = items[index].allowsCellularAccess
+                ?? !settingsManager.downloads.wifiOnly
+            request.allowsCellularAccess = allowsCellularAccess
+            request.allowsConstrainedNetworkAccess = allowsCellularAccess
+            request.allowsExpensiveNetworkAccess = allowsCellularAccess
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   200 ..< 300 ~= httpResponse.statusCode,
