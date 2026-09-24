@@ -59,7 +59,7 @@ struct HomeRow: Identifiable, Hashable {
         )
     }
 
-    nonisolated private static func routePath(_ value: String) -> String {
+    private nonisolated static func routePath(_ value: String) -> String {
         URLComponents(string: value)?.path
             ?? value.split(separator: "?", maxSplits: 1).first.map(String.init)
             ?? value
