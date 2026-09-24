@@ -47,6 +47,14 @@ final class MediaServices {
         authorizationService.authorization
     }
 
+    var homeRowPreferencesScopeID: String {
+        [
+            identity.provider.rawValue,
+            identity.id,
+            trackSelectionAccountIdentifier ?? "default",
+        ].joined(separator: "|")
+    }
+
     init(
         provider: MediaProvider,
         identity: ServerIdentity,

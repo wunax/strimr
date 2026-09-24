@@ -163,6 +163,29 @@ final class SettingsManager {
         persist()
     }
 
+    func homeRowPreferences(for scopeID: String) -> HomeRowPreferences {
+        settings.interface.homeRowsByScope[scopeID] ?? HomeRowPreferences()
+    }
+
+    func setHomeRowVisibility(_ rowID: String, visible: Bool, scopeID: String) {
+        var preferences = homeRowPreferences(for: scopeID)
+        preferences.setRow(rowID, visible: visible)
+        settings.interface.homeRowsByScope[scopeID] = preferences
+        persist()
+    }
+
+    func setHomeRowOrder(_ rowIDs: [String], scopeID: String) {
+        var preferences = homeRowPreferences(for: scopeID)
+        preferences.setOrder(rowIDs)
+        settings.interface.homeRowsByScope[scopeID] = preferences
+        persist()
+    }
+
+    func resetHomeRows(scopeID: String) {
+        settings.interface.homeRowsByScope.removeValue(forKey: scopeID)
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

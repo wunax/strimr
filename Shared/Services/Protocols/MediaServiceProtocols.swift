@@ -2,8 +2,7 @@ import AetherEngine
 import Foundation
 
 struct HomeContent {
-    let continueWatching: Hub?
-    let recentlyAdded: [Hub]
+    let rows: [HomeRow]
 }
 
 enum ArtworkResource {

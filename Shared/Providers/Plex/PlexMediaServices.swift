@@ -153,12 +153,16 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
         let continueHub = try await continueResponse.mediaContainer.hub?.first.map(Hub.init)
         let promoted = try await promotedResponse.mediaContainer.hub ?? []
-        return HomeContent(
-            continueWatching: continueHub,
-            recentlyAdded: promoted
-                .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
-                .map(Hub.init),
-        )
+        var rows: [HomeRow] = []
+        if let continueHub, continueHub.hasItems {
+            rows.append(.continueWatching(server: server, hub: continueHub))
+        }
+        rows.append(contentsOf: promoted
+            .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
+            .map(Hub.init)
+            .filter(\.hasItems)
+            .map { HomeRow.providerHub(server: server, hub: $0) })
+        return HomeContent(rows: rows)
     }
 
     func libraries() async throws -> [Library] {
