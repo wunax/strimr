@@ -23,6 +23,9 @@
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		F000000000000011 /* MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* MediaFileInfo.swift */; };
 		F000000000000012 /* MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* MediaFileInfoView.swift */; };
+		F10000000000000000000021 /* HomeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* HomeRow.swift */; };
+		F10000000000000000000022 /* HomeRowSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* HomeRowSectionView.swift */; };
+		F10000000000000000000023 /* HomeRowsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* HomeRowsSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +61,9 @@
 		E9C448F32EF3034900D2895B /* Strimr-tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F000000000000001 /* MediaFileInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Models/MediaFileInfo.swift"; sourceTree = "<group>"; };
 		F000000000000002 /* MediaFileInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Features/MediaDetail/MediaFileInfoView.swift"; sourceTree = "<group>"; };
+		F10000000000000000000011 /* HomeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Models/HomeRow.swift"; sourceTree = "<group>"; };
+		F10000000000000000000012 /* HomeRowSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Features/Home/HomeRowSectionView.swift"; sourceTree = "<group>"; };
+		F10000000000000000000013 /* HomeRowsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Features/Settings/HomeRowsSettingsView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -664,6 +670,9 @@
 			files = (
 				F000000000000011 /* MediaFileInfo.swift in Sources */,
 				F000000000000012 /* MediaFileInfoView.swift in Sources */,
+				F10000000000000000000021 /* HomeRow.swift in Sources */,
+				F10000000000000000000022 /* HomeRowSectionView.swift in Sources */,
+				F10000000000000000000023 /* HomeRowsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

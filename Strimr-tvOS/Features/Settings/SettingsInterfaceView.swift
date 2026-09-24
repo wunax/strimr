@@ -3,11 +3,22 @@ import SwiftUI
 @MainActor
 struct SettingsInterfaceView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(MediaServices.self) private var mediaServices
     let settingsManager: SettingsManager
     let libraryStore: LibraryStore
 
     var body: some View {
         List {
+            Section("settings.interface.homeRows.section") {
+                NavigationLink("settings.interface.homeRows.title") {
+                    HomeRowsSettingsView(
+                        services: mediaServices,
+                        settingsManager: settingsManager,
+                        libraryStore: libraryStore,
+                    )
+                }
+            }
+
             if sessionManager.provider == .plex {
                 Section {
                     Toggle(

@@ -128,9 +128,26 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let resume = try await resumeItems
         let nextUp = try await nextUpItems
 
-        var hubs: [Hub] = []
+        var rows: [HomeRow] = []
+        if !resume.isEmpty {
+            let resumeHub = hub(
+                id: "jellyfin.resume",
+                title: String(localized: "jellyfin.home.resume"),
+                items: resume,
+            )
+            if resumeHub.hasItems {
+                rows.append(.continueWatching(server: server, hub: resumeHub))
+            }
+        }
         if !nextUp.isEmpty {
-            hubs.append(hub(id: "jellyfin.nextUp", title: String(localized: "jellyfin.home.nextUp"), items: nextUp))
+            let nextUpHub = hub(
+                id: "jellyfin.nextUp",
+                title: String(localized: "jellyfin.home.nextUp"),
+                items: nextUp,
+            )
+            if nextUpHub.hasItems {
+                rows.append(.nextUp(server: server, hub: nextUpHub))
+            }
         }
         let latest = try await withThrowingTaskGroup(of: (Int, JellyfinItem, [JellyfinItem]).self) { group in
             for (index, library) in visibleLibraries.enumerated() {
@@ -147,21 +164,21 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             }
             return values.sorted { $0.0 < $1.0 }
         }
-        hubs.append(contentsOf: latest.compactMap { _, library, items in
+        rows.append(contentsOf: latest.compactMap { _, library, items in
             guard !items.isEmpty else { return nil }
-            return hub(
+            let latestHub = hub(
                 id: "jellyfin.latest.\(library.id)",
                 title: String(localized: "jellyfin.home.latestIn \(library.name)"),
                 items: items,
             )
+            guard latestHub.hasItems else { return nil }
+            return HomeRow.providerHub(
+                server: server,
+                hub: latestHub,
+            )
         })
 
-        return HomeContent(
-            continueWatching: resume.isEmpty
-                ? nil
-                : hub(id: "jellyfin.resume", title: String(localized: "jellyfin.home.resume"), items: resume),
-            recentlyAdded: hubs,
-        )
+        return HomeContent(rows: rows)
     }
 
     func libraries() async throws -> [Library] {

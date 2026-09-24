@@ -4,8 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class HomeViewModel {
-    var continueWatching: Hub?
-    var recentlyAdded: [Hub] = []
+    var availableRows: [HomeRow] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -19,10 +18,42 @@ final class HomeViewModel {
         service = services.home
         self.settingsManager = settingsManager
         self.libraryStore = libraryStore
+        preferencesScopeID = services.homeRowPreferencesScopeID
+    }
+
+    @ObservationIgnored private let preferencesScopeID: String
+
+    var orderedRowsForEditing: [HomeRow] {
+        settingsManager.homeRowPreferences(for: preferencesScopeID).orderedRows(from: availableRows)
+    }
+
+    var rows: [HomeRow] {
+        settingsManager.homeRowPreferences(for: preferencesScopeID).visibleRows(from: availableRows)
+    }
+
+    func isRowVisible(_ rowID: String) -> Bool {
+        !settingsManager.homeRowPreferences(for: preferencesScopeID).hiddenRowIDs.contains(rowID)
+    }
+
+    func setRowVisible(_ rowID: String, visible: Bool) {
+        settingsManager.setHomeRowVisibility(rowID, visible: visible, scopeID: preferencesScopeID)
+    }
+
+    func moveRow(at index: Int, by offset: Int) {
+        var rowIDs = orderedRowsForEditing.map(\.id)
+        let destination = index + offset
+        guard rowIDs.indices.contains(index), rowIDs.indices.contains(destination) else { return }
+        let rowID = rowIDs.remove(at: index)
+        rowIDs.insert(rowID, at: destination)
+        settingsManager.setHomeRowOrder(rowIDs, scopeID: preferencesScopeID)
+    }
+
+    func resetRowPreferences() {
+        settingsManager.resetHomeRows(scopeID: preferencesScopeID)
     }
 
     var hasContent: Bool {
-        (continueWatching?.hasItems ?? false) || recentlyAdded.contains(where: \.hasItems)
+        rows.contains { $0.hub.hasItems }
     }
 
     func load() async {
@@ -68,8 +99,7 @@ final class HomeViewModel {
 
             guard !Task.isCancelled else { return }
 
-            continueWatching = content.continueWatching
-            recentlyAdded = content.recentlyAdded
+            availableRows = content.rows
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -78,8 +108,7 @@ final class HomeViewModel {
     }
 
     private func resetState(error: String? = nil) {
-        continueWatching = nil
-        recentlyAdded = []
+        availableRows = []
         errorMessage = error
         isLoading = false
     }

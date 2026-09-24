@@ -22,12 +22,12 @@ struct HomeView: View {
             Color("Background")
                 .ignoresSafeArea()
 
-            if let heroMedia {
+            if let heroMedia = displayedHeroMedia {
                 GeometryReader { proxy in
                     ZStack(alignment: .bottom) {
                         ZStack(alignment: .topLeading) {
-                            MediaHeroBackgroundView(media: focusModel.focusedMedia ?? heroMedia)
-                            MediaHeroContentView(media: focusModel.focusedMedia ?? heroMedia)
+                            MediaHeroBackgroundView(media: heroMedia)
+                            MediaHeroContentView(media: heroMedia)
                                 .frame(maxWidth: proxy.size.width * 0.60, maxHeight: .infinity, alignment: .topLeading)
                         }
 
@@ -42,7 +42,7 @@ struct HomeView: View {
         .task {
             await viewModel.load()
         }
-        .onChange(of: heroMedia?.id) { _, _ in
+        .onChange(of: visibleHeroMediaIDs) { _, _ in
             updateInitialFocus()
         }
         .onAppear {
@@ -58,32 +58,13 @@ struct HomeView: View {
     private var homeContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                if let hub = viewModel.continueWatching, hub.hasItems {
-                    MediaHubSection(title: hub.title) {
-                        MediaCarousel(
-                            layout: .landscape,
-                            items: hub.items,
-                            showsLabels: false,
-                            onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
-                            onSelectMedia: onSelectMedia,
-                        )
-                    }
-                }
-
-                if !viewModel.recentlyAdded.isEmpty {
-                    ForEach(viewModel.recentlyAdded) { hub in
-                        if hub.hasItems {
-                            MediaHubSection(title: hub.title) {
-                                MediaCarousel(
-                                    layout: .portrait,
-                                    items: hub.items,
-                                    showsLabels: false,
-                                    onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
-                                    onSelectMedia: onSelectMedia,
-                                )
-                            }
-                        }
-                    }
+                ForEach(viewModel.rows) { row in
+                    HomeRowSectionView(
+                        row: row,
+                        showsLabels: false,
+                        onViewAll: coordinator.showHubDetail,
+                        onSelectMedia: onSelectMedia,
+                    )
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
@@ -118,21 +99,32 @@ struct HomeView: View {
     }
 
     private var heroMedia: MediaItem? {
-        if let continueItem = viewModel.continueWatching?.items.compactMap(\.playableItem).first {
-            return continueItem
-        }
+        viewModel.rows.lazy
+            .flatMap { $0.items.compactMap(\.playableItem) }
+            .first
+    }
 
-        for hub in viewModel.recentlyAdded where hub.hasItems {
-            if let item = hub.items.compactMap(\.playableItem).first {
-                return item
-            }
-        }
+    private var visibleHeroMediaIDs: [String] {
+        viewModel.rows.flatMap { $0.items.compactMap(\.playableItem).map(\.id) }
+    }
 
-        return nil
+    private var displayedHeroMedia: MediaItem? {
+        if let focusedMedia = focusModel.focusedMedia,
+           visibleHeroMediaIDs.contains(focusedMedia.id)
+        {
+            return focusedMedia
+        }
+        return heroMedia
     }
 
     private func updateInitialFocus() {
-        guard focusModel.focusedMedia == nil, let heroMedia else { return }
+        guard let heroMedia else {
+            focusModel.focusedMedia = nil
+            return
+        }
+        guard focusModel.focusedMedia == nil || !visibleHeroMediaIDs.contains(focusModel.focusedMedia?.id ?? "") else {
+            return
+        }
         focusModel.focusedMedia = heroMedia
     }
 }

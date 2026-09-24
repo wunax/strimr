@@ -216,6 +216,7 @@ struct PlaybackSettings: Codable, Equatable {
 struct InterfaceSettings: Codable, Equatable {
     var hiddenLibraryIds: [String] = []
     var navigationLibraryIds: [String] = []
+    var homeRowsByScope: [String: HomeRowPreferences] = [:]
     var displayCollections = true
     var displayPlaylists = true
     var displayFavoritesTab = false
@@ -231,6 +232,10 @@ struct InterfaceSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hiddenLibraryIds = try container.decodeIfPresent([String].self, forKey: .hiddenLibraryIds) ?? []
         navigationLibraryIds = try container.decodeIfPresent([String].self, forKey: .navigationLibraryIds) ?? []
+        homeRowsByScope = try container.decodeIfPresent(
+            [String: HomeRowPreferences].self,
+            forKey: .homeRowsByScope,
+        ) ?? [:]
         displayCollections = try container.decodeIfPresent(Bool.self, forKey: .displayCollections) ?? true
         displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
         displayFavoritesTab = try container.decodeIfPresent(Bool.self, forKey: .displayFavoritesTab) ?? false
