@@ -33,30 +33,7 @@ struct HomeRowsSettingsView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(Array(viewModel.orderedRowsForEditing.enumerated()), id: \.element.id) { index, row in
-                        HStack(spacing: 12) {
-                            Toggle(row.title, isOn: Binding(
-                                get: { viewModel.isRowVisible(row.id) },
-                                set: { viewModel.setRowVisible(row.id, visible: $0) },
-                            ))
-
-                            Button {
-                                viewModel.moveRow(at: index, by: -1)
-                            } label: {
-                                Image(systemName: "arrow.up")
-                            }
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
-                            .disabled(index == 0)
-
-                            Button {
-                                viewModel.moveRow(at: index, by: 1)
-                            } label: {
-                                Image(systemName: "arrow.down")
-                            }
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
-                            .disabled(index == viewModel.orderedRowsForEditing.count - 1)
-                        }
+                        rowControls(at: index, row: row)
                     }
                 }
             }
@@ -74,6 +51,83 @@ struct HomeRowsSettingsView: View {
         }
         .refreshable {
             await viewModel.reload()
+        }
+    }
+
+    @ViewBuilder
+    private func rowControls(at index: Int, row: HomeRow) -> some View {
+        #if os(tvOS)
+            let isVisible = viewModel.isRowVisible(row.id)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text(row.title)
+                    .font(.headline)
+
+                HStack(spacing: 12) {
+                    Button {
+                        viewModel.setRowVisible(row.id, visible: !isVisible)
+                    } label: {
+                        tvOSActionLabel(
+                            isVisible
+                                ? "settings.interface.homeRows.hide"
+                                : "settings.interface.homeRows.show",
+                            systemImage: isVisible ? "eye.slash" : "eye",
+                        )
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        viewModel.moveRow(at: index, by: -1)
+                    } label: {
+                        tvOSActionLabel("settings.interface.homeRows.moveUp", systemImage: "arrow.up")
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(.secondary)
+                    .disabled(index == 0)
+
+                    Button {
+                        viewModel.moveRow(at: index, by: 1)
+                    } label: {
+                        tvOSActionLabel("settings.interface.homeRows.moveDown", systemImage: "arrow.down")
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(.secondary)
+                    .disabled(index == viewModel.orderedRowsForEditing.count - 1)
+                }
+            }
+            .padding(.vertical, 8)
+        #else
+            HStack(spacing: 12) {
+                Toggle(row.title, isOn: Binding(
+                    get: { viewModel.isRowVisible(row.id) },
+                    set: { viewModel.setRowVisible(row.id, visible: $0) },
+                ))
+
+                Button {
+                    viewModel.moveRow(at: index, by: -1)
+                } label: {
+                    Image(systemName: "arrow.up")
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
+                .disabled(index == 0)
+
+                Button {
+                    viewModel.moveRow(at: index, by: 1)
+                } label: {
+                    Image(systemName: "arrow.down")
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
+                .disabled(index == viewModel.orderedRowsForEditing.count - 1)
+            }
+        #endif
+    }
+
+    private func tvOSActionLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+            Text(title)
         }
     }
 
