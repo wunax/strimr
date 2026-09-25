@@ -52,7 +52,7 @@ struct SelectServerView: View {
             Text("serverSelection.error.connection.message")
         }
         .task { await viewModel.load() }
-        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
+        .taskPresentation(isPresented: $viewModel.isShowingCustomAddress) {
             CustomServerAddressView(viewModel: viewModel)
         }
         .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in

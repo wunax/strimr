@@ -59,7 +59,7 @@ struct ProfileSwitcherView: View {
                 focusedUserID = firstUser.uuid
             }
         }
-        .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
+        .taskPresentation(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
             pinEntrySheet(for: user)
         }
         .onChange(of: pinInput) { _, newValue in

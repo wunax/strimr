@@ -36,7 +36,7 @@ struct SearchView: View {
         .onSubmit(of: .search) {
             viewModel.submitSearch()
         }
-        .sheet(item: $selectedResult) { result in
+        .taskPresentation(item: $selectedResult, style: .contextual) { result in
             SearchServerSelectionView(result: result, onSelect: onSelectMedia)
         }
     }

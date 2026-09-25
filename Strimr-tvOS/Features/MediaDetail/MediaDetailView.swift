@@ -79,7 +79,7 @@ struct MediaDetailView: View {
         .task {
             await bindableViewModel.loadDetails()
         }
-        .sheet(isPresented: $isShowingSubtitleSearch) {
+        .taskPresentation(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = bindableViewModel.trackRatingKey {
                 SubtitleSearchView(
                     itemID: ratingKey,
@@ -90,7 +90,7 @@ struct MediaDetailView: View {
                 }
             }
         }
-        .sheet(item: $fileInfoMedia) { media in
+        .taskPresentation(item: $fileInfoMedia) { media in
             MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
                 .frame(minWidth: 900, idealWidth: 1080, minHeight: 640, idealHeight: 760)
                 .presentationDetents([.height(760)])

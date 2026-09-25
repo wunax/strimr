@@ -128,7 +128,7 @@ struct LiveTVView: View {
             }
         }
         .task { await store.load() }
-        .sheet(item: $selectedProgram) { program in
+        .taskPresentation(item: $selectedProgram) { program in
             LiveTVProgramDetailView(
                 program: program,
                 channel: store.channels.first { $0.identity == program.channelIdentity },
@@ -139,10 +139,10 @@ struct LiveTVView: View {
                 onChanged: { await store.refreshDVR() },
             )
         }
-        .sheet(isPresented: $isManagingFavorites) {
+        .taskPresentation(isPresented: $isManagingFavorites) {
             FavoriteChannelOrderView(store: store)
         }
-        .sheet(item: $selectedRule) { rule in
+        .taskPresentation(item: $selectedRule) { rule in
             DVRRuleEditView(rule: rule, dvr: store.dvr) { await store.refreshDVR() }
         }
         .confirmationDialog(

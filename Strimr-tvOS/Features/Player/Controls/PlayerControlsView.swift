@@ -43,6 +43,8 @@ struct PlayerControlsView: View {
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
+    var settingsControl: PlayerSettingsControl?
+    var settingsFocusGeneration: Int
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -166,11 +168,13 @@ struct PlayerControlsView: View {
                         systemImage: "speaker.wave.2",
                         action: onShowAudioSettings,
                     )
+                    .focused($focusedControl, equals: .audio)
 
                     PlayerSettingButton(
                         systemImage: "captions.bubble",
                         action: onShowSubtitleSettings,
                     )
+                    .focused($focusedControl, equals: .subtitle)
 
                     Spacer()
                 }
@@ -221,12 +225,14 @@ struct PlayerControlsView: View {
                             accessibilityLabel: String(localized: "player.settings.speed"),
                             action: onShowSpeedSettings,
                         )
+                        .focused($focusedControl, equals: .speed)
 
                         PlayerSettingButton(
                             systemImage: "gauge.with.dots.needle.33percent",
                             accessibilityLabel: String(localized: "player.settings.quality"),
                             action: onShowQualitySettings,
                         )
+                        .focused($focusedControl, equals: .quality)
                     }
 
                     if chapters.count >= 2 {
@@ -253,6 +259,17 @@ struct PlayerControlsView: View {
         }
         .onAppear {
             focusedControl = .playPause
+        }
+        .onChange(of: settingsFocusGeneration) { _, _ in
+            DispatchQueue.main.async {
+                switch settingsControl {
+                case .audio: focusedControl = .audio
+                case .subtitle: focusedControl = .subtitle
+                case .speed: focusedControl = .speed
+                case .quality: focusedControl = .quality
+                case nil: break
+                }
+            }
         }
         .onChange(of: isShowingChapterTray) { _, isShowing in
             DispatchQueue.main.async {
@@ -317,7 +334,12 @@ private struct PlayerAuxiliaryControlsRow: View {
     }
 }
 
+enum PlayerSettingsControl {
+    case audio, subtitle, speed, quality
+}
+
 private enum FocusTarget: Hashable {
+    case audio, subtitle, speed, quality
     case playPause
     case chapters
 }

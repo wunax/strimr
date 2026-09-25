@@ -11,63 +11,48 @@ struct PlayerTrackSelectionView: View {
     var onClose: () -> Void
 
     var body: some View {
-        NavigationStack {
-            List {
-                if showOffOption {
-                    TrackSelectionRow(
-                        title: String(localized: "player.settings.subtitles.off"),
-                        subtitle: String(localized: "player.settings.subtitles.offDescription"),
-                        isSelected: selectedTrackID == nil,
-                    ) {
-                        onSelect(nil)
-                    }
-                    .padding(.horizontal, 24)
-                }
-
-                if tracks.isEmpty {
-                    if !showOffOption {
-                        Text("player.settings.audio.empty")
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    VStack {
-                        ForEach(tracks) { track in
-                            TrackSelectionRow(
-                                title: track.title,
-                                subtitle: track.subtitle,
-                                isSelected: selectedTrackID == track.id,
-                            ) {
-                                onSelect(track.track.id)
-                            }
-                            .padding(.horizontal, 24)
-                        }
-                    }
-                }
-
-                if let onSearchSubtitles {
-                    TrackSelectionRow(
-                        title: String(localized: "subtitles.search.action"),
-                        subtitle: nil,
-                        isSelected: false,
-                        systemImage: "magnifyingglass",
-                        action: onSearchSubtitles,
-                    )
-                    .padding(.horizontal, 24)
-                }
-
-                if let onResetTrackSelections {
-                    TrackSelectionRow(
-                        title: String(localized: "player.settings.tracks.reset"),
-                        subtitle: nil,
-                        isSelected: false,
-                        systemImage: "arrow.counterclockwise",
-                        action: onResetTrackSelections,
-                    )
-                    .padding(.horizontal, 24)
+        PlayerSettingsOptionsView(title: titleKey, options: options, onClose: onClose)
+            .overlay {
+                if tracks.isEmpty, !showOffOption {
+                    Text("player.settings.audio.empty").foregroundStyle(.secondary)
                 }
             }
-            .listStyle(.automatic)
-            .navigationTitle(titleKey)
+    }
+
+    private var options: [PlayerSettingsOption] {
+        var result: [PlayerSettingsOption] = []
+        if showOffOption {
+            result.append(PlayerSettingsOption(
+                id: "off",
+                title: String(localized: "player.settings.subtitles.off"),
+                subtitle: String(localized: "player.settings.subtitles.offDescription"),
+                isSelected: selectedTrackID == nil,
+                action: { onSelect(nil) },
+            ))
         }
+        result += tracks.map { track in
+            PlayerSettingsOption(
+                id: String(track.id), title: track.title, subtitle: track.subtitle,
+                isSelected: selectedTrackID == track.id,
+                action: { onSelect(track.track.id) },
+            )
+        }
+        if let onSearchSubtitles {
+            result.append(PlayerSettingsOption(
+                id: "search",
+                title: String(localized: "subtitles.search.action"),
+                systemImage: "magnifyingglass",
+                action: onSearchSubtitles,
+            ))
+        }
+        if let onResetTrackSelections {
+            result.append(PlayerSettingsOption(
+                id: "reset",
+                title: String(localized: "player.settings.tracks.reset"),
+                systemImage: "arrow.counterclockwise",
+                action: onResetTrackSelections,
+            ))
+        }
+        return result
     }
 }
