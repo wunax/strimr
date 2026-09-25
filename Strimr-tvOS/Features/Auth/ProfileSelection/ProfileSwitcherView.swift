@@ -8,6 +8,7 @@ struct ProfileSwitcherView: View {
     @State private var pinInput: String = ""
     @State private var isShowingLogoutConfirmation = false
     @FocusState private var focusedUserID: String?
+    @FocusState private var focusedPinDigit: String?
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -59,7 +60,7 @@ struct ProfileSwitcherView: View {
                 focusedUserID = firstUser.uuid
             }
         }
-        .sheet(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
+        .taskPresentation(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
             pinEntrySheet(for: user)
         }
         .onChange(of: pinInput) { _, newValue in
@@ -237,26 +238,28 @@ struct ProfileSwitcherView: View {
     }
 
     private func pinEntrySheet(for user: PlexHomeUser) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("auth.profile.pin.title")
-                .font(.title2.bold())
-            let userDisplayName: String = user.friendlyName ?? user.title ?? "?"
-            Text("auth.profile.pin.prompt \(userDisplayName)")
-                .foregroundStyle(.secondary)
-
-            pinDisplay
-
-            keypad
-
-            Button("common.actions.cancel", role: .cancel) {
-                resetPinPrompt()
+        HStack(alignment: .center, spacing: 80) {
+            VStack(alignment: .leading, spacing: 32) {
+                let userDisplayName: String = user.friendlyName ?? user.title ?? "?"
+                Text("auth.profile.pin.prompt \(userDisplayName)")
+                    .font(.title3)
+                    .fixedSize(horizontal: false, vertical: true)
+                pinDisplay
             }
-            .frame(maxWidth: .infinity)
-            .focusSection()
+            .frame(maxWidth: 560, alignment: .leading)
 
-            Spacer()
+            VStack(spacing: 36) {
+                keypad
+                Button("common.actions.cancel", role: .cancel) {
+                    resetPinPrompt()
+                }
+            }
+            .frame(width: 440)
+            .focusSection()
         }
-        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .taskModalTitle("auth.profile.pin.title")
+        .onAppear { focusedPinDigit = "1" }
     }
 
     private var pinDisplay: some View {
@@ -312,6 +315,7 @@ struct ProfileSwitcherView: View {
         }
         .buttonBorderShape(.roundedRectangle(radius: 14))
         .controlSize(.small)
+        .focused($focusedPinDigit, equals: digit)
     }
 
     private func keypadDeleteButton() -> some View {

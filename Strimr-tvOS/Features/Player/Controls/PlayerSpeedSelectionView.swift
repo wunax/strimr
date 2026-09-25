@@ -6,20 +6,13 @@ struct PlayerSpeedSelectionView: View {
     var onClose: () -> Void
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(PlaybackSpeedOptions.all) { option in
-                    TrackSelectionRow(
-                        title: String(localized: "player.settings.speed.value \(option.valueText)"),
-                        subtitle: nil,
-                        isSelected: abs(selectedRate - option.rate) < 0.001,
-                    ) {
-                        onSelect(option.rate)
-                    }
-                    .padding(.horizontal, 24)
-                }
-            }
-            .navigationTitle("player.settings.speed")
-        }
+        PlayerSettingsOptionsView(title: "player.settings.speed", options: PlaybackSpeedOptions.all.map { option in
+            PlayerSettingsOption(
+                id: option.valueText,
+                title: String(localized: "player.settings.speed.value \(option.valueText)"),
+                isSelected: abs(selectedRate - option.rate) < 0.001,
+                action: { onSelect(option.rate) },
+            )
+        }, onClose: onClose)
     }
 }

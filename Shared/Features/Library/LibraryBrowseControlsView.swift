@@ -23,10 +23,10 @@ struct LibraryBrowseControlsView: View {
                 optionsRow(for: panel)
             }
         }
-        .sheet(item: $viewModel.activeFilterSheet) { sheet in
+        .taskPresentation(item: $viewModel.activeFilterSheet, style: .contextual) { sheet in
             LibraryBrowseFilterSheetView(viewModel: viewModel, filter: sheet.filter)
         }
-        .sheet(item: $viewModel.activeJellyfinFilterSheet) { filter in
+        .taskPresentation(item: $viewModel.activeJellyfinFilterSheet, style: .contextual) { filter in
             JellyfinLibraryBrowseFilterSheetView(viewModel: viewModel, filter: filter)
         }
     }

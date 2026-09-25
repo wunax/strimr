@@ -33,6 +33,9 @@ struct PlayerView: View {
     @State private var timelinePosition = 0.0
     @State private var isShowingChapterTray = false
     @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSettingsSheet>()
+    @State private var isSearchingSubtitles = false
+    @State private var settingsControl: PlayerSettingsControl?
+    @State private var settingsFocusGeneration = 0
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var showingTerminationAlert = false
@@ -82,6 +85,9 @@ struct PlayerView: View {
             playerScene
                 .overlay {
                     playerOverlay
+                        .disabled(sheetPresentation.item != nil)
+                        .accessibilityHidden(sheetPresentation.item != nil)
+                        .opacity(sheetPresentation.item != nil ? 0 : 1)
                 }
                 .overlay(alignment: .bottom) {
                     playQueueOverlay
@@ -91,6 +97,7 @@ struct PlayerView: View {
         let lifecycle = AnyView(
             base
                 .onAppear {
+                    guard activePlaybackURL == nil else { return }
                     playerController.onMediaLoaded = handleMediaLoaded
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     showControls(temporarily: true)
@@ -104,6 +111,7 @@ struct PlayerView: View {
                     startPlaybackIfNeeded(url: viewModel.playbackURL)
                 }
                 .onDisappear {
+                    guard !isSearchingSubtitles else { return }
                     nextEpisodePresentation.cancel()
                     viewModel.handleStop()
                     hideControlsWorkItem?.cancel()
@@ -122,6 +130,7 @@ struct PlayerView: View {
                     handleExitCommand()
                 }
                 .task {
+                    guard activePlaybackURL == nil else { return }
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                 },
         )
@@ -227,18 +236,19 @@ struct PlayerView: View {
 
         return sessionObservers
             .overlay {
-                IsolatedSheetPresentationHost(
-                    presentation: sheetPresentation,
-                    refreshID: PlayerSheetRefreshID(
-                        settingsAudioTracks: settingsAudioTracks,
-                        settingsSubtitleTracks: settingsSubtitleTracks,
-                        selectedAudioTrackID: selectedAudioTrackID,
-                        selectedSubtitleTrackID: selectedSubtitleTrackID,
-                        playbackRate: playbackRate,
-                    ),
-                    sheetContent: playbackSettingsSheet(_:),
-                )
-                .equatable()
+                if let sheet = sheetPresentation.item {
+                    TVContextPanelView {
+                        playbackSettingsSheet(sheet)
+                            .id(sheet)
+                    }
+                    .onExitCommand { closeSettingsPanel() }
+                    .onPlayPauseCommand { togglePlayPause() }
+                }
+            }
+            .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
+                refreshTracks()
+            }) {
+                playbackSettingsSheet(.subtitleSearch)
             }
             .alert("player.termination.title", isPresented: $showingTerminationAlert) {
                 Button("player.termination.dismiss") {
@@ -379,6 +389,8 @@ struct PlayerView: View {
                     canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
                     onPreviousChannel: { switchLiveChannel(by: -1) },
                     onNextChannel: { switchLiveChannel(by: 1) },
+                    settingsControl: settingsControl,
+                    settingsFocusGeneration: settingsFocusGeneration,
                 )
                 .transition(.opacity)
             }
@@ -468,7 +480,7 @@ struct PlayerView: View {
                 selectedTrackID: selectedAudioTrackID,
                 showOffOption: false,
                 onSelect: selectAudioTrack(_:),
-                onClose: { sheetPresentation.item = nil },
+                onClose: closeSettingsPanel,
             )
         case .subtitle:
             PlayerTrackSelectionView(
@@ -478,23 +490,24 @@ struct PlayerView: View {
                 showOffOption: true,
                 onSelect: selectSubtitleTrack(_:),
                 onSearchSubtitles: viewModel.canSearchSubtitles
-                    ? { sheetPresentation.item = .subtitleSearch }
+                    ? { isSearchingSubtitles = true }
                     : nil,
                 onResetTrackSelections: viewModel.canResetRememberedTrackSelections
                     ? { viewModel.resetRememberedTrackSelections() }
                     : nil,
-                onClose: { sheetPresentation.item = nil },
+                onClose: closeSettingsPanel,
             )
         case .speed:
             PlayerSpeedSelectionView(
                 selectedRate: playbackRate,
                 onSelect: selectPlaybackRate(_:),
-                onClose: { sheetPresentation.item = nil },
+                onClose: closeSettingsPanel,
             )
         case .quality:
             PlayerQualitySelectionView(
                 selectedQuality: viewModel.selectedQuality,
                 onSelect: { selectQuality($0) },
+                onClose: closeSettingsPanel,
             )
         case .subtitleSearch:
             if let services = viewModel.subtitleSearchServices {
@@ -530,22 +543,26 @@ struct PlayerView: View {
 
     private func showAudioSettings() {
         refreshTracks()
+        settingsControl = .audio
         sheetPresentation.item = .audio
         showControls(temporarily: true)
     }
 
     private func showSubtitleSettings() {
         refreshTracks()
+        settingsControl = .subtitle
         sheetPresentation.item = .subtitle
         showControls(temporarily: true)
     }
 
     private func showSpeedSettings() {
+        settingsControl = .speed
         sheetPresentation.item = .speed
         showControls(temporarily: true)
     }
 
     private func showQualitySettings() {
+        settingsControl = .quality
         sheetPresentation.item = .quality
         showControls(temporarily: true)
     }
@@ -554,7 +571,6 @@ struct PlayerView: View {
         guard force || quality != viewModel.selectedQuality else { return }
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
-        sheetPresentation.item = nil
         Task {
             do {
                 let url = try await viewModel.changeQuality(to: quality, force: force)
@@ -593,7 +609,17 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
+    private func closeSettingsPanel() {
+        sheetPresentation.item = nil
+        settingsFocusGeneration += 1
+        showControls(temporarily: true)
+    }
+
     private func handleExitCommand() {
+        if sheetPresentation.item != nil {
+            closeSettingsPanel()
+            return
+        }
         if nextEpisodePresentation.isPresented {
             nextEpisodePresentation.cancel()
             dismissPlayer(force: true)
@@ -1017,7 +1043,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard !isShowingChapterTray else { return }
+        guard !isShowingChapterTray, sheetPresentation.item == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(.easeInOut) {
@@ -1378,14 +1404,6 @@ struct PlayerView: View {
         showingTerminationAlert = true
         playerController.pause()
     }
-}
-
-private struct PlayerSheetRefreshID: Hashable {
-    let settingsAudioTracks: [PlaybackSettingsTrack]
-    let settingsSubtitleTracks: [PlaybackSettingsTrack]
-    let selectedAudioTrackID: Int?
-    let selectedSubtitleTrackID: Int?
-    let playbackRate: Float
 }
 
 private enum PlayerSettingsSheet: String, Identifiable {

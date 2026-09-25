@@ -4,21 +4,19 @@ struct PlayerQualitySelectionView: View {
     var selectedQuality: TranscodeQualityPreset
     var onSelect: (TranscodeQualityPreset) -> Void
 
+    var onClose: () -> Void
+
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(TranscodeQualityPreset.displayOrder) { preset in
-                    TrackSelectionRow(
-                        title: preset.title,
-                        subtitle: nil,
-                        isSelected: selectedQuality == preset,
-                    ) {
-                        onSelect(preset)
-                    }
-                    .padding(.horizontal, 24)
-                }
-            }
-            .navigationTitle("player.settings.quality")
-        }
+        PlayerSettingsOptionsView(
+            title: "player.settings.quality",
+            options: TranscodeQualityPreset.displayOrder.map { preset in
+                PlayerSettingsOption(
+                    id: preset.rawValue, title: preset.title,
+                    isSelected: selectedQuality == preset,
+                    action: { onSelect(preset) },
+                )
+            },
+            onClose: onClose,
+        )
     }
 }
