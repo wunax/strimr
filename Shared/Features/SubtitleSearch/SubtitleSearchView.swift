@@ -110,9 +110,9 @@ struct SubtitleSearchView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             subtitleSearchContent
-                .navigationTitle("subtitles.search.title")
+                .taskModalTitle("subtitles.search.title")
             #if !os(tvOS)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -126,13 +126,31 @@ struct SubtitleSearchView: View {
     @ViewBuilder
     private var subtitleSearchContent: some View {
         #if os(tvOS)
-            ScrollView(.vertical) {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    searchOptions
-                    resultsSection
+            HStack(alignment: .top, spacing: 40) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        Text(titlePlaceholder)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        searchOptions
+                    }
+                    .padding(24)
                 }
-                .padding(.horizontal, 42)
-                .padding(.vertical, 20)
+                .frame(width: 500)
+                .focusSection()
+                Divider()
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 24) {
+                        if viewModel.isSearching {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: 160)
+                        }
+                        resultsSection
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .focusSection()
             }
         #else
             List {

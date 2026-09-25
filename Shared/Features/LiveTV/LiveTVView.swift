@@ -804,7 +804,7 @@ private struct DVRRuleEditView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             Form {
                 Section {
                     Text(rule.title).font(.title2.bold())
@@ -839,8 +839,8 @@ private struct DVRRuleEditView: View {
                     Text(errorMessage).foregroundStyle(.red)
                 }
             }
-            .navigationTitle("livetv.dvr.editRule")
-            .toolbar {
+            .taskModalTitle("livetv.dvr.editRule")
+            .taskModalActions {
                 Button("common.cancel") { dismiss() }
                 Button("common.done") { save() }
                     .disabled(isSaving)
@@ -934,7 +934,7 @@ private struct FavoriteChannelOrderView: View {
     @State private var favorites: [LiveTVChannel] = []
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             List {
                 if favorites.isEmpty {
                     Text("livetv.empty.favorites")
@@ -953,8 +953,8 @@ private struct FavoriteChannelOrderView: View {
                     }
                 }
             }
-            .navigationTitle("livetv.favorites.manage")
-            .toolbar { Button("common.done") { dismiss() } }
+            .taskModalTitle("livetv.favorites.manage")
+            .taskModalActions { Button("common.done") { dismiss() } }
             .onAppear { favorites = store.channels.filter(\.isFavorite) }
         }
     }
@@ -1010,7 +1010,7 @@ private struct LiveTVProgramDetailView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             Form {
                 Section {
                     Text(program.title).font(.title2.bold())
@@ -1024,6 +1024,10 @@ private struct LiveTVProgramDetailView: View {
                         ))
                     if let summary = program.summary {
                         Text(summary)
+                        #if os(tvOS)
+                            .padding(16)
+                            .modifier(TVModalReadingFocus())
+                        #endif
                     }
                     if program.isCurrentlyAiring {
                         ProgressView(value: program.progress)
@@ -1053,39 +1057,37 @@ private struct LiveTVProgramDetailView: View {
                     Text(errorMessage).foregroundStyle(.red)
                 }
             }
-            .navigationTitle("livetv.program.details")
-            .toolbar {
-                ToolbarItemGroup {
-                    if program.isCurrentlyAiring {
-                        Button("livetv.watchLive", action: onWatch)
-                        if supportsWatchFromStart {
-                            Button("livetv.watchFromStart", action: onWatchFromStart)
-                        }
+            .taskModalTitle("livetv.program.details")
+            .taskModalActions(grouped: true) {
+                if program.isCurrentlyAiring {
+                    Button("livetv.watchLive", action: onWatch)
+                    if supportsWatchFromStart {
+                        Button("livetv.watchFromStart", action: onWatchFromStart)
                     }
-                    if dvr?.canManageRecordings == true {
-                        if let recordingID = program.recordingID {
-                            Button("livetv.stopRecord", role: .destructive) {
-                                pendingProgramRecordingAction = .cancelRecording(recordingID)
-                            }
-                            .disabled(isSubmittingRecording)
-                        }
-                        if let seriesRecordingID = program.seriesRecordingID {
-                            Button("livetv.recording.stopSeries", role: .destructive) {
-                                pendingProgramRecordingAction = .deleteSeriesRule(seriesRecordingID)
-                            }
-                            .disabled(isSubmittingRecording)
-                        }
-                        if !program.isScheduledForRecording, selectedRecordingTemplate != nil {
-                            Button {
-                                schedule(series: recordsSeries)
-                            } label: {
-                                Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
-                            }
-                            .disabled(isSubmittingRecording)
-                        }
-                    }
-                    Button("common.done") { dismiss() }
                 }
+                if dvr?.canManageRecordings == true {
+                    if let recordingID = program.recordingID {
+                        Button("livetv.stopRecord", role: .destructive) {
+                            pendingProgramRecordingAction = .cancelRecording(recordingID)
+                        }
+                        .disabled(isSubmittingRecording)
+                    }
+                    if let seriesRecordingID = program.seriesRecordingID {
+                        Button("livetv.recording.stopSeries", role: .destructive) {
+                            pendingProgramRecordingAction = .deleteSeriesRule(seriesRecordingID)
+                        }
+                        .disabled(isSubmittingRecording)
+                    }
+                    if !program.isScheduledForRecording, selectedRecordingTemplate != nil {
+                        Button {
+                            schedule(series: recordsSeries)
+                        } label: {
+                            Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
+                        }
+                        .disabled(isSubmittingRecording)
+                    }
+                }
+                Button("common.done") { dismiss() }
             }
             .confirmationDialog(
                 recordingActionConfirmationTitle,

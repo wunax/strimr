@@ -2,7 +2,9 @@ import SwiftUI
 
 private enum MediaFileInfoLayout {
     #if os(tvOS)
-        static let outerHorizontalPadding: CGFloat = 32
+        static let outerHorizontalPadding: CGFloat = 12
+        static let maximumContentWidth: CGFloat = 1400
+        static let minimumFieldWidth: CGFloat = 300
         static let outerVerticalPadding: CGFloat = 32
         static let contentSpacing: CGFloat = 32
         static let versionSpacing: CGFloat = 24
@@ -22,6 +24,8 @@ private enum MediaFileInfoLayout {
         static let partVerticalPadding: CGFloat = 6
     #else
         static let outerHorizontalPadding: CGFloat = 24
+        static let maximumContentWidth: CGFloat = 1000
+        static let minimumFieldWidth: CGFloat = 190
         static let outerVerticalPadding: CGFloat = 24
         static let contentSpacing: CGFloat = 24
         static let versionSpacing: CGFloat = 16
@@ -53,9 +57,9 @@ struct MediaFileInfoView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             fileInfoScrollView
-                .navigationTitle("media.fileInfo.title")
+                .taskModalTitle("media.fileInfo.title")
             #if !os(tvOS)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -81,7 +85,7 @@ struct MediaFileInfoView: View {
                     emptyState
                 }
             }
-            .frame(maxWidth: 1000, alignment: .leading)
+            .frame(maxWidth: MediaFileInfoLayout.maximumContentWidth, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, MediaFileInfoLayout.outerHorizontalPadding)
             .padding(.vertical, MediaFileInfoLayout.outerVerticalPadding)
@@ -274,13 +278,13 @@ private struct MediaFileInfoVersionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 14))
         #if os(tvOS)
-            .focusable()
+            .modifier(TVModalReadingFocus())
         #endif
     }
 
     private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            columns: [GridItem(.adaptive(minimum: MediaFileInfoLayout.minimumFieldWidth), alignment: .leading)],
             alignment: .leading,
             spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
@@ -369,7 +373,7 @@ private struct MediaFileInfoPartView: View {
 
     private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            columns: [GridItem(.adaptive(minimum: MediaFileInfoLayout.minimumFieldWidth), alignment: .leading)],
             alignment: .leading,
             spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
@@ -518,6 +522,9 @@ private struct MediaFileInfoStreamView: View {
         .padding(MediaFileInfoLayout.streamPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        #if os(tvOS)
+            .modifier(TVModalReadingFocus())
+        #endif
     }
 
     private var flagKeys: [String] {
@@ -532,7 +539,7 @@ private struct MediaFileInfoStreamView: View {
 
     private func infoGrid(@ViewBuilder content: () -> some View) -> some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 190), alignment: .leading)],
+            columns: [GridItem(.adaptive(minimum: MediaFileInfoLayout.minimumFieldWidth), alignment: .leading)],
             alignment: .leading,
             spacing: MediaFileInfoLayout.gridSpacing,
             content: content,
@@ -552,21 +559,33 @@ private struct MediaFileInfoField: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        #if os(tvOS)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.callout)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        #else
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
 
-            Spacer(minLength: 4)
+                Spacer(minLength: 4)
 
-            Text(value)
-                .font(.callout)
-                .multilineTextAlignment(.trailing)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+                Text(value)
+                    .font(.callout)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        #endif
     }
 }
 

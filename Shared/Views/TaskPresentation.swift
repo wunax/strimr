@@ -51,7 +51,8 @@ extension View {
             ZStack {
                 Color.black.opacity(0.8).ignoresSafeArea()
                 content()
-                    .padding(32)
+                    .frame(maxWidth: 1560, maxHeight: .infinity)
+                    .padding(40)
                     .background(Color("Background"), in: RoundedRectangle(cornerRadius: 28))
                     .padding(48)
             }
@@ -100,6 +101,78 @@ extension View {
                 }
             }
             .onExitCommand { dismiss() }
+        }
+    }
+#endif
+
+/// tvOS modals have their own header; a nested navigation bar can float over
+/// scrolling content inside an inset full-screen presentation.
+struct TaskModalNavigationView<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        #if os(tvOS)
+            content()
+        #else
+            NavigationStack { content() }
+        #endif
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func taskModalTitle(_ title: LocalizedStringKey) -> some View {
+        #if os(tvOS)
+            VStack(alignment: .leading, spacing: 24) {
+                Text(title)
+                    .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                Divider()
+                self
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        #else
+            navigationTitle(title)
+        #endif
+    }
+
+    @ViewBuilder
+    func taskModalActions(grouped: Bool = false, @ViewBuilder actions: () -> some View) -> some View {
+        #if os(tvOS)
+            VStack(spacing: 20) {
+                self
+                Divider()
+                ScrollView(.horizontal) {
+                    HStack(spacing: 24) { actions() }
+                        .padding(12)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .focusSection()
+            }
+        #else
+            if grouped {
+                toolbar { ToolbarItemGroup { actions() } }
+            } else {
+                toolbar { actions() }
+            }
+        #endif
+    }
+}
+
+#if os(tvOS)
+    /// Focus treatment for information cards that must be reachable for scrolling.
+    struct TVModalReadingFocus: ViewModifier {
+        @FocusState private var isFocused: Bool
+
+        func body(content: Content) -> some View {
+            content
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(isFocused ? Color.white.opacity(0.8) : .clear, lineWidth: 2)
+                }
+                .focusable()
+                .focused($isFocused)
         }
     }
 #endif

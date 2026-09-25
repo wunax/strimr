@@ -80,45 +80,57 @@ struct CustomServerAddressView: View {
 
     #if os(tvOS)
         private var tvOSContent: some View {
-            NavigationStack {
-                Form {
-                    Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    Text("serverSelection.customAddress.description")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("serverSelection.customAddress.field").font(.headline)
                         TextField(
                             "serverSelection.customAddress.placeholder",
                             text: $viewModel.customAddress,
                         )
                         .textContentType(.URL)
+                        .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .focused($isAddressFocused)
                         .onSubmit {
+                            guard !viewModel.isSelecting else { return }
                             Task { await viewModel.connectWithCustomAddress() }
                         }
+                    }
 
+                    if let error = viewModel.customAddressError {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    HStack(spacing: 32) {
                         Button {
                             Task { await viewModel.connectWithCustomAddress() }
                         } label: {
                             confirmationLabel
-                                .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(viewModel.isSelecting)
-                    } header: {
-                        Text("serverSelection.customAddress.field")
-                    } footer: {
-                        Text("serverSelection.customAddress.description")
-                    }
 
-                    if let error = viewModel.customAddressError {
-                        Section {
-                            Label(error, systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.red)
+                        Button("common.actions.cancel") {
+                            viewModel.dismissCustomAddress()
                         }
+                        .disabled(viewModel.isSelecting)
                     }
+                    .padding(.top, 16)
                 }
-                .navigationTitle("serverSelection.customAddress.title")
-                .interactiveDismissDisabled(viewModel.isSelecting)
-                .onAppear { isAddressFocused = true }
+                .padding(32)
+                .frame(maxWidth: 960, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
+            .taskModalTitle("serverSelection.customAddress.title")
+            .interactiveDismissDisabled(viewModel.isSelecting)
+            .onAppear { isAddressFocused = true }
         }
     #endif
 
