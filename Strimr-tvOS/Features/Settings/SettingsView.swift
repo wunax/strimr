@@ -9,6 +9,9 @@ struct SettingsView: View {
     @State private var navigation = SettingsNavigation()
     @State private var focusCandidates: [SettingsFocusCandidate] = []
     @State private var didSetInitialFocus = false
+    @State private var scrollReadyPages: Set<String> = []
+    @State private var requestedDetailTarget: SettingsFocusTarget?
+    @FocusedValue(\.settingsActualFocus) private var actualDetailFocus
     @FocusState private var focusedTarget: SettingsFocusTarget?
 
     var body: some View {
@@ -43,22 +46,34 @@ struct SettingsView: View {
                 guard navigation.pendingDetailFocus == nil else { return }
                 navigation.sidebarFocused = true
                 navigation.category = category
-            case let .control(pageID, id):
-                guard pageID == navigation.pageID else { return }
-                navigation.focusedControls[pageID] = id
-                navigation.pendingDetailFocus = nil
-                navigation.sidebarFocused = false
+            case .control:
+                // FocusState also changes when a request is issued; it is not an acknowledgement.
+                break
             case .back:
                 navigation.sidebarFocused = false
             case nil:
                 break
             }
         }
+        .onChange(of: actualDetailFocus) { _, target in
+            guard case let .control(pageID, id) = target, pageID == navigation.pageID else { return }
+            if navigation.pendingDetailFocus != nil {
+                guard target == requestedDetailTarget else { return }
+                navigation.pendingDetailFocus = nil
+            }
+            navigation.focusedControls[pageID] = id
+            navigation.sidebarFocused = false
+        }
+        .onPreferenceChange(SettingsScrollReadyKey.self) { pages in
+            scrollReadyPages = pages
+            fulfillDetailFocusRequest()
+        }
         .onPreferenceChange(SettingsFocusCandidatesKey.self) { candidates in
             focusCandidates = candidates
             fulfillDetailFocusRequest()
         }
         .onChange(of: navigation.detailRequest) { _, _ in
+            requestedDetailTarget = nil
             fulfillDetailFocusRequest()
         }
         .onChange(of: navigation.sidebarRequest) { _, _ in
@@ -78,14 +93,18 @@ struct SettingsView: View {
     /// One focus binding owns both columns. Wait for the destination's enabled controls
     /// to enter the view tree instead of racing per-row bindings against resetFocus.
     private func fulfillDetailFocusRequest() {
-        guard let pageID = navigation.pendingDetailFocus else { return }
+        guard let pageID = navigation.pendingDetailFocus, scrollReadyPages.contains(pageID) else { return }
         let candidates = focusCandidates.filter { $0.pageID == pageID }
         guard let candidate = candidates.first(where: { $0.id == navigation.focusedControls[pageID] })
             ?? candidates.first(where: \.isDefault)
             ?? candidates.first else { return }
+        guard requestedDetailTarget != candidate.target else { return }
+        requestedDetailTarget = candidate.target
         focusedTarget = candidate.target
-        navigation.focusedControls[pageID] = candidate.id
-        navigation.pendingDetailFocus = nil
+        if actualDetailFocus == candidate.target {
+            navigation.pendingDetailFocus = nil
+            navigation.sidebarFocused = false
+        }
     }
 
     private var sidebar: some View {

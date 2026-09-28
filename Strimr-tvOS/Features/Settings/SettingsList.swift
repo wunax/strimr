@@ -40,7 +40,9 @@ struct SettingsScrollView<Content: View>: View {
     @Environment(SettingsNavigation.self) private var navigation
     @Environment(\.settingsFocusContext) private var context
     @State private var position = ScrollPosition(edge: .top)
+    @State private var requestedOffset: CGFloat?
     @State private var restoredPosition = false
+    @State private var geometry: SettingsScrollGeometry?
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -48,18 +50,48 @@ struct SettingsScrollView<Content: View>: View {
             content()
         }
         .scrollPosition($position)
+        .preference(
+            key: SettingsScrollReadyKey.self,
+            value: restoredPosition ? Set([context?.pageID].compactMap(\.self)) : [],
+        )
         .onAppear {
-            guard !restoredPosition else { return }
-            restoredPosition = true
-            if let pageID = context?.pageID, let offset = navigation.scrollOffsets[pageID] {
-                position.scrollTo(y: offset)
+            guard requestedOffset == nil, let pageID = context?.pageID else { return }
+            let offset = navigation.scrollOffsets[pageID] ?? 0
+            requestedOffset = offset
+            position.scrollTo(y: offset)
+            if let geometry {
+                recordGeometry(geometry)
             }
         }
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            max(0, geometry.contentOffset.y + geometry.contentInsets.top)
-        } action: { _, offset in
-            guard restoredPosition, let pageID = context?.pageID else { return }
-            navigation.scrollOffsets[pageID] = offset
+        .onScrollGeometryChange(for: SettingsScrollGeometry.self) { geometry in
+            SettingsScrollGeometry(
+                offset: max(0, geometry.contentOffset.y + geometry.contentInsets.top),
+                maximumOffset: max(
+                    0,
+                    geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom
+                        - geometry.containerSize.height,
+                ),
+            )
+        } action: { _, geometry in
+            self.geometry = geometry
+            recordGeometry(geometry)
         }
     }
+
+    private func recordGeometry(_ geometry: SettingsScrollGeometry) {
+        guard let pageID = context?.pageID, pageID == navigation.pageID,
+              let requestedOffset else { return }
+        if !restoredPosition {
+            let destination = min(requestedOffset, geometry.maximumOffset)
+            guard abs(geometry.offset - destination) < 1 else { return }
+            restoredPosition = true
+        }
+        // Ignore teardown geometry and the initial zero offset while restoring an old page.
+        navigation.scrollOffsets[pageID] = geometry.offset
+    }
+}
+
+private struct SettingsScrollGeometry: Equatable {
+    let offset: CGFloat
+    let maximumOffset: CGFloat
 }

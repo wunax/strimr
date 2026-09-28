@@ -122,6 +122,25 @@ struct SettingsFocusCandidatesKey: PreferenceKey {
     }
 }
 
+private struct SettingsActualFocusKey: FocusedValueKey {
+    typealias Value = SettingsFocusTarget
+}
+
+extension FocusedValues {
+    var settingsActualFocus: SettingsFocusTarget? {
+        get { self[SettingsActualFocusKey.self] }
+        set { self[SettingsActualFocusKey.self] = newValue }
+    }
+}
+
+struct SettingsScrollReadyKey: PreferenceKey {
+    static let defaultValue: Set<String> = []
+
+    static func reduce(value: inout Set<String>, nextValue: () -> Set<String>) {
+        value.formUnion(nextValue())
+    }
+}
+
 struct SettingsFocusContext {
     let pageID: String
     let active: Bool
@@ -156,6 +175,7 @@ private struct SettingsControlFocus: ViewModifier {
         if let context, let focusBinding {
             content
                 .focused(focusBinding, equals: .control(pageID: context.pageID, id: id))
+                .focusedValue(\.settingsActualFocus, .control(pageID: context.pageID, id: id))
                 .preference(
                     key: SettingsFocusCandidatesKey.self,
                     value: context.active && isEnabled

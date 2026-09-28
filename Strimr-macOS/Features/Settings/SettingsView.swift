@@ -10,6 +10,14 @@ struct SettingsView: View {
                 NavigationLink("settings.playback.title") {
                     SettingsPlaybackView()
                 }
+                NavigationLink("settings.playback.audio.title") {
+                    SettingsAudioView()
+                }
+
+                NavigationLink("settings.playback.subtitles.title") {
+                    SettingsSubtitlesView()
+                }
+
                 NavigationLink("settings.interface.title") {
                     SettingsInterfaceView(
                         settingsManager: settingsManager,

@@ -847,50 +847,6 @@
         }
       }
     },
-    "downloads.empty.message" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloaded movies and episodes will appear here."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les films et episodes téléchargés apparaîtront ici."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已下载的电影和剧集会显示在这里。"
-          }
-        }
-      }
-    },
-    "downloads.empty.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Downloads Yet"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun téléchargement"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无下载"
-          }
-        }
-      }
-    },
     "downloads.cellular.confirmation.confirm" : {
       "localizations" : {
         "en" : {
@@ -953,6 +909,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要使用蜂窝网络下载吗？"
+          }
+        }
+      }
+    },
+    "downloads.empty.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded movies and episodes will appear here."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les films et episodes téléchargés apparaîtront ici."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已下载的电影和剧集会显示在这里。"
+          }
+        }
+      }
+    },
+    "downloads.empty.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Downloads Yet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun téléchargement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无下载"
           }
         }
       }
@@ -1441,50 +1441,6 @@
         }
       }
     },
-    "downloads.status.waitingForWiFi" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting for Wi-Fi"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En attente du Wi-Fi"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待 Wi-Fi"
-          }
-        }
-      }
-    },
-    "downloads.status.waitingForWiFi.description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The download will start when a Wi-Fi connection is available."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le téléchargement démarrera dès qu’une connexion Wi-Fi sera disponible."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连接到 Wi-Fi 后将开始下载。"
-          }
-        }
-      }
-    },
     "downloads.status.failed" : {
       "localizations" : {
         "en" : {
@@ -1569,6 +1525,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "队列中"
+          }
+        }
+      }
+    },
+    "downloads.status.waitingForWiFi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente du Wi-Fi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待 Wi-Fi"
+          }
+        }
+      }
+    },
+    "downloads.status.waitingForWiFi.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download will start when a Wi-Fi connection is available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le téléchargement démarrera dès qu’une connexion Wi-Fi sera disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接到 Wi-Fi 后将开始下载。"
           }
         }
       }
@@ -14536,6 +14536,7 @@
       }
     },
     "settings.playback.subtitles.customize" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
