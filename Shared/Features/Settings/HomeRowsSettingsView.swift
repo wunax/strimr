@@ -42,16 +42,21 @@ struct HomeRowsSettingsView: View {
                 Button("settings.interface.homeRows.restoreDefaults", role: .destructive) {
                     viewModel.resetRowPreferences()
                 }
+                #if os(tvOS)
+                .settingsFocus("restoreRows", isDefault: viewModel.orderedRowsForEditing.isEmpty)
+                #endif
             }
         }
         .listStyle(listStyle)
-        .navigationTitle("settings.interface.homeRows.title")
-        .task {
-            await viewModel.load()
-        }
-        .refreshable {
-            await viewModel.reload()
-        }
+        #if !os(tvOS)
+            .navigationTitle("settings.interface.homeRows.title")
+        #endif
+            .task {
+                await viewModel.load()
+            }
+            .refreshable {
+                await viewModel.reload()
+            }
     }
 
     @ViewBuilder
@@ -75,6 +80,7 @@ struct HomeRowsSettingsView: View {
                         )
                     }
                     .buttonStyle(.bordered)
+                    .settingsFocus("row-\(row.id)-visibility", isDefault: index == 0)
 
                     Button {
                         viewModel.moveRow(at: index, by: -1)
@@ -83,6 +89,7 @@ struct HomeRowsSettingsView: View {
                     }
                     .buttonStyle(.bordered)
                     .foregroundStyle(.secondary)
+                    .settingsFocus("row-\(row.id)-up", exitsLeft: false)
                     .disabled(index == 0)
 
                     Button {
@@ -92,6 +99,7 @@ struct HomeRowsSettingsView: View {
                     }
                     .buttonStyle(.bordered)
                     .foregroundStyle(.secondary)
+                    .settingsFocus("row-\(row.id)-down", exitsLeft: false)
                     .disabled(index == viewModel.orderedRowsForEditing.count - 1)
                 }
             }
@@ -127,8 +135,8 @@ struct HomeRowsSettingsView: View {
     private func tvOSActionLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-            Text(title)
         }
+        .accessibilityLabel(Text(title))
     }
 
     private var listStyle: some ListStyle {

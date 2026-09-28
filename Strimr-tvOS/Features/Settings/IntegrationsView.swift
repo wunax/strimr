@@ -11,10 +11,7 @@ struct IntegrationsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    Text("settings.integrations.title")
-                        .font(.largeTitle.bold())
-
-                    NavigationLink {
+                    SettingsLink(title: "integrations.seerr.title") {
                         SeerrView(
                             viewModel: SeerrViewModel(
                                 store: seerrStore,
@@ -31,10 +28,11 @@ struct IntegrationsView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .settingsFocus("seerr", isDefault: true)
 
                     Spacer(minLength: 0)
                 }
-                .padding(48)
+                .padding(20)
             }
         }
     }
@@ -70,6 +68,8 @@ struct IntegrationsView: View {
                 Text(subtitle)
                     .foregroundStyle(.secondary)
                     .font(.callout)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
             }
 
             Spacer(minLength: 0)

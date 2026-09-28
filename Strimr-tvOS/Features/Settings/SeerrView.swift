@@ -11,8 +11,6 @@ struct SeerrView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    header
-
                     if viewModel.user == nil {
                         setupCard
                     }
@@ -30,31 +28,10 @@ struct SeerrView: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(48)
+                .padding(20)
             }
         }
-        .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
-            Button("common.actions.done") {}
-        } message: {
-            Text(viewModel.errorMessage)
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("integrations.seerr.title")
-                .font(.largeTitle.bold())
-
-            if let baseURL = viewModel.baseURLString {
-                Text(baseURL)
-                    .foregroundStyle(.secondary)
-                    .font(.title3)
-            } else {
-                Text("integrations.seerr.setup.description")
-                    .foregroundStyle(.secondary)
-                    .font(.title3)
-            }
-        }
+        .modifier(SeerrSettingsErrorPresentation(viewModel: viewModel))
     }
 
     private var setupCard: some View {
@@ -62,7 +39,7 @@ struct SeerrView: View {
             Text("integrations.seerr.setup.description")
                 .foregroundStyle(.secondary)
 
-            NavigationLink {
+            SettingsLink(title: "integrations.seerr.server.title") {
                 SeerrSetupView(viewModel: viewModel)
             } label: {
                 Label("integrations.seerr.setup.start", systemImage: "arrow.right.circle.fill")
@@ -70,6 +47,7 @@ struct SeerrView: View {
                     .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
+            .settingsFocus("seerrSetup", isDefault: true)
             .tint(.brandPrimary)
         }
     }
@@ -108,6 +86,7 @@ struct SeerrView: View {
                     set: { settingsManager.setDisplaySeerrDiscoverTab($0) },
                 ),
             )
+            .settingsFocus("seerrDiscover", isDefault: true)
         }
     }
 
@@ -117,6 +96,7 @@ struct SeerrView: View {
                 viewModel.signOut()
             }
             .buttonStyle(.bordered)
+            .settingsFocus("seerrSignOut")
         }
     }
 
@@ -126,6 +106,8 @@ struct SeerrView: View {
             Spacer(minLength: 16)
             Text(value)
                 .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .truncationMode(.middle)
         }
     }
 }
@@ -208,8 +190,9 @@ private enum SeerrSetupStep: Hashable {
 @MainActor
 private struct SeerrSetupView: View {
     @Bindable var viewModel: SeerrViewModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var step: SeerrSetupStep = .server
+    @Environment(SettingsNavigation.self) private var navigation
+    @Environment(\.settingsFocusContext) private var focusContext
+    var step: SeerrSetupStep = .server
 
     var body: some View {
         ZStack {
@@ -219,18 +202,29 @@ private struct SeerrSetupView: View {
                 stepContent
                     .focusSection()
             }
-            .padding(48)
+            .padding(20)
         }
-        .navigationTitle("integrations.seerr.setup.title")
+
+        .modifier(SeerrSettingsErrorPresentation(viewModel: viewModel))
         .onChange(of: viewModel.isLoggedIn) { _, newValue in
             if newValue {
-                dismiss()
+                navigation.finishSeerrSetup()
             }
         }
         .onChange(of: viewModel.baseURLString) { _, newValue in
             if newValue == nil, step != .server {
-                step = .server
+                navigation.restartSeerrSetup()
             }
+        }
+    }
+
+    private func showStep(_ step: SeerrSetupStep) {
+        // Validation can finish after the user changes category or leaves this page.
+        guard navigation.category == .integrations,
+              !navigation.sidebarFocused,
+              navigation.pageID == focusContext?.pageID else { return }
+        navigation.push(step.titleKey) {
+            SeerrSetupView(viewModel: viewModel, step: step)
         }
     }
 
@@ -239,13 +233,13 @@ private struct SeerrSetupView: View {
         switch step {
         case .server:
             SeerrServerStepView(viewModel: viewModel) {
-                step = .method
+                showStep(.method)
             }
         case .method:
             SeerrAuthMethodStepView(
                 viewModel: viewModel,
-                onSelectLocal: { step = .local },
-                onSelectJellyfin: { step = .jellyfin },
+                onSelectLocal: { showStep(.local) },
+                onSelectJellyfin: { showStep(.jellyfin) },
             )
         case .local:
             SeerrLocalAuthStepView(viewModel: viewModel)
@@ -263,9 +257,6 @@ private struct SeerrServerStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Text("integrations.seerr.server.title")
-                    .font(.title2.bold())
-
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("integrations.seerr.server.url.title")
@@ -277,6 +268,7 @@ private struct SeerrServerStepView: View {
                             text: $viewModel.baseURLInput,
                             prompt: Text("integrations.seerr.server.url.placeholder").foregroundColor(.gray),
                         )
+                        .settingsFocus("input", isDefault: true)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .padding(14)
@@ -302,6 +294,7 @@ private struct SeerrServerStepView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
+                        .settingsFocus("saveServer")
                         .tint(.brandPrimary)
                         .disabled(viewModel.baseURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty || viewModel.isValidating)
@@ -310,7 +303,7 @@ private struct SeerrServerStepView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(48)
+            .padding(20)
         }
     }
 }
@@ -324,9 +317,6 @@ private struct SeerrAuthMethodStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Text("integrations.seerr.login.title")
-                    .font(.title2.bold())
-
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Button {
@@ -345,6 +335,7 @@ private struct SeerrAuthMethodStepView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
+                        .settingsFocus("plexLogin", isDefault: true)
                         .tint(.brandPrimary)
                         .disabled(!viewModel.isPlexAuthAvailable || viewModel.isAuthenticating)
 
@@ -367,6 +358,7 @@ private struct SeerrAuthMethodStepView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.bordered)
+                            .settingsFocus("jellyfinMethod", isDefault: !viewModel.isPlexAuthAvailable)
                             .disabled(viewModel.isAuthenticating)
                         }
 
@@ -381,13 +373,17 @@ private struct SeerrAuthMethodStepView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.bordered)
+                        .settingsFocus(
+                            "localMethod",
+                            isDefault: !viewModel.isPlexAuthAvailable && !viewModel.isJellyfinAuthAvailable,
+                        )
                         .disabled(viewModel.isAuthenticating)
                     }
                 }
 
                 Spacer(minLength: 0)
             }
-            .padding(48)
+            .padding(20)
         }
     }
 }
@@ -399,16 +395,17 @@ private struct SeerrJellyfinAuthStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Text("integrations.seerr.login.jellyfin").font(.title2.bold())
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         TextField("integrations.seerr.login.username", text: $viewModel.jellyfinUsername)
+                            .settingsFocus("input", isDefault: true)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding(14)
                             .background(Color.white.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         SecureField("integrations.seerr.login.password", text: $viewModel.jellyfinPassword)
+                            .settingsFocus("password")
                             .padding(14)
                             .background(Color.white.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -420,6 +417,7 @@ private struct SeerrJellyfinAuthStepView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
+                        .settingsFocus("jellyfinLogin")
                         .tint(.brandPrimary)
                         .disabled(
                             viewModel.jellyfinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -430,7 +428,7 @@ private struct SeerrJellyfinAuthStepView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(48)
+            .padding(20)
         }
     }
 }
@@ -442,9 +440,6 @@ private struct SeerrLocalAuthStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Text("integrations.seerr.login.local.title")
-                    .font(.title2.bold())
-
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("integrations.seerr.login.email")
@@ -452,6 +447,7 @@ private struct SeerrLocalAuthStepView: View {
                             .foregroundStyle(.secondary)
 
                         TextField("integrations.seerr.login.email", text: $viewModel.email)
+                            .settingsFocus("input", isDefault: true)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding(14)
@@ -463,6 +459,7 @@ private struct SeerrLocalAuthStepView: View {
                             .foregroundStyle(.secondary)
 
                         SecureField("integrations.seerr.login.password", text: $viewModel.password)
+                            .settingsFocus("password")
                             .padding(14)
                             .background(Color.white.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -483,6 +480,7 @@ private struct SeerrLocalAuthStepView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
+                        .settingsFocus("localLogin")
                         .tint(.brandPrimary)
                         .disabled(viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty || viewModel.password.isEmpty || viewModel.isAuthenticating)
@@ -491,7 +489,26 @@ private struct SeerrLocalAuthStepView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(48)
+            .padding(20)
+        }
+    }
+}
+
+private struct SeerrSettingsErrorPresentation: ViewModifier {
+    @Bindable var viewModel: SeerrViewModel
+    @Environment(\.settingsFocusContext) private var focusContext
+
+    func body(content: Content) -> some View {
+        content.alert(
+            "integrations.seerr.error.title",
+            isPresented: Binding(
+                get: { focusContext?.active == true && viewModel.isShowingError },
+                set: { viewModel.isShowingError = $0 },
+            ),
+        ) {
+            Button("common.actions.done") {}
+        } message: {
+            Text(viewModel.errorMessage)
         }
     }
 }

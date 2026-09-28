@@ -35,6 +35,9 @@ struct DisplayedLibrariesSectionView: View {
             ForEach(viewModel.libraries) { library in
                 Toggle(library.title, isOn: viewModel.displayedBinding(for: library))
                     .id("displayed-library-\(library.id)")
+                #if os(tvOS)
+                    .settingsFocus("displayed-library-\(library.id)")
+                #endif
             }
         }
     }

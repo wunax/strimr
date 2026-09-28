@@ -13638,6 +13638,22 @@
         }
       }
     },
+    "settings.navigation.back" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour"
+          }
+        }
+      }
+    },
     "settings.playback.audio.title" : {
       "localizations" : {
         "en" : {

@@ -10,13 +10,14 @@ struct SettingsInterfaceView: View {
     var body: some View {
         List {
             Section("settings.interface.homeRows.section") {
-                NavigationLink("settings.interface.homeRows.title") {
+                SettingsLink("settings.interface.homeRows.title") {
                     HomeRowsSettingsView(
                         services: mediaServices,
                         settingsManager: settingsManager,
                         libraryStore: libraryStore,
                     )
                 }
+                .settingsFocus("homeRows", isDefault: true)
             }
 
             if sessionManager.provider == .plex {
@@ -28,6 +29,7 @@ struct SettingsInterfaceView: View {
                             set: { settingsManager.setMultiServerSearchEnabled($0) },
                         ),
                     )
+                    .settingsFocus("settings.interface.multiServerSearch")
                 } footer: {
                     Text("settings.interface.multiServerSearch.description")
                 }
@@ -41,6 +43,7 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayCollections($0) },
                     ),
                 )
+                .settingsFocus("settings.interface.displayCollections")
                 Toggle(
                     "settings.interface.displayPlaylists",
                     isOn: Binding(
@@ -48,6 +51,7 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayPlaylists($0) },
                     ),
                 )
+                .settingsFocus("settings.interface.displayPlaylists")
                 Toggle(
                     "settings.interface.displayFavoritesTab",
                     isOn: Binding(
@@ -55,6 +59,7 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayFavoritesTab($0) },
                     ),
                 )
+                .settingsFocus("settings.interface.displayFavoritesTab")
             } footer: {
                 Text("settings.interface.displayFavoritesTab.description")
             }
@@ -67,22 +72,23 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayLiveTVTab($0) },
                     ),
                 )
+                .settingsFocus("settings.interface.displayLiveTVTab")
             } footer: {
                 Text("settings.interface.displayLiveTVTab.description")
             }
 
             Section {
-                Picker(
+                SettingsPicker(
                     "settings.interface.spoilerProtection.title",
                     selection: Binding(
                         get: { settingsManager.interface.spoilerProtection },
                         set: { settingsManager.setSpoilerProtection($0) },
                     ),
-                ) {
-                    ForEach(SpoilerProtectionLevel.allCases, id: \.self) { level in
-                        Text(level.title).tag(level)
-                    }
+                    options: Array(SpoilerProtectionLevel.allCases),
+                ) { level in
+                    Text(level.title)
                 }
+                .settingsFocus("spoilerProtection")
             } footer: {
                 Text("settings.interface.spoilerProtection.description")
             }
@@ -97,6 +103,6 @@ struct SettingsInterfaceView: View {
                 libraryStore: libraryStore,
             )
         }
-        .navigationTitle("settings.interface.title")
+        .listStyle(.plain)
     }
 }

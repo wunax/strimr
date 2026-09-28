@@ -11,45 +11,52 @@ struct SettingsPlaybackView: View {
     var body: some View {
         List {
             Section {
-                Picker("settings.playback.quality", selection: viewModel.qualityPresetBinding) {
-                    ForEach(TranscodeQualityPreset.displayOrder) { preset in
-                        Text(preset.title).tag(preset)
-                    }
+                SettingsPicker(
+                    "settings.playback.quality",
+                    selection: viewModel.qualityPresetBinding,
+                    options: Array(TranscodeQualityPreset.displayOrder),
+                ) { preset in
+                    Text(preset.title)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.quality", isDefault: true)
             } footer: {
                 Text("settings.playback.quality.footer")
             }
 
             Section {
-                Picker(
+                SettingsPicker(
                     "settings.playback.nextEpisodeAutoplay",
                     selection: viewModel.nextEpisodeAutoplayBinding,
-                ) {
-                    ForEach(viewModel.nextEpisodeAutoplayOptions, id: \.self) { option in
-                        Text(option.title).tag(option)
-                    }
+                    options: Array(viewModel.nextEpisodeAutoplayOptions),
+                ) { option in
+                    Text(option.title)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.nextEpisodeAutoplay")
 
-                Picker("settings.playback.rewind", selection: viewModel.rewindBinding) {
-                    ForEach(viewModel.seekOptions, id: \.self) { seconds in
-                        Text("settings.playback.seconds \(seconds)").tag(seconds)
-                    }
+                SettingsPicker(
+                    "settings.playback.rewind",
+                    selection: viewModel.rewindBinding,
+                    options: Array(viewModel.seekOptions),
+                ) { seconds in
+                    Text("settings.playback.seconds \(seconds)")
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.rewind")
 
-                Picker("settings.playback.fastForward", selection: viewModel.fastForwardBinding) {
-                    ForEach(viewModel.seekOptions, id: \.self) { seconds in
-                        Text("settings.playback.seconds \(seconds)").tag(seconds)
-                    }
+                SettingsPicker(
+                    "settings.playback.fastForward",
+                    selection: viewModel.fastForwardBinding,
+                    options: Array(viewModel.seekOptions),
+                ) { seconds in
+                    Text("settings.playback.seconds \(seconds)")
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.fastForward")
             }
 
             Section("settings.playback.skipping.title") {
                 Toggle("settings.playback.autoSkipIntros", isOn: viewModel.autoSkipIntrosBinding)
+                    .settingsFocus("settings.playback.autoSkipIntros")
                 Toggle("settings.playback.autoSkipCredits", isOn: viewModel.autoSkipCreditsBinding)
+                    .settingsFocus("settings.playback.autoSkipCredits")
             }
 
             Section("settings.playback.timeline.title") {
@@ -57,10 +64,12 @@ struct SettingsPlaybackView: View {
                     "settings.playback.showChaptersOnTimeline",
                     isOn: viewModel.showChaptersOnTimelineBinding,
                 )
+                .settingsFocus("settings.playback.showChaptersOnTimeline")
                 Toggle(
                     "settings.playback.showEndsAtTime",
                     isOn: viewModel.showEndsAtTimeBinding,
                 )
+                .settingsFocus("settings.playback.showEndsAtTime")
             }
 
             Section("settings.playback.overlay.title") {
@@ -68,38 +77,12 @@ struct SettingsPlaybackView: View {
                     "settings.playback.showClock",
                     isOn: viewModel.showClockBinding,
                 )
+                .settingsFocus("settings.playback.showClock")
             }
 
             scrubThumbnailSection
-
-            Section("settings.playback.subtitles.title") {
-                NavigationLink("settings.playback.subtitles.customize") {
-                    SettingsSubtitlesView()
-                }
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
-                    Text("settings.playback.losslessAudio.footer")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle(
-                        "settings.playback.rememberTrackSelections",
-                        isOn: viewModel.rememberTrackSelectionsBinding,
-                    )
-                    Text("settings.playback.rememberTrackSelections.footer")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("settings.playback.audio.title")
-            }
         }
-        .navigationTitle("settings.playback.title")
+        .listStyle(.plain)
     }
 
     private var scrubThumbnailSection: some View {
@@ -112,6 +95,7 @@ struct SettingsPlaybackView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .settingsFocus("settings.playback.scrubThumbnails")
 
             Toggle(isOn: viewModel.generateMissingScrubThumbnailPreviewsBinding) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -121,6 +105,7 @@ struct SettingsPlaybackView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .settingsFocus("settings.playback.generateMissingScrubThumbnails")
             .disabled(!viewModel.showsScrubThumbnailPreviews)
         }
     }

@@ -15,63 +15,70 @@ struct SettingsSubtitlesView: View {
                     "settings.playback.subtitles.styledASS",
                     isOn: viewModel.styledASSSubtitlesBinding,
                 )
+                .settingsFocus("settings.playback.subtitles.styledASS", isDefault: true)
             } footer: {
                 Text("settings.playback.subtitles.styledASS.description")
             }
 
             Section("settings.playback.subtitles.preview.title") {
                 SubtitleAppearancePreview(appearance: settingsManager.playback.subtitleAppearance)
-                    .frame(height: 260)
+                    .frame(height: 180)
             }
 
             Section {
-                Picker("settings.playback.subtitleFontSize", selection: viewModel.subtitleFontSizeBinding) {
-                    ForEach(viewModel.subtitleFontSizeOptions, id: \.self) { fontSize in
-                        Text("settings.playback.fontSize \(fontSize)").tag(fontSize)
-                    }
+                SettingsPicker(
+                    "settings.playback.subtitleFontSize",
+                    selection: viewModel.subtitleFontSizeBinding,
+                    options: Array(viewModel.subtitleFontSizeOptions),
+                ) { fontSize in
+                    Text("settings.playback.fontSize \(fontSize)")
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitleFontSize")
 
-                Picker("settings.playback.subtitles.color", selection: viewModel.subtitleTextColorBinding) {
-                    ForEach(viewModel.subtitleTextColorOptions, id: \.self) { color in
-                        Text(color.localizedName).tag(color)
-                    }
+                SettingsPicker(
+                    "settings.playback.subtitles.color",
+                    selection: viewModel.subtitleTextColorBinding,
+                    options: Array(viewModel.subtitleTextColorOptions),
+                ) { color in
+                    Text(color.localizedName)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitles.color")
 
-                Picker("settings.playback.subtitles.weight", selection: viewModel.subtitleFontWeightBinding) {
-                    ForEach(viewModel.subtitleFontWeightOptions, id: \.self) { weight in
-                        Text(weight.localizedName).tag(weight)
-                    }
+                SettingsPicker(
+                    "settings.playback.subtitles.weight",
+                    selection: viewModel.subtitleFontWeightBinding,
+                    options: Array(viewModel.subtitleFontWeightOptions),
+                ) { weight in
+                    Text(weight.localizedName)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitles.weight")
 
-                Picker(
+                SettingsPicker(
                     "settings.playback.subtitles.background",
                     selection: viewModel.subtitleBackgroundStrengthBinding,
-                ) {
-                    ForEach(viewModel.subtitleBackgroundStrengthOptions, id: \.self) { strength in
-                        Text(strength.localizedName).tag(strength)
-                    }
+                    options: Array(viewModel.subtitleBackgroundStrengthOptions),
+                ) { strength in
+                    Text(strength.localizedName)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitles.background")
 
-                Picker(
+                SettingsPicker(
                     "settings.playback.subtitles.edge",
                     selection: viewModel.subtitleEdgeStyleBinding,
-                ) {
-                    ForEach(viewModel.subtitleEdgeStyleOptions, id: \.self) { style in
-                        Text(style.localizedName).tag(style)
-                    }
+                    options: Array(viewModel.subtitleEdgeStyleOptions),
+                ) { style in
+                    Text(style.localizedName)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitles.edge")
 
-                Picker("settings.playback.subtitles.position", selection: viewModel.subtitleVerticalPositionBinding) {
-                    ForEach(viewModel.subtitleVerticalPositionOptions, id: \.self) { position in
-                        Text(position.localizedName).tag(position)
-                    }
+                SettingsPicker(
+                    "settings.playback.subtitles.position",
+                    selection: viewModel.subtitleVerticalPositionBinding,
+                    options: Array(viewModel.subtitleVerticalPositionOptions),
+                ) { position in
+                    Text(position.localizedName)
                 }
-                .pickerStyle(.navigationLink)
+                .settingsFocus("settings.playback.subtitles.position")
             } footer: {
                 Text("settings.playback.subtitles.footer")
             }
@@ -80,8 +87,9 @@ struct SettingsSubtitlesView: View {
                 Button("settings.playback.subtitles.reset") {
                     viewModel.resetSubtitleAppearance()
                 }
+                .settingsFocus("resetSubtitles")
             }
         }
-        .navigationTitle("settings.playback.subtitles.title")
+        .listStyle(.plain)
     }
 }
