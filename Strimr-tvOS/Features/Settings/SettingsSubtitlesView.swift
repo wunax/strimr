@@ -9,7 +9,7 @@ struct SettingsSubtitlesView: View {
     }
 
     var body: some View {
-        List {
+        SettingsList {
             Section {
                 Toggle(
                     "settings.playback.subtitles.styledASS",
@@ -90,6 +90,5 @@ struct SettingsSubtitlesView: View {
                 .settingsFocus("resetSubtitles")
             }
         }
-        .listStyle(.plain)
     }
 }

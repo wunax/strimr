@@ -15,7 +15,9 @@ final class SettingsNavigation {
     var sidebarFocused = true
     var sidebarRequest = 0
     var detailRequest = 0
+    var pendingDetailFocus: String?
     var focusedControls: [String: String] = [:]
+    var scrollOffsets: [String: CGFloat] = [:]
 
     var currentPages: [Page] {
         pages[category, default: []]
@@ -34,6 +36,7 @@ final class SettingsNavigation {
         guard !currentPages.isEmpty else { return }
         if let page = pages[category]?.removeLast() {
             focusedControls[page.id.uuidString] = nil
+            scrollOffsets[page.id.uuidString] = nil
         }
         enterDetail()
     }
@@ -56,10 +59,12 @@ final class SettingsNavigation {
 
     func enterDetail() {
         sidebarFocused = false
+        pendingDetailFocus = pageID
         detailRequest += 1
     }
 
     func enterSidebar() {
+        pendingDetailFocus = nil
         sidebarFocused = true
         sidebarRequest += 1
     }
@@ -93,94 +98,69 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     }
 }
 
+enum SettingsFocusTarget: Hashable {
+    case category(SettingsCategory)
+    case control(pageID: String, id: String)
+    case back
+}
+
+struct SettingsFocusCandidate: Equatable {
+    let pageID: String
+    let id: String
+    let isDefault: Bool
+
+    var target: SettingsFocusTarget {
+        .control(pageID: pageID, id: id)
+    }
+}
+
+struct SettingsFocusCandidatesKey: PreferenceKey {
+    static let defaultValue: [SettingsFocusCandidate] = []
+
+    static func reduce(value: inout [SettingsFocusCandidate], nextValue: () -> [SettingsFocusCandidate]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
 struct SettingsFocusContext {
     let pageID: String
-    let namespace: Namespace.ID
     let active: Bool
 }
 
 extension EnvironmentValues {
     @Entry var settingsFocusContext: SettingsFocusContext?
+    @Entry var settingsFocusBinding: FocusState<SettingsFocusTarget?>.Binding?
 }
 
-/// Keep inactive pages mounted so their scroll offsets and editing state survive navigation.
+/// Only the current page participates in the focus tree.
 struct SettingsDetailPage<Content: View>: View {
-    @Environment(SettingsNavigation.self) private var navigation
-    @Environment(\.resetFocus) private var resetFocus
-    @Namespace private var namespace
     let pageID: String
-    let active: Bool
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         content()
-            .environment(
-                \.settingsFocusContext,
-                SettingsFocusContext(pageID: pageID, namespace: namespace, active: active),
-            )
-            .focusScope(namespace)
-            .focusSection()
-            .opacity(active ? 1 : 0)
-            .allowsHitTesting(active)
-            .disabled(!active)
-            .accessibilityHidden(!active)
-            .onAppear {
-                if active, !navigation.sidebarFocused {
-                    resetFocus(in: namespace)
-                }
-            }
-            .onChange(of: active) { _, active in
-                if active, !navigation.sidebarFocused {
-                    resetFocus(in: namespace)
-                }
-            }
-            .onChange(of: navigation.detailRequest) { _, _ in
-                if active {
-                    resetFocus(in: namespace)
-                }
-            }
+            .environment(\.settingsFocusContext, SettingsFocusContext(pageID: pageID, active: true))
     }
 }
 
 private struct SettingsControlFocus: ViewModifier {
     @Environment(SettingsNavigation.self) private var navigation
     @Environment(\.settingsFocusContext) private var context
+    @Environment(\.settingsFocusBinding) private var focusBinding
     @Environment(\.isEnabled) private var isEnabled
-    @FocusState private var focused: Bool
     let id: String
     let isDefault: Bool
     let exitsLeft: Bool
 
     func body(content: Content) -> some View {
-        if let context {
+        if let context, let focusBinding {
             content
-                .focused($focused)
-                .prefersDefaultFocus(
-                    navigation.focusedControls[context.pageID].map { $0 == id } ?? isDefault,
-                    in: context.namespace,
+                .focused(focusBinding, equals: .control(pageID: context.pageID, id: id))
+                .preference(
+                    key: SettingsFocusCandidatesKey.self,
+                    value: context.active && isEnabled
+                        ? [SettingsFocusCandidate(pageID: context.pageID, id: id, isDefault: isDefault)] : [],
                 )
-                .onAppear {
-                    restoreFocus(context)
-                }
-                .onChange(of: navigation.detailRequest) { _, _ in
-                    restoreFocus(context)
-                }
-                .onChange(of: context.active) { _, active in
-                    if active {
-                        restoreFocus(context)
-                    }
-                }
-                .onChange(of: isEnabled) { _, enabled in
-                    if !enabled, context.active, navigation.focusedControls[context.pageID] == id {
-                        navigation.focusedControls[context.pageID] = nil
-                    }
-                }
-                .onChange(of: focused) { _, value in
-                    if value {
-                        navigation.focusedControls[context.pageID] = id
-                        navigation.sidebarFocused = false
-                    }
-                }
                 .onMoveCommand { direction in
                     if direction == .left, exitsLeft {
                         navigation.enterSidebar()
@@ -188,13 +168,6 @@ private struct SettingsControlFocus: ViewModifier {
                 }
         } else {
             content
-        }
-    }
-
-    private func restoreFocus(_ context: SettingsFocusContext) {
-        guard context.active, isEnabled, !navigation.sidebarFocused else { return }
-        if navigation.focusedControls[context.pageID].map({ $0 == id }) ?? isDefault {
-            focused = true
         }
     }
 }
@@ -274,29 +247,25 @@ private struct SettingsOptionsView<Value: Hashable>: View {
     let optionTitle: (Value) -> Text
 
     var body: some View {
-        ScrollViewReader { proxy in
-            List {
-                ForEach(Array(options.enumerated()), id: \.element) { index, value in
-                    Button {
-                        selection = value
-                        navigation.pop()
-                    } label: {
-                        HStack {
-                            optionTitle(value)
-                            Spacer()
-                            if selection == value {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.brandPrimary)
-                            }
+        SettingsList {
+            ForEach(Array(options.enumerated()), id: \.element) { index, value in
+                Button {
+                    selection = value
+                    navigation.pop()
+                } label: {
+                    HStack {
+                        optionTitle(value)
+                        Spacer()
+                        if selection == value {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(Color.brandPrimary)
                         }
                     }
-                    .id(value)
-                    .settingsFocus("option-\(index)", isDefault: selection == value)
-                    .accessibilityAddTraits(selection == value ? .isSelected : [])
                 }
+                .id(value)
+                .settingsFocus("option-\(index)", isDefault: selection == value)
+                .accessibilityAddTraits(selection == value ? .isSelected : [])
             }
-            .listStyle(.plain)
-            .onAppear { proxy.scrollTo(selection, anchor: .center) }
         }
     }
 }

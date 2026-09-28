@@ -9,7 +9,7 @@ struct IntegrationsView: View {
         ZStack {
             Color("Background").ignoresSafeArea()
 
-            ScrollView {
+            SettingsScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     SettingsLink(title: "integrations.seerr.title") {
                         SeerrView(

@@ -8,7 +8,7 @@ struct SettingsInterfaceView: View {
     let libraryStore: LibraryStore
 
     var body: some View {
-        List {
+        SettingsList {
             Section("settings.interface.homeRows.section") {
                 SettingsLink("settings.interface.homeRows.title") {
                     HomeRowsSettingsView(
@@ -103,6 +103,5 @@ struct SettingsInterfaceView: View {
                 libraryStore: libraryStore,
             )
         }
-        .listStyle(.plain)
     }
 }

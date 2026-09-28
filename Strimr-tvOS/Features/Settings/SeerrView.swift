@@ -9,7 +9,7 @@ struct SeerrView: View {
         ZStack {
             Color("Background").ignoresSafeArea()
 
-            ScrollView {
+            SettingsScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if viewModel.user == nil {
                         setupCard
@@ -200,18 +200,17 @@ private struct SeerrSetupView: View {
 
             VStack(alignment: .leading, spacing: 28) {
                 stepContent
-                    .focusSection()
             }
             .padding(20)
         }
 
         .modifier(SeerrSettingsErrorPresentation(viewModel: viewModel))
-        .onChange(of: viewModel.isLoggedIn) { _, newValue in
+        .onChange(of: viewModel.isLoggedIn, initial: true) { _, newValue in
             if newValue {
                 navigation.finishSeerrSetup()
             }
         }
-        .onChange(of: viewModel.baseURLString) { _, newValue in
+        .onChange(of: viewModel.baseURLString, initial: true) { _, newValue in
             if newValue == nil, step != .server {
                 navigation.restartSeerrSetup()
             }
@@ -255,7 +254,7 @@ private struct SeerrServerStepView: View {
     var onContinue: () -> Void
 
     var body: some View {
-        ScrollView {
+        SettingsScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
@@ -315,7 +314,7 @@ private struct SeerrAuthMethodStepView: View {
     var onSelectJellyfin: () -> Void
 
     var body: some View {
-        ScrollView {
+        SettingsScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
@@ -393,7 +392,7 @@ private struct SeerrJellyfinAuthStepView: View {
     @Bindable var viewModel: SeerrViewModel
 
     var body: some View {
-        ScrollView {
+        SettingsScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
@@ -438,7 +437,7 @@ private struct SeerrLocalAuthStepView: View {
     @Bindable var viewModel: SeerrViewModel
 
     var body: some View {
-        ScrollView {
+        SettingsScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {

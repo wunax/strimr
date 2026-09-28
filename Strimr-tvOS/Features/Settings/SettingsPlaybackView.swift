@@ -9,7 +9,7 @@ struct SettingsPlaybackView: View {
     }
 
     var body: some View {
-        List {
+        SettingsList {
             Section {
                 SettingsPicker(
                     "settings.playback.quality",
@@ -82,7 +82,6 @@ struct SettingsPlaybackView: View {
 
             scrubThumbnailSection
         }
-        .listStyle(.plain)
     }
 
     private var scrubThumbnailSection: some View {

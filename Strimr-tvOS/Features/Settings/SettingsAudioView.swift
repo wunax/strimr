@@ -9,7 +9,7 @@ struct SettingsAudioView: View {
     }
 
     var body: some View {
-        List {
+        SettingsList {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
@@ -33,6 +33,5 @@ struct SettingsAudioView: View {
                 Text("settings.playback.audio.title")
             }
         }
-        .listStyle(.plain)
     }
 }

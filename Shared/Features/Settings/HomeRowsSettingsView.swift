@@ -15,48 +15,58 @@ struct HomeRowsSettingsView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                Text("settings.interface.homeRows.description")
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("settings.interface.homeRows.section") {
-                if viewModel.isLoading, viewModel.availableRows.isEmpty {
-                    ProgressView("home.loading")
-                        .frame(maxWidth: .infinity)
-                } else if let errorMessage = viewModel.errorMessage, viewModel.availableRows.isEmpty {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                } else if viewModel.orderedRowsForEditing.isEmpty {
-                    Text("common.empty.nothingToShow")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(viewModel.orderedRowsForEditing.enumerated()), id: \.element.id) { index, row in
-                        rowControls(at: index, row: row)
-                    }
-                }
-            }
-
-            Section {
-                Button("settings.interface.homeRows.restoreDefaults", role: .destructive) {
-                    viewModel.resetRowPreferences()
-                }
-                #if os(tvOS)
-                .settingsFocus("restoreRows", isDefault: viewModel.orderedRowsForEditing.isEmpty)
-                #endif
-            }
-        }
-        .listStyle(listStyle)
-        #if !os(tvOS)
-            .navigationTitle("settings.interface.homeRows.title")
-        #endif
+        settingsContainer
             .task {
                 await viewModel.load()
             }
             .refreshable {
                 await viewModel.reload()
             }
+    }
+
+    @ViewBuilder
+    private var settingsContainer: some View {
+        #if os(tvOS)
+            SettingsList { sections }
+        #else
+            List { sections }
+                .listStyle(listStyle)
+                .navigationTitle("settings.interface.homeRows.title")
+        #endif
+    }
+
+    @ViewBuilder
+    private var sections: some View {
+        Section {
+            Text("settings.interface.homeRows.description")
+                .foregroundStyle(.secondary)
+        }
+
+        Section("settings.interface.homeRows.section") {
+            if viewModel.isLoading, viewModel.availableRows.isEmpty {
+                ProgressView("home.loading")
+                    .frame(maxWidth: .infinity)
+            } else if let errorMessage = viewModel.errorMessage, viewModel.availableRows.isEmpty {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            } else if viewModel.orderedRowsForEditing.isEmpty {
+                Text("common.empty.nothingToShow")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(viewModel.orderedRowsForEditing.enumerated()), id: \.element.id) { index, row in
+                    rowControls(at: index, row: row)
+                }
+            }
+        }
+
+        Section {
+            Button("settings.interface.homeRows.restoreDefaults", role: .destructive) {
+                viewModel.resetRowPreferences()
+            }
+            #if os(tvOS)
+            .settingsFocus("restoreRows", isDefault: viewModel.orderedRowsForEditing.isEmpty)
+            #endif
+        }
     }
 
     @ViewBuilder

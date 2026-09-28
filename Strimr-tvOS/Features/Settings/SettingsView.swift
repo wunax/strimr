@@ -7,9 +7,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var navigation = SettingsNavigation()
-    @State private var visitedCategories: Set<SettingsCategory> = [.playback]
-    @FocusState private var backFocused: Bool
-    @FocusState private var focusedCategory: SettingsCategory?
+    @State private var focusCandidates: [SettingsFocusCandidate] = []
+    @State private var didSetInitialFocus = false
+    @FocusState private var focusedTarget: SettingsFocusTarget?
 
     var body: some View {
         GeometryReader { geometry in
@@ -30,15 +30,39 @@ struct SettingsView: View {
         .background(Color("Background").ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .environment(navigation)
-        .onAppear { focusedCategory = navigation.category }
-        .onChange(of: focusedCategory) { _, category in
-            guard let category else { return }
-            navigation.sidebarFocused = true
-            visitedCategories.insert(category)
-            navigation.category = category
+        .environment(\.settingsFocusBinding, $focusedTarget)
+        .onAppear {
+            guard !didSetInitialFocus else { return }
+            didSetInitialFocus = true
+            focusedTarget = .category(navigation.category)
+        }
+        .onChange(of: focusedTarget) { _, target in
+            switch target {
+            case let .category(category):
+                // Ignore a transient native fallback while the new detail page mounts.
+                guard navigation.pendingDetailFocus == nil else { return }
+                navigation.sidebarFocused = true
+                navigation.category = category
+            case let .control(pageID, id):
+                guard pageID == navigation.pageID else { return }
+                navigation.focusedControls[pageID] = id
+                navigation.pendingDetailFocus = nil
+                navigation.sidebarFocused = false
+            case .back:
+                navigation.sidebarFocused = false
+            case nil:
+                break
+            }
+        }
+        .onPreferenceChange(SettingsFocusCandidatesKey.self) { candidates in
+            focusCandidates = candidates
+            fulfillDetailFocusRequest()
+        }
+        .onChange(of: navigation.detailRequest) { _, _ in
+            fulfillDetailFocusRequest()
         }
         .onChange(of: navigation.sidebarRequest) { _, _ in
-            focusedCategory = navigation.category
+            focusedTarget = .category(navigation.category)
         }
         .onExitCommand {
             if navigation.sidebarFocused {
@@ -49,6 +73,19 @@ struct SettingsView: View {
                 navigation.enterSidebar()
             }
         }
+    }
+
+    /// One focus binding owns both columns. Wait for the destination's enabled controls
+    /// to enter the view tree instead of racing per-row bindings against resetFocus.
+    private func fulfillDetailFocusRequest() {
+        guard let pageID = navigation.pendingDetailFocus else { return }
+        let candidates = focusCandidates.filter { $0.pageID == pageID }
+        guard let candidate = candidates.first(where: { $0.id == navigation.focusedControls[pageID] })
+            ?? candidates.first(where: \.isDefault)
+            ?? candidates.first else { return }
+        focusedTarget = candidate.target
+        navigation.focusedControls[pageID] = candidate.id
+        navigation.pendingDetailFocus = nil
     }
 
     private var sidebar: some View {
@@ -70,13 +107,13 @@ struct SettingsView: View {
                                 .font(.headline)
                             Spacer(minLength: 0)
                         }
-                        .foregroundStyle(focusedCategory == category ? Color.black : Color.primary)
+                        .foregroundStyle(focusedTarget == .category(category) ? Color.black : Color.primary)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 22)
                         .background {
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(
-                                    focusedCategory == category ? Color.white :
+                                    focusedTarget == .category(category) ? Color.white :
                                         navigation.category == category ? Color.brandPrimary.opacity(0.18) : .clear,
                                 )
                         }
@@ -88,21 +125,17 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .buttonStyle(.plain)
-                    .focused($focusedCategory, equals: category)
+                    .buttonStyle(SettingsCategoryButtonStyle())
+                    .focusEffectDisabled()
+                    .focused($focusedTarget, equals: .category(category))
                     .accessibilityAddTraits(navigation.category == category ? .isSelected : [])
-                    .onMoveCommand { direction in
-                        if direction == .right {
-                            navigation.enterDetail()
-                        }
-                    }
                 }
             }
             Spacer(minLength: 0)
         }
         .focusSection()
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: navigation.category)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: focusedCategory)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: focusedTarget)
     }
 
     private var detail: some View {
@@ -115,12 +148,7 @@ struct SettingsView: View {
                         Image(systemName: "chevron.left")
                     }
                     .accessibilityLabel(Text("settings.navigation.back"))
-                    .focused($backFocused)
-                    .onChange(of: backFocused) { _, focused in
-                        if focused {
-                            navigation.sidebarFocused = false
-                        }
-                    }
+                    .focused($focusedTarget, equals: .back)
                     .onMoveCommand { direction in
                         if direction == .left {
                             navigation.enterSidebar()
@@ -149,26 +177,17 @@ struct SettingsView: View {
             .padding(.horizontal, 20)
             .frame(minHeight: 80, alignment: .leading)
 
-            ZStack {
-                ForEach(SettingsCategory.allCases.filter { visitedCategories.contains($0) }) { category in
-                    SettingsDetailPage(
-                        pageID: category.rawValue,
-                        active: navigation.category == category && navigation.currentPages.isEmpty,
-                    ) {
-                        categoryContent(category)
-                    }
-                    ForEach(navigation.pages[category, default: []]) { page in
-                        SettingsDetailPage(
-                            pageID: page.id.uuidString,
-                            active: navigation.category == category && navigation.currentPages.last?.id == page.id,
-                        ) {
-                            page.content
-                        }
-                    }
+            SettingsDetailPage(pageID: navigation.pageID) {
+                if let page = navigation.currentPages.last {
+                    page.content
+                } else {
+                    categoryContent(navigation.category)
                 }
             }
+            .id(navigation.pageID)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .focusSection()
     }
 
     @ViewBuilder
@@ -181,5 +200,12 @@ struct SettingsView: View {
             SettingsInterfaceView(settingsManager: settingsManager, libraryStore: libraryStore)
         case .integrations: IntegrationsView()
         }
+    }
+}
+
+/// The sidebar draws its own focus surface; avoid the native button background and scale.
+private struct SettingsCategoryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
