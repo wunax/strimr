@@ -12,6 +12,14 @@ struct UserMenuView: View {
     @State private var isShowingLogoutConfirmation = false
     @State private var signOutFlow = SignOutFlow()
 
+    private var canSwitchProfile: Bool {
+        sessionManager.mediaServices?.capabilities.profiles == true
+    }
+
+    private var canSwitchServer: Bool {
+        sessionManager.provider == .plex
+    }
+
     var body: some View {
         List {
             Section {
@@ -43,7 +51,7 @@ struct UserMenuView: View {
                     }
                 }
 
-                if sessionManager.mediaServices?.capabilities.profiles == true {
+                if canSwitchProfile {
                     Button {
                         Task { await sessionManager.requestProfileSelection() }
                     } label: {
@@ -53,7 +61,7 @@ struct UserMenuView: View {
                     .disabled(offlineCoordinator.isFullyOffline)
                 }
 
-                if sessionManager.provider == .plex {
+                if canSwitchServer {
                     Button {
                         Task { await sessionManager.requestServerSelection() }
                     } label: {
@@ -63,7 +71,7 @@ struct UserMenuView: View {
                     .disabled(offlineCoordinator.isFullyOffline)
                 }
 
-                if offlineCoordinator.isFullyOffline {
+                if offlineCoordinator.isFullyOffline, canSwitchProfile || canSwitchServer {
                     Text("offline.menu.switchUnavailable")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
