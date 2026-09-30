@@ -2,7 +2,7 @@ import Foundation
 
 extension Hub {
     @MainActor
-    init(plexHub: PlexHub) {
+    init(plexHub: PlexHub, server: ServerIdentity) {
         self.init(
             id: plexHub.hubIdentifier,
             key: plexHub.key,
@@ -12,7 +12,7 @@ extension Hub {
             more: plexHub.more,
             items: (plexHub.metadata ?? [])
                 .filter(\.type.isSupported)
-                .compactMap { MediaDisplayItem(plexItem: $0) },
+                .compactMap { MediaDisplayItem(plexItem: $0, server: server) },
         )
     }
 }

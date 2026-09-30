@@ -158,7 +158,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             params: params,
             includeLibraryPlaylists: includesPlaylists,
         )
-        let continueHub = try await continueResponse.mediaContainer.hub?.first.map(Hub.init)
+        let continueHub = try await continueResponse.mediaContainer.hub?.first.map { Hub(plexHub: $0, server: server) }
         let promoted = try await promotedResponse.mediaContainer.hub ?? []
         var rows: [HomeRow] = []
         if let continueHub, continueHub.hasItems {
@@ -166,7 +166,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
         rows.append(contentsOf: promoted
             .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
-            .map(Hub.init)
+            .map { Hub(plexHub: $0, server: server) }
             .filter(\.hasItems)
             .map { HomeRow.providerHub(server: server, hub: $0) })
         return HomeContent(rows: rows)
@@ -193,7 +193,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func recommended(in library: Library) async throws -> [Hub] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await HubRepository(context: context).getSectionHubs(sectionId: sectionID)
-        return (response.mediaContainer.hub ?? []).map(Hub.init)
+        return (response.mediaContainer.hub ?? []).map { Hub(plexHub: $0, server: server) }
     }
 
     func items(
@@ -398,7 +398,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             seasons: seasons,
             episodes: episodes,
             cast: cast,
-            relatedHubs: (related.mediaContainer.hub ?? []).map(Hub.init),
+            relatedHubs: (related.mediaContainer.hub ?? []).map { Hub(plexHub: $0, server: server) },
         )
     }
 
