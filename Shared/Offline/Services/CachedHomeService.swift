@@ -101,12 +101,11 @@ final class CachedHomeService: MediaHomeService {
         )
     }
 
-    /// Offline home: downloads first, "Continue watching" rebuilt from local watch state, then the last cached hubs
-    /// without the ones that have nothing playable.
+    /// Offline home: the downloads row, then the last cached home as it was online. Unplayable items stay visible
+    /// and are dimmed by the cards, so the layout does not change when the connection drops.
     private func offlineHome() -> HomeContent? {
         let store = policy.store
         let owner = policy.owner
-        let downloadedIDs = store.downloadedItemIDs(owner: owner)
         var rows: [HomeRow] = []
 
         let downloads = store.mediaItems(ids: store.downloadedItemIDsByDate(owner: owner), owner: owner)
@@ -128,48 +127,52 @@ final class CachedHomeService: MediaHomeService {
             ))
         }
 
-        let inProgress = store.inProgressItems(owner: owner)
-            .sorted { lhs, rhs in
-                let lhsDownloaded = downloadedIDs.contains(lhs.id)
-                let rhsDownloaded = downloadedIDs.contains(rhs.id)
-                if lhsDownloaded != rhsDownloaded {
-                    return lhsDownloaded
-                }
-                return (lhs.lastViewedAt ?? .distantPast) > (rhs.lastViewedAt ?? .distantPast)
+        let locallyInProgress = store.locallyInProgressItems(owner: owner)
+        let cachedRows = cachedHome()?.rows ?? []
+        if let index = cachedRows.firstIndex(where: { $0.kind == .continueWatching }) {
+            rows += cachedRows.enumerated().compactMap { offset, row in
+                guard offset == index else { return row }
+                let items = continueWatchingItems(row.items, locallyInProgress: locallyInProgress)
+                return items.isEmpty ? nil : HomeRow(
+                    id: row.id,
+                    kind: row.kind,
+                    style: row.style,
+                    hub: hub(row.hub, items: items),
+                )
             }
-        if !inProgress.isEmpty {
-            rows.append(.continueWatching(server: owner.server, hub: Hub(
-                id: "offline.continueWatching",
-                key: "",
-                hubKey: nil,
-                title: String(localized: "offline.home.continueWatching"),
-                size: inProgress.count,
-                more: false,
-                items: inProgress.map(MediaDisplayItem.playable),
-            )))
-        }
-
-        let cachedRows = cachedHome()?.rows.filter { $0.kind != .continueWatching } ?? []
-        for row in cachedRows where row.items.contains(where: { item in
-            isAvailableOffline(item, downloadedIDs: downloadedIDs)
-        }) {
-            rows.append(row)
+        } else {
+            if !locallyInProgress.isEmpty {
+                rows.append(.continueWatching(server: owner.server, hub: Hub(
+                    id: "offline.continueWatching",
+                    key: "",
+                    hubKey: nil,
+                    title: String(localized: "offline.home.continueWatching"),
+                    size: locallyInProgress.count,
+                    more: false,
+                    items: locallyInProgress.map(MediaDisplayItem.playable),
+                )))
+            }
+            rows += cachedRows
         }
         return rows.isEmpty ? nil : HomeContent(rows: rows)
     }
 
-    private func isAvailableOffline(_ item: MediaDisplayItem, downloadedIDs: Set<String>) -> Bool {
-        guard let media = item.playableItem else { return false }
-        switch media.kind {
-        case .series:
-            return policy.store.episodes(ofSeries: media.id, owner: policy.owner)
-                .contains { downloadedIDs.contains($0.id) }
-        case .season:
-            return policy.store.children(of: media.id, kind: .episode, owner: policy.owner)
-                .contains { downloadedIDs.contains($0.id) }
-        default:
-            return downloadedIDs.contains(media.id)
+    /// The cached server hub, with what was watched offline moved to the front and what was finished offline removed,
+    /// mirroring what the server will return once the progress is synchronized.
+    private func continueWatchingItems(
+        _ snapshot: [MediaDisplayItem],
+        locallyInProgress: [MediaItem],
+    ) -> [MediaDisplayItem] {
+        let snapshotIDs = snapshot.compactMap(\.playableItem?.id)
+        let finishedLocally = Set(policy.store.watchStates(itemIDs: snapshotIDs, owner: policy.owner, localOnly: true)
+            .filter(\.value.played)
+            .keys)
+        let movedToFront = Set(locallyInProgress.map(\.id))
+        let remaining = snapshot.filter { item in
+            guard let id = item.playableItem?.id else { return true }
+            return !movedToFront.contains(id) && !finishedLocally.contains(id)
         }
+        return locallyInProgress.map(MediaDisplayItem.playable) + remaining
     }
 
     private func hub(_ hub: Hub, items: [MediaDisplayItem]) -> Hub {

@@ -192,10 +192,6 @@ final class OfflineStore {
         } ?? []
     }
 
-    func downloadedItemIDs(owner: MediaOwner) -> Set<String> {
-        Set(downloadedItemIDsByDate(owner: owner))
-    }
-
     // MARK: - Pinning
 
     static func artworkLinkID(_ key: String) -> String {
@@ -463,12 +459,13 @@ final class OfflineStore {
         return decode(records.sorted { $0.sortTitle < $1.sortTitle }, owner: owner).compactMap(\.playableItem)
     }
 
-    /// Movies and episodes with a local or server resume position, most recently viewed first.
-    func inProgressItems(owner: MediaOwner, limit: Int = 30) -> [MediaItem] {
+    /// Movies and episodes with a resume position not yet synchronized to the server, most recently viewed first.
+    func locallyInProgressItems(owner: MediaOwner, limit: Int = 30) -> [MediaItem] {
         let states: [WatchStateRecord] = perform {
             try self.offline.read { db in
                 try WatchStateRecord
                     .filter(Column("ownerID") == owner.id && Column("viewOffset") > 0 && Column("played") == false)
+                    .filter(Column("source") == WatchStateSource.local.rawValue)
                     .order(Column("lastViewedAt").desc)
                     .limit(limit * 2)
                     .fetchAll(db)
