@@ -20,7 +20,12 @@ struct LibraryBrowseView: View {
                         .frame(height: 0)
                         .id("libraryBrowseTop")
 
-                    if controls.hasControls {
+                    DownloadedOnlyFilterButton(isSelected: viewModel.isDownloadedOnly) {
+                        viewModel.toggleDownloadedOnly()
+                    }
+                    .padding(.horizontal, 16)
+
+                    if controls.hasControls, !viewModel.isDownloadedOnly, !viewModel.isServerUnreachable {
                         LibraryBrowseControlsView(
                             viewModel: controls,
                             showsBackButton: viewModel.canNavigateBack,
@@ -82,6 +87,9 @@ struct LibraryBrowseView: View {
             }
             .onChange(of: viewModel.scrollResetID) {
                 proxy.scrollTo("libraryBrowseTop", anchor: .top)
+            }
+            .onChange(of: viewModel.isServerUnreachable) {
+                Task { await viewModel.refresh() }
             }
         }
     }

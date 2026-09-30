@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c93de43476a398ab46e8755264c41bf5a4a473747fc4ab33106721621143cbd",
+  "originHash" : "a9b68820ff3299ba693126d5d897a75245f97637c4e74f0cd264ecac4c40001a",
   "pins" : [
     {
       "identity" : "aetherengine",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "4e58942403d37cceff3a3212e3e026f4205146a2",
         "version" : "3.3.0"
+      }
+    },
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift",
+      "state" : {
+        "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212",
+        "version" : "7.11.1"
       }
     },
     {

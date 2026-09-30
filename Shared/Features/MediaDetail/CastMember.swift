@@ -1,6 +1,6 @@
 import Foundation
 
-struct CastMember: Identifiable, Hashable {
+struct CastMember: Identifiable, Hashable, Codable {
     let id: String
     let personID: String?
     let name: String

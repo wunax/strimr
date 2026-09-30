@@ -8,11 +8,14 @@ struct MainView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
+    @Environment(DownloadManager.self) private var downloadManager
     @State private var isShowingLogoutConfirmation = false
+    @State private var signOutFlow = SignOutFlow()
 
     init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
         _homeViewModel = State(initialValue: homeViewModel)
@@ -63,6 +66,8 @@ struct MainView: View {
                     }
             }
             .id(appModel.selection)
+            .offlineBanner()
+            .animation(.easeInOut, value: offlineCoordinator.banner)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     accountMenu
@@ -98,14 +103,20 @@ struct MainView: View {
                 appModel.resetLiveTVNavigation()
             }
         }
+        .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
+            // Availability checked while offline is unreliable: check again once the server is back.
+            guard !isUnreachable else { return }
+            Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
+        }
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
             Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
+                Task { await signOutFlow.begin(sessionManager: sessionManager, downloadManager: downloadManager) }
             }
             Button("common.actions.cancel", role: .cancel) {}
         } message: {
             Text("more.logout.message")
         }
+        .signOutDownloadsPrompt(signOutFlow)
     }
 
     private func sidebarLabel(
@@ -122,11 +133,13 @@ struct MainView: View {
                 Button("common.actions.switchProfile", systemImage: "person.2.circle") {
                     Task { await sessionManager.requestProfileSelection() }
                 }
+                .disabled(offlineCoordinator.isFullyOffline)
             }
             if sessionManager.provider == .plex {
                 Button("common.actions.switchServer", systemImage: "server.rack") {
                     Task { await sessionManager.requestServerSelection() }
                 }
+                .disabled(offlineCoordinator.isFullyOffline)
             }
             Divider()
             Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
@@ -157,6 +170,7 @@ struct MainView: View {
                 searchViewModel: SeerrSearchViewModel(store: seerrStore),
                 onSelectMedia: appModel.showSeerr,
             )
+            .unavailableWhenOffline()
         case .search:
             SearchView(
                 viewModel: SearchViewModel(
@@ -174,6 +188,7 @@ struct MainView: View {
                 }
         case .favorites:
             FavoritesView(services: mediaServices, onSelectMedia: appModel.showMedia)
+                .unavailableWhenOffline()
         case .liveTV:
             LiveTVView(
                 store: mediaServices.liveTVStore,
@@ -190,6 +205,7 @@ struct MainView: View {
                     appModel.showLibrary(library)
                 },
             )
+            .unavailableWhenOffline()
         case let .library(id):
             if let library = libraryStore.libraries.first(where: { $0.id == id }) {
                 LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)

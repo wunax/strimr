@@ -17,6 +17,8 @@ final class LibraryBrowseViewModel {
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
     var scrollResetID = 0
+    /// Switches the data source to the local downloads of this library, online or offline.
+    private(set) var isDownloadedOnly = false
     private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
@@ -28,6 +30,7 @@ final class LibraryBrowseViewModel {
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private let browseSession: LibraryBrowseSession
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private let owner: MediaOwner
 
     init(
         library: Library,
@@ -36,6 +39,7 @@ final class LibraryBrowseViewModel {
         browseSession: LibraryBrowseSession,
     ) {
         self.library = library
+        owner = services.owner
         advancedService = services.library as? any PlexAdvancedLibraryService
         browseService = services.library as? any AdvancedLibraryBrowseService
         service = services.library
@@ -62,6 +66,17 @@ final class LibraryBrowseViewModel {
 
     var canNavigateBack: Bool {
         !folderStack.isEmpty
+    }
+
+    /// Server-side sort and filters cannot run offline; only the local title order is available.
+    var isServerUnreachable: Bool {
+        OfflineCoordinator.shared.isUnreachable(owner.server)
+    }
+
+    func toggleDownloadedOnly() {
+        isDownloadedOnly.toggle()
+        folderStack = []
+        Task { await refresh() }
     }
 
     func load() async {
@@ -113,6 +128,15 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetch(reset: Bool) async {
+        if isDownloadedOnly {
+            guard reset else { return }
+            browseItems = OfflineCoordinator.shared.store?
+                .downloadedLibraryItems(libraryID: library.id, owner: owner)
+                .map(LibraryBrowseItem.media) ?? []
+            errorMessage = nil
+            reachedEnd = true
+            return
+        }
         guard let advancedService else {
             await fetchUsingCommonService(reset: reset)
             return

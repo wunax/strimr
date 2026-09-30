@@ -24,11 +24,27 @@ final class HomeViewModel {
     @ObservationIgnored private let preferencesScopeID: String
 
     var orderedRowsForEditing: [HomeRow] {
-        settingsManager.homeRowPreferences(for: preferencesScopeID).orderedRows(from: availableRows)
+        let preferences = settingsManager.homeRowPreferences(for: preferencesScopeID)
+        return pinningOfflineDownloads(preferences.orderedRows(from: availableRows), preferences: preferences)
     }
 
     var rows: [HomeRow] {
-        settingsManager.homeRowPreferences(for: preferencesScopeID).visibleRows(from: availableRows)
+        let preferences = settingsManager.homeRowPreferences(for: preferencesScopeID)
+        return pinningOfflineDownloads(preferences.visibleRows(from: availableRows), preferences: preferences)
+    }
+
+    /// The offline "Downloads" row goes first unless the user placed it somewhere else.
+    private func pinningOfflineDownloads(_ rows: [HomeRow], preferences: HomeRowPreferences) -> [HomeRow] {
+        #if os(tvOS)
+            rows
+        #else
+            guard let index = rows.firstIndex(where: CachedHomeService.isOfflineDownloadsRow),
+                  !preferences.orderedRowIDs.contains(rows[index].id)
+            else { return rows }
+            var reordered = rows
+            reordered.insert(reordered.remove(at: index), at: 0)
+            return reordered
+        #endif
     }
 
     func isRowVisible(_ rowID: String) -> Bool {
@@ -65,6 +81,11 @@ final class HomeViewModel {
         await reload(preservingExistingContent: false)
     }
 
+    /// Reloads without clearing what is on screen, e.g. after the server became reachable again.
+    func refreshSilently() async {
+        await reload(preservingExistingContent: true)
+    }
+
     func refreshIfNeeded(now: Date = Date()) async {
         guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await reload(preservingExistingContent: true)
@@ -87,6 +108,12 @@ final class HomeViewModel {
         defer {
             isLoading = false
         }
+
+        #if !os(tvOS)
+            if availableRows.isEmpty, let cached = (service as? CachedHomeService)?.cachedHome() {
+                availableRows = cached.rows
+            }
+        #endif
 
         do {
             if libraryStore.libraries.isEmpty {

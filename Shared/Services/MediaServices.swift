@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 struct MediaAuthorization: Equatable, Sendable {
@@ -42,6 +43,8 @@ final class MediaServices {
     let trackSelectionCoordinator: TrackSelectionCoordinator?
     let trackSelectionAccountIdentifier: String?
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
+    /// URL of an unauthenticated endpoint used to probe the server's reachability.
+    @ObservationIgnored var availabilityProbeURL: (() -> URL?)?
 
     var authorization: MediaAuthorization {
         authorizationService.authorization

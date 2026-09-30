@@ -7,6 +7,8 @@ struct MediaDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaServices.self) private var mediaServices
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @State private var viewModel: MediaDetailViewModel
     @State private var isShowingShowDownloadSheet = false
@@ -158,6 +160,23 @@ struct MediaDetailView: View {
             guard phase == .active else { return }
             Task { await viewModel.refreshIfNeeded() }
         }
+        .onConnectivityChange(of: mediaServices.identity) { _ in
+            Task { await viewModel.refreshSilently() }
+        }
+    }
+
+    private var isServerUnreachable: Bool {
+        offlineCoordinator.isUnreachable(mediaServices.identity)
+    }
+
+    private var downloadedPlayback: LocalPlaybackRequest? {
+        downloadManager.localPlaybackRequest(forDetail: viewModel)
+    }
+
+    private func playDownloaded(resumes: Bool) {
+        if let request = downloadManager.localPlaybackRequest(forDetail: viewModel, resumes: resumes) {
+            appModel.showLocalPlayer(request)
+        }
     }
 
     private var hero: some View {
@@ -217,6 +236,9 @@ struct MediaDetailView: View {
                 }
                 metadataRow
                 ratingsRow
+                if [.show, .season].contains(viewModel.media.type) {
+                    DownloadedEpisodesLabel(media: viewModel.media.mediaItem)
+                }
 
                 if let parentSeries = viewModel.parentSeries {
                     Button("media.detail.openSeries", systemImage: "rectangle.stack.fill") {
@@ -314,6 +336,10 @@ struct MediaDetailView: View {
         HStack(alignment: .center, spacing: 24) {
             HStack(alignment: .center, spacing: 6) {
                 Button {
+                    if isServerUnreachable {
+                        playDownloaded(resumes: !viewModel.shouldPlayPrimaryActionFromStart)
+                        return
+                    }
                     guard
                         let ratingKey = viewModel.primaryActionRatingKey,
                         let type = viewModel.primaryActionType
@@ -343,14 +369,19 @@ struct MediaDetailView: View {
                 .controlSize(.large)
                 .tint(.brandSecondary)
                 .foregroundStyle(.brandSecondaryForeground)
-                .disabled(viewModel.primaryActionRatingKey == nil)
+                .disabled(viewModel.primaryActionRatingKey == nil || (isServerUnreachable && downloadedPlayback == nil))
 
                 if viewModel.shouldShowPlayFromStartButton,
+                   !isServerUnreachable || downloadedPlayback != nil,
                    let ratingKey = viewModel.primaryActionRatingKey,
                    let type = viewModel.primaryActionType
                 {
                     Button {
-                        onPlay(ratingKey, type, false, false)
+                        if isServerUnreachable {
+                            playDownloaded(resumes: false)
+                        } else {
+                            onPlay(ratingKey, type, false, false)
+                        }
                     } label: {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.title2.weight(.semibold))
@@ -363,12 +394,29 @@ struct MediaDetailView: View {
                     .help(Text("media.detail.playFromStart"))
                     .accessibilityLabel(Text("media.detail.playFromStart"))
                 }
+
+                if !isServerUnreachable, downloadedPlayback != nil {
+                    Button("offline.detail.playDownloaded", systemImage: "arrow.down.circle") {
+                        playDownloaded(resumes: true)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .help(Text("offline.detail.playDownloaded.help"))
+                }
+
+                if isServerUnreachable, downloadedPlayback == nil {
+                    Label("offline.detail.notAvailable", systemImage: "wifi.slash")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             HStack(alignment: .center, spacing: 12) {
                 moreActionsMenu
+                    .disabled(isServerUnreachable)
+                    .help(isServerUnreachable ? Text("offline.unavailable") : Text("common.actions.more"))
 
-                if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+                if viewModel.hasTrackSelection || (viewModel.canSearchSubtitles && !isServerUnreachable) {
                     MediaDetailTrackButtons(
                         viewModel: viewModel,
                         onSearchSubtitles: { isShowingSubtitleSearch = true },
@@ -625,6 +673,9 @@ struct MediaDetailView: View {
                             .padding(6)
                     }
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    DownloadStatusBadge(media: .playable(episode))
+                }
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
@@ -640,14 +691,22 @@ struct MediaDetailView: View {
                 }
                 Spacer()
                 Button("common.actions.play", systemImage: "play.fill") {
-                    onPlay(episode.id, episode.type, false, true)
+                    if isServerUnreachable {
+                        if let request = downloadManager.localPlaybackRequest(for: episode.identity, kind: .episode) {
+                            appModel.showLocalPlayer(request)
+                        }
+                    } else {
+                        onPlay(episode.id, episode.type, false, true)
+                    }
                 }
                 .buttonStyle(.bordered)
+                .disabled(isServerUnreachable && downloadManager.completedOwnedItem(for: episode.identity) == nil)
             }
             .padding(10)
             .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+        .dimmedWhenUnavailableOffline(episode)
     }
 }
 

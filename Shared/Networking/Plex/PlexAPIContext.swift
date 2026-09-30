@@ -154,6 +154,16 @@ final class PlexAPIContext {
         }
     }
 
+    /// Commits the last connection that worked for `resource` without probing, so a session can start offline.
+    @discardableResult
+    func restoreServerAccess(using resource: PlexCloudResource) -> Bool {
+        guard resource.accessToken != nil,
+              let url = loadCustomConnection(for: resource) ?? loadSavedConnection(for: resource)
+        else { return false }
+        commitServerAccess(resource: resource, url: url)
+        return true
+    }
+
     func refreshServerAccess(using resource: PlexCloudResource) async throws {
         guard resource.clientIdentifier == serverIdentifier else {
             throw PlexServerAccessRecoveryError.serverUnavailable

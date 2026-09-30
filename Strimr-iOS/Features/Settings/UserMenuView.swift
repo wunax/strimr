@@ -5,9 +5,12 @@ struct UserMenuView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.dismiss) private var dismiss
+    @Environment(DownloadManager.self) private var downloadManager
     @State private var isShowingLogoutConfirmation = false
+    @State private var signOutFlow = SignOutFlow()
 
     var body: some View {
         List {
@@ -47,6 +50,7 @@ struct UserMenuView: View {
                         Label("common.actions.switchProfile", systemImage: "person.2.circle")
                     }
                     .buttonStyle(.plain)
+                    .disabled(offlineCoordinator.isFullyOffline)
                 }
 
                 if sessionManager.provider == .plex {
@@ -56,6 +60,13 @@ struct UserMenuView: View {
                         Label("common.actions.switchServer", systemImage: "server.rack")
                     }
                     .buttonStyle(.plain)
+                    .disabled(offlineCoordinator.isFullyOffline)
+                }
+
+                if offlineCoordinator.isFullyOffline {
+                    Text("offline.menu.switchUnavailable")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Button {
@@ -71,11 +82,13 @@ struct UserMenuView: View {
         .navigationTitle("tabs.more")
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
             Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
+                Task { await signOutFlow.begin(sessionManager: sessionManager, downloadManager: downloadManager) }
             }
             Button("common.actions.cancel", role: .cancel) {}
         } message: {
             Text("more.logout.message")
         }
+        .signOutDownloadsPrompt(signOutFlow)
+        .disabled(signOutFlow.isSigningOut)
     }
 }

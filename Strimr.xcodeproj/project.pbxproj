@@ -24,6 +24,8 @@
 		E984D57430039AD10077A7EA /* StrimrTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E984D56B30039AD10077A7EA /* StrimrTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4A2F18F6FE00AC81AD /* Sentry */; };
 		E9B55C4D2F18F71100AC81AD /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E9B55C4C2F18F71100AC81AD /* Sentry */; };
+		E9D0B0042FF0000100000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E9D0B0022FF0000100000001 /* GRDB */; };
+		E9D0B0052FF0000100000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E9D0B0032FF0000100000001 /* GRDB */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
 		F000000000000011 /* Shared/Models/MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* Shared/Models/MediaFileInfo.swift */; };
 		F000000000000012 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */; };
@@ -109,8 +111,6 @@
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
 				Features/AutomaticRefreshGate.swift,
 				Features/CollectionDetail/CollectionDetailViewModel.swift,
-				Features/Downloads/DownloadManager.swift,
-				Features/Downloads/DownloadModels.swift,
 				Features/Favorites/FavoritesView.swift,
 				Features/Favorites/FavoritesViewModel.swift,
 				Features/Home/HomeViewModel.swift,
@@ -273,7 +273,6 @@
 				Store/TrackSelectionStore.swift,
 				Views/FolderCard.swift,
 				Views/IsolatedSheetPresentationHost.swift,
-				Views/TaskPresentation.swift,
 				Views/Media/ArtworkResourceView.swift,
 				Views/Media/Card/LandscapeMediaCard.swift,
 				Views/Media/Card/MediaCard.swift,
@@ -296,6 +295,7 @@
 				Views/Seerr/SeerrRelatedSection.swift,
 				Views/Seerr/SeerrSearchCard.swift,
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
+				Views/TaskPresentation.swift,
 				Views/Toast/ToastOverlay.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
@@ -383,6 +383,7 @@
 				E96A0001301D000100000001 /* SwiftAssRenderer in Frameworks */,
 				E95F585F300A964500D50438 /* AetherEngine in Frameworks */,
 				E95F5861300A964900D50438 /* Sentry in Frameworks */,
+				E9D0B0052FF0000100000001 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,6 +402,7 @@
 				E96A0002301D000100000001 /* SwiftAssRenderer in Frameworks */,
 				E9B55C4B2F18F6FE00AC81AD /* Sentry in Frameworks */,
 				E981BEBD2FEC3CCF00C94B4A /* AetherEngine in Frameworks */,
+				E9D0B0042FF0000100000001 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -489,6 +491,7 @@
 				E96A0011301D000100000001 /* SwiftAssRenderer */,
 				E95F585E300A964500D50438 /* AetherEngine */,
 				E95F5860300A964900D50438 /* Sentry */,
+				E9D0B0032FF0000100000001 /* GRDB */,
 			);
 			productName = "Strimr-macOS";
 			productReference = E95F5853300A95A000D50438 /* Strimr.app */;
@@ -538,6 +541,7 @@
 				E96A0012301D000100000001 /* SwiftAssRenderer */,
 				E9B55C4A2F18F6FE00AC81AD /* Sentry */,
 				E981BEBC2FEC3CCF00C94B4A /* AetherEngine */,
+				E9D0B0022FF0000100000001 /* GRDB */,
 			);
 			productName = Strimr;
 			productReference = E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */;
@@ -608,6 +612,7 @@
 				E96A0010301D000100000001 /* XCRemoteSwiftPackageReference "swift-ass-renderer" */,
 				E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				E981BEBB2FEC3CCF00C94B4A /* XCRemoteSwiftPackageReference "AetherEngine" */,
+				E9D0B0012FF0000100000001 /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98A13BA2ED8CBAD002F98B2 /* Products */;
@@ -1218,6 +1223,14 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		E9D0B0012FF0000100000001 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.11.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1265,6 +1278,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E9B55C492F18F6FE00AC81AD /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
+		};
+		E9D0B0022FF0000100000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9D0B0012FF0000100000001 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
+		E9D0B0032FF0000100000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9D0B0012FF0000100000001 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

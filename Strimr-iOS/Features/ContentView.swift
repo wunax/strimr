@@ -6,6 +6,8 @@ struct ContentView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         ErrorReporter.start()
@@ -15,7 +17,7 @@ struct ContentView: View {
         ZStack {
             Color("Background").ignoresSafeArea()
 
-            if downloadManager.shouldForceOfflineDownloads {
+            if showsStaticDownloads {
                 OfflineDownloadsRootView()
             } else {
                 switch sessionManager.status {
@@ -76,17 +78,42 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: downloadManager.isOffline) { _, isOffline in
-            guard !isOffline else { return }
+        .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
+            guard hasNetworkPath else { return }
             guard sessionManager.status == .signedOut else { return }
             Task {
                 await sessionManager.hydrate()
             }
         }
-        .onChange(of: sessionManager.mediaServices?.identity, initial: true) { _, _ in
-            if let services = sessionManager.mediaServices {
-                downloadManager.register(services: services)
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                offlineCoordinator.availability.refresh()
+            case .background:
+                offlineCoordinator.evictCacheIfNeeded()
+            case .inactive:
+                break
+            @unknown default:
+                break
             }
+        }
+        .onChange(of: settingsManager.downloads.offlineCacheLimitMB, initial: true) { _, megabytes in
+            offlineCoordinator.setCacheLimit(megabytes: megabytes)
+        }
+        .onChange(of: sessionManager.mediaServices.map(ObjectIdentifier.init), initial: true) { _, _ in
+            OfflineCoordinator.shared.activate(services: sessionManager.mediaServices)
+            downloadManager.activateSession(services: sessionManager.mediaServices)
+        }
+    }
+
+    /// Without a restorable session and without network, downloads are shown directly at launch.
+    private var showsStaticDownloads: Bool {
+        guard !offlineCoordinator.availability.hasNetworkPath, downloadManager.playableCount > 0 else { return false }
+        switch sessionManager.status {
+        case .signedOut, .needsProviderSelection, .needsJellyfinAuthentication:
+            return true
+        case .hydrating, .needsProfileSelection, .needsServerSelection, .ready:
+            return false
         }
     }
 }

@@ -47,6 +47,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var selectedMediaQueue: PlaybackQueue?
     @Published var selectedMediaServices: MediaServices?
     @Published var selectedLiveTVContext: LiveTVLaunchContext?
+    #if !os(tvOS)
+        @Published var selectedLocalPlayback: LocalPlaybackRequest?
+    #endif
 
     func pathBinding(for tab: Tab) -> Binding<NavigationPath> {
         Binding(
@@ -343,7 +346,19 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         isPresentingPlayer = true
     }
 
+    #if !os(tvOS)
+        func showLocalPlayer(_ request: LocalPlaybackRequest) {
+            selectedLocalPlayback = request
+            selectedMediaQueue = nil
+            selectedLiveTVContext = nil
+            isPresentingPlayer = true
+        }
+    #endif
+
     func resetPlayer() {
+        #if !os(tvOS)
+            selectedLocalPlayback = nil
+        #endif
         selectedMediaQueue = nil
         selectedMediaServices = nil
         selectedLiveTVContext = nil

@@ -1,6 +1,6 @@
 import Foundation
 
-enum MediaDisplayItem: Identifiable, Hashable {
+enum MediaDisplayItem: Identifiable, Hashable, Codable {
     case playable(MediaItem)
     case collection(CollectionMediaItem)
     case playlist(PlaylistMediaItem)

@@ -133,6 +133,20 @@ enum MediaServerAccessRecoveryError: Error, Equatable {
     case connectionFailed
 }
 
+enum ItemPlaybackReportState: Sendable {
+    case started
+    case progress
+    case stopped
+}
+
+/// Watch state as reported by the server, used to resolve offline progress conflicts.
+struct ServerItemWatchState: Sendable {
+    let viewOffset: TimeInterval?
+    let viewCount: Int
+    let isPlayed: Bool
+    let lastViewedAt: Date?
+}
+
 struct RemoteSubtitleResult: Hashable, Identifiable {
     let id: String
     let title: String
@@ -195,6 +209,7 @@ protocol MediaDetailService: AnyObject {
     var supportsRemoteSubtitleSearch: Bool { get }
     var supportsAdvancedSubtitleSearch: Bool { get }
     func mediaItem(id: String) async throws -> MediaItem
+    func libraryID(for media: MediaItem) async throws -> String?
     func searchSubtitles(
         itemID: String,
         language: String,
@@ -259,6 +274,18 @@ protocol MediaPlaybackService: AnyObject {
         currentSelection: PlaybackStreamSelection?,
     ) async throws
     func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack]
+    /// Live progress report without a playback plan, used when playing a downloaded file.
+    func reportItemPlayback(
+        itemID: String,
+        state: ItemPlaybackReportState,
+        position: TimeInterval,
+        duration: TimeInterval?,
+        isPaused: Bool,
+    ) async throws
+    /// Deferred position push that keeps the original event date when the server supports it.
+    func pushItemPosition(itemID: String, position: TimeInterval, duration: TimeInterval?, at date: Date) async throws
+    func markItemWatched(itemID: String, at date: Date) async throws
+    func serverWatchState(itemID: String) async throws -> ServerItemWatchState
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError?
     func recoverServerAccessIfUnauthorized() async throws -> Bool
     func forceServerAccessRecovery() async throws

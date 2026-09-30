@@ -42,6 +42,7 @@ struct MediaCard: View {
             }
         }
         .frame(width: size.width, alignment: .leading)
+        .offlineAvailability(of: media, defaultServer: mediaServices.identity)
         #if os(tvOS)
             .focusable()
             .focused($isFocused)
@@ -68,6 +69,7 @@ struct MediaCard: View {
         .overlay(alignment: .topTrailing) {
             WatchStatusBadge(media: media)
         }
+        .downloadStatusOverlay(media)
         .overlay(alignment: .bottomLeading) {
             if let progress {
                 ProgressView(value: progress)
@@ -100,6 +102,33 @@ struct MediaCard: View {
             size.width < 180 ? .caption2 : .footnote
         #else
             .footnote
+        #endif
+    }
+}
+
+extension View {
+    /// Download badge on artwork; tvOS has no downloads.
+    @ViewBuilder
+    func downloadStatusOverlay(_ media: MediaDisplayItem) -> some View {
+        #if os(tvOS)
+            self
+        #else
+            overlay(alignment: .bottomTrailing) {
+                DownloadStatusBadge(media: media)
+            }
+        #endif
+    }
+
+    /// Greys out items that cannot be played while their server is unreachable; tvOS has no offline mode.
+    @ViewBuilder
+    func offlineAvailability(of media: MediaDisplayItem, defaultServer: ServerIdentity) -> some View {
+        #if os(tvOS)
+            self
+        #else
+            modifier(OfflineDimmingModifier(
+                media: media,
+                server: media.playableItem?.identity.server ?? defaultServer,
+            ))
         #endif
     }
 }

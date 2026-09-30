@@ -1,6 +1,6 @@
 import Foundation
 
-struct Library: Identifiable, Equatable, Hashable {
+struct Library: Identifiable, Equatable, Hashable, Codable {
     let id: String
     let title: String
     let type: MediaKind

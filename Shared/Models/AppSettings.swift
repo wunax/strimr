@@ -253,12 +253,15 @@ struct InterfaceSettings: Codable, Equatable {
 struct DownloadSettings: Codable, Equatable {
     var wifiOnly = true
     var qualityPreset = TranscodeQualityPreset.original
+    /// Ceiling of the offline browsing cache, in megabytes.
+    var offlineCacheLimitMB = 500
 
     init() {}
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         wifiOnly = try container.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+        offlineCacheLimitMB = try container.decodeIfPresent(Int.self, forKey: .offlineCacheLimitMB) ?? 500
         qualityPreset = try container.decodeIfPresent(
             TranscodeQualityPreset.self,
             forKey: .qualityPreset,

@@ -5,6 +5,8 @@ import UIKit
 
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -30,6 +32,14 @@ struct MediaDetailHeaderSection: View {
 
                 headerSection
                 playButtonsRow
+                if isServerUnreachable, downloadedPlayback == nil {
+                    Label("offline.detail.notAvailable", systemImage: "wifi.slash")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if [.show, .season].contains(viewModel.media.type) {
+                    DownloadedEpisodesLabel(media: viewModel.media.mediaItem)
+                }
                 secondaryButtonsRow
                 badgesSection
                 ratingsSection
@@ -359,7 +369,7 @@ struct MediaDetailHeaderSection: View {
                 audioTrackButton
             }
 
-            if !viewModel.subtitleTracks.isEmpty || viewModel.canSearchSubtitles {
+            if !viewModel.subtitleTracks.isEmpty || (viewModel.canSearchSubtitles && !isServerUnreachable) {
                 subtitleTrackButton
             }
 
@@ -367,6 +377,7 @@ struct MediaDetailHeaderSection: View {
                 downloadButton
             }
             moreButton
+                .disabled(isServerUnreachable)
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -548,10 +559,38 @@ struct MediaDetailHeaderSection: View {
         HStack(spacing: 12) {
             playButton
 
-            if viewModel.shouldShowPlayFromStartButton {
+            if viewModel.shouldShowPlayFromStartButton, !isServerUnreachable || downloadedPlayback != nil {
                 playFromStartButton
             }
+
+            if !isServerUnreachable, downloadedPlayback != nil {
+                playDownloadedButton
+            }
         }
+    }
+
+    private var isServerUnreachable: Bool {
+        offlineCoordinator.isUnreachable(mediaServices.identity)
+    }
+
+    private var downloadedPlayback: LocalPlaybackRequest? {
+        downloadManager.localPlaybackRequest(forDetail: viewModel)
+    }
+
+    /// Streaming stays the default online (the download may be lower quality); this plays the local copy instead.
+    private var playDownloadedButton: some View {
+        Button {
+            if let request = downloadedPlayback {
+                coordinator.showLocalPlayer(request)
+            }
+        } label: {
+            Image(systemName: "arrow.down.circle")
+                .font(.title2.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+        .tint(.brandSecondary)
+        .accessibilityLabel(Text("offline.detail.playDownloaded"))
     }
 
     private var playButton: some View {
@@ -574,7 +613,7 @@ struct MediaDetailHeaderSection: View {
         .controlSize(.large)
         .tint(.brandSecondary)
         .foregroundStyle(.brandSecondaryForeground)
-        .disabled(viewModel.primaryActionRatingKey == nil)
+        .disabled(viewModel.primaryActionRatingKey == nil || (isServerUnreachable && downloadedPlayback == nil))
     }
 
     private var playFromStartButton: some View {
@@ -614,7 +653,7 @@ struct MediaDetailHeaderSection: View {
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .tint(.brandSecondary)
-            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus || isServerUnreachable)
 
             Text(
                 viewModel.shouldShowBothWatchActions
@@ -646,7 +685,7 @@ struct MediaDetailHeaderSection: View {
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .tint(.brandSecondary)
-            .disabled(viewModel.isLoading)
+            .disabled(viewModel.isLoading || isServerUnreachable)
 
             Text("downloads.action")
                 .font(.caption2)
@@ -658,6 +697,15 @@ struct MediaDetailHeaderSection: View {
     }
 
     private func handlePlay() {
+        if isServerUnreachable {
+            if let request = downloadManager.localPlaybackRequest(
+                forDetail: viewModel,
+                resumes: !viewModel.shouldPlayPrimaryActionFromStart,
+            ) {
+                coordinator.showLocalPlayer(request)
+            }
+            return
+        }
         Task {
             guard
                 let ratingKey = await viewModel.playbackRatingKey(),
@@ -673,6 +721,12 @@ struct MediaDetailHeaderSection: View {
     }
 
     private func handlePlayFromStart() {
+        if isServerUnreachable {
+            if let request = downloadManager.localPlaybackRequest(forDetail: viewModel, resumes: false) {
+                coordinator.showLocalPlayer(request)
+            }
+            return
+        }
         Task {
             guard
                 let ratingKey = await viewModel.playbackRatingKey(),

@@ -271,6 +271,8 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var allowsCellularAccess: Bool? = nil
     var errorMessage: String?
     var metadata: DownloadedMediaMetadata
+    var ownerID: String? = nil
+    var enrichmentState: DownloadEnrichmentState? = nil
 
     var identity: MediaIdentity? {
         metadata.identity

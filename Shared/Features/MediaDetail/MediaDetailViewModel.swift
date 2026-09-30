@@ -100,6 +100,11 @@ final class MediaDetailViewModel {
         await loadDetails(preservingExistingContent: false)
     }
 
+    /// Reloads without clearing what is on screen, e.g. after the server became reachable again.
+    func refreshSilently() async {
+        await loadDetails(preservingExistingContent: true)
+    }
+
     func refreshIfNeeded(now: Date = Date()) async {
         guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await loadDetails(preservingExistingContent: true)
@@ -427,6 +432,14 @@ final class MediaDetailViewModel {
     func runtimeText(for item: MediaItem) -> String? {
         guard let duration = item.duration else { return nil }
         return duration.mediaDurationText()
+    }
+
+    func canOpenPerson(_ person: Person) -> Bool {
+        #if os(tvOS)
+            true
+        #else
+            (services.detail as? CachedDetailService)?.canOpenPerson(id: person.id) ?? true
+        #endif
     }
 
     func castImageURL(for member: CastMember, width: Int = 200, height: Int = 260) -> URL? {
@@ -1001,6 +1014,8 @@ final class MediaDetailViewModel {
             guard requestedTrackRatingKey == ratingKey else { return }
             if !preservingExistingContent || trackRatingKey != ratingKey {
                 clearTrackSelection()
+                // Track selection needs the server; offline the section simply disappears.
+                guard !(error is any ExpectedConnectivityError) else { return }
                 trackSelectionErrorMessage = error.localizedDescription
             }
         }
@@ -1081,6 +1096,17 @@ final class MediaDetailViewModel {
             fallbackPlaybackTarget = nil
         }
         defer { isLoading = false }
+
+        #if !os(tvOS)
+            if !preservingExistingContent, detailTargetID == media.id,
+               let cached = (services.detail as? CachedDetailService)?.cachedDetails(for: media.mediaItem)
+            {
+                parentSeries = cached.parentSeries.flatMap(PlayableMediaItem.init)
+                seasons = cached.seasons
+                episodes = cached.episodes
+                cast = cached.cast
+            }
+        #endif
 
         do {
             let target = detailTargetID == media.id

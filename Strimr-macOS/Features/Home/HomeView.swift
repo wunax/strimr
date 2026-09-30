@@ -76,5 +76,8 @@ struct HomeView: View {
             guard newValue == .active else { return }
             Task { await viewModel.refreshIfNeeded() }
         }
+        .onConnectivityChange(of: mediaServices.identity) { _ in
+            Task { await viewModel.refreshSilently() }
+        }
     }
 }

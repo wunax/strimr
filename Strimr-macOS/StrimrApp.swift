@@ -71,5 +71,6 @@ struct StrimrApp: App {
             .environment(seerrStore)
             .environment(appModel)
             .environment(sharePlayCoordinator)
+            .environment(OfflineCoordinator.shared)
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct CollectionMediaItem: Identifiable, Hashable {
+struct CollectionMediaItem: Identifiable, Hashable, Codable {
     let id: String
     let key: String
     let guid: String

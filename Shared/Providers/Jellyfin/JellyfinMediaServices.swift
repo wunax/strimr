@@ -71,6 +71,10 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await MediaItem(jellyfinItem: catalog.item(id: id), server: server)
     }
 
+    func libraryID(for media: MediaItem) async throws -> String? {
+        try await catalog.libraryID(itemID: media.id)
+    }
+
     func fetchExtras(for media: MediaItem) async throws -> [MediaItem] {
         try await catalog.extras(for: media.id).map { MediaItem(jellyfinItem: $0, server: server) }
     }
@@ -1024,6 +1028,71 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await playbackService.externalSubtitles(item: catalog.item(id: media.id))
     }
 
+    func reportItemPlayback(
+        itemID: String,
+        state: ItemPlaybackReportState,
+        position: TimeInterval,
+        duration _: TimeInterval?,
+        isPaused: Bool,
+    ) async throws {
+        let path: [String] = switch state {
+        case .started:
+            ["Sessions", "Playing"]
+        case .progress:
+            ["Sessions", "Playing", "Progress"]
+        case .stopped:
+            ["Sessions", "Playing", "Stopped"]
+        }
+        let body = try JSONEncoder().encode(JellyfinItemPlaybackReport(
+            itemID: itemID,
+            positionTicks: JellyfinTime.ticks(fromSeconds: position),
+            isPaused: state == .stopped || isPaused,
+        ))
+        try await context.send(path: path, method: "POST", body: body)
+    }
+
+    /// Uses `UserData` rather than `Sessions/Playing*`, which would date the event at send time and bump PlayCount.
+    func pushItemPosition(
+        itemID: String,
+        position: TimeInterval,
+        duration _: TimeInterval?,
+        at date: Date,
+    ) async throws {
+        guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
+        let body = try JSONEncoder().encode(JellyfinUserDataUpdate(
+            playbackPositionTicks: JellyfinTime.ticks(fromSeconds: position),
+            lastPlayedDate: JellyfinDate.string(from: date),
+        ))
+        try await context.send(
+            path: ["UserItems", itemID, "UserData"],
+            method: "POST",
+            query: [URLQueryItem(name: "userId", value: userID)],
+            body: body,
+        )
+    }
+
+    func markItemWatched(itemID: String, at date: Date) async throws {
+        guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
+        try await context.send(
+            path: ["UserPlayedItems", itemID],
+            method: "POST",
+            query: [
+                URLQueryItem(name: "userId", value: userID),
+                URLQueryItem(name: "datePlayed", value: JellyfinDate.string(from: date)),
+            ],
+        )
+    }
+
+    func serverWatchState(itemID: String) async throws -> ServerItemWatchState {
+        let item = try await catalog.item(id: itemID)
+        return ServerItemWatchState(
+            viewOffset: item.resumePosition,
+            viewCount: item.userData?.playCount ?? 0,
+            isPlayed: item.userData?.played ?? false,
+            lastViewedAt: item.userData?.lastPlayedDate,
+        )
+    }
+
     func prepareDownload(
         itemID: String,
         quality: TranscodeQualityPreset,
@@ -1361,16 +1430,37 @@ enum JellyfinMediaServicesFactory {
             server: connection.serverIdentity,
         )
         let liveTV = JellyfinLiveTVService(context: context, server: connection.serverIdentity)
+        #if os(tvOS)
+            let decorated = (
+                home: adapter as any MediaHomeService,
+                library: adapter as any MediaLibraryService,
+                search: adapter as any MediaSearchService,
+                artwork: adapter as any MediaArtworkService,
+                detail: adapter as any MediaDetailService,
+                favorites: favorites as any MediaFavoritesService,
+            )
+        #else
+            let decorated = OfflineServiceDecorators(
+                owner: MediaOwner(server: connection.serverIdentity, userID: connection.userID),
+                serverName: connection.serverName,
+                home: adapter,
+                library: adapter,
+                search: adapter,
+                artwork: adapter,
+                detail: adapter,
+                favorites: favorites,
+            )
+        #endif
         let services = MediaServices(
             provider: .jellyfin,
             identity: connection.serverIdentity,
             capabilities: capabilities,
-            home: adapter,
-            library: adapter,
-            search: adapter,
-            artwork: adapter,
-            detail: adapter,
-            favorites: favorites,
+            home: decorated.home,
+            library: decorated.library,
+            search: decorated.search,
+            artwork: decorated.artwork,
+            detail: decorated.detail,
+            favorites: decorated.favorites,
             playback: adapter,
             liveTV: liveTV,
             downloads: adapter,
@@ -1379,6 +1469,38 @@ enum JellyfinMediaServicesFactory {
             trackSelectionAccountIdentifier: connection.userID,
         )
         adapter.services = services
+        #if !os(tvOS)
+            decorated.attach(to: services)
+        #endif
+        services.availabilityProbeURL = { [weak context] in
+            context?.connection?.baseURL.appendingPathComponent("System/Info/Public")
+        }
         return services
+    }
+}
+
+private struct JellyfinItemPlaybackReport: Encodable {
+    let itemID: String
+    let positionTicks: Int64
+    let isPaused: Bool
+    let playMethod = "DirectPlay"
+    let canSeek = true
+
+    private enum CodingKeys: String, CodingKey {
+        case itemID = "ItemId"
+        case positionTicks = "PositionTicks"
+        case isPaused = "IsPaused"
+        case playMethod = "PlayMethod"
+        case canSeek = "CanSeek"
+    }
+}
+
+private struct JellyfinUserDataUpdate: Encodable {
+    let playbackPositionTicks: Int64
+    let lastPlayedDate: String
+
+    private enum CodingKeys: String, CodingKey {
+        case playbackPositionTicks = "PlaybackPositionTicks"
+        case lastPlayedDate = "LastPlayedDate"
     }
 }

@@ -32,6 +32,10 @@ struct SettingsView: View {
                 NavigationLink("settings.downloads.manage") {
                     SettingsDownloadsView()
                 }
+
+                NavigationLink("settings.storage.title") {
+                    SettingsStorageView()
+                }
             }
 
             Section("settings.integrations.title") {

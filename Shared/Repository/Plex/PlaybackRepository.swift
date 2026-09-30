@@ -68,6 +68,7 @@ final class PlaybackRepository {
         duration: Int,
         sessionIdentifier: String,
         playQueueItemID: Int? = nil,
+        includesKey: Bool = false,
     ) async throws -> PlexTimelineResponse {
         var queryItems = [
             URLQueryItem(name: "ratingKey", value: ratingKey),
@@ -75,6 +76,9 @@ final class PlaybackRepository {
             URLQueryItem(name: "time", value: String(time)),
             URLQueryItem(name: "duration", value: String(duration)),
         ]
+        if includesKey {
+            queryItems.append(URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"))
+        }
         if let playQueueItemID {
             queryItems.append(URLQueryItem(name: "playQueueItemID", value: String(playQueueItemID)))
         }

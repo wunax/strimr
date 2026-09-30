@@ -103,6 +103,9 @@ struct MediaDetailView: View {
             guard newValue == .active else { return }
             Task { await bindableViewModel.refreshIfNeeded() }
         }
+        .onConnectivityChange(of: mediaServices.identity) { _ in
+            Task { await bindableViewModel.refreshSilently() }
+        }
         .background(gradientBackground(for: bindableViewModel))
     }
 

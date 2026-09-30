@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(MediaServices.self) var mediaServices
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -26,6 +27,8 @@ struct MainTabView: View {
                 legacyTabView
             }
         }
+        .offlineBanner()
+        .animation(.easeInOut, value: offlineCoordinator.banner)
         .environmentObject(coordinator)
         .task {
             try? await libraryStore.loadLibraries()
@@ -54,6 +57,11 @@ struct MainTabView: View {
                 coordinator.resetLiveTVNavigation()
             }
         }
+        .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
+            // Availability checked while offline is unreliable: check again once the server is back.
+            guard !isUnreachable else { return }
+            Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
+        }
         .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
             if let queue = coordinator.selectedMediaQueue,
                let services = coordinator.selectedMediaServices
@@ -70,6 +78,9 @@ struct MainTabView: View {
                       let services = coordinator.selectedMediaServices
             {
                 PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services))
+                    .environment(plexApiContext)
+            } else if let request = coordinator.selectedLocalPlayback {
+                PlayerWrapper(viewModel: PlayerViewModel(request: request))
                     .environment(plexApiContext)
             }
         }
@@ -207,6 +218,7 @@ struct MainTabView: View {
                 searchViewModel: SeerrSearchViewModel(store: seerrStore),
                 onSelectMedia: coordinator.showSeerrMediaDetail,
             )
+            .unavailableWhenOffline()
             .navigationDestination(for: SeerrMedia.self) { media in
                 SeerrMediaDetailView(
                     viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
@@ -260,6 +272,7 @@ struct MainTabView: View {
                 services: mediaServices,
                 onSelectMedia: coordinator.showMediaDetail,
             )
+            .unavailableWhenOffline()
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
             }
@@ -283,6 +296,7 @@ struct MainTabView: View {
                     coordinator.libraryPath = NavigationPath([library])
                 },
             )
+            .unavailableWhenOffline()
         }
     }
 

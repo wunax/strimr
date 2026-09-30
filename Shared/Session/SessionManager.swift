@@ -59,6 +59,11 @@ final class SessionManager {
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     #if os(tvOS)
         @ObservationIgnored private let topShelfSessionStore = TopShelfSessionStore()
+    #else
+        @ObservationIgnored private let offlineSessionStore = OfflineSessionStore()
+        /// Set when the session was restored from local state and still has to be confirmed by the server.
+        @ObservationIgnored private var needsSessionValidation = false
+        @ObservationIgnored private var isValidatingSession = false
     #endif
     @ObservationIgnored private let tokenKey = "strimr.plex.authToken"
     @ObservationIgnored private let serverIdDefaultsKey = "strimr.plex.serverIdentifier"
@@ -86,6 +91,14 @@ final class SessionManager {
         jellyfinContext.configureAuthenticationRequiredHandler { [weak self] in
             self?.invalidateJellyfinSession()
         }
+        #if !os(tvOS)
+            OfflineCoordinator.shared.observeNetworkRestored { [weak self] in
+                Task { await self?.validateRestoredSessionIfNeeded() }
+            }
+            OfflineCoordinator.shared.observeReachability { [weak self] _ in
+                Task { await self?.validateRestoredSessionIfNeeded() }
+            }
+        #endif
         Task { await hydrate() }
     }
 
@@ -149,6 +162,9 @@ final class SessionManager {
 
     func requestProviderSelection() async {
         await clearSession()
+        #if !os(tvOS)
+            offlineSessionStore.clearPlex()
+        #endif
         jellyfinContext.reset()
         provider = nil
         jellyfinHydrationError = nil
@@ -198,6 +214,8 @@ final class SessionManager {
             #if os(tvOS)
                 topShelfSessionStore.clear()
                 TVTopShelfContentProvider.topShelfContentDidChange()
+            #else
+                offlineSessionStore.clearPlex()
             #endif
         }
 
@@ -273,6 +291,9 @@ final class SessionManager {
             activatePlexServicesIfAvailable()
             serverContexts[server.clientIdentifier] = nil
             UserDefaults.standard.set(server.clientIdentifier, forKey: serverIdDefaultsKey)
+            #if !os(tvOS)
+                savePlexSnapshot()
+            #endif
             #if os(tvOS)
                 if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
                     try? topShelfSessionStore.save(
@@ -364,6 +385,9 @@ final class SessionManager {
         try await context.refreshServerAccess(using: refreshedServer)
         plexServer = refreshedServer
         UserDefaults.standard.set(refreshedServer.clientIdentifier, forKey: serverIdDefaultsKey)
+        #if !os(tvOS)
+            savePlexSnapshot()
+        #endif
         #if os(tvOS)
             if let serverURL = context.baseURLServer, let serverToken = context.authTokenServer {
                 try? topShelfSessionStore.save(
@@ -524,6 +548,11 @@ final class SessionManager {
         authToken = storedToken
         if let storedToken {
             context.setAuthToken(storedToken)
+            #if !os(tvOS)
+                if restoreOfflinePlexSession(token: storedToken) {
+                    return
+                }
+            #endif
             try await bootstrapAuthenticatedSession(
                 with: storedToken,
                 allowProfileSelection: false,
@@ -547,10 +576,18 @@ final class SessionManager {
                 return
             }
             jellyfinContext.configure(connection: connection, token: token)
-            _ = try await jellyfinContext.validateAuthenticatedSession()
-            guard !Task.isCancelled else { return }
-            activateJellyfinServicesIfAvailable()
-            #if os(tvOS)
+            #if !os(tvOS)
+                // Start from local state right away; the session is confirmed in the background so the app stays
+                // usable when the server is unreachable.
+                activateJellyfinServicesIfAvailable()
+                jellyfinHydrationError = nil
+                status = .ready
+                needsSessionValidation = true
+                Task { await validateRestoredSessionIfNeeded() }
+            #else
+                _ = try await jellyfinContext.validateAuthenticatedSession()
+                guard !Task.isCancelled else { return }
+                activateJellyfinServicesIfAvailable()
                 try? topShelfSessionStore.save(
                     provider: .jellyfin,
                     serverURL: connection.baseURL,
@@ -559,8 +596,8 @@ final class SessionManager {
                     token: token,
                 )
                 TVTopShelfContentProvider.topShelfContentDidChange()
+                status = .ready
             #endif
-            status = .ready
         } catch let error as JellyfinAPIError where error == .authenticationRequired {
             try? keychain.deleteValue(forKey: jellyfinTokenKey(connection: connection))
             jellyfinContext.reset()
@@ -619,6 +656,94 @@ final class SessionManager {
         jellyfinHydrationError = nil
         status = .needsJellyfinAuthentication
     }
+
+    #if !os(tvOS)
+        private func savePlexSnapshot() {
+            guard let user, let plexServer else { return }
+            offlineSessionStore.savePlex(user: user, resource: plexServer)
+        }
+
+        /// Starts the Plex session from the last snapshot without contacting plex.tv or probing the server.
+        private func restoreOfflinePlexSession(token: String) -> Bool {
+            guard let snapshot = offlineSessionStore.loadPlex(token: token),
+                  UserDefaults.standard.string(forKey: serverIdDefaultsKey) == snapshot.resource.clientIdentifier,
+                  context.restoreServerAccess(using: snapshot.resource)
+            else { return false }
+            user = snapshot.user
+            plexServer = snapshot.resource
+            activatePlexServicesIfAvailable()
+            guard mediaServices != nil else {
+                context.removeServer()
+                return false
+            }
+            status = .ready
+            needsSessionValidation = true
+            Task { await validateRestoredSessionIfNeeded() }
+            return true
+        }
+
+        /// Confirms a session restored from local state. Authentication failures return to sign-in without touching
+        /// downloads or the progress journal; connectivity failures are retried when the network comes back.
+        func validateRestoredSessionIfNeeded() async {
+            guard needsSessionValidation, !isValidatingSession, status == .ready else { return }
+            isValidatingSession = true
+            defer { isValidatingSession = false }
+            switch provider {
+            case .plex:
+                await validateRestoredPlexSession()
+            case .jellyfin:
+                await validateRestoredJellyfinSession()
+            case nil:
+                needsSessionValidation = false
+            }
+        }
+
+        private func validateRestoredPlexSession() async {
+            do {
+                user = try await UserRepository(context: context).getUser()
+                let resources = try await ResourceRepository(context: context).getAvailableResources()
+                availableServers = resources
+                needsSessionValidation = false
+                guard let selectedID = plexServer?.clientIdentifier else { return }
+                guard let refreshedServer = resources.first(where: { $0.clientIdentifier == selectedID }) else {
+                    await requestServerSelection()
+                    return
+                }
+                plexServer = refreshedServer
+                savePlexSnapshot()
+                do {
+                    try await context.refreshServerAccess(using: refreshedServer)
+                    OfflineCoordinator.shared.availability.refresh()
+                } catch {
+                    // The server itself is unreachable: keep the last known connection.
+                }
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                if error.isAuthenticationFailure {
+                    needsSessionValidation = false
+                    await clearSession()
+                    try? keychain.deleteValue(forKey: tokenKey)
+                    offlineSessionStore.clearPlex()
+                    status = .signedOut
+                } else if !error.isTransportFailure {
+                    ErrorReporter.capture(error)
+                }
+            }
+        }
+
+        private func validateRestoredJellyfinSession() async {
+            do {
+                _ = try await jellyfinContext.validateAuthenticatedSession()
+                needsSessionValidation = false
+            } catch let error as JellyfinAPIError where error == .authenticationRequired {
+                needsSessionValidation = false
+                invalidateJellyfinSession()
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation, !error.isTransportFailure else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+    #endif
 
     private func jellyfinTokenKey(connection: JellyfinConnection) -> String {
         "strimr.jellyfin.token.\(connection.serverID).\(connection.userID)"

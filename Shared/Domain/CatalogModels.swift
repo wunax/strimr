@@ -12,7 +12,7 @@ struct MediaHierarchy: Hashable, Sendable {
     static let empty = MediaHierarchy()
 }
 
-struct MediaWatchState: Hashable, Sendable {
+struct MediaWatchState: Hashable, Sendable, Codable {
     var isPlayed: Bool
     var playCount: Int
     var resumePosition: TimeInterval?

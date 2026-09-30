@@ -6,6 +6,7 @@ struct PlayerView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @State var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -51,6 +52,8 @@ struct PlayerView: View {
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
     @State private var qualityNoticeMessage: String?
+    @State private var offlineHandoff: LocalPlaybackRequest?
+    @State private var isShowingOfflineInterruption = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -170,6 +173,10 @@ struct PlayerView: View {
                 }
                 .onChange(of: scenePhase) { _, newValue in
                     handleScenePhaseChange(newValue)
+                }
+                .onChange(of: isStreamingServerUnreachable) { _, isUnreachable in
+                    guard isUnreachable else { return }
+                    handleStreamingServerLost()
                 },
         )
 
@@ -216,6 +223,22 @@ struct PlayerView: View {
                 }
             } message: {
                 Text(terminationAlertMessage)
+            }
+            .alert("offline.player.interrupted.title", isPresented: $isShowingOfflineInterruption) {
+                if let offlineHandoff {
+                    Button("offline.player.resumeDownloaded") {
+                        self.offlineHandoff = nil
+                        Task { await startPlayback(using: PlayerViewModel(request: offlineHandoff)) }
+                    }
+                }
+                Button("player.termination.dismiss", role: .cancel) {
+                    offlineHandoff = nil
+                    dismissPlayer(force: true)
+                }
+            } message: {
+                Text(offlineHandoff == nil
+                    ? "offline.player.interrupted.message"
+                    : "offline.player.interrupted.downloadedMessage")
             }
             .alert("subtitles.search.activation.error", isPresented: $showingSubtitleSearchError) {
                 Button("common.actions.done", role: .cancel) {}
@@ -1088,6 +1111,22 @@ struct PlayerView: View {
             ErrorReporter.capture(error)
             sharePlayCoordinator.errorMessage = String(localized: "sharePlay.error.mediaUnavailable")
         }
+    }
+
+    /// The stream is considered lost when there is no network at all, or when its server is unreachable and the
+    /// player stalls; a single failed side request must not interrupt a stream that still plays.
+    private var isStreamingServerUnreachable: Bool {
+        guard let server = viewModel.streamingServer, offlineCoordinator.isUnreachable(server) else { return false }
+        return !offlineCoordinator.availability.hasNetworkPath || playerController.isBuffering
+    }
+
+    /// Streaming cannot continue without its server: stop cleanly and offer the downloaded copy when there is one.
+    private func handleStreamingServerLost() {
+        guard !sharePlayCoordinator.isInSession else { return }
+        playerController.pause()
+        offlineHandoff = viewModel.prepareOfflineHandoff()
+        viewModel.handleStop()
+        isShowingOfflineInterruption = true
     }
 
     private func syncPlaybackState() {

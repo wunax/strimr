@@ -1,6 +1,6 @@
 import Foundation
 
-struct MediaItem: Identifiable, Hashable {
+struct MediaItem: Identifiable, Hashable, Codable {
     let id: String
     let identity: MediaIdentity
     let guid: String
@@ -34,6 +34,8 @@ struct MediaItem: Identifiable, Hashable {
     let grandparentThumbPath: String?
     let grandparentArtPath: String?
     let parentThumbPath: String?
+    let librarySectionID: String?
+    let lastViewedAt: Date?
 
     var provider: MediaProvider {
         identity.server.provider
@@ -77,6 +79,8 @@ struct MediaItem: Identifiable, Hashable {
         grandparentThumbPath: String?,
         grandparentArtPath: String?,
         parentThumbPath: String?,
+        librarySectionID: String? = nil,
+        lastViewedAt: Date? = nil,
     ) {
         self.id = id
         self.identity = identity ?? Self.legacyIdentity(id: id, guid: guid)
@@ -111,6 +115,8 @@ struct MediaItem: Identifiable, Hashable {
         self.grandparentThumbPath = grandparentThumbPath
         self.grandparentArtPath = grandparentArtPath
         self.parentThumbPath = parentThumbPath
+        self.librarySectionID = librarySectionID
+        self.lastViewedAt = lastViewedAt
     }
 
     private static func legacyIdentity(id: String, guid: String) -> MediaIdentity {

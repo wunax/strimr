@@ -477,6 +477,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
     let playCount: Int?
     let unplayedItemCount: Int?
     let isFavorite: Bool?
+    let lastPlayedDate: Date?
 
     private enum CodingKeys: String, CodingKey {
         case played = "Played"
@@ -484,6 +485,38 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
         case playCount = "PlayCount"
         case unplayedItemCount = "UnplayedItemCount"
         case isFavorite = "IsFavorite"
+        case lastPlayedDate = "LastPlayedDate"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        played = try container.decodeIfPresent(Bool.self, forKey: .played)
+        playbackPositionTicks = try container.decodeIfPresent(Int64.self, forKey: .playbackPositionTicks)
+        playCount = try container.decodeIfPresent(Int.self, forKey: .playCount)
+        unplayedItemCount = try container.decodeIfPresent(Int.self, forKey: .unplayedItemCount)
+        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite)
+        lastPlayedDate = try container.decodeIfPresent(String.self, forKey: .lastPlayedDate)
+            .flatMap(JellyfinDate.date(from:))
+    }
+}
+
+nonisolated enum JellyfinDate {
+    static func date(from value: String) -> Date? {
+        // Jellyfin emits 7 fractional digits, which ISO8601DateFormatter rejects.
+        let trimmed = value.replacingOccurrences(
+            of: "\\.\\d+",
+            with: "",
+            options: .regularExpression,
+        )
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: trimmed)
+    }
+
+    static func string(from date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
     }
 }
 

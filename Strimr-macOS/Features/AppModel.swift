@@ -54,6 +54,7 @@ final class AppModel: PlaybackPresenting {
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
         let localExternalSubtitles: [ExternalSubtitleTrack]
+        let localOwner: MediaOwner?
         let mediaQueue: PlaybackQueue?
         let mediaServices: MediaServices?
         let liveTVContext: LiveTVLaunchContext?
@@ -63,6 +64,7 @@ final class AppModel: PlaybackPresenting {
             localMedia = nil
             localPlaybackURL = nil
             localExternalSubtitles = []
+            localOwner = nil
             mediaQueue = queue
             mediaServices = services
             liveTVContext = nil
@@ -72,11 +74,24 @@ final class AppModel: PlaybackPresenting {
             localMedia: MediaItem,
             localPlaybackURL: URL,
             localExternalSubtitles: [ExternalSubtitleTrack],
+            localOwner: MediaOwner?,
         ) {
-            shouldResumeFromOffset = false
+            shouldResumeFromOffset = true
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
             self.localExternalSubtitles = localExternalSubtitles
+            self.localOwner = localOwner
+            mediaQueue = nil
+            mediaServices = nil
+            liveTVContext = nil
+        }
+
+        init(request: LocalPlaybackRequest) {
+            shouldResumeFromOffset = request.resumes
+            localMedia = request.media
+            localPlaybackURL = request.url
+            localExternalSubtitles = request.externalSubtitles
+            localOwner = request.owner
             mediaQueue = nil
             mediaServices = nil
             liveTVContext = nil
@@ -87,6 +102,7 @@ final class AppModel: PlaybackPresenting {
             localMedia = nil
             localPlaybackURL = nil
             localExternalSubtitles = []
+            localOwner = nil
             mediaQueue = nil
             mediaServices = services
             self.liveTVContext = liveTVContext
@@ -178,12 +194,18 @@ final class AppModel: PlaybackPresenting {
         media: MediaItem,
         url: URL,
         externalSubtitles: [ExternalSubtitleTrack],
+        owner: MediaOwner?,
     ) {
         playerPresentation = PlayerPresentation(
             localMedia: media,
             localPlaybackURL: url,
             localExternalSubtitles: externalSubtitles,
+            localOwner: owner,
         )
+    }
+
+    func showLocalPlayer(_ request: LocalPlaybackRequest) {
+        playerPresentation = PlayerPresentation(request: request)
     }
 
     func showPlayer(

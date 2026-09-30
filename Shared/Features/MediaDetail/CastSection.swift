@@ -63,8 +63,8 @@ struct CastCarousel: View {
                         member: member,
                         imageURL: viewModel.castImageURL(for: member),
                         artworkPath: member.thumbPath,
-                        onSelect: member.person.map { person in
-                            { onSelectPerson(person) }
+                        onSelect: member.person.flatMap { person in
+                            viewModel.canOpenPerson(person) ? { onSelectPerson(person) } : nil
                         },
                     )
                 }

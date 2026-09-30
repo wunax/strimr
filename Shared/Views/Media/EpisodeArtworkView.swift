@@ -66,6 +66,7 @@ struct EpisodeArtworkView: View {
         .overlay(alignment: .topTrailing) {
             WatchStatusBadge(media: .playable(episode))
         }
+        .downloadStatusOverlay(.playable(episode))
         .overlay(alignment: .topLeading) {
             if isSpoilerProtected {
                 SpoilerProtectionIndicator()

@@ -5,6 +5,7 @@ import UIKit
 struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @State private var selectedDownload: DownloadItem?
     @State private var downloadUsingCellular: DownloadItem?
 
@@ -12,9 +13,9 @@ struct DownloadsView: View {
         List {
             storageSection
 
-            if downloadManager.isOffline {
+            if !offlineCoordinator.availability.hasNetworkPath {
                 Section {
-                    Label("downloads.offline.banner", systemImage: "wifi.slash")
+                    Label("offline.banner.offline", systemImage: "wifi.slash")
                         .foregroundStyle(.orange)
                         .font(.subheadline.weight(.semibold))
                 }
@@ -28,9 +29,10 @@ struct DownloadsView: View {
             if let localURL = downloadManager.localVideoURL(for: item) {
                 PlayerWrapper(
                     viewModel: PlayerViewModel(
-                        localMedia: downloadManager.localMediaItem(for: item),
+                        localMedia: downloadManager.playbackMedia(for: item),
                         localPlaybackURL: localURL,
                         localExternalSubtitles: downloadManager.localExternalSubtitles(for: item),
+                        owner: downloadManager.owner(of: item),
                     ),
                 )
             }
@@ -82,9 +84,18 @@ struct DownloadsView: View {
         }
     }
 
+    /// Signed in: the user's downloads, then those of other profiles or accounts. Signed out: everything.
+    private var primaryItems: [DownloadItem] {
+        downloadManager.activeOwnerIDs.isEmpty ? downloadManager.sortedItems : downloadManager.sortedOwnedItems
+    }
+
+    private var otherItems: [DownloadItem] {
+        downloadManager.activeOwnerIDs.isEmpty ? [] : downloadManager.sortedOtherItems
+    }
+
     @ViewBuilder
     private var downloadsSection: some View {
-        if downloadManager.sortedItems.isEmpty {
+        if primaryItems.isEmpty, otherItems.isEmpty {
             Section {
                 VStack(spacing: 8) {
                     Image(systemName: "arrow.down.circle")
@@ -101,26 +112,39 @@ struct DownloadsView: View {
                 .padding(.vertical, 24)
             }
         } else {
-            Section("downloads.list.title") {
-                ForEach(downloadManager.sortedItems) { item in
-                    downloadRow(item)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard item.isPlayable else { return }
-                            selectedDownload = item
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                Task {
-                                    await downloadManager.delete(item)
-                                }
-                            } label: {
-                                Label("common.actions.delete", systemImage: "trash")
-                            }
-                        }
+            if !primaryItems.isEmpty {
+                Section("downloads.list.title") {
+                    ForEach(primaryItems, content: interactiveRow)
+                }
+            }
+            if !otherItems.isEmpty {
+                Section {
+                    ForEach(otherItems, content: interactiveRow)
+                } header: {
+                    Text("offline.downloads.others")
+                } footer: {
+                    Text("offline.downloads.others.footer")
                 }
             }
         }
+    }
+
+    private func interactiveRow(_ item: DownloadItem) -> some View {
+        downloadRow(item)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard item.isPlayable else { return }
+                selectedDownload = item
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    Task {
+                        await downloadManager.delete(item)
+                    }
+                } label: {
+                    Label("common.actions.delete", systemImage: "trash")
+                }
+            }
     }
 
     private func downloadRow(_ item: DownloadItem) -> some View {

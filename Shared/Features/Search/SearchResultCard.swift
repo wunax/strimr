@@ -25,6 +25,7 @@ struct SearchResultCard: View {
                 .overlay(alignment: .topTrailing) {
                     WatchStatusBadge(media: media)
                 }
+                .downloadStatusOverlay(media)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
@@ -72,6 +73,7 @@ struct SearchResultCard: View {
             )
         }
         .buttonStyle(.plain)
+        .offlineAvailability(of: media, defaultServer: result.primarySource.services.identity)
     }
 }
 

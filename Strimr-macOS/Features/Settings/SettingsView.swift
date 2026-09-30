@@ -27,6 +27,9 @@ struct SettingsView: View {
                 NavigationLink("settings.downloads.title") {
                     SettingsDownloadsView()
                 }
+                NavigationLink("settings.storage.title") {
+                    SettingsStorageView()
+                }
                 NavigationLink("settings.integrations.title") {
                     IntegrationsView()
                 }

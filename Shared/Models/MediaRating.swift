@@ -1,6 +1,6 @@
 import Foundation
 
-enum MediaRatingSource: Hashable {
+enum MediaRatingSource: Hashable, Codable {
     case imdb
     case rottenTomatoesCritic
     case rottenTomatoesAudience
@@ -63,7 +63,7 @@ enum MediaRatingIcon: Hashable {
     case system(String)
 }
 
-struct MediaRating: Hashable {
+struct MediaRating: Hashable, Codable {
     let source: MediaRatingSource
     let value: Double
 

@@ -54,6 +54,7 @@ struct EpisodeCardView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .dimmedWhenUnavailableOffline(episode)
     }
 
     private var detailStack: some View {

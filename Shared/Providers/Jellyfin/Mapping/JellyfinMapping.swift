@@ -86,6 +86,7 @@ extension MediaItem {
             grandparentThumbPath: seriesPath,
             grandparentArtPath: backdropPath,
             parentThumbPath: nil,
+            lastViewedAt: jellyfinItem.userData?.lastPlayedDate,
         )
     }
 }

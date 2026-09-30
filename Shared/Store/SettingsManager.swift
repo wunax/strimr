@@ -236,6 +236,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setOfflineCacheLimit(megabytes: Int) {
+        settings.downloads.offlineCacheLimitMB = megabytes
+        persist()
+    }
+
     private func persist() {
         do {
             let data = try JSONEncoder().encode(settings)

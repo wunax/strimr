@@ -54,6 +54,7 @@ struct StrimrApp: App {
                 .environment(libraryStore)
                 .environment(seerrStore)
                 .environment(sharePlayCoordinator)
+                .environment(OfflineCoordinator.shared)
                 .preferredColorScheme(.dark)
         }
     }

@@ -23,13 +23,19 @@ enum ErrorReporter {
     }
 
     static func capture(_ error: Error) {
-        guard !error.isCancellation else { return }
+        guard !error.isCancellation, !(error is any ExpectedConnectivityError) else { return }
+        #if !os(tvOS)
+            guard !error.isTransportFailure else { return }
+        #endif
 
         #if canImport(Sentry)
             SentrySDK.capture(error: error)
         #endif
     }
 }
+
+/// Errors that describe an expected lack of connectivity and must never be reported.
+protocol ExpectedConnectivityError: Error {}
 
 extension Error {
     var isCancellation: Bool {

@@ -10,10 +10,10 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     weak static var shared: DownloadManager?
 
     private(set) var items: [DownloadItem] = []
-    private(set) var isOffline = false
     private(set) var isOnWiFi: Bool?
     private(set) var storageSummary: DownloadStorageSummary = .empty
     private(set) var lastErrorMessage: String?
+    private(set) var activeOwnerIDs: Set<String> = []
 
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private let monitor = NWPathMonitor()
@@ -29,6 +29,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private let downloadsDirectory: URL
     @ObservationIgnored private let indexFileURL: URL
     @ObservationIgnored private var backgroundSession: URLSession!
+    @ObservationIgnored private let offlineStore: OfflineStore?
+    @ObservationIgnored private var enrichmentTasks: [ServerIdentity: Task<Void, Never>] = [:]
 
     private static func buildBackgroundSession(delegate: URLSessionDownloadDelegate) -> URLSession {
         let configuration = URLSessionConfiguration.background(
@@ -49,10 +51,17 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         return appSupport.appendingPathComponent("Downloads", isDirectory: true)
     }
 
+    static func posterFileURL(downloadID: String) -> URL {
+        buildDownloadsDirectory()
+            .appendingPathComponent(downloadID, isDirectory: true)
+            .appendingPathComponent("poster.jpg", isDirectory: false)
+    }
+
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
         downloadsDirectory = Self.buildDownloadsDirectory()
         indexFileURL = downloadsDirectory.appendingPathComponent("index.json")
+        offlineStore = OfflineCoordinator.shared.store
         super.init()
         backgroundSession = Self.buildBackgroundSession(delegate: self)
         Self.shared = self
@@ -63,9 +72,39 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             await restoreRunningTasks()
         }
         refreshStorageSummary()
+        OfflineCoordinator.shared.observeReachability { [weak self] server in
+            self?.enrichDownloads(on: server, refreshingEnriched: true)
+        }
+    }
+
+    /// Downloads belonging to the signed-in user(s); the rich app only ever shows these.
+    var ownedItems: [DownloadItem] {
+        items.filter(isOwnedByActiveUser)
+    }
+
+    /// Downloads of other profiles, accounts or signed-out users.
+    var otherItems: [DownloadItem] {
+        items.filter { !isOwnedByActiveUser($0) }
+    }
+
+    func isOwnedByActiveUser(_ item: DownloadItem) -> Bool {
+        guard let ownerID = item.ownerID else { return false }
+        return activeOwnerIDs.contains(ownerID)
     }
 
     var sortedItems: [DownloadItem] {
+        sorted(items)
+    }
+
+    var sortedOwnedItems: [DownloadItem] {
+        sorted(ownedItems)
+    }
+
+    var sortedOtherItems: [DownloadItem] {
+        sorted(otherItems)
+    }
+
+    private func sorted(_ items: [DownloadItem]) -> [DownloadItem] {
         items.sorted { lhs, rhs in
             if lhs.status.isActive != rhs.status.isActive {
                 return lhs.status.isActive
@@ -84,10 +123,6 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     var playableCount: Int {
         playableItems.count
-    }
-
-    var shouldForceOfflineDownloads: Bool {
-        isOffline
     }
 
     func status(for identity: MediaIdentity) -> DownloadStatus? {
@@ -190,7 +225,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             contentRating: item.metadata.contentRating,
             studio: item.metadata.studio,
             tagline: item.metadata.tagline,
-            thumbPath: nil,
+            thumbPath: localPosterURL(for: item) == nil ? nil : OfflineArtworkPath.downloadPoster(item.id),
             artPath: nil,
             artworkCornerColors: nil,
             viewOffset: nil,
@@ -206,6 +241,110 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             grandparentArtPath: nil,
             parentThumbPath: nil,
         )
+    }
+
+    /// Called whenever the session's services change: legacy downloads without owner on this server are attributed
+    /// to the active user, and only this user's downloads are shown in the rich app.
+    func activateSession(services: MediaServices?) {
+        guard let services else {
+            activeOwnerIDs = []
+            return
+        }
+        let owner = services.owner
+        activeOwnerIDs = [owner.id]
+        offlineStore?.register(owner: owner)
+        adoptUnownedDownloads(for: owner)
+        register(services: services)
+        enrichDownloads(on: services.identity, refreshingEnriched: false)
+    }
+
+    /// Enriches pending downloads of the active owner on `server` (legacy downloads, or ones queued offline) and,
+    /// when coming back online, refreshes the pinned metadata of already enriched ones.
+    private func enrichDownloads(on server: ServerIdentity, refreshingEnriched: Bool) {
+        guard enrichmentTasks[server] == nil,
+              let enrichment = OfflineCoordinator.shared.enrichment
+        else { return }
+        let candidates = ownedItems.filter { item in
+            guard item.identity?.server == server else { return false }
+            switch item.enrichmentState ?? .pending {
+            case .pending:
+                return true
+            case .done:
+                return refreshingEnriched
+            case .orphaned:
+                return false
+            }
+        }
+        guard !candidates.isEmpty else { return }
+        enrichmentTasks[server] = Task { [weak self] in
+            defer { self?.enrichmentTasks[server] = nil }
+            for candidate in candidates {
+                guard !Task.isCancelled, let self,
+                      let owner = owner(of: candidate),
+                      let services = OfflineCoordinator.shared.reachableServices(for: owner)
+                else { return }
+                if candidate.enrichmentState == .done {
+                    await enrichment.refresh(download: candidate, owner: owner, services: services)
+                    continue
+                }
+                let state = await enrichment.enrich(download: candidate, owner: owner, services: services)
+                guard let index = items.firstIndex(where: { $0.id == candidate.id }) else { continue }
+                items[index].enrichmentState = state
+                persistState()
+            }
+        }
+    }
+
+    private func enrichNewDownload(id: String, services: MediaServices) {
+        guard let enrichment = OfflineCoordinator.shared.enrichment,
+              let item = items.first(where: { $0.id == id })
+        else { return }
+        let owner = services.owner
+        Task { [weak self] in
+            let state = await enrichment.enrich(download: item, owner: owner, services: services)
+            guard let self, let index = items.firstIndex(where: { $0.id == id }) else { return }
+            items[index].enrichmentState = state
+            persistState()
+        }
+    }
+
+    private func adoptUnownedDownloads(for owner: MediaOwner) {
+        guard let offlineStore else { return }
+        let adopted = items.indices.filter { items[$0].ownerID == nil && items[$0].identity?.server == owner.server }
+        guard !adopted.isEmpty else { return }
+        _ = offlineStore.assignOwner(owner, toUnownedDownloadsOn: owner.server)
+        for index in adopted {
+            items[index].ownerID = owner.id
+            // A minimal pinned media row lets the rich app show the download before it is enriched.
+            let media = localMediaItem(for: items[index])
+            offlineStore.store(media: [media], owner: owner)
+            offlineStore.pin(itemIDs: [media.id], downloadID: items[index].id, owner: owner)
+        }
+        persistState()
+    }
+
+    func owner(of item: DownloadItem) -> MediaOwner? {
+        item.ownerID.flatMap { offlineStore?.owner(id: $0) }
+    }
+
+    /// Media used to play a download: the enriched pinned item when available, else the minimal local metadata.
+    func playbackMedia(for item: DownloadItem) -> MediaItem {
+        if let owner = owner(of: item), let media = offlineStore?.media(id: item.itemID, owner: owner) {
+            return media
+        }
+        return localMediaItem(for: item)
+    }
+
+    /// The item vanished from the server: its downloads stay playable with the metadata they already have.
+    func markOrphaned(itemID: String, owner: MediaOwner) {
+        var changed = false
+        for index in items.indices where items[index].itemID == itemID && items[index].ownerID == owner.id {
+            items[index].enrichmentState = .orphaned
+            changed = true
+        }
+        if changed {
+            persistState()
+        }
     }
 
     func register(services: MediaServices) {
@@ -280,7 +419,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         services: MediaServices,
     ) async throws {
         let mediaItem = preparation.media
-        guard !isAlreadyScheduled(for: mediaItem.identity) else { return }
+        let owner = services.owner
+        guard !isAlreadyScheduled(for: mediaItem.identity, ownerID: owner.id) else { return }
         guard mediaItem.kind == .movie || mediaItem.kind == .episode else { return }
 
         let id = UUID().uuidString
@@ -340,12 +480,16 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             trackPreference: tracks,
             errorMessage: nil,
             metadata: metadata,
+            ownerID: owner.id,
+            enrichmentState: .pending,
         ))
+        offlineStore?.register(owner: owner)
         sidecarsByItemID[id] = preparation.sidecars
         if shouldQueue, let request = preparation.request {
             pendingRequestsByItemID[id] = request
         }
         persistState()
+        enrichNewDownload(id: id, services: services)
         if shouldQueue {
             return
         } else if let request = preparation.request {
@@ -375,6 +519,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
 
         items.removeAll { $0.id == item.id }
+        offlineStore?.deleteDownload(id: item.id)
         progressByTaskIdentifier.removeValue(forKey: item.taskIdentifier ?? -1)
         sidecarsByItemID[item.id] = nil
         pendingRequestsByItemID[item.id] = nil
@@ -382,6 +527,18 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         refreshStorageSummary()
         if let server {
             startNextQueuedTransfer(on: server)
+        }
+    }
+
+    func deleteDownloads(ownerID: String) async {
+        for item in items where item.ownerID == ownerID {
+            await delete(item)
+        }
+    }
+
+    func deleteOtherDownloads() async {
+        for item in otherItems {
+            await delete(item)
         }
     }
 
@@ -393,7 +550,6 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             Task { @MainActor in
-                self.isOffline = path.status != .satisfied
                 self.isOnWiFi = path.usesInterfaceType(.wifi)
             }
         }
@@ -452,9 +608,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    private func isAlreadyScheduled(for identity: MediaIdentity) -> Bool {
+    private func isAlreadyScheduled(for identity: MediaIdentity, ownerID: String) -> Bool {
         items.contains { item in
-            item.identity == identity && item.status != .failed
+            item.identity == identity && item.ownerID == ownerID && item.status != .failed
         }
     }
 
@@ -466,9 +622,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    private func latestItem(for identity: MediaIdentity) -> DownloadItem? {
+    func latestItem(for identity: MediaIdentity) -> DownloadItem? {
         items
-            .filter { $0.identity == identity }
+            .filter { $0.identity == identity && isOwnedByActiveUser($0) }
             .max { $0.createdAt < $1.createdAt }
     }
 
@@ -481,21 +637,53 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func persistState() {
         guard !isLoadingPersistedState else { return }
         do {
-            let data = try JSONEncoder().encode(items)
-            try data.write(to: indexFileURL, options: .atomic)
-        } catch {}
+            if let offlineStore {
+                try offlineStore.save(downloads: items)
+            } else {
+                // The offline database could not be opened: keep the legacy index so downloads are not lost.
+                try JSONEncoder().encode(items).write(to: indexFileURL, options: .atomic)
+            }
+        } catch {
+            ErrorReporter.capture(error)
+        }
     }
 
     private func loadPersistedState() {
-        guard FileManager.default.fileExists(atPath: indexFileURL.path) else { return }
         isLoadingPersistedState = true
         defer { isLoadingPersistedState = false }
+        guard let offlineStore else {
+            if let data = try? Data(contentsOf: indexFileURL) {
+                items = (try? JSONDecoder().decode([DownloadItem].self, from: data)) ?? []
+            }
+            return
+        }
 
+        migrateLegacyIndexIfNeeded(into: offlineStore)
+        do {
+            items = try offlineStore.allDownloads()
+        } catch {
+            ErrorReporter.capture(error)
+            items = []
+        }
+    }
+
+    /// One-time structural migration of `index.json` into the offline database. The transfer state is kept as is so
+    /// `restoreRunningTasks` can resume running transfers; enrichment happens later once the server is reachable.
+    private func migrateLegacyIndexIfNeeded(into store: OfflineStore) {
+        guard FileManager.default.fileExists(atPath: indexFileURL.path) else { return }
         do {
             let data = try Data(contentsOf: indexFileURL)
-            items = try JSONDecoder().decode([DownloadItem].self, from: data)
+            var legacyItems = try JSONDecoder().decode([DownloadItem].self, from: data)
+            for index in legacyItems.indices {
+                legacyItems[index].ownerID = nil
+                legacyItems[index].enrichmentState = .pending
+            }
+            try store.save(downloads: legacyItems)
+            let migratedURL = indexFileURL.appendingPathExtension("migrated")
+            try? FileManager.default.removeItem(at: migratedURL)
+            try FileManager.default.moveItem(at: indexFileURL, to: migratedURL)
         } catch {
-            items = []
+            ErrorReporter.capture(error)
         }
     }
 
@@ -631,9 +819,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                     }
                 } catch {
                     guard !Task.isCancelled, !error.isCancellation else { return }
-                    if !isOffline {
-                        ErrorReporter.capture(error)
-                    }
+                    ErrorReporter.capture(error)
                 }
                 try? await Task.sleep(for: .seconds(2))
             }

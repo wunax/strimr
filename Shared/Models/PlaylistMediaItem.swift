@@ -1,6 +1,6 @@
 import Foundation
 
-struct PlaylistMediaItem: Identifiable, Hashable {
+struct PlaylistMediaItem: Identifiable, Hashable, Codable {
     let id: String
     let key: String
     let guid: String

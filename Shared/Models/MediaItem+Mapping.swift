@@ -75,6 +75,8 @@ extension MediaItem {
             grandparentThumbPath: plexItem.grandparentThumb,
             grandparentArtPath: plexItem.grandparentArt,
             parentThumbPath: plexItem.parentThumb,
+            librarySectionID: plexItem.librarySectionID.map(String.init),
+            lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
         )
     }
 }

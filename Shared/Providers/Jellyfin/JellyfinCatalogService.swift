@@ -210,6 +210,15 @@ struct JellyfinCatalogService {
         )
     }
 
+    /// The library (`CollectionFolder`) an item belongs to, found through its ancestors.
+    func libraryID(itemID: String) async throws -> String? {
+        let ancestors: [JellyfinItem] = try await context.get(
+            path: ["Items", itemID, "Ancestors"],
+            query: commonUserQuery,
+        )
+        return ancestors.first { $0.type?.lowercased() == "collectionfolder" }?.id
+    }
+
     func extras(for itemID: String) async throws -> [JellyfinItem] {
         var items: [JellyfinItem] = []
         var errors: [Error] = []

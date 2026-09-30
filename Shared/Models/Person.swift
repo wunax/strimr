@@ -1,6 +1,6 @@
 import Foundation
 
-struct Person: Identifiable, Hashable {
+struct Person: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let thumbPath: String?

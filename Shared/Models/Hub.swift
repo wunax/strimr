@@ -1,6 +1,6 @@
 import Foundation
 
-struct Hub: Identifiable, Hashable {
+struct Hub: Identifiable, Hashable, Codable {
     let id: String
     let key: String
     let hubKey: String?
