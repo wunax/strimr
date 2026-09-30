@@ -10,6 +10,16 @@ struct LibraryBrowseView: View {
         ]
     }
 
+    private var downloadedOnlyToggle: LibraryBrowseToggle? {
+        guard viewModel.showsDownloadedOnlyToggle else { return nil }
+        return LibraryBrowseToggle(
+            title: String(localized: "offline.library.downloadedOnly"),
+            systemImage: "arrow.down.circle",
+            isSelected: viewModel.isDownloadedOnly,
+            action: viewModel.toggleDownloadedOnly,
+        )
+    }
+
     var body: some View {
         @Bindable var controls = viewModel.controls
 
@@ -20,16 +30,13 @@ struct LibraryBrowseView: View {
                         .frame(height: 0)
                         .id("libraryBrowseTop")
 
-                    DownloadedOnlyFilterButton(isSelected: viewModel.isDownloadedOnly) {
-                        viewModel.toggleDownloadedOnly()
-                    }
-                    .padding(.horizontal, 16)
-
-                    if controls.hasControls, !viewModel.isDownloadedOnly, !viewModel.isServerUnreachable {
+                    if viewModel.showsServerControls || viewModel.showsDownloadedOnlyToggle {
                         LibraryBrowseControlsView(
                             viewModel: controls,
                             showsBackButton: viewModel.canNavigateBack,
                             onNavigateBack: viewModel.navigateBack,
+                            leadingToggle: downloadedOnlyToggle,
+                            showsServerControls: viewModel.showsServerControls,
                         )
                         .padding(.horizontal, 16)
                     }
@@ -62,7 +69,6 @@ struct LibraryBrowseView: View {
                     }
                     .padding(.horizontal, 16)
                 }
-                .padding(.top, 16)
             }
             .overlay {
                 if viewModel.isLoading, viewModel.browseItems.isEmpty {

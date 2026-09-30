@@ -74,31 +74,6 @@ struct DownloadedEpisodesLabel: View {
     }
 }
 
-struct DownloadedOnlyFilterButton: View {
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label("offline.library.downloadedOnly", systemImage: "arrow.down.circle")
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
-                )
-                .overlay {
-                    Capsule(style: .continuous)
-                        .stroke(isSelected ? Color.brandPrimary : Color.gray.opacity(0.25), lineWidth: 1)
-                }
-                .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
 struct OfflineBanner: View {
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
 

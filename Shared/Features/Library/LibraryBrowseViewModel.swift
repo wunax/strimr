@@ -19,6 +19,7 @@ final class LibraryBrowseViewModel {
     var scrollResetID = 0
     /// Switches the data source to the local downloads of this library, online or offline.
     private(set) var isDownloadedOnly = false
+    private(set) var hasDownloads = false
     private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
@@ -71,6 +72,15 @@ final class LibraryBrowseViewModel {
     /// Server-side sort and filters cannot run offline; only the local title order is available.
     var isServerUnreachable: Bool {
         OfflineCoordinator.shared.isUnreachable(owner.server)
+    }
+
+    /// Hidden in libraries without downloads, but kept while active so it can always be turned off.
+    var showsDownloadedOnlyToggle: Bool {
+        hasDownloads || isDownloadedOnly
+    }
+
+    var showsServerControls: Bool {
+        controls.hasControls && !isDownloadedOnly && !isServerUnreachable
     }
 
     func toggleDownloadedOnly() {
@@ -127,12 +137,18 @@ final class LibraryBrowseViewModel {
         }
     }
 
+    private func downloadedLibraryItems() -> [MediaDisplayItem] {
+        OfflineCoordinator.shared.store?.downloadedLibraryItems(libraryID: library.id, owner: owner) ?? []
+    }
+
     private func fetch(reset: Bool) async {
+        let downloadedItems = reset ? downloadedLibraryItems() : []
+        if reset {
+            hasDownloads = !downloadedItems.isEmpty
+        }
         if isDownloadedOnly {
             guard reset else { return }
-            browseItems = OfflineCoordinator.shared.store?
-                .downloadedLibraryItems(libraryID: library.id, owner: owner)
-                .map(LibraryBrowseItem.media) ?? []
+            browseItems = downloadedItems.map(LibraryBrowseItem.media)
             errorMessage = nil
             reachedEnd = true
             return

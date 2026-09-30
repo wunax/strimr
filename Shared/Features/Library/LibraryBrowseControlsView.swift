@@ -1,25 +1,39 @@
 import SwiftUI
 
+/// A toggle pill shown first in the controls row, independent of the server-side type, filter and sort controls.
+struct LibraryBrowseToggle {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+}
+
 struct LibraryBrowseControlsView: View {
     @Bindable var viewModel: LibraryBrowseControlsViewModel
     let showsBackButton: Bool
     let onNavigateBack: () -> Void
+    let leadingToggle: LibraryBrowseToggle?
+    let showsServerControls: Bool
 
     init(
         viewModel: LibraryBrowseControlsViewModel,
         showsBackButton: Bool = false,
         onNavigateBack: @escaping () -> Void = {},
+        leadingToggle: LibraryBrowseToggle? = nil,
+        showsServerControls: Bool = true,
     ) {
         self.viewModel = viewModel
         self.showsBackButton = showsBackButton
         self.onNavigateBack = onNavigateBack
+        self.leadingToggle = leadingToggle
+        self.showsServerControls = showsServerControls
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             topRow
 
-            if let panel = viewModel.activePanel {
+            if showsServerControls, let panel = viewModel.activePanel {
                 optionsRow(for: panel)
             }
         }
@@ -34,54 +48,70 @@ struct LibraryBrowseControlsView: View {
     private var topRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: pillSpacing) {
-                if showsBackButton {
+                if let leadingToggle {
                     LibraryBrowsePillButton(
-                        title: String(localized: "library.browse.folders.back"),
-                        systemImage: "chevron.left",
-                        isSelected: false,
+                        title: leadingToggle.title,
+                        systemImage: leadingToggle.systemImage,
+                        isSelected: leadingToggle.isSelected,
                         showsDisclosure: false,
-                        action: onNavigateBack,
+                        action: leadingToggle.action,
                     )
                 }
-                if viewModel.hasDisplayTypes {
-                    LibraryBrowsePillButton(
-                        title: viewModel.typePillTitle,
-                        systemImage: "square.grid.2x2",
-                        isSelected: viewModel.activePanel == .type,
-                        showsDisclosure: true,
-                    ) {
-                        viewModel.togglePanel(.type)
-                    }
-                }
-
-                if viewModel.showsFilterPill {
-                    LibraryBrowsePillButton(
-                        title: viewModel.filterPillTitle,
-                        systemImage: "line.3.horizontal.decrease.circle",
-                        isSelected: viewModel.activePanel == .filters
-                            || (viewModel.isJellyfinBrowse
-                                ? viewModel.jellyfinActiveFilterCount > 0
-                                : !viewModel.selectedFilters.isEmpty),
-                        showsDisclosure: true,
-                    ) {
-                        viewModel.togglePanel(.filters)
-                    }
-                }
-
-                if viewModel.showsSortPill {
-                    LibraryBrowsePillButton(
-                        title: viewModel.sortPillTitle,
-                        systemImage: "arrow.up.arrow.down.circle",
-                        isSelected: viewModel.activePanel == .sort || viewModel.selectedSort != nil,
-                        showsDisclosure: true,
-                    ) {
-                        viewModel.togglePanel(.sort)
-                    }
+                if showsServerControls {
+                    serverPills
                 }
             }
             .padding(rowPadding)
         }
         .mouseDragScrolling()
+    }
+
+    @ViewBuilder
+    private var serverPills: some View {
+        if showsBackButton {
+            LibraryBrowsePillButton(
+                title: String(localized: "library.browse.folders.back"),
+                systemImage: "chevron.left",
+                isSelected: false,
+                showsDisclosure: false,
+                action: onNavigateBack,
+            )
+        }
+        if viewModel.hasDisplayTypes {
+            LibraryBrowsePillButton(
+                title: viewModel.typePillTitle,
+                systemImage: "square.grid.2x2",
+                isSelected: viewModel.activePanel == .type,
+                showsDisclosure: true,
+            ) {
+                viewModel.togglePanel(.type)
+            }
+        }
+
+        if viewModel.showsFilterPill {
+            LibraryBrowsePillButton(
+                title: viewModel.filterPillTitle,
+                systemImage: "line.3.horizontal.decrease.circle",
+                isSelected: viewModel.activePanel == .filters
+                    || (viewModel.isJellyfinBrowse
+                        ? viewModel.jellyfinActiveFilterCount > 0
+                        : !viewModel.selectedFilters.isEmpty),
+                showsDisclosure: true,
+            ) {
+                viewModel.togglePanel(.filters)
+            }
+        }
+
+        if viewModel.showsSortPill {
+            LibraryBrowsePillButton(
+                title: viewModel.sortPillTitle,
+                systemImage: "arrow.up.arrow.down.circle",
+                isSelected: viewModel.activePanel == .sort || viewModel.selectedSort != nil,
+                showsDisclosure: true,
+            ) {
+                viewModel.togglePanel(.sort)
+            }
+        }
     }
 
     @ViewBuilder

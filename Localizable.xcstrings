@@ -9489,19 +9489,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloaded only"
+            "value" : "Downloaded"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargés uniquement"
+            "value" : "Téléchargés"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅已下载"
+            "value" : "已下载"
           }
         }
       }
