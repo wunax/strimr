@@ -119,6 +119,27 @@ struct OfflineBanner: View {
     }
 }
 
+/// Compact connectivity indicator for navigation bars, where a full-width banner would cover the header.
+struct OfflineStatusPill: View {
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
+
+    var body: some View {
+        if let banner = offlineCoordinator.banner {
+            Label(
+                banner == .offline ? "offline.banner.offline" : "offline.banner.serverUnreachable",
+                systemImage: banner == .offline ? "wifi.slash" : "exclamationmark.icloud",
+            )
+            .labelStyle(.titleAndIcon)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.orange.opacity(0.9), in: Capsule(style: .continuous))
+            .fixedSize()
+        }
+    }
+}
+
 struct OfflineUnavailableView: View {
     var body: some View {
         ContentUnavailableView(

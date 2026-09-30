@@ -8,7 +8,6 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(MediaServices.self) var mediaServices
-    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -27,8 +26,6 @@ struct MainTabView: View {
                 legacyTabView
             }
         }
-        .offlineBanner()
-        .animation(.easeInOut, value: offlineCoordinator.banner)
         .environmentObject(coordinator)
         .task {
             try? await libraryStore.loadLibraries()

@@ -68,8 +68,25 @@ struct UserMenuToolbarButton: View {
 private struct UserMenuToolbarModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.toolbar {
+            OfflineStatusToolbarItem()
             ToolbarItem(placement: .topBarTrailing) {
                 UserMenuToolbarButton()
+            }
+        }
+    }
+}
+
+/// The pill has its own background; the Liquid Glass bubble around toolbar items would double it.
+private struct OfflineStatusToolbarItem: ToolbarContent {
+    var body: some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            ToolbarItem(placement: .topBarLeading) {
+                OfflineStatusPill()
+            }
+            .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .topBarLeading) {
+                OfflineStatusPill()
             }
         }
     }
