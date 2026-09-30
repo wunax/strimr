@@ -79,6 +79,7 @@ struct UserMenuView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .disabled(signOutFlow.isSigningOut)
         .navigationTitle("tabs.more")
         .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
             Button("common.actions.logOut", role: .destructive) {
@@ -89,6 +90,5 @@ struct UserMenuView: View {
             Text("more.logout.message")
         }
         .signOutDownloadsPrompt(signOutFlow)
-        .disabled(signOutFlow.isSigningOut)
     }
 }

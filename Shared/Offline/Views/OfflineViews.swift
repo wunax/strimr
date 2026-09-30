@@ -220,13 +220,10 @@ private struct SignOutDownloadsPromptModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.alert(
             "offline.signOut.title",
+            // Dismissal is handled by the buttons: cancelling here would clear the owner before `finish` runs.
             isPresented: Binding(
                 get: { flow.downloadsPrompt != nil },
-                set: { isPresented in
-                    if !isPresented, flow.downloadsPrompt != nil {
-                        flow.cancel()
-                    }
-                },
+                set: { _ in },
             ),
             presenting: flow.downloadsPrompt,
         ) { _ in
