@@ -2,6 +2,9 @@ import Foundation
 
 enum ErrorReporter {
     static func start() {
+        // Unit tests run hosted in the app; keep test-induced errors out of production Sentry.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+
         #if canImport(Sentry)
             let dsn: String?
             #if os(iOS)
