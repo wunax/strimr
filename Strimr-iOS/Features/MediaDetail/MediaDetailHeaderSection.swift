@@ -569,6 +569,11 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
+    /// The disabled prominent background is dark, so the dark brand foreground would hide the label.
+    private var isPlayDisabled: Bool {
+        viewModel.primaryActionRatingKey == nil || (isServerUnreachable && downloadedPlayback == nil)
+    }
+
     private var isServerUnreachable: Bool {
         offlineCoordinator.isUnreachable(mediaServices.identity)
     }
@@ -612,8 +617,8 @@ struct MediaDetailHeaderSection: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .tint(.brandSecondary)
-        .foregroundStyle(.brandSecondaryForeground)
-        .disabled(viewModel.primaryActionRatingKey == nil || (isServerUnreachable && downloadedPlayback == nil))
+        .foregroundStyle(isPlayDisabled ? Color.secondary : Color.brandSecondaryForeground)
+        .disabled(isPlayDisabled)
     }
 
     private var playFromStartButton: some View {

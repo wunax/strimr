@@ -291,19 +291,29 @@ final class MediaDetailViewModel {
         backdropSourcePath = path
         backdropGradient = []
 
-        do {
-            guard let resource = try await services.artwork.artwork(
-                path: path,
-                width: 300,
-                height: 169,
-            ) else { return }
-            let colors = try await ImageCornerColorSampler.colors(from: resource)
-            guard !Task.isCancelled, backdropSourcePath == path else { return }
-            backdropGradient = colors.count == 4 ? colors : []
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation, backdropSourcePath == path else { return }
-            backdropGradient = []
+        // Offline, the art may never have been cached while the poster was.
+        let candidates = [path, media.thumbPath].compactMap(\.self).reduce(into: [String]()) { paths, candidate in
+            if !paths.contains(candidate) {
+                paths.append(candidate)
+            }
         }
+        for candidate in candidates {
+            let colors = await sampledBackdropColors(path: candidate)
+            guard !Task.isCancelled, backdropSourcePath == path else { return }
+            if colors.count == 4 {
+                backdropGradient = colors
+                return
+            }
+        }
+        // Lets a later reload, e.g. once the server is reachable again, retry the same path.
+        backdropSourcePath = nil
+    }
+
+    private func sampledBackdropColors(path: String) async -> [Color] {
+        guard let resource = try? await services.artwork.artwork(path: path, width: 300, height: 169) else {
+            return []
+        }
+        return await (try? ImageCornerColorSampler.colors(from: resource)) ?? []
     }
 
     private func loadWatchlistStatus() async {
