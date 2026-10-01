@@ -447,6 +447,8 @@ struct PlayerView: View {
             playbackRate: playbackRate,
             quality: viewModel.selectedQuality,
             showsQualitySelection: !viewModel.isLocalPlayback,
+            versions: viewModel.versionOptions,
+            onSelectVersion: { selectVersion($0) },
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
             onSearchSubtitles: viewModel.canSearchSubtitles
@@ -695,6 +697,31 @@ struct PlayerView: View {
                 startPlayback(
                     url: url,
                     startPosition: position,
+                    resetTrackSelection: true,
+                    shouldResumeAfterLoad: !wasPaused,
+                    shouldPauseAfterLoad: wasPaused,
+                )
+                qualityNoticeMessage = viewModel.qualityFallbackMessage
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                qualityNoticeMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func selectVersion(_ versionID: String) {
+        guard versionID != viewModel.currentVersionID else { return }
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        sheetPresentation.item = nil
+        Task {
+            do {
+                let result = try await viewModel.changeVersion(to: versionID, from: position)
+                activePlaybackURL = nil
+                startPlayback(
+                    url: result.url,
+                    startPosition: result.position,
                     resetTrackSelection: true,
                     shouldResumeAfterLoad: !wasPaused,
                     shouldPauseAfterLoad: wasPaused,

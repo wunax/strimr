@@ -189,6 +189,12 @@ final nonisolated class OfflineDatabase: Sendable {
 
             try createMediaTables(db)
         }
+        migrator.registerMigration("v2") { db in
+            try db.alter(table: "download") { table in
+                table.add(column: "versionID", .text)
+                table.add(column: "versionLabel", .text)
+            }
+        }
         return migrator
     }
 

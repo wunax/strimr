@@ -48,6 +48,9 @@ struct DownloadedMediaMetadata: Codable, Hashable {
     var subtitleLanguage: String?
     var subtitleCodec: String?
     var subtitleIsForced: Bool
+    var versionID: String?
+    /// Only set when the item had several versions, so a mismatched episode stays visible in the list.
+    var versionLabel: String?
     var createdAt: Date
 
     init(
@@ -76,6 +79,8 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         effectiveQuality: TranscodeQualityPreset,
         audioTitle: String?,
         subtitleTitle: String?,
+        versionID: String? = nil,
+        versionLabel: String? = nil,
         createdAt: Date,
     ) {
         self.identity = identity
@@ -108,6 +113,8 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         subtitleLanguage = nil
         subtitleCodec = nil
         subtitleIsForced = false
+        self.versionID = versionID
+        self.versionLabel = versionLabel
         self.createdAt = createdAt
     }
 
@@ -145,6 +152,8 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         case subtitleLanguage
         case subtitleCodec
         case subtitleIsForced
+        case versionID
+        case versionLabel
         case createdAt
     }
 
@@ -202,6 +211,8 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         subtitleLanguage = try container.decodeIfPresent(String.self, forKey: .subtitleLanguage)
         subtitleCodec = try container.decodeIfPresent(String.self, forKey: .subtitleCodec)
         subtitleIsForced = try container.decodeIfPresent(Bool.self, forKey: .subtitleIsForced) ?? false
+        versionID = try container.decodeIfPresent(String.self, forKey: .versionID)
+        versionLabel = try container.decodeIfPresent(String.self, forKey: .versionLabel)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 
@@ -237,6 +248,8 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         try container.encodeIfPresent(subtitleLanguage, forKey: .subtitleLanguage)
         try container.encodeIfPresent(subtitleCodec, forKey: .subtitleCodec)
         try container.encode(subtitleIsForced, forKey: .subtitleIsForced)
+        try container.encodeIfPresent(versionID, forKey: .versionID)
+        try container.encodeIfPresent(versionLabel, forKey: .versionLabel)
         try container.encode(createdAt, forKey: .createdAt)
     }
 

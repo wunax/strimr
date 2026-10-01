@@ -28,6 +28,7 @@ struct StrimrApp: App {
             libraryStore: libraryStore,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
+            versionSelectionStore: MediaVersionSelectionStore(),
         )
 
         _plexAPIContext = State(initialValue: context)

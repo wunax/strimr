@@ -442,12 +442,20 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
     }
 
-    func trackSelection(itemID: String) async throws -> MediaTrackSelection {
+    func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
             params: .init(checkFiles: true),
         )
-        let part = response.mediaContainer.metadata?.first?.media?.first?.parts.first
+        let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
+        let versions = plexMedia.map(mapFileInfoVersion)
+        let defaultVersion = MediaVersionResolver.resolve(.automatic, in: versions, default: Self.defaultVersion)
+        let selected = Self.selection(
+            in: plexMedia,
+            versions: versions,
+            request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
+        )
+        let part = selected?.part
         let streams = part?.stream ?? []
         let audioTracks = streams.filter { $0.streamType == .audio }.compactMap(MediaTrackMetadata.init)
         let subtitleTracks = streams.filter { $0.streamType == .subtitle }.compactMap(MediaTrackMetadata.init)
@@ -458,6 +466,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             subtitleTracks: subtitleTracks,
             selectedAudioTrackID: audioTracks.first(where: \.isDefault)?.id ?? audioTracks.first?.id,
             selectedSubtitleTrackID: subtitleTracks.first(where: \.isDefault)?.id,
+            versions: versions,
+            versionID: selected.map { String($0.media.id) },
+            defaultVersionID: defaultVersion?.id,
         )
     }
 
@@ -475,13 +486,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return MediaFileInfo(versions: plexMedia.map(mapFileInfoVersion))
     }
 
-    func selectAudioTrack(id: Int, itemID: String) async throws {
-        let partID = try await mediaPartID(itemID: itemID)
+    func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws {
+        let partID = try await mediaPartID(itemID: itemID, versionID: versionID)
         try await PlaybackRepository(context: context).setPreferredStreams(partId: partID, audioStreamId: id)
     }
 
-    func selectSubtitleTrack(id: Int?, itemID: String) async throws {
-        let partID = try await mediaPartID(itemID: itemID)
+    func selectSubtitleTrack(id: Int?, itemID: String, versionID: String?) async throws {
+        let partID = try await mediaPartID(itemID: itemID, versionID: versionID)
         try await PlaybackRepository(context: context).setPreferredSubtitleStream(
             partId: partID,
             subtitleStreamId: id,
@@ -569,17 +580,21 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         resume: Bool,
         quality: TranscodeQualityPreset,
         trackPreference: MediaTrackPreference?,
+        version: MediaVersionRequest,
     ) async throws -> PlaybackPlan {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: media.id,
             params: .init(checkFiles: true, includeChapters: true, includeMarkers: true),
         )
-        guard let item = response.mediaContainer.metadata?.first,
-              let selectedMedia = item.media?.first,
-              let part = selectedMedia.parts.first,
-              let directURL = try MediaRepository(context: context).mediaURL(path: part.key)
+        guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidURL }
+        let plexMedia = item.media ?? []
+        let versions = plexMedia.map(mapFileInfoVersion)
+        guard let selected = Self.selection(in: plexMedia, versions: versions, request: version),
+              let directURL = try MediaRepository(context: context).mediaURL(path: selected.part.key)
         else { throw PlexAPIError.invalidURL }
-        let streams = item.media?.first?.parts.first?.stream ?? []
+        let selectedMedia = selected.media
+        let part = selected.part
+        let streams = part.stream ?? []
         let serverAudio = streams.first {
             $0.streamType == .audio && $0.selected == true
         }
@@ -682,8 +697,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 let candidateTranscodeSessionID = UUID().uuidString
                 if let transcodeURL = try await PlaybackRepository(context: context).transcodeURL(
                     ratingKey: item.ratingKey,
-                    mediaIndex: 0,
-                    partIndex: 0,
+                    mediaIndex: selected.mediaIndex,
+                    partIndex: selected.partIndex,
                     quality: quality,
                     playbackSessionIdentifier: playbackSessionID,
                     transcodeSessionIdentifier: candidateTranscodeSessionID,
@@ -723,7 +738,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             requestedQuality: quality,
             effectiveQuality: effectiveQuality,
             qualityFallbackMessage: qualityFallbackMessage,
-            mediaSourceID: nil,
+            mediaSourceID: String(selectedMedia.id),
             playSessionID: playbackSessionID,
             transcodeSessionID: transcodeSessionID,
             initialPosition: initialPosition,
@@ -748,6 +763,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             },
             scrubThumbnailSource: PlexBIFSource(partID: part.id, context: context)
                 .map(ScrubThumbnailSource.plex),
+            versions: versions,
+            versionID: String(selectedMedia.id),
         )
     }
 
@@ -802,6 +819,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             resume: false,
             quality: .original,
             trackPreference: nil,
+            version: services?.versionRequest(for: media) ?? .automatic,
         ).externalSubtitles
     }
 
@@ -809,17 +827,22 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         itemID: String,
         quality: TranscodeQualityPreset,
         tracks _: MediaTrackPreference,
+        version: MediaVersionRequest,
     ) async throws -> MediaDownloadPreparation {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
             params: .init(checkFiles: true),
         )
-        guard let item = response.mediaContainer.metadata?.first,
-              let selectedMedia = item.media?.first,
-              let path = selectedMedia.parts.first?.key,
-              let url = try MediaRepository(context: context).mediaURL(path: path)
+        guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidURL }
+        let plexMedia = item.media ?? []
+        let versions = plexMedia.map(mapFileInfoVersion)
+        guard let selected = Self.selection(in: plexMedia, versions: versions, request: version),
+              let url = try MediaRepository(context: context).mediaURL(path: selected.part.key)
         else { throw PlexAPIError.invalidURL }
+        let selectedMedia = selected.media
         let media = MediaItem(plexItem: item, server: server)
+        let selectedVersion = versions[selected.mediaIndex]
+        let versionLabel = versions.count > 1 ? selectedVersion.displayLabel(among: versions) : nil
         guard !quality.isOriginal, !selectedMedia.satisfies(quality: quality) else {
             return MediaDownloadPreparation(
                 media: media,
@@ -830,6 +853,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 sidecars: [],
                 audioTitle: nil,
                 subtitleTitle: nil,
+                versionID: selectedVersion.id,
+                versionLabel: versionLabel,
             )
         }
         let repository = try DownloadQueueRepository(context: context)
@@ -844,6 +869,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             ratingKey: item.ratingKey,
             queueID: queueID,
             quality: quality,
+            mediaIndex: selected.mediaIndex,
+            partIndex: selected.partIndex,
         )
         return MediaDownloadPreparation(
             media: media,
@@ -854,6 +881,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             sidecars: [],
             audioTitle: nil,
             subtitleTitle: nil,
+            versionID: selectedVersion.id,
+            versionLabel: versionLabel,
         )
     }
 
@@ -884,6 +913,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func downloadSidecars(
         itemID _: String,
         tracks _: MediaTrackPreference,
+        versionID _: String?,
     ) async throws -> [MediaDownloadSidecar] {
         []
     }
@@ -1060,15 +1090,50 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return try await mediaItem(id: seriesID)
     }
 
-    private func mediaPartID(itemID: String) async throws -> Int {
+    private func mediaPartID(itemID: String, versionID: String?) async throws -> Int {
         let response = try await MetadataRepository(context: context).getMetadata(
             ratingKey: itemID,
             params: .init(checkFiles: true),
         )
-        guard let partID = response.mediaContainer.metadata?.first?.media?.first?.parts.first?.id else {
+        let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
+        guard let selected = Self.selection(
+            in: plexMedia,
+            versions: plexMedia.map(mapFileInfoVersion),
+            request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
+        ) else {
             throw PlexAPIError.invalidResponse
         }
-        return partID
+        return selected.part.id
+    }
+
+    private struct VersionSelection {
+        let mediaIndex: Int
+        let media: PlexMedia
+        let partIndex: Int
+        let part: PlexPart
+    }
+
+    private static func defaultVersion(_ versions: [MediaFileVersion]) -> MediaFileVersion? {
+        versions.first(where: \.isAvailable)
+    }
+
+    /// Positions in `Media` and `Part` are what the transcoder expects as `mediaIndex` and `partIndex`.
+    private static func selection(
+        in plexMedia: [PlexMedia],
+        versions: [MediaFileVersion],
+        request: MediaVersionRequest,
+    ) -> VersionSelection? {
+        guard let version = MediaVersionResolver.resolve(request, in: versions, default: defaultVersion),
+              let mediaIndex = versions.firstIndex(of: version)
+        else {
+            // Every version is unavailable: keep the historical behavior and let playback surface the error.
+            guard let media = plexMedia.first, let part = media.parts.first else { return nil }
+            return VersionSelection(mediaIndex: 0, media: media, partIndex: 0, part: part)
+        }
+        let media = plexMedia[mediaIndex]
+        let partIndex = media.parts.firstIndex(where: \.isAvailable) ?? 0
+        guard media.parts.indices.contains(partIndex) else { return nil }
+        return VersionSelection(mediaIndex: mediaIndex, media: media, partIndex: partIndex, part: media.parts[partIndex])
     }
 
     private func mapFileInfoVersion(_ media: PlexMedia) -> MediaFileVersion {
@@ -1090,6 +1155,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             audioChannels: media.audioChannels,
             parts: media.parts.map(mapFileInfoPart),
             attachments: [],
+            isAvailable: media.deletedAt == nil && media.parts.contains(where: \.isAvailable),
+            isOptimized: media.proxyType == 42,
+            optimizationTarget: media.target,
         )
     }
 
@@ -1227,6 +1295,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 }
 
+private extension PlexPart {
+    /// Missing `exists`/`accessible` fields count as available.
+    var isAvailable: Bool {
+        exists != false && accessible != false
+    }
+}
+
 private extension PlexMedia {
     func satisfies(quality: TranscodeQualityPreset) -> Bool {
         guard let bitrate,
@@ -1249,6 +1324,7 @@ enum PlexMediaServicesFactory {
         sessionManager: SessionManager?,
         favoritesStore: FavoritesStore? = nil,
         trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
+        versionSelectionStore: MediaVersionSelectionStore? = nil,
     ) -> MediaServices? {
         guard let snapshot = try? context.serverAccessSnapshot() else { return nil }
         let identity = ServerIdentity(provider: .plex, id: snapshot.serverIdentifier)
@@ -1302,6 +1378,7 @@ enum PlexMediaServicesFactory {
             authorization: adapter,
             trackSelectionCoordinator: trackSelectionCoordinator ?? sessionManager?.trackSelectionCoordinator,
             trackSelectionAccountIdentifier: profileID,
+            versionSelectionStore: versionSelectionStore ?? sessionManager?.versionSelectionStore,
         )
         adapter.services = services
         #if !os(tvOS)

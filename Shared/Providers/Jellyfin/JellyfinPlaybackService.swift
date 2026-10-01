@@ -54,6 +54,7 @@ struct JellyfinPlaybackService {
         trackSelection: JellyfinTrackSelectionOverride? = nil,
         trackPreference: MediaTrackPreference? = nil,
         quality: TranscodeQualityPreset = .original,
+        mediaSourceID: String? = nil,
     ) async throws -> JellyfinPlaybackPlan {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
@@ -66,10 +67,11 @@ struct JellyfinPlaybackService {
             resume: resume,
             trackSelection: appliedTrackSelection,
             quality: quality,
+            mediaSourceID: mediaSourceID,
         )
 
         guard info.errorCode == nil,
-              let source = preferredSource(in: info, quality: quality),
+              let source = selectedSource(in: info, id: mediaSourceID, quality: quality),
               let playSessionID = info.playSessionID,
               !playSessionID.isEmpty
         else {
@@ -91,11 +93,12 @@ struct JellyfinPlaybackService {
                 resume: resume,
                 trackSelection: resolvedSelection,
                 quality: quality,
+                mediaSourceID: mediaSourceID,
             )
             appliedTrackSelection = resolvedSelection
         }
 
-        guard let resolvedSource = preferredSource(in: info, quality: quality) else {
+        guard let resolvedSource = selectedSource(in: info, id: mediaSourceID, quality: quality) else {
             throw JellyfinAPIError.noPlayableSource
         }
         guard let resolvedPlaySessionID = info.playSessionID, !resolvedPlaySessionID.isEmpty else {
@@ -176,18 +179,24 @@ struct JellyfinPlaybackService {
         resume: Bool,
         trackSelection: JellyfinTrackSelectionOverride?,
         quality: TranscodeQualityPreset,
+        mediaSourceID: String?,
     ) async throws -> JellyfinPlaybackInfo {
         let body = JellyfinPlaybackInfoRequest(
             userID: userID,
+            mediaSourceID: mediaSourceID,
             startTimeTicks: resume ? (item.userData?.playbackPositionTicks ?? 0) : 0,
             audioStreamIndex: trackSelection?.audioStreamIndex,
             subtitleStreamIndex: trackSelection?.subtitlePreference.requestIndex,
             quality: quality,
             deviceProfile: .strimr(quality: quality),
         )
+        var query = [URLQueryItem(name: "UserId", value: userID)]
+        if let mediaSourceID {
+            query.append(URLQueryItem(name: "MediaSourceId", value: mediaSourceID))
+        }
         return try await context.post(
             path: ["Items", item.id, "PlaybackInfo"],
-            query: [URLQueryItem(name: "UserId", value: userID)],
+            query: query,
             body: body,
         )
     }
@@ -292,6 +301,20 @@ struct JellyfinPlaybackService {
         return sourceBitrate <= maximumBitrate
             && width <= maximumWidth
             && height <= maximumHeight
+    }
+
+    /// The response may still list every source, so the requested one is found by id, ignoring case.
+    private func selectedSource(
+        in info: JellyfinPlaybackInfo,
+        id: String?,
+        quality: TranscodeQualityPreset,
+    ) -> JellyfinMediaSource? {
+        if let id,
+           let match = info.mediaSources?.first(where: { $0.id.caseInsensitiveCompare(id) == .orderedSame })
+        {
+            return match
+        }
+        return preferredSource(in: info, quality: quality)
     }
 
     private func preferredSource(
@@ -429,6 +452,7 @@ struct JellyfinPlaybackService {
 
 private struct JellyfinPlaybackInfoRequest: Encodable {
     let userID: String
+    let mediaSourceID: String?
     let startTimeTicks: Int64
     let audioStreamIndex: Int?
     let subtitleStreamIndex: Int?
@@ -442,6 +466,7 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
 
     init(
         userID: String,
+        mediaSourceID: String?,
         startTimeTicks: Int64,
         audioStreamIndex: Int?,
         subtitleStreamIndex: Int?,
@@ -449,6 +474,7 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
         deviceProfile: JellyfinDeviceProfile,
     ) {
         self.userID = userID
+        self.mediaSourceID = mediaSourceID
         self.startTimeTicks = startTimeTicks
         self.audioStreamIndex = audioStreamIndex
         self.subtitleStreamIndex = subtitleStreamIndex
@@ -459,6 +485,7 @@ private struct JellyfinPlaybackInfoRequest: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case userID = "UserId"
+        case mediaSourceID = "MediaSourceId"
         case startTimeTicks = "StartTimeTicks"
         case audioStreamIndex = "AudioStreamIndex"
         case subtitleStreamIndex = "SubtitleStreamIndex"

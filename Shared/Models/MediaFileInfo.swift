@@ -33,6 +33,11 @@ struct MediaFileVersion: Hashable, Sendable {
     let audioChannels: Int?
     let parts: [MediaFilePart]
     let attachments: [MediaFileAttachment]
+    var isAvailable = true
+    /// Plex: a server-generated optimized copy (`proxyType == 42`).
+    var isOptimized = false
+    var optimizationTarget: String?
+    var supportsDirectPlay: Bool?
 
     var resolutionText: String? {
         if let videoResolution, !videoResolution.isEmpty {

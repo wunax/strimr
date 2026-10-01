@@ -47,6 +47,11 @@ final class MediaDetailViewModel {
     var selectedSubtitleStreamID: Int?
     var isLoadingTracks = false
     var isUpdatingTracks = false
+    private(set) var versions: [MediaFileVersion] = []
+    private(set) var selectedVersionID: String?
+    /// The version "Automatic" resolves to, ignoring any saved preference.
+    private(set) var automaticVersionID: String?
+    private(set) var hasVersionPreference = false
     var trackSelectionErrorMessage: String?
     var fileInfo: MediaFileInfo?
     var isLoadingFileInfo = false
@@ -572,7 +577,7 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            try await services.detail.selectAudioTrack(id: id, itemID: ratingKey)
+            try await services.detail.selectAudioTrack(id: id, itemID: ratingKey, versionID: selectedVersionID)
             if trackRatingKey == ratingKey,
                let track = audioTracks.first(where: { $0.id == id }),
                let scope = rememberedTrackSelectionScope,
@@ -613,7 +618,11 @@ final class MediaDetailViewModel {
         defer { isUpdatingTracks = false }
 
         do {
-            try await services.detail.selectSubtitleTrack(id: id, itemID: ratingKey)
+            try await services.detail.selectSubtitleTrack(
+                id: id,
+                itemID: ratingKey,
+                versionID: selectedVersionID,
+            )
             let selectedTrack = id.flatMap { selectedID in
                 subtitleTracks.first(where: { $0.id == selectedID })
             }
@@ -648,6 +657,61 @@ final class MediaDetailViewModel {
     func loadTrackSelection(for ratingKey: String) async {
         guard trackRatingKey != ratingKey else { return }
         await loadTrackSelection(for: ratingKey, preservingExistingContent: false)
+    }
+
+    var showsVersionSelection: Bool {
+        versions.count > 1
+    }
+
+    var versionLabels: [String] {
+        MediaFileVersion.displayLabels(for: versions)
+    }
+
+    var selectedVersion: MediaFileVersion? {
+        version(withID: selectedVersionID)
+    }
+
+    var automaticVersion: MediaFileVersion? {
+        version(withID: automaticVersionID)
+    }
+
+    var selectedVersionShortLabel: String {
+        selectedVersion?.shortLabel ?? String(localized: "media.versions.title")
+    }
+
+    /// Version count for the badge, only when the detail page shows a single playable item.
+    var versionCountBadge: Int? {
+        guard [.movie, .episode].contains(media.type),
+              trackRatingKey == media.id,
+              versions.count > 1
+        else { return nil }
+        return versions.count
+    }
+
+    func activeVersionID(for target: MediaItem?) -> String? {
+        trackRatingKey == (target ?? media.mediaItem).id ? selectedVersionID : nil
+    }
+
+    /// Saves the version for the movie or series, or forgets it when `id` is nil ("Automatic").
+    func selectVersion(id: String?) async {
+        guard let ratingKey = trackRatingKey else { return }
+        let targetID = id ?? automaticVersionID
+        if let scope = rememberedTrackSelectionScope {
+            if let id {
+                guard let version = version(withID: id), version.isAvailable else { return }
+                services.rememberVersion(version, for: scope)
+            } else {
+                services.forgetVersion(for: scope)
+            }
+        }
+        hasVersionPreference = id != nil
+        guard targetID != selectedVersionID else { return }
+        await loadTrackSelection(for: ratingKey, versionID: targetID)
+    }
+
+    private func version(withID id: String?) -> MediaFileVersion? {
+        guard let id else { return nil }
+        return versions.first { $0.matchesVersionID(id) }
     }
 
     func loadFileInfo(forceReload: Bool = false) async {
@@ -980,8 +1044,9 @@ final class MediaDetailViewModel {
     private func loadTrackSelection(
         for ratingKey: String,
         preservingExistingContent: Bool,
+        versionID requestedVersionID: String? = nil,
     ) async {
-        if preservingExistingContent, trackRatingKey == ratingKey, hasTrackSelection {
+        if preservingExistingContent, trackRatingKey == ratingKey, hasTrackSelection, requestedVersionID == nil {
             return
         }
 
@@ -995,10 +1060,13 @@ final class MediaDetailViewModel {
         }
 
         do {
-            let selection = try await services.detail.trackSelection(itemID: ratingKey)
+            let selection = try await versionedTrackSelection(itemID: ratingKey, versionID: requestedVersionID)
             guard requestedTrackRatingKey == ratingKey else { return }
 
             trackRatingKey = ratingKey
+            versions = selection.versions
+            selectedVersionID = selection.versionID
+            automaticVersionID = selection.defaultVersionID
             trackPartFile = selection.filePath
             audioTracks = selection.audioTracks
             subtitleTracks = selection.subtitleTracks
@@ -1022,13 +1090,37 @@ final class MediaDetailViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             guard requestedTrackRatingKey == ratingKey else { return }
-            if !preservingExistingContent || trackRatingKey != ratingKey {
+            if requestedVersionID != nil, trackRatingKey == ratingKey {
+                trackSelectionErrorMessage = error.localizedDescription
+            } else if !preservingExistingContent || trackRatingKey != ratingKey {
                 clearTrackSelection()
                 // Track selection needs the server; offline the section simply disappears.
                 guard !(error is any ExpectedConnectivityError) else { return }
                 trackSelectionErrorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func loadTrackSelection(for ratingKey: String, versionID: String?) async {
+        isUpdatingTracks = true
+        defer { isUpdatingTracks = false }
+        await loadTrackSelection(for: ratingKey, preservingExistingContent: true, versionID: versionID)
+    }
+
+    /// Without an explicit version, applies the saved preference the same way playback will.
+    private func versionedTrackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
+        if let versionID {
+            return try await services.detail.trackSelection(itemID: itemID, versionID: versionID)
+        }
+        let selection = try await services.detail.trackSelection(itemID: itemID, versionID: nil)
+        let preference = rememberedTrackSelectionScope.flatMap(services.versionPreference(for:))
+        hasVersionPreference = preference != nil
+        guard let preference, selection.versions.count > 1 else { return selection }
+        let resolved = MediaVersionResolver.resolve(.preferred(preference), in: selection.versions) { versions in
+            versions.first { version in selection.defaultVersionID.map(version.matchesVersionID) ?? false }
+        }
+        guard let resolvedID = resolved?.id, resolvedID != selection.versionID else { return selection }
+        return try await services.detail.trackSelection(itemID: itemID, versionID: resolvedID)
     }
 
     private func synchronizeServerTrackMemory(for kind: PlaybackTrackKind) async {
@@ -1051,6 +1143,9 @@ final class MediaDetailViewModel {
         subtitleTracks = []
         selectedAudioStreamID = nil
         selectedSubtitleStreamID = nil
+        versions = []
+        selectedVersionID = nil
+        automaticVersionID = nil
     }
 
     private func selectedTrackTitle(in tracks: [MediaTrackMetadata], id: Int?) -> String? {

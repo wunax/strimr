@@ -74,25 +74,41 @@ struct MediaFileInfoView: View {
     }
 
     private var fileInfoScrollView: some View {
-        ScrollView(.vertical) {
-            Group {
-                if viewModel.isLoadingFileInfo {
-                    ProgressView("media.fileInfo.loading")
-                        .frame(maxWidth: .infinity, minHeight: 180)
-                } else if let fileInfo = viewModel.fileInfo, !fileInfo.versions.isEmpty {
-                    fileInfoContent(fileInfo)
-                } else {
-                    emptyState
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                Group {
+                    if viewModel.isLoadingFileInfo {
+                        ProgressView("media.fileInfo.loading")
+                            .frame(maxWidth: .infinity, minHeight: 180)
+                    } else if let fileInfo = viewModel.fileInfo, !fileInfo.versions.isEmpty {
+                        fileInfoContent(fileInfo)
+                            .onAppear { scrollToActiveVersion(in: fileInfo, using: proxy) }
+                    } else {
+                        emptyState
+                    }
                 }
+                .frame(maxWidth: MediaFileInfoLayout.maximumContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, MediaFileInfoLayout.outerHorizontalPadding)
+                .padding(.vertical, MediaFileInfoLayout.outerVerticalPadding)
             }
-            .frame(maxWidth: MediaFileInfoLayout.maximumContentWidth, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, MediaFileInfoLayout.outerHorizontalPadding)
-            .padding(.vertical, MediaFileInfoLayout.outerVerticalPadding)
         }
         #if os(tvOS)
         .focusSection()
         #endif
+    }
+
+    private var activeVersionID: String? {
+        guard viewModel.showsVersionSelection else { return nil }
+        return viewModel.activeVersionID(for: targetMedia)
+    }
+
+    private func scrollToActiveVersion(in fileInfo: MediaFileInfo, using proxy: ScrollViewProxy) {
+        guard let activeVersionID,
+              let index = fileInfo.versions.firstIndex(where: { $0.matchesVersionID(activeVersionID) }),
+              index > 0
+        else { return }
+        proxy.scrollTo(index, anchor: .top)
     }
 
     private func fileInfoContent(_ fileInfo: MediaFileInfo) -> some View {
@@ -117,7 +133,12 @@ struct MediaFileInfoView: View {
             }
 
             ForEach(Array(fileInfo.versions.enumerated()), id: \.offset) { index, version in
-                MediaFileInfoVersionView(index: index, version: version)
+                MediaFileInfoVersionView(
+                    index: index,
+                    version: version,
+                    isActive: activeVersionID.map(version.matchesVersionID) ?? false,
+                )
+                .id(index)
             }
         }
     }
@@ -152,12 +173,25 @@ struct MediaFileInfoView: View {
 private struct MediaFileInfoVersionView: View {
     let index: Int
     let version: MediaFileVersion
+    var isActive = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.versionSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(verbatim: versionTitle)
                     .font(.title3.weight(.semibold))
+
+                if isActive {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.tint)
+                        .accessibilityHidden(true)
+                }
+
+                if !version.isAvailable {
+                    Text("media.versions.unavailable")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 if let title = version.title, !title.isEmpty {
                     Text(title)

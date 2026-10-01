@@ -29,6 +29,7 @@ struct StrimrApp: App {
             libraryStore: store,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
+            versionSelectionStore: MediaVersionSelectionStore(),
         )
         let downloadManager = DownloadManager(settingsManager: settingsManager)
         _plexApiContext = State(initialValue: context)

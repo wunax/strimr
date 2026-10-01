@@ -74,12 +74,13 @@ struct MediaDetailView: View {
                 viewModel: viewModel,
                 services: mediaServices,
                 defaultQuality: settingsManager.downloads.qualityPreset,
-                onSubmitSelection: { episodeIDs, quality, tracks in
+                onSubmitSelection: { episodeIDs, quality, tracks, version in
                     for episodeID in episodeIDs {
                         await downloadManager.enqueueItem(
                             itemID: episodeID,
                             quality: quality,
                             tracks: tracks,
+                            version: version,
                             services: mediaServices,
                         )
                     }
@@ -91,15 +92,17 @@ struct MediaDetailView: View {
         .sheet(isPresented: $isShowingDownloadOptions) {
             DownloadConfirmationSheet(
                 itemID: viewModel.media.id,
+                kind: viewModel.media.mediaKind,
                 services: mediaServices,
                 defaultQuality: settingsManager.downloads.qualityPreset,
-            ) { quality, tracks in
+            ) { quality, tracks, version in
                 if viewModel.media.type == .season {
                     await downloadManager.enqueueItems(
                         itemID: viewModel.media.id,
                         kind: .season,
                         quality: quality,
                         tracks: tracks,
+                        version: version,
                         services: mediaServices,
                     )
                 } else {
@@ -107,6 +110,7 @@ struct MediaDetailView: View {
                         itemID: viewModel.media.id,
                         quality: quality,
                         tracks: tracks,
+                        version: version,
                         services: mediaServices,
                     )
                 }
@@ -280,6 +284,9 @@ struct MediaDetailView: View {
             if let contentRating = viewModel.media.contentRating {
                 Text(contentRating)
             }
+            if let versionCount = viewModel.versionCountBadge {
+                Label("media.versions.count \(versionCount)", systemImage: "square.stack")
+            }
             if viewModel.media.ratings.isEmpty, let rating = viewModel.ratingText {
                 Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)
             }
@@ -421,7 +428,9 @@ struct MediaDetailView: View {
                     .disabled(isServerUnreachable)
                     .help(isServerUnreachable ? Text("offline.unavailable") : Text("common.actions.more"))
 
-                if viewModel.hasTrackSelection || (viewModel.canSearchSubtitles && !isServerUnreachable) {
+                if viewModel.hasTrackSelection || viewModel.showsVersionSelection
+                    || (viewModel.canSearchSubtitles && !isServerUnreachable)
+                {
                     MediaDetailTrackButtons(
                         viewModel: viewModel,
                         onSearchSubtitles: { isShowingSubtitleSearch = true },

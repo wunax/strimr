@@ -7,7 +7,7 @@ struct ShowDownloadSelectionSheet: View {
     @Bindable var viewModel: MediaDetailViewModel
     let services: MediaServices
     let defaultQuality: TranscodeQualityPreset
-    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaTrackPreference) async -> Void
+    let onSubmitSelection: ([String], TranscodeQualityPreset, MediaTrackPreference, MediaVersionRequest) async -> Void
     let statusForIdentity: (MediaIdentity) -> DownloadStatus?
 
     @State private var selectedSeasonID: String?
@@ -137,13 +137,15 @@ struct ShowDownloadSelectionSheet: View {
     }
 
     private func configureOptionsModel() {
-        guard let episodeID = viewModel.episodes.first?.id else { return }
+        let episodes = viewModel.episodes
+        guard let episodeID = (episodes.first(where: { !$0.isFullyWatched }) ?? episodes.first)?.id else { return }
         optionsModel = DownloadOptionsViewModel(
             itemID: episodeID,
+            kind: .episode,
             services: services,
             defaultQuality: optionsModel?.quality ?? defaultQuality,
         )
-        Task { await optionsModel?.loadTracksIfNeeded() }
+        Task { await optionsModel?.loadIfNeeded() }
     }
 
     private func submitSelection() {
@@ -155,6 +157,7 @@ struct ShowDownloadSelectionSheet: View {
                 episodeIDs,
                 optionsModel?.quality ?? defaultQuality,
                 (optionsModel?.preference ?? .serverDefault).matchingAcrossItems,
+                optionsModel?.versionRequest ?? .automatic,
             )
             isSubmitting = false
             dismiss()

@@ -34,6 +34,10 @@ struct MediaTrackSelection {
     let subtitleTracks: [MediaTrackMetadata]
     let selectedAudioTrackID: Int?
     let selectedSubtitleTrackID: Int?
+    let versions: [MediaFileVersion]
+    let versionID: String?
+    /// The version "Automatic" would pick, shown under that option.
+    let defaultVersionID: String?
 }
 
 struct MediaDownloadPreparation {
@@ -45,6 +49,8 @@ struct MediaDownloadPreparation {
     let sidecars: [MediaDownloadSidecar]
     let audioTitle: String?
     let subtitleTitle: String?
+    let versionID: String?
+    let versionLabel: String?
 }
 
 struct MediaTrackPreference: Codable, Hashable, Sendable {
@@ -227,9 +233,10 @@ protocol MediaDetailService: AnyObject {
     func setPlayed(_ played: Bool, itemID: String) async throws
     func isWatchlisted(_ media: MediaItem) async throws -> Bool
     func setWatchlisted(_ watchlisted: Bool, media: MediaItem) async throws
-    func trackSelection(itemID: String) async throws -> MediaTrackSelection
-    func selectAudioTrack(id: Int, itemID: String) async throws
-    func selectSubtitleTrack(id: Int?, itemID: String) async throws
+    /// A nil `versionID` returns the tracks of the provider's default version.
+    func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection
+    func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws
+    func selectSubtitleTrack(id: Int?, itemID: String, versionID: String?) async throws
     func collectionItems(id: String) async throws -> [MediaDisplayItem]
     func playlistItems(id: String) async throws -> [MediaDisplayItem]
     func person(id: String) async throws -> Person
@@ -254,6 +261,7 @@ protocol MediaPlaybackService: AnyObject {
         resume: Bool,
         quality: TranscodeQualityPreset,
         trackPreference: MediaTrackPreference?,
+        version: MediaVersionRequest,
     ) async throws -> PlaybackPlan
     func release(plan: PlaybackPlan) async
     func reportStarted(
@@ -338,6 +346,7 @@ protocol MediaDownloadService: AnyObject {
         itemID: String,
         quality: TranscodeQualityPreset,
         tracks: MediaTrackPreference,
+        version: MediaVersionRequest,
     ) async throws -> MediaDownloadPreparation
     func refreshDownloadPreparation(
         _ reference: MediaDownloadRemoteReference,
@@ -345,6 +354,7 @@ protocol MediaDownloadService: AnyObject {
     func downloadSidecars(
         itemID: String,
         tracks: MediaTrackPreference,
+        versionID: String?,
     ) async throws -> [MediaDownloadSidecar]
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]

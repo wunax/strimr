@@ -596,6 +596,9 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
+                    if viewModel.showsVersionSelection {
+                        versionMenu
+                    }
                     if !viewModel.isLocalPlayback, !viewModel.isLivePlayback {
                         qualityMenu
                     }
@@ -836,36 +839,36 @@ struct PlayerView: View {
         }
     }
 
-    private func selectQuality(_ quality: TranscodeQualityPreset, force: Bool = false) {
-        guard force || quality != viewModel.selectedQuality else { return }
+    private var versionMenu: some View {
+        Menu {
+            ForEach(viewModel.versionOptions) { version in
+                Button {
+                    selectVersion(version.id)
+                } label: {
+                    Label {
+                        Text(verbatim: version.title)
+                        Text(verbatim: version.subtitle)
+                    } icon: {
+                        if version.isSelected {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                .disabled(!version.isAvailable)
+            }
+        } label: {
+            Label("player.settings.version", systemImage: "square.stack")
+        }
+    }
+
+    private func selectVersion(_ versionID: String) {
+        guard versionID != viewModel.currentVersionID else { return }
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
         Task {
             do {
-                let url = try await viewModel.changeQuality(to: quality, force: force)
-                loadedURL = url
-                shouldPauseAfterMediaLoad = wasPaused
-                shouldResumeAfterMediaLoad = !wasPaused
-                playerController.load(
-                    url: url,
-                    httpHeaders: viewModel.playbackHTTPHeaders,
-                    startPosition: position,
-                    preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
-                    losslessAudio: settingsManager.playback.losslessAudio,
-                    styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-                    mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
-                    providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
-                    externalSubtitles: viewModel.externalSubtitleTracks(),
-                    scrubThumbnailSource: viewModel.scrubThumbnailSource,
-                    showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
-                    generatesMissingScrubThumbnailPreviews:
-                    settingsManager.playback.generateMissingScrubThumbnailPreviews,
-                    isLive: viewModel.isLivePlayback,
-                    nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-                    dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
-                    autoplay: !wasPaused,
-                )
-                playerController.setPlaybackRate(playbackRate)
+                let result = try await viewModel.changeVersion(to: versionID, from: position)
+                reloadPlayback(url: result.url, startPosition: result.position, wasPaused: wasPaused)
                 qualityNoticeMessage = viewModel.qualityFallbackMessage
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
@@ -873,6 +876,49 @@ struct PlayerView: View {
                 qualityNoticeMessage = error.localizedDescription
             }
         }
+    }
+
+    private func selectQuality(_ quality: TranscodeQualityPreset, force: Bool = false) {
+        guard force || quality != viewModel.selectedQuality else { return }
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        Task {
+            do {
+                let url = try await viewModel.changeQuality(to: quality, force: force)
+                reloadPlayback(url: url, startPosition: position, wasPaused: wasPaused)
+                qualityNoticeMessage = viewModel.qualityFallbackMessage
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                qualityNoticeMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func reloadPlayback(url: URL, startPosition position: TimeInterval, wasPaused: Bool) {
+        loadedURL = url
+        shouldPauseAfterMediaLoad = wasPaused
+        shouldResumeAfterMediaLoad = !wasPaused
+        playerController.load(
+            url: url,
+            httpHeaders: viewModel.playbackHTTPHeaders,
+            startPosition: position,
+            preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
+            losslessAudio: settingsManager.playback.losslessAudio,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+            mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
+            providerStreamIDsByFFIndex: viewModel.providerStreamIDsByFFIndex(),
+            externalSubtitles: viewModel.externalSubtitleTracks(),
+            scrubThumbnailSource: viewModel.scrubThumbnailSource,
+            showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
+            generatesMissingScrubThumbnailPreviews:
+            settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            isLive: viewModel.isLivePlayback,
+            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
+            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            autoplay: !wasPaused,
+        )
+        playerController.setPlaybackRate(playbackRate)
     }
 
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {

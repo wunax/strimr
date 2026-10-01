@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PlayerQualitySelectionView: View {
     var selectedQuality: TranscodeQualityPreset
+    var versionLabel: String?
+    var onShowVersions: (() -> Void)?
     var onSelect: (TranscodeQualityPreset) -> Void
 
     var onClose: () -> Void
@@ -9,7 +11,7 @@ struct PlayerQualitySelectionView: View {
     var body: some View {
         PlayerSettingsOptionsView(
             title: "player.settings.quality",
-            options: TranscodeQualityPreset.displayOrder.map { preset in
+            options: versionOptions + TranscodeQualityPreset.displayOrder.map { preset in
                 PlayerSettingsOption(
                     id: preset.rawValue, title: preset.title,
                     isSelected: selectedQuality == preset,
@@ -18,5 +20,16 @@ struct PlayerQualitySelectionView: View {
             },
             onClose: onClose,
         )
+    }
+
+    private var versionOptions: [PlayerSettingsOption] {
+        guard let onShowVersions else { return [] }
+        return [PlayerSettingsOption(
+            id: "version",
+            title: String(localized: "player.settings.version"),
+            subtitle: versionLabel,
+            systemImage: "square.stack",
+            action: onShowVersions,
+        )]
     }
 }

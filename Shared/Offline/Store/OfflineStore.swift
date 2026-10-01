@@ -136,6 +136,8 @@ final class OfflineStore {
             requestedQuality: metadata.requestedQuality.rawValue,
             effectiveQuality: metadata.effectiveQuality.rawValue,
             audioTitle: metadata.audioTitle,
+            versionID: metadata.versionID,
+            versionLabel: metadata.versionLabel,
             metadata: encoder.encode(metadata),
             enrichmentState: (item.enrichmentState ?? .pending).rawValue,
             createdAt: metadata.createdAt,
@@ -157,6 +159,8 @@ final class OfflineStore {
         metadata.effectiveQuality = TranscodeQualityPreset(rawValue: record.effectiveQuality)
             ?? metadata.requestedQuality
         metadata.audioTitle = record.audioTitle
+        metadata.versionID = record.versionID
+        metadata.versionLabel = record.versionLabel
         return DownloadItem(
             id: record.id,
             status: status,

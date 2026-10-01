@@ -423,6 +423,7 @@ final class PlayerViewModel {
                 resume: shouldResumeFromOffsetFlag,
                 quality: selectedQuality,
                 trackPreference: rememberedTrackPreference,
+                version: mediaServices.versionRequest(for: media),
             )
             apply(plan: plan)
         } catch {
@@ -460,6 +461,7 @@ final class PlayerViewModel {
                 resume: shouldResumeFromOffsetFlag,
                 quality: selectedQuality,
                 trackPreference: rememberedTrackPreference,
+                version: currentVersionRequest(services: mediaServices, media: media),
             )
             apply(plan: plan)
             if let previousPlan {
@@ -485,6 +487,7 @@ final class PlayerViewModel {
             resume: false,
             quality: quality,
             trackPreference: rememberedTrackPreference,
+            version: currentVersionRequest(services: mediaServices, media: media),
         )
         selectedQuality = quality
         apply(plan: plan)
@@ -492,6 +495,61 @@ final class PlayerViewModel {
             await mediaServices.playback.release(plan: previousPlan)
         }
         return plan.url
+    }
+
+    /// Reloads another version of the current item and returns where to resume it.
+    func changeVersion(to versionID: String, from position: TimeInterval) async throws -> (url: URL, position: TimeInterval) {
+        guard !isLivePlayback, !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
+
+        let previousPlan = playbackPlan
+        // Track ids are specific to each file: carry the preference by language, not the old stream index.
+        let plan = try await mediaServices.playback.prepare(
+            media: media,
+            resume: false,
+            quality: selectedQuality,
+            trackPreference: rememberedTrackPreference?.matchingAcrossItems,
+            version: .explicit(versionID: versionID),
+        )
+        apply(plan: plan)
+        if let previousPlan {
+            await mediaServices.playback.release(plan: previousPlan)
+        }
+        let selectedVersion = plan.versions.first { version in
+            plan.versionID.map(version.matchesVersionID) ?? false
+        }
+        // A provider fallback to another version is not the user's choice and must not become the preference.
+        if let selectedVersion, selectedVersion.matchesVersionID(versionID), let scope = media.trackSelectionScope {
+            mediaServices.rememberVersion(selectedVersion, for: scope)
+        }
+        let duration = selectedVersion?.duration ?? plan.media.duration
+        let resumePosition = duration.map { min(position, max(0, $0 - 5)) } ?? position
+        return (plan.url, resumePosition)
+    }
+
+    var availableVersions: [MediaFileVersion] {
+        guard !isLivePlayback, !isLocalPlayback else { return [] }
+        return playbackPlan?.versions ?? []
+    }
+
+    var showsVersionSelection: Bool {
+        availableVersions.count > 1
+    }
+
+    var versionOptions: [PlaybackSettingsVersion] {
+        guard showsVersionSelection else { return [] }
+        return PlaybackSettingsVersion.options(versions: availableVersions, selectedID: currentVersionID)
+    }
+
+    var currentVersionID: String? {
+        playbackPlan?.versionID
+    }
+
+    private func currentVersionRequest(services: MediaServices, media: MediaItem) -> MediaVersionRequest {
+        if let versionID = playbackPlan?.versionID {
+            return .explicit(versionID: versionID)
+        }
+        return services.versionRequest(for: media)
     }
 
     func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
@@ -669,9 +727,17 @@ final class PlayerViewModel {
         do {
             switch track.type {
             case .audio:
-                try await mediaServices.detail.selectAudioTrack(id: streamID, itemID: itemID)
+                try await mediaServices.detail.selectAudioTrack(
+                    id: streamID,
+                    itemID: itemID,
+                    versionID: playbackPlan?.versionID,
+                )
             case .subtitle:
-                try await mediaServices.detail.selectSubtitleTrack(id: streamID, itemID: itemID)
+                try await mediaServices.detail.selectSubtitleTrack(
+                    id: streamID,
+                    itemID: itemID,
+                    versionID: playbackPlan?.versionID,
+                )
             case .video:
                 break
             }
@@ -699,7 +765,11 @@ final class PlayerViewModel {
         guard let mediaServices, let itemID = media?.id else { return }
         let streamID = track?.providerStreamID
         do {
-            try await mediaServices.detail.selectSubtitleTrack(id: streamID, itemID: itemID)
+            try await mediaServices.detail.selectSubtitleTrack(
+                id: streamID,
+                itemID: itemID,
+                versionID: playbackPlan?.versionID,
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)

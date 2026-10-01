@@ -6,6 +6,18 @@ struct MediaDetailTrackButtons: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            if viewModel.showsVersionSelection {
+                Menu {
+                    MediaDetailVersionMenuItems(viewModel: viewModel)
+                } label: {
+                    Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
+                }
+                .disabled(viewModel.isUpdatingTracks)
+                .help(Text("media.versions.title"))
+                .accessibilityLabel(Text("media.versions.title"))
+                .accessibilityValue(Text(viewModel.selectedVersionShortLabel))
+            }
+
             if !viewModel.audioTracks.isEmpty {
                 Menu {
                     audioTrackButtons
@@ -87,6 +99,53 @@ struct MediaDetailTrackButtons: View {
 
     private func trackLabel(_ title: String, isSelected: Bool) -> some View {
         Label(title, systemImage: isSelected ? "checkmark" : "circle")
+    }
+}
+
+struct MediaDetailVersionMenuItems: View {
+    @Bindable var viewModel: MediaDetailViewModel
+
+    var body: some View {
+        Button {
+            Task { await viewModel.selectVersion(id: nil) }
+        } label: {
+            Label {
+                Text("media.versions.automatic")
+                if let automatic = viewModel.automaticVersion {
+                    Text(automatic.displayLabel(among: viewModel.versions))
+                }
+            } icon: {
+                Image(systemName: viewModel.hasVersionPreference ? "circle" : "checkmark")
+            }
+        }
+
+        Divider()
+
+        let labels = viewModel.versionLabels
+        ForEach(Array(viewModel.versions.enumerated()), id: \.offset) { index, version in
+            Button {
+                guard let id = version.id else { return }
+                Task { await viewModel.selectVersion(id: id) }
+            } label: {
+                Label {
+                    Text(verbatim: labels[index])
+                    if version.isAvailable {
+                        Text(verbatim: version.detailLabel)
+                    } else {
+                        Text("media.versions.unavailable")
+                    }
+                } icon: {
+                    Image(systemName: isChecked(version) ? "checkmark" : "circle")
+                }
+            }
+            .disabled(!version.isAvailable || version.id == nil)
+        }
+    }
+
+    /// "Automatic" carries the checkmark until a version is picked explicitly.
+    private func isChecked(_ version: MediaFileVersion) -> Bool {
+        guard viewModel.hasVersionPreference else { return false }
+        return viewModel.selectedVersionID.map { version.matchesVersionID($0) } ?? false
     }
 }
 

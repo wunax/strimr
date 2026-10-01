@@ -179,6 +179,9 @@ struct PlaybackPlan: Sendable {
     let chapters: [MediaChapter]
     let skipSegments: [SkipSegment]
     let scrubThumbnailSource: ScrubThumbnailSource?
+    let versions: [MediaFileVersion]
+    /// The version actually played.
+    let versionID: String?
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {

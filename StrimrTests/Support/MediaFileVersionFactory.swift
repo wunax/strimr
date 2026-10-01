@@ -1,0 +1,92 @@
+import Foundation
+@testable import Strimr
+
+extension MediaFileVersion {
+    static func make(
+        id: String?,
+        title: String? = nil,
+        width: Int? = 0,
+        height: Int?,
+        videoResolution: String? = nil,
+        codec: String? = "h264",
+        container: String? = "mkv",
+        dynamicRange: String? = nil,
+        hasVideoStream: Bool = true,
+        audioCodec: String? = nil,
+        audioChannels: Int? = nil,
+        sizeBytes: Int64? = nil,
+        path: String? = nil,
+        isAvailable: Bool = true,
+        isOptimized: Bool = false,
+        optimizationTarget: String? = nil,
+    ) -> MediaFileVersion {
+        let streams = hasVideoStream ? [videoStream(height: height, codec: codec, dynamicRange: dynamicRange)] : []
+        return MediaFileVersion(
+            id: id,
+            title: title,
+            container: container,
+            bitrateKbps: nil,
+            duration: nil,
+            width: width,
+            height: height,
+            aspectRatio: nil,
+            videoResolution: videoResolution,
+            videoCodec: codec,
+            videoProfile: nil,
+            videoFrameRate: nil,
+            audioCodec: audioCodec,
+            audioProfile: nil,
+            audioChannels: audioChannels,
+            parts: [MediaFilePart(
+                id: id,
+                path: path,
+                sizeBytes: sizeBytes,
+                container: container,
+                duration: nil,
+                exists: nil,
+                accessible: nil,
+                streams: streams,
+            )],
+            attachments: [],
+            isAvailable: isAvailable,
+            isOptimized: isOptimized,
+            optimizationTarget: optimizationTarget,
+        )
+    }
+
+    private static func videoStream(height: Int?, codec: String?, dynamicRange: String?) -> MediaFileStream {
+        MediaFileStream(
+            kind: .video,
+            id: nil,
+            index: 0,
+            title: nil,
+            displayTitle: nil,
+            codec: codec,
+            codecTag: nil,
+            profile: nil,
+            language: nil,
+            languageCode: nil,
+            bitrateKbps: nil,
+            isDefault: nil,
+            isForced: nil,
+            isSelected: nil,
+            isExternal: nil,
+            isHearingImpaired: nil,
+            width: nil,
+            height: height,
+            frameRate: nil,
+            bitDepth: nil,
+            dynamicRange: dynamicRange,
+            pixelFormat: nil,
+            colorSpace: nil,
+            colorTransfer: nil,
+            aspectRatio: nil,
+            channels: nil,
+            channelLayout: nil,
+            sampleRate: nil,
+            spatialFormat: nil,
+            subtitleFormat: nil,
+            path: nil,
+        )
+    }
+}

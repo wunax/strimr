@@ -6,6 +6,7 @@ struct PlayerSettingsOption: Identifiable {
     var subtitle: String?
     var isSelected = false
     var systemImage: String?
+    var isDisabled = false
     let action: () -> Void
 }
 
@@ -57,6 +58,8 @@ struct PlayerSettingsOptionsView: View {
                                 }
                             }
                             .buttonStyle(PlayerPanelButtonStyle())
+                            .disabled(option.isDisabled)
+                            .opacity(option.isDisabled ? 0.45 : 1)
                             .focused($focusedOption, equals: option.id)
                             .accessibilityAddTraits(option.isSelected ? .isSelected : [])
                             .id(option.id)

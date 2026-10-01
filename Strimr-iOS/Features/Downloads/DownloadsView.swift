@@ -181,7 +181,9 @@ struct DownloadsView: View {
     }
 
     private func qualityView(for item: DownloadItem) -> some View {
-        Text(item.metadata.effectiveQuality.title)
+        Text(verbatim: [item.metadata.versionLabel, item.metadata.effectiveQuality.title]
+            .compactMap(\.self)
+            .joined(separator: " · "))
             .font(.caption)
             .foregroundStyle(.secondary)
     }

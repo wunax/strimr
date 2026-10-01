@@ -31,6 +31,8 @@ final class DownloadQueueRepository {
         ratingKey: String,
         queueID: Int,
         quality: TranscodeQualityPreset,
+        mediaIndex: Int,
+        partIndex: Int,
     ) async throws -> Int {
         guard let bitrate = quality.maximumVideoBitrateKbps else {
             throw PlexAPIError.invalidResponse
@@ -51,8 +53,8 @@ final class DownloadQueueRepository {
             URLQueryItem(name: "protocol", value: "http"),
             URLQueryItem(name: "fastSeek", value: "1"),
             URLQueryItem(name: "session", value: sessionID),
-            URLQueryItem(name: "mediaIndex", value: "0"),
-            URLQueryItem(name: "partIndex", value: "0"),
+            URLQueryItem(name: "mediaIndex", value: String(mediaIndex)),
+            URLQueryItem(name: "partIndex", value: String(partIndex)),
             URLQueryItem(name: "mediaBufferSize", value: "50000"),
             URLQueryItem(name: "hasMDE", value: "1"),
             URLQueryItem(name: "subtitleSize", value: "0"),

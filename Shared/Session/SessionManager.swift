@@ -45,6 +45,7 @@ final class SessionManager {
     @ObservationIgnored private let libraryStore: LibraryStore
     @ObservationIgnored private let favoritesStore: FavoritesStore
     @ObservationIgnored let trackSelectionCoordinator: TrackSelectionCoordinator
+    @ObservationIgnored let versionSelectionStore: MediaVersionSelectionStore
     private(set) var status: Status = .hydrating
     private(set) var loadingPhase: LoadingPhase = .preparing
     private(set) var provider: MediaProvider?
@@ -76,12 +77,14 @@ final class SessionManager {
         libraryStore: LibraryStore,
         favoritesStore: FavoritesStore,
         trackSelectionCoordinator: TrackSelectionCoordinator,
+        versionSelectionStore: MediaVersionSelectionStore,
     ) {
         self.context = context
         self.jellyfinContext = jellyfinContext
         self.libraryStore = libraryStore
         self.favoritesStore = favoritesStore
         self.trackSelectionCoordinator = trackSelectionCoordinator
+        self.versionSelectionStore = versionSelectionStore
         context.configureServerAccessRecovery { [weak self] force in
             guard let self else {
                 throw PlexServerAccessRecoveryError.connectionFailed
@@ -755,6 +758,7 @@ final class SessionManager {
             sessionManager: self,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
+            versionSelectionStore: versionSelectionStore,
         ) else { return }
         mediaServices = services
         libraryStore.configure(service: services.library)
@@ -765,6 +769,7 @@ final class SessionManager {
             context: jellyfinContext,
             capabilities: .jellyfin,
             trackSelectionCoordinator: trackSelectionCoordinator,
+            versionSelectionStore: versionSelectionStore,
         ) else { return }
         mediaServices = services
         libraryStore.configure(service: services.library)

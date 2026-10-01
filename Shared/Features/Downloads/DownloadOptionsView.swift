@@ -5,6 +5,7 @@ import SwiftUI
 @Observable
 final class DownloadOptionsViewModel {
     let itemID: String
+    let kind: MediaKind
     let services: MediaServices
     var quality: TranscodeQualityPreset
     var trackSelection: MediaTrackSelection?
@@ -12,11 +13,47 @@ final class DownloadOptionsViewModel {
     var selectedSubtitleID: Int?
     var isLoadingTracks = false
     var errorMessage: String?
+    private(set) var versions: [MediaFileVersion] = []
+    var selectedVersionID: String?
+    private var representativeItemID: String?
+    private var didLoadVersions = false
 
-    init(itemID: String, services: MediaServices, defaultQuality: TranscodeQualityPreset) {
+    /// For a season or series, versions come from a representative episode and other episodes match by signature.
+    init(
+        itemID: String,
+        kind: MediaKind,
+        services: MediaServices,
+        defaultQuality: TranscodeQualityPreset,
+    ) {
         self.itemID = itemID
+        self.kind = kind
         self.services = services
         quality = defaultQuality
+    }
+
+    var showsVersionSelection: Bool {
+        versions.count > 1
+    }
+
+    var versionLabels: [String] {
+        MediaFileVersion.displayLabels(for: versions)
+    }
+
+    /// The download choice never becomes the playback preference.
+    var versionRequest: MediaVersionRequest {
+        guard showsVersionSelection,
+              let selectedVersionID,
+              let version = versions.first(where: { $0.matchesVersionID(selectedVersionID) })
+        else { return .automatic }
+        return .preferred(MediaVersionPreference(
+            versionID: version.id,
+            signature: version.signature,
+            updatedAt: Date(),
+        ))
+    }
+
+    var loadKey: String {
+        "\(quality.rawValue)|\(selectedVersionID ?? "")"
     }
 
     var showsTrackSelection: Bool {
@@ -57,21 +94,67 @@ final class DownloadOptionsViewModel {
         )
     }
 
-    func loadTracksIfNeeded() async {
-        guard showsTrackSelection, trackSelection == nil, !isLoadingTracks else { return }
+    func loadIfNeeded() async {
+        if !didLoadVersions {
+            await loadVersions()
+        }
+        await loadTracksIfNeeded()
+    }
+
+    private func loadVersions() async {
+        do {
+            let items = try await services.downloads.downloadableItems(itemID: itemID, kind: kind)
+            guard let representative = items.first(where: { !$0.isFullyWatched }) ?? items.first else {
+                didLoadVersions = true
+                return
+            }
+            let selection = try await services.detail.trackSelection(itemID: representative.id, versionID: nil)
+            guard !Task.isCancelled else { return }
+            representativeItemID = representative.id
+            versions = selection.versions
+            // Start from the version playback would pick.
+            let initial = MediaVersionResolver.resolve(
+                services.versionRequest(for: representative),
+                in: selection.versions,
+            ) { versions in
+                versions.first { version in selection.defaultVersionID.map(version.matchesVersionID) ?? false }
+            }
+            selectedVersionID = initial?.id ?? selection.versionID
+            if selection.versionID == selectedVersionID {
+                applyTracks(selection)
+            }
+            didLoadVersions = true
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            didLoadVersions = true
+            errorMessage = error.localizedDescription
+            ErrorReporter.capture(error)
+        }
+    }
+
+    private func loadTracksIfNeeded() async {
+        guard showsTrackSelection, !isLoadingTracks else { return }
+        guard trackSelection == nil || trackSelection?.versionID != selectedVersionID else { return }
         isLoadingTracks = true
         defer { isLoadingTracks = false }
         do {
-            let selection = try await services.detail.trackSelection(itemID: itemID)
-            trackSelection = selection
-            selectedAudioID = selection.selectedAudioTrackID ?? selection.audioTracks.first?.id
-            selectedSubtitleID = selection.selectedSubtitleTrackID.flatMap { selected in
-                subtitleTracks.contains(where: { $0.id == selected }) ? selected : nil
-            }
+            let selection = try await services.detail.trackSelection(
+                itemID: representativeItemID ?? itemID,
+                versionID: selectedVersionID,
+            )
+            applyTracks(selection)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             errorMessage = error.localizedDescription
             ErrorReporter.capture(error)
+        }
+    }
+
+    private func applyTracks(_ selection: MediaTrackSelection) {
+        trackSelection = selection
+        selectedAudioID = selection.selectedAudioTrackID ?? selection.audioTracks.first?.id
+        selectedSubtitleID = selection.selectedSubtitleTrackID.flatMap { selected in
+            subtitleTracks.contains(where: { $0.id == selected }) ? selected : nil
         }
     }
 }
@@ -81,6 +164,18 @@ struct DownloadOptionsSections: View {
     @Bindable var model: DownloadOptionsViewModel
 
     var body: some View {
+        if model.showsVersionSelection {
+            Section("downloads.options.version") {
+                Picker("downloads.options.version", selection: $model.selectedVersionID) {
+                    ForEach(Array(zip(model.versions, model.versionLabels)), id: \.0) { version, label in
+                        Text(label)
+                            .tag(version.id)
+                            .disabled(!version.isAvailable)
+                    }
+                }
+            }
+        }
+
         Section("downloads.options.quality") {
             Picker("downloads.options.quality", selection: $model.quality) {
                 ForEach(TranscodeQualityPreset.displayOrder) { preset in
@@ -121,17 +216,19 @@ struct DownloadOptionsSections: View {
 struct DownloadConfirmationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: DownloadOptionsViewModel
-    let onDownload: (TranscodeQualityPreset, MediaTrackPreference) async -> Void
+    let onDownload: (TranscodeQualityPreset, MediaTrackPreference, MediaVersionRequest) async -> Void
     @State private var isSubmitting = false
 
     init(
         itemID: String,
+        kind: MediaKind,
         services: MediaServices,
         defaultQuality: TranscodeQualityPreset,
-        onDownload: @escaping (TranscodeQualityPreset, MediaTrackPreference) async -> Void,
+        onDownload: @escaping (TranscodeQualityPreset, MediaTrackPreference, MediaVersionRequest) async -> Void,
     ) {
         _model = State(initialValue: DownloadOptionsViewModel(
             itemID: itemID,
+            kind: kind,
             services: services,
             defaultQuality: defaultQuality,
         ))
@@ -152,15 +249,15 @@ struct DownloadConfirmationSheet: View {
                     Button("downloads.action") {
                         isSubmitting = true
                         Task {
-                            await onDownload(model.quality, model.preference)
+                            await onDownload(model.quality, model.preference, model.versionRequest)
                             dismiss()
                         }
                     }
                     .disabled(isSubmitting || (model.showsTrackSelection && model.selectedAudioID == nil))
                 }
             }
-            .task(id: model.quality) {
-                await model.loadTracksIfNeeded()
+            .task(id: model.loadKey) {
+                await model.loadIfNeeded()
             }
         }
     }

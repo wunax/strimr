@@ -29,6 +29,7 @@ struct StrimrApp: App {
             libraryStore: store,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
+            versionSelectionStore: MediaVersionSelectionStore(),
         )
         _plexApiContext = State(initialValue: context)
         _jellyfinAPIContext = State(initialValue: jellyfinContext)

@@ -152,16 +152,18 @@ final class CachedDetailService: MediaDetailService {
         try await policy.online { try await base.setWatchlisted(watchlisted, media: media) }
     }
 
-    func trackSelection(itemID: String) async throws -> MediaTrackSelection {
-        try await policy.online { try await base.trackSelection(itemID: itemID) }
+    func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
+        try await policy.online { try await base.trackSelection(itemID: itemID, versionID: versionID) }
     }
 
-    func selectAudioTrack(id: Int, itemID: String) async throws {
-        try await policy.online { try await base.selectAudioTrack(id: id, itemID: itemID) }
+    func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws {
+        try await policy.online { try await base.selectAudioTrack(id: id, itemID: itemID, versionID: versionID) }
     }
 
-    func selectSubtitleTrack(id: Int?, itemID: String) async throws {
-        try await policy.online { try await base.selectSubtitleTrack(id: id, itemID: itemID) }
+    func selectSubtitleTrack(id: Int?, itemID: String, versionID: String?) async throws {
+        try await policy.online {
+            try await base.selectSubtitleTrack(id: id, itemID: itemID, versionID: versionID)
+        }
     }
 
     func collectionItems(id: String) async throws -> [MediaDisplayItem] {

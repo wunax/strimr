@@ -359,6 +359,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         itemID: String,
         quality: TranscodeQualityPreset? = nil,
         tracks: MediaTrackPreference = .serverDefault,
+        version: MediaVersionRequest = .automatic,
         services: MediaServices,
     ) async {
         register(services: services)
@@ -368,6 +369,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 itemID: itemID,
                 quality: effectiveQuality,
                 tracks: tracks,
+                version: version,
             )
             try await enqueue(preparation, tracks: tracks, services: services)
         } catch {
@@ -380,6 +382,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         kind: MediaKind,
         quality: TranscodeQualityPreset? = nil,
         tracks: MediaTrackPreference = .serverDefault,
+        version: MediaVersionRequest = .automatic,
         services: MediaServices,
     ) async {
         do {
@@ -390,6 +393,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                     itemID: item.id,
                     quality: quality,
                     tracks: tracks,
+                    version: version,
                     services: services,
                 )
             }
@@ -459,6 +463,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             effectiveQuality: preparation.effectiveQuality,
             audioTitle: preparation.audioTitle,
             subtitleTitle: preparation.subtitleTitle,
+            versionID: preparation.versionID,
+            versionLabel: preparation.versionLabel,
             createdAt: Date(),
         )
         let shouldQueue = preparation.remoteReference != nil && hasActiveTranscode(on: mediaItem.identity.server)
@@ -855,6 +861,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                     itemID: item.itemID,
                     quality: item.metadata.requestedQuality,
                     tracks: item.trackPreference ?? .serverDefault,
+                    version: item.metadata.versionID.map { .explicit(versionID: $0) } ?? .automatic,
                 )
                 guard let index = items.firstIndex(where: { $0.id == item.id }),
                       items[index].status == .queued
@@ -863,6 +870,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 items[index].metadata.effectiveQuality = preparation.effectiveQuality
                 items[index].metadata.audioTitle = preparation.audioTitle
                 items[index].metadata.subtitleTitle = preparation.subtitleTitle
+                items[index].metadata.versionID = preparation.versionID
+                items[index].metadata.versionLabel = preparation.versionLabel
                 sidecarsByItemID[item.id] = preparation.sidecars
                 persistState()
                 if let request = preparation.request {
@@ -971,6 +980,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 sidecarsByItemID[itemID] = try await services.downloads.downloadSidecars(
                     itemID: items[index].itemID,
                     tracks: items[index].trackPreference ?? .serverDefault,
+                    versionID: items[index].metadata.versionID,
                 )
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }

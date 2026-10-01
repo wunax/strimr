@@ -115,12 +115,13 @@ struct MediaDetailHeaderSection: View {
                     viewModel: viewModel,
                     services: mediaServices,
                     defaultQuality: settingsManager.downloads.qualityPreset,
-                    onSubmitSelection: { episodeIDs, quality, tracks in
+                    onSubmitSelection: { episodeIDs, quality, tracks, version in
                         for episodeID in episodeIDs {
                             await downloadManager.enqueueItem(
                                 itemID: episodeID,
                                 quality: quality,
                                 tracks: tracks,
+                                version: version,
                                 services: mediaServices,
                             )
                         }
@@ -132,15 +133,17 @@ struct MediaDetailHeaderSection: View {
         .sheet(isPresented: $isShowingDownloadOptions) {
             DownloadConfirmationSheet(
                 itemID: viewModel.media.id,
+                kind: viewModel.media.mediaKind,
                 services: mediaServices,
                 defaultQuality: settingsManager.downloads.qualityPreset,
-            ) { quality, tracks in
+            ) { quality, tracks, version in
                 if viewModel.media.mediaKind == .season {
                     await downloadManager.enqueueItems(
                         itemID: viewModel.media.id,
                         kind: .season,
                         quality: quality,
                         tracks: tracks,
+                        version: version,
                         services: mediaServices,
                     )
                 } else {
@@ -148,6 +151,7 @@ struct MediaDetailHeaderSection: View {
                         itemID: viewModel.media.id,
                         quality: quality,
                         tracks: tracks,
+                        version: version,
                         services: mediaServices,
                     )
                 }
@@ -221,6 +225,13 @@ struct MediaDetailHeaderSection: View {
 
                 if let contentRating = viewModel.media.contentRating {
                     badge(text: contentRating)
+                }
+
+                if let versionCount = viewModel.versionCountBadge {
+                    badge(
+                        text: String(localized: "media.versions.count \(versionCount)"),
+                        systemImage: "square.stack",
+                    )
                 }
             }
         }
@@ -365,6 +376,10 @@ struct MediaDetailHeaderSection: View {
         HStack(alignment: .top, spacing: 12) {
             watchToggleButton
 
+            if viewModel.showsVersionSelection {
+                versionButton
+            }
+
             if !viewModel.audioTracks.isEmpty {
                 audioTrackButton
             }
@@ -380,6 +395,35 @@ struct MediaDetailHeaderSection: View {
                 .disabled(isServerUnreachable)
         }
         .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private var versionButton: some View {
+        VStack(spacing: 2) {
+            Menu {
+                MediaDetailVersionMenuItems(viewModel: viewModel)
+            } label: {
+                if viewModel.isUpdatingTracks {
+                    ProgressView()
+                } else {
+                    Image(systemName: "square.stack")
+                        .font(.headline.weight(.semibold))
+                }
+            }
+            .frame(width: 48, height: 44)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .tint(.brandSecondary)
+            .disabled(viewModel.isUpdatingTracks)
+            .accessibilityLabel(Text("media.versions.title"))
+            .accessibilityValue(Text(viewModel.selectedVersionShortLabel))
+
+            Text(verbatim: viewModel.selectedVersionShortLabel)
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: 56)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
     }
 
     private var audioTrackButton: some View {

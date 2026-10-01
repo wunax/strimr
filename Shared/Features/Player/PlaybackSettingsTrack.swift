@@ -65,6 +65,30 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
     }
 }
 
+struct PlaybackSettingsVersion: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let isAvailable: Bool
+    let isSelected: Bool
+
+    static func options(versions: [MediaFileVersion], selectedID: String?) -> [PlaybackSettingsVersion] {
+        let labels = MediaFileVersion.displayLabels(for: versions)
+        return versions.enumerated().compactMap { index, version in
+            guard let id = version.id else { return nil }
+            return PlaybackSettingsVersion(
+                id: id,
+                title: labels[index],
+                subtitle: version.isAvailable
+                    ? version.detailLabel
+                    : String(localized: "media.versions.unavailable"),
+                isAvailable: version.isAvailable,
+                isSelected: selectedID.map(version.matchesVersionID) ?? false,
+            )
+        }
+    }
+}
+
 struct TrackSelectionRow: View {
     var title: String
     var subtitle: String?

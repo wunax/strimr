@@ -37,6 +37,8 @@ nonisolated struct DownloadRecord: Codable, FetchableRecord, PersistableRecord {
     var requestedQuality: String
     var effectiveQuality: String
     var audioTitle: String?
+    var versionID: String?
+    var versionLabel: String?
     var metadata: Data
     var enrichmentState: String
     var createdAt: Date

@@ -506,7 +506,17 @@ struct PlayerView: View {
         case .quality:
             PlayerQualitySelectionView(
                 selectedQuality: viewModel.selectedQuality,
+                versionLabel: viewModel.versionOptions.first(where: \.isSelected)?.title,
+                onShowVersions: viewModel.showsVersionSelection
+                    ? { sheetPresentation.item = .version }
+                    : nil,
                 onSelect: { selectQuality($0) },
+                onClose: closeSettingsPanel,
+            )
+        case .version:
+            PlayerVersionSelectionView(
+                versions: viewModel.versionOptions,
+                onSelect: selectVersion(_:),
                 onClose: closeSettingsPanel,
             )
         case .subtitleSearch:
@@ -578,6 +588,31 @@ struct PlayerView: View {
                 startPlayback(
                     url: url,
                     startPosition: position,
+                    resetTrackSelection: true,
+                    shouldResumeAfterLoad: !wasPaused,
+                    shouldPauseAfterLoad: wasPaused,
+                )
+                qualityNoticeMessage = viewModel.qualityFallbackMessage
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                qualityNoticeMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func selectVersion(_ versionID: String) {
+        guard versionID != viewModel.currentVersionID else { return }
+        let position = max(playerController.position, viewModel.position)
+        let wasPaused = playerController.isPaused
+        closeSettingsPanel()
+        Task {
+            do {
+                let result = try await viewModel.changeVersion(to: versionID, from: position)
+                activePlaybackURL = nil
+                startPlayback(
+                    url: result.url,
+                    startPosition: result.position,
                     resetTrackSelection: true,
                     shouldResumeAfterLoad: !wasPaused,
                     shouldPauseAfterLoad: wasPaused,
@@ -1411,6 +1446,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case subtitle
     case speed
     case quality
+    case version
     case subtitleSearch
 
     var id: String {
@@ -1427,6 +1463,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.speed"
         case .quality:
             "player.settings.quality"
+        case .version:
+            "player.settings.version"
         case .subtitleSearch:
             "subtitles.search.title"
         }

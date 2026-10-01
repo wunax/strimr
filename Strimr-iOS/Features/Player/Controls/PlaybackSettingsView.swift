@@ -8,6 +8,8 @@ struct PlaybackSettingsView: View {
     var playbackRate: Float
     var quality: TranscodeQualityPreset
     var showsQualitySelection: Bool
+    var versions: [PlaybackSettingsVersion] = []
+    var onSelectVersion: (String) -> Void = { _ in }
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
     var onSearchSubtitles: (() -> Void)?
@@ -19,6 +21,21 @@ struct PlaybackSettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                if !versions.isEmpty {
+                    Section("player.settings.version") {
+                        ForEach(versions) { version in
+                            TrackSelectionRow(
+                                title: version.title,
+                                subtitle: version.subtitle,
+                                isSelected: version.isSelected,
+                            ) {
+                                onSelectVersion(version.id)
+                            }
+                            .disabled(!version.isAvailable)
+                        }
+                    }
+                }
+
                 if showsQualitySelection {
                     Section("player.settings.quality") {
                         Picker(

@@ -42,6 +42,7 @@ final class MediaServices {
     let downloads: any MediaDownloadService
     let trackSelectionCoordinator: TrackSelectionCoordinator?
     let trackSelectionAccountIdentifier: String?
+    @ObservationIgnored let versionSelectionStore: MediaVersionSelectionStore?
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
     /// URL of an unauthenticated endpoint used to probe the server's reachability.
     @ObservationIgnored var availabilityProbeURL: (() -> URL?)?
@@ -74,6 +75,7 @@ final class MediaServices {
         authorization: any MediaAuthorizationService,
         trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
         trackSelectionAccountIdentifier: String? = nil,
+        versionSelectionStore: MediaVersionSelectionStore? = nil,
     ) {
         self.provider = provider
         self.identity = identity
@@ -90,6 +92,7 @@ final class MediaServices {
         self.downloads = downloads
         self.trackSelectionCoordinator = trackSelectionCoordinator
         self.trackSelectionAccountIdentifier = trackSelectionAccountIdentifier
+        self.versionSelectionStore = versionSelectionStore
         authorizationService = authorization
     }
 }

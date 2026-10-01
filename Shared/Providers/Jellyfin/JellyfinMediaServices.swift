@@ -545,9 +545,17 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     func setWatchlisted(_: Bool, media _: MediaItem) async throws {}
 
-    func trackSelection(itemID: String) async throws -> MediaTrackSelection {
+    func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
         let item = try await catalog.item(id: itemID)
-        let source = preferredMediaSource(for: item)
+        let sources = item.mediaSources ?? []
+        let versions = sources.map(mapFileInfoVersion)
+        let defaultVersion = MediaVersionResolver.resolve(.automatic, in: versions, default: Self.defaultVersion)
+        let source = Self.source(
+            in: sources,
+            versions: versions,
+            request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
+        )
+        let overrideKey = Self.trackSelectionKey(itemID: itemID, versionID: source?.id)
         let streams = source?.mediaStreams ?? []
         let audioTracks = streams
             .filter { $0.type.lowercased() == "audio" }
@@ -558,7 +566,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let validAudioIndices = Set(audioTracks.compactMap(\.id))
         let validSubtitleIndices = Set(subtitleTracks.compactMap(\.id))
         let selectionOverride = validatedTrackSelectionOverride(
-            for: itemID,
+            for: overrideKey,
             validAudioIndices: validAudioIndices,
             validSubtitleIndices: validSubtitleIndices,
         )
@@ -588,19 +596,24 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             subtitleTracks: subtitleTracks,
             selectedAudioTrackID: selectedAudioTrackID,
             selectedSubtitleTrackID: selectedSubtitleTrackID,
+            versions: versions,
+            versionID: source?.id,
+            defaultVersionID: defaultVersion?.id,
         )
     }
 
-    func selectAudioTrack(id: Int, itemID: String) async throws {
-        var selectionOverride = trackSelectionOverrides[itemID] ?? JellyfinTrackSelectionOverride()
+    func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws {
+        let key = Self.trackSelectionKey(itemID: itemID, versionID: versionID)
+        var selectionOverride = trackSelectionOverrides[key] ?? JellyfinTrackSelectionOverride()
         selectionOverride.audioStreamIndex = id
-        trackSelectionOverrides[itemID] = selectionOverride
+        trackSelectionOverrides[key] = selectionOverride
     }
 
-    func selectSubtitleTrack(id: Int?, itemID: String) async throws {
-        var selectionOverride = trackSelectionOverrides[itemID] ?? JellyfinTrackSelectionOverride()
+    func selectSubtitleTrack(id: Int?, itemID: String, versionID: String?) async throws {
+        let key = Self.trackSelectionKey(itemID: itemID, versionID: versionID)
+        var selectionOverride = trackSelectionOverrides[key] ?? JellyfinTrackSelectionOverride()
         selectionOverride.subtitlePreference = id.map(JellyfinSubtitleStreamPreference.stream) ?? .off
-        trackSelectionOverrides[itemID] = selectionOverride
+        trackSelectionOverrides[key] = selectionOverride
     }
 
     func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws {
@@ -659,14 +672,21 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         resume: Bool,
         quality: TranscodeQualityPreset,
         trackPreference: MediaTrackPreference?,
+        version: MediaVersionRequest,
     ) async throws -> PlaybackPlan {
         let item = try await catalog.item(id: media.id)
+        let sources = item.mediaSources ?? []
+        let versions = sources.map(mapFileInfoVersion)
+        let requestedSource = Self.source(in: sources, versions: versions, request: version)
         let plan = try await playbackService.prepare(
             item: item,
             resume: resume,
-            trackSelection: trackSelectionOverrides[item.id],
+            trackSelection: trackSelectionOverrides[
+                Self.trackSelectionKey(itemID: item.id, versionID: requestedSource?.id),
+            ],
             trackPreference: trackPreference,
             quality: quality,
+            mediaSourceID: requestedSource?.id,
         )
         activePlans[plan.playSessionID] = plan
         let segments = await (try? catalog.mediaSegments(itemID: item.id)) ?? []
@@ -775,6 +795,8 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 )
             },
             scrubThumbnailSource: scrubSource,
+            versions: versions,
+            versionID: plan.mediaSourceID,
         )
     }
 
@@ -790,8 +812,25 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
     }
 
-    private func preferredMediaSource(for item: JellyfinItem) -> JellyfinMediaSource? {
-        item.mediaSources?.first(where: { $0.supportsDirectPlay == true }) ?? item.mediaSources?.first
+    private static func defaultVersion(_ versions: [MediaFileVersion]) -> MediaFileVersion? {
+        versions.first(where: { $0.supportsDirectPlay == true }) ?? versions.first
+    }
+
+    /// Sources are picked by id: plugins may reorder the sources of merged items between requests.
+    private static func source(
+        in sources: [JellyfinMediaSource],
+        versions: [MediaFileVersion],
+        request: MediaVersionRequest,
+    ) -> JellyfinMediaSource? {
+        guard let versionID = MediaVersionResolver.resolve(request, in: versions, default: defaultVersion)?.id else {
+            return defaultVersion(versions).flatMap { version in sources.first { $0.id == version.id } }
+        }
+        return sources.first { $0.id.caseInsensitiveCompare(versionID) == .orderedSame }
+    }
+
+    private static func trackSelectionKey(itemID: String, versionID: String?) -> String {
+        guard let versionID else { return itemID }
+        return "\(itemID)|\(versionID.lowercased())"
     }
 
     private func mapFileInfoVersion(_ source: JellyfinMediaSource) -> MediaFileVersion {
@@ -841,6 +880,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                     codec: $0.codec ?? $0.codecTag,
                 )
             },
+            supportsDirectPlay: source.supportsDirectPlay,
         )
     }
 
@@ -1097,17 +1137,23 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         itemID: String,
         quality: TranscodeQualityPreset,
         tracks: MediaTrackPreference,
+        version: MediaVersionRequest,
     ) async throws -> MediaDownloadPreparation {
         let item = try await catalog.item(id: itemID)
         guard item.isPlayable, item.canDownload != false else {
             throw JellyfinAPIError.permissionDenied
         }
         let media = MediaItem(jellyfinItem: item, server: server)
+        let sources = item.mediaSources ?? []
+        let versions = sources.map(mapFileInfoVersion)
+        let selectedSource = Self.source(in: sources, versions: versions, request: version)
+        let selectedVersion = selectedSource.flatMap { source in versions.first { $0.id == source.id } }
+        let versionLabel = versions.count > 1 ? selectedVersion?.displayLabel(among: versions) : nil
         guard !quality.isOriginal,
-              let source = item.mediaSources?.first,
+              let source = selectedSource,
               !source.satisfiesDownloadQuality(quality)
         else {
-            let url = try context.url(path: ["Items", item.id, "Download"])
+            let url = try originalDownloadURL(item: item, source: selectedSource)
             return try MediaDownloadPreparation(
                 media: media,
                 requestedQuality: quality,
@@ -1117,6 +1163,8 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 sidecars: [],
                 audioTitle: nil,
                 subtitleTitle: nil,
+                versionID: selectedSource?.id,
+                versionLabel: versionLabel,
             )
         }
 
@@ -1161,6 +1209,23 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             sidecars: sidecars,
             audioTitle: audio?.displayTitle ?? audio?.title ?? audio?.language,
             subtitleTitle: subtitle?.displayTitle ?? subtitle?.title ?? subtitle?.language,
+            versionID: source.id,
+            versionLabel: versionLabel,
+        )
+    }
+
+    /// `Items/{id}/Download` always serves the primary file; other versions go through a static stream.
+    private func originalDownloadURL(item: JellyfinItem, source: JellyfinMediaSource?) throws -> URL {
+        guard let source, source.id.caseInsensitiveCompare(item.id) != .orderedSame else {
+            return try context.url(path: ["Items", item.id, "Download"])
+        }
+        let container = MediaVersionSignature.normalizedContainer(source.container)
+        return try context.url(
+            path: ["Videos", item.id, container.isEmpty ? "stream" : "stream.\(container)"],
+            query: [
+                URLQueryItem(name: "Static", value: "true"),
+                URLQueryItem(name: "MediaSourceId", value: source.id),
+            ],
         )
     }
 
@@ -1173,10 +1238,16 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func downloadSidecars(
         itemID: String,
         tracks: MediaTrackPreference,
+        versionID: String?,
     ) async throws -> [MediaDownloadSidecar] {
         guard case .track = tracks.subtitle else { return [] }
         let item = try await catalog.item(id: itemID)
-        guard let source = item.mediaSources?.first,
+        let sources = item.mediaSources ?? []
+        guard let source = Self.source(
+            in: sources,
+            versions: sources.map(mapFileInfoVersion),
+            request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
+        ),
               let stream = source.resolveSubtitleStream(preference: tracks.subtitle)
         else { return [] }
         return try makeDownloadSidecars(itemID: item.id, source: source, subtitle: stream)
@@ -1422,6 +1493,7 @@ enum JellyfinMediaServicesFactory {
         context: JellyfinAPIContext,
         capabilities: ProviderCapabilities,
         trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
+        versionSelectionStore: MediaVersionSelectionStore? = nil,
     ) -> MediaServices? {
         guard let connection = context.connection else { return nil }
         let adapter = JellyfinMediaServiceAdapter(context: context, server: connection.serverIdentity)
@@ -1467,6 +1539,7 @@ enum JellyfinMediaServicesFactory {
             authorization: adapter,
             trackSelectionCoordinator: trackSelectionCoordinator,
             trackSelectionAccountIdentifier: connection.userID,
+            versionSelectionStore: versionSelectionStore,
         )
         adapter.services = services
         #if !os(tvOS)
