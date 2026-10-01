@@ -51,7 +51,7 @@ struct MediaDetailView: View {
 
                         buttonsRow
 
-                        if bindableViewModel.hasTrackSelection || bindableViewModel.showsVersionSelection {
+                        if bindableViewModel.hasTrackSelection || bindableViewModel.selectedVersion != nil {
                             MediaDetailTrackSummary(viewModel: bindableViewModel, spacing: 24)
                         }
 

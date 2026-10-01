@@ -267,7 +267,8 @@ struct MediaDetailTrackSummary: View {
 
     var body: some View {
         HStack(spacing: spacing) {
-            if viewModel.showsVersionSelection {
+            // Shown even for a single version, as file info; only the menu needs several.
+            if viewModel.selectedVersion != nil {
                 Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
             }
             if let audioTitle = viewModel.selectedAudioTrackTitle {
