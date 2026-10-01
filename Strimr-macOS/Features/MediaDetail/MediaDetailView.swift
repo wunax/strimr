@@ -285,7 +285,7 @@ struct MediaDetailView: View {
                 Text(contentRating)
             }
             if let versionCount = viewModel.versionCountBadge {
-                Label("media.versions.count \(versionCount)", systemImage: "square.stack")
+                Label("media.versions.count \(versionCount)", systemImage: "film.stack")
             }
             if viewModel.media.ratings.isEmpty, let rating = viewModel.ratingText {
                 Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)

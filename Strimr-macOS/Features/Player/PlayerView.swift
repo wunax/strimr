@@ -857,7 +857,7 @@ struct PlayerView: View {
                 .disabled(!version.isAvailable)
             }
         } label: {
-            Label("player.settings.version", systemImage: "square.stack")
+            Label("player.settings.version", systemImage: "film.stack")
         }
     }
 

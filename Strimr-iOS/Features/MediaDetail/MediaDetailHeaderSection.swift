@@ -230,7 +230,7 @@ struct MediaDetailHeaderSection: View {
                 if let versionCount = viewModel.versionCountBadge {
                     badge(
                         text: String(localized: "media.versions.count \(versionCount)"),
-                        systemImage: "square.stack",
+                        systemImage: "film.stack",
                     )
                 }
             }
@@ -405,7 +405,7 @@ struct MediaDetailHeaderSection: View {
                 if viewModel.isUpdatingTracks {
                     ProgressView()
                 } else {
-                    Image(systemName: "square.stack")
+                    Image(systemName: "film.stack")
                         .font(.headline.weight(.semibold))
                 }
             }

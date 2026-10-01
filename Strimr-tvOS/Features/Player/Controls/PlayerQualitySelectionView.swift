@@ -28,7 +28,7 @@ struct PlayerQualitySelectionView: View {
             id: "version",
             title: String(localized: "player.settings.version"),
             subtitle: versionLabel,
-            systemImage: "square.stack",
+            systemImage: "film.stack",
             action: onShowVersions,
         )]
     }

@@ -10,7 +10,7 @@ struct MediaDetailTrackButtons: View {
                 Menu {
                     MediaDetailVersionMenuItems(viewModel: viewModel)
                 } label: {
-                    Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
+                    Label(viewModel.selectedVersionShortLabel, systemImage: "film.stack")
                 }
                 .disabled(viewModel.isUpdatingTracks)
                 .help(Text("media.versions.title"))
@@ -200,7 +200,7 @@ struct MediaDetailTrackMenuItems: View {
     var body: some View {
         if ratingKey == nil || ratingKey == viewModel.trackRatingKey {
             if viewModel.showsVersionSelection {
-                Menu("media.versions.title", systemImage: "square.stack") {
+                Menu("media.versions.title", systemImage: "film.stack") {
                     MediaDetailVersionMenuItems(viewModel: viewModel)
                 }
             }
@@ -269,7 +269,7 @@ struct MediaDetailTrackSummary: View {
         HStack(spacing: spacing) {
             // Shown even for a single version, as file info; only the menu needs several.
             if viewModel.selectedVersion != nil {
-                Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
+                Label(viewModel.selectedVersionShortLabel, systemImage: "film.stack")
             }
             if let audioTitle = viewModel.selectedAudioTrackTitle {
                 Label(audioTitle, systemImage: "waveform")
