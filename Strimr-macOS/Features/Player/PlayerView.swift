@@ -835,7 +835,7 @@ struct PlayerView: View {
                 }
             }
         } label: {
-            Label("player.settings.quality", systemImage: "gauge.with.dots.needle.33percent")
+            Label("player.settings.quality", systemImage: "slider.horizontal.3")
         }
     }
 

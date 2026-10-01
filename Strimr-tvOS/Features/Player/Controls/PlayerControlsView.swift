@@ -228,7 +228,7 @@ struct PlayerControlsView: View {
                         .focused($focusedControl, equals: .speed)
 
                         PlayerSettingButton(
-                            systemImage: "gauge.with.dots.needle.33percent",
+                            systemImage: "slider.horizontal.3",
                             accessibilityLabel: String(localized: "player.settings.quality"),
                             action: onShowQualitySettings,
                         )

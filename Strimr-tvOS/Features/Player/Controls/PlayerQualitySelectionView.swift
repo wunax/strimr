@@ -11,15 +11,21 @@ struct PlayerQualitySelectionView: View {
     var body: some View {
         PlayerSettingsOptionsView(
             title: "player.settings.quality",
-            options: versionOptions + TranscodeQualityPreset.displayOrder.map { preset in
-                PlayerSettingsOption(
-                    id: preset.rawValue, title: preset.title,
-                    isSelected: selectedQuality == preset,
-                    action: { onSelect(preset) },
-                )
-            },
+            options: versionOptions + qualityOptions,
             onClose: onClose,
         )
+    }
+
+    private var qualityOptions: [PlayerSettingsOption] {
+        TranscodeQualityPreset.displayOrder.enumerated().map { index, preset in
+            PlayerSettingsOption(
+                id: preset.rawValue, title: preset.title,
+                isSelected: selectedQuality == preset,
+                sectionTitle: index == 0 && onShowVersions != nil
+                    ? String(localized: "player.settings.quality.streaming") : nil,
+                action: { onSelect(preset) },
+            )
+        }
     }
 
     private var versionOptions: [PlayerSettingsOption] {
@@ -29,6 +35,7 @@ struct PlayerQualitySelectionView: View {
             title: String(localized: "player.settings.version"),
             subtitle: versionLabel,
             systemImage: "film.stack",
+            opensSubmenu: true,
             action: onShowVersions,
         )]
     }

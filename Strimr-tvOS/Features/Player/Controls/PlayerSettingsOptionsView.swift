@@ -7,6 +7,8 @@ struct PlayerSettingsOption: Identifiable {
     var isSelected = false
     var systemImage: String?
     var isDisabled = false
+    var opensSubmenu = false
+    var sectionTitle: String?
     let action: () -> Void
 }
 
@@ -32,11 +34,19 @@ struct PlayerSettingsOptionsView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(displayedOptions) { option in
+                            if let sectionTitle = option.sectionTitle {
+                                Text(sectionTitle)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 24)
+                                    .padding(.horizontal, 20)
+                            }
                             Button(action: option.action) {
                                 HStack(spacing: 16) {
                                     Image(systemName: option
                                         .isSelected ? "checkmark.circle.fill" : (option.systemImage ?? "circle"))
-                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : .white.opacity(0.5))
+                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : .white.opacity(option.opensSubmenu ? 1 : 0.5))
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(option.title).font(.headline)
                                         if let subtitle = option.subtitle {
@@ -44,6 +54,11 @@ struct PlayerSettingsOptionsView: View {
                                         }
                                     }
                                     Spacer(minLength: 0)
+                                    if option.opensSubmenu {
+                                        Image(systemName: "chevron.right")
+                                            .font(.headline)
+                                            .foregroundStyle(.white.opacity(0.5))
+                                    }
                                 }
                                 .foregroundStyle(.white)
                                 .padding(20)
