@@ -77,6 +77,7 @@ struct HomeRowsSettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(row.title)
                     .font(.headline)
+                    .foregroundStyle(isVisible ? .primary : .secondary)
 
                 HStack(spacing: 12) {
                     Button {
@@ -86,7 +87,7 @@ struct HomeRowsSettingsView: View {
                             isVisible
                                 ? "settings.interface.homeRows.hide"
                                 : "settings.interface.homeRows.show",
-                            systemImage: isVisible ? "eye.slash" : "eye",
+                            systemImage: isVisible ? "eye" : "eye.slash",
                         )
                     }
                     .buttonStyle(.bordered)
