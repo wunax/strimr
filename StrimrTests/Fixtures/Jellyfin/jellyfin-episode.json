@@ -1,0 +1,22 @@
+{
+  "Id": "episode-1",
+  "Name": "Pilot",
+  "Type": "Episode",
+  "RunTimeTicks": 26000000000,
+  "ParentId": "season-1",
+  "SeriesId": "series-1",
+  "SeasonId": "season-1",
+  "SeriesName": "Example Show",
+  "SeasonName": "Season 1",
+  "ParentIndexNumber": 1,
+  "IndexNumber": 1,
+  "ImageTags": {},
+  "BackdropImageTags": [],
+  "SeriesPrimaryImageTag": "series-tag",
+  "UserData": {
+    "Played": true,
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false
+  }
+}

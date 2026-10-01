@@ -1,0 +1,23 @@
+{
+  "Id": "movie-1",
+  "Name": "Example Movie",
+  "Type": "Movie",
+  "Overview": "A movie used by tests.",
+  "RunTimeTicks": 72000000000,
+  "ProductionYear": 2021,
+  "CommunityRating": 7.4,
+  "CriticRating": 88,
+  "OfficialRating": "PG-13",
+  "Genres": ["Drama", "Thriller"],
+  "Studios": [{ "Name": "Example Studio" }, { "Name": "Other Studio" }],
+  "Taglines": ["The tagline."],
+  "ImageTags": { "Primary": "primary-tag" },
+  "BackdropImageTags": ["backdrop-tag", "backdrop-tag-2"],
+  "UserData": {
+    "Played": false,
+    "PlaybackPositionTicks": 6000000000,
+    "PlayCount": 0,
+    "IsFavorite": true,
+    "LastPlayedDate": "2026-03-14T20:15:30.1234567Z"
+  }
+}

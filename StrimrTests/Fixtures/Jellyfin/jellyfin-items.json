@@ -1,0 +1,10 @@
+{
+  "Items": [
+    { "Id": "boxset-1", "Name": "Example Collection", "Type": "BoxSet", "ChildCount": 3, "ImageTags": { "Primary": "boxset-tag" } },
+    { "Id": "playlist-1", "Name": "Example Playlist", "Type": "Playlist", "RunTimeTicks": 90000000000, "RecursiveItemCount": 12 },
+    { "Id": "folder-1", "Name": "Example Folder", "Type": "Folder" },
+    { "Id": "trailer-1", "Name": "Example Trailer", "Type": "Trailer" }
+  ],
+  "StartIndex": 0,
+  "TotalRecordCount": 4
+}
