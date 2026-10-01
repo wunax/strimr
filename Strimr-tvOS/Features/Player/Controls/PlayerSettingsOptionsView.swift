@@ -46,7 +46,8 @@ struct PlayerSettingsOptionsView: View {
                                 HStack(spacing: 16) {
                                     Image(systemName: option
                                         .isSelected ? "checkmark.circle.fill" : (option.systemImage ?? "circle"))
-                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : .white.opacity(option.opensSubmenu ? 1 : 0.5))
+                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : .white
+                                            .opacity(option.opensSubmenu ? 1 : 0.5))
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(option.title).font(.headline)
                                         if let subtitle = option.subtitle {
