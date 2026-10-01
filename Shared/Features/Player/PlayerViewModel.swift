@@ -504,11 +504,21 @@ final class PlayerViewModel {
 
         let previousPlan = playbackPlan
         // Track ids are specific to each file: carry the preference by language, not the old stream index.
+        // Without remembered tracks, keep what is playing now so switching files never changes the language.
+        let trackPreference = rememberedTrackPreference?.matchingAcrossItems
+            ?? previousPlan.map { plan in
+                Self.sessionTrackPreference(
+                    tracks: plan.tracks,
+                    audioSourceIndex: preferredAudioStreamFFIndex,
+                    subtitleStreamID: preferredSubtitleStreamID,
+                    subtitleIsOff: preferredSubtitleSelectionIsOff,
+                )
+            }
         let plan = try await mediaServices.playback.prepare(
             media: media,
             resume: false,
             quality: selectedQuality,
-            trackPreference: rememberedTrackPreference?.matchingAcrossItems,
+            trackPreference: trackPreference,
             version: .explicit(versionID: versionID),
         )
         apply(plan: plan)
@@ -525,6 +535,43 @@ final class PlayerViewModel {
         let duration = selectedVersion?.duration ?? plan.media.duration
         let resumePosition = duration.map { min(position, max(0, $0 - 5)) } ?? position
         return (plan.url, resumePosition)
+    }
+
+    /// Describes the playing tracks by attributes only, for matching in another file. Never stored.
+    static func sessionTrackPreference(
+        tracks: [PlaybackTrack],
+        audioSourceIndex: Int?,
+        subtitleStreamID: Int?,
+        subtitleIsOff: Bool,
+    ) -> MediaTrackPreference {
+        let audio = tracks.first { $0.kind == .audio && $0.sourceIndex == audioSourceIndex }
+        let subtitle = tracks.first { track in
+            track.kind == .subtitle && (Int(track.id) ?? track.sourceIndex) == subtitleStreamID
+        }
+        let subtitlePreference: MediaSubtitlePreference = if let subtitle {
+            .track(
+                streamIndex: nil,
+                language: subtitle.language,
+                title: subtitle.title,
+                codec: subtitle.codec ?? "",
+                isForced: subtitle.isForced,
+                isHearingImpaired: subtitle.isHearingImpaired,
+            )
+        } else if subtitleIsOff || subtitleStreamID == nil {
+            .off
+        } else {
+            // A subtitle missing from the plan (e.g. attached during playback) cannot be described.
+            .serverDefault
+        }
+        return MediaTrackPreference(
+            audioStreamIndex: nil,
+            audioLanguage: audio?.language,
+            audioTitle: audio?.title,
+            audioCodec: audio?.codec,
+            audioIsHearingImpaired: audio?.isHearingImpaired,
+            audioIsCommentary: nil,
+            subtitle: subtitlePreference,
+        )
     }
 
     var availableVersions: [MediaFileVersion] {
