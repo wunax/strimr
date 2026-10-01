@@ -1133,7 +1133,12 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let media = plexMedia[mediaIndex]
         let partIndex = media.parts.firstIndex(where: \.isAvailable) ?? 0
         guard media.parts.indices.contains(partIndex) else { return nil }
-        return VersionSelection(mediaIndex: mediaIndex, media: media, partIndex: partIndex, part: media.parts[partIndex])
+        return VersionSelection(
+            mediaIndex: mediaIndex,
+            media: media,
+            partIndex: partIndex,
+            part: media.parts[partIndex],
+        )
     }
 
     private func mapFileInfoVersion(_ media: PlexMedia) -> MediaFileVersion {

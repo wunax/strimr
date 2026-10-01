@@ -498,7 +498,10 @@ final class PlayerViewModel {
     }
 
     /// Reloads another version of the current item and returns where to resume it.
-    func changeVersion(to versionID: String, from position: TimeInterval) async throws -> (url: URL, position: TimeInterval) {
+    func changeVersion(
+        to versionID: String,
+        from position: TimeInterval,
+    ) async throws -> (url: URL, position: TimeInterval) {
         guard !isLivePlayback, !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
         guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
 

@@ -1248,7 +1248,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             versions: sources.map(mapFileInfoVersion),
             request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
         ),
-              let stream = source.resolveSubtitleStream(preference: tracks.subtitle)
+            let stream = source.resolveSubtitleStream(preference: tracks.subtitle)
         else { return [] }
         return try makeDownloadSidecars(itemID: item.id, source: source, subtitle: stream)
     }
