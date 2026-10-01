@@ -110,9 +110,16 @@ struct MediaDetailVersionMenuItems: View {
             Task { await viewModel.selectVersion(id: nil) }
         } label: {
             Label {
-                Text("media.versions.automatic")
                 if let automatic = viewModel.automaticVersion {
-                    Text(automatic.displayLabel(among: viewModel.versions))
+                    #if os(tvOS)
+                        // tvOS menus drop the second line, so the target goes into the title.
+                        Text("media.versions.automaticTarget \(automatic.displayLabel(among: viewModel.versions))")
+                    #else
+                        Text("media.versions.automatic")
+                        Text(automatic.displayLabel(among: viewModel.versions))
+                    #endif
+                } else {
+                    Text("media.versions.automatic")
                 }
             } icon: {
                 Image(systemName: viewModel.hasVersionPreference ? "circle" : "checkmark")
@@ -192,6 +199,12 @@ struct MediaDetailTrackMenuItems: View {
 
     var body: some View {
         if ratingKey == nil || ratingKey == viewModel.trackRatingKey {
+            if viewModel.showsVersionSelection {
+                Menu("media.versions.title", systemImage: "square.stack") {
+                    MediaDetailVersionMenuItems(viewModel: viewModel)
+                }
+            }
+
             if !viewModel.audioTracks.isEmpty {
                 Menu("player.settings.audio", systemImage: "waveform") {
                     ForEach(viewModel.audioTracks, id: \.self) { track in
@@ -254,6 +267,9 @@ struct MediaDetailTrackSummary: View {
 
     var body: some View {
         HStack(spacing: spacing) {
+            if viewModel.showsVersionSelection {
+                Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
+            }
             if let audioTitle = viewModel.selectedAudioTrackTitle {
                 Label(audioTitle, systemImage: "waveform")
             }

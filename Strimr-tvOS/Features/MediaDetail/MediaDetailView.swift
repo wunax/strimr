@@ -14,7 +14,6 @@ struct MediaDetailView: View {
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
     @State private var fileInfoMedia: MediaItem?
-    @State private var isShowingVersionSelection = false
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -52,7 +51,7 @@ struct MediaDetailView: View {
 
                         buttonsRow
 
-                        if bindableViewModel.hasTrackSelection {
+                        if bindableViewModel.hasTrackSelection || bindableViewModel.showsVersionSelection {
                             MediaDetailTrackSummary(viewModel: bindableViewModel, spacing: 24)
                         }
 
@@ -90,9 +89,6 @@ struct MediaDetailView: View {
                     await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
                 }
             }
-        }
-        .taskPresentation(isPresented: $isShowingVersionSelection) {
-            MediaVersionSelectionView(viewModel: bindableViewModel)
         }
         .taskPresentation(item: $fileInfoMedia) { media in
             MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
@@ -225,27 +221,8 @@ struct MediaDetailView: View {
                 playFromStartButton
             }
 
-            if viewModel.showsVersionSelection {
-                versionButton
-            }
-
             moreActionsMenu
         }
-    }
-
-    private var versionButton: some View {
-        Button {
-            isShowingVersionSelection = true
-        } label: {
-            Label(viewModel.selectedVersionShortLabel, systemImage: "square.stack")
-                .font(.headline)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
-        .disabled(viewModel.isUpdatingTracks)
-        .accessibilityLabel(Text("media.versions.title"))
-        .accessibilityValue(Text(viewModel.selectedVersionShortLabel))
     }
 
     private var playFromStartButton: some View {
@@ -367,7 +344,7 @@ struct MediaDetailView: View {
                 )
             }
 
-            if viewModel.hasTrackSelection || viewModel.canSearchSubtitles {
+            if viewModel.hasTrackSelection || viewModel.showsVersionSelection || viewModel.canSearchSubtitles {
                 Divider()
                 MediaDetailTrackMenuItems(
                     viewModel: viewModel,

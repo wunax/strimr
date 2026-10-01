@@ -9198,6 +9198,28 @@
         }
       }
     },
+    "media.versions.automaticTarget %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动（%@）"
+          }
+        }
+      }
+    },
     "media.versions.count %lld" : {
       "localizations" : {
         "en" : {
