@@ -95,11 +95,21 @@ struct SubtitleOverlayView: View {
         for run in runs {
             var part = AttributedString(run.text)
             var intent: InlinePresentationIntent = []
-            if run.isBold { intent.insert(.stronglyEmphasized) }
-            if run.isItalic { intent.insert(.emphasized) }
-            if !intent.isEmpty { part.inlinePresentationIntent = intent }
-            if run.isUnderlined { part.swiftUI.underlineStyle = .single }
-            if run.isStruckThrough { part.swiftUI.strikethroughStyle = .single }
+            if run.isBold {
+                intent.insert(.stronglyEmphasized)
+            }
+            if run.isItalic {
+                intent.insert(.emphasized)
+            }
+            if !intent.isEmpty {
+                part.inlinePresentationIntent = intent
+            }
+            if run.isUnderlined {
+                part.swiftUI.underlineStyle = .single
+            }
+            if run.isStruckThrough {
+                part.swiftUI.strikethroughStyle = .single
+            }
             result += part
         }
         return result
