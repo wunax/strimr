@@ -19,72 +19,65 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        Group {
-            if #available(iOS 18.0, *) {
-                modernTabView
-            } else {
-                legacyTabView
+        tabView
+            .environmentObject(coordinator)
+            .task {
+                try? await libraryStore.loadLibraries()
+                sharePlayCoordinator.configurePlaybackLauncher(
+                    PlaybackLauncher(
+                        services: mediaServices,
+                        coordinator: coordinator,
+                    ),
+                )
             }
-        }
-        .environmentObject(coordinator)
-        .task {
-            try? await libraryStore.loadLibraries()
-            sharePlayCoordinator.configurePlaybackLauncher(
-                PlaybackLauncher(
-                    services: mediaServices,
-                    coordinator: coordinator,
-                ),
-            )
-        }
-        .task(id: mediaServices.identity) {
-            if await mediaServices.liveTVStore.refreshAvailability() == false {
-                coordinator.resetLiveTVNavigation()
-            }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task {
+            .task(id: mediaServices.identity) {
                 if await mediaServices.liveTVStore.refreshAvailability() == false {
                     coordinator.resetLiveTVNavigation()
                 }
             }
-        }
-        .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
-            if !isDisplayed {
-                coordinator.resetLiveTVNavigation()
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task {
+                    if await mediaServices.liveTVStore.refreshAvailability() == false {
+                        coordinator.resetLiveTVNavigation()
+                    }
+                }
             }
-        }
-        .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
-            // Availability checked while offline is unreliable: check again once the server is back.
-            guard !isUnreachable else { return }
-            Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
-        }
-        .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
-            if let queue = coordinator.selectedMediaQueue,
-               let services = coordinator.selectedMediaServices
-            {
-                PlayerWrapper(
-                    viewModel: PlayerViewModel(
-                        queue: queue,
-                        services: services,
-                        shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
-                    ),
-                )
-                .environment(plexApiContext)
-            } else if let context = coordinator.selectedLiveTVContext,
-                      let services = coordinator.selectedMediaServices
-            {
-                PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services))
-                    .environment(plexApiContext)
-            } else if let request = coordinator.selectedLocalPlayback {
-                PlayerWrapper(viewModel: PlayerViewModel(request: request))
-                    .environment(plexApiContext)
+            .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
+                if !isDisplayed {
+                    coordinator.resetLiveTVNavigation()
+                }
             }
-        }
+            .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
+                // Availability checked while offline is unreliable: check again once the server is back.
+                guard !isUnreachable else { return }
+                Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
+            }
+            .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
+                if let queue = coordinator.selectedMediaQueue,
+                   let services = coordinator.selectedMediaServices
+                {
+                    PlayerWrapper(
+                        viewModel: PlayerViewModel(
+                            queue: queue,
+                            services: services,
+                            shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                        ),
+                    )
+                    .environment(plexApiContext)
+                } else if let context = coordinator.selectedLiveTVContext,
+                          let services = coordinator.selectedMediaServices
+                {
+                    PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services))
+                        .environment(plexApiContext)
+                } else if let request = coordinator.selectedLocalPlayback {
+                    PlayerWrapper(viewModel: PlayerViewModel(request: request))
+                        .environment(plexApiContext)
+                }
+            }
     }
 
-    @available(iOS 18.0, *)
-    private var modernTabView: some View {
+    private var tabView: some View {
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
                 homeTabContent
@@ -132,66 +125,6 @@ struct MainTabView: View {
                         libraryDetailTabContent(library)
                     }
                 }
-            }
-        }
-    }
-
-    private var legacyTabView: some View {
-        TabView(selection: $coordinator.tab) {
-            homeTabContent
-                .tabItem {
-                    Label("tabs.home", systemImage: "house.fill")
-                }
-                .tag(MainCoordinator.Tab.home)
-
-            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
-                discoverTabContent
-                    .tabItem {
-                        Label("tabs.discover", systemImage: "sparkles")
-                    }
-                    .tag(MainCoordinator.Tab.seerrDiscover)
-            }
-
-            searchTabContent
-                .tabItem {
-                    Label("tabs.search", systemImage: "magnifyingglass")
-                }
-                .tag(MainCoordinator.Tab.search)
-
-            if settingsManager.interface.displayDownloadsTab {
-                downloadsTabContent
-                    .tabItem {
-                        Label("downloads.title", systemImage: "arrow.down.circle.fill")
-                    }
-                    .tag(MainCoordinator.Tab.downloads)
-            }
-
-            libraryTabContent
-                .tabItem {
-                    Label("tabs.libraries", systemImage: "rectangle.stack.fill")
-                }
-                .tag(MainCoordinator.Tab.library)
-
-            if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
-                liveTVTabContent
-                    .tabItem { Label("livetv.title", systemImage: "tv") }
-                    .tag(MainCoordinator.Tab.liveTV)
-            }
-
-            if settingsManager.interface.displayFavoritesTab {
-                favoritesTabContent
-                    .tabItem {
-                        Label("tabs.favorites", systemImage: "star.fill")
-                    }
-                    .tag(MainCoordinator.Tab.favorites)
-            }
-
-            ForEach(navigationLibraries) { library in
-                libraryDetailTabContent(library)
-                    .tabItem {
-                        Label(library.title, systemImage: library.iconName)
-                    }
-                    .tag(MainCoordinator.Tab.libraryDetail(library.id))
             }
         }
     }

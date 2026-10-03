@@ -7,7 +7,7 @@
       "location" : "https://github.com/wunax/AetherEngine",
       "state" : {
         "branch" : "main",
-        "revision" : "058d0bdcab95cb2ac02af7c457fd3325d06189aa"
+        "revision" : "c0b2485a422a43cbe0d39aeef3f79283338faa56"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/FFmpegBuild",
       "state" : {
-        "revision" : "4e58942403d37cceff3a3212e3e026f4205146a2",
-        "version" : "3.3.0"
+        "revision" : "fda08325455bc12c112b5b82d014b98fa0fee0be",
+        "version" : "3.6.0"
       }
     },
     {
