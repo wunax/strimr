@@ -73,13 +73,36 @@ struct SubtitleOverlayView: View {
         .allowsHitTesting(false)
     }
 
-    private var activeTextLines: [String] {
+    private var activeTextLines: [AttributedString] {
         activeCues.compactMap { cue in
-            guard case let .text(text) = cue.body else { return nil }
-            let displayText = isASSTrackActive ? strippedASSText(text) : text
-            let cleaned = displayText.trimmingCharacters(in: .whitespacesAndNewlines)
-            return cleaned.isEmpty ? nil : cleaned
+            switch cue.body {
+            case let .text(text):
+                let displayText = isASSTrackActive ? strippedASSText(text) : text
+                let cleaned = displayText.trimmingCharacters(in: .whitespacesAndNewlines)
+                return cleaned.isEmpty ? nil : AttributedString(cleaned)
+            case let .richText(runs):
+                let text = attributedText(runs)
+                let isBlank = String(text.characters).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                return isBlank ? nil : text
+            case .image:
+                return nil
+            }
         }
+    }
+
+    private func attributedText(_ runs: [SubtitleTextRun]) -> AttributedString {
+        var result = AttributedString()
+        for run in runs {
+            var part = AttributedString(run.text)
+            var intent: InlinePresentationIntent = []
+            if run.isBold { intent.insert(.stronglyEmphasized) }
+            if run.isItalic { intent.insert(.emphasized) }
+            if !intent.isEmpty { part.inlinePresentationIntent = intent }
+            if run.isUnderlined { part.swiftUI.underlineStyle = .single }
+            if run.isStruckThrough { part.swiftUI.strikethroughStyle = .single }
+            result += part
+        }
+        return result
     }
 
     private var isASSTrackActive: Bool {
@@ -391,8 +414,17 @@ private final class ASSFrameHostView: PlatformView {
 }
 
 struct SubtitleTextView: View {
-    let text: String
+    let text: AttributedString
     let appearance: SubtitleAppearance
+
+    init(text: AttributedString, appearance: SubtitleAppearance) {
+        self.text = text
+        self.appearance = appearance
+    }
+
+    init(text: String, appearance: SubtitleAppearance) {
+        self.init(text: AttributedString(text), appearance: appearance)
+    }
 
     var body: some View {
         edgedText
