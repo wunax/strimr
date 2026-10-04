@@ -2,23 +2,12 @@ import Observation
 import SwiftUI
 
 struct PlaylistDetailView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: PlaylistDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
-
-    private var cardWidth: CGFloat {
-        settingsManager.interface.posterSize.gridCardWidth
-    }
-
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 12),
-        ]
-    }
 
     init(
         viewModel: PlaylistDetailViewModel,
@@ -40,7 +29,7 @@ struct PlaylistDetailView: View {
                 headerSection
                 playButtonsRow
 
-                LazyVGrid(columns: gridColumns, spacing: 16) {
+                PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                     ForEach(bindableViewModel.items) { media in
                         PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                             onSelectMedia(media)

@@ -1,20 +1,11 @@
 import SwiftUI
 
 struct LibraryCollectionsView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryCollectionsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @FocusState private var focusedCharacterId: String?
-
-    private var cardWidth: CGFloat {
-        settingsManager.interface.posterSize.gridCardWidth
-    }
-
-    private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32)]
-    }
 
     init(
         viewModel: LibraryCollectionsViewModel,
@@ -28,7 +19,7 @@ struct LibraryCollectionsView: View {
         ScrollViewReader { proxy in
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
-                    LazyVGrid(columns: gridColumns, spacing: 32) {
+                    PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
                         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {

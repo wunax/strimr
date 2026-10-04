@@ -1,24 +1,13 @@
 import SwiftUI
 
 struct LibraryPlaylistsView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryPlaylistsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var cardWidth: CGFloat {
-        settingsManager.interface.posterSize.gridCardWidth
-    }
-
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 12),
-        ]
-    }
-
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: 16) {
+            PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                 ForEach(viewModel.items) { media in
                     PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                         onSelectMedia(media)

@@ -2,15 +2,14 @@ import Observation
 import SwiftUI
 
 struct PersonDetailView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PersonDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var gridColumns: [GridItem] {
+    private var columnSpacing: CGFloat {
         #if os(tvOS)
-            [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32, alignment: .top)]
+            32
         #else
-            [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 12, alignment: .top)]
+            12
         #endif
     }
 
@@ -64,7 +63,7 @@ struct PersonDetailView: View {
             )
             .frame(maxWidth: .infinity, minHeight: 240)
         } else {
-            LazyVGrid(columns: gridColumns, spacing: gridSpacing) {
+            PosterGrid(spacing: columnSpacing, rowSpacing: gridSpacing) { cardWidth in
                 ForEach(viewModel.items, id: \.id) { item in
                     PortraitMediaCard(
                         media: item,
@@ -102,10 +101,6 @@ struct PersonDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private var cardWidth: CGFloat {
-        settingsManager.interface.posterSize.gridCardWidth
     }
 
     private var portraitSize: CGFloat {

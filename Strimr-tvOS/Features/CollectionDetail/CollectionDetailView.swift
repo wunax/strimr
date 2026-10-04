@@ -2,21 +2,12 @@ import Observation
 import SwiftUI
 
 struct CollectionDetailView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: CollectionDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
-
-    private var cardWidth: CGFloat {
-        settingsManager.interface.posterSize.gridCardWidth
-    }
-
-    private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32)]
-    }
 
     init(
         viewModel: CollectionDetailViewModel,
@@ -37,7 +28,7 @@ struct CollectionDetailView: View {
             VStack(alignment: .leading, spacing: 48) {
                 headerSection
 
-                LazyVGrid(columns: gridColumns, spacing: 32) {
+                PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
                     ForEach(bindableViewModel.items) { media in
                         PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                             onSelectMedia(media)
