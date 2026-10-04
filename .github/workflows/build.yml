@@ -44,13 +44,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: macOS build
+      - name: Configure macOS tests
+        run: |
+          cp Config/Config-example.xcconfig Config/Config.xcconfig
+          printf '\nPRODUCT_BUNDLE_IDENTIFIER = app.strimr.ci\n' >> Config/Config.xcconfig
+          touch Config/Config-TopShelf.xcconfig
+
+      - name: macOS build and tests
         run: |
           xcodebuild \
             -project Strimr.xcodeproj \
             -scheme Strimr-macOS \
-            -destination 'generic/platform=macOS' \
+            -destination 'platform=macOS' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
+            -resultBundlePath build/TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            test
+
+      - name: Upload macOS test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: ignore
