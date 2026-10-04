@@ -1,5 +1,12 @@
 import Foundation
 
+enum PlexConnectionKind: Equatable {
+    case local
+    case remote
+    case relay
+    case custom
+}
+
 @Observable
 final class PlexAPIContext {
     struct ServerAccessSnapshot: Equatable {
@@ -35,6 +42,7 @@ final class PlexAPIContext {
     private var resource: PlexCloudResource?
     private(set) var baseURLServer: URL?
     private(set) var authTokenServer: String?
+    private(set) var connectionKind: PlexConnectionKind?
     private(set) var serverAccessGeneration = 0
     @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
     @ObservationIgnored private var recoveryTask: Task<Void, Error>?
@@ -203,6 +211,7 @@ final class PlexAPIContext {
         resource = nil
         baseURLServer = nil
         authTokenServer = nil
+        connectionKind = nil
         serverAccessGeneration &+= 1
     }
 
@@ -234,6 +243,27 @@ final class PlexAPIContext {
 
     func customServerURL(for resource: PlexCloudResource) -> URL? {
         loadCustomConnection(for: resource)
+    }
+
+    func removeCustomServerURL(for resource: PlexCloudResource) {
+        try? keychain.deleteValue(forKey: customConnectionKey(for: resource))
+    }
+
+    static func connectionKind(
+        of url: URL,
+        resource: PlexCloudResource,
+        customURL: URL?,
+    ) -> PlexConnectionKind? {
+        if url == customURL {
+            return .custom
+        }
+        guard let connection = resource.connections?.first(where: { $0.uri == url }) else {
+            return nil
+        }
+        if connection.isRelay {
+            return .relay
+        }
+        return connection.isLocal ? .local : .remote
     }
 
     private func resolveServerURL(using resource: PlexCloudResource) async throws -> URL {
@@ -441,6 +471,11 @@ final class PlexAPIContext {
         self.resource = resource
         baseURLServer = url
         authTokenServer = resource.accessToken
+        connectionKind = Self.connectionKind(
+            of: url,
+            resource: resource,
+            customURL: loadCustomConnection(for: resource),
+        )
         storeConnection(url, for: resource)
         serverAccessGeneration &+= 1
     }
@@ -450,6 +485,7 @@ final class PlexAPIContext {
         authTokenCloud = nil
         baseURLServer = nil
         authTokenServer = nil
+        connectionKind = nil
         recoveryTask?.cancel()
         recoveryTask = nil
         serverAccessGeneration &+= 1
