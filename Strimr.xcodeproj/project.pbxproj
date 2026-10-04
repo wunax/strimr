@@ -298,6 +298,7 @@
 				Views/Media/MediaImageView.swift,
 				Views/Media/MediaImageViewModel.swift,
 				Views/Media/MediaRatingLabel.swift,
+				Views/Media/PosterGrid.swift,
 				Views/Media/WatchStatusBadge.swift,
 				Views/Seerr/SeerrAvailabilityBadgeView.swift,
 				Views/Seerr/SeerrCastSection.swift,

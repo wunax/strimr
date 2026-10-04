@@ -5,11 +5,11 @@ struct PersonDetailView: View {
     @State var viewModel: PersonDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var gridColumns: [GridItem] {
+    private var columnSpacing: CGFloat {
         #if os(tvOS)
-            [GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32, alignment: .top)]
+            32
         #else
-            [GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12, alignment: .top)]
+            12
         #endif
     }
 
@@ -63,7 +63,7 @@ struct PersonDetailView: View {
             )
             .frame(maxWidth: .infinity, minHeight: 240)
         } else {
-            LazyVGrid(columns: gridColumns, spacing: gridSpacing) {
+            PosterGrid(spacing: columnSpacing, rowSpacing: gridSpacing) { cardWidth in
                 ForEach(viewModel.items, id: \.id) { item in
                     PortraitMediaCard(
                         media: item,
@@ -101,14 +101,6 @@ struct PersonDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private var cardWidth: CGFloat {
-        #if os(tvOS)
-            200
-        #else
-            112
-        #endif
     }
 
     private var portraitSize: CGFloat {

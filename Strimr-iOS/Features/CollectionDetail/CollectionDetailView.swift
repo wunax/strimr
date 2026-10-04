@@ -9,12 +9,6 @@ struct CollectionDetailView: View {
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
 
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12),
-        ]
-    }
-
     init(
         viewModel: CollectionDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
@@ -35,9 +29,9 @@ struct CollectionDetailView: View {
                 headerSection
                 playButtonsRow
 
-                LazyVGrid(columns: gridColumns, spacing: 16) {
+                PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                     ForEach(bindableViewModel.items) { media in
-                        PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+                        PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                             onSelectMedia(media)
                         }
                     }

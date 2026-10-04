@@ -4,6 +4,7 @@ struct MediaCarousel: View {
     enum Layout { case portrait, landscape }
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SettingsManager.self) private var settingsManager
     #if os(tvOS)
         @FocusState private var isViewAllFocused: Bool
     #endif
@@ -103,6 +104,7 @@ struct MediaCarousel: View {
     }
 
     private func cardSize(for layout: Layout) -> CGSize {
+        let scale = settingsManager.interface.posterSize.scale
         switch layout {
         case .portrait:
             let height: CGFloat
@@ -113,7 +115,7 @@ struct MediaCarousel: View {
             #else
                 height = sizeClass == .compact ? 180 : 240
             #endif
-            return CGSize(width: height * 2 / 3, height: height)
+            return CGSize(width: height * scale * 2 / 3, height: height * scale)
         case .landscape:
             let height: CGFloat
             #if os(tvOS)
@@ -123,7 +125,7 @@ struct MediaCarousel: View {
             #else
                 height = sizeClass == .compact ? 90 : 124
             #endif
-            return CGSize(width: height * 16 / 9, height: height)
+            return CGSize(width: height * scale * 16 / 9, height: height * scale)
         }
     }
 

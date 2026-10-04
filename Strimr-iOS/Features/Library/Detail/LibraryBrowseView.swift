@@ -4,12 +4,6 @@ struct LibraryBrowseView: View {
     @State var viewModel: LibraryBrowseViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12, alignment: .top),
-        ]
-    }
-
     private var downloadedOnlyToggle: LibraryBrowseToggle? {
         guard viewModel.showsDownloadedOnlyToggle else { return nil }
         return LibraryBrowseToggle(
@@ -21,9 +15,9 @@ struct LibraryBrowseView: View {
     }
 
     @ViewBuilder
-    private var browseItems: some View {
+    private func browseItems(cardWidth: CGFloat? = nil) -> some View {
         ForEach(Array(viewModel.browseItems.enumerated()), id: \.element.id) { index, item in
-            browseItem(item)
+            browseItem(item, cardWidth: cardWidth)
                 .task {
                     if index == viewModel.browseItems.count - 1 {
                         await viewModel.loadMore()
@@ -38,10 +32,10 @@ struct LibraryBrowseView: View {
     }
 
     @ViewBuilder
-    private func browseItem(_ item: LibraryBrowseItem) -> some View {
+    private func browseItem(_ item: LibraryBrowseItem, cardWidth: CGFloat?) -> some View {
         switch (item, viewModel.layout) {
         case let (.media(media), .grid):
-            PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+            PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                 onSelectMedia(media)
             }
         case let (.media(media), .list):
@@ -49,7 +43,7 @@ struct LibraryBrowseView: View {
                 onSelectMedia(media)
             }
         case let (.folder(folder), .grid):
-            FolderCard(title: folder.title, width: 112, showsLabels: true) {
+            FolderCard(title: folder.title, width: cardWidth, showsLabels: true) {
                 viewModel.enterFolder(folder)
             }
         case let (.folder(folder), .list):
@@ -83,12 +77,12 @@ struct LibraryBrowseView: View {
                     Group {
                         switch viewModel.layout {
                         case .grid:
-                            LazyVGrid(columns: gridColumns, spacing: 16) {
-                                browseItems
+                            PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
+                                browseItems(cardWidth: cardWidth)
                             }
                         case .list:
                             LazyVStack(spacing: 0) {
-                                browseItems
+                                browseItems()
                             }
                         }
                     }

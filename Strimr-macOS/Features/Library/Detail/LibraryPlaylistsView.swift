@@ -5,17 +5,11 @@ struct LibraryPlaylistsView: View {
     @State var viewModel: LibraryPlaylistsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12),
-        ]
-    }
-
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: 16) {
+            PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                 ForEach(viewModel.items) { media in
-                    PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+                    PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                         onSelectMedia(media)
                     }
                     .task {

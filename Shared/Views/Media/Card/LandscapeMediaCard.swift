@@ -8,6 +8,7 @@ struct LandscapeMediaCard: View {
     let onTap: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SettingsManager.self) private var settingsManager
 
     private let aspectRatio: CGFloat = 16 / 9
 
@@ -26,6 +27,10 @@ struct LandscapeMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
+        baseHeight * settingsManager.interface.posterSize.scale
+    }
+
+    private var baseHeight: CGFloat {
         #if os(tvOS)
             180
         #elseif os(macOS)

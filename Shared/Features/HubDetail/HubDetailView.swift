@@ -4,21 +4,17 @@ struct HubDetailView: View {
     @State var viewModel: HubDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private var gridColumns: [GridItem] {
+    private var columnSpacing: CGFloat {
         #if os(tvOS)
-            [
-                GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32, alignment: .top),
-            ]
+            32
         #else
-            [
-                GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12, alignment: .top),
-            ]
+            12
         #endif
     }
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: gridSpacing) {
+            PosterGrid(spacing: columnSpacing, rowSpacing: gridSpacing) { cardWidth in
                 ForEach(viewModel.items, id: \.id) { item in
                     PortraitMediaCard(media: item, width: cardWidth, showsLabels: true) {
                         onSelectMedia(item)
@@ -60,14 +56,6 @@ struct HubDetailView: View {
             .task {
                 await viewModel.load()
             }
-    }
-
-    private var cardWidth: CGFloat {
-        #if os(tvOS)
-            200
-        #else
-            112
-        #endif
     }
 
     private var gridSpacing: CGFloat {

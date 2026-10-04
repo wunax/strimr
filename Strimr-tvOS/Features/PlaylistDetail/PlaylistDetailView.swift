@@ -9,10 +9,6 @@ struct PlaylistDetailView: View {
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
 
-    private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
-    ]
-
     init(
         viewModel: PlaylistDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
@@ -32,9 +28,9 @@ struct PlaylistDetailView: View {
             VStack(alignment: .leading, spacing: 48) {
                 headerSection
 
-                LazyVGrid(columns: gridColumns, spacing: 32) {
+                PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
                     ForEach(bindableViewModel.items) { media in
-                        PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+                        PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                             onSelectMedia(media)
                         }
                     }

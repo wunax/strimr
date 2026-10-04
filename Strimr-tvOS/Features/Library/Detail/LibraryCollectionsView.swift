@@ -7,10 +7,6 @@ struct LibraryCollectionsView: View {
 
     @FocusState private var focusedCharacterId: String?
 
-    private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
-    ]
-
     init(
         viewModel: LibraryCollectionsViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
@@ -23,11 +19,11 @@ struct LibraryCollectionsView: View {
         ScrollViewReader { proxy in
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
-                    LazyVGrid(columns: gridColumns, spacing: 32) {
+                    PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
                         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {
-                                    PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+                                    PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                                         onSelectMedia(media)
                                     }
                                 } else {

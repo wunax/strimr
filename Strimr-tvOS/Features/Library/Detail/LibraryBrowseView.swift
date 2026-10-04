@@ -8,10 +8,6 @@ struct LibraryBrowseView: View {
 
     private let listRowMetrics = MediaListRowMetrics(sizeClass: nil)
 
-    private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
-    ]
-
     init(
         viewModel: LibraryBrowseViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
@@ -41,12 +37,12 @@ struct LibraryBrowseView: View {
 
                         switch viewModel.layout {
                         case .grid:
-                            LazyVGrid(columns: gridColumns, spacing: 32) {
-                                browseItems
+                            PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
+                                browseItems(cardWidth: cardWidth)
                             }
                         case .list:
                             LazyVStack(spacing: 0) {
-                                browseItems
+                                browseItems()
                             }
                         }
                     }
@@ -95,11 +91,11 @@ struct LibraryBrowseView: View {
         }
     }
 
-    private var browseItems: some View {
+    private func browseItems(cardWidth: CGFloat? = nil) -> some View {
         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
             Group {
                 if let item = viewModel.itemsByIndex[index] {
-                    browseItem(item)
+                    browseItem(item, cardWidth: cardWidth)
                 } else {
                     ProgressView()
                         .frame(maxWidth: viewModel.layout == .list ? .infinity : nil)
@@ -116,10 +112,10 @@ struct LibraryBrowseView: View {
     }
 
     @ViewBuilder
-    private func browseItem(_ item: LibraryBrowseItem) -> some View {
+    private func browseItem(_ item: LibraryBrowseItem, cardWidth: CGFloat?) -> some View {
         switch (item, viewModel.layout) {
         case let (.media(media), .grid):
-            PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+            PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                 onSelectMedia(media)
             }
         case let (.media(media), .list):
@@ -127,7 +123,7 @@ struct LibraryBrowseView: View {
                 onSelectMedia(media)
             }
         case let (.folder(folder), .grid):
-            FolderCard(title: folder.title, width: 200, showsLabels: true) {
+            FolderCard(title: folder.title, width: cardWidth, showsLabels: true) {
                 viewModel.enterFolder(folder)
             }
         case let (.folder(folder), .list):
