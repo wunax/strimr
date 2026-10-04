@@ -16,6 +16,8 @@ struct HomeRow: Identifiable, Hashable {
     let kind: HomeRowKind
     let style: HomeRowStyle
     let hub: Hub
+    /// Name of the row's server, shown when the profile has several servers.
+    var serverName: String?
 
     var title: String {
         hub.title

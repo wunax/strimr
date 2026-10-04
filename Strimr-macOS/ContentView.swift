@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(SessionManager.self) private var sessionManager
-    @Environment(PlexAPIContext.self) private var plexAPIContext
+    @Environment(ServerRegistry.self) private var registry
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(AppModel.self) private var appModel
@@ -28,13 +28,14 @@ struct ContentView: View {
             }
         }
         .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
-            guard hasNetworkPath, sessionManager.status == .signedOut else { return }
+            guard hasNetworkPath, sessionManager.status == .migrationFailed else { return }
             Task { await sessionManager.hydrate() }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 offlineCoordinator.availability.refresh()
+                registry.retryUnavailable()
             case .background:
                 offlineCoordinator.evictCacheIfNeeded()
             case .inactive:
@@ -50,9 +51,8 @@ struct ContentView: View {
             guard presentationID != nil else { return }
             openWindow(id: AppModel.playerWindowID)
         }
-        .onChange(of: sessionManager.mediaServices.map(ObjectIdentifier.init), initial: true) { _, _ in
-            OfflineCoordinator.shared.activate(services: sessionManager.mediaServices)
-            downloadManager.activateSession(services: sessionManager.mediaServices)
+        .onChange(of: registry.connectedServices.map(ObjectIdentifier.init), initial: true) { _, _ in
+            downloadManager.activateSession(services: registry.connectedServices)
         }
     }
 
@@ -60,9 +60,9 @@ struct ContentView: View {
     private var showsStaticDownloads: Bool {
         guard !offlineCoordinator.availability.hasNetworkPath, downloadManager.playableCount > 0 else { return false }
         switch sessionManager.status {
-        case .signedOut, .needsProviderSelection, .needsJellyfinAuthentication:
+        case .needsAccount, .migrationFailed:
             return true
-        case .hydrating, .needsProfileSelection, .needsServerSelection, .ready:
+        case .hydrating, .needsProfileSelection, .ready:
             return false
         }
     }
@@ -74,48 +74,24 @@ struct ContentView: View {
             ProgressView(sessionManager.loadingPhase.title)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .needsProviderSelection:
-            ProviderSelectionView()
-        case .signedOut:
-            SignInView(
-                viewModel: SignInViewModel(
-                    sessionManager: sessionManager,
-                    context: plexAPIContext,
-                ),
-            )
-        case .needsJellyfinAuthentication:
-            JellyfinAuthenticationView()
+        case .needsAccount:
+            AccountSetupView(purpose: .firstLaunch, sessionManager: sessionManager)
         case .needsProfileSelection:
-            ProfileSwitcherView(
-                viewModel: ProfileSwitcherViewModel(
-                    context: plexAPIContext,
-                    sessionManager: sessionManager,
-                ),
-            )
-        case .needsServerSelection:
-            SelectServerView(
-                viewModel: ServerSelectionViewModel(
-                    sessionManager: sessionManager,
-                    context: plexAPIContext,
-                ),
-            )
-        case .ready:
-            if let services = sessionManager.mediaServices {
-                MainView(
-                    homeViewModel: HomeViewModel(
-                        services: services,
-                        settingsManager: settingsManager,
-                        libraryStore: libraryStore,
-                    ),
-                    libraryViewModel: LibraryViewModel(
-                        services: services,
-                        libraryStore: libraryStore,
-                    ),
-                )
-                .environment(services)
-            } else {
-                ProgressView(sessionManager.loadingPhase.title)
+            NavigationStack {
+                ProfileSwitcherView(viewModel: ProfileSwitcherViewModel(sessionManager: sessionManager))
             }
+        case .migrationFailed:
+            MigrationFailedView()
+        case .ready:
+            MainView(
+                homeViewModel: HomeViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
+                libraryViewModel: LibraryViewModel(
+                    sessionManager: sessionManager,
+                    libraryStore: libraryStore,
+                    settingsManager: settingsManager,
+                ),
+            )
+            .id(registry.generation)
         }
     }
 }

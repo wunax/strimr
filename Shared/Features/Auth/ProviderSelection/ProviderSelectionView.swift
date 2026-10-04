@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct ProviderSelectionView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @FocusState private var focusedProvider: MediaProvider?
-    @State private var selectingProvider: MediaProvider?
+    let onSelect: (MediaProvider) -> Void
 
     var body: some View {
         ScrollView {
@@ -76,12 +75,9 @@ struct ProviderSelectionView: View {
         provider: MediaProvider,
     ) -> some View {
         let isFocused = focusedProvider == provider
-        let isSelecting = selectingProvider == provider
 
         return Button {
-            guard selectingProvider == nil else { return }
-            selectingProvider = provider
-            Task { await sessionManager.selectProvider(provider) }
+            onSelect(provider)
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Image(image)
@@ -110,13 +106,10 @@ struct ProviderSelectionView: View {
             }
             .shadow(color: isFocused ? accent.opacity(0.22) : .clear, radius: 24, y: 8)
             .scaleEffect(isFocused ? 1.035 : 1)
-            .opacity(selectingProvider == nil || isSelecting ? 1 : 0.5)
             .animation(.easeOut(duration: 0.18), value: isFocused)
-            .animation(.easeOut(duration: 0.18), value: selectingProvider)
         }
         .buttonStyle(ProviderCardButtonStyle())
         .focused($focusedProvider, equals: provider)
-        .disabled(selectingProvider != nil)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
     }

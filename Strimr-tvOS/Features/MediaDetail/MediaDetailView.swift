@@ -565,7 +565,7 @@ struct MediaDetailView: View {
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
-            serverIdentifier: viewModel.serverIdentifier,
+            server: viewModel.server,
         )
     }
 
@@ -575,7 +575,7 @@ struct MediaDetailView: View {
             type: .episode,
             title: episode.primaryLabel,
             initialPosition: episode.isFullyWatched ? 0 : Double(episode.viewOffset ?? 0),
-            serverIdentifier: viewModel.serverIdentifier,
+            server: viewModel.server,
         )
     }
 }

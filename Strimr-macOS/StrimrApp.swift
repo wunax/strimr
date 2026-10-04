@@ -2,8 +2,6 @@ import SwiftUI
 
 @main
 struct StrimrApp: App {
-    @State private var plexAPIContext: PlexAPIContext
-    @State private var jellyfinAPIContext: JellyfinAPIContext
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var downloadManager: DownloadManager
@@ -13,9 +11,6 @@ struct StrimrApp: App {
     @State private var sharePlayCoordinator: SharePlayCoordinator
 
     init() {
-        let context = PlexAPIContext()
-        let jellyfinContext = JellyfinAPIContext()
-        let libraryStore = LibraryStore(context: context)
         let favoritesStore = FavoritesStore()
         let settingsManager = SettingsManager()
         let trackSelectionCoordinator = TrackSelectionCoordinator(
@@ -23,20 +18,19 @@ struct StrimrApp: App {
             settingsManager: settingsManager,
         )
         let sessionManager = SessionManager(
-            context: context,
-            jellyfinContext: jellyfinContext,
-            libraryStore: libraryStore,
+            settingsManager: settingsManager,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
             versionSelectionStore: MediaVersionSelectionStore(),
         )
 
-        _plexAPIContext = State(initialValue: context)
-        _jellyfinAPIContext = State(initialValue: jellyfinContext)
         _sessionManager = State(initialValue: sessionManager)
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: DownloadManager(settingsManager: settingsManager))
-        _libraryStore = State(initialValue: libraryStore)
+        _libraryStore = State(initialValue: LibraryStore(
+            sessionManager: sessionManager,
+            settingsManager: settingsManager,
+        ))
         _seerrStore = State(initialValue: SeerrStore())
         _appModel = State(initialValue: AppModel())
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
@@ -63,9 +57,8 @@ struct StrimrApp: App {
 
     private func configured(_ content: some View) -> some View {
         content
-            .environment(plexAPIContext)
-            .environment(jellyfinAPIContext)
             .environment(sessionManager)
+            .environment(sessionManager.registry)
             .environment(settingsManager)
             .environment(downloadManager)
             .environment(libraryStore)

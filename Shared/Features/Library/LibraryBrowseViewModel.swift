@@ -51,7 +51,7 @@ final class LibraryBrowseViewModel {
         self.settingsManager = settingsManager
         self.browseSession = browseSession
         preferencesKey = LibraryBrowsePreferences.key(
-            scopeID: services.homeRowPreferencesScopeID,
+            scopeID: services.serverPreferencesScopeID,
             libraryID: library.id,
         )
         let preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)

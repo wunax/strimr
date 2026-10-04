@@ -2,11 +2,10 @@ import SwiftUI
 
 @MainActor
 struct ProfileSwitcherView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: ProfileSwitcherViewModel
-    @State private var pinPromptUser: PlexHomeUser?
+    @State private var pinPromptUser: ProfileChoice?
     @State private var pinInput: String = ""
-    @State private var isShowingLogoutConfirmation = false
+    @State private var isShowingProfiles = false
     @FocusState private var focusedUserID: String?
     @FocusState private var focusedPinDigit: String?
 
@@ -31,33 +30,21 @@ struct ProfileSwitcherView: View {
                 .padding(48)
             }
         }
-        .task { await viewModel.loadUsers() }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isShowingLogoutConfirmation = true
-                } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .accessibilityLabel("common.actions.logOut")
-            }
+        .task { await viewModel.load() }
+        .sheet(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
+            NavigationStack { ProfilesSettingsView() }
         }
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
-            }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
+        .sheet(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
+            NavigationStack { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
         }
         .onAppear {
-            if focusedUserID == nil, let firstUser = viewModel.users.first {
-                focusedUserID = firstUser.uuid
+            if focusedUserID == nil, let firstUser = viewModel.choices.first {
+                focusedUserID = firstUser.id
             }
         }
-        .onChange(of: viewModel.users) { _, newValue in
+        .onChange(of: viewModel.choices) { _, newValue in
             if focusedUserID == nil, let firstUser = newValue.first {
-                focusedUserID = firstUser.uuid
+                focusedUserID = firstUser.id
             }
         }
         .taskPresentation(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
@@ -75,22 +62,31 @@ struct ProfileSwitcherView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("auth.profile.title")
-                .font(.largeTitle.bold())
-            Text("auth.profile.header.subtitle")
-                .foregroundStyle(.secondary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("auth.profile.title")
+                    .font(.largeTitle.bold())
+                Text("auth.profile.header.subtitle")
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if viewModel.canManageProfiles {
+                Button("profiles.manage") { isShowingProfiles = true }
+            }
+            if viewModel.canCancel {
+                Button("common.actions.cancel") { viewModel.cancel() }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var profilesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 42)], spacing: 46) {
-            if viewModel.users.isEmpty {
+            if viewModel.choices.isEmpty {
                 loadingState
             }
 
-            ForEach(viewModel.users) { user in
+            ForEach(viewModel.choices) { user in
                 profileButton(for: user)
             }
         }
@@ -112,13 +108,13 @@ struct ProfileSwitcherView: View {
         }
     }
 
-    private func profileButton(for user: PlexHomeUser) -> some View {
+    private func profileButton(for user: ProfileChoice) -> some View {
         Button {
-            if requiresPin(for: user) {
+            if user.requiresPIN {
                 pinPromptUser = user
                 pinInput = ""
             } else {
-                Task { await viewModel.switchToUser(user, pin: nil) }
+                Task { await viewModel.select(user, pin: nil) }
             }
         } label: {
             VStack(alignment: .leading, spacing: 12) {
@@ -127,14 +123,14 @@ struct ProfileSwitcherView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(borderColor(for: user), lineWidth: viewModel.activeUserUUID == user.uuid ? 3 : 1),
+                            .stroke(borderColor(for: user), lineWidth: user.isActive ? 3 : 1),
                     )
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(user.friendlyName ?? user.title ?? "?")
+                    Text(user.name)
                         .font(.headline)
                         .lineLimit(1)
-                    Text(user.username ?? user.email ?? "")
+                    Text(user.detail ?? "")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -147,12 +143,14 @@ struct ProfileSwitcherView: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
-        .focused($focusedUserID, equals: user.uuid)
+        .focused($focusedUserID, equals: user.id)
     }
 
-    private func avatar(for user: PlexHomeUser) -> some View {
+    private func avatar(for user: ProfileChoice) -> some View {
         ZStack {
-            if let url = user.thumb {
+            if user.isLocal {
+                ProfileInitialsAvatar(initials: user.initials)
+            } else if let url = user.avatarURL {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -165,11 +163,11 @@ struct ProfileSwitcherView: View {
             }
         }
         .overlay {
-            if viewModel.switchingUserUUID == user.uuid {
+            if viewModel.switchingID == user.id {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.black.opacity(0.4))
                 ProgressView()
-            } else if requiresPin(for: user) {
+            } else if user.requiresPIN {
                 VStack {
                     HStack {
                         Spacer()
@@ -179,7 +177,7 @@ struct ProfileSwitcherView: View {
                     Spacer()
                 }
                 .padding(12)
-            } else if viewModel.activeUserUUID == user.uuid {
+            } else if user.isActive {
                 VStack {
                     HStack {
                         Spacer()
@@ -217,7 +215,7 @@ struct ProfileSwitcherView: View {
                 .font(.headline)
 
             Button {
-                Task { await viewModel.loadUsers() }
+                Task { await viewModel.load() }
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "arrow.clockwise")
@@ -237,11 +235,10 @@ struct ProfileSwitcherView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func pinEntrySheet(for user: PlexHomeUser) -> some View {
+    private func pinEntrySheet(for user: ProfileChoice) -> some View {
         HStack(alignment: .center, spacing: 80) {
             VStack(alignment: .leading, spacing: 32) {
-                let userDisplayName: String = user.friendlyName ?? user.title ?? "?"
-                Text("auth.profile.pin.prompt \(userDisplayName)")
+                Text("auth.profile.pin.prompt \(user.name)")
                     .font(.title3)
                     .fixedSize(horizontal: false, vertical: true)
                 pinDisplay
@@ -342,12 +339,8 @@ struct ProfileSwitcherView: View {
         pinInput.removeLast()
     }
 
-    private func requiresPin(for user: PlexHomeUser) -> Bool {
-        user.protected ?? false
-    }
-
-    private func borderColor(for user: PlexHomeUser) -> Color {
-        if viewModel.activeUserUUID == user.uuid {
+    private func borderColor(for user: ProfileChoice) -> Color {
+        if user.isActive {
             return .brandPrimary
         }
         return .white.opacity(0.2)
@@ -363,7 +356,7 @@ struct ProfileSwitcherView: View {
         guard let user = pinPromptUser else { return }
 
         let enteredPin = pinInput
-        Task { await viewModel.switchToUser(user, pin: enteredPin) }
+        Task { await viewModel.select(user, pin: enteredPin) }
         resetPinPrompt()
     }
 }

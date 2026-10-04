@@ -1,6 +1,7 @@
 import Observation
 import SwiftUI
 
+/// Hiding and ordering of the profile's libraries, all servers in one list.
 @MainActor
 @Observable
 final class DisplayedLibrariesViewModel {
@@ -9,7 +10,6 @@ final class DisplayedLibrariesViewModel {
 
     var libraries: [Library] {
         libraryStore.libraries
-            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
     var isLoading: Bool {
@@ -26,28 +26,32 @@ final class DisplayedLibrariesViewModel {
     }
 
     func loadLibraries() async {
-        guard !libraryStore.isLoading else { return }
-        guard libraryStore.libraries.isEmpty else { return }
+        try? await libraryStore.loadLibraries()
+    }
 
-        do {
-            try await libraryStore.loadLibraries()
-            pruneHiddenLibraries(with: libraries)
-        } catch {}
+    func subtitle(for library: Library) -> String? {
+        libraryStore.showsServerNames ? libraryStore.serverName(for: library) : nil
     }
 
     func displayedBinding(for library: Library) -> Binding<Bool> {
         Binding(
-            get: { !self.settingsManager.interface.hiddenLibraryIds.contains(library.id) },
-            set: { self.settingsManager.setLibraryDisplayed(library.id, displayed: $0) },
+            get: {
+                !self.settingsManager.libraryPreferences(profileID: self.libraryStore.profileID)
+                    .isHidden(library.identity)
+            },
+            set: { displayed in
+                self.settingsManager.updateLibraryPreferences(profileID: self.libraryStore.profileID) {
+                    $0.setHidden(library.identity, hidden: !displayed)
+                }
+            },
         )
     }
 
-    private func pruneHiddenLibraries(with libraries: [Library]) {
-        let availableIds = Set(libraries.map(\.id))
-        let storedHiddenIds = settingsManager.interface.hiddenLibraryIds
-        let prunedHiddenIds = storedHiddenIds.filter { availableIds.contains($0) }
-        if prunedHiddenIds.count != storedHiddenIds.count {
-            settingsManager.setHiddenLibraryIds(prunedHiddenIds)
+    func moveLibraries(from source: IndexSet, to destination: Int) {
+        var ordered = libraries
+        ordered.move(fromOffsets: source, toOffset: destination)
+        settingsManager.updateLibraryPreferences(profileID: libraryStore.profileID) {
+            $0.setOrder(ordered.map(\.identity))
         }
     }
 }

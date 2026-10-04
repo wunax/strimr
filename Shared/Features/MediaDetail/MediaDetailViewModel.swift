@@ -92,8 +92,8 @@ final class MediaDetailViewModel {
         _ = resolveArtwork()
     }
 
-    var serverIdentifier: String? {
-        services.identity.id
+    var server: ServerIdentity {
+        services.identity
     }
 
     private var detailTargetID: String {

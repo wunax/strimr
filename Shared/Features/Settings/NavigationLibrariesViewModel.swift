@@ -1,25 +1,23 @@
 import Observation
 import SwiftUI
 
+/// Libraries pinned in the tab bar or the sidebar, per profile.
 @MainActor
 @Observable
 final class NavigationLibrariesViewModel {
     private let settingsManager: SettingsManager
     private let libraryStore: LibraryStore
-    private var navigationLibraryIds: [String]
+
+    private var navigationLibraries: [LibraryIdentity] {
+        settingsManager.libraryPreferences(profileID: libraryStore.profileID).navigationLibraries
+    }
 
     var libraries: [Library] {
         let allLibraries = libraryStore.libraries
-        let selectedIds = navigationLibraryIds
-        let libraryById = Dictionary(uniqueKeysWithValues: allLibraries.map { ($0.id, $0) })
-
-        let selectedLibraries = selectedIds.compactMap { libraryById[$0] }
-        let selectedSet = Set(selectedIds)
-        let unselectedLibraries = allLibraries
-            .filter { !selectedSet.contains($0.id) }
-            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-
-        return selectedLibraries + unselectedLibraries
+        let selected = navigationLibraries
+        let byIdentity = Dictionary(allLibraries.map { ($0.identity, $0) }, uniquingKeysWith: { first, _ in first })
+        let selectedSet = Set(selected)
+        return selected.compactMap { byIdentity[$0] } + allLibraries.filter { !selectedSet.contains($0.identity) }
     }
 
     var isLoading: Bool {
@@ -33,65 +31,52 @@ final class NavigationLibrariesViewModel {
     init(settingsManager: SettingsManager, libraryStore: LibraryStore) {
         self.settingsManager = settingsManager
         self.libraryStore = libraryStore
-        navigationLibraryIds = settingsManager.interface.navigationLibraryIds
     }
 
     func loadLibraries() async {
-        guard !libraryStore.isLoading else { return }
-        guard libraryStore.libraries.isEmpty else {
-            pruneNavigationLibraries(with: libraryStore.libraries)
-            return
-        }
+        try? await libraryStore.loadLibraries()
+    }
 
-        do {
-            try await libraryStore.loadLibraries()
-            pruneNavigationLibraries(with: libraryStore.libraries)
-        } catch {}
+    func subtitle(for library: Library) -> String? {
+        libraryStore.showsServerNames ? libraryStore.serverName(for: library) : nil
     }
 
     func navigationBinding(for library: Library) -> Binding<Bool> {
         Binding(
-            get: { self.navigationLibraryIds.contains(library.id) },
-            set: { self.setLibraryNavigationEnabled(library.id, enabled: $0) },
+            get: { self.isSelected(library) },
+            set: { self.setNavigationEnabled(library.identity, enabled: $0) },
         )
     }
 
     func isSelected(_ library: Library) -> Bool {
-        navigationLibraryIds.contains(library.id)
+        navigationLibraries.contains(library.identity)
     }
 
+    var selectedCount: Int {
+        libraries.count(where: isSelected)
+    }
+
+    /// Reorders the pinned libraries; pinned libraries of servers missing from the list keep their place at the end.
     func moveLibraries(from source: IndexSet, to destination: Int) {
-        var orderedLibraries = libraries
-        orderedLibraries.move(fromOffsets: source, toOffset: destination)
-        let updatedIds = orderedLibraries
-            .filter { isSelected($0) }
-            .map(\.id)
-        updateNavigationLibraryIds(updatedIds)
+        var ordered = libraries
+        ordered.move(fromOffsets: source, toOffset: destination)
+        let visible = ordered.filter(isSelected).map(\.identity)
+        let absent = navigationLibraries.filter { !visible.contains($0) }
+        update(visible + absent)
     }
 
-    private func setLibraryNavigationEnabled(_ libraryId: String, enabled: Bool) {
-        var storedIds = navigationLibraryIds
+    private func setNavigationEnabled(_ library: LibraryIdentity, enabled: Bool) {
+        var stored = navigationLibraries
+        stored.removeAll { $0 == library }
         if enabled {
-            if !storedIds.contains(libraryId) {
-                storedIds.append(libraryId)
-            }
-        } else {
-            storedIds.removeAll { $0 == libraryId }
+            stored.append(library)
         }
-        updateNavigationLibraryIds(storedIds)
+        update(stored)
     }
 
-    private func pruneNavigationLibraries(with libraries: [Library]) {
-        let availableIds = Set(libraries.map(\.id))
-        let storedIds = navigationLibraryIds
-        let prunedIds = storedIds.filter { availableIds.contains($0) }
-        if prunedIds.count != storedIds.count {
-            updateNavigationLibraryIds(prunedIds)
+    private func update(_ libraries: [LibraryIdentity]) {
+        settingsManager.updateLibraryPreferences(profileID: libraryStore.profileID) {
+            $0.navigationLibraries = libraries
         }
-    }
-
-    private func updateNavigationLibraryIds(_ ids: [String]) {
-        navigationLibraryIds = ids
-        settingsManager.setNavigationLibraryIds(ids)
     }
 }

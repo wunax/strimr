@@ -29,6 +29,8 @@ final class PlexAPIContext {
     private static let connectionResolutionDeadline: Duration = .seconds(6)
 
     private(set) var authTokenCloud: String?
+    /// plex.tv token of the profile's watchlist account, which can differ from the account reaching this server.
+    var watchlistAuthToken: String?
     private(set) var clientIdentifier: String = ""
     private var resource: PlexCloudResource?
     private(set) var baseURLServer: URL?

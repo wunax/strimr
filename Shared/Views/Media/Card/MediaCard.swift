@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct MediaCard: View {
-    @Environment(MediaServices.self) private var mediaServices
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(MediaServices.self) private var scopedServices: MediaServices?
     #if os(tvOS)
         @Environment(MediaFocusModel.self) private var focusModel
         @FocusState private var isFocused: Bool
@@ -42,7 +43,7 @@ struct MediaCard: View {
             }
         }
         .frame(width: size.width, alignment: .leading)
-        .offlineAvailability(of: media, defaultServer: mediaServices.identity)
+        .offlineAvailability(of: media)
         #if os(tvOS)
             .focusable()
             .focused($isFocused)
@@ -57,12 +58,10 @@ struct MediaCard: View {
     }
 
     private var artwork: some View {
-        MediaImageView(
-            viewModel: MediaImageViewModel(
-                services: mediaServices,
-                artworkKind: artworkKind,
-                media: media,
-            ),
+        ItemArtworkView(
+            services: registry.services(for: media, scoped: scopedServices),
+            kind: artworkKind,
+            media: media,
         )
         .frame(width: size.width, height: size.height)
         .mediaArtworkStyle()
@@ -121,14 +120,27 @@ extension View {
 
     /// Greys out items that cannot be played while their server is unreachable; tvOS has no offline mode.
     @ViewBuilder
-    func offlineAvailability(of media: MediaDisplayItem, defaultServer: ServerIdentity) -> some View {
+    func offlineAvailability(of media: MediaDisplayItem) -> some View {
         #if os(tvOS)
             self
         #else
-            modifier(OfflineDimmingModifier(
-                media: media,
-                server: media.playableItem?.identity.server ?? defaultServer,
-            ))
+            modifier(OfflineDimmingModifier(media: media, server: media.server))
         #endif
+    }
+}
+
+/// Artwork of an item loaded through its server's services; a plain placeholder when the server is not available.
+struct ItemArtworkView: View {
+    let services: MediaServices?
+    let kind: MediaImageViewModel.ArtworkKind
+    let media: MediaDisplayItem
+
+    var body: some View {
+        if let services {
+            MediaImageView(viewModel: MediaImageViewModel(services: services, artworkKind: kind, media: media))
+        } else {
+            Rectangle()
+                .fill(.gray.opacity(0.15))
+        }
     }
 }

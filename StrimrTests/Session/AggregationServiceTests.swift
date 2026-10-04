@@ -74,20 +74,21 @@ struct AggregationServiceTests {
 
     @Test func `servers are queried in parallel`() async {
         let service = AggregationService(reportTransportFailure: { _ in }, captureError: { _ in })
-        let clock = ContinuousClock()
-        let start = clock.now
+        let tracker = ConcurrencyTracker()
 
         let result = await service.fanOut(
             targets: [a, b, c],
             identity: { $0 },
             services: { $0 },
         ) { _ in
-            try await Task.sleep(for: .milliseconds(300))
+            tracker.start()
+            try await Task.sleep(for: .milliseconds(200))
+            tracker.finish()
             return 1
         }
 
         #expect(result.succeeded == [a, b, c])
-        #expect(clock.now - start < .milliseconds(800))
+        #expect(tracker.maximum == 3)
     }
 
     @Test func `sessions that are not ready or disabled are skipped`() async {
@@ -102,5 +103,20 @@ struct AggregationServiceTests {
 
         #expect(result.skipped == [a, b, c])
         #expect(result.value.isEmpty)
+    }
+}
+
+@MainActor
+private final class ConcurrencyTracker {
+    private var current = 0
+    private(set) var maximum = 0
+
+    func start() {
+        current += 1
+        maximum = max(maximum, current)
+    }
+
+    func finish() {
+        current -= 1
     }
 }

@@ -38,7 +38,7 @@ final class SeerrViewModel {
     }
 
     func signInWithPlex() async {
-        guard let authToken = sessionManager.authToken else { return }
+        guard let authToken = sessionManager.activePlexToken else { return }
 
         isAuthenticating = true
         defer { isAuthenticating = false }
@@ -123,11 +123,11 @@ final class SeerrViewModel {
     }
 
     var isPlexAuthAvailable: Bool {
-        sessionManager.authToken != nil
+        sessionManager.activePlexToken != nil
     }
 
     var isJellyfinAuthAvailable: Bool {
-        sessionManager.provider == .jellyfin
+        sessionManager.activeProfileHasJellyfin
     }
 
     var quota: SeerrUserQuota? {

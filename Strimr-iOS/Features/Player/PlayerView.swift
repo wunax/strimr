@@ -1256,8 +1256,8 @@ struct PlayerView: View {
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.leave()
         }
-        if let error {
-            await sessionManager.handleTerminalServerAccessFailure(error)
+        if let error, let server = viewModel.serverIdentity {
+            sessionManager.handleTerminalServerAccessFailure(error, server: server)
         }
         dismissPlayer(force: true)
     }

@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SignInView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: SignInViewModel
 
     init(viewModel: SignInViewModel) {
@@ -66,15 +65,6 @@ struct SignInView: View {
             Spacer()
         }
         .padding(24)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                AuthenticationActionsMenu(onChangeProvider: returnToProviderSelection)
-            }
-        }
-    }
-
-    private func returnToProviderSelection() {
-        viewModel.cancelSignIn()
-        Task { await sessionManager.requestProviderSelection() }
+        .onDisappear { viewModel.cancelSignIn() }
     }
 }

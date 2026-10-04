@@ -136,9 +136,111 @@ final class JellyfinAPIContext {
         }
 
         let body = try JSONEncoder().encode(Body(Username: username, Pw: password))
-        let (data, response) = try await perform(
+        return try await authenticate(
+            server: server,
             baseURL: baseURL,
             path: ["Users", "AuthenticateByName"],
+            body: body,
+        )
+    }
+
+    // MARK: - Quick Connect
+
+    struct QuickConnectState: Decodable, Sendable {
+        let secret: String
+        let code: String
+        let authenticated: Bool
+
+        private enum CodingKeys: String, CodingKey {
+            case secret = "Secret"
+            case code = "Code"
+            case authenticated = "Authenticated"
+        }
+    }
+
+    func isQuickConnectEnabled(baseURL: URL) async -> Bool {
+        guard let (data, response) = try? await perform(
+            baseURL: baseURL,
+            path: ["QuickConnect", "Enabled"],
+            method: "GET",
+            query: [],
+            body: nil,
+            token: nil,
+        ), response.statusCode == 200 else { return false }
+        return (try? JSONDecoder().decode(Bool.self, from: data)) ?? false
+    }
+
+    /// Starts a Quick Connect request whose code the user approves from a signed-in Jellyfin client.
+    func initiateQuickConnect(baseURL: URL) async throws -> QuickConnectState {
+        var (data, response) = try await perform(
+            baseURL: baseURL,
+            path: ["QuickConnect", "Initiate"],
+            method: "POST",
+            query: [],
+            body: nil,
+            token: nil,
+        )
+        // Servers before 10.9 only accept GET.
+        if response.statusCode == 404 || response.statusCode == 405 {
+            (data, response) = try await perform(
+                baseURL: baseURL,
+                path: ["QuickConnect", "Initiate"],
+                method: "GET",
+                query: [],
+                body: nil,
+                token: nil,
+            )
+        }
+        guard response.statusCode == 200 else { throw JellyfinAPIError.httpStatus(response.statusCode) }
+        do {
+            return try JSONDecoder().decode(QuickConnectState.self, from: data)
+        } catch {
+            throw JellyfinAPIError.invalidResponse
+        }
+    }
+
+    func quickConnectState(baseURL: URL, secret: String) async throws -> QuickConnectState {
+        let (data, response) = try await perform(
+            baseURL: baseURL,
+            path: ["QuickConnect", "Connect"],
+            method: "GET",
+            query: [URLQueryItem(name: "secret", value: secret)],
+            body: nil,
+            token: nil,
+        )
+        guard response.statusCode == 200 else { throw JellyfinAPIError.httpStatus(response.statusCode) }
+        do {
+            return try JSONDecoder().decode(QuickConnectState.self, from: data)
+        } catch {
+            throw JellyfinAPIError.invalidResponse
+        }
+    }
+
+    func authenticateWithQuickConnect(
+        server: JellyfinPublicSystemInfo,
+        baseURL: URL,
+        secret: String,
+    ) async throws -> (JellyfinAuthenticatedSession, JellyfinConnection) {
+        struct Body: Encodable {
+            let Secret: String
+        }
+        return try await authenticate(
+            server: server,
+            baseURL: baseURL,
+            path: ["Users", "AuthenticateWithQuickConnect"],
+            body: JSONEncoder().encode(Body(Secret: secret)),
+        )
+    }
+
+    private func authenticate(
+        server: JellyfinPublicSystemInfo,
+        baseURL: URL,
+        path: [String],
+        body: Data,
+    ) async throws -> (JellyfinAuthenticatedSession, JellyfinConnection) {
+        let (data, response) = try await perform(
+            baseURL: baseURL,
+            path: path,
             method: "POST",
             query: [],
             body: body,

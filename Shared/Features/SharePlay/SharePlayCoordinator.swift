@@ -21,7 +21,7 @@ final class SharePlayCoordinator {
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let groupStateObserver = GroupStateObserver()
     @ObservationIgnored private var session: GroupSession<StrimrWatchActivity>?
-    @ObservationIgnored private var playbackLauncher: PlaybackLauncher?
+    @ObservationIgnored private weak var playbackPresenter: (any PlaybackPresenting)?
     @ObservationIgnored private weak var playerController: PlayerController?
     @ObservationIgnored private var sessionSubscriptions: Set<AnyCancellable> = []
     @ObservationIgnored private var sessionListener: Task<Void, Never>?
@@ -44,8 +44,8 @@ final class SharePlayCoordinator {
         }
     }
 
-    func configurePlaybackLauncher(_ launcher: PlaybackLauncher) {
-        playbackLauncher = launcher
+    func configurePlaybackPresenter(_ presenter: any PlaybackPresenting) {
+        playbackPresenter = presenter
     }
 
     func makeActivity(
@@ -53,17 +53,16 @@ final class SharePlayCoordinator {
         type: MediaKind,
         title: String,
         initialPosition: Double,
-        serverIdentifier: String? = nil,
+        server: ServerIdentity,
     ) -> StrimrWatchActivity? {
-        guard let services = sessionManager.mediaServices else {
+        guard sessionManager.registry.services(for: server) != nil else {
             errorMessage = String(localized: "sharePlay.error.serverUnavailable")
             return nil
         }
-        let serverIdentifier = serverIdentifier ?? services.identity.id
         return StrimrWatchActivity(
             activityID: UUID(),
-            provider: services.provider,
-            serverIdentifier: serverIdentifier,
+            provider: server.provider,
+            serverIdentifier: server.id,
             ratingKey: ratingKey,
             mediaKind: type,
             title: title,
@@ -76,7 +75,7 @@ final class SharePlayCoordinator {
         type: MediaKind,
         title: String,
         initialPosition: Double,
-        serverIdentifier: String? = nil,
+        server: ServerIdentity,
     ) async {
         guard !isActivating else { return }
         #if os(tvOS)
@@ -90,7 +89,7 @@ final class SharePlayCoordinator {
             type: type,
             title: title,
             initialPosition: initialPosition,
-            serverIdentifier: serverIdentifier,
+            server: server,
         ) else { return }
 
         await activate(activity)
@@ -324,12 +323,12 @@ final class SharePlayCoordinator {
 
     private func launchPlaybackIfNeeded(for activity: StrimrWatchActivity) async {
         guard lastLaunchedActivityID != activity.activityID,
-              let playbackLauncher
+              let playbackPresenter
         else { return }
         lastLaunchedActivityID = activity.activityID
         do {
             let services = try await resolvedServices(for: activity)
-            await playbackLauncher.using(services: services).play(
+            await PlaybackLauncher(services: services, coordinator: playbackPresenter).play(
                 ratingKey: activity.ratingKey,
                 type: activity.mediaKind,
                 shouldResumeFromOffset: false,
@@ -361,21 +360,10 @@ final class SharePlayCoordinator {
         )
     }
 
-    private func services(for activity: StrimrWatchActivity) -> MediaServices? {
-        guard let services = sessionManager.mediaServices,
-              services.provider == activity.provider,
-              services.identity.id == activity.serverIdentifier
-        else { return nil }
-        return services
-    }
-
+    /// Any server of the active profile can host the activity, Plex or Jellyfin.
     private func resolvedServices(for activity: StrimrWatchActivity) async throws -> MediaServices {
-        if let services = services(for: activity) {
-            return services
-        }
-        guard activity.provider == .plex else { throw SharePlayError.serverUnavailable }
-        let context = try await sessionManager.serverContext(for: activity.serverIdentifier)
-        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: sessionManager) else {
+        let server = ServerIdentity(provider: activity.provider, id: activity.serverIdentifier)
+        guard let services = sessionManager.registry.services(for: server) else {
             throw SharePlayError.serverUnavailable
         }
         return services

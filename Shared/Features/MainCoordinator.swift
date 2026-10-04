@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class MainCoordinator: ObservableObject, PlaybackPresenting {
     private struct MediaRouteEntry {
-        let mediaID: String
+        let media: MediaIdentity
         let depth: Int
     }
 
@@ -17,15 +17,31 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case liveTV
         case more
         case seerrDiscover
-        case libraryDetail(String)
+        case libraryDetail(LibraryIdentity)
     }
 
+    /// Every route carries its server: the destination is shown with that server's services.
     enum Route: Hashable {
         case mediaDetail(PlayableMediaItem)
         case collectionDetail(CollectionMediaItem)
         case playlistDetail(PlaylistMediaItem)
         case hubDetail(Hub)
-        case personDetail(Person)
+        case personDetail(Person, ServerIdentity)
+
+        var server: ServerIdentity? {
+            switch self {
+            case let .mediaDetail(media):
+                media.identity.server
+            case let .collectionDetail(collection):
+                collection.server
+            case let .playlistDetail(playlist):
+                playlist.server
+            case let .hubDetail(hub):
+                hub.server
+            case let .personDetail(_, server):
+                server
+            }
+        }
     }
 
     @Published var tab: Tab = .home
@@ -37,10 +53,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var liveTVPath = NavigationPath()
     @Published var morePath = NavigationPath()
     @Published var seerrDiscoverPath = NavigationPath()
-    @Published private var libraryDetailPaths: [String: NavigationPath] = [:]
+    @Published private var libraryDetailPaths: [LibraryIdentity: NavigationPath] = [:]
     private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
-    private var serverServices: [String: MediaServices] = [:]
-    private var scopedServerIdentifiers: [Tab: String] = [:]
 
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
@@ -97,9 +111,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                     self.libraryDetailPaths[libraryId] = newValue
                 }
                 self.pruneMediaRouteEntries(for: tab, maximumDepth: newValue.count)
-                if newValue.isEmpty {
-                    self.scopedServerIdentifiers[tab] = nil
-                }
             },
         )
     }
@@ -140,7 +151,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
 
     func returnToSeries(_ series: PlayableMediaItem) {
         guard let destinationDepth = mediaRouteEntries[tab]?
-            .last(where: { $0.mediaID == series.id })?
+            .last(where: { $0.media == series.identity })?
             .depth
         else {
             showMediaDetail(series)
@@ -174,7 +185,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     private func recordMediaRoute(_ media: PlayableMediaItem, depth: Int, tab: Tab) {
         pruneMediaRouteEntries(for: tab, maximumDepth: depth - 1)
         mediaRouteEntries[tab, default: []].append(
-            MediaRouteEntry(mediaID: media.id, depth: depth),
+            MediaRouteEntry(media: media.identity, depth: depth),
         )
     }
 
@@ -204,17 +215,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case let .playlist(playlist):
             showPlaylistDetail(playlist)
         }
-    }
-
-    func showSearchResult(_ source: SearchResultSource) {
-        serverServices[source.serverIdentifier] = source.services
-        scopedServerIdentifiers[tab] = source.serverIdentifier
-        showMediaDetail(source.media)
-    }
-
-    func services(for tab: Tab, default defaultServices: MediaServices) -> MediaServices {
-        guard let identifier = scopedServerIdentifiers[tab] else { return defaultServices }
-        return serverServices[identifier] ?? defaultServices
     }
 
     func showCollectionDetail(_ collection: CollectionMediaItem) {
@@ -298,8 +298,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
-    func showPersonDetail(_ person: Person) {
-        let route = Route.personDetail(person)
+    func showPersonDetail(_ person: Person, server: ServerIdentity) {
+        let route = Route.personDetail(person, server)
 
         switch tab {
         case .home:

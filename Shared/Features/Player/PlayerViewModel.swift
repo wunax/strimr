@@ -82,6 +82,11 @@ final class PlayerViewModel {
         mediaServices
     }
 
+    /// Server whose services the player uses; `nil` for downloads.
+    var serverIdentity: ServerIdentity? {
+        mediaServices?.identity
+    }
+
     var subtitleSearchTitlePlaceholder: String {
         media?.title ?? ""
     }

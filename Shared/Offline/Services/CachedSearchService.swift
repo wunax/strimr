@@ -5,39 +5,22 @@ import Foundation
 final class CachedSearchService: MediaSearchService {
     private let base: any MediaSearchService
     private let policy: OfflineCachePolicy
-    private let serverName: String
-    weak var services: MediaServices?
 
-    init(base: any MediaSearchService, policy: OfflineCachePolicy, serverName: String) {
+    init(base: any MediaSearchService, policy: OfflineCachePolicy) {
         self.base = base
         self.policy = policy
-        self.serverName = serverName
     }
 
-    func search(
-        query: String,
-        kinds: Set<MediaKind>,
-        searchesAllServers: Bool,
-    ) async throws -> [MediaSearchSource] {
+    func search(query: String, kinds: Set<MediaKind>) async throws -> [MediaDisplayItem] {
         try await policy.read(
-            network: { try await base.search(query: query, kinds: kinds, searchesAllServers: searchesAllServers) },
+            network: { try await base.search(query: query, kinds: kinds) },
             write: { _ in },
-            fallback: { localResults(query: query, kinds: kinds) },
+            fallback: {
+                policy.store.search(query: query, owner: policy.owner)
+                    .filter { kinds.isEmpty || kinds.contains($0.kind) }
+                    .map(MediaDisplayItem.playable)
+            },
         )
-    }
-
-    private func localResults(query: String, kinds: Set<MediaKind>) -> [MediaSearchSource]? {
-        guard let services else { return nil }
-        return policy.store.search(query: query, owner: policy.owner)
-            .filter { kinds.isEmpty || kinds.contains($0.kind) }
-            .map { item in
-                MediaSearchSource(
-                    serverIdentifier: policy.owner.server.id,
-                    serverName: serverName,
-                    media: .playable(item),
-                    services: services,
-                )
-            }
     }
 }
 

@@ -21,6 +21,7 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 16) {
                 filterPills()
                 resultsContent()
+                SearchUnavailableServersNote(names: viewModel.unavailableServerNames)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

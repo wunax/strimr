@@ -539,7 +539,7 @@ struct MediaDetailView: View {
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
-            serverIdentifier: viewModel.serverIdentifier,
+            server: viewModel.server,
         ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {

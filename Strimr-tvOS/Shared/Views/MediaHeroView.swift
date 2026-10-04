@@ -2,7 +2,8 @@ import SwiftUI
 import UIKit
 
 struct MediaHeroBackgroundView: View {
-    @Environment(MediaServices.self) private var mediaServices
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(SettingsManager.self) private var settingsManager
 
     let media: MediaItem
@@ -62,8 +63,13 @@ struct MediaHeroBackgroundView: View {
             return
         }
 
+        guard let services = registry.services(for: .playable(media), scoped: scopedServices) else {
+            imageResource = nil
+            imageSourcePath = path
+            return
+        }
         do {
-            let resource = try await mediaServices.artwork.artwork(
+            let resource = try await services.artwork.artwork(
                 path: path,
                 width: 3840,
                 height: 2160,

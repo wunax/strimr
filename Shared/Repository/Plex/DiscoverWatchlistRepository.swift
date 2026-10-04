@@ -4,7 +4,7 @@ final class DiscoverWatchlistRepository {
     private let network: PlexCloudNetworkClient
 
     init(context: PlexAPIContext) throws {
-        guard let authToken = context.authTokenCloud else {
+        guard let authToken = context.watchlistAuthToken ?? context.authTokenCloud else {
             throw PlexAPIError.missingAuthToken
         }
 

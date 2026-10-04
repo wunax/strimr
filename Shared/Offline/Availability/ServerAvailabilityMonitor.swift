@@ -43,11 +43,12 @@ final class ServerAvailabilityMonitor {
 
     /// Starts tracking a server of the session. `probe` returns `true` when the server answers.
     func track(_ server: ServerIdentity, probe: @escaping Probe) {
+        let isTracked = probes[server] != nil
         probes[server] = probe
         if availabilities[server] == nil {
             availabilities[server] = hasNetworkPath ? .unknown : .unreachable(since: Date())
         }
-        if hasNetworkPath {
+        if hasNetworkPath, !isTracked || availabilities[server] != .reachable {
             startProbing(server, initialDelay: .zero)
         }
     }

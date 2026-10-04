@@ -11,12 +11,11 @@ final class SignInViewModel {
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var authSession: ASWebAuthenticationSession?
     @ObservationIgnored private let presentationProvider = AuthenticationPresentationProvider()
-    @ObservationIgnored private let sessionManager: SessionManager
-    @ObservationIgnored private let context: PlexAPIContext
+    @ObservationIgnored private let onToken: (String) async throws -> Void
+    @ObservationIgnored private let context = PlexAPIContext()
 
-    init(sessionManager: SessionManager, context: PlexAPIContext) {
-        self.sessionManager = sessionManager
-        self.context = context
+    init(onToken: @escaping (String) async throws -> Void) {
+        self.onToken = onToken
     }
 
     func startSignIn() async {
@@ -25,6 +24,7 @@ final class SignInViewModel {
         isAuthenticating = true
 
         do {
+            await context.waitForBootstrap()
             let pin = try await AuthRepository(context: context).requestPin()
             guard await openAuthenticationURL(for: pin) else {
                 throw SignInError.browserUnavailable
@@ -89,7 +89,7 @@ final class SignInViewModel {
                 do {
                     let result = try await AuthRepository(context: context).pollToken(pinId: pinID)
                     if let token = result.authToken {
-                        try await sessionManager.signIn(with: token)
+                        try await onToken(token)
                         cancelSignIn()
                         return
                     }

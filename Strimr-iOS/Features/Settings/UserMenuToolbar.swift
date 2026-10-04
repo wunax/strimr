@@ -48,10 +48,7 @@ struct UserMenuToolbarButton: View {
     }
 
     private var avatarURL: URL? {
-        guard let thumb = sessionManager.user?.thumb else {
-            return nil
-        }
-        return URL(string: thumb)
+        sessionManager.activeProfileAvatarURL
     }
 
     private var placeholderAvatar: some View {

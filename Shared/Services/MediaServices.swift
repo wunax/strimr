@@ -29,6 +29,7 @@ protocol MediaAuthorizationService: AnyObject {
 final class MediaServices {
     let provider: MediaProvider
     let identity: ServerIdentity
+    let serverName: String
     let capabilities: ProviderCapabilities
     let home: any MediaHomeService
     let library: any MediaLibraryService
@@ -51,7 +52,9 @@ final class MediaServices {
         authorizationService.authorization
     }
 
-    var homeRowPreferencesScopeID: String {
+    /// Scope of per-server preferences such as library browsing. A profile has one link per server, so the server and
+    /// its user identify the profile's preferences for that server.
+    var serverPreferencesScopeID: String {
         [
             identity.provider.rawValue,
             identity.id,
@@ -62,6 +65,7 @@ final class MediaServices {
     init(
         provider: MediaProvider,
         identity: ServerIdentity,
+        serverName: String,
         capabilities: ProviderCapabilities,
         home: any MediaHomeService,
         library: any MediaLibraryService,
@@ -79,6 +83,7 @@ final class MediaServices {
     ) {
         self.provider = provider
         self.identity = identity
+        self.serverName = serverName
         self.capabilities = capabilities
         self.home = home
         self.library = library
