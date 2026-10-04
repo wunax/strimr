@@ -84,6 +84,14 @@ struct LibraryBrowseView: View {
                         description: Text("common.errors.tryAgainLater"),
                     )
                     .symbolRenderingMode(.multicolor)
+                } else if viewModel.totalItemCount == 0, !viewModel.isLoading, viewModel.controls.hasActiveFilters {
+                    ContentUnavailableView {
+                        Label("library.browse.empty.title", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("library.browse.empty.filtered.description")
+                    } actions: {
+                        Button("library.browse.empty.reset", action: viewModel.controls.resetSelection)
+                    }
                 } else if viewModel.totalItemCount == 0, !viewModel.isLoading {
                     ContentUnavailableView(
                         "library.browse.empty.title",

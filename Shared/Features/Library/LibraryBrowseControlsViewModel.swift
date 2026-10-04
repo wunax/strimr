@@ -186,6 +186,10 @@ final class LibraryBrowseControlsViewModel {
         )
     }
 
+    var hasActiveFilters: Bool {
+        isJellyfinBrowse ? jellyfinActiveFilterCount > 0 : !selectedFilters.isEmpty
+    }
+
     var canResetSelection: Bool {
         if isJellyfinBrowse {
             return browseSession.map { $0.query != LibraryBrowseQuery() } ?? false
