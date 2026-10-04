@@ -245,8 +245,13 @@ final class PlexAPIContext {
         loadCustomConnection(for: resource)
     }
 
+    /// Also forgets the last working connection when it was this address, so the next start does not restore it.
     func removeCustomServerURL(for resource: PlexCloudResource) {
+        let customURL = loadCustomConnection(for: resource)
         try? keychain.deleteValue(forKey: customConnectionKey(for: resource))
+        if let customURL, loadSavedConnection(for: resource) == customURL {
+            try? keychain.deleteValue(forKey: connectionKey(for: resource))
+        }
     }
 
     static func connectionKind(

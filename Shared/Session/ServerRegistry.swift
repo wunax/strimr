@@ -135,6 +135,14 @@ final class ServerRegistry {
         sessions.filter { $0.accountID == accountID }
     }
 
+    func plexConnectionKind(for server: ServerIdentity) -> PlexConnectionKind? {
+        entries[server]?.plexContext?.connectionKind
+    }
+
+    func plexResource(for server: ServerIdentity) -> PlexCloudResource? {
+        entries[server]?.plexResource
+    }
+
     // MARK: - Activation
 
     /// Resolves the links of `profile` and starts connecting its enabled servers in parallel.
@@ -208,6 +216,36 @@ final class ServerRegistry {
             entry.session.status = .connecting
             entries[server] = entry
             publishServices()
+        }
+    }
+
+    /// Saves (after checking it with the server) or removes the custom address of a Plex server, then moves the
+    /// server to it: a connected server switches in place, any other one reconnects.
+    func setCustomAddress(_ url: URL?, server: ServerIdentity) async throws {
+        guard let entry = entries[server], let resource = entry.plexResource else {
+            throw PlexServerAccessRecoveryError.serverUnavailable
+        }
+        let liveContext = entry.session.services == nil ? nil : entry.plexContext
+        if let url {
+            try await (liveContext ?? PlexAPIContext()).selectServer(resource, customURL: url)
+        } else {
+            PlexAPIContext().removeCustomServerURL(for: resource)
+            if let liveContext {
+                do {
+                    try await liveContext.refreshServerAccess(using: resource)
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { throw error }
+                    connect(server)
+                    return
+                }
+            }
+        }
+        guard entries[server]?.session.isEnabled == true else { return }
+        if liveContext == nil {
+            entries[server]?.session.status = .connecting
+            connect(server)
+        } else {
+            availability.refresh()
         }
     }
 
