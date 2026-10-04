@@ -29,6 +29,8 @@ struct MultiServerMigration {
     let favoritesStore: FavoritesStore
     /// The Plex user owning a token: the offline snapshot when there is one, plex.tv otherwise.
     let resolvePlexUser: (String) async throws -> PlexCloudUser
+    /// The server of the previous session, so it can start offline before plex.tv is reached.
+    var legacyPlexResource: () -> PlexCloudResource? = { nil }
 
     func run() async -> Outcome {
         guard defaults.integer(forKey: Self.versionKey) < Self.currentVersion else { return .alreadyMigrated }
@@ -84,6 +86,11 @@ struct MultiServerMigration {
 
         try accountStore.save(.plex(account), token: token)
         accountStore.setHomeToken(token, accountID: accountID, userUUID: uuid)
+        if let resource = legacyPlexResource(), resource.clientIdentifier == serverID,
+           accountStore.cachedResources(userUUID: uuid) == nil
+        {
+            accountStore.setCachedResources([resource], userUUID: uuid)
+        }
 
         var state = profileStore.state
         if state.plexHomeUsers[accountID]?.contains(where: { $0.uuid == uuid }) != true {

@@ -181,7 +181,7 @@ final class SessionManager {
     }
 
     private func makeMigration() -> MultiServerMigration {
-        MultiServerMigration(
+        var migration = MultiServerMigration(
             defaults: .standard,
             secureStore: keychain,
             accountStore: accountStore,
@@ -200,6 +200,10 @@ final class SessionManager {
                 return try await UserRepository(context: context).getUser()
             },
         )
+        #if !os(tvOS)
+            migration.legacyPlexResource = { OfflineSessionStore().loadPlexResource() }
+        #endif
+        return migration
     }
 
     // MARK: - Profile activation

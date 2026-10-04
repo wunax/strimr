@@ -54,6 +54,23 @@ struct MultiServerMigrationTests {
         }
     }
 
+    @Test func `the previous server can start offline right after the update`() async {
+        let context = makeContext()
+        legacyPlex(token: "token", serverID: "server-a")
+        let resource = PlexCloudResource(
+            name: "Server A",
+            clientIdentifier: "server-a",
+            accessToken: "t",
+            connections: [],
+        )
+        var migration = context.migration(resolving: plexUser)
+        migration.legacyPlexResource = { resource }
+
+        _ = await migration.run()
+
+        #expect(context.accounts.cachedResources(userUUID: "user-1")?.map(\.clientIdentifier) == ["server-a"])
+    }
+
     @Test func `plex user without a chosen home user becomes the owner profile`() async {
         let context = makeContext()
         defaults.set("plex", forKey: MultiServerMigration.LegacyKeys.provider)

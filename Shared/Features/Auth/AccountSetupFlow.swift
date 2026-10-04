@@ -23,7 +23,6 @@ final class AccountSetupFlow {
     }
 
     var path: [Step] = []
-    var errorMessage: String?
     private(set) var isFinished = false
 
     let purpose: Purpose
@@ -45,7 +44,6 @@ final class AccountSetupFlow {
     // MARK: - Steps
 
     func choose(_ provider: MediaProvider) {
-        errorMessage = nil
         path.append(provider == .plex ? .plexSignIn : .jellyfin)
     }
 
