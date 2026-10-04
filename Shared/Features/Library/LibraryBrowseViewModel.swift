@@ -17,6 +17,9 @@ final class LibraryBrowseViewModel {
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
     var scrollResetID = 0
+    private(set) var layout: LibraryBrowseLayout
+    /// Server-reported size of the current listing, or the local count in downloads-only mode.
+    private(set) var totalCount: Int?
     /// Switches the data source to the local downloads of this library, online or offline.
     private(set) var isDownloadedOnly = false
     private(set) var hasDownloads = false
@@ -52,6 +55,7 @@ final class LibraryBrowseViewModel {
             libraryID: library.id,
         )
         let preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        layout = preferences.resolvedLayout(for: library.type)
         browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
@@ -136,7 +140,16 @@ final class LibraryBrowseViewModel {
         scrollResetID &+= 1
         reachedEnd = false
         browseItems = []
+        totalCount = nil
         await fetch(reset: true)
+    }
+
+    func setLayout(_ layout: LibraryBrowseLayout) {
+        guard layout != self.layout else { return }
+        self.layout = layout
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.layout = layout
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 
     /// Skipped while server controls are hidden, so a degraded offline state never overwrites the saved selection.
@@ -185,6 +198,7 @@ final class LibraryBrowseViewModel {
         if isDownloadedOnly {
             guard reset else { return }
             browseItems = downloadedItems.map(LibraryBrowseItem.media)
+            totalCount = browseItems.count
             errorMessage = nil
             reachedEnd = true
             return
@@ -244,6 +258,7 @@ final class LibraryBrowseViewModel {
                 browseItems.append(contentsOf: newItems)
             }
 
+            totalCount = total
             reachedEnd = browseItems.count >= total || newItems.isEmpty
         } catch {
             if reset {
@@ -291,6 +306,7 @@ final class LibraryBrowseViewModel {
             } else {
                 browseItems.append(contentsOf: newItems)
             }
+            totalCount = page.totalCount
             reachedEnd = page.totalCount.map { browseItems.count >= $0 } ?? newItems.isEmpty
         } catch {
             guard !error.isCancellation else { return }
@@ -336,6 +352,7 @@ final class LibraryBrowseViewModel {
 
     private func resetState(error: String? = nil) {
         browseItems = []
+        totalCount = nil
         errorMessage = error
         isLoading = false
         isLoadingMore = false

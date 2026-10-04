@@ -6,6 +6,8 @@ struct LibraryBrowseView: View {
 
     @FocusState private var focusedCharacterId: String?
 
+    private let listRowMetrics = MediaListRowMetrics(sizeClass: nil)
+
     private let gridColumns = [
         GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
     ]
@@ -29,38 +31,22 @@ struct LibraryBrowseView: View {
                             .frame(height: 0)
                             .id("libraryBrowseTop")
 
-                        if controls.hasControls {
-                            LibraryBrowseControlsView(
-                                viewModel: controls,
-                                showsBackButton: viewModel.canNavigateBack,
-                                onNavigateBack: viewModel.navigateBack,
-                            )
-                        }
+                        LibraryBrowseControlsView(
+                            viewModel: controls,
+                            showsBackButton: viewModel.canNavigateBack,
+                            onNavigateBack: viewModel.navigateBack,
+                            layoutToggle: .layout(current: viewModel.layout, onChange: viewModel.setLayout),
+                            itemCount: viewModel.totalItemCount,
+                        )
 
-                        LazyVGrid(columns: gridColumns, spacing: 32) {
-                            ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
-                                Group {
-                                    if let item = viewModel.itemsByIndex[index] {
-                                        switch item {
-                                        case let .media(media):
-                                            PortraitMediaCard(media: media, width: 200, showsLabels: true) {
-                                                onSelectMedia(media)
-                                            }
-                                        case let .folder(folder):
-                                            FolderCard(title: folder.title, width: 200, showsLabels: true) {
-                                                viewModel.enterFolder(folder)
-                                            }
-                                        }
-                                    } else {
-                                        ProgressView()
-                                    }
-                                }
-                                .id(index)
-                                .onAppear {
-                                    Task {
-                                        await viewModel.loadPagesAround(index: index)
-                                    }
-                                }
+                        switch viewModel.layout {
+                        case .grid:
+                            LazyVGrid(columns: gridColumns, spacing: 32) {
+                                browseItems
+                            }
+                        case .list:
+                            LazyVStack(spacing: 0) {
+                                browseItems
                             }
                         }
                     }
@@ -105,6 +91,48 @@ struct LibraryBrowseView: View {
             }
             .onChange(of: viewModel.scrollResetID) {
                 proxy.scrollTo("libraryBrowseTop", anchor: .top)
+            }
+        }
+    }
+
+    private var browseItems: some View {
+        ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
+            Group {
+                if let item = viewModel.itemsByIndex[index] {
+                    browseItem(item)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: viewModel.layout == .list ? .infinity : nil)
+                }
+            }
+            .frame(height: viewModel.layout == .list ? listRowMetrics.rowHeight : nil)
+            .id(index)
+            .onAppear {
+                Task {
+                    await viewModel.loadPagesAround(index: index)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func browseItem(_ item: LibraryBrowseItem) -> some View {
+        switch (item, viewModel.layout) {
+        case let (.media(media), .grid):
+            PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+                onSelectMedia(media)
+            }
+        case let (.media(media), .list):
+            MediaListRow(media: media) {
+                onSelectMedia(media)
+            }
+        case let (.folder(folder), .grid):
+            FolderCard(title: folder.title, width: 200, showsLabels: true) {
+                viewModel.enterFolder(folder)
+            }
+        case let (.folder(folder), .list):
+            FolderListRow(title: folder.title) {
+                viewModel.enterFolder(folder)
             }
         }
     }

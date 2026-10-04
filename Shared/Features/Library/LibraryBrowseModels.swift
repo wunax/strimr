@@ -63,7 +63,18 @@ final class LibraryBrowseSession {
     }
 }
 
+enum LibraryBrowseLayout: String, Codable, Equatable, Sendable {
+    case grid
+    case list
+
+    /// Home video libraries have extracted thumbnails and long titles, which read better as a list.
+    static func `default`(for kind: MediaKind) -> Self {
+        kind == .clip ? .list : .grid
+    }
+}
+
 struct LibraryBrowsePreferences: Codable, Equatable {
+    var layout: LibraryBrowseLayout?
     var plex: PlexSelection?
     var jellyfinQuery: LibraryBrowseQuery?
 
@@ -82,6 +93,10 @@ struct LibraryBrowsePreferences: Codable, Equatable {
             var optionFastKey: String?
             var optionTitle: String?
         }
+    }
+
+    func resolvedLayout(for kind: MediaKind) -> LibraryBrowseLayout {
+        layout ?? .default(for: kind)
     }
 
     /// Plex section keys repeat across servers, so the key is scoped by provider, server and account.

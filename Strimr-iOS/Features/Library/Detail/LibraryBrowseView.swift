@@ -20,6 +20,45 @@ struct LibraryBrowseView: View {
         )
     }
 
+    @ViewBuilder
+    private var browseItems: some View {
+        ForEach(Array(viewModel.browseItems.enumerated()), id: \.element.id) { index, item in
+            browseItem(item)
+                .task {
+                    if index == viewModel.browseItems.count - 1 {
+                        await viewModel.loadMore()
+                    }
+                }
+        }
+
+        if viewModel.isLoadingMore {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func browseItem(_ item: LibraryBrowseItem) -> some View {
+        switch (item, viewModel.layout) {
+        case let (.media(media), .grid):
+            PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+                onSelectMedia(media)
+            }
+        case let (.media(media), .list):
+            MediaListRow(media: media) {
+                onSelectMedia(media)
+            }
+        case let (.folder(folder), .grid):
+            FolderCard(title: folder.title, width: 112, showsLabels: true) {
+                viewModel.enterFolder(folder)
+            }
+        case let (.folder(folder), .list):
+            FolderListRow(title: folder.title) {
+                viewModel.enterFolder(folder)
+            }
+        }
+    }
+
     var body: some View {
         @Bindable var controls = viewModel.controls
 
@@ -30,41 +69,27 @@ struct LibraryBrowseView: View {
                         .frame(height: 0)
                         .id("libraryBrowseTop")
 
-                    if viewModel.showsServerControls || viewModel.showsDownloadedOnlyToggle {
-                        LibraryBrowseControlsView(
-                            viewModel: controls,
-                            showsBackButton: viewModel.canNavigateBack,
-                            onNavigateBack: viewModel.navigateBack,
-                            leadingToggle: downloadedOnlyToggle,
-                            showsServerControls: viewModel.showsServerControls,
-                        )
-                        .padding(.horizontal, 16)
-                    }
+                    LibraryBrowseControlsView(
+                        viewModel: controls,
+                        showsBackButton: viewModel.canNavigateBack,
+                        onNavigateBack: viewModel.navigateBack,
+                        leadingToggle: downloadedOnlyToggle,
+                        showsServerControls: viewModel.showsServerControls,
+                        layoutToggle: .layout(current: viewModel.layout, onChange: viewModel.setLayout),
+                        itemCount: viewModel.totalCount,
+                    )
+                    .padding(.horizontal, 16)
 
-                    LazyVGrid(columns: gridColumns, spacing: 16) {
-                        ForEach(Array(viewModel.browseItems.enumerated()), id: \.element.id) { index, item in
-                            Group {
-                                switch item {
-                                case let .media(media):
-                                    PortraitMediaCard(media: media, width: 112, showsLabels: true) {
-                                        onSelectMedia(media)
-                                    }
-                                case let .folder(folder):
-                                    FolderCard(title: folder.title, width: 112, showsLabels: true) {
-                                        viewModel.enterFolder(folder)
-                                    }
-                                }
+                    Group {
+                        switch viewModel.layout {
+                        case .grid:
+                            LazyVGrid(columns: gridColumns, spacing: 16) {
+                                browseItems
                             }
-                            .task {
-                                if index == viewModel.browseItems.count - 1 {
-                                    await viewModel.loadMore()
-                                }
+                        case .list:
+                            LazyVStack(spacing: 0) {
+                                browseItems
                             }
-                        }
-
-                        if viewModel.isLoadingMore {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
                         }
                     }
                     .padding(.horizontal, 16)

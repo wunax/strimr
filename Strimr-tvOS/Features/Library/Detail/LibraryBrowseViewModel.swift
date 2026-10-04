@@ -25,6 +25,7 @@ final class LibraryBrowseViewModel {
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
     var scrollResetID = 0
+    private(set) var layout: LibraryBrowseLayout
 
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
@@ -57,6 +58,7 @@ final class LibraryBrowseViewModel {
             libraryID: library.id,
         )
         let preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        layout = preferences.resolvedLayout(for: library.type)
         browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
@@ -144,6 +146,14 @@ final class LibraryBrowseViewModel {
         defer { isLoading = false }
         await loadPage(start: 0)
         await fetchCharactersIfNeeded()
+    }
+
+    func setLayout(_ layout: LibraryBrowseLayout) {
+        guard layout != self.layout else { return }
+        self.layout = layout
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.layout = layout
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 
     /// Skipped while server controls are hidden, so a degraded offline state never overwrites the saved selection.
