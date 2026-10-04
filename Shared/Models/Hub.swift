@@ -19,8 +19,9 @@ struct Hub: Identifiable, Hashable, Codable {
         more == true
     }
 
+    /// Rows merged across servers have no server to load more items from.
     var canOpenDetail: Bool {
-        PlexEndpoint(key: key) != nil
+        server != nil && PlexEndpoint(key: key) != nil
     }
 
     var canShowViewAll: Bool {

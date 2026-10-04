@@ -3,8 +3,6 @@ import SwiftUI
 enum MoreRoute: Hashable {
     case settings
     case favorites
-    case profiles
-    case accounts
 }
 
 @MainActor
@@ -42,22 +40,6 @@ struct MoreView: View {
                             sessionManager.requestProfileSelection()
                         } label: {
                             Label("common.actions.switchProfile", systemImage: "person.2.fill")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-
-                    if sessionManager.canManageAccounts {
-                        NavigationLink(value: MoreRoute.profiles) {
-                            Label("profiles.title", systemImage: "person.crop.circle")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        NavigationLink(value: MoreRoute.accounts) {
-                            Label("settings.accounts.title", systemImage: "server.rack")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
                         }

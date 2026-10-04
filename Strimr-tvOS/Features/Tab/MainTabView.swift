@@ -145,10 +145,6 @@ struct MainTabView: View {
                             switch route {
                             case .settings:
                                 SettingsView()
-                            case .profiles:
-                                ProfilesSettingsView()
-                            case .accounts:
-                                AccountsSettingsView()
                             case .favorites:
                                 FavoritesView(
                                     sessionManager: sessionManager,

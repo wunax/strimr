@@ -50,10 +50,6 @@ struct MainView: View {
                 }
 
                 Section {
-                    if sessionManager.canManageAccounts {
-                        sidebarLabel("profiles.title", systemImage: "person.crop.circle", item: .profiles)
-                        sidebarLabel("settings.accounts.title", systemImage: "server.rack", item: .accounts)
-                    }
                     sidebarLabel("settings.title", systemImage: "gearshape.fill", item: .settings)
                 }
             }
@@ -135,14 +131,6 @@ struct MainView: View {
                 }
                 .disabled(offlineCoordinator.isFullyOffline)
             }
-            if sessionManager.canManageAccounts {
-                Button("profiles.title", systemImage: "person.crop.circle") {
-                    appModel.selection = .profiles
-                }
-                Button("settings.accounts.title", systemImage: "server.rack") {
-                    appModel.selection = .accounts
-                }
-            }
         } label: {
             Label(sessionManager.activeProfile?.name ?? "Strimr", systemImage: "person.crop.circle")
         }
@@ -202,10 +190,6 @@ struct MainView: View {
             } else {
                 ContentUnavailableView("library.empty.title", systemImage: "rectangle.stack.fill")
             }
-        case .profiles:
-            ProfilesSettingsView()
-        case .accounts:
-            AccountsSettingsView()
         case .settings:
             SettingsView()
         }

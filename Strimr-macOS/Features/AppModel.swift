@@ -21,8 +21,6 @@ final class AppModel: PlaybackPresenting {
         case favorites
         case liveTV
         case library(LibraryIdentity)
-        case profiles
-        case accounts
         case settings
 
         var id: String {
@@ -35,8 +33,6 @@ final class AppModel: PlaybackPresenting {
             case .favorites: "favorites"
             case .liveTV: "liveTV"
             case let .library(identity): "library-\(identity.stableKey)"
-            case .profiles: "profiles"
-            case .accounts: "accounts"
             case .settings: "settings"
             }
         }

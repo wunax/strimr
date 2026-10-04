@@ -4,8 +4,6 @@ import SwiftUI
 struct ProfilesSettingsView: View {
     @Environment(SessionManager.self) private var sessionManager
     @State private var isCreatingProfile = false
-    @State private var newProfileName = ""
-    @State private var newProfilePIN = ""
     @State private var createdProfileID: String?
 
     var body: some View {
@@ -21,11 +19,7 @@ struct ProfilesSettingsView: View {
             }
 
             Section {
-                Button("profiles.create") {
-                    newProfileName = ""
-                    newProfilePIN = ""
-                    isCreatingProfile = true
-                }
+                Button("profiles.create") { isCreatingProfile = true }
             }
 
             if sessionManager.profiles.count > 1 {
@@ -41,37 +35,63 @@ struct ProfilesSettingsView: View {
         }
         .navigationTitle("profiles.title")
         .sheet(isPresented: $isCreatingProfile) {
-            NavigationStack {
-                Form {
-                    TextField("profiles.name", text: $newProfileName)
-                    SecureField("profiles.pin.optional", text: $newProfilePIN)
-                    #if os(iOS)
-                        .keyboardType(.numberPad)
-                    #endif
-                }
-                .navigationTitle("profiles.create")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("common.actions.cancel") { isCreatingProfile = false }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("common.actions.continue") {
-                            let profile = sessionManager.createLocalProfile(
-                                name: newProfileName,
-                                pin: String(newProfilePIN.filter(\.isNumber).prefix(4)),
-                            )
-                            isCreatingProfile = false
-                            createdProfileID = profile.id
-                        }
-                        .disabled(newProfileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-            }
+            CreateLocalProfileView(
+                onCreate: { profile in
+                    isCreatingProfile = false
+                    createdProfileID = profile.id
+                },
+                onCancel: { isCreatingProfile = false },
+            )
         }
         .navigationDestination(item: $createdProfileID) { profileID in
             // A new local profile goes straight to "Add a connection": without one it cannot be activated.
             ProfileDetailView(profileID: profileID, startsWithNewConnection: true)
         }
+    }
+}
+
+/// Name and optional PIN of a new local profile.
+struct CreateLocalProfileView: View {
+    @Environment(SessionManager.self) private var sessionManager
+    let onCreate: (LocalProfile) -> Void
+    let onCancel: () -> Void
+    @State private var name = ""
+    @State private var pin = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("profiles.name", text: $name)
+                SecureField("profiles.pin.optional", text: $pin)
+                #if os(iOS)
+                    .keyboardType(.numberPad)
+                #endif
+                #if os(tvOS)
+                    Button("common.actions.continue", action: create)
+                        .disabled(isNameEmpty)
+                #endif
+            }
+            .navigationTitle("profiles.create")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.actions.cancel", action: onCancel)
+                }
+                #if !os(tvOS)
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("common.actions.continue", action: create)
+                            .disabled(isNameEmpty)
+                    }
+                #endif
+            }
+        }
+    }
+
+    private var isNameEmpty: Bool {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func create() {
+        onCreate(sessionManager.createLocalProfile(name: name, pin: String(pin.filter(\.isNumber).prefix(4))))
     }
 }
 

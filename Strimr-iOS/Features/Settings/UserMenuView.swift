@@ -57,20 +57,6 @@ struct UserMenuView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-
-                if sessionManager.canManageAccounts {
-                    NavigationLink {
-                        ProfilesSettingsView()
-                    } label: {
-                        Label("profiles.title", systemImage: "person.crop.circle")
-                    }
-
-                    NavigationLink {
-                        AccountsSettingsView()
-                    } label: {
-                        Label("settings.accounts.title", systemImage: "server.rack")
-                    }
-                }
             }
         }
         .listStyle(.insetGrouped)
