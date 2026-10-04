@@ -112,6 +112,16 @@ struct LibraryBrowseControlsView: View {
                 viewModel.togglePanel(.sort)
             }
         }
+
+        if viewModel.canResetSelection {
+            LibraryBrowsePillButton(
+                title: String(localized: "library.browse.filters.reset"),
+                systemImage: "arrow.counterclockwise",
+                isSelected: false,
+                showsDisclosure: false,
+                action: viewModel.resetSelection,
+            )
+        }
     }
 
     @ViewBuilder

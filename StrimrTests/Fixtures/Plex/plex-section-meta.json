@@ -1,0 +1,57 @@
+{
+  "Type": [
+    {
+      "key": "/library/sections/1/all?type=1",
+      "type": "movie",
+      "title": "Movies",
+      "active": true,
+      "Sort": [
+        {
+          "active": true,
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "desc",
+          "descKey": "addedAt:desc",
+          "key": "addedAt",
+          "title": "Date Added"
+        }
+      ],
+      "Filter": [
+        {
+          "filter": "unwatched",
+          "filterType": "boolean",
+          "key": "/library/sections/1/unwatched",
+          "title": "Unwatched",
+          "type": "filter"
+        },
+        {
+          "filter": "genre",
+          "filterType": "string",
+          "key": "/library/sections/1/genre?type=1",
+          "title": "Genre",
+          "type": "filter"
+        }
+      ]
+    },
+    {
+      "key": "/library/sections/1/all?type=18",
+      "type": "collection",
+      "title": "Collections",
+      "active": false,
+      "Sort": [
+        {
+          "active": true,
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        }
+      ],
+      "Filter": []
+    }
+  ]
+}

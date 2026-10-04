@@ -186,6 +186,16 @@ final class SettingsManager {
         persist()
     }
 
+    func libraryBrowsePreferences(for key: String) -> LibraryBrowsePreferences {
+        settings.interface.libraryBrowseByKey[key] ?? LibraryBrowsePreferences()
+    }
+
+    func setLibraryBrowsePreferences(_ preferences: LibraryBrowsePreferences, for key: String) {
+        guard settings.interface.libraryBrowseByKey[key] != preferences else { return }
+        settings.interface.libraryBrowseByKey[key] = preferences
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()
