@@ -259,7 +259,12 @@ struct MainTabView: View {
         switch route {
         case let .mediaDetail(media):
             MediaDetailView(
-                viewModel: MediaDetailViewModel(media: media, services: routeServices),
+                viewModel: MediaDetailViewModel(
+                    media: media,
+                    services: routeServices,
+                    copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    onSelectCopy: coordinator.showMediaDetail,
+                ),
                 onPlay: { ratingKey, type in
                     Task {
                         await playbackLauncher.play(ratingKey: ratingKey, type: type)

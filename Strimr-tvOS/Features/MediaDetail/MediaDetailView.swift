@@ -221,6 +221,8 @@ struct MediaDetailView: View {
                 playFromStartButton
             }
 
+            ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
+
             moreActionsMenu
         }
     }

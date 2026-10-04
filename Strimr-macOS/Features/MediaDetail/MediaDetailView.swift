@@ -417,9 +417,13 @@ struct MediaDetailView: View {
                 }
 
                 if isServerUnreachable, downloadedPlayback == nil {
-                    Label("offline.detail.notAvailable", systemImage: "wifi.slash")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    if viewModel.reachableCopyReplacingUnavailableServer != nil {
+                        ReachableCopyPlayButton(viewModel: viewModel, presenter: appModel)
+                    } else {
+                        Label("offline.detail.notAvailable", systemImage: "wifi.slash")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 

@@ -152,6 +152,7 @@
 				Features/MediaDetail/CastMember.swift,
 				Features/MediaDetail/CastSection.swift,
 				Features/MediaDetail/ExtrasSection.swift,
+				Features/MediaDetail/MediaCopyFinder.swift,
 				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaFileInfoView.swift,

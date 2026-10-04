@@ -259,6 +259,8 @@ struct MainTabView: View {
                     media: media,
                     services: services,
                     resolutionMode: .selectedMedia,
+                    copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    onSelectCopy: coordinator.showMediaDetail,
                 ),
                 onPlay: { ratingKey, type in
                     Task {

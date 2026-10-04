@@ -245,6 +245,8 @@ struct MainView: View {
                     media: media,
                     services: services,
                     resolutionMode: .selectedMedia,
+                    copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    onSelectCopy: appModel.showMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
                 onSelectParentSeries: appModel.returnToSeries,
