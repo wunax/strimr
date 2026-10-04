@@ -37,9 +37,10 @@ final class LibraryStore {
             let repository = try SectionRepository(context: context)
             let response = try await repository.getSections()
             let sections = response.mediaContainer.directory ?? []
+            let server = ServerIdentity(provider: .plex, id: context.serverIdentifier ?? "")
             libraries = sections
                 .filter(\.type.isSupported)
-                .map(Library.init)
+                .map { Library(plexSection: $0, server: server) }
         } catch {
             loadFailed = true
             throw error

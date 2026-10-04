@@ -8,6 +8,8 @@ struct Hub: Identifiable, Hashable, Codable {
     let size: Int
     let more: Bool?
     let items: [MediaDisplayItem]
+    /// Server of a provider hub; `nil` for rows merged across servers.
+    var server: ServerIdentity? = nil
 
     var hasItems: Bool {
         !items.isEmpty

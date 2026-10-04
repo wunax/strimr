@@ -131,12 +131,22 @@ class CachedLibraryService: MediaLibraryService {
                 size: entry.hub.size,
                 more: entry.hub.more,
                 items: items,
+                server: policy.owner.server,
             )
         }
     }
 
     static func emptied(_ hub: Hub) -> Hub {
-        Hub(id: hub.id, key: hub.key, hubKey: hub.hubKey, title: hub.title, size: hub.size, more: hub.more, items: [])
+        Hub(
+            id: hub.id,
+            key: hub.key,
+            hubKey: hub.hubKey,
+            title: hub.title,
+            size: hub.size,
+            more: hub.more,
+            items: [],
+            server: hub.server,
+        )
     }
 }
 
@@ -175,7 +185,7 @@ final class CachedPlexLibraryService: CachedLibraryService, PlexAdvancedLibraryS
             fallback: {
                 guard let libraryID else { return nil }
                 let page = offlinePage(
-                    library: Library(id: libraryID, title: "", type: .unknown),
+                    library: Library(id: libraryID, title: "", type: .unknown, server: policy.owner.server),
                     startIndex: startIndex,
                 )
                 return PlexAdvancedBrowsePage(

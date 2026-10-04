@@ -105,9 +105,11 @@
 		E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Domain/Aggregated.swift,
 				Domain/CatalogModels.swift,
 				Domain/LiveTVModels.swift,
 				Domain/MediaIdentity.swift,
+				Domain/MediaMatching.swift,
 				Domain/MediaVersionResolver.swift,
 				Domain/PlaybackModels.swift,
 				"Extensions/Color+Hex.swift",
@@ -273,7 +275,9 @@
 				Repository/Seerr/SeerrSettingsRepository.swift,
 				Services/MediaServices.swift,
 				Services/Protocols/MediaServiceProtocols.swift,
+				Session/MediaAccount.swift,
 				Session/SessionManager.swift,
+				Session/StrimrProfile.swift,
 				Storage/Keychain.swift,
 				Storage/TopShelfSessionStore.swift,
 				Store/FavoritesStore.swift,

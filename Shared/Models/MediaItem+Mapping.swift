@@ -77,6 +77,7 @@ extension MediaItem {
             parentThumbPath: plexItem.parentThumb,
             librarySectionID: plexItem.librarySectionID.map(String.init),
             lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
+            externalIDs: ExternalIDs(plexGuids: plexItem.guids?.map(\.id) ?? []),
         )
     }
 }

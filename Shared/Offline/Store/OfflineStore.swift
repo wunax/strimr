@@ -515,10 +515,10 @@ final class OfflineStore {
             switch MediaKind(rawValue: record.kind) {
             case .collection:
                 return (try? decoder.decode(CollectionMediaItem.self, from: record.payload))
-                    .map(MediaDisplayItem.collection)
+                    .map { MediaDisplayItem.collection($0.assigning(server: owner.server)) }
             case .playlist:
                 return (try? decoder.decode(PlaylistMediaItem.self, from: record.payload))
-                    .map(MediaDisplayItem.playlist)
+                    .map { MediaDisplayItem.playlist($0.assigning(server: owner.server)) }
             default:
                 guard let item = try? decoder.decode(MediaItem.self, from: record.payload) else { return nil }
                 return .playable(states[item.id].map { item.applying($0) } ?? item)
@@ -675,7 +675,9 @@ final class OfflineStore {
         let cached = perform { try self.cache.read(request) } ?? []
         let cachedIDs = Set(cached.map(\.libraryID))
         let pinned = (perform { try self.offline.read(request) } ?? []).filter { !cachedIDs.contains($0.libraryID) }
-        return (cached + pinned).compactMap { try? decoder.decode(Library.self, from: $0.payload) }
+        return (cached + pinned).compactMap {
+            try? decoder.decode(Library.self, from: $0.payload).assigning(server: owner.server)
+        }
     }
 
     // MARK: - List snapshots

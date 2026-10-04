@@ -1,0 +1,34 @@
+{
+  "Items": [
+    {
+      "Id": "jf-movie-1",
+      "Name": "Example Movie",
+      "Type": "Movie",
+      "ProductionYear": 2021,
+      "RunTimeTicks": 72000000000,
+      "ProviderIds": { "Imdb": "tt0000001", "Tmdb": "1001" },
+      "UserData": { "PlaybackPositionTicks": 9000000000, "PlayCount": 0, "Played": false, "IsFavorite": false, "LastPlayedDate": "2026-03-10T20:00:00Z" }
+    },
+    {
+      "Id": "jf-episode-1",
+      "Name": "Pilot",
+      "Type": "Episode",
+      "SeriesId": "jf-series-1",
+      "SeriesName": "Example Show",
+      "ParentIndexNumber": 1,
+      "IndexNumber": 1,
+      "RunTimeTicks": 24000000000,
+      "ProviderIds": { "Tvdb": "3001" },
+      "UserData": { "PlaybackPositionTicks": 6000000000, "PlayCount": 0, "Played": false, "IsFavorite": false, "LastPlayedDate": "2026-03-12T20:00:00Z" }
+    },
+    {
+      "Id": "jf-video-1",
+      "Name": "Home Video",
+      "Type": "Movie",
+      "RunTimeTicks": 6000000000,
+      "UserData": { "PlaybackPositionTicks": 600000000, "PlayCount": 0, "Played": false, "IsFavorite": false }
+    }
+  ],
+  "StartIndex": 0,
+  "TotalRecordCount": 3
+}

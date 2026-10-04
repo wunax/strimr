@@ -8,6 +8,70 @@ enum MediaProvider: String, Codable, Hashable, Sendable {
 struct ServerIdentity: Codable, Hashable, Sendable {
     let provider: MediaProvider
     let id: String
+
+    /// Stable `<provider>:<serverID>` form used in persisted keys.
+    var stableKey: String {
+        "\(provider.rawValue):\(id)"
+    }
+
+    init(provider: MediaProvider, id: String) {
+        self.provider = provider
+        self.id = id
+    }
+
+    init?(stableKey: String) {
+        let parts = stableKey.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, let provider = MediaProvider(rawValue: String(parts[0])), !parts[1].isEmpty
+        else { return nil }
+        self.init(provider: provider, id: String(parts[1]))
+    }
+}
+
+extension ServerIdentity {
+    /// Placeholder for values decoded from data persisted before they carried their server. Stores that know the
+    /// server re-assign it after decoding.
+    static let unassigned = ServerIdentity(provider: .plex, id: "")
+}
+
+struct LibraryIdentity: Hashable, Sendable {
+    let server: ServerIdentity
+    let libraryID: String
+
+    /// Stable `<provider>:<serverID>:<libraryID>` form used in `UserDefaults` and fixtures.
+    var stableKey: String {
+        "\(server.stableKey):\(libraryID)"
+    }
+
+    init(server: ServerIdentity, libraryID: String) {
+        self.server = server
+        self.libraryID = libraryID
+    }
+
+    init?(stableKey: String) {
+        let parts = stableKey.split(separator: ":", maxSplits: 2, omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let provider = MediaProvider(rawValue: String(parts[0])),
+              !parts[1].isEmpty,
+              !parts[2].isEmpty
+        else { return nil }
+        self.init(server: ServerIdentity(provider: provider, id: String(parts[1])), libraryID: String(parts[2]))
+    }
+}
+
+extension LibraryIdentity: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        guard let identity = LibraryIdentity(stableKey: value) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid library identity")
+        }
+        self = identity
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(stableKey)
+    }
 }
 
 struct MediaIdentity: Codable, Hashable, Sendable {

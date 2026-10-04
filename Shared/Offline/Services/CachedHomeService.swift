@@ -123,6 +123,7 @@ final class CachedHomeService: MediaHomeService {
                     size: downloads.count,
                     more: false,
                     items: downloads.map(MediaDisplayItem.playable),
+                    server: owner.server,
                 ),
             ))
         }
@@ -150,6 +151,7 @@ final class CachedHomeService: MediaHomeService {
                     size: locallyInProgress.count,
                     more: false,
                     items: locallyInProgress.map(MediaDisplayItem.playable),
+                    server: owner.server,
                 )))
             }
             rows += cachedRows
@@ -184,6 +186,7 @@ final class CachedHomeService: MediaHomeService {
             size: hub.size,
             more: hub.more,
             items: items,
+            server: policy.owner.server,
         )
     }
 }

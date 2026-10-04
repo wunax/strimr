@@ -36,6 +36,12 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let parentThumbPath: String?
     let librarySectionID: String?
     let lastViewedAt: Date?
+    /// Optional so items persisted before external ids existed still decode.
+    private let storedExternalIDs: ExternalIDs?
+
+    var externalIDs: ExternalIDs {
+        storedExternalIDs ?? ExternalIDs()
+    }
 
     var provider: MediaProvider {
         identity.server.provider
@@ -81,6 +87,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         parentThumbPath: String?,
         librarySectionID: String? = nil,
         lastViewedAt: Date? = nil,
+        externalIDs: ExternalIDs = ExternalIDs(),
     ) {
         self.id = id
         self.identity = identity ?? Self.legacyIdentity(id: id, guid: guid)
@@ -117,6 +124,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.parentThumbPath = parentThumbPath
         self.librarySectionID = librarySectionID
         self.lastViewedAt = lastViewedAt
+        storedExternalIDs = externalIDs.isEmpty ? nil : externalIDs
     }
 
     private static func legacyIdentity(id: String, guid: String) -> MediaIdentity {
@@ -132,6 +140,23 @@ struct MediaItem: Identifiable, Hashable, Codable {
 
     var kind: MediaKind {
         type
+    }
+
+    var matchDescriptor: MediaMatchDescriptor {
+        let kind: MediaMatchDescriptor.Kind = switch type {
+        case .movie: .movie
+        case .series: .series
+        case .season: .season
+        case .episode: .episode
+        case .clip, .collection, .playlist, .folder, .unknown: .other
+        }
+        return MediaMatchDescriptor(
+            kind: kind,
+            guid: guid,
+            externalIDs: externalIDs,
+            seasonNumber: type == .episode ? parentIndex : nil,
+            episodeNumber: type == .episode ? index : nil,
+        )
     }
 
     var hierarchy: MediaHierarchy {

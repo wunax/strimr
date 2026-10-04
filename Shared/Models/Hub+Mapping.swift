@@ -13,6 +13,7 @@ extension Hub {
             items: (plexHub.metadata ?? [])
                 .filter(\.type.isSupported)
                 .compactMap { MediaDisplayItem(plexItem: $0, server: server) },
+            server: server,
         )
     }
 }

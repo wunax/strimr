@@ -174,7 +174,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func libraries() async throws -> [Library] {
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
-        return sections.filter(\.type.isSupported).map(Library.init)
+        return sections.filter(\.type.isSupported).map { Library(plexSection: $0, server: server) }
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
@@ -221,13 +221,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func collections(in library: Library) async throws -> [CollectionMediaItem] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await SectionRepository(context: context).getSectionCollections(sectionId: sectionID)
-        return (response.mediaContainer.metadata ?? []).map(CollectionMediaItem.init)
+        return (response.mediaContainer.metadata ?? []).map { CollectionMediaItem(plexItem: $0, server: server) }
     }
 
     func playlists(in library: Library) async throws -> [PlaylistMediaItem] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await PlaylistRepository(context: context).getPlaylists(sectionId: sectionID)
-        return (response.mediaContainer.metadata ?? []).map(PlaylistMediaItem.init)
+        return (response.mediaContainer.metadata ?? []).map { PlaylistMediaItem(plexItem: $0, server: server) }
     }
 
     func advancedBrowse(

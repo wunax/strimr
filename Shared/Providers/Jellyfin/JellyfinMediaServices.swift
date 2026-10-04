@@ -186,7 +186,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func libraries() async throws -> [Library] {
-        try await catalog.libraries().map(Library.init)
+        try await catalog.libraries().map { Library(jellyfinItem: $0, server: server) }
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
@@ -1322,6 +1322,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             size: items.count,
             more: false,
             items: items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
+            server: server,
         )
     }
 
