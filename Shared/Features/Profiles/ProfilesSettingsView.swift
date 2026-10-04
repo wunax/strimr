@@ -19,7 +19,10 @@ struct ProfilesSettingsView: View {
             }
 
             Section {
-                Button("profiles.create") { isCreatingProfile = true }
+                Button { isCreatingProfile = true } label: {
+                    Label("profiles.create", systemImage: "plus.circle")
+                }
+                .foregroundStyle(.primary)
             }
 
             if sessionManager.profiles.count > 1 {

@@ -31,7 +31,10 @@ struct AccountsSettingsView: View {
             }
 
             Section {
-                Button("settings.accounts.add") { isAddingAccount = true }
+                Button { isAddingAccount = true } label: {
+                    Label("settings.accounts.add", systemImage: "plus.circle")
+                }
+                .foregroundStyle(.primary)
             }
         }
         .navigationTitle("settings.accounts.title")

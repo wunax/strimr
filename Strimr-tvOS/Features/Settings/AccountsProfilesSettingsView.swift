@@ -23,8 +23,11 @@ struct TVAccountsSettingsView: View {
             }
 
             Section {
-                Button("settings.accounts.add") { isAddingAccount = true }
-                    .settingsFocus("accounts.add", isDefault: sessionManager.accounts.isEmpty)
+                Button { isAddingAccount = true } label: {
+                    Label("settings.accounts.add", systemImage: "plus.circle")
+                }
+                .foregroundStyle(.primary)
+                .settingsFocus("accounts.add", isDefault: sessionManager.accounts.isEmpty)
             }
         }
         .sheet(isPresented: $isAddingAccount) {
@@ -121,8 +124,11 @@ struct TVProfilesSettingsView: View {
             }
 
             Section {
-                Button("profiles.create") { isCreatingProfile = true }
-                    .settingsFocus("profiles.create")
+                Button { isCreatingProfile = true } label: {
+                    Label("profiles.create", systemImage: "plus.circle")
+                }
+                .foregroundStyle(.primary)
+                .settingsFocus("profiles.create")
             }
 
             if sessionManager.profiles.count > 1 {
