@@ -225,6 +225,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled = true
     var spoilerProtection = SpoilerProtectionLevel.off
+    var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
 
     init() {}
 
@@ -247,6 +248,10 @@ struct InterfaceSettings: Codable, Equatable {
             forKey: .multiServerSearchEnabled,
         ) ?? true
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
+        libraryBrowseByKey = (try? container.decode(
+            [String: LibraryBrowsePreferences].self,
+            forKey: .libraryBrowseByKey,
+        )) ?? [:]
     }
 }
 

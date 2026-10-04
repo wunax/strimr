@@ -37,6 +37,7 @@ final class LibraryBrowseViewModel {
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private let browseSession: LibraryBrowseSession
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private let preferencesKey: String
     private let pageSize = 40
 
     init(
@@ -51,21 +52,35 @@ final class LibraryBrowseViewModel {
         service = services.library
         self.settingsManager = settingsManager
         self.browseSession = browseSession
+        preferencesKey = LibraryBrowsePreferences.key(
+            scopeID: services.homeRowPreferencesScopeID,
+            libraryID: library.id,
+        )
+        let preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
             browseService: services.library as? any AdvancedLibraryBrowseService,
             library: library,
             browseSession: browseSession,
+            pendingRestore: preferences.plex,
         )
         controls.onSelectionChanged = { [weak self] in
+            self?.savePreferences()
             self?.selectionChanged()
         }
         controls.onDisplayTypeChanged = { [weak self] in
             guard let self else { return }
+            savePreferences()
             folderStack = []
             Task { await self.refresh() }
         }
+        controls.onSelectionReset = { [weak self] in
+            self?.clearSavedSelection()
+            self?.selectionChanged()
+        }
         browseSession.externalQueryChangeHandler = { [weak self] in
+            self?.savePreferences()
             self?.selectionChanged()
         }
     }
@@ -129,6 +144,27 @@ final class LibraryBrowseViewModel {
         defer { isLoading = false }
         await loadPage(start: 0)
         await fetchCharactersIfNeeded()
+    }
+
+    /// Skipped while server controls are hidden, so a degraded offline state never overwrites the saved selection.
+    private func savePreferences() {
+        guard controls.hasControls else { return }
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        if advancedService != nil {
+            preferences.plex = controls.plexSelection
+        } else if browseService != nil {
+            preferences.jellyfinQuery = browseSession.query
+        }
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
+    }
+
+    private func clearSavedSelection() {
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.plex = controls.selectedDisplayType.map {
+            LibraryBrowsePreferences.PlexSelection(displayTypeKey: $0.key)
+        }
+        preferences.jellyfinQuery = nil
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 
     private func selectionChanged() {
@@ -224,8 +260,12 @@ final class LibraryBrowseViewModel {
             )
 
             if includeMeta, let meta = response.meta {
-                controls.applyMeta(meta)
+                let restoreChanged = controls.applyMeta(meta)
                 hasLoadedMeta = true
+                if restoreChanged {
+                    savePreferences()
+                    Task { await refresh() }
+                }
             }
 
             let newItems = response.items
@@ -282,8 +322,8 @@ final class LibraryBrowseViewModel {
         if let currentFolderEndpoint {
             return currentFolderEndpoint
         }
-        if let selectedDisplayType = controls.selectedDisplayType,
-           let endpoint = PlexEndpoint(key: selectedDisplayType.key)
+        if let displayTypeKey = controls.requestedDisplayTypeKey,
+           let endpoint = PlexEndpoint(key: displayTypeKey)
         {
             return endpoint
         }

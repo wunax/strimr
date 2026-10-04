@@ -41,11 +41,15 @@ final class LibraryBrowseControlsViewModel {
         let title: String
         let fastKey: String?
 
+        init(key: String, title: String, fastKey: String?) {
+            id = fastKey ?? key
+            self.key = key
+            self.title = title
+            self.fastKey = fastKey
+        }
+
         init(directory: PlexFilterDirectory) {
-            id = directory.fastKey ?? directory.key
-            key = directory.key
-            title = directory.title
-            fastKey = directory.fastKey
+            self.init(key: directory.key, title: directory.title, fastKey: directory.fastKey)
         }
     }
 
@@ -120,6 +124,9 @@ final class LibraryBrowseControlsViewModel {
 
     @ObservationIgnored var onSelectionChanged: (() -> Void)?
     @ObservationIgnored var onDisplayTypeChanged: (() -> Void)?
+    @ObservationIgnored var onSelectionReset: (() -> Void)?
+    /// Saved Plex selection used to build requests until `meta` confirms it against the server.
+    @ObservationIgnored private var pendingRestore: LibraryBrowsePreferences.PlexSelection?
     @ObservationIgnored private let advancedService: (any PlexAdvancedLibraryService)?
     @ObservationIgnored private let browseService: (any AdvancedLibraryBrowseService)?
     @ObservationIgnored private let library: Library?
@@ -130,11 +137,13 @@ final class LibraryBrowseControlsViewModel {
         browseService: (any AdvancedLibraryBrowseService)? = nil,
         library: Library? = nil,
         browseSession: LibraryBrowseSession? = nil,
+        pendingRestore: LibraryBrowsePreferences.PlexSelection? = nil,
     ) {
         self.advancedService = advancedService
         self.browseService = browseService
         self.library = library
         self.browseSession = browseSession
+        self.pendingRestore = pendingRestore
     }
 
     var isJellyfinBrowse: Bool {
@@ -147,6 +156,41 @@ final class LibraryBrowseControlsViewModel {
 
     var hasDisplayTypes: Bool {
         !displayTypes.isEmpty
+    }
+
+    var requestedDisplayTypeKey: String? {
+        selectedDisplayType?.key ?? pendingRestore?.displayTypeKey
+    }
+
+    var plexSelection: LibraryBrowsePreferences.PlexSelection {
+        if let pendingRestore {
+            return pendingRestore
+        }
+        return LibraryBrowsePreferences.PlexSelection(
+            displayTypeKey: selectedDisplayType?.key,
+            sortKey: selectedSort?.sort.key,
+            sortDirection: selectedSort?.direction,
+            sortQueryValue: selectedSort.map(sortQueryValue),
+            filters: selectedFilters.compactMapValues { selection in
+                if selection.filter.isBoolean {
+                    return selection.isEnabled ? .init(isEnabled: true) : nil
+                }
+                guard let option = selection.selectedOption else { return nil }
+                return .init(
+                    isEnabled: selection.isEnabled,
+                    optionKey: option.key,
+                    optionFastKey: option.fastKey,
+                    optionTitle: option.title,
+                )
+            },
+        )
+    }
+
+    var canResetSelection: Bool {
+        if isJellyfinBrowse {
+            return browseSession.map { $0.query != LibraryBrowseQuery() } ?? false
+        }
+        return !selectedFilters.isEmpty || selectedSort != defaultSort(for: selectedDisplayType)
     }
 
     var availableFilters: [PlexSectionItemFilter] {
@@ -426,6 +470,16 @@ final class LibraryBrowseControlsViewModel {
         onSelectionChanged?()
     }
 
+    func resetSelection() {
+        if isJellyfinBrowse {
+            browseSession?.query = LibraryBrowseQuery()
+        } else {
+            selectedFilters = [:]
+            selectedSort = defaultSort(for: selectedDisplayType)
+        }
+        onSelectionReset?()
+    }
+
     func selectFilterOption(_ option: FilterOption, for filter: PlexSectionItemFilter) {
         selectedFilters[filter.filter] = FilterSelection(filter: filter, isEnabled: true, selectedOption: option)
         onSelectionChanged?()
@@ -452,19 +506,31 @@ final class LibraryBrowseControlsViewModel {
         filterOptionsError[filter.filter]
     }
 
-    func applyMeta(_ meta: PlexSectionItemMeta) {
+    /// Returns `true` when the restored selection used for the first request had to be adjusted,
+    /// so the caller can refresh and save the cleaned selection.
+    @discardableResult
+    func applyMeta(_ meta: PlexSectionItemMeta) -> Bool {
         let types = meta.type.map(DisplayType.init)
         displayTypes = types
+        let restore = pendingRestore
+        pendingRestore = nil
+        var restoreChanged = false
 
-        if let selected = selectedDisplayType,
-           let matching = types.first(where: { $0.key == selected.key })
+        if let requestedKey = selectedDisplayType?.key ?? restore?.displayTypeKey,
+           let matching = types.first(where: { $0.key == requestedKey })
         {
             selectedDisplayType = matching
         } else {
+            restoreChanged = restore?.displayTypeKey != nil
             selectedDisplayType = types.first(where: { $0.isActive }) ?? types.first
         }
 
+        if let restore, let selectedDisplayType {
+            restoreChanged = applyRestore(restore, to: selectedDisplayType) || restoreChanged
+        }
+
         normalizeSelections(for: selectedDisplayType)
+        return restoreChanged
     }
 
     func buildQueryItems(
@@ -477,33 +543,77 @@ final class LibraryBrowseControlsViewModel {
         setQueryItem(name: "includeCollections", value: includeCollections == true ? "1" : nil, in: &items)
         setQueryItem(name: "includeMeta", value: includeMeta ? "1" : nil, in: &items)
 
-        if let selectedSort {
-            let sortValue = selectedSort.direction == .asc
-                ? selectedSort.sort.key
-                : selectedSort.sort.descKey
-            setQueryItem(name: "sort", value: sortValue, in: &items)
-        } else {
-            setQueryItem(name: "sort", value: nil, in: &items)
+        if let pendingRestore {
+            setQueryItem(name: "sort", value: pendingRestore.sortQueryValue, in: &items)
+            for (name, filter) in pendingRestore.filters where filter.isEnabled {
+                setFilterQueryItems(name: name, optionKey: filter.optionKey, fastKey: filter.optionFastKey, in: &items)
+            }
+            return items
         }
+
+        setQueryItem(name: "sort", value: selectedSort.map(sortQueryValue), in: &items)
 
         for selection in selectedFilters.values {
             if selection.filter.isBoolean {
                 guard selection.isEnabled else { continue }
                 setQueryItem(name: selection.filter.filter, value: "1", in: &items)
             } else if let option = selection.selectedOption {
-                if let fastKey = option.fastKey,
-                   let fastQueryItems = PlexEndpoint(key: fastKey)?.queryItems
-                {
-                    for fastItem in fastQueryItems {
-                        setQueryItem(name: fastItem.name, value: fastItem.value, in: &items)
-                    }
-                } else {
-                    setQueryItem(name: selection.filter.filter, value: option.key, in: &items)
-                }
+                setFilterQueryItems(
+                    name: selection.filter.filter,
+                    optionKey: option.key,
+                    fastKey: option.fastKey,
+                    in: &items,
+                )
             }
         }
 
         return items
+    }
+
+    private func applyRestore(_ restore: LibraryBrowsePreferences.PlexSelection, to displayType: DisplayType) -> Bool {
+        var changed = false
+
+        if let sortKey = restore.sortKey {
+            if let sort = displayType.sorts.first(where: { $0.key == sortKey }) {
+                let selection = SortSelection(sort: sort, direction: restore.sortDirection ?? sort.defaultDirection)
+                selectedSort = selection
+                changed = sortQueryValue(selection) != restore.sortQueryValue
+            } else {
+                changed = true
+            }
+        }
+
+        var filters: [String: FilterSelection] = [:]
+        for (name, saved) in restore.filters {
+            guard let filter = displayType.filters.first(where: { $0.filter == name }) else {
+                changed = true
+                continue
+            }
+            if filter.isBoolean {
+                filters[name] = FilterSelection(filter: filter, isEnabled: saved.isEnabled, selectedOption: nil)
+            } else if let optionKey = saved.optionKey {
+                let option = FilterOption(
+                    key: optionKey,
+                    title: saved.optionTitle ?? optionKey,
+                    fastKey: saved.optionFastKey,
+                )
+                filters[name] = FilterSelection(filter: filter, isEnabled: saved.isEnabled, selectedOption: option)
+            } else {
+                changed = true
+            }
+        }
+        selectedFilters = filters
+
+        return changed
+    }
+
+    private func sortQueryValue(_ selection: SortSelection) -> String {
+        selection.direction == .asc ? selection.sort.key : selection.sort.descKey
+    }
+
+    private func defaultSort(for displayType: DisplayType?) -> SortSelection? {
+        guard let activeSort = displayType?.sorts.first(where: { $0.active == true }) else { return nil }
+        return SortSelection(sort: activeSort, direction: activeSort.defaultDirection)
     }
 
     private func normalizeSelections(for displayType: DisplayType?) {
@@ -529,10 +639,8 @@ final class LibraryBrowseControlsViewModel {
             self.selectedSort = nil
         }
 
-        if selectedSort == nil,
-           let activeSort = displayType.sorts.first(where: { $0.active == true })
-        {
-            selectedSort = SortSelection(sort: activeSort, direction: activeSort.defaultDirection)
+        if selectedSort == nil {
+            selectedSort = defaultSort(for: displayType)
         }
     }
 
@@ -615,6 +723,21 @@ final class LibraryBrowseControlsViewModel {
             filterOptions[filterKey] = options
         } catch {
             filterOptionsError[filterKey] = error.localizedDescription
+        }
+    }
+
+    private func setFilterQueryItems(
+        name: String,
+        optionKey: String?,
+        fastKey: String?,
+        in items: inout [URLQueryItem],
+    ) {
+        if let fastKey, let fastQueryItems = PlexEndpoint(key: fastKey)?.queryItems {
+            for fastItem in fastQueryItems {
+                setQueryItem(name: fastItem.name, value: fastItem.value, in: &items)
+            }
+        } else {
+            setQueryItem(name: name, value: optionKey ?? "1", in: &items)
         }
     }
 

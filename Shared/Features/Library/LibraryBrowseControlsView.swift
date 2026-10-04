@@ -176,6 +176,16 @@ struct LibraryBrowseControlsView: View {
                         }
                     }
                 }
+
+                if viewModel.canResetSelection {
+                    LibraryBrowsePillButton(
+                        title: String(localized: "library.browse.filters.reset"),
+                        systemImage: "arrow.counterclockwise",
+                        isSelected: false,
+                        showsDisclosure: false,
+                        action: viewModel.resetSelection,
+                    )
+                }
             }
             .padding(rowPadding)
         }
