@@ -39,9 +39,16 @@ struct SelectServerView: View {
                                 .foregroundStyle(.brandPrimary)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(server.name).font(.headline)
-                                ServerConnectionSummary(server: server)
+                                ServerConnectionSummary(state: viewModel.probeState(of: server))
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            }
+                            if viewModel.suggestsCustomAddress(for: server) {
+                                Spacer()
+                                Button("serverSelection.customAddress.suggest") {
+                                    viewModel.showCustomAddress(for: server)
+                                }
+                                .buttonStyle(.link)
+                                .font(.caption)
                             }
                         }
                     }

@@ -85,6 +85,19 @@ struct SelectServerView: View {
     }
 
     private func serverRow(_ server: PlexCloudResource) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            serverToggle(server)
+            if viewModel.suggestsCustomAddress(for: server) {
+                Button("serverSelection.customAddress.suggest") {
+                    viewModel.showCustomAddress(for: server)
+                }
+                .font(.footnote)
+                .tint(.brandPrimary)
+            }
+        }
+    }
+
+    private func serverToggle(_ server: PlexCloudResource) -> some View {
         Button {
             viewModel.toggle(server)
         } label: {
@@ -101,9 +114,8 @@ struct SelectServerView: View {
                     Text(server.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    ServerConnectionSummary(server: server)
+                    ServerConnectionSummary(state: viewModel.probeState(of: server))
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
