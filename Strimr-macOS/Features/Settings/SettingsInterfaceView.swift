@@ -78,6 +78,44 @@ struct SettingsInterfaceView: View {
                 Text("settings.interface.spoilerProtection.description")
             }
 
+            Section {
+                Picker(
+                    "settings.interface.posterSize",
+                    selection: Binding(
+                        get: { settingsManager.interface.posterSize },
+                        set: { settingsManager.setPosterSize($0) },
+                    ),
+                ) {
+                    ForEach(PosterSize.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+            } footer: {
+                Text("settings.interface.posterSize.footer")
+            }
+
+            Section {
+                Picker(
+                    "settings.interface.libraries.defaultLayout",
+                    selection: Binding(
+                        get: { settingsManager.interface.libraryDefaultLayout },
+                        set: { settingsManager.setLibraryDefaultLayout($0) },
+                    ),
+                ) {
+                    ForEach(LibraryDefaultLayout.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                Button("settings.interface.libraries.resetLayouts \(settingsManager.customLibraryLayoutCount)") {
+                    settingsManager.resetLibraryLayouts()
+                }
+                .disabled(settingsManager.customLibraryLayoutCount == 0)
+            } header: {
+                Text("settings.interface.libraries.section")
+            } footer: {
+                Text("settings.interface.libraries.footer")
+            }
+
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
                 libraryStore: libraryStore,

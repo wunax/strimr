@@ -58,7 +58,10 @@ final class LibraryBrowseViewModel {
             libraryID: library.id,
         )
         let preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
-        layout = preferences.resolvedLayout(for: library.type)
+        layout = preferences.resolvedLayout(
+            for: library.type,
+            defaultLayout: settingsManager.interface.libraryDefaultLayout,
+        )
         browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
@@ -152,7 +155,11 @@ final class LibraryBrowseViewModel {
         guard layout != self.layout else { return }
         self.layout = layout
         var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
-        preferences.layout = layout
+        preferences.setLayout(
+            layout,
+            for: library.type,
+            defaultLayout: settingsManager.interface.libraryDefaultLayout,
+        )
         settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 

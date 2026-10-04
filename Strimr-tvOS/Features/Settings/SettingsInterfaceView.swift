@@ -93,6 +93,45 @@ struct SettingsInterfaceView: View {
                 Text("settings.interface.spoilerProtection.description")
             }
 
+            Section {
+                SettingsPicker(
+                    "settings.interface.posterSize",
+                    selection: Binding(
+                        get: { settingsManager.interface.posterSize },
+                        set: { settingsManager.setPosterSize($0) },
+                    ),
+                    options: Array(PosterSize.allCases),
+                ) { option in
+                    Text(option.title)
+                }
+                .settingsFocus("posterSize")
+            } footer: {
+                Text("settings.interface.posterSize.footer")
+            }
+
+            Section {
+                SettingsPicker(
+                    "settings.interface.libraries.defaultLayout",
+                    selection: Binding(
+                        get: { settingsManager.interface.libraryDefaultLayout },
+                        set: { settingsManager.setLibraryDefaultLayout($0) },
+                    ),
+                    options: Array(LibraryDefaultLayout.allCases),
+                ) { option in
+                    Text(option.title)
+                }
+                .settingsFocus("libraryDefaultLayout")
+                Button("settings.interface.libraries.resetLayouts \(settingsManager.customLibraryLayoutCount)") {
+                    settingsManager.resetLibraryLayouts()
+                }
+                .disabled(settingsManager.customLibraryLayoutCount == 0)
+                .settingsFocus("resetLibraryLayouts")
+            } header: {
+                Text("settings.interface.libraries.section")
+            } footer: {
+                Text("settings.interface.libraries.footer")
+            }
+
             DisplayedLibrariesSectionView(
                 settingsManager: settingsManager,
                 libraryStore: libraryStore,

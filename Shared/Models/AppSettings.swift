@@ -17,6 +17,40 @@ enum SpoilerProtectionLevel: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum PosterSize: String, Codable, CaseIterable, Hashable {
+    case small
+    case medium
+    case large
+
+    var title: String {
+        switch self {
+        case .small:
+            String(localized: "settings.interface.posterSize.small")
+        case .medium:
+            String(localized: "settings.interface.posterSize.medium")
+        case .large:
+            String(localized: "settings.interface.posterSize.large")
+        }
+    }
+
+    /// Multiplies the platform's default card sizes, so carousels and grids scale together.
+    var scale: CGFloat {
+        switch self {
+        case .small: 0.72
+        case .medium: 1
+        case .large: 1.2
+        }
+    }
+
+    var gridCardWidth: CGFloat {
+        #if os(tvOS)
+            (200 * scale).rounded()
+        #else
+            (112 * scale).rounded()
+        #endif
+    }
+}
+
 enum SubtitleTextColor: String, Codable, CaseIterable, Hashable {
     case white
     case yellow
@@ -226,6 +260,8 @@ struct InterfaceSettings: Codable, Equatable {
     var multiServerSearchEnabled = true
     var spoilerProtection = SpoilerProtectionLevel.off
     var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
+    var libraryDefaultLayout = LibraryDefaultLayout.automatic
+    var posterSize = PosterSize.medium
 
     init() {}
 
@@ -252,6 +288,11 @@ struct InterfaceSettings: Codable, Equatable {
             [String: LibraryBrowsePreferences].self,
             forKey: .libraryBrowseByKey,
         )) ?? [:]
+        libraryDefaultLayout = (try? container.decode(
+            LibraryDefaultLayout.self,
+            forKey: .libraryDefaultLayout,
+        )) ?? .automatic
+        posterSize = (try? container.decode(PosterSize.self, forKey: .posterSize)) ?? .medium
     }
 }
 

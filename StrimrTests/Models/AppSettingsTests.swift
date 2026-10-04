@@ -58,6 +58,31 @@ struct AppSettingsTests {
         #expect(reloaded.libraryBrowsePreferences(for: "key") == preferences)
     }
 
+    @Test func `missing library display defaults decode as automatic and medium`() throws {
+        let settings = try decode(#"{"interface":{"libraryDefaultLayout":"mosaic"}}"#)
+
+        #expect(settings.interface.libraryDefaultLayout == .automatic)
+        #expect(settings.interface.posterSize == .medium)
+    }
+
+    @MainActor
+    @Test func `resetting library layouts keeps sort and filters`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let manager = SettingsManager(userDefaults: defaults)
+        var withSelection = LibraryBrowsePreferences(layout: .list)
+        withSelection.plex = .init(sortKey: "addedAt")
+        manager.setLibraryBrowsePreferences(withSelection, for: "a")
+        manager.setLibraryBrowsePreferences(LibraryBrowsePreferences(layout: .grid), for: "b")
+        #expect(manager.customLibraryLayoutCount == 2)
+
+        manager.resetLibraryLayouts()
+
+        #expect(manager.customLibraryLayoutCount == 0)
+        #expect(manager.libraryBrowsePreferences(for: "a").plex?.sortKey == "addedAt")
+        #expect(manager.interface.libraryBrowseByKey["b"] == nil)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

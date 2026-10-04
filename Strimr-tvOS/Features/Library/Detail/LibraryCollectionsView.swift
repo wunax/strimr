@@ -1,15 +1,20 @@
 import SwiftUI
 
 struct LibraryCollectionsView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryCollectionsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @FocusState private var focusedCharacterId: String?
 
-    private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
-    ]
+    private var cardWidth: CGFloat {
+        settingsManager.interface.posterSize.gridCardWidth
+    }
+
+    private var gridColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32)]
+    }
 
     init(
         viewModel: LibraryCollectionsViewModel,
@@ -27,7 +32,7 @@ struct LibraryCollectionsView: View {
                         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {
-                                    PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+                                    PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                                         onSelectMedia(media)
                                     }
                                 } else {

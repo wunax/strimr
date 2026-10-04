@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryBrowseView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: LibraryBrowseViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -8,9 +9,13 @@ struct LibraryBrowseView: View {
 
     private let listRowMetrics = MediaListRowMetrics(sizeClass: nil)
 
-    private let gridColumns = [
-        GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32),
-    ]
+    private var cardWidth: CGFloat {
+        settingsManager.interface.posterSize.gridCardWidth
+    }
+
+    private var gridColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32)]
+    }
 
     init(
         viewModel: LibraryBrowseViewModel,
@@ -119,7 +124,7 @@ struct LibraryBrowseView: View {
     private func browseItem(_ item: LibraryBrowseItem) -> some View {
         switch (item, viewModel.layout) {
         case let (.media(media), .grid):
-            PortraitMediaCard(media: media, width: 200, showsLabels: true) {
+            PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                 onSelectMedia(media)
             }
         case let (.media(media), .list):
@@ -127,7 +132,7 @@ struct LibraryBrowseView: View {
                 onSelectMedia(media)
             }
         case let (.folder(folder), .grid):
-            FolderCard(title: folder.title, width: 200, showsLabels: true) {
+            FolderCard(title: folder.title, width: cardWidth, showsLabels: true) {
                 viewModel.enterFolder(folder)
             }
         case let (.folder(folder), .list):

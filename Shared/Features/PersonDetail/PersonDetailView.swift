@@ -2,14 +2,15 @@ import Observation
 import SwiftUI
 
 struct PersonDetailView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: PersonDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     private var gridColumns: [GridItem] {
         #if os(tvOS)
-            [GridItem(.adaptive(minimum: 200, maximum: 200), spacing: 32, alignment: .top)]
+            [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 32, alignment: .top)]
         #else
-            [GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12, alignment: .top)]
+            [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 12, alignment: .top)]
         #endif
     }
 
@@ -104,11 +105,7 @@ struct PersonDetailView: View {
     }
 
     private var cardWidth: CGFloat {
-        #if os(tvOS)
-            200
-        #else
-            112
-        #endif
+        settingsManager.interface.posterSize.gridCardWidth
     }
 
     private var portraitSize: CGFloat {

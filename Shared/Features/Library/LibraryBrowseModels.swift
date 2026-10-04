@@ -73,6 +73,34 @@ enum LibraryBrowseLayout: String, Codable, Equatable, Sendable {
     }
 }
 
+enum LibraryDefaultLayout: String, Codable, CaseIterable, Hashable {
+    case automatic
+    case grid
+    case list
+
+    var title: String {
+        switch self {
+        case .automatic:
+            String(localized: "settings.interface.libraries.defaultLayout.automatic")
+        case .grid:
+            String(localized: "library.browse.layout.grid")
+        case .list:
+            String(localized: "library.browse.layout.list")
+        }
+    }
+
+    func layout(for kind: MediaKind) -> LibraryBrowseLayout {
+        switch self {
+        case .automatic:
+            .default(for: kind)
+        case .grid:
+            .grid
+        case .list:
+            .list
+        }
+    }
+}
+
 struct LibraryBrowsePreferences: Codable, Equatable {
     var layout: LibraryBrowseLayout?
     var plex: PlexSelection?
@@ -95,8 +123,13 @@ struct LibraryBrowsePreferences: Codable, Equatable {
         }
     }
 
-    func resolvedLayout(for kind: MediaKind) -> LibraryBrowseLayout {
-        layout ?? .default(for: kind)
+    func resolvedLayout(for kind: MediaKind, defaultLayout: LibraryDefaultLayout) -> LibraryBrowseLayout {
+        layout ?? defaultLayout.layout(for: kind)
+    }
+
+    /// Only a layout that differs from the default is saved, so changing the default reaches every other library.
+    mutating func setLayout(_ layout: LibraryBrowseLayout, for kind: MediaKind, defaultLayout: LibraryDefaultLayout) {
+        self.layout = layout == defaultLayout.layout(for: kind) ? nil : layout
     }
 
     /// Plex section keys repeat across servers, so the key is scoped by provider, server and account.

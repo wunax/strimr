@@ -196,6 +196,29 @@ final class SettingsManager {
         persist()
     }
 
+    var customLibraryLayoutCount: Int {
+        settings.interface.libraryBrowseByKey.values.count { $0.layout != nil }
+    }
+
+    func resetLibraryLayouts() {
+        for (key, preferences) in settings.interface.libraryBrowseByKey where preferences.layout != nil {
+            var preferences = preferences
+            preferences.layout = nil
+            settings.interface.libraryBrowseByKey[key] = preferences == LibraryBrowsePreferences() ? nil : preferences
+        }
+        persist()
+    }
+
+    func setLibraryDefaultLayout(_ layout: LibraryDefaultLayout) {
+        settings.interface.libraryDefaultLayout = layout
+        persist()
+    }
+
+    func setPosterSize(_ size: PosterSize) {
+        settings.interface.posterSize = size
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

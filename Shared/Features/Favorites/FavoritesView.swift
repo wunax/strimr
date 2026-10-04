@@ -90,7 +90,11 @@ private struct FavoriteCategoryView: View {
     let items: [MediaDisplayItem]
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 140), spacing: 16)]
+    @Environment(SettingsManager.self) private var settingsManager
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 140 * settingsManager.interface.posterSize.scale), spacing: 16)]
+    }
 
     var body: some View {
         ScrollView {

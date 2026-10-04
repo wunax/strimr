@@ -8,6 +8,7 @@ struct PortraitMediaCard: View {
     let onTap: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SettingsManager.self) private var settingsManager
 
     private let aspectRatio: CGFloat = 2 / 3
 
@@ -26,6 +27,10 @@ struct PortraitMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
+        baseHeight * settingsManager.interface.posterSize.scale
+    }
+
+    private var baseHeight: CGFloat {
         #if os(tvOS)
             320
         #elseif os(macOS)

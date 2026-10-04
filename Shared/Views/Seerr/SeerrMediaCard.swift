@@ -8,6 +8,7 @@ struct SeerrMediaCard: View {
     let onTap: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SettingsManager.self) private var settingsManager
     #if os(tvOS)
         @Environment(SeerrFocusModel.self) private var focusModel
         @FocusState private var isFocused: Bool
@@ -30,6 +31,10 @@ struct SeerrMediaCard: View {
     }
 
     private var defaultHeight: CGFloat {
+        baseHeight * settingsManager.interface.posterSize.scale
+    }
+
+    private var baseHeight: CGFloat {
         #if os(macOS)
             260
         #else

@@ -2,6 +2,7 @@ import Observation
 import SwiftUI
 
 struct PlaylistDetailView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: PlaylistDetailViewModel
@@ -9,9 +10,13 @@ struct PlaylistDetailView: View {
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
 
+    private var cardWidth: CGFloat {
+        settingsManager.interface.posterSize.gridCardWidth
+    }
+
     private var gridColumns: [GridItem] {
         [
-            GridItem(.adaptive(minimum: 112, maximum: 112), spacing: 12),
+            GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: 12),
         ]
     }
 
@@ -37,7 +42,7 @@ struct PlaylistDetailView: View {
 
                 LazyVGrid(columns: gridColumns, spacing: 16) {
                     ForEach(bindableViewModel.items) { media in
-                        PortraitMediaCard(media: media, width: 112, showsLabels: true) {
+                        PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
                             onSelectMedia(media)
                         }
                     }
