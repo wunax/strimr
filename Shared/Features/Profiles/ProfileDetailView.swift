@@ -96,7 +96,10 @@ struct ProfileDetailView: View {
                 ForEach(sessionManager.links(for: profile), id: \.self) { link in
                     connectionRow(link, profile: profile)
                 }
-                Button("profiles.addConnection") { isChoosingConnection = true }
+                Button { isChoosingConnection = true } label: {
+                    Label("profiles.addConnection", systemImage: "plus.circle")
+                }
+                .foregroundStyle(.primary)
             } header: {
                 Text("profiles.connections")
             } footer: {
