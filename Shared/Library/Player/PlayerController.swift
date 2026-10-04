@@ -70,6 +70,7 @@ final class PlayerController {
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
+    @ObservationIgnored private var pendingSeekTarget: Double?
     @ObservationIgnored private var scrubThumbnailTask: Task<Void, Never>?
     @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
     @ObservationIgnored private var scrubExtractorDwellTask: Task<Void, Never>?
@@ -143,6 +144,7 @@ final class PlayerController {
         }
         isStopping = false
         hasStartedPlayback = false
+        pendingSeekTarget = nil
         selectedSubtitleTrackID = nil
         subtitleCues = []
         sourceVideoSize = nil
@@ -245,6 +247,12 @@ final class PlayerController {
         }
     }
 
+    /// Where relative seeks start from. `position` only catches up once the engine has taken the seek,
+    /// so rapid presses would otherwise restart from the same stale value.
+    var seekOrigin: Double {
+        pendingSeekTarget ?? position
+    }
+
     func seek(to time: Double) {
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateSeek(
@@ -253,13 +261,19 @@ final class PlayerController {
             )
             return
         }
+        pendingSeekTarget = time
         Task { @MainActor [weak self] in
             await self?.engine.seek(to: time)
         }
     }
 
     func seek(by delta: Double) {
-        seek(to: max(0, position + delta))
+        let target = max(0, seekOrigin + delta)
+        guard !isLive, let duration else {
+            seek(to: target)
+            return
+        }
+        seek(to: min(target, duration))
     }
 
     func beginScrubPreviewing(at position: Double) {
@@ -529,6 +543,7 @@ final class PlayerController {
         deactivateASSRendering()
         resetScrubPreviewSession()
         isStopping = true
+        pendingSeekTarget = nil
         isPaused = true
         isBuffering = false
         sourceVideoSize = nil
@@ -786,6 +801,18 @@ final class PlayerController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] time in
                 self?.position = time
+            }
+            .store(in: &cancellables)
+
+        engine.seekEvents
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                switch event.outcome {
+                case .landed, .stalled, .rejected:
+                    self?.pendingSeekTarget = nil
+                case .began, .superseded:
+                    break
+                }
             }
             .store(in: &cancellables)
 

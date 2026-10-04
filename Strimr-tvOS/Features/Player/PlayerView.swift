@@ -867,8 +867,14 @@ struct PlayerView: View {
     }
 
     private func quickSeek(by seconds: Double) {
+        let origin = playerController.seekOrigin
         playerController.seek(by: seconds)
-        showSeekFeedback(forward: seconds > 0, seconds: Int(abs(seconds)))
+        showSeekFeedback(.next(
+            after: seekFeedback,
+            forward: seconds > 0,
+            origin: origin,
+            target: playerController.seekOrigin,
+        ))
     }
 
     private func applyResumeOffsetIfNeeded() {
@@ -1179,16 +1185,7 @@ struct PlayerView: View {
     private func seekFeedbackOverlay(_ feedback: SeekFeedback) -> some View {
         VStack {
             Spacer()
-            Image(systemName: feedback.systemImage)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 48)
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1),
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(feedback.accessibilityText)
+            SeekFeedbackView(feedback: feedback)
             Spacer()
         }
         .padding(.bottom, 120)
@@ -1222,8 +1219,7 @@ struct PlayerView: View {
         }
     }
 
-    private func showSeekFeedback(forward: Bool, seconds: Int) {
-        let feedback = SeekFeedback(forward: forward, seconds: seconds)
+    private func showSeekFeedback(_ feedback: SeekFeedback) {
         seekFeedbackWorkItem?.cancel()
         seekFeedback = feedback
 
@@ -1468,25 +1464,6 @@ private enum PlayerSettingsSheet: String, Identifiable {
         case .subtitleSearch:
             "subtitles.search.title"
         }
-    }
-}
-
-private struct SeekFeedback: Equatable {
-    let forward: Bool
-    let seconds: Int
-
-    var accessibilityText: String {
-        if forward {
-            return String(localized: "player.controls.skipForwardSeconds \(seconds)")
-        }
-        return String(localized: "player.controls.rewindSeconds \(seconds)")
-    }
-
-    var systemImage: String {
-        let supported = [5, 10, 15, 30, 45, 60]
-        let prefix = forward ? "goforward" : "gobackward"
-        guard supported.contains(seconds) else { return prefix }
-        return "\(prefix).\(seconds)"
     }
 }
 

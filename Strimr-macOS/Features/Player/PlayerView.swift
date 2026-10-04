@@ -60,6 +60,8 @@ struct PlayerView: View {
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var automaticSkipFeedbackWorkItem: DispatchWorkItem?
     @State private var automaticSkipFeedbackMessage: String?
+    @State private var seekFeedback: SeekFeedback?
+    @State private var seekFeedbackWorkItem: DispatchWorkItem?
     @State private var isPointerInsidePlayer = false
     @State private var isScrubbing = false
     @State private var scrubPosition = 0.0
@@ -94,6 +96,7 @@ struct PlayerView: View {
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
+    private let seekFeedbackDelay: TimeInterval = 1.2
 
     init(viewModel: PlayerViewModel, presentationID: UUID) {
         _viewModel = State(initialValue: viewModel)
@@ -173,6 +176,16 @@ struct PlayerView: View {
                     .allowsHitTesting(false)
             }
 
+            if let seekFeedback {
+                VStack {
+                    Spacer()
+                    SeekFeedbackView(feedback: seekFeedback)
+                    Spacer()
+                }
+                .padding(.bottom, 80)
+                .allowsHitTesting(false)
+            }
+
             keyboardCommands
 
             if nextEpisodePresentation.isPresented,
@@ -222,6 +235,7 @@ struct PlayerView: View {
                     nextEpisodePresentation.cancel()
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
+                    seekFeedbackWorkItem?.cancel()
                     fullscreenCoordinator.detach()
                     restoreCursor()
                     stopPlayback()
@@ -553,11 +567,10 @@ struct PlayerView: View {
                     }
 
                     Button {
-                        playerController.seek(by: -Double(settingsManager.playback.seekBackwardSeconds))
+                        playerController.seek(by: -seekBackwardInterval)
                     } label: {
                         Image(systemName: "gobackward.\(settingsManager.playback.seekBackwardSeconds)")
                     }
-                    .keyboardShortcut(.leftArrow, modifiers: [])
 
                     Button {
                         playerController.togglePlayback()
@@ -566,14 +579,12 @@ struct PlayerView: View {
                             .font(.title2)
                     }
                     .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.space, modifiers: [])
 
                     Button {
-                        playerController.seek(by: Double(settingsManager.playback.seekForwardSeconds))
+                        playerController.seek(by: seekForwardInterval)
                     } label: {
                         Image(systemName: "goforward.\(settingsManager.playback.seekForwardSeconds)")
                     }
-                    .keyboardShortcut(.rightArrow, modifiers: [])
 
                     Spacer()
 
@@ -961,6 +972,15 @@ struct PlayerView: View {
         HStack {
             Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
+
+            Button(action: { keyboardSeek(by: -seekBackwardInterval) }) { EmptyView() }
+                .keyboardShortcut(.leftArrow, modifiers: [])
+
+            Button(action: { playerController.togglePlayback() }) { EmptyView() }
+                .keyboardShortcut(.space, modifiers: [])
+
+            Button(action: { keyboardSeek(by: seekForwardInterval) }) { EmptyView() }
+                .keyboardShortcut(.rightArrow, modifiers: [])
 
             if isShowingPlayQueue {
                 Button {
@@ -1405,6 +1425,44 @@ struct PlayerView: View {
             isPointerInsidePlayer = false
             restoreCursor()
         }
+    }
+
+    private var seekBackwardInterval: Double {
+        Double(settingsManager.playback.seekBackwardSeconds)
+    }
+
+    private var seekForwardInterval: Double {
+        Double(settingsManager.playback.seekForwardSeconds)
+    }
+
+    private func keyboardSeek(by seconds: Double) {
+        guard !controlsVisible else {
+            playerController.seek(by: seconds)
+            return
+        }
+
+        let origin = playerController.seekOrigin
+        playerController.seek(by: seconds)
+        showSeekFeedback(.next(
+            after: seekFeedback,
+            forward: seconds > 0,
+            origin: origin,
+            target: playerController.seekOrigin,
+        ))
+    }
+
+    private func showSeekFeedback(_ feedback: SeekFeedback) {
+        seekFeedbackWorkItem?.cancel()
+        seekFeedback = feedback
+
+        let workItem = DispatchWorkItem {
+            withAnimation(.easeInOut) {
+                seekFeedback = nil
+            }
+        }
+
+        seekFeedbackWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + seekFeedbackDelay, execute: workItem)
     }
 
     private func toggleControlsVisibility() {
