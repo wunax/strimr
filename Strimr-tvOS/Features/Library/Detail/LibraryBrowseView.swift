@@ -50,6 +50,9 @@ struct LibraryBrowseView: View {
                     .padding(.top, 32)
                     .padding(.bottom, 48)
                 }
+                // A fresh scroll view per folder level: tvOS otherwise keeps the old offset after the
+                // focused card disappears, leaving a short folder scrolled out of view.
+                .id(viewModel.folderPath)
                 .frame(maxWidth: .infinity)
 
                 if viewModel.showsCharacterColumn {
