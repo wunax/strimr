@@ -24,7 +24,7 @@ struct SettingsInterfaceView: View {
                     Toggle(
                         "settings.interface.multiServerSearch",
                         isOn: Binding(
-                            get: { settingsManager.interface.multiServerSearchEnabled },
+                            get: { settingsManager.interface.multiServerSearchEnabled != false },
                             set: { settingsManager.setMultiServerSearchEnabled($0) },
                         ),
                     )

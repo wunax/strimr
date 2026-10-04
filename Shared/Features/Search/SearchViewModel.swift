@@ -148,7 +148,7 @@ final class SearchViewModel {
                 query: query.trimmingCharacters(in: .whitespacesAndNewlines),
                 kinds: resolvedKinds(),
                 searchesAllServers: services.capabilities.multiServerSearch
-                    && settingsManager.interface.multiServerSearchEnabled,
+                    && settingsManager.interface.multiServerSearchEnabled != false,
             )
             guard !Task.isCancelled else { return }
             items = merge(values.map {
