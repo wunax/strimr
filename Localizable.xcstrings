@@ -19038,6 +19038,29 @@
           }
         }
       }
+    },
+    "serverSelection.customAddress.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Address"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer l’adresse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除地址"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

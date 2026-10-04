@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CustomServerAddressView: View {
-    @Bindable var viewModel: ServerSelectionViewModel
+    @Bindable var model: CustomServerAddressModel
     @FocusState private var isAddressFocused: Bool
 
     var body: some View {
@@ -27,13 +27,13 @@ struct CustomServerAddressView: View {
 
                         TextField(
                             "serverSelection.customAddress.placeholder",
-                            text: $viewModel.customAddress,
+                            text: $model.address,
                         )
                         .textContentType(.URL)
                         .autocorrectionDisabled()
                         .focused($isAddressFocused)
                         .onSubmit {
-                            Task { await viewModel.connectWithCustomAddress() }
+                            Task { await model.connect() }
                         }
 
                         Text("serverSelection.customAddress.description")
@@ -42,7 +42,7 @@ struct CustomServerAddressView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if let error = viewModel.customAddressError {
+                    if let error = model.error {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
                             .font(.callout)
                             .foregroundStyle(.red)
@@ -55,25 +55,28 @@ struct CustomServerAddressView: View {
                 Divider()
 
                 HStack(spacing: 12) {
+                    if model.canRemove {
+                        removeButton
+                    }
                     Spacer()
                     Button("common.actions.cancel") {
-                        viewModel.dismissCustomAddress()
+                        model.cancel()
                     }
                     .keyboardShortcut(.cancelAction)
-                    .disabled(viewModel.isSelecting)
+                    .disabled(model.isWorking)
 
                     Button {
-                        Task { await viewModel.connectWithCustomAddress() }
+                        Task { await model.connect() }
                     } label: {
                         confirmationLabel
                     }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(viewModel.isSelecting)
+                    .disabled(model.isWorking)
                 }
                 .padding(16)
             }
             .frame(width: 520)
-            .interactiveDismissDisabled(viewModel.isSelecting)
+            .interactiveDismissDisabled(model.isWorking)
             .onAppear { isAddressFocused = true }
         }
     #endif
@@ -90,19 +93,19 @@ struct CustomServerAddressView: View {
                         Text("serverSelection.customAddress.field").font(.headline)
                         TextField(
                             "serverSelection.customAddress.placeholder",
-                            text: $viewModel.customAddress,
+                            text: $model.address,
                         )
                         .textContentType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .focused($isAddressFocused)
                         .onSubmit {
-                            guard !viewModel.isSelecting else { return }
-                            Task { await viewModel.connectWithCustomAddress() }
+                            guard !model.isWorking else { return }
+                            Task { await model.connect() }
                         }
                     }
 
-                    if let error = viewModel.customAddressError {
+                    if let error = model.error {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)
                             .fixedSize(horizontal: false, vertical: true)
@@ -110,17 +113,21 @@ struct CustomServerAddressView: View {
 
                     HStack(spacing: 32) {
                         Button {
-                            Task { await viewModel.connectWithCustomAddress() }
+                            Task { await model.connect() }
                         } label: {
                             confirmationLabel
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.isSelecting)
+                        .disabled(model.isWorking)
 
                         Button("common.actions.cancel") {
-                            viewModel.dismissCustomAddress()
+                            model.cancel()
                         }
-                        .disabled(viewModel.isSelecting)
+                        .disabled(model.isWorking)
+
+                        if model.canRemove {
+                            removeButton
+                        }
                     }
                     .padding(.top, 16)
                 }
@@ -129,7 +136,7 @@ struct CustomServerAddressView: View {
                 .frame(maxWidth: .infinity)
             }
             .taskModalTitle("serverSelection.customAddress.title")
-            .interactiveDismissDisabled(viewModel.isSelecting)
+            .interactiveDismissDisabled(model.isWorking)
             .onAppear { isAddressFocused = true }
         }
     #endif
@@ -140,7 +147,7 @@ struct CustomServerAddressView: View {
                 Section {
                     TextField(
                         "serverSelection.customAddress.placeholder",
-                        text: $viewModel.customAddress,
+                        text: $model.address,
                     )
                     .textContentType(.URL)
                     #if os(iOS)
@@ -150,7 +157,7 @@ struct CustomServerAddressView: View {
                         .autocorrectionDisabled()
                         .focused($isAddressFocused)
                         .onSubmit {
-                            Task { await viewModel.connectWithCustomAddress() }
+                            Task { await model.connect() }
                         }
                 } header: {
                     Text("serverSelection.customAddress.field")
@@ -158,10 +165,16 @@ struct CustomServerAddressView: View {
                     Text("serverSelection.customAddress.description")
                 }
 
-                if let error = viewModel.customAddressError {
+                if let error = model.error {
                     Section {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)
+                    }
+                }
+
+                if model.canRemove {
+                    Section {
+                        removeButton
                     }
                 }
             }
@@ -169,27 +182,34 @@ struct CustomServerAddressView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.actions.cancel") {
-                        viewModel.dismissCustomAddress()
+                        model.cancel()
                     }
-                    .disabled(viewModel.isSelecting)
+                    .disabled(model.isWorking)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        Task { await viewModel.connectWithCustomAddress() }
+                        Task { await model.connect() }
                     } label: {
                         confirmationLabel
                     }
-                    .disabled(viewModel.isSelecting)
+                    .disabled(model.isWorking)
                 }
             }
-            .interactiveDismissDisabled(viewModel.isSelecting)
+            .interactiveDismissDisabled(model.isWorking)
             .onAppear { isAddressFocused = true }
         }
     }
 
+    private var removeButton: some View {
+        Button("serverSelection.customAddress.remove", role: .destructive) {
+            Task { await model.removeAddress() }
+        }
+        .disabled(model.isWorking)
+    }
+
     @ViewBuilder
     private var confirmationLabel: some View {
-        if viewModel.isSelecting {
+        if model.isWorking {
             ProgressView()
         } else {
             Text("serverSelection.customAddress.connect")

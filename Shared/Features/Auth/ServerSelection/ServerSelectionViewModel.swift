@@ -10,29 +10,18 @@ final class ServerSelectionViewModel {
     var selectedServerIDs: Set<String> = []
     var isLoading = false
     var loadFailed = false
-    var selectingServerID: String?
-    var isShowingCustomAddress = false
-    var customAddress = ""
-    var customAddressError: String?
-
-    var isSelecting: Bool {
-        selectingServerID != nil
-    }
+    var customAddressModel: CustomServerAddressModel?
 
     @ObservationIgnored private let loadServers: () async throws -> [PlexCloudResource]
-    @ObservationIgnored private let userToken: () -> String?
     @ObservationIgnored private let onContinue: (Set<String>) -> Void
-    @ObservationIgnored private var customAddressServer: PlexCloudResource?
     @ObservationIgnored private var hasLoaded = false
 
     /// - Parameter onContinue: receives the ids of the unchecked servers.
     init(
         loadServers: @escaping () async throws -> [PlexCloudResource],
-        userToken: @escaping () -> String?,
         onContinue: @escaping (Set<String>) -> Void,
     ) {
         self.loadServers = loadServers
-        self.userToken = userToken
         self.onContinue = onContinue
     }
 
@@ -77,48 +66,16 @@ final class ServerSelectionViewModel {
     // MARK: - Custom address
 
     func showCustomAddress(for server: PlexCloudResource) {
-        customAddressServer = server
-        customAddress = PlexAPIContext().customServerURL(for: server)?.absoluteString ?? ""
-        customAddressError = nil
-        isShowingCustomAddress = true
-    }
-
-    /// Checks the address with the server and stores it; the server then connects through it.
-    func connectWithCustomAddress() async {
-        guard selectingServerID == nil, let server = customAddressServer else { return }
-
-        let url: URL
-        do {
-            url = try PlexAPIContext.normalizedCustomServerURL(customAddress)
-            customAddress = url.absoluteString
-        } catch {
-            customAddressError = String(localized: "serverSelection.customAddress.error.invalid")
-            return
-        }
-
-        selectingServerID = server.clientIdentifier
-        customAddressError = nil
-        defer { selectingServerID = nil }
-
-        do {
-            let context = PlexAPIContext()
-            await context.waitForBootstrap()
-            if let token = userToken() {
-                context.setAuthToken(token)
-            }
-            try await context.selectServer(server, customURL: url)
-            selectedServerIDs.insert(server.clientIdentifier)
-            isShowingCustomAddress = false
-            customAddressServer = nil
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            customAddressError = String(localized: "serverSelection.customAddress.error.connection")
-        }
-    }
-
-    func dismissCustomAddress() {
-        isShowingCustomAddress = false
-        customAddressError = nil
-        customAddressServer = nil
+        let context = PlexAPIContext()
+        let existing = context.customServerURL(for: server)
+        customAddressModel = CustomServerAddressModel(
+            address: existing,
+            save: { [weak self] url in
+                try await context.selectServer(server, customURL: url)
+                self?.selectedServerIDs.insert(server.clientIdentifier)
+            },
+            remove: existing == nil ? nil : { context.removeCustomServerURL(for: server) },
+            onDone: { [weak self] in self?.customAddressModel = nil },
+        )
     }
 }

@@ -66,7 +66,6 @@ struct AccountSetupView: View {
         case let .plexServers(accountID, userUUID):
             SelectServerView(viewModel: ServerSelectionViewModel(
                 loadServers: { try await flow.sessionManager.plexServers(accountID: accountID, userUUID: userUUID) },
-                userToken: { flow.sessionManager.accountStore.homeToken(accountID: accountID, userUUID: userUUID) },
                 onContinue: { disabled in
                     flow.plexServersChosen(accountID: accountID, userUUID: userUUID, disabledServerIDs: disabled)
                 },

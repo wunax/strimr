@@ -66,8 +66,8 @@ struct SelectServerView: View {
         }
         .padding(32)
         .task { await viewModel.load() }
-        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
-            CustomServerAddressView(viewModel: viewModel)
+        .sheet(item: $viewModel.customAddressModel) { model in
+            CustomServerAddressView(model: model)
         }
     }
 }

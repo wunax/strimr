@@ -20,8 +20,8 @@ struct SelectServerView: View {
             .padding(48)
         }
         .task { await viewModel.load() }
-        .taskPresentation(isPresented: $viewModel.isShowingCustomAddress) {
-            CustomServerAddressView(viewModel: viewModel)
+        .taskPresentation(item: $viewModel.customAddressModel) { model in
+            CustomServerAddressView(model: model)
         }
         .onAppear {
             if focusedServerID == nil, let firstServer = viewModel.servers.first {

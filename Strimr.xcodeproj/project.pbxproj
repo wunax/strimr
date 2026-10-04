@@ -122,6 +122,7 @@
 				Features/Auth/MigrationFailedView.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ProviderSelection/ProviderSelectionView.swift,
+				Features/Auth/ServerSelection/CustomServerAddressModel.swift,
 				Features/Auth/ServerSelection/CustomServerAddressView.swift,
 				Features/Auth/ServerSelection/ServerConnectionSummary.swift,
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
