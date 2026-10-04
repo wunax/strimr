@@ -867,8 +867,21 @@ struct PlayerView: View {
     }
 
     private func quickSeek(by seconds: Double) {
-        playerController.seek(by: seconds)
-        showSeekFeedback(forward: seconds > 0, seconds: Int(abs(seconds)))
+        let forward = seconds > 0
+        // Chain from the previous target: the player's position lags behind pending seeks.
+        let chained = seekFeedback.flatMap { $0.forward == forward ? $0 : nil }
+        let start = chained?.start ?? playerController.position
+        let target = clampedSeekTarget((chained?.target ?? playerController.position) + seconds)
+
+        playerController.seek(to: target)
+        showSeekFeedback(SeekFeedback(forward: forward, start: start, target: target))
+    }
+
+    private func clampedSeekTarget(_ time: Double) -> Double {
+        guard !playerController.isLive, let duration = playerController.duration else {
+            return max(0, time)
+        }
+        return min(max(0, time), duration)
     }
 
     private func applyResumeOffsetIfNeeded() {
@@ -1179,16 +1192,26 @@ struct PlayerView: View {
     private func seekFeedbackOverlay(_ feedback: SeekFeedback) -> some View {
         VStack {
             Spacer()
-            Image(systemName: feedback.systemImage)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 48)
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1),
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(feedback.accessibilityText)
+            VStack(spacing: 4) {
+                Label(feedback.deltaText, systemImage: feedback.systemImage)
+                    .font(.title2.weight(.semibold).monospacedDigit())
+                Text(playerTimestampText(feedback.target))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.black.opacity(0.72)),
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1),
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(feedback.accessibilityText)
             Spacer()
         }
         .padding(.bottom, 120)
@@ -1222,8 +1245,7 @@ struct PlayerView: View {
         }
     }
 
-    private func showSeekFeedback(forward: Bool, seconds: Int) {
-        let feedback = SeekFeedback(forward: forward, seconds: seconds)
+    private func showSeekFeedback(_ feedback: SeekFeedback) {
         seekFeedbackWorkItem?.cancel()
         seekFeedback = feedback
 
@@ -1473,7 +1495,20 @@ private enum PlayerSettingsSheet: String, Identifiable {
 
 private struct SeekFeedback: Equatable {
     let forward: Bool
-    let seconds: Int
+    let start: Double
+    let target: Double
+
+    var seconds: Int {
+        Int(abs(target - start).rounded())
+    }
+
+    var deltaText: String {
+        let duration = Duration.seconds(seconds).formatted(.units(
+            allowed: [.hours, .minutes, .seconds],
+            width: .narrow,
+        ))
+        return "\(forward ? "+" : "−")\(duration)"
+    }
 
     var accessibilityText: String {
         if forward {
@@ -1483,10 +1518,7 @@ private struct SeekFeedback: Equatable {
     }
 
     var systemImage: String {
-        let supported = [5, 10, 15, 30, 45, 60]
-        let prefix = forward ? "goforward" : "gobackward"
-        guard supported.contains(seconds) else { return prefix }
-        return "\(prefix).\(seconds)"
+        forward ? "goforward" : "gobackward"
     }
 }
 
