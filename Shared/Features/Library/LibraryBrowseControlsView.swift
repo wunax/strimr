@@ -8,12 +8,41 @@ struct LibraryBrowseToggle {
     let action: () -> Void
 }
 
+extension LibraryBrowseToggle {
+    /// Shows the layout the button switches to, like the Photos toolbar toggles.
+    static func layout(
+        current: LibraryBrowseLayout,
+        onChange: @escaping (LibraryBrowseLayout) -> Void,
+    ) -> LibraryBrowseToggle {
+        let target: LibraryBrowseLayout = current == .grid ? .list : .grid
+        return switch target {
+        case .grid:
+            LibraryBrowseToggle(
+                title: String(localized: "library.browse.layout.grid"),
+                systemImage: "square.grid.2x2",
+                isSelected: false,
+                action: { onChange(.grid) },
+            )
+        case .list:
+            LibraryBrowseToggle(
+                title: String(localized: "library.browse.layout.list"),
+                systemImage: "list.bullet",
+                isSelected: false,
+                action: { onChange(.list) },
+            )
+        }
+    }
+}
+
 struct LibraryBrowseControlsView: View {
     @Bindable var viewModel: LibraryBrowseControlsViewModel
     let showsBackButton: Bool
     let onNavigateBack: () -> Void
     let leadingToggle: LibraryBrowseToggle?
     let showsServerControls: Bool
+    /// Icon-only toggle shown last in the controls row; its title is used as the accessibility label.
+    let layoutToggle: LibraryBrowseToggle?
+    let itemCount: Int?
 
     init(
         viewModel: LibraryBrowseControlsViewModel,
@@ -21,12 +50,16 @@ struct LibraryBrowseControlsView: View {
         onNavigateBack: @escaping () -> Void = {},
         leadingToggle: LibraryBrowseToggle? = nil,
         showsServerControls: Bool = true,
+        layoutToggle: LibraryBrowseToggle? = nil,
+        itemCount: Int? = nil,
     ) {
         self.viewModel = viewModel
         self.showsBackButton = showsBackButton
         self.onNavigateBack = onNavigateBack
         self.leadingToggle = leadingToggle
         self.showsServerControls = showsServerControls
+        self.layoutToggle = layoutToggle
+        self.itemCount = itemCount
     }
 
     var body: some View {
@@ -35,6 +68,13 @@ struct LibraryBrowseControlsView: View {
 
             if showsServerControls, let panel = viewModel.activePanel {
                 optionsRow(for: panel)
+            }
+
+            if let itemCount, itemCount > 0 {
+                Text(String(localized: "library.browse.count.items \(itemCount)"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, rowPadding.leading)
             }
         }
         .taskPresentation(item: $viewModel.activeFilterSheet, style: .contextual) { sheet in
@@ -59,6 +99,16 @@ struct LibraryBrowseControlsView: View {
                 }
                 if showsServerControls {
                     serverPills
+                }
+                if let layoutToggle {
+                    LibraryBrowsePillButton(
+                        title: layoutToggle.title,
+                        systemImage: layoutToggle.systemImage,
+                        isSelected: layoutToggle.isSelected,
+                        showsDisclosure: false,
+                        showsTitle: false,
+                        action: layoutToggle.action,
+                    )
                 }
             }
             .padding(rowPadding)
@@ -273,6 +323,7 @@ private struct LibraryBrowsePillButton: View {
     let systemImage: String?
     let isSelected: Bool
     let showsDisclosure: Bool
+    var showsTitle = true
     let action: () -> Void
 
     var body: some View {
@@ -282,9 +333,11 @@ private struct LibraryBrowsePillButton: View {
                     Image(systemName: systemImage)
                         .font(.subheadline)
                 }
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                if showsTitle {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                }
                 if showsDisclosure {
                     Image(systemName: "chevron.down")
                         .font(.caption2)
@@ -304,6 +357,7 @@ private struct LibraryBrowsePillButton: View {
             .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
