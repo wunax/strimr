@@ -35,6 +35,6 @@ final class SearchRepository {
     }
 
     func search(params: SearchParams) async throws -> PlexSearchMediaContainer {
-        try await network.request(path: "/library/search", queryItems: params.queryItems)
+        try await network.request(path: "/library/search", queryItems: params.queryItems + [HubRepository.includeGuids])
     }
 }

@@ -29,6 +29,35 @@ struct HomeRow: Identifiable, Hashable {
         hub.canOpenDetail
     }
 
+    /// Reprendre and Next Up are merged across servers, so their ids carry no server.
+    static let continueWatchingID = "home:continueWatching"
+    static let nextUpID = "home:nextUp"
+
+    /// Server of a per-server row id (`home:<provider>:<serverID>:…`); `nil` for merged rows.
+    static func server(fromRowID rowID: String) -> ServerIdentity? {
+        let parts = rowID.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
+        guard parts.count >= 3, parts[0] == "home", let provider = MediaProvider(rawValue: String(parts[1])),
+              !parts[2].isEmpty
+        else { return nil }
+        return ServerIdentity(provider: provider, id: String(parts[2]))
+    }
+
+    /// Maps the pre-multi-server ids of Reprendre and Next Up to their merged ids; other ids are unchanged.
+    static func migratedRowID(_ rowID: String) -> String {
+        let parts = rowID.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 4, parts[0] == "home", MediaProvider(rawValue: String(parts[1])) != nil else {
+            return rowID
+        }
+        switch parts[3] {
+        case "continueWatching":
+            return continueWatchingID
+        case "nextUp":
+            return nextUpID
+        default:
+            return rowID
+        }
+    }
+
     static func continueWatching(server: ServerIdentity, hub: Hub) -> HomeRow {
         HomeRow(
             id: ["home", server.provider.rawValue, server.id, "continueWatching"].joined(separator: ":"),
@@ -84,27 +113,7 @@ struct HomeRowPreferences: Codable, Equatable {
     }
 
     func orderedRows(from rows: [HomeRow]) -> [HomeRow] {
-        let availableRows = rows.filter(\.hub.hasItems)
-        var order: [String: Int] = [:]
-        for (index, rowID) in orderedRowIDs.enumerated() where order[rowID] == nil {
-            order[rowID] = index
-        }
-        return availableRows.enumerated()
-            .sorted { lhs, rhs in
-                let lhsOrder = order[lhs.element.id]
-                let rhsOrder = order[rhs.element.id]
-                switch (lhsOrder, rhsOrder) {
-                case let (left?, right?):
-                    return left == right ? lhs.offset < rhs.offset : left < right
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                case (nil, nil):
-                    return lhs.offset < rhs.offset
-                }
-            }
-            .map(\.element)
+        PreferenceOrder.sorted(rows.filter(\.hub.hasItems), id: \.id, order: orderedRowIDs)
     }
 
     func visibleRows(from rows: [HomeRow]) -> [HomeRow] {
@@ -123,25 +132,17 @@ struct HomeRowPreferences: Codable, Equatable {
     }
 
     mutating func setOrder(_ availableRowIDs: [String]) {
-        var uniqueAvailableIDs: [String] = []
-        var availableIDs = Set<String>()
-        for rowID in availableRowIDs where availableIDs.insert(rowID).inserted {
-            uniqueAvailableIDs.append(rowID)
-        }
+        orderedRowIDs = PreferenceOrder.merged(stored: orderedRowIDs, available: availableRowIDs)
+    }
 
-        var mergedOrder: [String] = []
-        var storedIDs = Set<String>()
-        for rowID in orderedRowIDs where storedIDs.insert(rowID).inserted {
-            mergedOrder.append(rowID)
-        }
-        let availableSlots = mergedOrder.indices.filter { availableIDs.contains(mergedOrder[$0]) }
+    /// Drops the ids of rows that belong to `servers`, e.g. after their account was removed.
+    mutating func removeRows(of servers: Set<ServerIdentity>) {
+        let belongs: (String) -> Bool = { HomeRow.server(fromRowID: $0).map(servers.contains) ?? false }
+        orderedRowIDs.removeAll(where: belongs)
+        hiddenRowIDs.removeAll(where: belongs)
+    }
 
-        for (slot, rowID) in zip(availableSlots, uniqueAvailableIDs) {
-            mergedOrder[slot] = rowID
-        }
-
-        storedIDs = Set(mergedOrder)
-        mergedOrder.append(contentsOf: uniqueAvailableIDs.filter { !storedIDs.contains($0) })
-        orderedRowIDs = mergedOrder
+    var isEmpty: Bool {
+        orderedRowIDs.isEmpty && hiddenRowIDs.isEmpty
     }
 }

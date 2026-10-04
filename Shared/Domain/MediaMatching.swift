@@ -2,7 +2,7 @@ import Foundation
 
 // Shared with the Top Shelf extension: keep this file free of app-only types.
 
-struct ExternalIDs: Codable, Hashable, Sendable {
+nonisolated struct ExternalIDs: Codable, Hashable, Sendable {
     var imdb: String?
     var tmdb: String?
     var tvdb: String?
@@ -70,7 +70,7 @@ struct ExternalIDs: Codable, Hashable, Sendable {
 }
 
 /// What is known about a title to recognize it on another server.
-struct MediaMatchDescriptor: Hashable, Sendable {
+nonisolated struct MediaMatchDescriptor: Hashable, Sendable {
     enum Kind: Hashable, Sendable {
         case movie
         case series
@@ -143,7 +143,7 @@ struct MediaMatchDescriptor: Hashable, Sendable {
     }
 }
 
-enum MediaMatching {
+nonisolated enum MediaMatching {
     /// Groups items that are the same title, keeping the order of first appearance for groups and their members.
     /// Items without any key stay alone: titles alone never match.
     static func group<Item>(_ items: [Item], descriptor: (Item) -> MediaMatchDescriptor) -> [[Item]] {
