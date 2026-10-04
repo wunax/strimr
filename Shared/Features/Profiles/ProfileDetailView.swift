@@ -9,7 +9,7 @@ struct ProfileDetailView: View {
     var startsWithNewConnection = false
 
     @State private var name = ""
-    @State private var newPIN = ""
+    @State private var isEditingPIN = false
     @State private var isChoosingConnection = false
     @State private var isAddingNewConnection = false
     @State private var isBorrowingConnection = false
@@ -52,6 +52,9 @@ struct ProfileDetailView: View {
                 BorrowConnectionView(profileID: profileID) { isBorrowingConnection = false }
             }
         }
+        .sheet(isPresented: $isEditingPIN) {
+            ProfilePINSettingsView(profileID: profileID)
+        }
         .alert("profiles.delete.title", isPresented: $isConfirmingDeletion) {
             Button("profiles.delete", role: .destructive) {
                 sessionManager.deleteLocalProfile(profileID)
@@ -75,20 +78,19 @@ struct ProfileDetailView: View {
                         .onSubmit { rename(local) }
                         .onDisappear { rename(local) }
                 }
-                Section("profiles.pin") {
-                    SecureField(local.pin == nil ? "profiles.pin.set" : "profiles.pin.change", text: $newPIN)
-                    #if os(iOS)
-                        .keyboardType(.numberPad)
-                    #endif
-                    Button("profiles.pin.save") { savePIN(local) }
-                        .disabled(newPIN.filter(\.isNumber).count != 4)
-                    if local.pin != nil {
-                        Button("profiles.pin.remove", role: .destructive) {
-                            var updated = local
-                            updated.pin = nil
-                            sessionManager.profileStore.updateLocalProfile(updated)
+                Section {
+                    Button { isEditingPIN = true } label: {
+                        HStack {
+                            Text("profiles.pin")
+                            Spacer()
+                            Text(local.pin == nil ? "profiles.pin.disabled" : "profiles.pin.enabled")
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
                     }
+                    .foregroundStyle(.primary)
                 }
             }
 
@@ -189,13 +191,108 @@ struct ProfileDetailView: View {
         updated.name = trimmed
         sessionManager.profileStore.updateLocalProfile(updated)
     }
+}
 
-    private func savePIN(_ profile: LocalProfile) {
-        let digits = String(newPIN.filter(\.isNumber).prefix(4))
-        guard digits.count == 4 else { return }
-        var updated = profile
+/// Edits a local profile's PIN only when explicitly opened from its settings.
+struct ProfilePINSettingsView: View {
+    @Environment(SessionManager.self) private var sessionManager
+    @Environment(\.dismiss) private var dismiss
+    let profileID: String
+
+    @State private var newPIN = ""
+    @FocusState private var isPINFocused: Bool
+
+    private var profile: LocalProfile? {
+        sessionManager.profileStore.profile(id: profileID, accounts: sessionManager.accounts)?.localProfile
+    }
+
+    private var hasPIN: Bool {
+        profile?.pin != nil
+    }
+
+    private var digits: String {
+        newPIN.filter(\.isNumber)
+    }
+
+    private var canSave: Bool {
+        profile != nil && digits.count == 4
+    }
+
+    private var actionTitle: LocalizedStringKey {
+        hasPIN ? "profiles.pin.edit" : "profiles.pin.define"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                #if os(tvOS)
+                    VStack(spacing: 32) {
+                        pinField
+                        saveButton
+                            .buttonStyle(.borderedProminent)
+                            .tint(.brandPrimary)
+                        if hasPIN {
+                            removeButton
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                    .frame(maxWidth: 600)
+                    .padding(48)
+                    .defaultFocus($isPINFocused, true)
+                #else
+                    Form {
+                        Section {
+                            pinField
+                            saveButton
+                        }
+                        if hasPIN {
+                            Section {
+                                removeButton
+                            }
+                        }
+                    }
+                #endif
+            }
+            .navigationTitle(actionTitle)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.actions.cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var pinField: some View {
+        SecureField("profiles.pin.set", text: $newPIN)
+            .focused($isPINFocused)
+        #if os(iOS)
+            .keyboardType(.numberPad)
+        #endif
+            .onSubmit {
+                if canSave {
+                    savePIN()
+                }
+            }
+    }
+
+    private var saveButton: some View {
+        Button(actionTitle, action: savePIN)
+            .disabled(!canSave)
+    }
+
+    private var removeButton: some View {
+        Button("profiles.pin.remove", role: .destructive) {
+            guard var updated = profile else { return }
+            updated.pin = nil
+            sessionManager.profileStore.updateLocalProfile(updated)
+            dismiss()
+        }
+    }
+
+    private func savePIN() {
+        guard canSave, var updated = profile else { return }
         updated.pin = LocalProfilePIN(pin: digits)
         sessionManager.profileStore.updateLocalProfile(updated)
-        newPIN = ""
+        dismiss()
     }
 }
