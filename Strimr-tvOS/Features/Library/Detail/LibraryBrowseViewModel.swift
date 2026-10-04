@@ -94,6 +94,10 @@ final class LibraryBrowseViewModel {
         !folderStack.isEmpty
     }
 
+    var folderPath: String {
+        folderStack.map(\.id).joined(separator: "/")
+    }
+
     var showsCharacterColumn: Bool {
         supportsSectionCharacters && !sectionCharacters.isEmpty
     }
