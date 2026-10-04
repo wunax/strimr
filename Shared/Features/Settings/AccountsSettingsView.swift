@@ -78,8 +78,10 @@ struct AccountsSettingsView: View {
                 .foregroundStyle(.secondary)
         }
         ForEach(sessions) { session in
-            ServerSessionRow(session: session) { enabled in
-                sessionManager.registry.setEnabled(enabled, server: session.identity)
+            NavigationLink {
+                ServerDetailView(server: session.identity)
+            } label: {
+                ServerSessionRow(session: session)
             }
             if session.status == .needsReauthentication {
                 Button("settings.accounts.reconnect") { reconnectingAccount = account }
@@ -111,45 +113,19 @@ struct AccountsSettingsView: View {
     }
 }
 
-/// A server of the active profile: activation for this profile only, and its status.
+/// A server of the active profile: its name and status; activation and address live in its detail page.
 struct ServerSessionRow: View {
+    @Environment(SessionManager.self) private var sessionManager
     let session: ServerSession
-    let onToggle: (Bool) -> Void
 
     var body: some View {
-        Toggle(isOn: Binding(get: { session.isEnabled }, set: onToggle)) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.name)
-                Text(statusTitle)
-                    .font(.caption)
-                    .foregroundStyle(statusColor)
-            }
-        }
-    }
-
-    private var statusTitle: LocalizedStringKey {
-        guard session.isEnabled else { return "settings.accounts.status.disabled" }
-        switch session.status {
-        case .connecting:
-            return "settings.accounts.status.connecting"
-        case .ready:
-            return "settings.accounts.status.ready"
-        case .unreachable:
-            return "settings.accounts.status.unreachable"
-        case .needsReauthentication:
-            return "settings.accounts.status.needsReauthentication"
-        }
-    }
-
-    private var statusColor: Color {
-        guard session.isEnabled else { return .secondary }
-        switch session.status {
-        case .ready:
-            return .green
-        case .connecting:
-            return .secondary
-        case .unreachable, .needsReauthentication:
-            return .orange
+        VStack(alignment: .leading, spacing: 2) {
+            Text(session.name)
+            ServerStatusText(
+                session: session,
+                connectionKind: sessionManager.registry.plexConnectionKind(for: session.identity),
+            )
+            .font(.caption)
         }
     }
 }

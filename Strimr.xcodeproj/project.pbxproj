@@ -192,6 +192,7 @@
 				Features/Settings/DisplayedLibrariesViewModel.swift,
 				Features/Settings/NavigationLibrariesSectionView.swift,
 				Features/Settings/NavigationLibrariesViewModel.swift,
+				Features/Settings/ServerDetailView.swift,
 				Features/Settings/SettingsViewModel.swift,
 				Features/SharePlay/SharePlayCoordinator.swift,
 				Features/SharePlay/StrimrWatchActivity.swift,

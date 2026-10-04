@@ -7,6 +7,7 @@ struct TVAccountsSettingsView: View {
     @State private var isAddingAccount = false
     @State private var accountPendingRemoval: MediaAccount?
     @State private var reconnectingAccount: MediaAccount?
+    @State private var detailServer: ServerSession?
 
     var body: some View {
         SettingsList {
@@ -40,6 +41,11 @@ struct TVAccountsSettingsView: View {
                 ReconnectAccountView(account: account) { reconnectingAccount = nil }
             }
         }
+        .sheet(item: $detailServer) { session in
+            NavigationStack {
+                ServerDetailView(server: session.identity)
+            }
+        }
         .alert(
             "settings.accounts.remove.title",
             isPresented: Binding(
@@ -69,9 +75,10 @@ struct TVAccountsSettingsView: View {
                 .foregroundStyle(.secondary)
         }
         ForEach(sessions) { session in
-            ServerSessionRow(session: session) { enabled in
-                sessionManager.registry.setEnabled(enabled, server: session.identity)
+            Button { detailServer = session } label: {
+                ServerSessionRow(session: session)
             }
+            .foregroundStyle(.primary)
             .settingsFocus(
                 "accounts.server.\(session.identity.stableKey)",
                 isDefault: session.identity == sessionManager.registry.sessions.first?.identity,
