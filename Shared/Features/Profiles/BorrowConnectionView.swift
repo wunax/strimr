@@ -62,6 +62,9 @@ struct BorrowConnectionView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 360)
+        #endif
         .taskModalTitle("profiles.addConnection.borrow")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
