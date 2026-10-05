@@ -1,0 +1,53 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "Hub": [
+      {
+        "hubKey": "/library/metadata/101,102",
+        "key": "/hubs/continueWatching/items",
+        "title": "Continue Watching",
+        "hubIdentifier": "home.continue",
+        "size": 2,
+        "more": false,
+        "Metadata": [
+          {
+            "ratingKey": "101",
+            "key": "/library/metadata/101",
+            "guid": "plex://movie/5d7768000000000000000001",
+            "librarySectionID": 1,
+            "type": "movie",
+            "title": "Example Movie",
+            "year": 2021,
+            "viewOffset": 600000,
+            "lastViewedAt": 1772000000,
+            "duration": 7200000,
+            "Guid": [
+              { "id": "imdb://tt0000001" },
+              { "id": "tmdb://1001" },
+              { "id": "tvdb://2001" }
+            ]
+          },
+          {
+            "ratingKey": "102",
+            "key": "/library/metadata/102",
+            "guid": "plex://episode/5d7768000000000000000002",
+            "librarySectionID": 2,
+            "type": "episode",
+            "title": "Pilot",
+            "grandparentTitle": "Example Show",
+            "grandparentGuid": "plex://show/5d7768000000000000000003",
+            "parentIndex": 1,
+            "index": 1,
+            "viewOffset": 300000,
+            "lastViewedAt": 1772100000,
+            "duration": 2400000,
+            "Guid": [
+              { "id": "imdb://tt0000002" },
+              { "id": "tvdb://3001" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

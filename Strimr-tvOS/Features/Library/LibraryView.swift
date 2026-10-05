@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LibraryView: View {
     @State var viewModel: LibraryViewModel
-    @Environment(SettingsManager.self) private var settingsManager
     let onSelectMedia: (MediaDisplayItem) -> Void
     private let cardMinHeight: CGFloat = 240
     private let cardMaxHeight: CGFloat = 380
@@ -20,7 +19,7 @@ struct LibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 LazyVGrid(columns: gridColumns, spacing: 48) {
-                    ForEach(visibleLibraries) { library in
+                    ForEach(visibleLibraries, id: \.identity) { library in
                         NavigationLink(value: library) {
                             libraryCard(for: library)
                         }
@@ -49,7 +48,7 @@ struct LibraryView: View {
 
                         if isHiddenExpanded {
                             LazyVGrid(columns: gridColumns, spacing: 48) {
-                                ForEach(hiddenLibraries) { library in
+                                ForEach(hiddenLibraries, id: \.identity) { library in
                                     NavigationLink(value: library) {
                                         libraryCard(for: library)
                                     }
@@ -89,29 +88,12 @@ struct LibraryView: View {
         }
     }
 
-    private var hiddenLibraryIds: Set<String> {
-        Set(settingsManager.interface.hiddenLibraryIds)
-    }
-
     private var visibleLibraries: [Library] {
-        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
+        viewModel.visibleLibraries
     }
 
     private var hiddenLibraries: [Library] {
-        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
-    }
-
-    private var displayedLibraries: [Library] {
-        viewModel.libraries.filter { library in
-            guard viewModel.provider == .jellyfin else { return true }
-            if library.type == .collection {
-                return settingsManager.interface.displayCollections
-            }
-            if library.type == .playlist {
-                return settingsManager.interface.displayPlaylists
-            }
-            return true
-        }
+        viewModel.hiddenLibraries
     }
 
     private var gridColumns: [GridItem] {
@@ -150,7 +132,7 @@ struct LibraryView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    Text(library.type.rawValue.capitalized)
+                    Text(viewModel.subtitle(for: library) ?? library.type.rawValue.capitalized)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.8))
                 }

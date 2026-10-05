@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LibraryView: View {
     @State var viewModel: LibraryViewModel
-    @Environment(SettingsManager.self) private var settingsManager
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @State private var isHiddenExpanded = false
@@ -49,7 +48,7 @@ struct LibraryView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: contentSpacing) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: gridSpacing) {
-                    ForEach(visibleLibraries) { library in
+                    ForEach(visibleLibraries, id: \.identity) { library in
                         libraryLink(for: library)
                     }
                 }
@@ -96,7 +95,7 @@ struct LibraryView: View {
 
             if isHiddenExpanded {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: gridSpacing) {
-                    ForEach(hiddenLibraries) { library in
+                    ForEach(hiddenLibraries, id: \.identity) { library in
                         libraryLink(for: library)
                     }
                 }
@@ -111,35 +110,19 @@ struct LibraryView: View {
         ]
     }
 
-    private var hiddenLibraryIds: Set<String> {
-        Set(settingsManager.interface.hiddenLibraryIds)
-    }
-
     private var visibleLibraries: [Library] {
-        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
+        viewModel.visibleLibraries
     }
 
     private var hiddenLibraries: [Library] {
-        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
-    }
-
-    private var displayedLibraries: [Library] {
-        viewModel.libraries.filter { library in
-            guard viewModel.provider == .jellyfin else { return true }
-            if library.type == .collection {
-                return settingsManager.interface.displayCollections
-            }
-            if library.type == .playlist {
-                return settingsManager.interface.displayPlaylists
-            }
-            return true
-        }
+        viewModel.hiddenLibraries
     }
 
     private func libraryLink(for library: Library) -> some View {
         NavigationLink(value: library) {
             LibraryCard(
                 library: library,
+                subtitle: viewModel.subtitle(for: library),
                 artworkResource: viewModel.artwork(for: library),
             )
         }
@@ -152,6 +135,7 @@ struct LibraryView: View {
 
 private struct LibraryCard: View {
     let library: Library
+    let subtitle: String?
     let artworkResource: ArtworkResource?
 
     @State private var isHovering = false
@@ -172,10 +156,18 @@ private struct LibraryCard: View {
                     .frame(width: 30, height: 30)
                     .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
 
-                Text(library.title)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .help(library.title)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(library.title)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .help(library.title)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
 
                 Spacer(minLength: 8)
 

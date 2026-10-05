@@ -4,21 +4,9 @@ import SwiftUI
 struct UserMenuView: View {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(MediaServices.self) private var mediaServices
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.dismiss) private var dismiss
-    @Environment(DownloadManager.self) private var downloadManager
-    @State private var isShowingLogoutConfirmation = false
-    @State private var signOutFlow = SignOutFlow()
-
-    private var canSwitchProfile: Bool {
-        sessionManager.mediaServices?.capabilities.profiles == true
-    }
-
-    private var canSwitchServer: Bool {
-        sessionManager.provider == .plex
-    }
 
     var body: some View {
         List {
@@ -40,7 +28,7 @@ struct UserMenuView: View {
                 if !settingsManager.interface.displayFavoritesTab {
                     NavigationLink {
                         FavoritesView(
-                            services: mediaServices,
+                            sessionManager: sessionManager,
                             onSelectMedia: { media in
                                 dismiss()
                                 coordinator.showMediaDetail(media)
@@ -50,53 +38,28 @@ struct UserMenuView: View {
                         Label("tabs.favorites", systemImage: "star.fill")
                     }
                 }
+            }
 
-                if canSwitchProfile {
+            Section {
+                if sessionManager.profiles.count > 1 {
                     Button {
-                        Task { await sessionManager.requestProfileSelection() }
+                        dismiss()
+                        sessionManager.requestProfileSelection()
                     } label: {
                         Label("common.actions.switchProfile", systemImage: "person.2.circle")
                     }
                     .buttonStyle(.plain)
                     .disabled(offlineCoordinator.isFullyOffline)
-                }
 
-                if canSwitchServer {
-                    Button {
-                        Task { await sessionManager.requestServerSelection() }
-                    } label: {
-                        Label("common.actions.switchServer", systemImage: "server.rack")
+                    if offlineCoordinator.isFullyOffline {
+                        Text("offline.menu.switchUnavailable")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(offlineCoordinator.isFullyOffline)
                 }
-
-                if offlineCoordinator.isFullyOffline, canSwitchProfile || canSwitchServer {
-                    Text("offline.menu.switchUnavailable")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Button {
-                    isShowingLogoutConfirmation = true
-                } label: {
-                    Label("common.actions.logOut", systemImage: "arrow.backward.circle")
-                }
-                .buttonStyle(.plain)
-                .tint(.red)
             }
         }
         .listStyle(.insetGrouped)
-        .disabled(signOutFlow.isSigningOut)
-        .navigationTitle("tabs.more")
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await signOutFlow.begin(sessionManager: sessionManager, downloadManager: downloadManager) }
-            }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
-        }
-        .signOutDownloadsPrompt(signOutFlow)
+        .navigationTitle(sessionManager.activeProfile?.name ?? String(localized: "tabs.more"))
     }
 }

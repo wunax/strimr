@@ -8,10 +8,10 @@ struct FavoritesView: View {
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
-        services: MediaServices,
+        sessionManager: SessionManager,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
     ) {
-        _viewModel = State(initialValue: FavoritesViewModel(services: services))
+        _viewModel = State(initialValue: FavoritesViewModel(sessionManager: sessionManager))
         self.onSelectMedia = onSelectMedia
     }
 

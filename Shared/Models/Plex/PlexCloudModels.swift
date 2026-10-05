@@ -25,6 +25,12 @@ struct PlexCloudResource: Codable, Equatable {
     let clientIdentifier: String
     let accessToken: String?
     let connections: [Connection]?
+    var owned: Bool? = nil
+    var provides: String? = nil
+
+    var isServer: Bool {
+        provides.map { $0.split(separator: ",").contains("server") } ?? true
+    }
 }
 
 struct PlexCloudUser: Codable, Equatable {
@@ -52,7 +58,7 @@ struct PlexHome: Codable, Equatable {
     }
 }
 
-struct PlexHomeUser: Codable, Equatable, Identifiable {
+struct PlexHomeUser: Codable, Hashable, Identifiable {
     let id: Int?
     let uuid: String
     let title: String?
@@ -62,4 +68,11 @@ struct PlexHomeUser: Codable, Equatable, Identifiable {
     let thumb: URL?
     let protected: Bool?
     let pin: String?
+    var admin: Bool? = nil
+    var guest: Bool? = nil
+    var restricted: Bool? = nil
+
+    var displayName: String {
+        [friendlyName, title, username].compactMap { $0?.isEmpty == false ? $0 : nil }.first ?? uuid
+    }
 }

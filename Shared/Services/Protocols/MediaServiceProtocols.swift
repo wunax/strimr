@@ -10,13 +10,6 @@ enum ArtworkResource {
     case data(Data)
 }
 
-struct MediaSearchSource {
-    let serverIdentifier: String
-    let serverName: String
-    let media: MediaDisplayItem
-    let services: MediaServices
-}
-
 struct MediaDetailContent {
     let media: MediaItem
     let parentSeries: MediaItem?
@@ -184,11 +177,7 @@ protocol MediaLibraryService: AnyObject {
 
 @MainActor
 protocol MediaSearchService: AnyObject {
-    func search(
-        query: String,
-        kinds: Set<MediaKind>,
-        searchesAllServers: Bool,
-    ) async throws -> [MediaSearchSource]
+    func search(query: String, kinds: Set<MediaKind>) async throws -> [MediaDisplayItem]
 }
 
 @MainActor

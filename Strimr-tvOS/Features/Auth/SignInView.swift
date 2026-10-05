@@ -3,7 +3,6 @@ import SwiftUI
 import UIKit
 
 struct SignInView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: SignInViewModel
 
     private let ciContext = CIContext()
@@ -65,22 +64,10 @@ struct SignInView: View {
             }
 
             Spacer()
-
-            Button {
-                returnToProviderSelection()
-            } label: {
-                Label("provider.change", systemImage: "chevron.left")
-            }
-            .buttonStyle(.bordered)
         }
         .padding(48)
         .onAppear { Task { await viewModel.startSignIn() } }
         .onDisappear { viewModel.cancelSignIn() }
-    }
-
-    private func returnToProviderSelection() {
-        viewModel.cancelSignIn()
-        Task { await sessionManager.requestProviderSelection() }
     }
 }
 

@@ -3,9 +3,21 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
+    @Environment(SessionManager.self) private var sessionManager
 
     var body: some View {
         List {
+            if sessionManager.canManageAccounts {
+                Section {
+                    NavigationLink("settings.accounts.title") {
+                        AccountsSettingsView()
+                    }
+                    NavigationLink("profiles.title") {
+                        ProfilesSettingsView()
+                    }
+                }
+            }
+
             Section {
                 NavigationLink("settings.playback.title") {
                     SettingsPlaybackView()

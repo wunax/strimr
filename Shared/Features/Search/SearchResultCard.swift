@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SearchResultCard: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(ServerRegistry.self) private var registry
     let result: MergedSearchResult
     let onTap: () -> Void
 
@@ -13,19 +14,13 @@ struct SearchResultCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
-                MediaImageView(
-                    viewModel: MediaImageViewModel(
-                        services: result.primarySource.services,
-                        artworkKind: .thumb,
-                        media: media,
-                    ),
-                )
-                .frame(width: 100, height: 150)
-                .mediaArtworkStyle()
-                .overlay(alignment: .topTrailing) {
-                    WatchStatusBadge(media: media)
-                }
-                .downloadStatusOverlay(media)
+                ItemArtworkView(services: registry.services(for: media.server), kind: .thumb, media: media)
+                    .frame(width: 100, height: 150)
+                    .mediaArtworkStyle()
+                    .overlay(alignment: .topTrailing) {
+                        WatchStatusBadge(media: media)
+                    }
+                    .downloadStatusOverlay(media)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
@@ -73,7 +68,23 @@ struct SearchResultCard: View {
             )
         }
         .buttonStyle(.plain)
-        .offlineAvailability(of: media, defaultServer: result.primarySource.services.identity)
+        .offlineAvailability(of: media)
+    }
+}
+
+/// Discreet notice listing the servers that did not answer; their results are simply missing.
+struct SearchUnavailableServersNote: View {
+    let names: [String]
+
+    var body: some View {
+        if !names.isEmpty {
+            Label(
+                String(localized: "search.serverUnavailable \(names.formatted(.list(type: .and)))"),
+                systemImage: "exclamationmark.icloud",
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
     }
 }
 

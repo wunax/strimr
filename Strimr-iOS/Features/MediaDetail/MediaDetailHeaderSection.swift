@@ -33,9 +33,13 @@ struct MediaDetailHeaderSection: View {
                 headerSection
                 playButtonsRow
                 if isServerUnreachable, downloadedPlayback == nil {
-                    Label("offline.detail.notAvailable", systemImage: "wifi.slash")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    if viewModel.reachableCopyReplacingUnavailableServer != nil {
+                        ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
+                    } else {
+                        Label("offline.detail.notAvailable", systemImage: "wifi.slash")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if [.show, .season].contains(viewModel.media.type) {
                     DownloadedEpisodesLabel(media: viewModel.media.mediaItem)
@@ -840,7 +844,7 @@ struct MediaDetailHeaderSection: View {
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
-            serverIdentifier: viewModel.serverIdentifier,
+            server: viewModel.server,
         ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {

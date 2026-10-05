@@ -45,6 +45,33 @@ final class FavoritesStore {
         persist()
     }
 
+    /// Moves the local favorites of a profile to another profile id, on every server.
+    func renameProfile(from oldProfileID: String, to newProfileID: String) {
+        guard oldProfileID != newProfileID else { return }
+        var changed = false
+        for (key, records) in recordsByScope {
+            let parts = key.split(separator: "|", omittingEmptySubsequences: false)
+            guard parts.count == 3, parts[2] == oldProfileID else { continue }
+            let newKey = [String(parts[0]), String(parts[1]), newProfileID].joined(separator: "|")
+            recordsByScope[newKey, default: []].append(contentsOf: records)
+            recordsByScope[key] = nil
+            changed = true
+        }
+        if changed {
+            persist()
+        }
+    }
+
+    func removeProfile(_ profileID: String) {
+        let keys = recordsByScope.keys
+            .filter { $0.split(separator: "|", omittingEmptySubsequences: false).last.map(String.init) == profileID }
+        guard !keys.isEmpty else { return }
+        for key in keys {
+            recordsByScope[key] = nil
+        }
+        persist()
+    }
+
     private func persist() {
         do {
             try defaults.set(JSONEncoder().encode(recordsByScope), forKey: storageKey)

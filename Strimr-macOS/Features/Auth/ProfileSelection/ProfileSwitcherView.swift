@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct ProfileSwitcherView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: ProfileSwitcherViewModel
-    @State private var pinUser: PlexHomeUser?
+    @State private var pinUser: ProfileChoice?
     @State private var pin = ""
-    @State private var isShowingLogoutConfirmation = false
+    @State private var isShowingProfiles = false
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -21,9 +20,12 @@ struct ProfileSwitcherView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                AuthenticationActionsMenu(onSignOut: {
-                    isShowingLogoutConfirmation = true
-                })
+                if viewModel.canManageProfiles {
+                    Button("profiles.manage") { isShowingProfiles = true }
+                }
+                if viewModel.canCancel {
+                    Button("common.actions.cancel") { viewModel.cancel() }
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -31,13 +33,13 @@ struct ProfileSwitcherView: View {
                     .foregroundStyle(.red)
             }
 
-            if viewModel.isLoading, viewModel.users.isEmpty {
+            if viewModel.isLoading, viewModel.choices.isEmpty {
                 ProgressView("auth.profile.loading")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 24)], spacing: 24) {
-                        ForEach(viewModel.users) { user in
+                        ForEach(viewModel.choices) { user in
                             profileButton(for: user)
                         }
                     }
@@ -46,21 +48,22 @@ struct ProfileSwitcherView: View {
             }
         }
         .padding(32)
-        .task { await viewModel.loadUsers() }
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
-            }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
+        .task { await viewModel.load() }
+        .sheet(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
+            NavigationStack { ProfilesSettingsView() }
+                .frame(minWidth: 520, minHeight: 480)
+        }
+        .sheet(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
+            NavigationStack { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
+                .frame(minWidth: 520, minHeight: 480)
         }
         .sheet(item: $pinUser) { user in
             VStack(alignment: .leading, spacing: 16) {
                 Text("auth.profile.pin.title").font(.headline)
-                Text("auth.profile.pin.prompt \(user.friendlyName ?? user.title ?? "?")")
+                Text("auth.profile.pin.prompt \(user.name)")
                     .foregroundStyle(.secondary)
                 SecureField("auth.profile.pin.placeholder", text: $pin)
+                    .pinDigits($pin)
                     .frame(width: 240)
                     .onSubmit { submitPin(for: user) }
                 HStack {
@@ -80,48 +83,56 @@ struct ProfileSwitcherView: View {
         }
     }
 
-    private func profileButton(for user: PlexHomeUser) -> some View {
+    private func profileButton(for user: ProfileChoice) -> some View {
         Button {
-            if user.protected == true {
+            if user.requiresPIN {
                 pin = ""
                 pinUser = user
             } else {
-                Task { await viewModel.switchToUser(user, pin: nil) }
+                Task { await viewModel.select(user, pin: nil) }
             }
         } label: {
             VStack(spacing: 10) {
-                AsyncImage(url: user.thumb) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
+                Group {
+                    if user.isLocal {
+                        ProfileInitialsAvatar(initials: user.initials)
                     } else {
-                        Image(systemName: "person.crop.square.fill")
-                            .resizable()
-                            .foregroundStyle(.secondary)
+                        AsyncImage(url: user.avatarURL) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Image(systemName: "person.crop.square.fill")
+                                    .resizable()
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
                 .frame(width: 132, height: 132)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay(alignment: .topTrailing) {
-                    if user.protected == true {
+                    if user.requiresPIN {
                         Image(systemName: "lock.fill").padding(8)
+                    } else if user.isActive {
+                        Image(systemName: "checkmark.circle.fill").padding(8)
                     }
                 }
-                Text(user.friendlyName ?? user.title ?? "?")
+                Text(user.name)
                     .font(.headline)
                     .lineLimit(1)
-                if viewModel.switchingUserUUID == user.uuid {
+                if viewModel.switchingID == user.id {
                     ProgressView().controlSize(.small)
                 }
             }
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.switchingUserUUID != nil)
+        .disabled(viewModel.switchingID != nil)
     }
 
-    private func submitPin(for user: PlexHomeUser) {
+    private func submitPin(for user: ProfileChoice) {
         let submittedPin = pin
         pinUser = nil
         pin = ""
-        Task { await viewModel.switchToUser(user, pin: submittedPin) }
+        Task { await viewModel.select(user, pin: submittedPin) }
     }
 }

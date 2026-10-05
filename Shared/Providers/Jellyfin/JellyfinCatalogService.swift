@@ -485,11 +485,11 @@ struct JellyfinCatalogService {
     static let cardFields = [
         "Overview", "PrimaryImageAspectRatio", "UserData", "ProductionYear", "RunTimeTicks",
         "ChildCount", "RecursiveItemCount", "ParentId", "SeriesId", "SeasonId", "SeriesName",
-        "SeasonName", "ParentIndexNumber", "IndexNumber", "MediaSources",
+        "SeasonName", "ParentIndexNumber", "IndexNumber", "MediaSources", "ProviderIds",
     ].joined(separator: ",")
 
     static let detailFields = [
-        cardFields, "Genres", "Studios", "People", "ProviderIds", "MediaStreams", "Chapters",
+        cardFields, "Genres", "Studios", "People", "MediaStreams", "Chapters",
         "MediaAttachments", "Trickplay", "Taglines", "OfficialRating", "CommunityRating", "CriticRating",
     ].joined(separator: ",")
 

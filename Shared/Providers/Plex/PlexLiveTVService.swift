@@ -223,7 +223,6 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         let seriesSubscription = subscriptions.first(where: { int($0["type"]) == 2 })
         let libraries = try await PlexMediaServiceAdapter(
             context: context,
-            sessionManager: nil,
             server: context.serverAccessSnapshot().serverIdentity,
         ).libraries()
             .filter { $0.type == .movie || $0.type == .series }

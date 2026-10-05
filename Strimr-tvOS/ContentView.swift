@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(SessionManager.self) private var sessionManager
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(LibraryStore.self) private var libraryStore
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         ErrorReporter.start()
@@ -17,42 +20,37 @@ struct ContentView: View {
                 ProgressView(sessionManager.loadingPhase.title)
                     .progressViewStyle(.circular)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            case .needsProviderSelection:
-                ProviderSelectionView()
-            case .signedOut:
-                SignInView(
-                    viewModel: SignInViewModel(
-                        sessionManager: sessionManager,
-                        context: plexApiContext,
-                    ),
-                )
-            case .needsJellyfinAuthentication:
-                JellyfinAuthenticationView()
+            case .needsAccount:
+                AccountSetupView(purpose: .firstLaunch, sessionManager: sessionManager)
             case .needsProfileSelection:
                 NavigationStack {
-                    ProfileSwitcherView(
-                        viewModel: ProfileSwitcherViewModel(
-                            context: plexApiContext,
-                            sessionManager: sessionManager,
-                        ),
-                    )
+                    ProfileSwitcherView(viewModel: ProfileSwitcherViewModel(sessionManager: sessionManager))
                 }
-            case .needsServerSelection:
-                NavigationStack {
-                    SelectServerView(
-                        viewModel: ServerSelectionViewModel(
-                            sessionManager: sessionManager,
-                            context: plexApiContext,
-                        ),
-                    )
-                }
+            case .migrationFailed:
+                MigrationFailedView()
             case .ready:
-                if let services = sessionManager.mediaServices {
-                    MainTabView()
-                        .environment(services)
-                } else {
-                    ProgressView(sessionManager.loadingPhase.title)
-                }
+                MainTabView(
+                    homeViewModel: HomeViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
+                    libraryViewModel: LibraryViewModel(
+                        sessionManager: sessionManager,
+                        libraryStore: libraryStore,
+                        settingsManager: settingsManager,
+                    ),
+                )
+                .id(registry.generation)
+            }
+        }
+        .onChange(of: registry.readyServers) { _, _ in
+            sessionManager.updateTopShelf()
+        }
+        .onChange(of: sessionManager.status) { _, status in
+            if status != .ready {
+                sessionManager.updateTopShelf()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                registry.retryUnavailable()
             }
         }
     }

@@ -67,7 +67,8 @@ struct MediaListRowHighlight: ViewModifier {
 }
 
 struct MediaListRow: View {
-    @Environment(MediaServices.self) private var mediaServices
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.horizontalSizeClass) private var sizeClass
     #if os(tvOS)
@@ -111,7 +112,7 @@ struct MediaListRow: View {
             #endif
         }
         .contentShape(Rectangle())
-        .offlineAvailability(of: media, defaultServer: mediaServices.identity)
+        .offlineAvailability(of: media)
         #if os(tvOS)
             .focusable()
             .focused($isFocused)
@@ -126,12 +127,10 @@ struct MediaListRow: View {
     }
 
     private var artwork: some View {
-        MediaImageView(
-            viewModel: MediaImageViewModel(
-                services: mediaServices,
-                artworkKind: media.usesWideListArtwork ? .art : .thumb,
-                media: media,
-            ),
+        ItemArtworkView(
+            services: registry.services(for: media, scoped: scopedServices),
+            kind: media.usesWideListArtwork ? .art : .thumb,
+            media: media,
         )
         .frame(width: artworkSize.width, height: artworkSize.height)
         .mediaArtworkStyle(.compact)

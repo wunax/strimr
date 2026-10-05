@@ -417,9 +417,13 @@ struct MediaDetailView: View {
                 }
 
                 if isServerUnreachable, downloadedPlayback == nil {
-                    Label("offline.detail.notAvailable", systemImage: "wifi.slash")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    if viewModel.reachableCopyReplacingUnavailableServer != nil {
+                        ReachableCopyPlayButton(viewModel: viewModel, presenter: appModel)
+                    } else {
+                        Label("offline.detail.notAvailable", systemImage: "wifi.slash")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -539,7 +543,7 @@ struct MediaDetailView: View {
             type: playbackType,
             title: item.primaryLabel,
             initialPosition: viewModel.primaryActionInitialPosition,
-            serverIdentifier: viewModel.serverIdentifier,
+            server: viewModel.server,
         ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(SessionManager.self) private var sessionManager
-    @Environment(PlexAPIContext.self) private var plexApiContext
+    @Environment(ServerRegistry.self) private var registry
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(DownloadManager.self) private var downloadManager
@@ -25,62 +25,29 @@ struct ContentView: View {
                     ProgressView(sessionManager.loadingPhase.title)
                         .progressViewStyle(.circular)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                case .needsProviderSelection:
-                    ProviderSelectionView()
-                case .signedOut:
-                    NavigationStack {
-                        SignInView(
-                            viewModel: SignInViewModel(
-                                sessionManager: sessionManager,
-                                context: plexApiContext,
-                            ),
-                        )
-                    }
-                case .needsJellyfinAuthentication:
-                    NavigationStack {
-                        JellyfinAuthenticationView()
-                    }
+                case .needsAccount:
+                    AccountSetupView(purpose: .firstLaunch, sessionManager: sessionManager)
                 case .needsProfileSelection:
                     NavigationStack {
-                        ProfileSwitcherView(
-                            viewModel: ProfileSwitcherViewModel(
-                                context: plexApiContext,
-                                sessionManager: sessionManager,
-                            ),
-                        )
+                        ProfileSwitcherView(viewModel: ProfileSwitcherViewModel(sessionManager: sessionManager))
                     }
-                case .needsServerSelection:
-                    NavigationStack {
-                        SelectServerView(
-                            viewModel: ServerSelectionViewModel(
-                                sessionManager: sessionManager,
-                                context: plexApiContext,
-                            ),
-                        )
-                    }
+                case .migrationFailed:
+                    MigrationFailedView()
                 case .ready:
-                    if let services = sessionManager.mediaServices {
-                        MainTabView(
-                            homeViewModel: HomeViewModel(
-                                services: services,
-                                settingsManager: settingsManager,
-                                libraryStore: libraryStore,
-                            ),
-                            libraryViewModel: LibraryViewModel(
-                                services: services,
-                                libraryStore: libraryStore,
-                            ),
-                        )
-                        .environment(services)
-                    } else {
-                        ProgressView(sessionManager.loadingPhase.title)
-                    }
+                    MainTabView(
+                        homeViewModel: HomeViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
+                        libraryViewModel: LibraryViewModel(
+                            sessionManager: sessionManager,
+                            libraryStore: libraryStore,
+                            settingsManager: settingsManager,
+                        ),
+                    )
+                    .id(registry.generation)
                 }
             }
         }
         .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
-            guard hasNetworkPath else { return }
-            guard sessionManager.status == .signedOut else { return }
+            guard hasNetworkPath, sessionManager.status == .migrationFailed else { return }
             Task {
                 await sessionManager.hydrate()
             }
@@ -89,6 +56,7 @@ struct ContentView: View {
             switch phase {
             case .active:
                 offlineCoordinator.availability.refresh()
+                registry.retryUnavailable()
             case .background:
                 offlineCoordinator.evictCacheIfNeeded()
             case .inactive:
@@ -100,9 +68,8 @@ struct ContentView: View {
         .onChange(of: settingsManager.downloads.offlineCacheLimitMB, initial: true) { _, megabytes in
             offlineCoordinator.setCacheLimit(megabytes: megabytes)
         }
-        .onChange(of: sessionManager.mediaServices.map(ObjectIdentifier.init), initial: true) { _, _ in
-            OfflineCoordinator.shared.activate(services: sessionManager.mediaServices)
-            downloadManager.activateSession(services: sessionManager.mediaServices)
+        .onChange(of: registry.connectedServices.map(ObjectIdentifier.init), initial: true) { _, _ in
+            downloadManager.activateSession(services: registry.connectedServices)
         }
     }
 
@@ -110,9 +77,9 @@ struct ContentView: View {
     private var showsStaticDownloads: Bool {
         guard !offlineCoordinator.availability.hasNetworkPath, downloadManager.playableCount > 0 else { return false }
         switch sessionManager.status {
-        case .signedOut, .needsProviderSelection, .needsJellyfinAuthentication:
+        case .needsAccount, .migrationFailed:
             return true
-        case .hydrating, .needsProfileSelection, .needsServerSelection, .ready:
+        case .hydrating, .needsProfileSelection, .ready:
             return false
         }
     }

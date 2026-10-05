@@ -9,12 +9,11 @@ final class SignInViewModel {
     var pin: PlexCloudPin?
 
     @ObservationIgnored private var pollTask: Task<Void, Never>?
-    @ObservationIgnored private let sessionManager: SessionManager
-    @ObservationIgnored private let plexContext: PlexAPIContext
+    @ObservationIgnored private let onToken: (String) async throws -> Void
+    @ObservationIgnored private let plexContext = PlexAPIContext()
 
-    init(sessionManager: SessionManager, context: PlexAPIContext) {
-        self.sessionManager = sessionManager
-        plexContext = context
+    init(onToken: @escaping (String) async throws -> Void) {
+        self.onToken = onToken
     }
 
     func startSignIn() async {
@@ -50,7 +49,7 @@ final class SignInViewModel {
                     let result = try await authRepository.pollToken(pinId: pinID)
                     if let token = result.authToken {
                         do {
-                            try await sessionManager.signIn(with: token)
+                            try await onToken(token)
                             cancelSignIn()
                             return
                         } catch {
@@ -85,6 +84,7 @@ final class SignInViewModel {
     }
 
     private func requestNewPinAndBeginPolling() async throws {
+        await plexContext.waitForBootstrap()
         let authRepository = AuthRepository(context: plexContext)
         let pinResponse = try await authRepository.requestPin()
         pin = pinResponse

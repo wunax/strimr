@@ -1,7 +1,7 @@
 import Foundation
 
 struct AutomaticRefreshGate {
-    private var hasStartedInitialLoad = false
+    private(set) var hasStartedInitialLoad = false
     private var lastRefreshStartedAt: Date?
     private let debounceInterval: TimeInterval
 

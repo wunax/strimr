@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LibraryView: View {
     @State var viewModel: LibraryViewModel
-    @Environment(SettingsManager.self) private var settingsManager
     let onSelectMedia: (MediaDisplayItem) -> Void
     private let cardMinHeight: CGFloat = 120
     private let cardMaxHeight: CGFloat = 160
@@ -19,15 +18,15 @@ struct LibraryView: View {
     var body: some View {
         List {
             Section {
-                ForEach(visibleLibraries) { library in
+                ForEach(viewModel.visibleLibraries, id: \.identity) { library in
                     libraryRow(for: library)
                 }
             }
 
-            if !hiddenLibraries.isEmpty {
+            if !viewModel.hiddenLibraries.isEmpty {
                 Section {
                     DisclosureGroup("library.hidden.title", isExpanded: $isHiddenExpanded) {
-                        ForEach(hiddenLibraries) { library in
+                        ForEach(viewModel.hiddenLibraries, id: \.identity) { library in
                             libraryRow(for: library)
                         }
                     }
@@ -61,31 +60,6 @@ struct LibraryView: View {
         }
     }
 
-    private var hiddenLibraryIds: Set<String> {
-        Set(settingsManager.interface.hiddenLibraryIds)
-    }
-
-    private var visibleLibraries: [Library] {
-        displayedLibraries.filter { !hiddenLibraryIds.contains($0.id) }
-    }
-
-    private var hiddenLibraries: [Library] {
-        displayedLibraries.filter { hiddenLibraryIds.contains($0.id) }
-    }
-
-    private var displayedLibraries: [Library] {
-        viewModel.libraries.filter { library in
-            guard viewModel.provider == .jellyfin else { return true }
-            if library.type == .collection {
-                return settingsManager.interface.displayCollections
-            }
-            if library.type == .playlist {
-                return settingsManager.interface.displayPlaylists
-            }
-            return true
-        }
-    }
-
     private func libraryRow(for library: Library) -> some View {
         NavigationLink(value: library) {
             ZStack(alignment: .bottomLeading) {
@@ -116,7 +90,7 @@ struct LibraryView: View {
                             .font(.headline)
                             .foregroundStyle(.white)
 
-                        Text(library.type.rawValue.capitalized)
+                        Text(viewModel.subtitle(for: library) ?? library.type.rawValue.capitalized)
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.8))
                     }

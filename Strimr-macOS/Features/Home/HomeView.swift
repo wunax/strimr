@@ -2,7 +2,6 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
-    @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: HomeViewModel
     @State private var selectedHub: Hub?
@@ -56,13 +55,15 @@ struct HomeView: View {
         }
         .sheet(item: $selectedHub) { hub in
             NavigationStack {
-                HubDetailView(
-                    viewModel: HubDetailViewModel(hub: hub, services: mediaServices),
-                    onSelectMedia: { media in
-                        selectedHub = nil
-                        onSelectMedia(media)
-                    },
-                )
+                ServerScopedView(server: hub.server) { services in
+                    HubDetailView(
+                        viewModel: HubDetailViewModel(hub: hub, services: services),
+                        onSelectMedia: { media in
+                            selectedHub = nil
+                            onSelectMedia(media)
+                        },
+                    )
+                }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("hub.close") {
@@ -75,9 +76,6 @@ struct HomeView: View {
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
             Task { await viewModel.refreshIfNeeded() }
-        }
-        .onConnectivityChange(of: mediaServices.identity) { _ in
-            Task { await viewModel.refreshSilently() }
         }
     }
 }

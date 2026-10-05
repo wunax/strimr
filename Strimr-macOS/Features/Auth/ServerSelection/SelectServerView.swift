@@ -1,9 +1,7 @@
 import SwiftUI
 
 struct SelectServerView: View {
-    @Environment(SessionManager.self) private var sessionManager
     @State private var viewModel: ServerSelectionViewModel
-    @State private var isShowingLogoutConfirmation = false
 
     init(viewModel: ServerSelectionViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -11,15 +9,9 @@ struct SelectServerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("serverSelection.title").font(.largeTitle.bold())
-                    Text("serverSelection.subtitle").foregroundStyle(.secondary)
-                }
-                Spacer()
-                AuthenticationActionsMenu(onSignOut: {
-                    isShowingLogoutConfirmation = true
-                })
+            VStack(alignment: .leading, spacing: 6) {
+                Text("serverSelection.title").font(.largeTitle.bold())
+                Text("serverSelection.multiple.subtitle").foregroundStyle(.secondary)
             }
 
             if viewModel.isLoading, viewModel.servers.isEmpty {
@@ -37,74 +29,52 @@ struct SelectServerView: View {
                 }
             } else {
                 List(viewModel.servers, id: \.clientIdentifier) { server in
-                    Button {
-                        Task { await viewModel.select(server: server) }
-                    } label: {
+                    Toggle(isOn: Binding(
+                        get: { viewModel.isSelected(server) },
+                        set: { _ in viewModel.toggle(server) },
+                    )) {
                         HStack(spacing: 14) {
                             Image(systemName: "server.rack")
                                 .font(.title2)
                                 .foregroundStyle(.brandPrimary)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(server.name).font(.headline)
-                                Group {
-                                    if viewModel.selectingServerID == server.clientIdentifier {
-                                        Text(sessionManager.loadingPhase.title)
-                                    } else {
-                                        Text(connectionDescription(for: server))
-                                    }
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                ServerConnectionSummary(state: viewModel.probeState(of: server))
+                                    .font(.caption)
                             }
-                            Spacer()
-                            if viewModel.selectingServerID == server.clientIdentifier {
-                                ProgressView().controlSize(.small)
+                            if viewModel.suggestsCustomAddress(for: server) {
+                                Spacer()
+                                Button("serverSelection.customAddress.suggest") {
+                                    viewModel.showCustomAddress(for: server)
+                                }
+                                .buttonStyle(.link)
+                                .font(.caption)
                             }
                         }
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isSelecting)
+                    .toggleStyle(.checkbox)
                     .padding(.vertical, 5)
+                    .contextMenu {
+                        Button("serverSelection.customAddress.use") {
+                            viewModel.showCustomAddress(for: server)
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("common.actions.continue") {
+                        viewModel.continueWithSelection()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(viewModel.selectedServerIDs.isEmpty)
                 }
             }
         }
         .padding(32)
         .task { await viewModel.load() }
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
-            }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
+        .sheet(item: $viewModel.customAddressModel) { model in
+            CustomServerAddressView(model: model)
         }
-        .alert("serverSelection.error.connection.title", isPresented: $viewModel.isShowingSelectionError) {
-            Button("common.actions.retry") { viewModel.requestSelectionRetry() }
-            Button("serverSelection.customAddress.use") { viewModel.requestCustomAddress() }
-            Button("common.actions.cancel", role: .cancel) { viewModel.dismissSelectionError() }
-        } message: {
-            Text("serverSelection.error.connection.message")
-        }
-        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
-            CustomServerAddressView(viewModel: viewModel)
-        }
-        .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
-            guard !isPresented else { return }
-            Task { await viewModel.handleSelectionErrorDismissal() }
-        }
-    }
-
-    private func connectionDescription(for server: PlexCloudResource) -> String {
-        guard let connection = server.connections?.first else {
-            return String(localized: "serverSelection.connection.unavailable")
-        }
-        if connection.isLocal {
-            return String(localized: "serverSelection.connection.localFormat \(connection.address)")
-        }
-        if connection.isRelay {
-            return String(localized: "serverSelection.connection.relay")
-        }
-        return connection.address
     }
 }

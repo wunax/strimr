@@ -35,8 +35,14 @@ final class HubRepository {
 
     func getContinueWatchingHub(params: HubParams? = nil) async throws -> PlexHubMediaContainer {
         let resolved = params ?? HubParams()
-        return try await network.request(path: "/hubs/continueWatching", queryItems: resolved.queryItems)
+        return try await network.request(
+            path: "/hubs/continueWatching",
+            queryItems: resolved.queryItems + [Self.includeGuids],
+        )
     }
+
+    /// External ids (imdb, tmdb, tvdb) are only returned with this flag; they recognize a title on other servers.
+    static let includeGuids = URLQueryItem(name: "includeGuids", value: "1")
 
     func getPromotedHub(
         params: HubParams? = nil,
@@ -57,6 +63,7 @@ final class HubRepository {
         }
         let includePlaylists = includeLibraryPlaylists ?? false
         queryItems.append(URLQueryItem(name: "includeLibraryPlaylists", value: includePlaylists ? "1" : "0"))
+        queryItems.append(Self.includeGuids)
         return try await network.request(path: "/hubs/promoted", queryItems: queryItems)
     }
 

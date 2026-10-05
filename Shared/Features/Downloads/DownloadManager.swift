@@ -245,17 +245,15 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     /// Called whenever the session's services change: legacy downloads without owner on this server are attributed
     /// to the active user, and only this user's downloads are shown in the rich app.
-    func activateSession(services: MediaServices?) {
-        guard let services else {
-            activeOwnerIDs = []
-            return
+    func activateSession(services: [MediaServices]) {
+        activeOwnerIDs = Set(services.map(\.owner.id))
+        for services in services {
+            let owner = services.owner
+            offlineStore?.register(owner: owner)
+            adoptUnownedDownloads(for: owner)
+            register(services: services)
+            enrichDownloads(on: services.identity, refreshingEnriched: false)
         }
-        let owner = services.owner
-        activeOwnerIDs = [owner.id]
-        offlineStore?.register(owner: owner)
-        adoptUnownedDownloads(for: owner)
-        register(services: services)
-        enrichDownloads(on: services.identity, refreshingEnriched: false)
     }
 
     /// Enriches pending downloads of the active owner on `server` (legacy downloads, or ones queued offline) and,
@@ -400,21 +398,6 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         } catch {
             handleDownloadError(error)
         }
-    }
-
-    func enqueueItem(itemID: String, context: PlexAPIContext) async {
-        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItem(itemID: itemID, services: services)
-    }
-
-    func enqueueSeason(itemID: String, context: PlexAPIContext) async {
-        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItems(itemID: itemID, kind: .season, services: services)
-    }
-
-    func enqueueShow(itemID: String, context: PlexAPIContext) async {
-        guard let services = PlexMediaServicesFactory.make(context: context, sessionManager: nil) else { return }
-        await enqueueItems(itemID: itemID, kind: .series, services: services)
     }
 
     private func enqueue(

@@ -186,6 +186,91 @@ final class SettingsManager {
         persist()
     }
 
+    // MARK: - Home rows (per profile)
+
+    func homeRowPreferences(profileID: String) -> HomeRowPreferences {
+        settings.interface.homeRowsByProfile[profileID] ?? HomeRowPreferences()
+    }
+
+    func setHomeRowVisibility(_ rowID: String, visible: Bool, profileID: String) {
+        var preferences = homeRowPreferences(profileID: profileID)
+        preferences.setRow(rowID, visible: visible)
+        settings.interface.homeRowsByProfile[profileID] = preferences
+        persist()
+    }
+
+    func setHomeRowOrder(_ rowIDs: [String], profileID: String) {
+        var preferences = homeRowPreferences(profileID: profileID)
+        preferences.setOrder(rowIDs)
+        settings.interface.homeRowsByProfile[profileID] = preferences
+        persist()
+    }
+
+    func resetHomeRows(profileID: String) {
+        settings.interface.homeRowsByProfile.removeValue(forKey: profileID)
+        persist()
+    }
+
+    // MARK: - Libraries (per profile)
+
+    func libraryPreferences(profileID: String) -> LibraryPreferences {
+        settings.interface.librariesByProfile[profileID] ?? LibraryPreferences()
+    }
+
+    func updateLibraryPreferences(profileID: String, _ transform: (inout LibraryPreferences) -> Void) {
+        var preferences = libraryPreferences(profileID: profileID)
+        transform(&preferences)
+        guard preferences != libraryPreferences(profileID: profileID) else { return }
+        settings.interface.librariesByProfile[profileID] = preferences.isEmpty ? nil : preferences
+        persist()
+    }
+
+    /// Forgets the libraries a server stopped returning, for every profile. Only call it after a successful load.
+    func pruneLibraries(of server: ServerIdentity, keeping libraryIDs: Set<String>) {
+        var changed = false
+        for (profileID, preferences) in settings.interface.librariesByProfile {
+            var pruned = preferences
+            pruned.pruneLibraries(of: server, keeping: libraryIDs)
+            if pruned != preferences {
+                settings.interface.librariesByProfile[profileID] = pruned.isEmpty ? nil : pruned
+                changed = true
+            }
+        }
+        if changed {
+            persist()
+        }
+    }
+
+    // MARK: - Cleanup
+
+    /// Removes the rows and libraries of servers whose account was removed, for every profile. Servers that are only
+    /// unreachable or disabled must keep their settings.
+    func removeSettings(of servers: Set<ServerIdentity>) {
+        guard !servers.isEmpty else { return }
+        for (profileID, preferences) in settings.interface.homeRowsByProfile {
+            var cleaned = preferences
+            cleaned.removeRows(of: servers)
+            settings.interface.homeRowsByProfile[profileID] = cleaned.isEmpty ? nil : cleaned
+        }
+        for (profileID, preferences) in settings.interface.librariesByProfile {
+            var cleaned = preferences
+            cleaned.removeLibraries(of: servers)
+            settings.interface.librariesByProfile[profileID] = cleaned.isEmpty ? nil : cleaned
+        }
+        persist()
+    }
+
+    func removeSettings(profileID: String) {
+        settings.interface.homeRowsByProfile[profileID] = nil
+        settings.interface.librariesByProfile[profileID] = nil
+        persist()
+    }
+
+    func updateInterface(_ transform: (inout InterfaceSettings) -> Void) {
+        transform(&settings.interface)
+        persist()
+    }
+
     func libraryBrowsePreferences(for key: String) -> LibraryBrowsePreferences {
         settings.interface.libraryBrowseByKey[key] ?? LibraryBrowsePreferences()
     }

@@ -35,9 +35,9 @@ struct MoreView: View {
                         .buttonStyle(.borderedProminent)
                     }
 
-                    if sessionManager.mediaServices?.capabilities.profiles == true {
+                    if sessionManager.profiles.count > 1 {
                         Button {
-                            Task { await sessionManager.requestProfileSelection() }
+                            sessionManager.requestProfileSelection()
                         } label: {
                             Label("common.actions.switchProfile", systemImage: "person.2.fill")
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -45,26 +45,6 @@ struct MoreView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-
-                    if sessionManager.provider == .plex {
-                        Button {
-                            Task { await sessionManager.requestServerSelection() }
-                        } label: {
-                            Label("serverSelection.title", systemImage: "server.rack")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-
-                    Button {
-                        Task { await sessionManager.signOut() }
-                    } label: {
-                        Label("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                    }
-                    .buttonStyle(.borderedProminent)
 
                     Spacer()
                 }

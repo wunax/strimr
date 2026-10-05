@@ -1,13 +1,12 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @Environment(PlexAPIContext.self) var plexApiContext
     @Environment(SessionManager.self) var sessionManager
+    @Environment(ServerRegistry.self) var registry
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
-    @Environment(MediaServices.self) var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator = MainCoordinator()
     @State var homeViewModel: HomeViewModel
@@ -22,38 +21,24 @@ struct MainTabView: View {
         tabView
             .environmentObject(coordinator)
             .task {
+                sharePlayCoordinator.configurePlaybackPresenter(coordinator)
                 try? await libraryStore.loadLibraries()
-                sharePlayCoordinator.configurePlaybackLauncher(
-                    PlaybackLauncher(
-                        services: mediaServices,
-                        coordinator: coordinator,
-                    ),
-                )
             }
-            .task(id: mediaServices.identity) {
-                if await mediaServices.liveTVStore.refreshAvailability() == false {
-                    coordinator.resetLiveTVNavigation()
-                }
+            .task(id: registry.readyServers) {
+                await homeViewModel.syncServers()
+                await libraryViewModel.syncServers()
+                await refreshLiveTVAvailability()
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
-                Task {
-                    if await mediaServices.liveTVStore.refreshAvailability() == false {
-                        coordinator.resetLiveTVNavigation()
-                    }
-                }
+                Task { await refreshLiveTVAvailability() }
             }
             .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
                 if !isDisplayed {
                     coordinator.resetLiveTVNavigation()
                 }
             }
-            .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
-                // Availability checked while offline is unreliable: check again once the server is back.
-                guard !isUnreachable else { return }
-                Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
-            }
-            .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: coordinator.resetPlayer) {
+            .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: playerDidClose) {
                 if let queue = coordinator.selectedMediaQueue,
                    let services = coordinator.selectedMediaServices
                 {
@@ -64,17 +49,32 @@ struct MainTabView: View {
                             shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
                         ),
                     )
-                    .environment(plexApiContext)
+                    .environment(services)
                 } else if let context = coordinator.selectedLiveTVContext,
                           let services = coordinator.selectedMediaServices
                 {
                     PlayerWrapper(viewModel: PlayerViewModel(live: context, services: services))
-                        .environment(plexApiContext)
+                        .environment(services)
                 } else if let request = coordinator.selectedLocalPlayback {
                     PlayerWrapper(viewModel: PlayerViewModel(request: request))
-                        .environment(plexApiContext)
                 }
             }
+    }
+
+    /// Only the server of the item that was played is reloaded, to update Reprendre and Next Up.
+    private func playerDidClose() {
+        let server = coordinator.selectedMediaServices?.identity
+        coordinator.resetPlayer()
+        if let server {
+            Task { await homeViewModel.refresh(server: server) }
+        }
+    }
+
+    private func refreshLiveTVAvailability() async {
+        await registry.refreshLiveTVAvailability()
+        if registry.liveTVServices.isEmpty {
+            coordinator.resetLiveTVNavigation()
+        }
     }
 
     private var tabView: some View {
@@ -103,7 +103,7 @@ struct MainTabView: View {
                 libraryTabContent
             }
 
-            if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
+            if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     liveTVTabContent
                 }
@@ -116,11 +116,11 @@ struct MainTabView: View {
             }
 
             TabSection {
-                ForEach(navigationLibraries) { library in
+                ForEach(libraryStore.navigationLibraries, id: \.identity) { library in
                     Tab(
                         library.title,
                         systemImage: library.iconName,
-                        value: MainCoordinator.Tab.libraryDetail(library.id),
+                        value: MainCoordinator.Tab.libraryDetail(library.identity),
                     ) {
                         libraryDetailTabContent(library)
                     }
@@ -160,11 +160,8 @@ struct MainTabView: View {
     private var searchTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .search)) {
             SearchView(
-                viewModel: SearchViewModel(
-                    services: mediaServices,
-                    settingsManager: settingsManager,
-                ),
-                onSelectMedia: coordinator.showSearchResult,
+                viewModel: SearchViewModel(sessionManager: sessionManager),
+                onSelectMedia: { coordinator.showMediaDetail($0.media) },
             )
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
@@ -179,10 +176,12 @@ struct MainTabView: View {
                 onSelectMedia: coordinator.showMediaDetail,
             )
             .navigationDestination(for: Library.self) { library in
-                LibraryDetailView(
-                    library: library,
-                    onSelectMedia: coordinator.showMediaDetail,
-                )
+                ServerScopedView(server: library.server) { _ in
+                    LibraryDetailView(
+                        library: library,
+                        onSelectMedia: coordinator.showMediaDetail,
+                    )
+                }
             }
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
@@ -199,7 +198,7 @@ struct MainTabView: View {
     private var favoritesTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .favorites)) {
             FavoritesView(
-                services: mediaServices,
+                sessionManager: sessionManager,
                 onSelectMedia: coordinator.showMediaDetail,
             )
             .unavailableWhenOffline()
@@ -211,17 +210,16 @@ struct MainTabView: View {
 
     private var liveTVTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
-            LiveTVView(
-                store: mediaServices.liveTVStore,
-                onPlayLive: { coordinator.showLivePlayer(context: $0, services: mediaServices) },
-                onPlayRecording: { media in
-                    Task { await PlaybackLauncher(services: mediaServices, coordinator: coordinator).play(
+            LiveTVServersView(
+                onPlayLive: { coordinator.showLivePlayer(context: $0, services: $1) },
+                onPlayRecording: { media, services in
+                    Task { await PlaybackLauncher(services: services, coordinator: coordinator).play(
                         ratingKey: media.id,
                         type: media.type,
                     ) }
                 },
-                onOpenLibrary: { libraryID in
-                    guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                onOpenLibrary: { identity in
+                    guard let library = libraryStore.library(identity) else { return }
                     coordinator.tab = .library
                     coordinator.libraryPath = NavigationPath([library])
                 },
@@ -231,32 +229,38 @@ struct MainTabView: View {
     }
 
     private func libraryDetailTabContent(_ library: Library) -> some View {
-        NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.id))) {
-            LibraryDetailView(
-                library: library,
-                onSelectMedia: coordinator.showMediaDetail,
-            )
+        NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.identity))) {
+            ServerScopedView(server: library.server) { _ in
+                LibraryDetailView(
+                    library: library,
+                    onSelectMedia: coordinator.showMediaDetail,
+                )
+            }
             .navigationDestination(for: MainCoordinator.Route.self) {
                 destination(for: $0)
             }
         }
     }
 
-    private var navigationLibraries: [Library] {
-        let libraryById = Dictionary(uniqueKeysWithValues: libraryStore.libraries.map { ($0.id, $0) })
-        return settingsManager.interface.navigationLibraryIds.compactMap { libraryById[$0] }
+    /// Every destination is shown with the services of its own server.
+    private func destination(for route: MainCoordinator.Route) -> some View {
+        ServerScopedView(server: route.server) { services in
+            routeContent(route, services: services)
+        }
     }
 
     @ViewBuilder
-    private func destination(for route: MainCoordinator.Route) -> some View {
-        let routeServices = coordinator.services(for: coordinator.tab, default: mediaServices)
+    private func routeContent(_ route: MainCoordinator.Route, services: MediaServices) -> some View {
+        let playbackLauncher = PlaybackLauncher(services: services, coordinator: coordinator)
         switch route {
         case let .mediaDetail(media):
             MediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    services: routeServices,
+                    services: services,
                     resolutionMode: .selectedMedia,
+                    copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    onSelectCopy: coordinator.showMediaDetail,
                 ),
                 onPlay: { ratingKey, type in
                     Task {
@@ -283,13 +287,13 @@ struct MainTabView: View {
                 },
                 onSelectMedia: coordinator.showMediaDetail,
                 onSelectParentSeries: coordinator.returnToSeries,
-                onSelectPerson: coordinator.showPersonDetail,
+                onSelectPerson: { coordinator.showPersonDetail($0, server: services.identity) },
             )
         case let .collectionDetail(collection):
             CollectionDetailView(
                 viewModel: CollectionDetailViewModel(
                     collection: collection,
-                    services: routeServices,
+                    services: services,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -311,7 +315,7 @@ struct MainTabView: View {
             PlaylistDetailView(
                 viewModel: PlaylistDetailViewModel(
                     playlist: playlist,
-                    services: routeServices,
+                    services: services,
                 ),
                 onSelectMedia: coordinator.showMediaDetail,
                 onPlay: { ratingKey in
@@ -331,21 +335,14 @@ struct MainTabView: View {
             )
         case let .hubDetail(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, services: routeServices),
+                viewModel: HubDetailViewModel(hub: hub, services: services),
                 onSelectMedia: coordinator.showMediaDetail,
             )
-        case let .personDetail(person):
+        case let .personDetail(person, _):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, services: routeServices),
+                viewModel: PersonDetailViewModel(person: person, services: services),
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }
-    }
-
-    private var playbackLauncher: PlaybackLauncher {
-        PlaybackLauncher(
-            services: coordinator.services(for: coordinator.tab, default: mediaServices),
-            coordinator: coordinator,
-        )
     }
 }

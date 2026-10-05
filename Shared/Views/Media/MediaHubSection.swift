@@ -2,15 +2,18 @@ import SwiftUI
 
 struct MediaHubSection<Content: View>: View {
     let title: String
+    let subtitle: String?
     let onViewAll: (() -> Void)?
     @ViewBuilder let content: Content
 
     init(
         title: String,
+        subtitle: String? = nil,
         onViewAll: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content,
     ) {
         self.title = title
+        self.subtitle = subtitle
         self.onViewAll = onViewAll
         self.content = content()
     }
@@ -19,6 +22,11 @@ struct MediaHubSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 titleView
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(Color.brandPrimary)
                     .frame(width: 32, height: 4)

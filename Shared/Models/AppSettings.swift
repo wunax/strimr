@@ -248,6 +248,9 @@ struct PlaybackSettings: Codable, Equatable {
 }
 
 struct InterfaceSettings: Codable, Equatable {
+    var homeRowsByProfile: [String: HomeRowPreferences] = [:]
+    var librariesByProfile: [String: LibraryPreferences] = [:]
+    // Pre-multi-server settings, only read by the migration and cleared once it succeeds.
     var hiddenLibraryIds: [String] = []
     var navigationLibraryIds: [String] = []
     var homeRowsByScope: [String: HomeRowPreferences] = [:]
@@ -257,7 +260,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayDownloadsTab = false
     var displayLiveTVTab = true
     var displaySeerrDiscoverTab = true
-    var multiServerSearchEnabled = true
+    var multiServerSearchEnabled: Bool?
     var spoilerProtection = SpoilerProtectionLevel.off
     var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
     var libraryDefaultLayout = LibraryDefaultLayout.automatic
@@ -267,6 +270,14 @@ struct InterfaceSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        homeRowsByProfile = (try? container.decode(
+            [String: HomeRowPreferences].self,
+            forKey: .homeRowsByProfile,
+        )) ?? [:]
+        librariesByProfile = (try? container.decode(
+            [String: LibraryPreferences].self,
+            forKey: .librariesByProfile,
+        )) ?? [:]
         hiddenLibraryIds = try container.decodeIfPresent([String].self, forKey: .hiddenLibraryIds) ?? []
         navigationLibraryIds = try container.decodeIfPresent([String].self, forKey: .navigationLibraryIds) ?? []
         homeRowsByScope = try container.decodeIfPresent(
@@ -279,10 +290,7 @@ struct InterfaceSettings: Codable, Equatable {
         displayDownloadsTab = try container.decodeIfPresent(Bool.self, forKey: .displayDownloadsTab) ?? false
         displayLiveTVTab = try container.decodeIfPresent(Bool.self, forKey: .displayLiveTVTab) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
-        multiServerSearchEnabled = try container.decodeIfPresent(
-            Bool.self,
-            forKey: .multiServerSearchEnabled,
-        ) ?? true
+        multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
         libraryBrowseByKey = (try? container.decode(
             [String: LibraryBrowsePreferences].self,

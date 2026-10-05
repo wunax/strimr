@@ -186,7 +186,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func libraries() async throws -> [Library] {
-        try await catalog.libraries().map(Library.init)
+        try await catalog.libraries().map { Library(jellyfinItem: $0, server: server) }
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
@@ -378,28 +378,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
     }
 
-    func search(
-        query: String,
-        kinds: Set<MediaKind>,
-        searchesAllServers _: Bool,
-    ) async throws -> [MediaSearchSource] {
-        guard let services else { return [] }
-        let includeTypes = searchTypes(for: kinds)
+    func search(query: String, kinds: Set<MediaKind>) async throws -> [MediaDisplayItem] {
         let response = try await catalog.items(
-            includeTypes: includeTypes,
+            includeTypes: searchTypes(for: kinds),
             searchTerm: query,
             limit: 100,
         )
-        let name = context.connection?.serverName ?? "Jellyfin"
-        return response.items.compactMap { item in
-            guard let media = MediaDisplayItem(jellyfinItem: item, server: server) else { return nil }
-            return MediaSearchSource(
-                serverIdentifier: server.id,
-                serverName: name,
-                media: media,
-                services: services,
-            )
-        }
+        return response.items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
     }
 
     func artwork(
@@ -1322,6 +1307,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             size: items.count,
             more: false,
             items: items.compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) },
+            server: server,
         )
     }
 
@@ -1514,7 +1500,6 @@ enum JellyfinMediaServicesFactory {
         #else
             let decorated = OfflineServiceDecorators(
                 owner: MediaOwner(server: connection.serverIdentity, userID: connection.userID),
-                serverName: connection.serverName,
                 home: adapter,
                 library: adapter,
                 search: adapter,
@@ -1526,6 +1511,7 @@ enum JellyfinMediaServicesFactory {
         let services = MediaServices(
             provider: .jellyfin,
             identity: connection.serverIdentity,
+            serverName: connection.serverName,
             capabilities: capabilities,
             home: decorated.home,
             library: decorated.library,
@@ -1542,9 +1528,6 @@ enum JellyfinMediaServicesFactory {
             versionSelectionStore: versionSelectionStore,
         )
         adapter.services = services
-        #if !os(tvOS)
-            decorated.attach(to: services)
-        #endif
         services.availabilityProbeURL = { [weak context] in
             context?.connection?.baseURL.appendingPathComponent("System/Info/Public")
         }

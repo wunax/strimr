@@ -18,6 +18,11 @@ struct MediaDetailPlaybackTarget {
 final class MediaDetailViewModel {
     @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
+    @ObservationIgnored private let copyFinder: MediaCopyFinder?
+    @ObservationIgnored private let onSelectCopy: ((MediaItem) -> Void)?
+    @ObservationIgnored private var copiesTask: Task<Void, Never>?
+    /// Copies of the title on the profile's servers, shown in the Version menu.
+    private(set) var copies: [MediaCopy] = []
     @ObservationIgnored private var backdropSourcePath: String?
 
     var media: PlayableMediaItem
@@ -79,21 +84,26 @@ final class MediaDetailViewModel {
 
     deinit {
         extrasTask?.cancel()
+        copiesTask?.cancel()
     }
 
     init(
         media: PlayableMediaItem,
         services: MediaServices,
         resolutionMode: MediaDetailResolutionMode = .seriesRoot,
+        copyFinder: MediaCopyFinder? = nil,
+        onSelectCopy: ((MediaItem) -> Void)? = nil,
     ) {
         self.media = media
         self.services = services
         self.resolutionMode = resolutionMode
+        self.copyFinder = copyFinder
+        self.onSelectCopy = onSelectCopy
         _ = resolveArtwork()
     }
 
-    var serverIdentifier: String? {
-        services.identity.id
+    var server: ServerIdentity {
+        services.identity
     }
 
     private var detailTargetID: String {
@@ -660,7 +670,45 @@ final class MediaDetailViewModel {
     }
 
     var showsVersionSelection: Bool {
-        versions.count > 1
+        versions.count > 1 || !copies.isEmpty
+    }
+
+    /// Copies grouped by server, in the order of their best copy.
+    var copiesByServer: [(serverName: String, copies: [MediaCopy])] {
+        var order: [ServerIdentity] = []
+        var grouped: [ServerIdentity: [MediaCopy]] = [:]
+        for copy in copies {
+            if grouped[copy.server] == nil {
+                order.append(copy.server)
+            }
+            grouped[copy.server, default: []].append(copy)
+        }
+        return order.compactMap { server in
+            grouped[server].map { ($0[0].serverName, $0) }
+        }
+    }
+
+    /// With the displayed copy's server offline, Play offers a reachable copy instead.
+    var reachableCopyReplacingUnavailableServer: MediaCopy? {
+        guard let copyFinder, !copyFinder.sessionManager.registry.readyServers.contains(services.identity) else {
+            return nil
+        }
+        return copies.first(where: \.isReachable)
+    }
+
+    /// Opens the copy's own page, served by its server.
+    func selectCopy(_ copy: MediaCopy) {
+        onSelectCopy?(copy.media)
+    }
+
+    private func loadCopies(of item: MediaItem) {
+        guard let copyFinder, [.movie, .show, .episode].contains(media.type) else { return }
+        copiesTask?.cancel()
+        copiesTask = Task { [weak self] in
+            let copies = await copyFinder.copies(of: item)
+            guard !Task.isCancelled else { return }
+            self?.copies = copies
+        }
     }
 
     var versionLabels: [String] {
@@ -1230,6 +1278,7 @@ final class MediaDetailViewModel {
             relatedHubs = content.relatedHubs
             relatedHubsErrorMessage = nil
             loadExtras(for: media.mediaItem)
+            loadCopies(of: media.mediaItem)
 
             switch media.type {
             case .show:

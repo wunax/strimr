@@ -42,17 +42,18 @@ enum FavoriteCategory: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
+/// Favorites of every enabled server of the profile, as one union.
 @MainActor
 @Observable
 final class FavoritesViewModel {
-    @ObservationIgnored private let service: any MediaFavoritesService
+    @ObservationIgnored private let sessionManager: SessionManager
 
     private(set) var itemsByCategory: [FavoriteCategory: [MediaDisplayItem]] = [:]
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    init(services: MediaServices) {
-        service = services.favorites
+    init(sessionManager: SessionManager) {
+        self.sessionManager = sessionManager
     }
 
     func items(for category: FavoriteCategory) -> [MediaDisplayItem] {
@@ -65,26 +66,28 @@ final class FavoritesViewModel {
         errorMessage = nil
         defer { isLoading = false }
 
-        do {
-            let media = try await service.favorites()
-            var grouped = Dictionary(uniqueKeysWithValues: FavoriteCategory.allCases.map { ($0, [MediaDisplayItem]()) })
-            for item in media {
-                guard let category = FavoriteCategory.allCases.first(where: { $0.mediaKind == item.type }),
-                      let displayItem = MediaDisplayItem.playable(item) as MediaDisplayItem?
-                else { continue }
-                grouped[category, default: []].append(displayItem)
+        let result = await sessionManager.aggregation.fanOut(
+            servers: sessionManager.registry.sessions,
+            supports: \.capabilities.favorites,
+        ) { services in
+            try await services.favorites.favorites()
+        }
+        guard !Task.isCancelled else { return }
+        let order = sessionManager.registry.sessions.map(\.identity)
+        let media = order.flatMap { result.value[$0] ?? [] }
+        var grouped = Dictionary(uniqueKeysWithValues: FavoriteCategory.allCases.map { ($0, [MediaDisplayItem]()) })
+        for item in media {
+            guard let category = FavoriteCategory.allCases.first(where: { $0.mediaKind == item.type }) else { continue }
+            grouped[category, default: []].append(.playable(item))
+        }
+        for category in FavoriteCategory.allCases {
+            grouped[category]?.sort {
+                $0.title.localizedStandardCompare($1.title) == .orderedAscending
             }
-            for category in FavoriteCategory.allCases {
-                grouped[category]?.sort {
-                    $0.title.localizedStandardCompare($1.title) == .orderedAscending
-                }
-            }
-            guard !Task.isCancelled else { return }
-            itemsByCategory = grouped
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            errorMessage = error.localizedDescription
-            ErrorReporter.capture(error)
+        }
+        itemsByCategory = grouped
+        if media.isEmpty, result.succeeded.isEmpty, !result.failed.isEmpty {
+            errorMessage = String(localized: "favorites.error.unavailable")
         }
     }
 }

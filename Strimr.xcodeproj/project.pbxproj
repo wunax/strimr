@@ -105,23 +105,32 @@
 		E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Domain/Aggregated.swift,
 				Domain/CatalogModels.swift,
 				Domain/LiveTVModels.swift,
 				Domain/MediaIdentity.swift,
+				Domain/MediaMatching.swift,
 				Domain/MediaVersionResolver.swift,
 				Domain/PlaybackModels.swift,
+				Domain/TopShelfModels.swift,
 				"Extensions/Color+Hex.swift",
 				Extensions/ImageCornerColorSampler.swift,
 				"Extensions/TimeInterval+MediaFormat.swift",
 				"Extensions/View+MouseDragScrolling.swift",
+				Features/Auth/AccountSetupFlow.swift,
+				Features/Auth/AccountSetupView.swift,
+				Features/Auth/MigrationFailedView.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ProviderSelection/ProviderSelectionView.swift,
+				Features/Auth/ServerSelection/CustomServerAddressModel.swift,
 				Features/Auth/ServerSelection/CustomServerAddressView.swift,
+				Features/Auth/ServerSelection/ServerConnectionSummary.swift,
 				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
 				Features/AutomaticRefreshGate.swift,
 				Features/CollectionDetail/CollectionDetailViewModel.swift,
 				Features/Favorites/FavoritesView.swift,
 				Features/Favorites/FavoritesViewModel.swift,
+				Features/Home/HomeAggregation.swift,
 				Features/Home/HomeViewModel.swift,
 				Features/HubDetail/HubDetailView.swift,
 				Features/HubDetail/HubDetailViewModel.swift,
@@ -138,11 +147,13 @@
 				Features/Library/LibraryPlaylistsViewModel.swift,
 				Features/Library/LibraryRecommendedViewModel.swift,
 				Features/Library/LibraryViewModel.swift,
+				Features/LiveTV/LiveTVServersView.swift,
 				Features/LiveTV/LiveTVView.swift,
 				Features/MainCoordinator.swift,
 				Features/MediaDetail/CastMember.swift,
 				Features/MediaDetail/CastSection.swift,
 				Features/MediaDetail/ExtrasSection.swift,
+				Features/MediaDetail/MediaCopyFinder.swift,
 				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaFileInfoView.swift,
@@ -163,6 +174,9 @@
 				Features/Player/PlaybackSpeedOption.swift,
 				Features/Player/PlayerViewModel.swift,
 				Features/PlaylistDetail/PlaylistDetailViewModel.swift,
+				Features/Profiles/BorrowConnectionView.swift,
+				Features/Profiles/ProfileDetailView.swift,
+				Features/Profiles/ProfilesSettingsView.swift,
 				Features/Search/SearchResultCard.swift,
 				Features/Search/SearchViewModel.swift,
 				Features/Seerr/SeerrDiscoverViewModel.swift,
@@ -173,10 +187,12 @@
 				Features/Seerr/SeerrMediaRequestViewModel.swift,
 				Features/Seerr/SeerrPendingRequestsViewModel.swift,
 				Features/Seerr/SeerrSearchViewModel.swift,
+				Features/Settings/AccountsSettingsView.swift,
 				Features/Settings/DisplayedLibrariesSectionView.swift,
 				Features/Settings/DisplayedLibrariesViewModel.swift,
 				Features/Settings/NavigationLibrariesSectionView.swift,
 				Features/Settings/NavigationLibrariesViewModel.swift,
+				Features/Settings/ServerDetailView.swift,
 				Features/Settings/SettingsViewModel.swift,
 				Features/SharePlay/SharePlayCoordinator.swift,
 				Features/SharePlay/StrimrWatchActivity.swift,
@@ -198,6 +214,7 @@
 				Models/Hub.swift,
 				"Models/Hub+Mapping.swift",
 				Models/Library.swift,
+				Models/LibraryPreferences.swift,
 				Models/MediaDisplayItem.swift,
 				"Models/MediaDisplayItem+List.swift",
 				Models/MediaFileInfo.swift,
@@ -214,6 +231,7 @@
 				Models/Plex/PlexMediaModels.swift,
 				Models/Plex/PlexPlayQueueModels.swift,
 				Models/Plex/PlexTimelineModels.swift,
+				Models/PreferenceOrder.swift,
 				Models/Seerr/SeerrAuthRequests.swift,
 				Models/Seerr/SeerrMedia.swift,
 				Models/Seerr/SeerrPaginatedResponse.swift,
@@ -234,6 +252,8 @@
 				Networking/Seerr/SeerrAPI.swift,
 				Networking/Seerr/SeerrNetworkClient.swift,
 				Networking/Seerr/TMDBImageService.swift,
+				Offline/Availability/ServerAvailabilityMonitor.swift,
+				Offline/OfflineModels.swift,
 				Providers/Jellyfin/JellyfinCatalogService.swift,
 				Providers/Jellyfin/JellyfinFavoritesService.swift,
 				Providers/Jellyfin/JellyfinLiveTVService.swift,
@@ -273,8 +293,17 @@
 				Repository/Seerr/SeerrSettingsRepository.swift,
 				Services/MediaServices.swift,
 				Services/Protocols/MediaServiceProtocols.swift,
+				Session/AccountStore.swift,
+				Session/AggregationService.swift,
+				Session/MediaAccount.swift,
+				Session/MultiServerMigration.swift,
+				Session/ProfileStore.swift,
+				Session/ServerRegistry.swift,
+				Session/ServerSession.swift,
 				Session/SessionManager.swift,
+				Session/StrimrProfile.swift,
 				Storage/Keychain.swift,
+				Storage/SecureStore.swift,
 				Storage/TopShelfSessionStore.swift,
 				Store/FavoritesStore.swift,
 				Store/LibraryStore.swift,
@@ -301,6 +330,7 @@
 				Views/Media/MediaRatingLabel.swift,
 				Views/Media/PosterGrid.swift,
 				Views/Media/WatchStatusBadge.swift,
+				Views/ProfileInitialsAvatar.swift,
 				Views/Seerr/SeerrAvailabilityBadgeView.swift,
 				Views/Seerr/SeerrCastSection.swift,
 				Views/Seerr/SeerrEpisodeCardView.swift,
@@ -311,6 +341,8 @@
 				Views/Seerr/SeerrRelatedSection.swift,
 				Views/Seerr/SeerrSearchCard.swift,
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
+				Views/ServerScopedView.swift,
+				Views/TVPINPadView.swift,
 				Views/TaskPresentation.swift,
 				Views/Toast/ToastOverlay.swift,
 			);
@@ -338,6 +370,14 @@
 				Models/MediaFileInfo.swift,
 			);
 			target = E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */;
+		};
+		F000000000000103 /* Exceptions for "Shared" folder in "StrimrTopShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Domain/MediaMatching.swift,
+				Domain/TopShelfModels.swift,
+			);
+			target = E984D56A30039AD10077A7EA /* StrimrTopShelf */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -385,6 +425,7 @@
 				F000000000000102 /* Exceptions for "Shared" folder in "Strimr-iOS" target */,
 				E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */,
 				F000000000000101 /* Exceptions for "Shared" folder in "Strimr-macOS" target */,
+				F000000000000103 /* Exceptions for "Shared" folder in "StrimrTopShelf" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";

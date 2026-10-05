@@ -2,20 +2,17 @@ import SwiftUI
 
 struct MainView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(ServerRegistry.self) private var registry
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(SeerrStore.self) private var seerrStore
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
-    @Environment(MediaServices.self) private var mediaServices
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
-    @Environment(DownloadManager.self) private var downloadManager
-    @State private var isShowingLogoutConfirmation = false
-    @State private var signOutFlow = SignOutFlow()
 
     init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
         _homeViewModel = State(initialValue: homeViewModel)
@@ -38,16 +35,16 @@ struct MainView: View {
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
-                    if mediaServices.liveTVStore.isAvailable, settingsManager.interface.displayLiveTVTab {
+                    if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
                         sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
                     }
                 }
 
-                if !navigationLibraries.isEmpty {
+                if !libraryStore.navigationLibraries.isEmpty {
                     Section("tabs.libraries") {
-                        ForEach(navigationLibraries) { library in
+                        ForEach(libraryStore.navigationLibraries, id: \.identity) { library in
                             Label(library.title, systemImage: library.iconName)
-                                .tag(AppModel.SidebarItem.library(library.id))
+                                .tag(AppModel.SidebarItem.library(library.identity))
                         }
                     }
                 }
@@ -70,14 +67,12 @@ struct MainView: View {
             .animation(.easeInOut, value: offlineCoordinator.banner)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    accountMenu
+                    profileMenu
                 }
             }
         }
         .task {
-            sharePlayCoordinator.configurePlaybackLauncher(
-                PlaybackLauncher(services: mediaServices, coordinator: appModel),
-            )
+            sharePlayCoordinator.configurePlaybackPresenter(appModel)
             do {
                 try await libraryStore.loadLibraries()
             } catch {
@@ -85,38 +80,39 @@ struct MainView: View {
                 ErrorReporter.capture(error)
             }
         }
-        .task(id: mediaServices.identity) {
-            if await mediaServices.liveTVStore.refreshAvailability() == false {
-                appModel.resetLiveTVNavigation()
-            }
+        .task(id: registry.readyServers) {
+            await homeViewModel.syncServers()
+            await libraryViewModel.syncServers()
+            await refreshLiveTVAvailability()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
-            Task {
-                if await mediaServices.liveTVStore.refreshAvailability() == false {
-                    appModel.resetLiveTVNavigation()
-                }
-            }
+            Task { await refreshLiveTVAvailability() }
         }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
             if !isDisplayed {
                 appModel.resetLiveTVNavigation()
             }
         }
-        .onConnectivityChange(of: mediaServices.identity) { isUnreachable in
-            // Availability checked while offline is unreliable: check again once the server is back.
-            guard !isUnreachable else { return }
-            Task { await mediaServices.liveTVStore.refreshAvailability(force: true) }
+        .onChange(of: appModel.playerPresentation?.id) { previous, current in
+            // Only the server of the item that was played is reloaded, to update Reprendre and Next Up.
+            guard previous != nil, current == nil, let server = lastPlayedServer else { return }
+            Task { await homeViewModel.refresh(server: server) }
         }
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await signOutFlow.begin(sessionManager: sessionManager, downloadManager: downloadManager) }
+        .onChange(of: appModel.playerPresentation?.mediaServices?.identity) { _, server in
+            if let server {
+                lastPlayedServer = server
             }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
         }
-        .signOutDownloadsPrompt(signOutFlow)
+    }
+
+    @State private var lastPlayedServer: ServerIdentity?
+
+    private func refreshLiveTVAvailability() async {
+        await registry.refreshLiveTVAvailability()
+        if registry.liveTVServices.isEmpty {
+            appModel.resetLiveTVNavigation()
+        }
     }
 
     private func sidebarLabel(
@@ -127,36 +123,18 @@ struct MainView: View {
         Label(title, systemImage: systemImage).tag(item)
     }
 
-    private var accountMenu: some View {
+    private var profileMenu: some View {
         Menu {
-            if sessionManager.mediaServices?.capabilities.profiles == true {
+            if sessionManager.profiles.count > 1 {
                 Button("common.actions.switchProfile", systemImage: "person.2.circle") {
-                    Task { await sessionManager.requestProfileSelection() }
+                    sessionManager.requestProfileSelection()
                 }
                 .disabled(offlineCoordinator.isFullyOffline)
-            }
-            if sessionManager.provider == .plex {
-                Button("common.actions.switchServer", systemImage: "server.rack") {
-                    Task { await sessionManager.requestServerSelection() }
-                }
-                .disabled(offlineCoordinator.isFullyOffline)
-            }
-            Divider()
-            Button("common.actions.logOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                isShowingLogoutConfirmation = true
             }
         } label: {
-            Label(
-                sessionManager.user?.friendlyName ?? sessionManager.user?.title ?? "Strimr",
-                systemImage: "person.crop.circle",
-            )
+            Label(sessionManager.activeProfile?.name ?? "Strimr", systemImage: "person.crop.circle")
         }
         .menuStyle(.button)
-    }
-
-    private var navigationLibraries: [Library] {
-        let libraryByID = Dictionary(uniqueKeysWithValues: libraryStore.libraries.map { ($0.id, $0) })
-        return settingsManager.interface.navigationLibraryIds.compactMap { libraryByID[$0] }
     }
 
     @ViewBuilder
@@ -173,42 +151,42 @@ struct MainView: View {
             .unavailableWhenOffline()
         case .search:
             SearchView(
-                viewModel: SearchViewModel(
-                    services: mediaServices,
-                    settingsManager: settingsManager,
-                ),
-                onSelectMedia: appModel.showSearchResult,
+                viewModel: SearchViewModel(sessionManager: sessionManager),
+                onSelectMedia: { appModel.showMedia($0.media) },
             )
         case .downloads:
             DownloadsView()
         case .libraries:
             LibraryView(viewModel: libraryViewModel, onSelectMedia: appModel.showMedia)
                 .navigationDestination(for: Library.self) { library in
-                    LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
+                    ServerScopedView(server: library.server) { _ in
+                        LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
+                    }
                 }
         case .favorites:
-            FavoritesView(services: mediaServices, onSelectMedia: appModel.showMedia)
+            FavoritesView(sessionManager: sessionManager, onSelectMedia: appModel.showMedia)
                 .unavailableWhenOffline()
         case .liveTV:
-            LiveTVView(
-                store: mediaServices.liveTVStore,
-                onPlayLive: { appModel.showLivePlayer(context: $0, services: mediaServices) },
-                onPlayRecording: { media in
-                    Task { await PlaybackLauncher(services: mediaServices, coordinator: appModel).play(
+            LiveTVServersView(
+                onPlayLive: { appModel.showLivePlayer(context: $0, services: $1) },
+                onPlayRecording: { media, services in
+                    Task { await PlaybackLauncher(services: services, coordinator: appModel).play(
                         ratingKey: media.id,
                         type: media.type,
                     ) }
                 },
-                onOpenLibrary: { libraryID in
-                    guard let library = libraryStore.libraries.first(where: { $0.id == libraryID }) else { return }
+                onOpenLibrary: { identity in
+                    guard let library = libraryStore.library(identity) else { return }
                     appModel.selection = .libraries
                     appModel.showLibrary(library)
                 },
             )
             .unavailableWhenOffline()
-        case let .library(id):
-            if let library = libraryStore.libraries.first(where: { $0.id == id }) {
-                LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
+        case let .library(identity):
+            if let library = libraryStore.library(identity) {
+                ServerScopedView(server: library.server) { _ in
+                    LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
+                }
             } else {
                 ContentUnavailableView("library.empty.title", systemImage: "rectangle.stack.fill")
             }
@@ -217,72 +195,76 @@ struct MainView: View {
         }
     }
 
+    /// Server-bound destinations are shown with the services of their own server.
     @ViewBuilder
     private func destination(for route: AppModel.Route) -> some View {
-        let routeServices = appModel.services(for: appModel.selection, default: mediaServices)
+        if case let .seerr(media) = route {
+            SeerrMediaDetailView(
+                viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                onSelectMedia: appModel.showSeerr,
+            )
+        } else {
+            ServerScopedView(server: route.server) { services in
+                routeContent(route, services: services)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func routeContent(_ route: AppModel.Route, services: MediaServices) -> some View {
+        let play = { (ratingKey: String, type: MediaKind, shuffle: Bool, shouldResume: Bool) in
+            Task {
+                await PlaybackLauncher(services: services, coordinator: appModel).play(
+                    ratingKey: ratingKey,
+                    type: type,
+                    shuffle: shuffle,
+                    shouldResumeFromOffset: shouldResume,
+                )
+            }
+        }
         switch route {
         case let .media(media):
             MediaDetailView(
                 viewModel: MediaDetailViewModel(
                     media: media,
-                    services: routeServices,
+                    services: services,
                     resolutionMode: .selectedMedia,
+                    copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    onSelectCopy: appModel.showMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
                 onSelectParentSeries: appModel.returnToSeries,
-                onSelectPerson: appModel.showPerson,
-                onPlay: play,
+                onSelectPerson: { appModel.showPerson($0, server: services.identity) },
+                onPlay: { ratingKey, type, shuffle, shouldResume in play(ratingKey, type, shuffle, shouldResume) },
             )
         case let .collection(collection):
             CollectionDetailView(
-                viewModel: CollectionDetailViewModel(collection: collection, services: routeServices),
+                viewModel: CollectionDetailViewModel(collection: collection, services: services),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .collection, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .collection, true, true) },
             )
         case let .playlist(playlist):
             PlaylistDetailView(
-                viewModel: PlaylistDetailViewModel(playlist: playlist, services: routeServices),
+                viewModel: PlaylistDetailViewModel(playlist: playlist, services: services),
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .playlist, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .playlist, true, true) },
             )
         case let .hub(hub):
             HubDetailView(
-                viewModel: HubDetailViewModel(hub: hub, services: routeServices),
+                viewModel: HubDetailViewModel(hub: hub, services: services),
                 onSelectMedia: appModel.showMedia,
             )
-        case let .person(person):
+        case let .person(person, _):
             PersonDetailView(
-                viewModel: PersonDetailViewModel(person: person, services: routeServices),
+                viewModel: PersonDetailViewModel(person: person, services: services),
                 onSelectMedia: appModel.showMedia,
             )
         case let .library(library):
             LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
-        case let .seerr(media):
-            SeerrMediaDetailView(
-                viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
-                onSelectMedia: appModel.showSeerr,
-            )
-        }
-    }
-
-    private func play(
-        _ ratingKey: String,
-        _ type: MediaKind,
-        _ shuffle: Bool = false,
-        _ shouldResume: Bool = true,
-    ) {
-        Task {
-            await PlaybackLauncher(
-                services: appModel.services(for: appModel.selection, default: mediaServices),
-                coordinator: appModel,
-            ).play(
-                ratingKey: ratingKey,
-                type: type,
-                shuffle: shuffle,
-                shouldResumeFromOffset: shouldResume,
-            )
+        case .seerr:
+            EmptyView()
         }
     }
 }

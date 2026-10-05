@@ -8,7 +8,7 @@ final class AppModel: PlaybackPresenting {
     static let playerWindowID = "player"
 
     private struct MediaRouteEntry {
-        let mediaID: String
+        let media: MediaIdentity
         let depth: Int
     }
 
@@ -20,7 +20,7 @@ final class AppModel: PlaybackPresenting {
         case libraries
         case favorites
         case liveTV
-        case library(String)
+        case library(LibraryIdentity)
         case settings
 
         var id: String {
@@ -32,20 +32,33 @@ final class AppModel: PlaybackPresenting {
             case .libraries: "libraries"
             case .favorites: "favorites"
             case .liveTV: "liveTV"
-            case let .library(id): "library-\(id)"
+            case let .library(identity): "library-\(identity.stableKey)"
             case .settings: "settings"
             }
         }
     }
 
+    /// Server-bound routes carry their server: the destination is shown with that server's services.
     enum Route: Hashable {
         case media(PlayableMediaItem)
         case collection(CollectionMediaItem)
         case playlist(PlaylistMediaItem)
         case hub(Hub)
-        case person(Person)
+        case person(Person, ServerIdentity)
         case library(Library)
         case seerr(SeerrMedia)
+
+        var server: ServerIdentity? {
+            switch self {
+            case let .media(media): media.identity.server
+            case let .collection(collection): collection.server
+            case let .playlist(playlist): playlist.server
+            case let .hub(hub): hub.server
+            case let .person(_, server): server
+            case let .library(library): library.server
+            case .seerr: nil
+            }
+        }
     }
 
     struct PlayerPresentation {
@@ -113,8 +126,6 @@ final class AppModel: PlaybackPresenting {
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
-    private var serverServices: [String: MediaServices] = [:]
-    private var scopedServerIdentifiers: [SidebarItem: String] = [:]
 
     func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
         Binding(
@@ -122,9 +133,6 @@ final class AppModel: PlaybackPresenting {
             set: { newValue in
                 self.paths[item] = newValue
                 self.pruneMediaRouteEntries(for: item, maximumDepth: newValue.count)
-                if newValue.isEmpty {
-                    self.scopedServerIdentifiers[item] = nil
-                }
             },
         )
     }
@@ -141,17 +149,6 @@ final class AppModel: PlaybackPresenting {
         }
     }
 
-    func showSearchResult(_ source: SearchResultSource) {
-        serverServices[source.serverIdentifier] = source.services
-        scopedServerIdentifiers[selection] = source.serverIdentifier
-        showMedia(source.media)
-    }
-
-    func services(for item: SidebarItem, default defaultServices: MediaServices) -> MediaServices {
-        guard let identifier = scopedServerIdentifiers[item] else { return defaultServices }
-        return serverServices[identifier] ?? defaultServices
-    }
-
     func showMedia(_ media: MediaItem) {
         guard let playable = PlayableMediaItem(mediaItem: media) else { return }
         append(.media(playable))
@@ -159,7 +156,7 @@ final class AppModel: PlaybackPresenting {
 
     func returnToSeries(_ series: PlayableMediaItem) {
         guard let destinationDepth = mediaRouteEntries[selection]?
-            .last(where: { $0.mediaID == series.id })?
+            .last(where: { $0.media == series.identity })?
             .depth
         else {
             append(.media(series))
@@ -178,8 +175,8 @@ final class AppModel: PlaybackPresenting {
         append(.hub(hub))
     }
 
-    func showPerson(_ person: Person) {
-        append(.person(person))
+    func showPerson(_ person: Person, server: ServerIdentity) {
+        append(.person(person, server))
     }
 
     func showLibrary(_ library: Library) {
@@ -246,7 +243,7 @@ final class AppModel: PlaybackPresenting {
         if case let .media(media) = route {
             pruneMediaRouteEntries(for: selection, maximumDepth: path.count - 1)
             mediaRouteEntries[selection, default: []].append(
-                MediaRouteEntry(mediaID: media.id, depth: path.count),
+                MediaRouteEntry(media: media.identity, depth: path.count),
             )
         }
     }

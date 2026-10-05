@@ -3,7 +3,6 @@ import SwiftUI
 @MainActor
 struct SettingsInterfaceView: View {
     @Environment(SessionManager.self) private var sessionManager
-    @Environment(MediaServices.self) private var mediaServices
     let settingsManager: SettingsManager
     let libraryStore: LibraryStore
 
@@ -12,24 +11,9 @@ struct SettingsInterfaceView: View {
             Section("settings.interface.homeRows.section") {
                 NavigationLink("settings.interface.homeRows.title") {
                     HomeRowsSettingsView(
-                        services: mediaServices,
+                        sessionManager: sessionManager,
                         settingsManager: settingsManager,
-                        libraryStore: libraryStore,
                     )
-                }
-            }
-
-            if sessionManager.provider == .plex {
-                Section {
-                    Toggle(
-                        "settings.interface.multiServerSearch",
-                        isOn: Binding(
-                            get: { settingsManager.interface.multiServerSearchEnabled },
-                            set: { settingsManager.setMultiServerSearchEnabled($0) },
-                        ),
-                    )
-                } footer: {
-                    Text("settings.interface.multiServerSearch.description")
                 }
             }
 

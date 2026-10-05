@@ -71,7 +71,12 @@ final class SettingsNavigation {
 }
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case playback, audio, subtitles, interface, integrations
+    case accounts, profiles, playback, audio, subtitles, interface, integrations
+
+    /// Restricted Plex profiles cannot manage accounts nor profiles.
+    static func visible(canManageAccounts: Bool) -> [SettingsCategory] {
+        canManageAccounts ? allCases : allCases.filter { $0 != .accounts && $0 != .profiles }
+    }
 
     var id: String {
         rawValue
@@ -79,6 +84,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
+        case .accounts: "settings.accounts.title"
+        case .profiles: "profiles.title"
         case .playback: "settings.playback.title"
         case .audio: "settings.playback.audio.title"
         case .subtitles: "settings.playback.subtitles.title"
@@ -89,6 +96,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .accounts: "server.rack"
+        case .profiles: "person.crop.circle"
         case .playback: "play.rectangle"
         case .audio: "speaker.wave.2"
         case .subtitles: "captions.bubble"

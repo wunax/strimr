@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct SelectServerView: View {
-    @Environment(SessionManager.self) private var sessionManager
-    @State var viewModel: ServerSelectionViewModel
-    @State private var isShowingLogoutConfirmation = false
+    @State private var viewModel: ServerSelectionViewModel
+
+    init(viewModel: ServerSelectionViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -11,46 +13,11 @@ struct SelectServerView: View {
             content
         }
         .padding(24)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                AuthenticationActionsMenu(onSignOut: {
-                    isShowingLogoutConfirmation = true
-                })
-            }
-        }
-        .alert("common.actions.logOut", isPresented: $isShowingLogoutConfirmation) {
-            Button("common.actions.logOut", role: .destructive) {
-                Task { await sessionManager.signOut() }
-            }
-            Button("common.actions.cancel", role: .cancel) {}
-        } message: {
-            Text("more.logout.message")
-        }
-        .alert(
-            "serverSelection.error.connection.title",
-            isPresented: $viewModel.isShowingSelectionError,
-        ) {
-            Button("common.actions.retry") {
-                viewModel.requestSelectionRetry()
-            }
-            Button("serverSelection.customAddress.use") {
-                viewModel.requestCustomAddress()
-            }
-            Button("common.actions.cancel", role: .cancel) {
-                viewModel.dismissSelectionError()
-            }
-        } message: {
-            Text("serverSelection.error.connection.message")
-        }
         .task {
             await viewModel.load()
         }
-        .sheet(isPresented: $viewModel.isShowingCustomAddress) {
-            CustomServerAddressView(viewModel: viewModel)
-        }
-        .onChange(of: viewModel.isShowingSelectionError) { _, isPresented in
-            guard !isPresented else { return }
-            Task { await viewModel.handleSelectionErrorDismissal() }
+        .sheet(item: $viewModel.customAddressModel) { model in
+            CustomServerAddressView(model: model)
         }
     }
 
@@ -58,7 +25,7 @@ struct SelectServerView: View {
         VStack(spacing: 8) {
             Text("serverSelection.title")
                 .font(.largeTitle.bold())
-            Text("serverSelection.subtitle")
+            Text("serverSelection.multiple.subtitle")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -80,18 +47,13 @@ struct SelectServerView: View {
                 Button {
                     Task { await viewModel.load() }
                 } label: {
-                    HStack {
-                        if viewModel.isLoading {
-                            ProgressView().tint(.white)
-                        }
-                        Text("serverSelection.retry")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.brandPrimary)
-                    .foregroundStyle(.brandPrimaryForeground)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text("serverSelection.retry")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.brandPrimary)
+                        .foregroundStyle(.brandPrimaryForeground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .disabled(viewModel.isLoading)
             }
@@ -105,14 +67,39 @@ struct SelectServerView: View {
                 }
                 .padding(.vertical, 8)
             }
+
+            Button {
+                viewModel.continueWithSelection()
+            } label: {
+                Text("common.actions.continue")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.large)
+            .tint(.brandPrimary)
+            .disabled(viewModel.selectedServerIDs.isEmpty)
         }
     }
 
     private func serverRow(_ server: PlexCloudResource) -> some View {
-        Button {
-            Task {
-                await viewModel.select(server: server)
+        VStack(alignment: .trailing, spacing: 4) {
+            serverToggle(server)
+            if viewModel.suggestsCustomAddress(for: server) {
+                Button("serverSelection.customAddress.suggest") {
+                    viewModel.showCustomAddress(for: server)
+                }
+                .font(.footnote)
+                .tint(.brandPrimary)
             }
+        }
+    }
+
+    private func serverToggle(_ server: PlexCloudResource) -> some View {
+        Button {
+            viewModel.toggle(server)
         } label: {
             HStack(spacing: 12) {
                 Circle()
@@ -127,51 +114,26 @@ struct SelectServerView: View {
                     Text(server.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Group {
-                        if viewModel.selectingServerID == server.clientIdentifier {
-                            Text(sessionManager.loadingPhase.title)
-                        } else {
-                            connectionSummary(for: server)
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    ServerConnectionSummary(state: viewModel.probeState(of: server))
+                        .font(.subheadline)
                 }
 
                 Spacer()
 
-                if viewModel.selectingServerID == server.clientIdentifier {
-                    ProgressView()
-                        .tint(.brandPrimary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
+                Image(systemName: viewModel.isSelected(server) ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(viewModel.isSelected(server) ? Color.brandPrimary : Color.secondary)
             }
-            .opacity(
-                viewModel.isSelecting && viewModel.selectingServerID != server.clientIdentifier
-                    ? 0.6
-                    : 1,
-            )
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.isSelecting)
-    }
-
-    private func connectionSummary(for server: PlexCloudResource) -> some View {
-        guard let connection = server.connections?.first else {
-            return Text("serverSelection.connection.unavailable")
+        .contextMenu {
+            Button("serverSelection.customAddress.use") {
+                viewModel.showCustomAddress(for: server)
+            }
         }
-        if connection.isLocal {
-            return Text("serverSelection.connection.localFormat \(connection.address)")
-        }
-        if connection.isRelay {
-            return Text("serverSelection.connection.relay")
-        }
-        return Text(connection.address)
     }
 }

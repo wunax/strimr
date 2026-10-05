@@ -4,8 +4,6 @@ import SwiftUI
 struct StrimrApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate: AppDelegate
 
-    @State private var plexApiContext: PlexAPIContext
-    @State private var jellyfinAPIContext: JellyfinAPIContext
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var downloadManager: DownloadManager
@@ -14,9 +12,6 @@ struct StrimrApp: App {
     @State private var sharePlayCoordinator: SharePlayCoordinator
 
     init() {
-        let context = PlexAPIContext()
-        let jellyfinContext = JellyfinAPIContext()
-        let store = LibraryStore(context: context)
         let favoritesStore = FavoritesStore()
         let settingsManager = SettingsManager()
         let trackSelectionCoordinator = TrackSelectionCoordinator(
@@ -24,20 +19,19 @@ struct StrimrApp: App {
             settingsManager: settingsManager,
         )
         let sessionManager = SessionManager(
-            context: context,
-            jellyfinContext: jellyfinContext,
-            libraryStore: store,
+            settingsManager: settingsManager,
             favoritesStore: favoritesStore,
             trackSelectionCoordinator: trackSelectionCoordinator,
             versionSelectionStore: MediaVersionSelectionStore(),
         )
         let downloadManager = DownloadManager(settingsManager: settingsManager)
-        _plexApiContext = State(initialValue: context)
-        _jellyfinAPIContext = State(initialValue: jellyfinContext)
         _sessionManager = State(initialValue: sessionManager)
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: downloadManager)
-        _libraryStore = State(initialValue: store)
+        _libraryStore = State(initialValue: LibraryStore(
+            sessionManager: sessionManager,
+            settingsManager: settingsManager,
+        ))
         _seerrStore = State(initialValue: SeerrStore())
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
@@ -47,9 +41,8 @@ struct StrimrApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(plexApiContext)
-                .environment(jellyfinAPIContext)
                 .environment(sessionManager)
+                .environment(sessionManager.registry)
                 .environment(settingsManager)
                 .environment(downloadManager)
                 .environment(libraryStore)

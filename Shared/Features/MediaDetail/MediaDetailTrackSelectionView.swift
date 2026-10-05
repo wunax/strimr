@@ -147,6 +147,31 @@ struct MediaDetailVersionMenuItems: View {
             }
             .disabled(!version.isAvailable || version.id == nil)
         }
+
+        copiesSections
+    }
+
+    /// Copies on other servers or libraries open their own page; offline copies are greyed out.
+    private var copiesSections: some View {
+        ForEach(viewModel.copiesByServer, id: \.serverName) { group in
+            Section(String(localized: "media.availableOn \(group.serverName)")) {
+                ForEach(group.copies) { copy in
+                    Button {
+                        viewModel.selectCopy(copy)
+                    } label: {
+                        Label {
+                            Text(verbatim: copy.media.playbackResolutionLabel ?? copy.media.title)
+                            if !copy.isReachable {
+                                Text("media.availableOn.offline")
+                            }
+                        } icon: {
+                            Image(systemName: "server.rack")
+                        }
+                    }
+                    .disabled(!copy.isReachable)
+                }
+            }
+        }
     }
 
     /// "Automatic" carries the checkmark until a version is picked explicitly.

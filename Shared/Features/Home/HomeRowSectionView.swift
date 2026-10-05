@@ -9,6 +9,7 @@ struct HomeRowSectionView: View {
     var body: some View {
         MediaHubSection(
             title: row.title,
+            subtitle: row.serverName,
             onViewAll: canOpenViewAll ? { onViewAll(row.hub) } : nil,
         ) {
             MediaCarousel(

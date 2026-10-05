@@ -1358,8 +1358,8 @@ struct PlayerView: View {
             sharePlayCoordinator.leave()
             participatesInSharePlay = false
         }
-        if let error {
-            await sessionManager.handleTerminalServerAccessFailure(error)
+        if let error, let server = viewModel.serverIdentity {
+            sessionManager.handleTerminalServerAccessFailure(error, server: server)
         }
         closePlayer(force: true)
     }

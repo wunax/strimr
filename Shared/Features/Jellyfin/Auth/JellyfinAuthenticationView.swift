@@ -1,41 +1,15 @@
 import SwiftUI
 
 struct JellyfinAuthenticationView: View {
-    @Environment(JellyfinAPIContext.self) private var context
-    @Environment(SessionManager.self) private var sessionManager
-    @State private var viewModel: JellyfinAuthenticationViewModel?
+    @State private var viewModel: JellyfinAuthenticationViewModel
+
+    init(viewModel: JellyfinAuthenticationViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                authenticationForm(viewModel)
-            } else {
-                ProgressView()
-            }
-        }
-        .onAppear {
-            if viewModel == nil {
-                viewModel = JellyfinAuthenticationViewModel(
-                    context: context,
-                    sessionManager: sessionManager,
-                )
-            }
-        }
-        #if os(iOS)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                AuthenticationActionsMenu(onChangeProvider: {
-                    Task { await sessionManager.requestProviderSelection() }
-                })
-            }
-        }
-        #elseif os(macOS)
-        .toolbar {
-            AuthenticationActionsMenu(onChangeProvider: {
-                Task { await sessionManager.requestProviderSelection() }
-            })
-        }
-        #endif
+        authenticationForm(viewModel)
+            .onDisappear { viewModel.cancelQuickConnect() }
     }
 
     private func authenticationForm(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
@@ -154,10 +128,9 @@ struct JellyfinAuthenticationView: View {
                 discoveredServersList(viewModel)
             }
 
-            if sessionManager.jellyfinHydrationError != nil {
-                Button("common.actions.retry") {
-                    Task { await sessionManager.retryJellyfinHydration() }
-                }
+            if viewModel.step == .credentials, viewModel.isQuickConnectAvailable {
+                quickConnect(viewModel)
+                    .frame(maxWidth: authenticationContentMaxWidth)
             }
 
             Spacer(minLength: 0)
@@ -178,18 +151,39 @@ struct JellyfinAuthenticationView: View {
                 }
                 .disabled(viewModel.isLoading)
             }
-
-            #if os(tvOS)
-                Button {
-                    Task { await sessionManager.requestProviderSelection() }
-                } label: {
-                    Label("provider.change", systemImage: "chevron.left")
-                }
-            #endif
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .frame(maxWidth: authenticationContentMaxWidth)
+    }
+
+    @ViewBuilder
+    private func quickConnect(_ viewModel: JellyfinAuthenticationViewModel) -> some View {
+        if let code = viewModel.quickConnectCode {
+            VStack(spacing: 8) {
+                Text("jellyfin.auth.quickConnect.instructions")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text(code)
+                    .font(.system(.largeTitle, design: .monospaced).bold())
+                #if !os(tvOS)
+                    .textSelection(.enabled)
+                #endif
+                Button("common.actions.cancel") { viewModel.cancelQuickConnect() }
+            }
+        } else {
+            Button {
+                viewModel.startQuickConnect()
+            } label: {
+                Label("jellyfin.auth.quickConnect.button", systemImage: "qrcode")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.large)
+            .disabled(viewModel.isBusy)
+        }
     }
 
     private func discoveredServersList(_ viewModel: JellyfinAuthenticationViewModel) -> some View {

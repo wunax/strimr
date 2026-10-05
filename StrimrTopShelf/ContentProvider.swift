@@ -3,52 +3,80 @@ import Security
 import TVServices
 
 final class ContentProvider: TVTopShelfContentProvider {
+    private struct ServerRows {
+        var continueWatching: [TopShelfDisplayItem] = []
+        var recentMovies: [TopShelfDisplayItem] = []
+        var recentShows: [TopShelfDisplayItem] = []
+    }
+
+    /// Queries every server of the active profile in parallel; a server that fails is left out.
     override func loadTopShelfContent() async -> (any TVTopShelfContent)? {
-        guard let session = TopShelfSession.load() else { return nil }
-        let sections: [TVTopShelfItemCollection<TVTopShelfSectionedItem>] = switch session.provider {
-        case .plex:
-            await plexSections(session: session)
-        case .jellyfin:
-            await jellyfinSections(session: session)
+        let sessions = TopShelfSession.loadAll()
+        guard !sessions.isEmpty else { return nil }
+        let rows = await withTaskGroup(of: ServerRows.self) { group in
+            for session in sessions {
+                group.addTask {
+                    switch session.provider {
+                    case .plex:
+                        await self.plexRows(session: session)
+                    case .jellyfin:
+                        await self.jellyfinRows(session: session)
+                    }
+                }
+            }
+            var rows: [ServerRows] = []
+            for await row in group {
+                rows.append(row)
+            }
+            return rows
         }
+        let sections = [
+            makeSection(
+                title: String(localized: "topshelf.continueWatching"),
+                items: merge(rows.map(\.continueWatching), date: \.lastViewedAt),
+            ),
+            makeSection(
+                title: String(localized: "topshelf.recentlyAddedMovies"),
+                items: merge(rows.map(\.recentMovies), date: \.addedAt),
+            ),
+            makeSection(
+                title: String(localized: "topshelf.recentlyAddedShows"),
+                items: merge(rows.map(\.recentShows), date: \.addedAt),
+            ),
+        ].compactMap(\.self)
         guard !sections.isEmpty else { return nil }
         return TVTopShelfSectionedContent(sections: sections)
     }
 
-    private func plexSections(session: TopShelfSession) async -> [TVTopShelfItemCollection<TVTopShelfSectionedItem>] {
+    private func merge(_ rows: [[TopShelfDisplayItem]], date: (TopShelfDisplayItem) -> Date?) -> [TopShelfDisplayItem] {
+        TopShelfSessions.merge(rows, date: date, descriptor: \.matchDescriptor)
+    }
+
+    private func plexRows(session: TopShelfSession) async -> ServerRows {
         async let continueWatching = (try? fetchPlexHub(path: "/hubs/continueWatching", session: session)) ?? []
         async let promoted = (try? fetchPlexHubs(path: "/hubs/promoted", session: session)) ?? []
-        let continueItems = await continueWatching.map(TopShelfDisplayItem.init)
+        let continueItems = await continueWatching.map { TopShelfDisplayItem($0, session: session) }
         let recentlyAdded = await promoted
             .filter { $0.hubIdentifier.localizedCaseInsensitiveContains("recentlyAdded") }
             .flatMap(\.metadata)
-            .map(TopShelfDisplayItem.init)
-        return [
-            makeSection(title: String(localized: "topshelf.continueWatching"), items: continueItems, session: session),
-            makeSection(
-                title: String(localized: "topshelf.recentlyAddedMovies"),
-                items: recentlyAdded.filter { $0.type == "movie" },
-                session: session,
-            ),
-            makeSection(
-                title: String(localized: "topshelf.recentlyAddedShows"),
-                items: recentlyAdded.filter { ["show", "season", "episode"].contains($0.type) },
-                session: session,
-            ),
-        ].compactMap(\.self)
+            .map { TopShelfDisplayItem($0, session: session) }
+        return ServerRows(
+            continueWatching: continueItems,
+            recentMovies: recentlyAdded.filter { $0.type == "movie" },
+            recentShows: recentlyAdded.filter { ["show", "season", "episode"].contains($0.type) },
+        )
     }
 
-    private func jellyfinSections(session: TopShelfSession) async
-        -> [TVTopShelfItemCollection<TVTopShelfSectionedItem>]
-    {
-        guard let userID = session.userID else { return [] }
+    private func jellyfinRows(session: TopShelfSession) async -> ServerRows {
+        guard let userID = session.userID else { return ServerRows() }
+        let fields = "Overview,UserData,SeriesName,ParentIndexNumber,IndexNumber,ProviderIds,DateCreated"
         async let resume: JellyfinItemsResponse? = try? request(
             path: "/UserItems/Resume",
             queryItems: [
                 URLQueryItem(name: "UserId", value: userID),
                 URLQueryItem(name: "IncludeItemTypes", value: "Movie,Episode"),
                 URLQueryItem(name: "Limit", value: "20"),
-                URLQueryItem(name: "Fields", value: "Overview,UserData,SeriesName,ParentIndexNumber,IndexNumber"),
+                URLQueryItem(name: "Fields", value: fields),
             ],
             session: session,
         )
@@ -58,6 +86,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "UserId", value: userID),
                 URLQueryItem(name: "IncludeItemTypes", value: "Movie"),
                 URLQueryItem(name: "Limit", value: "20"),
+                URLQueryItem(name: "Fields", value: fields),
             ],
             session: session,
         )
@@ -67,30 +96,23 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "UserId", value: userID),
                 URLQueryItem(name: "IncludeItemTypes", value: "Series,Episode"),
                 URLQueryItem(name: "Limit", value: "20"),
+                URLQueryItem(name: "Fields", value: fields),
             ],
             session: session,
         )
-        return await [
-            makeSection(
-                title: String(localized: "topshelf.continueWatching"),
-                items: (resume?.items ?? []).map(TopShelfDisplayItem.init),
-                session: session,
-            ),
-            makeSection(
-                title: String(localized: "topshelf.recentlyAddedMovies"),
-                items: (latestMovies ?? []).map(TopShelfDisplayItem.init),
-                session: session,
-            ),
-            makeSection(
-                title: String(localized: "topshelf.recentlyAddedShows"),
-                items: (latestShows ?? []).map(TopShelfDisplayItem.init),
-                session: session,
-            ),
-        ].compactMap(\.self)
+        return await ServerRows(
+            continueWatching: (resume?.items ?? []).map { TopShelfDisplayItem($0, session: session) },
+            recentMovies: (latestMovies ?? []).map { TopShelfDisplayItem($0, session: session) },
+            recentShows: (latestShows ?? []).map { TopShelfDisplayItem($0, session: session) },
+        )
     }
 
     private func fetchPlexHub(path: String, session: TopShelfSession) async throws -> [PlexTopShelfItem] {
-        let response: PlexHubContainer = try await request(path: path, session: session)
+        let response: PlexHubContainer = try await request(
+            path: path,
+            queryItems: [URLQueryItem(name: "includeGuids", value: "1")],
+            session: session,
+        )
         return response.mediaContainer.hub?.first?.metadata ?? []
     }
 
@@ -101,6 +123,7 @@ final class ContentProvider: TVTopShelfContentProvider {
                 URLQueryItem(name: "count", value: "20"),
                 URLQueryItem(name: "excludeContinueWatching", value: "1"),
                 URLQueryItem(name: "includeLibraryPlaylists", value: "0"),
+                URLQueryItem(name: "includeGuids", value: "1"),
             ],
             session: session,
         )
@@ -144,9 +167,8 @@ final class ContentProvider: TVTopShelfContentProvider {
     private func makeSection(
         title: String,
         items: [TopShelfDisplayItem],
-        session: TopShelfSession,
     ) -> TVTopShelfItemCollection<TVTopShelfSectionedItem>? {
-        let values = Array(items.prefix(20)).compactMap { makeItem($0, session: session) }
+        let values = Array(items.prefix(20)).compactMap { makeItem($0, session: $0.session) }
         guard !values.isEmpty else { return nil }
         let section = TVTopShelfItemCollection(items: values)
         section.title = title
@@ -157,7 +179,9 @@ final class ContentProvider: TVTopShelfContentProvider {
         guard let displayURL = deepLink(action: "media", media: media, session: session),
               let playURL = deepLink(action: "play", media: media, session: session)
         else { return nil }
-        let item = TVTopShelfSectionedItem(identifier: "\(session.provider.rawValue)-\(media.type)-\(media.id)")
+        let item = TVTopShelfSectionedItem(
+            identifier: "\(session.provider.rawValue)-\(session.serverID)-\(media.type)-\(media.id)",
+        )
         item.title = media.displayTitle
         item.imageShape = .hdtv
         item.displayAction = TVTopShelfAction(url: displayURL)
@@ -224,55 +248,49 @@ final class ContentProvider: TVTopShelfContentProvider {
 
 private enum TopShelfProvider: String, Codable { case plex, jellyfin }
 
-private struct TopShelfSession {
-    private static let appGroup = "group.com.github.wunax.strimr"
-    private static let keychainService = "com.github.wunax.strimr.top-shelf"
-    private static let sessionKey = "media.session.v1"
-    private static let tokenKey = "media.serverToken"
-    // Kept for upgrades from the Plex-only format; remove after a future migration window.
-    private static let legacyTokenKey = "plex.serverToken"
-    private static let legacyURLKey = "plex.serverURL"
-
-    struct StoredSession: Codable {
-        let provider: TopShelfProvider
-        let serverURL: URL
-        let serverID: String
-        let userID: String?
-    }
-
+private struct TopShelfSession: Sendable {
     let provider: TopShelfProvider
     let serverURL: URL
     let serverID: String
     let userID: String?
     let token: String
 
-    static func load() -> TopShelfSession? {
-        guard let defaults = UserDefaults(suiteName: appGroup),
+    /// Servers shared by the app; also reads the single-session formats of previous versions.
+    static func loadAll() -> [TopShelfSession] {
+        guard let defaults = UserDefaults(suiteName: TopShelfSessions.appGroup),
               let accessGroup = Bundle.main.object(forInfoDictionaryKey: "TopShelfKeychainAccessGroup") as? String
-        else { return nil }
-        if let data = defaults.data(forKey: sessionKey),
-           let stored = try? JSONDecoder().decode(StoredSession.self, from: data),
-           let token = keychainString(key: tokenKey, accessGroup: accessGroup)
-        {
+        else { return [] }
+        let stored = TopShelfSessions.decode(
+            v2: defaults.data(forKey: TopShelfSessions.sessionsKey),
+            v1: defaults.data(forKey: TopShelfSessions.legacySessionKey),
+        )
+        let sessions = stored.sessions.compactMap { session -> TopShelfSession? in
+            let tokenKey = stored.legacyTokenKeys[session.tokenKey] ?? session.tokenKey
+            guard let provider = TopShelfProvider(rawValue: session.provider),
+                  let token = keychainString(key: tokenKey, accessGroup: accessGroup)
+            else { return nil }
             return TopShelfSession(
-                provider: stored.provider,
-                serverURL: stored.serverURL,
-                serverID: stored.serverID,
-                userID: stored.userID,
+                provider: provider,
+                serverURL: session.serverURL,
+                serverID: session.serverID,
+                userID: session.userID,
                 token: token,
             )
         }
-        guard let value = defaults.string(forKey: legacyURLKey),
+        if !sessions.isEmpty {
+            return sessions
+        }
+        guard let value = defaults.string(forKey: TopShelfSessions.legacyPlexURLKey),
               let url = URL(string: value),
-              let token = keychainString(key: legacyTokenKey, accessGroup: accessGroup)
-        else { return nil }
-        return TopShelfSession(provider: .plex, serverURL: url, serverID: "plex", userID: nil, token: token)
+              let token = keychainString(key: TopShelfSessions.legacyPlexTokenKey, accessGroup: accessGroup)
+        else { return [] }
+        return [TopShelfSession(provider: .plex, serverURL: url, serverID: "plex", userID: nil, token: token)]
     }
 
     private static func keychainString(key: String, accessGroup: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: TopShelfSessions.keychainService,
             kSecAttrAccount as String: key,
             kSecAttrAccessGroup as String: accessGroup,
             kSecReturnData as String: true,
@@ -295,8 +313,12 @@ private struct TopShelfDisplayItem {
     let artworkPath: String?
     let primaryTag: String?
     let backdropTag: String?
+    let session: TopShelfSession
+    let matchDescriptor: MediaMatchDescriptor
+    let lastViewedAt: Date?
+    let addedAt: Date?
 
-    init(_ item: PlexTopShelfItem) {
+    init(_ item: PlexTopShelfItem, session: TopShelfSession) {
         id = item.ratingKey
         type = item.type
         title = item.title
@@ -305,9 +327,19 @@ private struct TopShelfDisplayItem {
         artworkPath = item.art ?? item.thumb
         primaryTag = nil
         backdropTag = nil
+        self.session = session
+        matchDescriptor = MediaMatchDescriptor(
+            kind: Self.matchKind(item.type),
+            guid: item.guid,
+            externalIDs: ExternalIDs(plexGuids: item.guids?.map(\.id) ?? []),
+            seasonNumber: item.parentIndex,
+            episodeNumber: item.index,
+        )
+        lastViewedAt = item.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        addedAt = item.addedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
     }
 
-    init(_ item: JellyfinTopShelfItem) {
+    init(_ item: JellyfinTopShelfItem, session: TopShelfSession) {
         id = item.id
         type = switch item.type.lowercased() {
         case "series": "show"
@@ -319,6 +351,16 @@ private struct TopShelfDisplayItem {
         artworkPath = nil
         primaryTag = item.imageTags?["Primary"]
         backdropTag = item.backdropImageTags?.first
+        self.session = session
+        matchDescriptor = MediaMatchDescriptor(
+            kind: Self.matchKind(type),
+            guid: nil,
+            externalIDs: ExternalIDs(providerIDs: item.providerIDs ?? [:]),
+            seasonNumber: item.parentIndexNumber,
+            episodeNumber: item.indexNumber,
+        )
+        lastViewedAt = item.userData?.lastPlayedDate.flatMap(Self.date)
+        addedAt = item.dateCreated.flatMap(Self.date)
     }
 
     var displayTitle: String {
@@ -329,6 +371,26 @@ private struct TopShelfDisplayItem {
             return "\(parentTitle) — \(title)"
         }
         return title
+    }
+
+    private static func matchKind(_ type: String) -> MediaMatchDescriptor.Kind {
+        switch type.lowercased() {
+        case "movie": .movie
+        case "show", "series": .series
+        case "season": .season
+        case "episode": .episode
+        default: .other
+        }
+    }
+
+    private static func date(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
     }
 }
 
@@ -354,13 +416,29 @@ private struct PlexTopShelfHub: Decodable {
 }
 
 private struct PlexTopShelfItem: Decodable {
+    struct Guid: Decodable {
+        let id: String
+    }
+
     let ratingKey: String
     let type: String
     let title: String
+    let guid: String?
     let parentTitle: String?
     let grandparentTitle: String?
+    let parentIndex: Int?
+    let index: Int?
     let thumb: String?
     let art: String?
+    let lastViewedAt: Int?
+    let addedAt: Int?
+    let guids: [Guid]?
+
+    private enum CodingKeys: String, CodingKey {
+        case ratingKey, type, title, guid, parentTitle, grandparentTitle, parentIndex, index, thumb, art
+        case lastViewedAt, addedAt
+        case guids = "Guid"
+    }
 }
 
 private struct JellyfinItemsResponse: Decodable {
@@ -373,17 +451,29 @@ private struct JellyfinItemsResponse: Decodable {
 }
 
 private struct JellyfinTopShelfItem: Decodable {
+    struct UserData: Decodable {
+        let lastPlayedDate: String?
+        private enum CodingKeys: String, CodingKey { case lastPlayedDate = "LastPlayedDate" }
+    }
+
     let id: String
     let name: String
     let type: String
     let seriesName: String?
     let seasonName: String?
+    let parentIndexNumber: Int?
+    let indexNumber: Int?
     let imageTags: [String: String]?
     let backdropImageTags: [String]?
+    let providerIDs: [String: String]?
+    let dateCreated: String?
+    let userData: UserData?
     private enum CodingKeys: String, CodingKey {
         case id = "Id"; case name = "Name"; case type = "Type"
         case seriesName = "SeriesName"; case seasonName = "SeasonName"
+        case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
         case imageTags = "ImageTags"; case backdropImageTags = "BackdropImageTags"
+        case providerIDs = "ProviderIds"; case dateCreated = "DateCreated"; case userData = "UserData"
     }
 }
 

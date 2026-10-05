@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
+    @Environment(SessionManager.self) private var sessionManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var navigation = SettingsNavigation()
@@ -114,7 +115,7 @@ struct SettingsView: View {
                 .padding(.leading, 20)
 
             VStack(spacing: 16) {
-                ForEach(SettingsCategory.allCases) { category in
+                ForEach(SettingsCategory.visible(canManageAccounts: sessionManager.canManageAccounts)) { category in
                     Button {
                         navigation.category = category
                         navigation.enterDetail()
@@ -212,6 +213,8 @@ struct SettingsView: View {
     @ViewBuilder
     private func categoryContent(_ category: SettingsCategory) -> some View {
         switch category {
+        case .accounts: TVAccountsSettingsView()
+        case .profiles: TVProfilesSettingsView()
         case .playback: SettingsPlaybackView()
         case .audio: SettingsAudioView()
         case .subtitles: SettingsSubtitlesView()

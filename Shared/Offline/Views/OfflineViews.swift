@@ -187,22 +187,22 @@ extension View {
     }
 }
 
-private struct SignOutDownloadsPromptModifier: ViewModifier {
+private struct AccountRemovalPromptModifier: ViewModifier {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(DownloadManager.self) private var downloadManager
-    @Bindable var flow: SignOutFlow
+    @Bindable var flow: AccountRemovalFlow
 
     func body(content: Content) -> some View {
         content.alert(
-            "offline.signOut.title",
-            // Dismissal is handled by the buttons: cancelling here would clear the owner before `finish` runs.
+            "settings.accounts.remove.downloads.title",
+            // Dismissal is handled by the buttons: cancelling here would clear the account before `finish` runs.
             isPresented: Binding(
                 get: { flow.downloadsPrompt != nil },
                 set: { _ in },
             ),
             presenting: flow.downloadsPrompt,
         ) { _ in
-            Button("offline.signOut.keep") {
+            Button("settings.accounts.remove.downloads.keep") {
                 Task {
                     await flow.finish(
                         deleteDownloads: false,
@@ -211,7 +211,7 @@ private struct SignOutDownloadsPromptModifier: ViewModifier {
                     )
                 }
             }
-            Button("offline.signOut.delete", role: .destructive) {
+            Button("settings.accounts.remove.downloads.delete", role: .destructive) {
                 Task {
                     await flow.finish(
                         deleteDownloads: true,
@@ -226,17 +226,17 @@ private struct SignOutDownloadsPromptModifier: ViewModifier {
         } message: { prompt in
             let size = ByteCountFormatter.string(fromByteCount: prompt.bytes, countStyle: .file)
             if prompt.hasUnsyncedProgress {
-                Text("offline.signOut.message.unsynced \(prompt.count) \(size)")
+                Text("settings.accounts.remove.downloads.message.unsynced \(prompt.count) \(size)")
             } else {
-                Text("offline.signOut.message \(prompt.count) \(size)")
+                Text("settings.accounts.remove.downloads.message \(prompt.count) \(size)")
             }
         }
     }
 }
 
 extension View {
-    /// Asks whether the downloads of the user who signs out should be deleted too.
-    func signOutDownloadsPrompt(_ flow: SignOutFlow) -> some View {
-        modifier(SignOutDownloadsPromptModifier(flow: flow))
+    /// Asks whether the downloads of an account being removed should be deleted too.
+    func accountRemovalPrompt(_ flow: AccountRemovalFlow) -> some View {
+        modifier(AccountRemovalPromptModifier(flow: flow))
     }
 }

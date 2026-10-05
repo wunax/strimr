@@ -87,6 +87,7 @@ extension MediaItem {
             grandparentArtPath: backdropPath,
             parentThumbPath: nil,
             lastViewedAt: jellyfinItem.userData?.lastPlayedDate,
+            externalIDs: ExternalIDs(providerIDs: jellyfinItem.providerIDs ?? [:]),
         )
     }
 }
@@ -110,6 +111,7 @@ extension MediaDisplayItem {
                     childCount: media.childCount,
                     minYear: nil,
                     maxYear: nil,
+                    server: server,
                 ),
             )
         case .playlist:
@@ -125,6 +127,7 @@ extension MediaDisplayItem {
                     duration: media.duration.map { Int($0 * 1000) },
                     leafCount: media.leafCount,
                     playlistType: "video",
+                    server: server,
                 ),
             )
         case .folder, .unknown:
@@ -134,7 +137,7 @@ extension MediaDisplayItem {
 }
 
 extension Library {
-    init(jellyfinItem: JellyfinItem) {
+    init(jellyfinItem: JellyfinItem, server: ServerIdentity) {
         let type: MediaKind = switch jellyfinItem.collectionType?.lowercased() {
         case "tvshows": .series
         case "boxsets": .collection
@@ -145,6 +148,7 @@ extension Library {
             id: jellyfinItem.id,
             title: jellyfinItem.name,
             type: type,
+            server: server,
         )
     }
 }

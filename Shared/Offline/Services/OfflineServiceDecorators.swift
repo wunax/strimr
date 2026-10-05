@@ -12,7 +12,6 @@ struct OfflineServiceDecorators {
 
     init(
         owner: MediaOwner,
-        serverName: String,
         home: any MediaHomeService,
         library: any MediaLibraryService,
         search: any MediaSearchService,
@@ -38,14 +37,9 @@ struct OfflineServiceDecorators {
         } else {
             CachedLibraryService(base: library, policy: policy)
         }
-        self.search = CachedSearchService(base: search, policy: policy, serverName: serverName)
+        self.search = CachedSearchService(base: search, policy: policy)
         self.artwork = CachedArtworkService(base: artwork, owner: owner, store: store, coordinator: .shared)
         self.detail = CachedDetailService(base: detail, policy: policy)
         self.favorites = CachedFavoritesService(base: favorites, policy: policy)
-    }
-
-    /// Search results reference their services, which only exist once the decorators are assembled.
-    func attach(to services: MediaServices) {
-        (search as? CachedSearchService)?.services = services
     }
 }

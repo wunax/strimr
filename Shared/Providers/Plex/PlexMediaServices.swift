@@ -7,7 +7,6 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     PlexAdvancedLibraryService, MediaAuthorizationService
 {
     private let context: PlexAPIContext
-    private weak var sessionManager: SessionManager?
     private let server: ServerIdentity
     private let playbackSessionID = UUID().uuidString
     private var queueItemIDs: [String: Int] = [:]
@@ -15,9 +14,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private var downloadQueueID: Int?
     weak var services: MediaServices?
 
-    init(context: PlexAPIContext, sessionManager: SessionManager?, server: ServerIdentity) {
+    init(context: PlexAPIContext, server: ServerIdentity) {
         self.context = context
-        self.sessionManager = sessionManager
         self.server = server
     }
 
@@ -174,7 +172,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func libraries() async throws -> [Library] {
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
-        return sections.filter(\.type.isSupported).map(Library.init)
+        return sections.filter(\.type.isSupported).map { Library(plexSection: $0, server: server) }
     }
 
     func randomArtwork(for library: Library) async throws -> ArtworkResource? {
@@ -221,13 +219,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     func collections(in library: Library) async throws -> [CollectionMediaItem] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await SectionRepository(context: context).getSectionCollections(sectionId: sectionID)
-        return (response.mediaContainer.metadata ?? []).map(CollectionMediaItem.init)
+        return (response.mediaContainer.metadata ?? []).map { CollectionMediaItem(plexItem: $0, server: server) }
     }
 
     func playlists(in library: Library) async throws -> [PlaylistMediaItem] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await PlaylistRepository(context: context).getPlaylists(sectionId: sectionID)
-        return (response.mediaContainer.metadata ?? []).map(PlaylistMediaItem.init)
+        return (response.mediaContainer.metadata ?? []).map { PlaylistMediaItem(plexItem: $0, server: server) }
     }
 
     func advancedBrowse(
@@ -295,41 +293,20 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
-    func search(
-        query: String,
-        kinds: Set<MediaKind>,
-        searchesAllServers: Bool,
-    ) async throws -> [MediaSearchSource] {
-        if searchesAllServers, let sessionManager {
-            let servers = try await sessionManager.refreshAvailableServers()
-            var values: [MediaSearchSource] = []
-            for resource in servers {
-                let childContext = try await sessionManager.serverContext(for: resource.clientIdentifier)
-                guard let childServices = PlexMediaServicesFactory.make(
-                    context: childContext,
-                    sessionManager: sessionManager,
-                ) else { continue }
-                try await values.append(contentsOf: Self.search(
-                    query: query,
-                    kinds: kinds,
-                    context: childContext,
-                    serverID: resource.clientIdentifier,
-                    serverName: resource.name,
-                    services: childServices,
-                ))
-            }
-            return values
+    func search(query: String, kinds: Set<MediaKind>) async throws -> [MediaDisplayItem] {
+        let types: [SearchRepository.SearchType] = if kinds == [.movie] {
+            [.movies]
+        } else if kinds.isEmpty {
+            [.movies, .tv]
+        } else {
+            [.tv]
         }
-        guard let services else { return [] }
-        let snapshot = try context.serverAccessSnapshot()
-        return try await Self.search(
-            query: query,
-            kinds: kinds,
-            context: context,
-            serverID: snapshot.serverIdentifier,
-            serverName: snapshot.serverIdentifier,
-            services: services,
+        let response = try await SearchRepository(context: context).search(
+            params: .init(query: query, searchTypes: types, limit: 100),
         )
+        return (response.mediaContainer.searchResult ?? []).compactMap(\.metadata)
+            .compactMap(mapDisplayItem)
+            .filter { kinds.isEmpty || kinds.contains($0.playableItem?.kind ?? .unknown) }
     }
 
     func artwork(
@@ -1267,37 +1244,6 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             .folder(LibraryBrowseFolderItem(id: folder.key, key: folder.key, title: folder.title))
         }
     }
-
-    private static func search(
-        query: String,
-        kinds: Set<MediaKind>,
-        context: PlexAPIContext,
-        serverID: String,
-        serverName: String,
-        services: MediaServices,
-    ) async throws -> [MediaSearchSource] {
-        let types: [SearchRepository.SearchType] = if kinds == [.movie] {
-            [.movies]
-        } else if kinds.isEmpty {
-            [.movies, .tv]
-        } else {
-            [.tv]
-        }
-        let response = try await SearchRepository(context: context).search(
-            params: .init(query: query, searchTypes: types, limit: 100),
-        )
-        return (response.mediaContainer.searchResult ?? []).compactMap(\.metadata)
-            .compactMap { MediaDisplayItem(plexItem: $0, server: services.identity) }
-            .filter { kinds.isEmpty || kinds.contains($0.playableItem?.kind ?? .unknown) }
-            .map {
-                MediaSearchSource(
-                    serverIdentifier: serverID,
-                    serverName: serverName,
-                    media: $0,
-                    services: services,
-                )
-            }
-    }
 }
 
 private extension PlexPart {
@@ -1324,26 +1270,25 @@ private extension PlexMedia {
 
 @MainActor
 enum PlexMediaServicesFactory {
+    /// - Parameters:
+    ///   - userID: Plex user of the token, which owns the offline data and track preferences of this server.
+    ///   - favoritesProfileID: Strimr profile the local favorites belong to.
     static func make(
         context: PlexAPIContext,
-        sessionManager: SessionManager?,
-        favoritesStore: FavoritesStore? = nil,
-        trackSelectionCoordinator: TrackSelectionCoordinator? = nil,
-        versionSelectionStore: MediaVersionSelectionStore? = nil,
+        serverName: String,
+        userID: String,
+        favoritesProfileID: String,
+        favoritesStore: FavoritesStore,
+        trackSelectionCoordinator: TrackSelectionCoordinator?,
+        versionSelectionStore: MediaVersionSelectionStore?,
     ) -> MediaServices? {
         guard let snapshot = try? context.serverAccessSnapshot() else { return nil }
         let identity = ServerIdentity(provider: .plex, id: snapshot.serverIdentifier)
-        let store = favoritesStore ?? sessionManager?.localFavoritesStore ?? FavoritesStore()
-        let profileID = sessionManager?.localFavoritesProfileIdentifier ?? "default"
-        let adapter = PlexMediaServiceAdapter(
-            context: context,
-            sessionManager: sessionManager,
-            server: identity,
-        )
+        let adapter = PlexMediaServiceAdapter(context: context, server: identity)
         let favorites = PlexFavoritesService(
             context: context,
-            store: store,
-            scope: .plex(serverID: identity.id, profileID: profileID),
+            store: favoritesStore,
+            scope: .plex(serverID: identity.id, profileID: favoritesProfileID),
         )
         let liveTV = PlexLiveTVService(context: context)
         #if os(tvOS)
@@ -1357,8 +1302,7 @@ enum PlexMediaServicesFactory {
             )
         #else
             let decorated = OfflineServiceDecorators(
-                owner: MediaOwner(server: identity, userID: profileID),
-                serverName: sessionManager?.plexServer?.name ?? identity.id,
+                owner: MediaOwner(server: identity, userID: userID),
                 home: adapter,
                 library: adapter,
                 search: adapter,
@@ -1370,6 +1314,7 @@ enum PlexMediaServicesFactory {
         let services = MediaServices(
             provider: .plex,
             identity: identity,
+            serverName: serverName,
             capabilities: .plex,
             home: decorated.home,
             library: decorated.library,
@@ -1381,14 +1326,11 @@ enum PlexMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
-            trackSelectionCoordinator: trackSelectionCoordinator ?? sessionManager?.trackSelectionCoordinator,
-            trackSelectionAccountIdentifier: profileID,
-            versionSelectionStore: versionSelectionStore ?? sessionManager?.versionSelectionStore,
+            trackSelectionCoordinator: trackSelectionCoordinator,
+            trackSelectionAccountIdentifier: userID,
+            versionSelectionStore: versionSelectionStore,
         )
         adapter.services = services
-        #if !os(tvOS)
-            decorated.attach(to: services)
-        #endif
         services.availabilityProbeURL = { [weak context] in
             context?.baseURLServer?.appendingPathComponent("identity")
         }

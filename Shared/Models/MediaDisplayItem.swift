@@ -16,6 +16,17 @@ enum MediaDisplayItem: Identifiable, Hashable, Codable {
         }
     }
 
+    var server: ServerIdentity {
+        switch self {
+        case let .playable(item):
+            item.identity.server
+        case let .collection(item):
+            item.server
+        case let .playlist(item):
+            item.server
+        }
+    }
+
     var type: MediaKind {
         switch self {
         case let .playable(item):
@@ -185,14 +196,14 @@ enum MediaDisplayItem: Identifiable, Hashable, Codable {
 }
 
 extension MediaDisplayItem {
-    init?(plexItem: PlexItem, server: ServerIdentity? = nil) {
+    init?(plexItem: PlexItem, server: ServerIdentity) {
         switch plexItem.type {
         case .movie, .show, .season, .episode, .clip:
             self = .playable(MediaItem(plexItem: plexItem, server: server))
         case .collection:
-            self = .collection(CollectionMediaItem(plexItem: plexItem))
+            self = .collection(CollectionMediaItem(plexItem: plexItem, server: server))
         case .playlist:
-            self = .playlist(PlaylistMediaItem(plexItem: plexItem))
+            self = .playlist(PlaylistMediaItem(plexItem: plexItem, server: server))
         case .unknown:
             return nil
         }

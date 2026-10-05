@@ -4,7 +4,11 @@ import SwiftUI
 /// handling and restoration of the presenting focus. Other platforms retain sheets.
 enum TaskPresentationStyle {
     case modal
+    /// A narrower modal, for short forms and lists.
+    case compactModal
     case contextual
+    /// Opaque and edge to edge, for flows that need full attention and keep their own navigation stack.
+    case fullScreen
 }
 
 extension View {
@@ -18,7 +22,6 @@ extension View {
         #if os(tvOS)
             fullScreenCover(item: item, onDismiss: onDismiss) { value in
                 TVTaskPresentationView(style: style) { content(value) }
-                    .presentationBackground(.clear)
             }
         #else
             sheet(item: item, onDismiss: onDismiss, content: content)
@@ -35,7 +38,6 @@ extension View {
         #if os(tvOS)
             fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
                 TVTaskPresentationView(style: style, content: content)
-                    .presentationBackground(.clear)
             }
         #else
             sheet(isPresented: isPresented, onDismiss: onDismiss, content: content)
@@ -45,13 +47,16 @@ extension View {
 
 #if os(tvOS)
     struct TVModalView<Content: View>: View {
+        var maxWidth: CGFloat = 1560
         @ViewBuilder var content: () -> Content
 
         var body: some View {
             ZStack {
                 Color.black.opacity(0.8).ignoresSafeArea()
                 content()
-                    .frame(maxWidth: 1560, maxHeight: .infinity)
+                    // Focused rows and fields grow past their scroll view's bounds.
+                    .scrollClipDisabled()
+                    .frame(maxWidth: maxWidth, maxHeight: .infinity)
                     .padding(40)
                     .background(Color("Background"), in: RoundedRectangle(cornerRadius: 28))
                     .padding(48)
@@ -92,15 +97,31 @@ extension View {
         @ViewBuilder var content: () -> Content
 
         var body: some View {
-            Group {
-                switch style {
-                case .modal:
-                    TVModalView(content: content)
-                case .contextual:
-                    TVContextPanelView(content: content)
-                }
+            // A presentation over this one (dialog, alert) makes it fall back to the system appearance.
+            presentation
+                .environment(\.colorScheme, .dark)
+        }
+
+        @ViewBuilder
+        private var presentation: some View {
+            switch style {
+            case .modal:
+                TVModalView(content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
+            case .compactModal:
+                TVModalView(maxWidth: 1000, content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
+            case .contextual:
+                TVContextPanelView(content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
+            case .fullScreen:
+                // No exit handler: Menu must pop the content's navigation stack before dismissing.
+                content()
+                    .background(Color("Background").ignoresSafeArea())
             }
-            .onExitCommand { dismiss() }
         }
     }
 #endif
@@ -120,11 +141,19 @@ struct TaskModalNavigationView<Content: View>: View {
 }
 
 extension View {
-    @ViewBuilder
     func taskModalTitle(_ title: LocalizedStringKey) -> some View {
+        taskModalTitle(Text(title))
+    }
+
+    func taskModalTitle(verbatim title: String) -> some View {
+        taskModalTitle(Text(verbatim: title))
+    }
+
+    @ViewBuilder
+    private func taskModalTitle(_ title: Text) -> some View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 24) {
-                Text(title)
+                title
                     .font(.title2.bold())
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)

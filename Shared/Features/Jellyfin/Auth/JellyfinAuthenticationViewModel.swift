@@ -18,21 +18,28 @@ final class JellyfinAuthenticationViewModel {
     var isLoading = false
     var isDiscovering = false
     var errorMessage: String?
+    private(set) var isQuickConnectAvailable = false
+    /// Code to approve from a signed-in Jellyfin client while Quick Connect is waiting.
+    private(set) var quickConnectCode: String?
 
     var isBusy: Bool {
         isLoading || isDiscovering
     }
 
-    @ObservationIgnored private let context: JellyfinAPIContext
-    @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let context = JellyfinAPIContext()
+    @ObservationIgnored private let onAuthenticated: (JellyfinAuthenticatedSession, JellyfinConnection) throws -> Void
     @ObservationIgnored private let discoveryService = JellyfinServerDiscoveryService()
     @ObservationIgnored private var validatedServer: JellyfinPublicSystemInfo?
     @ObservationIgnored private var validatedBaseURL: URL?
+    @ObservationIgnored private var quickConnectTask: Task<Void, Never>?
 
-    init(context: JellyfinAPIContext, sessionManager: SessionManager) {
-        self.context = context
-        self.sessionManager = sessionManager
-        errorMessage = sessionManager.jellyfinHydrationError
+    /// - Parameter serverURL: prefills the server, e.g. to sign in again to a known server.
+    init(
+        serverURL: String = "",
+        onAuthenticated: @escaping (JellyfinAuthenticatedSession, JellyfinConnection) throws -> Void,
+    ) {
+        self.serverURL = serverURL
+        self.onAuthenticated = onAuthenticated
     }
 
     func validateServer() async {
@@ -46,6 +53,7 @@ final class JellyfinAuthenticationViewModel {
             validatedServer = server
             validatedBaseURL = baseURL
             serverName = server.serverName
+            isQuickConnectAvailable = await context.isQuickConnectEnabled(baseURL: baseURL)
             step = .credentials
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -97,10 +105,7 @@ final class JellyfinAuthenticationViewModel {
                 username: username.trimmingCharacters(in: .whitespacesAndNewlines),
                 password: submittedPassword,
             )
-            try sessionManager.completeJellyfinSignIn(
-                authenticatedSession: authenticated,
-                connection: connection,
-            )
+            try onAuthenticated(authenticated, connection)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             if (error as? JellyfinAPIError) != .invalidCredentials,
@@ -112,7 +117,48 @@ final class JellyfinAuthenticationViewModel {
         }
     }
 
+    // MARK: - Quick Connect
+
+    func startQuickConnect() {
+        guard let validatedServer, let validatedBaseURL, quickConnectTask == nil else { return }
+        errorMessage = nil
+        quickConnectTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                quickConnectTask = nil
+                quickConnectCode = nil
+            }
+            do {
+                var state = try await context.initiateQuickConnect(baseURL: validatedBaseURL)
+                quickConnectCode = state.code
+                while !state.authenticated {
+                    try await Task.sleep(for: .seconds(3))
+                    state = try await context.quickConnectState(baseURL: validatedBaseURL, secret: state.secret)
+                }
+                let (authenticated, connection) = try await context.authenticateWithQuickConnect(
+                    server: validatedServer,
+                    baseURL: validatedBaseURL,
+                    secret: state.secret,
+                )
+                try onAuthenticated(authenticated, connection)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                if (error as? JellyfinAPIError) != .serverUnreachable {
+                    ErrorReporter.capture(error)
+                }
+                errorMessage = String(localized: "jellyfin.auth.quickConnect.error")
+            }
+        }
+    }
+
+    func cancelQuickConnect() {
+        quickConnectTask?.cancel()
+        quickConnectTask = nil
+        quickConnectCode = nil
+    }
+
     func goBack() {
+        cancelQuickConnect()
         step = .server
         validatedServer = nil
         validatedBaseURL = nil

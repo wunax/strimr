@@ -49,26 +49,22 @@ final class OfflineCoordinator {
 
     // MARK: - Session
 
-    /// Registers the services of the current session. Passing `nil` clears every active owner (signed out).
-    func activate(services: MediaServices?) {
-        guard let services else {
-            sessionServices = [:]
-            activeOwners = []
-            activeServers = []
-            availability.untrackAll()
-            return
-        }
-        for server in sessionServices.keys where server != services.identity {
+    /// Registers the services of the active profile's servers. An empty list clears every active owner.
+    func activate(services: [MediaServices]) {
+        let servers = Set(services.map(\.identity))
+        for server in sessionServices.keys where !servers.contains(server) {
             availability.untrack(server)
         }
-        sessionServices = [services.identity: services]
-        activeOwners = [services.owner]
-        activeServers = [services.identity]
-        store?.register(owner: services.owner)
-        let probeURL = services.availabilityProbeURL
-        availability.track(services.identity, probe: ServerAvailabilityMonitor.probe { probeURL?() })
-        if availability.availability(for: services.identity) == .reachable {
-            serverBecameReachable(services.identity)
+        sessionServices = Dictionary(services.map { ($0.identity, $0) }, uniquingKeysWith: { first, _ in first })
+        activeOwners = Set(services.map(\.owner))
+        activeServers = services.map(\.identity)
+        for services in services {
+            store?.register(owner: services.owner)
+            let probeURL = services.availabilityProbeURL
+            availability.track(services.identity, probe: ServerAvailabilityMonitor.probe { probeURL?() })
+            if availability.availability(for: services.identity) == .reachable {
+                serverBecameReachable(services.identity)
+            }
         }
     }
 

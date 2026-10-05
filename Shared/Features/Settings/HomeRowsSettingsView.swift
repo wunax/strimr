@@ -4,14 +4,11 @@ import SwiftUI
 struct HomeRowsSettingsView: View {
     @State private var viewModel: HomeViewModel
 
-    init(services: MediaServices, settingsManager: SettingsManager, libraryStore: LibraryStore) {
-        _viewModel = State(
-            initialValue: HomeViewModel(
-                services: services,
-                settingsManager: settingsManager,
-                libraryStore: libraryStore,
-            ),
-        )
+    init(sessionManager: SessionManager, settingsManager: SettingsManager) {
+        _viewModel = State(initialValue: HomeViewModel(
+            sessionManager: sessionManager,
+            settingsManager: settingsManager,
+        ))
     }
 
     var body: some View {
@@ -78,6 +75,7 @@ struct HomeRowsSettingsView: View {
                 Text(row.title)
                     .font(.headline)
                     .foregroundStyle(isVisible ? .primary : .secondary)
+                serverSubtitle(for: row)
 
                 HStack(spacing: 12) {
                     Button {
@@ -117,10 +115,15 @@ struct HomeRowsSettingsView: View {
             .padding(.vertical, 8)
         #else
             HStack(spacing: 12) {
-                Toggle(row.title, isOn: Binding(
+                Toggle(isOn: Binding(
                     get: { viewModel.isRowVisible(row.id) },
                     set: { viewModel.setRowVisible(row.id, visible: $0) },
-                ))
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(row.title)
+                        serverSubtitle(for: row)
+                    }
+                }
 
                 Button {
                     viewModel.moveRow(at: index, by: -1)
@@ -141,6 +144,16 @@ struct HomeRowsSettingsView: View {
                 .disabled(index == viewModel.orderedRowsForEditing.count - 1)
             }
         #endif
+    }
+
+    /// Tells apart two "Recently added" rows of different servers.
+    @ViewBuilder
+    private func serverSubtitle(for row: HomeRow) -> some View {
+        if let serverName = row.serverName {
+            Text("settings.homeRows.serverSubtitle \(serverName)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func tvOSActionLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {

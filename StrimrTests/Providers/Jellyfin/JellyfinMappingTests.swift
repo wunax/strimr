@@ -98,7 +98,7 @@ struct JellyfinMappingTests {
         let json = #"{"Id":"lib","Name":"Library","CollectionType":"\#(collectionType)"}"#
         let item = try JSONDecoder().decode(JellyfinItem.self, from: Data(json.utf8))
 
-        #expect(Library(jellyfinItem: item).type == expected)
+        #expect(Library(jellyfinItem: item, server: server).type == expected)
     }
 
     @Test(arguments: [

@@ -8,6 +8,8 @@ struct Hub: Identifiable, Hashable, Codable {
     let size: Int
     let more: Bool?
     let items: [MediaDisplayItem]
+    /// Server of a provider hub; `nil` for rows merged across servers.
+    var server: ServerIdentity? = nil
 
     var hasItems: Bool {
         !items.isEmpty
@@ -17,8 +19,9 @@ struct Hub: Identifiable, Hashable, Codable {
         more == true
     }
 
+    /// Rows merged across servers have no server to load more items from.
     var canOpenDetail: Bool {
-        PlexEndpoint(key: key) != nil
+        server != nil && PlexEndpoint(key: key) != nil
     }
 
     var canShowViewAll: Bool {
