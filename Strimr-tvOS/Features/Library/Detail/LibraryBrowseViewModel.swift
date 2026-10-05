@@ -26,6 +26,8 @@ final class LibraryBrowseViewModel {
     var controls: LibraryBrowseControlsViewModel
     var scrollResetID = 0
     private(set) var layout: LibraryBrowseLayout
+    private(set) var showsFolderTree: Bool
+    private(set) var folderTree: FolderTreeModel?
 
     private var loadedPageStarts: Set<Int> = []
     private var loadingPageStarts: Set<Int> = []
@@ -62,6 +64,7 @@ final class LibraryBrowseViewModel {
             for: library.type,
             defaultLayout: settingsManager.interface.libraryDefaultLayout,
         )
+        showsFolderTree = preferences.showsFolderTree ?? false
         browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
@@ -99,11 +102,27 @@ final class LibraryBrowseViewModel {
     }
 
     var showsCharacterColumn: Bool {
-        supportsSectionCharacters && !sectionCharacters.isEmpty
+        folderTree == nil && supportsSectionCharacters && !sectionCharacters.isEmpty
+    }
+
+    var canShowFolderTree: Bool {
+        advancedService != nil && controls.isFolderDisplayType
+    }
+
+    var isFolderTreeActive: Bool {
+        showsFolderTree && canShowFolderTree
+    }
+
+    func toggleFolderTree() {
+        showsFolderTree.toggle()
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.showsFolderTree = showsFolderTree ? true : nil
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
+        Task { await refresh() }
     }
 
     func load() async {
-        guard itemsByIndex.isEmpty else { return }
+        guard itemsByIndex.isEmpty, folderTree == nil else { return }
         await refresh()
     }
 
@@ -149,10 +168,38 @@ final class LibraryBrowseViewModel {
     func refresh() async {
         scrollResetID &+= 1
         resetState()
-        isLoading = true
-        defer { isLoading = false }
-        await loadPage(start: 0)
-        await fetchCharactersIfNeeded()
+        folderTree = nil
+        // Meta decides whether the selected display type is a folder listing, so it is fetched first.
+        if !(hasLoadedMeta && isFolderTreeActive) {
+            isLoading = true
+            await loadPage(start: 0)
+            isLoading = false
+        }
+        if isFolderTreeActive {
+            await reloadFolderTree()
+        } else {
+            await fetchCharactersIfNeeded()
+        }
+    }
+
+    private func reloadFolderTree() async {
+        guard let advancedService, let sectionId = library.sectionId else { return }
+        let includeCollections = settingsManager.interface.displayCollections ? true : nil
+        let tree =
+            FolderTreeModel(rootEndpoint: resolvedEndpoint(sectionId: sectionId)) { [controls] endpoint, start, limit in
+                try await advancedService.advancedBrowse(
+                    path: endpoint.path,
+                    queryItems: controls.buildQueryItems(
+                        baseItems: endpoint.queryItems,
+                        includeCollections: includeCollections,
+                        includeMeta: false,
+                    ),
+                    startIndex: start,
+                    limit: limit,
+                )
+            }
+        folderTree = tree
+        await tree.loadRoot()
     }
 
     func setLayout(_ layout: LibraryBrowseLayout) {

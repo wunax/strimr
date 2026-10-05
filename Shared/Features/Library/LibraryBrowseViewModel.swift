@@ -23,6 +23,8 @@ final class LibraryBrowseViewModel {
     /// Switches the data source to the local downloads of this library, online or offline.
     private(set) var isDownloadedOnly = false
     private(set) var hasDownloads = false
+    private(set) var showsFolderTree: Bool
+    private(set) var folderTree: FolderTreeModel?
     private var folderStack: [FolderBreadcrumb] = []
 
     private var reachedEnd = false
@@ -59,6 +61,7 @@ final class LibraryBrowseViewModel {
             for: library.type,
             defaultLayout: settingsManager.interface.libraryDefaultLayout,
         )
+        showsFolderTree = preferences.showsFolderTree ?? false
         browseSession.restoreQueryIfNeeded(preferences.jellyfinQuery)
         controls = LibraryBrowseControlsViewModel(
             advancedService: services.library as? any PlexAdvancedLibraryService,
@@ -105,6 +108,22 @@ final class LibraryBrowseViewModel {
         controls.hasControls && !isDownloadedOnly && !isServerUnreachable
     }
 
+    var canShowFolderTree: Bool {
+        advancedService != nil && controls.isFolderDisplayType && !isDownloadedOnly && !isServerUnreachable
+    }
+
+    var isFolderTreeActive: Bool {
+        showsFolderTree && canShowFolderTree
+    }
+
+    func toggleFolderTree() {
+        showsFolderTree.toggle()
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.showsFolderTree = showsFolderTree ? true : nil
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
+        Task { await refresh() }
+    }
+
     func toggleDownloadedOnly() {
         isDownloadedOnly.toggle()
         folderStack = []
@@ -112,7 +131,7 @@ final class LibraryBrowseViewModel {
     }
 
     func load() async {
-        guard browseItems.isEmpty else { return }
+        guard browseItems.isEmpty, folderTree == nil else { return }
         await fetch(reset: true)
     }
 
@@ -144,7 +163,34 @@ final class LibraryBrowseViewModel {
         reachedEnd = false
         browseItems = []
         totalCount = nil
-        await fetch(reset: true)
+        folderTree = nil
+        // Meta decides whether the selected display type is a folder listing, so it is fetched first.
+        if !(hasLoadedMeta && isFolderTreeActive) {
+            await fetch(reset: true)
+        }
+        if isFolderTreeActive {
+            await reloadFolderTree()
+        }
+    }
+
+    private func reloadFolderTree() async {
+        guard let advancedService, let sectionId = library.sectionId else { return }
+        let includeCollections = settingsManager.interface.displayCollections ? true : nil
+        let tree =
+            FolderTreeModel(rootEndpoint: resolvedEndpoint(sectionId: sectionId)) { [controls] endpoint, start, limit in
+                try await advancedService.advancedBrowse(
+                    path: endpoint.path,
+                    queryItems: controls.buildQueryItems(
+                        baseItems: endpoint.queryItems,
+                        includeCollections: includeCollections,
+                        includeMeta: false,
+                    ),
+                    startIndex: start,
+                    limit: limit,
+                )
+            }
+        folderTree = tree
+        await tree.loadRoot()
     }
 
     func setLayout(_ layout: LibraryBrowseLayout) {

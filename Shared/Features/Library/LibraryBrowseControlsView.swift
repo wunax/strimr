@@ -32,6 +32,15 @@ extension LibraryBrowseToggle {
             )
         }
     }
+
+    static func folderTree(isSelected: Bool, action: @escaping () -> Void) -> LibraryBrowseToggle {
+        LibraryBrowseToggle(
+            title: String(localized: "library.browse.folders.tree"),
+            systemImage: "list.bullet.indent",
+            isSelected: isSelected,
+            action: action,
+        )
+    }
 }
 
 struct LibraryBrowseControlsView: View {
@@ -40,6 +49,7 @@ struct LibraryBrowseControlsView: View {
     let onNavigateBack: () -> Void
     let leadingToggle: LibraryBrowseToggle?
     let showsServerControls: Bool
+    let folderTreeToggle: LibraryBrowseToggle?
     /// Icon-only toggle shown last in the controls row; its title is used as the accessibility label.
     let layoutToggle: LibraryBrowseToggle?
     let itemCount: Int?
@@ -50,6 +60,7 @@ struct LibraryBrowseControlsView: View {
         onNavigateBack: @escaping () -> Void = {},
         leadingToggle: LibraryBrowseToggle? = nil,
         showsServerControls: Bool = true,
+        folderTreeToggle: LibraryBrowseToggle? = nil,
         layoutToggle: LibraryBrowseToggle? = nil,
         itemCount: Int? = nil,
     ) {
@@ -58,6 +69,7 @@ struct LibraryBrowseControlsView: View {
         self.onNavigateBack = onNavigateBack
         self.leadingToggle = leadingToggle
         self.showsServerControls = showsServerControls
+        self.folderTreeToggle = folderTreeToggle
         self.layoutToggle = layoutToggle
         self.itemCount = itemCount
     }
@@ -99,6 +111,15 @@ struct LibraryBrowseControlsView: View {
                 }
                 if showsServerControls {
                     serverPills
+                }
+                if let folderTreeToggle {
+                    LibraryBrowsePillButton(
+                        title: folderTreeToggle.title,
+                        systemImage: folderTreeToggle.systemImage,
+                        isSelected: folderTreeToggle.isSelected,
+                        showsDisclosure: false,
+                        action: folderTreeToggle.action,
+                    )
                 }
                 if let layoutToggle {
                     LibraryBrowsePillButton(

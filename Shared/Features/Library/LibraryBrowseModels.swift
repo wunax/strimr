@@ -103,6 +103,8 @@ enum LibraryDefaultLayout: String, Codable, CaseIterable, Hashable {
 
 struct LibraryBrowsePreferences: Codable, Equatable {
     var layout: LibraryBrowseLayout?
+    /// Shows Plex folder listings as an expandable tree instead of one folder level at a time.
+    var showsFolderTree: Bool?
     var plex: PlexSelection?
     var jellyfinQuery: LibraryBrowseQuery?
 
