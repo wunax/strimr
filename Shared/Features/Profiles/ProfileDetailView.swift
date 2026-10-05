@@ -37,9 +37,7 @@ struct ProfileDetailView: View {
         }
         .confirmationDialog("profiles.addConnection", isPresented: $isChoosingConnection) {
             Button("profiles.addConnection.new") { isAddingNewConnection = true }
-            if canBorrow {
-                Button("profiles.addConnection.borrow") { isBorrowingConnection = true }
-            }
+            Button("profiles.addConnection.borrow") { isBorrowingConnection = true }
             Button("common.actions.cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isAddingNewConnection) {
@@ -64,10 +62,6 @@ struct ProfileDetailView: View {
         } message: {
             Text("profiles.delete.message")
         }
-    }
-
-    private var canBorrow: Bool {
-        sessionManager.canManageAccounts && !(profile?.isRestricted ?? true)
     }
 
     private func form(for profile: StrimrProfile) -> some View {

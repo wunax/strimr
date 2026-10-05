@@ -31,7 +31,7 @@ enum StrimrProfile: Identifiable, Hashable, Sendable {
         return false
     }
 
-    /// Managed Plex users cannot manage accounts or borrow connections.
+    /// While active, a managed Plex user cannot manage accounts, profiles or their connections.
     var isRestricted: Bool {
         guard case let .plexHome(profile) = self else { return false }
         return profile.user.restricted ?? false

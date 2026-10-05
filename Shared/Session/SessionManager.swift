@@ -117,7 +117,7 @@ final class SessionManager {
         activeProfile?.plexHomeProfile?.user.thumb
     }
 
-    /// Restricted Plex profiles cannot manage accounts nor borrow connections.
+    /// A restricted Plex profile cannot manage accounts, profiles or their connections; other profiles can manage it.
     var canManageAccounts: Bool {
         !(activeProfile?.isRestricted ?? false)
     }
