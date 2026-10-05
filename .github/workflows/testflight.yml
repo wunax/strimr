@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     env:
       APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
