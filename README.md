@@ -16,7 +16,8 @@ Strimr is a third-party client for Plex and Jellyfin, built in Swift with native
 ## Key Features
 - **HDR**, **HDR10+**, **HLG**, and **Dolby Vision** profiles 5, 8.1, 8.4, and 7 (profile 7 converted to 8.1 due to Apple platform limitations)
 - **Dolby Atmos**, **TrueHD**, **DTS**, and **DTS-HD MA** (passthrough or conversion when required)<sup>[1]</sup>
-- Multiple Plex and Jellyfin servers, including Plex Home profiles
+- **Multi-server**: connect several Plex and Jellyfin servers at once, with a unified home, libraries, and search
+- Strimr profiles with optional PIN, alongside Plex Home users, each with their own connections and settings
 - Seerr integration
 - Customizable library visibility and navigation order
 - Media hubs, filtered search, and rich movie, show, season, episode, and person details
