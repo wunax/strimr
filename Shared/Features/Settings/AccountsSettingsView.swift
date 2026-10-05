@@ -11,6 +11,7 @@ struct AccountsSettingsView: View {
     @State private var isAddingAccount = false
     @State private var accountPendingRemoval: MediaAccount?
     @State private var reconnectingAccount: MediaAccount?
+    @State private var detailServer: ServerIdentity?
 
     var body: some View {
         List {
@@ -38,6 +39,9 @@ struct AccountsSettingsView: View {
             }
         }
         .navigationTitle("settings.accounts.title")
+        .navigationDestination(item: $detailServer) { server in
+            ServerDetailView(server: server)
+        }
         .sheet(isPresented: $isAddingAccount) {
             AccountSetupView(purpose: .settings, sessionManager: sessionManager) {
                 isAddingAccount = false
@@ -78,10 +82,27 @@ struct AccountsSettingsView: View {
                 .foregroundStyle(.secondary)
         }
         ForEach(sessions) { session in
-            NavigationLink {
-                ServerDetailView(server: session.identity)
-            } label: {
-                ServerSessionRow(session: session)
+            // Separate controls rather than a NavigationLink, which would swallow taps on the toggle.
+            HStack(spacing: 12) {
+                Button { detailServer = session.identity } label: {
+                    ServerSessionRow(session: session)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Toggle("settings.server.enabled", isOn: Binding(
+                    get: { session.isEnabled },
+                    set: { sessionManager.registry.setEnabled($0, server: session.identity) },
+                ))
+                .labelsHidden()
+
+                Button { detailServer = session.identity } label: {
+                    Image(systemName: "info.circle")
+                        .imageScale(.large)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(Text("settings.server.details"))
             }
             if session.status == .needsReauthentication {
                 Button("settings.accounts.reconnect") { reconnectingAccount = account }
