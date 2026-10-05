@@ -33,7 +33,11 @@ struct ProfileSwitcherView: View {
         .taskPresentation(isPresented: $isShowingProfiles, style: .compactModal, onDismiss: viewModel.refreshChoices) {
             NavigationStack { ProfilesSettingsView() }
         }
-        .taskPresentation(item: $viewModel.profileNeedingConnection, style: .compactModal, onDismiss: viewModel.refreshChoices) { profile in
+        .taskPresentation(
+            item: $viewModel.profileNeedingConnection,
+            style: .compactModal,
+            onDismiss: viewModel.refreshChoices,
+        ) { profile in
             TaskModalNavigationView { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
         }
         .onAppear {
