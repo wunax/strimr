@@ -44,6 +44,7 @@ struct PlayerControlsView: View {
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
     var settingsControl: PlayerSettingsControl?
+    var showsSubtitleOffsetIndicator = false
     var settingsFocusGeneration: Int
     @FocusState private var focusedControl: FocusTarget?
     private var playbackBadges: [PlayerControlBadge] {
@@ -174,6 +175,13 @@ struct PlayerControlsView: View {
                         systemImage: "captions.bubble",
                         action: onShowSubtitleSettings,
                     )
+                    .overlay(alignment: .topTrailing) {
+                        if showsSubtitleOffsetIndicator {
+                            PlaybackOffsetIndicator()
+                                .scaleEffect(1.4)
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .focused($focusedControl, equals: .subtitle)
 
                     Spacer()

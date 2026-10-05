@@ -8,6 +8,8 @@ struct PlayerTrackSelectionView: View {
     var onSelect: (Int?) -> Void
     var onSearchSubtitles: (() -> Void)?
     var onResetTrackSelections: (() -> Void)?
+    var syncItem: PlaybackOffsetMenuItem?
+    var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
     var onClose: () -> Void
 
     var body: some View {
@@ -51,6 +53,19 @@ struct PlayerTrackSelectionView: View {
                 title: String(localized: "player.settings.tracks.reset"),
                 systemImage: "arrow.counterclockwise",
                 action: onResetTrackSelections,
+            ))
+        }
+        if let syncItem {
+            result.append(PlayerSettingsOption(
+                id: "sync",
+                title: syncItem.kind.title,
+                subtitle: syncItem.availability.message ?? syncItem.value,
+                highlightsSubtitle: syncItem.isActive && syncItem.availability.isAvailable,
+                systemImage: syncItem.kind.systemImage,
+                isDisabled: !syncItem.availability.isAvailable,
+                opensSubmenu: true,
+                sectionTitle: String(localized: "player.settings.sync"),
+                action: { onSelectSync(syncItem.kind) },
             ))
         }
         return result

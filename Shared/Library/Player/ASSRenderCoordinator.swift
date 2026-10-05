@@ -17,6 +17,8 @@ final class ASSRenderCoordinator {
     private var pendingEvents = false
     private var earliestPendingStart = Double.infinity
     private var lastOffset = 0.0
+    private var lastSourceTime = 0.0
+    private var subtitleDelaySeconds = 0.0
     private var activationGeneration = 0
 
     private let reloadInterval: TimeInterval = 5
@@ -48,9 +50,8 @@ final class ASSRenderCoordinator {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] time in
                 guard let self else { return }
-                lastOffset = time
-                renderer?.setTimeOffset(time)
-                flushPendingEventsIfDue()
+                lastSourceTime = time
+                applyTimeOffset()
             }
             .store(in: &cancellables)
 
@@ -72,6 +73,14 @@ final class ASSRenderCoordinator {
         }
     }
 
+    /// Positive shows subtitles later. Pushed right away so a paused picture follows the change.
+    func setSubtitleDelay(seconds: Double) {
+        guard subtitleDelaySeconds != seconds else { return }
+        subtitleDelaySeconds = seconds
+        guard builder != nil else { return }
+        applyTimeOffset()
+    }
+
     func deactivate() {
         activationGeneration += 1
         cancellables.removeAll()
@@ -82,6 +91,12 @@ final class ASSRenderCoordinator {
         earliestPendingStart = .infinity
         lastReloadAt = .distantPast
         onRendererChanged?(nil)
+    }
+
+    private func applyTimeOffset() {
+        lastOffset = lastSourceTime - subtitleDelaySeconds
+        renderer?.setTimeOffset(lastOffset)
+        flushPendingEventsIfDue()
     }
 
     private func installRenderer(fontsDirectory: URL) {

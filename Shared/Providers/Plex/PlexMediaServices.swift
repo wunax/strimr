@@ -742,6 +742,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 .map(ScrubThumbnailSource.plex),
             versions: versions,
             versionID: String(selectedMedia.id),
+            burnsSubtitles: playbackMethod == .transcode && selectedSubtitleStream != nil && burnsSubtitles,
         )
     }
 

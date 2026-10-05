@@ -54,6 +54,7 @@ struct PlayerView: View {
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
+    @State private var activeOffsetBar: PlaybackOffsetKind?
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -201,6 +202,7 @@ struct PlayerView: View {
                         selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
                         chapters: viewModel.chapters,
+                        syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
@@ -294,7 +296,7 @@ struct PlayerView: View {
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
-                currentTime: playerController.sourcePosition,
+                currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
                 bottomPadding: controlsVisible ? 120 : 48,
@@ -375,8 +377,13 @@ struct PlayerView: View {
                     canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
                     onPreviousChannel: { switchLiveChannel(by: -1) },
                     onNextChannel: { switchLiveChannel(by: 1) },
+                    showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
                 )
                 .transition(.opacity)
+            }
+
+            if let activeOffsetBar, !isShowingPlayQueue {
+                offsetBar(activeOffsetBar)
             }
 
             if !controlsVisible, let activeMarker, let skipTitle {
@@ -405,6 +412,23 @@ struct PlayerView: View {
                 )
             }
         }
+    }
+
+    private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
+        let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
+        let edge: Edge.Set = alignment == .top ? .top : .bottom
+        // Clears the header (top) or the transport controls (bottom) while they are shown.
+        let inset: CGFloat = controlsVisible ? (alignment == .top ? 64 : 190) : 12
+        return PlayerOffsetBar(
+            controller: playerController,
+            kind: kind,
+            burnsSubtitles: viewModel.burnsSubtitles,
+            onDone: closeOffsetBar,
+        )
+        .padding(.horizontal, 16)
+        .padding(edge, inset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .transition(.opacity)
     }
 
     @ViewBuilder
@@ -459,6 +483,8 @@ struct PlayerView: View {
                 : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onSelectQuality: { selectQuality($0) },
+            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+            onSelectSync: openOffsetBar(_:),
             onClose: { sheetPresentation.item = nil },
         )
         .presentationBackground(.ultraThinMaterial)
@@ -510,6 +536,23 @@ struct PlayerView: View {
         refreshTracks()
         sheetPresentation.item = .settings
         hideControlsWorkItem?.cancel()
+    }
+
+    private func openOffsetBar(_ kind: PlaybackOffsetKind) {
+        sheetPresentation.item = nil
+        hideControlsWorkItem?.cancel()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = kind
+            controlsVisible = true
+        }
+    }
+
+    private func closeOffsetBar() {
+        playerController.commitAudioDelay()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = nil
+        }
+        showControls(temporarily: true)
     }
 
     private func showChapters() {
@@ -662,6 +705,9 @@ struct PlayerView: View {
     }
 
     private func selectSubtitleTrack(_ id: Int?) {
+        if id != selectedSubtitleTrackID {
+            playerController.setSubtitleDelay(milliseconds: 0)
+        }
         selectedSubtitleTrackID = id
         Task {
             let track = id.flatMap { selectedID in
@@ -742,6 +788,7 @@ struct PlayerView: View {
                 subtitle,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             )
+            playerController.setSubtitleDelay(milliseconds: 0)
             selectedSubtitleTrackID = id
             refreshTracks()
         } catch {
@@ -867,6 +914,7 @@ struct PlayerView: View {
             isLive: viewModel.isLivePlayback,
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)
@@ -974,6 +1022,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
+        guard activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(.easeInOut) {
@@ -1283,6 +1332,7 @@ private struct PlayerSheetRefreshID: Hashable {
     let selectedSubtitleTrackID: Int?
     let playbackRate: Float
     let chapters: [MediaChapter]
+    let syncItems: [PlaybackOffsetMenuItem]
 }
 
 private enum PlayerSheet: String, Identifiable {

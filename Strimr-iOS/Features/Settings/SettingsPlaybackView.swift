@@ -43,6 +43,12 @@ struct SettingsPlaybackView: View {
                 }
             }
 
+            Section {
+                AudioDelaySettingsRow()
+            } footer: {
+                Text("settings.playback.audioDelay.footer")
+            }
+
             Section("settings.playback.skipping.title") {
                 Toggle("settings.playback.autoSkipIntros", isOn: viewModel.autoSkipIntrosBinding)
                 Toggle("settings.playback.autoSkipCredits", isOn: viewModel.autoSkipCreditsBinding)

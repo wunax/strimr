@@ -43,11 +43,37 @@ final class PlayerController {
         @ObservationIgnored var onPictureInPictureRestoreRequested: (() -> Void)?
     #endif
     private(set) var scrubPreview: PlayerScrubPreview?
+    private(set) var audioDelayMilliseconds = 0
+    private(set) var subtitleDelayMilliseconds = 0
+    private(set) var isApplyingAudioDelay = false
+    private(set) var videoRoute: VideoRoute = .none
+    private(set) var selectedSubtitleTrackID: Int?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
 
     var isMuted: Bool {
         volume == 0
+    }
+
+    /// Where subtitles are drawn from: the source time moved by the subtitle delay.
+    var subtitlePosition: Double {
+        sourcePosition - Double(subtitleDelayMilliseconds) / 1000
+    }
+
+    var audioDelayAvailability: PlaybackOffsetAvailability {
+        .audio(
+            isNativeBypass: videoRoute == .remoteBypass,
+            isAudioOnly: videoRoute == .audio,
+            isLiveWithoutDVR: isLive && !hasLiveDVRWindow && seekableLiveRange == nil,
+        )
+    }
+
+    func subtitleDelayAvailability(burnsSubtitles: Bool) -> PlaybackOffsetAvailability {
+        .subtitles(
+            isNativeBypass: videoRoute == .remoteBypass,
+            burnsSubtitles: burnsSubtitles,
+            hasActiveSubtitleTrack: selectedSubtitleTrackID != nil,
+        )
     }
 
     var assReloadSignal: PassthroughSubject<Void, Never> {
@@ -59,12 +85,16 @@ final class PlayerController {
 
     @ObservationIgnored private var cancellables: Set<AnyCancellable> = []
     @ObservationIgnored private var coordinatedPlaybackIdentifier: String?
-    @ObservationIgnored private var selectedSubtitleTrackID: Int?
     @ObservationIgnored private var hasStartedPlayback = false
     @ObservationIgnored private var isStopping = false
     @ObservationIgnored private var playbackRate: Float = 1.0
     @ObservationIgnored private var styledASSSubtitles = true
     @ObservationIgnored private var mediaIdentifier = "media"
+    @ObservationIgnored private var hasLiveDVRWindow = false
+    @ObservationIgnored private var audioDelayDispatch = AudioDelayDispatch()
+    @ObservationIgnored private var audioDelayDispatchTask: Task<Void, Never>?
+    @ObservationIgnored private var audioDelayApplyPhase = AudioDelayApplyPhase.idle
+    @ObservationIgnored private var audioDelayApplyTimeoutTask: Task<Void, Never>?
     @ObservationIgnored private var providerStreamIDsByFFIndex: [Int: Int] = [:]
     @ObservationIgnored private var externalSubtitleProviderStreamIDs: [Int: Int] = [:]
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
@@ -126,6 +156,7 @@ final class PlayerController {
         isLive: Bool = false,
         nativeRemoteHLS: Bool = false,
         dvrWindowSeconds: TimeInterval? = nil,
+        audioDelayMilliseconds: Int = 0,
         autoplay: Bool = true,
     ) {
         deactivateASSRendering()
@@ -150,7 +181,14 @@ final class PlayerController {
         sourceVideoSize = nil
         activeSubtitleCodec = nil
         self.styledASSSubtitles = styledASSSubtitles
+        if mediaIdentifier != self.mediaIdentifier {
+            setSubtitleDelay(milliseconds: 0)
+        }
         self.mediaIdentifier = mediaIdentifier
+        hasLiveDVRWindow = (dvrWindowSeconds ?? 0) > 0
+        cancelPendingAudioDelay()
+        self.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(audioDelayMilliseconds)
+        let audioDelaySeconds = PlaybackOffset(milliseconds: self.audioDelayMilliseconds).seconds
         self.providerStreamIDsByFFIndex = providerStreamIDsByFFIndex
         externalSubtitleProviderStreamIDs = [:]
         errorMessage = nil
@@ -172,6 +210,7 @@ final class PlayerController {
                         prepareNativeSubtitles: Self.preparesNativeSubtitles,
                         externalSubtitles: externalSubtitles.map(\.track),
                         autoplay: autoplay,
+                        audioDelaySeconds: audioDelaySeconds,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
@@ -426,6 +465,40 @@ final class PlayerController {
         }
     }
 
+    /// Updates the value at once; the engine gets it after a quiet period, because each change
+    /// re-anchors playback (a reload of about 0.3 s on the AVPlayer route).
+    func setAudioDelay(milliseconds: Int) {
+        let clamped = PlaybackOffsetRange.audio.clamp(milliseconds)
+        guard clamped != audioDelayMilliseconds else { return }
+        audioDelayMilliseconds = clamped
+        audioDelayDispatch.submit(clamped, at: .now)
+        audioDelayDispatchTask?.cancel()
+        let delay = audioDelayDispatch.delay
+        audioDelayDispatchTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self else { return }
+            if let pending = audioDelayDispatch.takeIfDue(at: .now) {
+                sendAudioDelay(pending)
+            }
+        }
+    }
+
+    /// Sends a pending audio delay without waiting, when the sync bar closes.
+    func commitAudioDelay() {
+        audioDelayDispatchTask?.cancel()
+        audioDelayDispatchTask = nil
+        if let pending = audioDelayDispatch.flush() {
+            sendAudioDelay(pending)
+        }
+    }
+
+    func setSubtitleDelay(milliseconds: Int) {
+        let clamped = PlaybackOffsetRange.subtitles.clamp(milliseconds)
+        guard clamped != subtitleDelayMilliseconds else { return }
+        subtitleDelayMilliseconds = clamped
+        assCoordinator.setSubtitleDelay(seconds: PlaybackOffset(milliseconds: clamped).seconds)
+    }
+
     func selectAudioTrack(id: Int?) {
         guard let id else { return }
         engine.selectAudioTrack(index: id)
@@ -549,7 +622,61 @@ final class PlayerController {
         sourceVideoSize = nil
         activeSubtitleCodec = nil
         selectedSubtitleTrackID = nil
+        cancelPendingAudioDelay()
         engine.stop()
+    }
+
+    private func sendAudioDelay(_ milliseconds: Int) {
+        let reanchors = (videoRoute == .loopback || videoRoute == .software)
+            && (engine.state == .playing || engine.state == .paused)
+        engine.setAudioDelay(PlaybackOffset(milliseconds: milliseconds).seconds)
+        guard reanchors else { return }
+        beginApplyingAudioDelay()
+    }
+
+    private func beginApplyingAudioDelay() {
+        audioDelayApplyPhase = .requested
+        isApplyingAudioDelay = true
+        audioDelayApplyTimeoutTask?.cancel()
+        audioDelayApplyTimeoutTask = Task { @MainActor [weak self] in
+            // A re-anchor that never leaves the playing state (or hangs) must not leave the label up.
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, let self else { return }
+            if audioDelayApplyPhase == .requested {
+                endApplyingAudioDelay()
+                return
+            }
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            endApplyingAudioDelay()
+        }
+    }
+
+    private func updateAudioDelayApplyPhase() {
+        guard audioDelayApplyPhase != .idle else { return }
+        let isSettled = !engine.isSeeking && (engine.state == .playing || engine.state == .paused)
+        switch audioDelayApplyPhase {
+        case .requested where !isSettled:
+            audioDelayApplyPhase = .reanchoring
+        case .reanchoring where isSettled:
+            endApplyingAudioDelay()
+        default:
+            break
+        }
+    }
+
+    private func endApplyingAudioDelay() {
+        audioDelayApplyTimeoutTask?.cancel()
+        audioDelayApplyTimeoutTask = nil
+        audioDelayApplyPhase = .idle
+        isApplyingAudioDelay = false
+    }
+
+    private func cancelPendingAudioDelay() {
+        audioDelayDispatchTask?.cancel()
+        audioDelayDispatchTask = nil
+        _ = audioDelayDispatch.flush()
+        endApplyingAudioDelay()
     }
 
     #if os(iOS) || os(macOS)
@@ -778,7 +905,20 @@ final class PlayerController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.handleState(state)
+                self?.updateAudioDelayApplyPhase()
             }
+            .store(in: &cancellables)
+
+        engine.$isSeeking
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateAudioDelayApplyPhase()
+            }
+            .store(in: &cancellables)
+
+        engine.$videoRoute
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.videoRoute = $0 }
             .store(in: &cancellables)
 
         engine.$isBuffering
@@ -921,6 +1061,12 @@ final class PlayerController {
             false
         #endif
     }
+}
+
+private enum AudioDelayApplyPhase {
+    case idle
+    case requested
+    case reanchoring
 }
 
 struct ExternalSubtitleTrackMappingError: LocalizedError {

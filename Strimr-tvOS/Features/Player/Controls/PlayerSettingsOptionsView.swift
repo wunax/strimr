@@ -4,6 +4,7 @@ struct PlayerSettingsOption: Identifiable {
     let id: String
     let title: String
     var subtitle: String?
+    var highlightsSubtitle = false
     var isSelected = false
     var systemImage: String?
     var isDisabled = false
@@ -51,7 +52,11 @@ struct PlayerSettingsOptionsView: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(option.title).font(.headline)
                                         if let subtitle = option.subtitle {
-                                            Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.7))
+                                            Text(subtitle)
+                                                .font(.caption.weight(option.highlightsSubtitle ? .semibold : .regular))
+                                                .foregroundStyle(option.highlightsSubtitle
+                                                    ? Color.brandPrimary
+                                                    : .white.opacity(0.7))
                                         }
                                     }
                                     Spacer(minLength: 0)

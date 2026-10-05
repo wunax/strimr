@@ -55,6 +55,7 @@ struct PlayerView: View {
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
     @State private var qualityNoticeMessage: String?
+    @State private var activeOffsetBar: PlaybackOffsetKind?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -85,7 +86,7 @@ struct PlayerView: View {
             playerScene
                 .overlay {
                     playerOverlay
-                        .disabled(sheetPresentation.item != nil)
+                        .disabled(sheetPresentation.item != nil || activeOffsetBar != nil)
                         .accessibilityHidden(sheetPresentation.item != nil)
                         .opacity(sheetPresentation.item != nil ? 0 : 1)
                 }
@@ -245,6 +246,11 @@ struct PlayerView: View {
                     .onPlayPauseCommand { togglePlayPause() }
                 }
             }
+            .overlay {
+                if let activeOffsetBar {
+                    offsetBar(activeOffsetBar)
+                }
+            }
             .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
                 refreshTracks()
             }) {
@@ -299,7 +305,7 @@ struct PlayerView: View {
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
-                currentTime: playerController.sourcePosition,
+                currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
                 bottomPadding: subtitleBottomPadding,
@@ -390,6 +396,7 @@ struct PlayerView: View {
                     onPreviousChannel: { switchLiveChannel(by: -1) },
                     onNextChannel: { switchLiveChannel(by: 1) },
                     settingsControl: settingsControl,
+                    showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
                     settingsFocusGeneration: settingsFocusGeneration,
                 )
                 .transition(.opacity)
@@ -480,6 +487,8 @@ struct PlayerView: View {
                 selectedTrackID: selectedAudioTrackID,
                 showOffOption: false,
                 onSelect: selectAudioTrack(_:),
+                syncItem: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
+                onSelectSync: openOffsetBar(_:),
                 onClose: closeSettingsPanel,
             )
         case .subtitle:
@@ -495,6 +504,8 @@ struct PlayerView: View {
                 onResetTrackSelections: viewModel.canResetRememberedTrackSelections
                     ? { viewModel.resetRememberedTrackSelections() }
                     : nil,
+                syncItem: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
+                onSelectSync: openOffsetBar(_:),
                 onClose: closeSettingsPanel,
             )
         case .speed:
@@ -529,6 +540,24 @@ struct PlayerView: View {
                 )
             }
         }
+    }
+
+    private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
+        let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
+        let edge: Edge.Set = alignment == .top ? .top : .bottom
+        let inset: CGFloat = alignment == .top || !controlsVisible ? 40 : 380
+        return PlayerOffsetBar(
+            controller: playerController,
+            kind: kind,
+            burnsSubtitles: viewModel.burnsSubtitles,
+            onDone: closeOffsetBar,
+        )
+        .focusSection()
+        .padding(edge, inset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .transition(.opacity)
+        .onExitCommand { closeOffsetBar() }
+        .onPlayPauseCommand { togglePlayPause() }
     }
 
     private var timelineBinding: Binding<Double> {
@@ -644,6 +673,24 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
+    private func openOffsetBar(_ kind: PlaybackOffsetKind) {
+        sheetPresentation.item = nil
+        hideControlsWorkItem?.cancel()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = kind
+            controlsVisible = true
+        }
+    }
+
+    private func closeOffsetBar() {
+        playerController.commitAudioDelay()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = nil
+        }
+        settingsFocusGeneration += 1
+        showControls(temporarily: true)
+    }
+
     private func closeSettingsPanel() {
         sheetPresentation.item = nil
         settingsFocusGeneration += 1
@@ -651,6 +698,10 @@ struct PlayerView: View {
     }
 
     private func handleExitCommand() {
+        if activeOffsetBar != nil {
+            closeOffsetBar()
+            return
+        }
         if sheetPresentation.item != nil {
             closeSettingsPanel()
             return
@@ -821,6 +872,9 @@ struct PlayerView: View {
     }
 
     private func selectSubtitleTrack(_ id: Int?) {
+        if id != selectedSubtitleTrackID {
+            playerController.setSubtitleDelay(milliseconds: 0)
+        }
         selectedSubtitleTrackID = id
         Task {
             let track = id.flatMap { selectedID in
@@ -851,6 +905,7 @@ struct PlayerView: View {
                 subtitle,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             )
+            playerController.setSubtitleDelay(milliseconds: 0)
             selectedSubtitleTrackID = id
             refreshTracks()
         } catch {
@@ -983,6 +1038,7 @@ struct PlayerView: View {
             isLive: viewModel.isLivePlayback,
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !sharePlayCoordinator.isInSession,
         )
         playerController.setPlaybackRate(playbackRate)
@@ -1084,7 +1140,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard !isShowingChapterTray, sheetPresentation.item == nil else { return }
+        guard !isShowingChapterTray, sheetPresentation.item == nil, activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(.easeInOut) {

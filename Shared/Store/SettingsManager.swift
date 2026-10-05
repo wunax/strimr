@@ -102,6 +102,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAudioDelayMilliseconds(_ milliseconds: Int) {
+        settings.playback.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(milliseconds)
+        persist()
+    }
+
     func setSubtitleFontSize(_ fontSize: Int) {
         settings.playback.subtitleFontSize = fontSize
         persist()
