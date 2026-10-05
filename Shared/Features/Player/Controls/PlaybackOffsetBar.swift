@@ -172,14 +172,19 @@ struct PlaybackOffsetBar: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(Color.white.opacity(0.18), lineWidth: 1),
             )
+        #if !os(tvOS)
+            // On tvOS the dark scheme already makes text white, and a forced white would stay white on
+            // the light focused button background.
             .foregroundStyle(.white)
+        #endif
             .environment(\.colorScheme, .dark)
     }
 
     @ViewBuilder
     private var content: some View {
         #if os(tvOS)
-            singleRow
+            stackedRows
+                .fixedSize()
         #else
             ViewThatFits(in: .horizontal) {
                 singleRow
@@ -199,7 +204,7 @@ struct PlaybackOffsetBar: View {
     }
 
     private var stackedRows: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: rowSpacing) {
             HStack(spacing: spacing) {
                 header
                 Spacer(minLength: 0)
@@ -212,7 +217,7 @@ struct PlaybackOffsetBar: View {
 
     private var header: some View {
         Label(kind.title, systemImage: kind.systemImage)
-            .font(.headline)
+            .font(headerFont)
             .lineLimit(1)
     }
 
@@ -232,8 +237,11 @@ struct PlaybackOffsetBar: View {
     }
 
     private var doneButton: some View {
-        Button("common.actions.done", action: onDone)
-            .fontWeight(.semibold)
+        Button(action: onDone) {
+            Text("common.actions.done")
+                .foregroundStyle(.foreground)
+        }
+        .fontWeight(.semibold)
         #if !os(tvOS)
             .buttonStyle(.borderedProminent)
         #endif
@@ -254,6 +262,22 @@ struct PlaybackOffsetBar: View {
             32
         #else
             14
+        #endif
+    }
+
+    private var rowSpacing: CGFloat {
+        #if os(tvOS)
+            20
+        #else
+            10
+        #endif
+    }
+
+    private var headerFont: Font {
+        #if os(tvOS)
+            .callout.weight(.semibold)
+        #else
+            .headline
         #endif
     }
 
@@ -332,11 +356,14 @@ struct PlaybackOffsetStepper: View {
                 .font(valueFont)
                 .monospacedDigit()
                 .foregroundStyle(milliseconds == 0 ? .secondary : .primary)
+                .lineLimit(1)
+                .fixedSize()
             // Kept in the layout when empty so the buttons do not jump.
             Text(caption ?? " ")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .fixedSize()
         }
         .frame(minWidth: valueWidth)
         .accessibilityElement(children: .ignore)
@@ -415,6 +442,7 @@ struct PlaybackOffsetResetButton: View {
         Button(action: action) {
             Image(systemName: "arrow.counterclockwise")
                 .font(.body.weight(.semibold))
+                .foregroundStyle(.foreground)
             #if !os(tvOS)
                 .frame(width: 36, height: 36)
             #endif
@@ -480,6 +508,7 @@ enum PlaybackOffsetControl: String, Hashable {
                 Text(title)
                     .font(.headline)
                     .monospacedDigit()
+                    .foregroundStyle(.foreground)
                     .frame(minWidth: 72)
             }
             .disabled(!isEnabled)
