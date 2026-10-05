@@ -63,6 +63,7 @@ struct ProfileSwitcherView: View {
                 Text("auth.profile.pin.prompt \(user.name)")
                     .foregroundStyle(.secondary)
                 SecureField("auth.profile.pin.placeholder", text: $pin)
+                    .pinDigits($pin)
                     .frame(width: 240)
                     .onSubmit { submitPin(for: user) }
                 HStack {

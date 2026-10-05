@@ -118,6 +118,8 @@ struct CreateLocalProfileView: View {
                 SecureField("profiles.pin.optional", text: $pin)
                 #if os(iOS)
                     .keyboardType(.numberPad)
+                #elseif os(macOS)
+                    .pinDigits($pin)
                 #endif
             }
             .navigationTitle("profiles.create")
@@ -127,9 +129,13 @@ struct CreateLocalProfileView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("common.actions.continue", action: create)
-                        .disabled(isNameEmpty)
+                        .disabled(isNameEmpty || !isPINValid)
                 }
             }
+        }
+
+        private var isPINValid: Bool {
+            pin.isEmpty || pin.count == 4 && pin.allSatisfy(\.isNumber)
         }
     #endif
 

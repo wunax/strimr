@@ -302,6 +302,8 @@ struct ProfilePINSettingsView: View {
             .focused($isPINFocused)
         #if os(iOS)
             .keyboardType(.numberPad)
+        #elseif os(macOS)
+            .pinDigits($newPIN)
         #endif
             .onSubmit {
                 if canSave {

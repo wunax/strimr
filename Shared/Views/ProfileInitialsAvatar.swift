@@ -59,16 +59,23 @@ struct ProfilePINPrompt: View {
         }
         .padding()
         .onAppear { isFocused = true }
-        .onChange(of: pin) { _, newValue in
-            let sanitized = String(newValue.filter(\.isNumber).prefix(4))
-            if sanitized != pin {
-                pin = sanitized
-            }
-        }
+        .pinDigits($pin)
     }
 
     private func submit() {
         guard !pin.isEmpty else { return }
         onSubmit(pin)
+    }
+}
+
+extension View {
+    /// Keeps a PIN field to four digits, whatever is typed or pasted.
+    func pinDigits(_ pin: Binding<String>) -> some View {
+        onChange(of: pin.wrappedValue) { _, newValue in
+            let sanitized = String(newValue.filter(\.isNumber).prefix(4))
+            if sanitized != newValue {
+                pin.wrappedValue = sanitized
+            }
+        }
     }
 }
