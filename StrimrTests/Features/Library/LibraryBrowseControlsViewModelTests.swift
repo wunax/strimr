@@ -134,6 +134,13 @@ struct LibraryBrowseControlsViewModelTests {
         #expect(!controls.canResetSelection)
     }
 
+    @Test func `folder display type is detected from its key`() {
+        #expect(makeControls(restoring: PlexSelection(displayTypeKey: "/library/sections/1/folder"))
+            .isFolderDisplayType)
+        #expect(!makeControls(restoring: PlexSelection(displayTypeKey: movieTypeKey)).isFolderDisplayType)
+        #expect(!makeControls(restoring: nil).isFolderDisplayType)
+    }
+
     private func makeControls(restoring selection: PlexSelection?) -> LibraryBrowseControlsViewModel {
         LibraryBrowseControlsViewModel(advancedService: nil, pendingRestore: selection)
     }

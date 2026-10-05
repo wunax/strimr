@@ -16,6 +16,11 @@ struct LibraryBrowseView: View {
         self.onSelectMedia = onSelectMedia
     }
 
+    private var folderTreeToggle: LibraryBrowseToggle? {
+        guard viewModel.canShowFolderTree else { return nil }
+        return .folderTree(isSelected: viewModel.showsFolderTree, action: viewModel.toggleFolderTree)
+    }
+
     var body: some View {
         @Bindable var controls = viewModel.controls
 
@@ -31,18 +36,25 @@ struct LibraryBrowseView: View {
                             viewModel: controls,
                             showsBackButton: viewModel.canNavigateBack,
                             onNavigateBack: viewModel.navigateBack,
-                            layoutToggle: .layout(current: viewModel.layout, onChange: viewModel.setLayout),
-                            itemCount: viewModel.totalItemCount,
+                            folderTreeToggle: folderTreeToggle,
+                            layoutToggle: viewModel.folderTree == nil
+                                ? .layout(current: viewModel.layout, onChange: viewModel.setLayout)
+                                : nil,
+                            itemCount: viewModel.folderTree == nil ? viewModel.totalItemCount : nil,
                         )
 
-                        switch viewModel.layout {
-                        case .grid:
-                            PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
-                                browseItems(cardWidth: cardWidth)
-                            }
-                        case .list:
-                            LazyVStack(spacing: 0) {
-                                browseItems()
+                        if let folderTree = viewModel.folderTree {
+                            FolderTreeView(model: folderTree, onSelectMedia: onSelectMedia)
+                        } else {
+                            switch viewModel.layout {
+                            case .grid:
+                                PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
+                                    browseItems(cardWidth: cardWidth)
+                                }
+                            case .list:
+                                LazyVStack(spacing: 0) {
+                                    browseItems()
+                                }
                             }
                         }
                     }
@@ -60,7 +72,9 @@ struct LibraryBrowseView: View {
                 }
             }
             .overlay {
-                if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
+                if viewModel.folderTree != nil {
+                    EmptyView()
+                } else if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
                     ProgressView("library.browse.loading")
                 } else if let errorMessage = viewModel.errorMessage, viewModel.itemsByIndex.isEmpty {
                     ContentUnavailableView(

@@ -162,6 +162,11 @@ final class LibraryBrowseControlsViewModel {
         selectedDisplayType?.key ?? pendingRestore?.displayTypeKey
     }
 
+    /// Plex lists a library's file tree under its `folder` display type.
+    var isFolderDisplayType: Bool {
+        requestedDisplayTypeKey.flatMap(PlexEndpoint.init(key:))?.path.hasSuffix("/folder") == true
+    }
+
     var plexSelection: LibraryBrowsePreferences.PlexSelection {
         if let pendingRestore {
             return pendingRestore

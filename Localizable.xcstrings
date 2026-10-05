@@ -6383,6 +6383,28 @@
         }
       }
     },
+    "library.browse.folders.tree" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder tree"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arborescence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹树"
+          }
+        }
+      }
+    },
     "library.browse.layout.grid" : {
       "localizations" : {
         "en" : {
