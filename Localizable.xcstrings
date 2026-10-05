@@ -535,6 +535,28 @@
         }
       }
     },
+    "profiles.borrow.unusedAccounts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used by no profile"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisés par aucun profil"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未被任何个人资料使用"
+          }
+        }
+      }
+    },
     "profiles.connection.remove" : {
       "localizations" : {
         "en" : {

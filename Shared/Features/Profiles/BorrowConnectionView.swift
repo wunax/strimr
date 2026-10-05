@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Borrows a connection of another profile. A Plex Home user gets its own token through `/switch`; a Jellyfin
-/// connection is copied, so both profiles share that Jellyfin user.
+/// connection is copied, so both profiles share that Jellyfin user. Jellyfin accounts no profile uses are linked as is.
 struct BorrowConnectionView: View {
     @Environment(SessionManager.self) private var sessionManager
 
@@ -26,7 +26,11 @@ struct BorrowConnectionView: View {
 
     private var sourceProfiles: [StrimrProfile] {
         var seen = Set<String>()
-        return candidates.map(\.sourceProfile).filter { seen.insert($0.id).inserted }
+        return candidates.compactMap(\.sourceProfile).filter { seen.insert($0.id).inserted }
+    }
+
+    private var unusedAccounts: [ProfileStore.BorrowableConnection] {
+        candidates.filter { $0.sourceProfile == nil }
     }
 
     var body: some View {
@@ -44,14 +48,16 @@ struct BorrowConnectionView: View {
                     if let local = source.localProfile, local.pin != nil, !unlockedProfileIDs.contains(local.id) {
                         Button("profiles.borrow.unlock") { unlockingProfile = local }
                     } else {
-                        ForEach(candidates.filter { $0.sourceProfile.id == source.id }) { candidate in
-                            Button {
-                                borrow(candidate)
-                            } label: {
-                                connectionLabel(candidate)
-                            }
-                            .disabled(isBorrowing)
+                        ForEach(candidates.filter { $0.sourceProfile?.id == source.id }) { candidate in
+                            candidateButton(candidate)
                         }
+                    }
+                }
+            }
+            if !unusedAccounts.isEmpty {
+                Section("profiles.borrow.unusedAccounts") {
+                    ForEach(unusedAccounts) { candidate in
+                        candidateButton(candidate)
                     }
                 }
             }
@@ -107,6 +113,15 @@ struct BorrowConnectionView: View {
         }
     }
 
+    private func candidateButton(_ candidate: ProfileStore.BorrowableConnection) -> some View {
+        Button {
+            borrow(candidate)
+        } label: {
+            connectionLabel(candidate)
+        }
+        .disabled(isBorrowing)
+    }
+
     private func connectionLabel(_ candidate: ProfileStore.BorrowableConnection) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(accountTitle(candidate))
@@ -139,6 +154,10 @@ struct BorrowConnectionView: View {
 
     private func borrow(_ candidate: ProfileStore.BorrowableConnection) {
         errorMessage = nil
+        guard candidate.sourceProfile != nil else {
+            link(candidate)
+            return
+        }
         switch candidate.user {
         case .jellyfin:
             // Everything keyed by the Jellyfin user is shared: watch state, downloads, offline journal, cache.

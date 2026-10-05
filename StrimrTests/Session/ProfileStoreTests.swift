@@ -197,9 +197,54 @@ struct ProfileStoreTests {
     @Test func `a plex account already linked is not offered again`() throws {
         let store = ProfileStore(userDefaults: defaults)
         store.updatePlexHomeUsers([homeUser("owner"), homeUser("guest")], accountID: plexAccount.id)
-        let profile = try #require(store.profile(id: "plex.guest", accounts: accounts))
+        let profile = try #require(store.profile(id: "plex.guest", accounts: [plexAccount]))
 
-        #expect(store.borrowableConnections(for: profile, accounts: accounts).isEmpty)
+        #expect(store.borrowableConnections(for: profile, accounts: [plexAccount]).isEmpty)
+    }
+
+    @Test func `jellyfin accounts no profile uses can be linked`() throws {
+        let store = ProfileStore(userDefaults: defaults)
+        store.updatePlexHomeUsers([homeUser("owner")], accountID: plexAccount.id)
+        let target = store.createLocalProfile(name: "Target")
+        let profile = try #require(store.profile(id: target.id, accounts: accounts))
+
+        let borrowable = store.borrowableConnections(for: profile, accounts: accounts)
+
+        let unused = try #require(borrowable.first { $0.sourceProfile == nil })
+        #expect(unused.id == "jellyfin:jf-server.jf-user|jf-user")
+        #expect(borrowable.count == 2)
+    }
+
+    @Test func `the jellyfin accounts left without any profile get one`() throws {
+        let store = ProfileStore(userDefaults: defaults)
+        let otherJellyfinUser = try MediaAccount.jellyfin(JellyfinAccount(connection: JellyfinConnection(
+            baseURL: #require(URL(string: "https://jellyfin.example.invalid")),
+            serverID: "jf-server",
+            serverName: "Jellyfin",
+            serverVersion: "10.10.0",
+            userID: "jf-bob",
+            username: "bob",
+        )))
+        store.updatePlexHomeUsers([homeUser("owner")], accountID: plexAccount.id)
+        store.addLink(ProfileLink(
+            profileID: "plex.owner",
+            accountID: jellyfinAccount.id,
+            user: .jellyfin(userID: "jf-user"),
+        ))
+        #expect(store.makeProfileForJellyfinAccounts(accounts: accounts) == nil)
+
+        store.removeAccount(plexAccount.id)
+        let remaining = [jellyfinAccount, otherJellyfinUser]
+        let fallback = try #require(store.makeProfileForJellyfinAccounts(accounts: remaining))
+
+        #expect(fallback.name == "alice")
+        // One link per server: bob, on the same server, stays available to another profile.
+        #expect(store.state.links == [ProfileLink(
+            profileID: fallback.id,
+            accountID: jellyfinAccount.id,
+            user: .jellyfin(userID: "jf-user"),
+        )])
+        #expect(store.makeProfileForJellyfinAccounts(accounts: remaining) == nil)
     }
 
     @Test func `removing an account forgets it for every profile`() {

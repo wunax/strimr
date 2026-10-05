@@ -130,7 +130,7 @@ struct ProfileDetailView: View {
                 }
             }
 
-            if profile.isLocal {
+            if sessionManager.canDeleteProfile(profile) {
                 Section {
                     Button("profiles.delete", role: .destructive) { isConfirmingDeletion = true }
                 }

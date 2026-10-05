@@ -43,7 +43,8 @@ final class ProfileStore {
     }
 
     struct BorrowableConnection: Hashable, Identifiable {
-        let sourceProfile: StrimrProfile
+        /// nil for a Jellyfin account no profile uses anymore.
+        let sourceProfile: StrimrProfile?
         let accountID: String
         let user: LinkedUser
 
@@ -188,9 +189,9 @@ final class ProfileStore {
         }.map(\.id))
     }
 
-    /// Connections another profile could lend to `profile`: one entry per (account, user), without the servers the
-    /// profile already reaches. A Plex account already linked to the profile brings the same servers, so it is
-    /// excluded as a whole.
+    /// Connections another profile could lend to `profile`, then the Jellyfin accounts no profile uses: one entry per
+    /// (account, user), without the servers the profile already reaches. A Plex account already linked to the profile
+    /// brings the same servers, so it is excluded as a whole.
     func borrowableConnections(for profile: StrimrProfile, accounts: [MediaAccount]) -> [BorrowableConnection] {
         let ownLinks = links(for: profile)
         let ownAccountIDs = Set(ownLinks.map(\.accountID))
@@ -213,7 +214,38 @@ final class ProfileStore {
                 }
             }
         }
+        for account in unusedJellyfinAccounts(accounts: accounts)
+            where !ownJellyfinServers.contains(account.connection.serverID)
+        {
+            result.append(BorrowableConnection(
+                sourceProfile: nil,
+                accountID: MediaAccount.jellyfin(account).id,
+                user: .jellyfin(userID: account.connection.userID),
+            ))
+        }
         return result
+    }
+
+    /// When no profile is left, gives the Jellyfin accounts a local profile named after the first user, as a first
+    /// Jellyfin sign-in does. A profile has at most one link per server, so a second user of a server stays unused.
+    func makeProfileForJellyfinAccounts(accounts: [MediaAccount]) -> LocalProfile? {
+        let jellyfinAccounts = accounts.compactMap(\.jellyfinAccount)
+        guard profiles(accounts: accounts).isEmpty, let first = jellyfinAccounts.first else { return nil }
+        let profile = createLocalProfile(name: first.connection.username)
+        var linkedServers = Set<String>()
+        for account in jellyfinAccounts where linkedServers.insert(account.connection.serverID).inserted {
+            addLink(ProfileLink(
+                profileID: profile.id,
+                accountID: MediaAccount.jellyfin(account).id,
+                user: .jellyfin(userID: account.connection.userID),
+            ))
+        }
+        return profile
+    }
+
+    private func unusedJellyfinAccounts(accounts: [MediaAccount]) -> [JellyfinAccount] {
+        let usedAccountIDs = Set(profiles(accounts: accounts).flatMap { links(for: $0).map(\.accountID) })
+        return accounts.filter { !usedAccountIDs.contains($0.id) }.compactMap(\.jellyfinAccount)
     }
 
     // MARK: - Servers

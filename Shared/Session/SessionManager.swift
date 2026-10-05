@@ -403,8 +403,16 @@ final class SessionManager {
         profileStore.createLocalProfile(name: name, pin: pin)
     }
 
+    /// The last profile stays while accounts exist: removing everything goes through removing the accounts.
+    func canDeleteProfile(_ profile: StrimrProfile) -> Bool {
+        profile.isLocal && profiles.count > 1
+    }
+
     /// Removes the profile, its links and its settings; accounts stay in the settings.
     func deleteLocalProfile(_ profileID: String) {
+        guard let profile = profileStore.profile(id: profileID, accounts: accounts), canDeleteProfile(profile) else {
+            return
+        }
         profileStore.deleteLocalProfile(id: profileID)
         removeSettings(ofProfiles: [profileID])
         if activeProfile?.id == profileID {
@@ -431,7 +439,7 @@ final class SessionManager {
     }
 
     /// Removes an account and everything that refers to it: links, server choices and the settings of servers no
-    /// other account reaches.
+    /// other account reaches. When no profile is left, the remaining Jellyfin accounts get one, which is activated.
     func removeAccount(_ accountID: String) {
         guard accountStore.account(id: accountID) != nil else { return }
         let servers = Set(servers(ofAccount: accountID).keys)
@@ -458,15 +466,16 @@ final class SessionManager {
         removeSettings(ofProfiles: removedHomeProfiles)
 
         guard wasActiveProfileAffected, let activeProfile else { return }
-        if removedHomeProfiles.contains(activeProfile.id) {
-            registry.deactivate()
-            self.activeProfile = nil
-            status = accountStore.accounts.isEmpty ? .needsAccount : .needsProfileSelection
-        } else if profileStore.hasLinks(activeProfile) {
+        if !removedHomeProfiles.contains(activeProfile.id), profileStore.hasLinks(activeProfile) {
             reloadActiveProfile()
+            return
+        }
+        registry.deactivate()
+        self.activeProfile = nil
+        if let fallback = profileStore.makeProfileForJellyfinAccounts(accounts: accountStore.accounts) {
+            status = .hydrating
+            Task { await activate(.local(fallback)) }
         } else {
-            registry.deactivate()
-            self.activeProfile = nil
             status = accountStore.accounts.isEmpty ? .needsAccount : .needsProfileSelection
         }
     }
