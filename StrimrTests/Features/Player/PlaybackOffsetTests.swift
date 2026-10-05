@@ -79,7 +79,8 @@ struct PlaybackOffsetTests {
     }
 
     @Test func `formats step labels per kind`() {
-        #expect(normalized(PlaybackOffsetFormatter.stepLabel(milliseconds: -250, kind: .audio, locale: english)) == "-250")
+        #expect(normalized(PlaybackOffsetFormatter.stepLabel(milliseconds: -250, kind: .audio, locale: english)) ==
+            "-250")
         #expect(normalized(PlaybackOffsetFormatter.stepLabel(milliseconds: 50, kind: .audio, locale: english)) == "+50")
         #expect(normalized(PlaybackOffsetFormatter.stepLabel(milliseconds: 100, kind: .subtitles, locale: french))
             == "+0,1 s")

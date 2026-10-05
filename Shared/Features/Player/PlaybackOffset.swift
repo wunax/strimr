@@ -22,7 +22,11 @@ struct PlaybackOffsetRange: Sendable {
     let coarseStepMilliseconds: Int
 
     /// Must match AetherEngine's `AudioDelayPolicy.maxAbsSeconds`, which the engine does not expose.
-    static let audio = PlaybackOffsetRange(limitMilliseconds: 2000, fineStepMilliseconds: 50, coarseStepMilliseconds: 250)
+    static let audio = PlaybackOffsetRange(
+        limitMilliseconds: 2000,
+        fineStepMilliseconds: 50,
+        coarseStepMilliseconds: 250,
+    )
     static let subtitles = PlaybackOffsetRange(
         limitMilliseconds: 30000,
         fineStepMilliseconds: 100,
