@@ -62,13 +62,13 @@ struct BorrowConnectionView: View {
                 }
             }
         }
-        .navigationTitle("profiles.addConnection.borrow")
+        .taskModalTitle("profiles.addConnection.borrow")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("common.actions.cancel", action: onDone)
             }
         }
-        .sheet(item: $unlockingProfile) { local in
+        .taskPresentation(item: $unlockingProfile) { local in
             ProfilePINPrompt(
                 title: "auth.profile.pin.title",
                 message: String(localized: "auth.profile.pin.prompt \(local.name)"),
@@ -84,7 +84,7 @@ struct BorrowConnectionView: View {
                 onCancel: { unlockingProfile = nil },
             )
         }
-        .sheet(item: $pendingPlexPIN) { candidate in
+        .taskPresentation(item: $pendingPlexPIN) { candidate in
             ProfilePINPrompt(
                 title: "auth.profile.pin.title",
                 message: String(localized: "auth.profile.pin.prompt \(userName(candidate))"),

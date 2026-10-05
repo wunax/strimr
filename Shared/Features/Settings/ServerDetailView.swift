@@ -21,7 +21,7 @@ struct ServerDetailView: View {
                 ContentUnavailableView("settings.server.missing", systemImage: "server.rack")
             }
         }
-        .navigationTitle(registry.serverName(for: server) ?? "")
+        .taskModalTitle(verbatim: registry.serverName(for: server) ?? "")
         .onAppear(perform: loadCustomAddress)
         .taskPresentation(item: $addressModel) { model in
             CustomServerAddressView(model: model)

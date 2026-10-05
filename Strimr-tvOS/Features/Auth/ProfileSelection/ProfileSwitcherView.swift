@@ -31,11 +31,12 @@ struct ProfileSwitcherView: View {
             }
         }
         .task { await viewModel.load() }
-        .sheet(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
+        // Keeps a navigation stack: profiles are pushed from the list.
+        .taskPresentation(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
             NavigationStack { ProfilesSettingsView() }
         }
-        .sheet(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
-            NavigationStack { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
+        .taskPresentation(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
+            TaskModalNavigationView { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
         }
         .onAppear {
             if focusedUserID == nil, let firstUser = viewModel.choices.first {

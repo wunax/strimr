@@ -31,18 +31,18 @@ struct TVAccountsSettingsView: View {
                 .settingsFocus("accounts.add", isDefault: sessionManager.accounts.isEmpty)
             }
         }
-        .sheet(isPresented: $isAddingAccount) {
+        .taskPresentation(isPresented: $isAddingAccount, style: .fullScreen) {
             AccountSetupView(purpose: .settings, sessionManager: sessionManager) {
                 isAddingAccount = false
             }
         }
-        .sheet(item: $reconnectingAccount) { account in
+        .taskPresentation(item: $reconnectingAccount, style: .fullScreen) { account in
             NavigationStack {
                 ReconnectAccountView(account: account) { reconnectingAccount = nil }
             }
         }
-        .sheet(item: $detailServer) { session in
-            NavigationStack {
+        .taskPresentation(item: $detailServer) { session in
+            TaskModalNavigationView {
                 ServerDetailView(server: session.identity)
             }
         }
@@ -150,7 +150,7 @@ struct TVProfilesSettingsView: View {
                 }
             }
         }
-        .sheet(isPresented: $isCreatingProfile) {
+        .taskPresentation(isPresented: $isCreatingProfile) {
             CreateLocalProfileView(
                 onCreate: { profile in
                     isCreatingProfile = false
@@ -160,8 +160,8 @@ struct TVProfilesSettingsView: View {
                 onCancel: { isCreatingProfile = false },
             )
         }
-        .sheet(item: $editedProfile) { sheet in
-            NavigationStack {
+        .taskPresentation(item: $editedProfile) { sheet in
+            TaskModalNavigationView {
                 ProfileDetailView(profileID: sheet.id, startsWithNewConnection: sheet.startsWithNewConnection)
             }
         }

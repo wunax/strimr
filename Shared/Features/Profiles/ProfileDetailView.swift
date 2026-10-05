@@ -28,7 +28,7 @@ struct ProfileDetailView: View {
                 ContentUnavailableView("profiles.missing", systemImage: "person.crop.circle.badge.questionmark")
             }
         }
-        .navigationTitle(profile?.name ?? "")
+        .taskModalTitle(verbatim: profile?.name ?? "")
         .onAppear {
             name = profile?.localProfile?.name ?? ""
             guard startsWithNewConnection, !hasPresentedInitialConnection else { return }
@@ -40,17 +40,17 @@ struct ProfileDetailView: View {
             Button("profiles.addConnection.borrow") { isBorrowingConnection = true }
             Button("common.actions.cancel", role: .cancel) {}
         }
-        .sheet(isPresented: $isAddingNewConnection) {
+        .taskPresentation(isPresented: $isAddingNewConnection, style: .fullScreen) {
             AccountSetupView(purpose: .profile(profileID), sessionManager: sessionManager) {
                 isAddingNewConnection = false
             }
         }
-        .sheet(isPresented: $isBorrowingConnection) {
-            NavigationStack {
+        .taskPresentation(isPresented: $isBorrowingConnection) {
+            TaskModalNavigationView {
                 BorrowConnectionView(profileID: profileID) { isBorrowingConnection = false }
             }
         }
-        .sheet(isPresented: $isEditingPIN) {
+        .taskPresentation(isPresented: $isEditingPIN) {
             ProfilePINSettingsView(profileID: profileID)
         }
         .alert("profiles.delete.title", isPresented: $isConfirmingDeletion) {
@@ -217,7 +217,7 @@ struct ProfilePINSettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             Group {
                 #if os(tvOS)
                     VStack(spacing: 32) {
@@ -247,7 +247,7 @@ struct ProfilePINSettingsView: View {
                     }
                 #endif
             }
-            .navigationTitle(actionTitle)
+            .taskModalTitle(actionTitle)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.actions.cancel") { dismiss() }

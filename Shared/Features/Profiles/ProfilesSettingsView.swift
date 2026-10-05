@@ -36,8 +36,8 @@ struct ProfilesSettingsView: View {
                 }
             }
         }
-        .navigationTitle("profiles.title")
-        .sheet(isPresented: $isCreatingProfile) {
+        .taskModalTitle("profiles.title")
+        .taskPresentation(isPresented: $isCreatingProfile) {
             CreateLocalProfileView(
                 onCreate: { profile in
                     isCreatingProfile = false
@@ -62,7 +62,7 @@ struct CreateLocalProfileView: View {
     @State private var pin = ""
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             Form {
                 TextField("profiles.name", text: $name)
                 SecureField("profiles.pin.optional", text: $pin)
@@ -74,7 +74,7 @@ struct CreateLocalProfileView: View {
                         .disabled(isNameEmpty)
                 #endif
             }
-            .navigationTitle("profiles.create")
+            .taskModalTitle("profiles.create")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.actions.cancel", action: onCancel)
