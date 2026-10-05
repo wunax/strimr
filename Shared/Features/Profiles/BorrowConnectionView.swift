@@ -68,7 +68,7 @@ struct BorrowConnectionView: View {
                 Button("common.actions.cancel", action: onDone)
             }
         }
-        .taskPresentation(item: $unlockingProfile, style: .compactModal) { local in
+        .taskPresentation(item: $unlockingProfile) { local in
             ProfilePINPrompt(
                 title: "auth.profile.pin.title",
                 message: String(localized: "auth.profile.pin.prompt \(local.name)"),
@@ -84,7 +84,7 @@ struct BorrowConnectionView: View {
                 onCancel: { unlockingProfile = nil },
             )
         }
-        .taskPresentation(item: $pendingPlexPIN, style: .compactModal) { candidate in
+        .taskPresentation(item: $pendingPlexPIN) { candidate in
             ProfilePINPrompt(
                 title: "auth.profile.pin.title",
                 message: String(localized: "auth.profile.pin.prompt \(userName(candidate))"),

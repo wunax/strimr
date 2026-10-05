@@ -60,34 +60,78 @@ struct CreateLocalProfileView: View {
     let onCancel: () -> Void
     @State private var name = ""
     @State private var pin = ""
+    @State private var isEnteringPIN = false
 
     var body: some View {
         TaskModalNavigationView {
+            #if os(tvOS)
+                VStack(alignment: .leading, spacing: 32) {
+                    TVProfileNameField(text: $name)
+                    tvOSForm
+                }
+                .taskModalTitle("profiles.create")
+            #else
+                platformForm
+            #endif
+        }
+        #if os(tvOS)
+        .taskPresentation(isPresented: $isEnteringPIN) {
+            TVPINPadView(
+                title: "profiles.pin.define",
+                onComplete: { entered in
+                    pin = entered
+                    isEnteringPIN = false
+                },
+                onCancel: { isEnteringPIN = false },
+            ) {
+                if !pin.isEmpty {
+                    Button("profiles.pin.remove", role: .destructive) {
+                        pin = ""
+                        isEnteringPIN = false
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+        }
+        #endif
+    }
+
+    #if os(tvOS)
+        private var tvOSForm: some View {
+            Form {
+                Button { isEnteringPIN = true } label: {
+                    HStack {
+                        Text("profiles.pin.optional")
+                        Spacer()
+                        Text(pin.isEmpty ? "profiles.pin.disabled" : "profiles.pin.enabled")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Button("common.actions.continue", action: create)
+                    .disabled(isNameEmpty)
+            }
+        }
+    #else
+        private var platformForm: some View {
             Form {
                 TextField("profiles.name", text: $name)
                 SecureField("profiles.pin.optional", text: $pin)
                 #if os(iOS)
                     .keyboardType(.numberPad)
                 #endif
-                #if os(tvOS)
-                    Button("common.actions.continue", action: create)
-                        .disabled(isNameEmpty)
-                #endif
             }
-            .taskModalTitle("profiles.create")
+            .navigationTitle("profiles.create")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.actions.cancel", action: onCancel)
                 }
-                #if !os(tvOS)
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("common.actions.continue", action: create)
-                            .disabled(isNameEmpty)
-                    }
-                #endif
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.actions.continue", action: create)
+                        .disabled(isNameEmpty)
+                }
             }
         }
-    }
+    #endif
 
     private var isNameEmpty: Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -97,6 +141,28 @@ struct CreateLocalProfileView: View {
         onCreate(sessionManager.createLocalProfile(name: name, pin: String(pin.filter(\.isNumber).prefix(4))))
     }
 }
+
+#if os(tvOS)
+    /// A text field draws its own platter on tvOS, so it sits above the form rather than in a row.
+    struct TVProfileNameField: View {
+        @Binding var text: String
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                // Matches the form's section headers.
+                Text("profiles.name")
+                    .font(.subheadline)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 20)
+                TextField("profiles.name", text: $text)
+                    .font(.body)
+                    // The system platter is translucent: lightening what is behind it matches the form rows.
+                    .background(Color.white.opacity(0.16), in: Capsule())
+            }
+        }
+    }
+#endif
 
 struct ProfileRow: View {
     let profile: StrimrProfile

@@ -4,10 +4,8 @@ import SwiftUI
 struct ProfileSwitcherView: View {
     @State private var viewModel: ProfileSwitcherViewModel
     @State private var pinPromptUser: ProfileChoice?
-    @State private var pinInput: String = ""
     @State private var isShowingProfiles = false
     @FocusState private var focusedUserID: String?
-    @FocusState private var focusedPinDigit: String?
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -48,17 +46,16 @@ struct ProfileSwitcherView: View {
                 focusedUserID = firstUser.id
             }
         }
-        .taskPresentation(item: $pinPromptUser, onDismiss: resetPinPrompt) { user in
-            pinEntrySheet(for: user)
-        }
-        .onChange(of: pinInput) { _, newValue in
-            let sanitizedValue = String(newValue.filter(\.isNumber).prefix(4))
-            if sanitizedValue != pinInput {
-                pinInput = sanitizedValue
-                return
-            }
-
-            submitPinIfComplete()
+        .taskPresentation(item: $pinPromptUser) { user in
+            TVPINPadView(
+                title: "auth.profile.pin.title",
+                message: String(localized: "auth.profile.pin.prompt \(user.name)"),
+                onComplete: { pin in
+                    pinPromptUser = nil
+                    Task { await viewModel.select(user, pin: pin) }
+                },
+                onCancel: { pinPromptUser = nil },
+            )
         }
     }
 
@@ -113,7 +110,6 @@ struct ProfileSwitcherView: View {
         Button {
             if user.requiresPIN {
                 pinPromptUser = user
-                pinInput = ""
             } else {
                 Task { await viewModel.select(user, pin: nil) }
             }
@@ -236,128 +232,10 @@ struct ProfileSwitcherView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func pinEntrySheet(for user: ProfileChoice) -> some View {
-        HStack(alignment: .center, spacing: 80) {
-            VStack(alignment: .leading, spacing: 32) {
-                Text("auth.profile.pin.prompt \(user.name)")
-                    .font(.title3)
-                    .fixedSize(horizontal: false, vertical: true)
-                pinDisplay
-            }
-            .frame(maxWidth: 560, alignment: .leading)
-
-            VStack(spacing: 36) {
-                keypad
-                Button("common.actions.cancel", role: .cancel) {
-                    resetPinPrompt()
-                }
-            }
-            .frame(width: 440)
-            .focusSection()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .taskModalTitle("auth.profile.pin.title")
-        .onAppear { focusedPinDigit = "1" }
-    }
-
-    private var pinDisplay: some View {
-        HStack(spacing: 12) {
-            ForEach(0 ..< 4, id: \.self) { index in
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 70, height: 70)
-
-                    if index < pinInput.count {
-                        Text("•")
-                            .font(.title.bold())
-                    }
-                }
-            }
-        }
-    }
-
-    private let columns = [
-        GridItem(.fixed(128), spacing: 16),
-        GridItem(.fixed(128), spacing: 16),
-        GridItem(.fixed(128), spacing: 16),
-    ]
-
-    private let keypadButtonSize = CGSize(width: 64, height: 48)
-
-    private var keypad: some View {
-        LazyVGrid(columns: columns) {
-            ForEach(["1", "2", "3", "4", "5", "6", "7", "8", "9"], id: \.self) {
-                keypadDigitButton($0)
-            }
-
-            Color.clear
-                .frame(
-                    width: keypadButtonSize.width,
-                    height: keypadButtonSize.height,
-                )
-
-            keypadDigitButton("0")
-            keypadDeleteButton()
-        }
-    }
-
-    private func keypadDigitButton(_ digit: String) -> some View {
-        Button {
-            appendDigit(digit)
-        } label: {
-            Text(digit)
-                .font(.title2.bold())
-                .frame(width: keypadButtonSize.width)
-                .padding(.vertical, 16)
-        }
-        .buttonBorderShape(.roundedRectangle(radius: 14))
-        .controlSize(.small)
-        .focused($focusedPinDigit, equals: digit)
-    }
-
-    private func keypadDeleteButton() -> some View {
-        Button {
-            deleteDigit()
-        } label: {
-            Image(systemName: "delete.left")
-                .font(.title2.bold())
-                .frame(width: keypadButtonSize.width)
-                .padding(.vertical, 16)
-        }
-        .buttonBorderShape(.roundedRectangle(radius: 14))
-        .controlSize(.small)
-        .disabled(pinInput.isEmpty)
-    }
-
-    private func appendDigit(_ digit: String) {
-        guard pinInput.count < 4 else { return }
-        pinInput.append(contentsOf: digit)
-    }
-
-    private func deleteDigit() {
-        guard !pinInput.isEmpty else { return }
-        pinInput.removeLast()
-    }
-
     private func borderColor(for user: ProfileChoice) -> Color {
         if user.isActive {
             return .brandPrimary
         }
         return .white.opacity(0.2)
-    }
-
-    private func resetPinPrompt() {
-        pinPromptUser = nil
-        pinInput = ""
-    }
-
-    private func submitPinIfComplete() {
-        guard pinInput.count == 4 else { return }
-        guard let user = pinPromptUser else { return }
-
-        let enteredPin = pinInput
-        Task { await viewModel.select(user, pin: enteredPin) }
-        resetPinPrompt()
     }
 }

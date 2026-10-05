@@ -342,6 +342,7 @@
 				Views/Seerr/SeerrSearchCard.swift,
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
 				Views/ServerScopedView.swift,
+				Views/TVPINPadView.swift,
 				Views/TaskPresentation.swift,
 				Views/Toast/ToastOverlay.swift,
 			);

@@ -51,7 +51,7 @@ struct ProfileDetailView: View {
                 BorrowConnectionView(profileID: profileID) { isBorrowingConnection = false }
             }
         }
-        .taskPresentation(isPresented: $isEditingPIN, style: .compactModal) {
+        .taskPresentation(isPresented: $isEditingPIN) {
             ProfilePINSettingsView(profileID: profileID)
         }
         .confirmationDialog(
@@ -80,14 +80,32 @@ struct ProfileDetailView: View {
         }
     }
 
+    @ViewBuilder
     private func form(for profile: StrimrProfile) -> some View {
-        Form {
-            if let local = profile.localProfile {
-                Section("profiles.name") {
-                    TextField("profiles.name", text: $name)
+        #if os(tvOS)
+            VStack(alignment: .leading, spacing: 32) {
+                if let local = profile.localProfile {
+                    TVProfileNameField(text: $name)
                         .onSubmit { rename(local) }
                         .onDisappear { rename(local) }
                 }
+                rows(for: profile)
+            }
+        #else
+            rows(for: profile)
+        #endif
+    }
+
+    private func rows(for profile: StrimrProfile) -> some View {
+        Form {
+            if let local = profile.localProfile {
+                #if !os(tvOS)
+                    Section("profiles.name") {
+                        TextField("profiles.name", text: $name)
+                            .onSubmit { rename(local) }
+                            .onDisappear { rename(local) }
+                    }
+                #endif
                 Section {
                     Button { isEditingPIN = true } label: {
                         HStack {
@@ -246,43 +264,34 @@ struct ProfilePINSettingsView: View {
     }
 
     var body: some View {
-        TaskModalNavigationView {
-            Group {
-                #if os(tvOS)
-                    VStack(spacing: 32) {
-                        pinField
-                        saveButton
-                            .buttonStyle(.borderedProminent)
-                            .tint(.brandPrimary)
-                        if hasPIN {
-                            removeButton
-                                .buttonStyle(.bordered)
-                        }
-                    }
-                    .frame(maxWidth: 600)
-                    .padding(48)
-                    .defaultFocus($isPINFocused, true)
-                #else
-                    Form {
-                        Section {
-                            pinField
-                            saveButton
-                        }
-                        if hasPIN {
-                            Section {
-                                removeButton
-                            }
-                        }
-                    }
-                #endif
-            }
-            .taskModalTitle(actionTitle)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("common.actions.cancel") { dismiss() }
+        #if os(tvOS)
+            TVPINPadView(title: actionTitle, onComplete: save, onCancel: { dismiss() }) {
+                if hasPIN {
+                    removeButton
+                        .buttonStyle(.bordered)
                 }
             }
-        }
+        #else
+            NavigationStack {
+                Form {
+                    Section {
+                        pinField
+                        saveButton
+                    }
+                    if hasPIN {
+                        Section {
+                            removeButton
+                        }
+                    }
+                }
+                .navigationTitle(actionTitle)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("common.actions.cancel") { dismiss() }
+                    }
+                }
+            }
+        #endif
     }
 
     private var pinField: some View {
@@ -313,8 +322,13 @@ struct ProfilePINSettingsView: View {
     }
 
     private func savePIN() {
-        guard canSave, var updated = profile else { return }
-        updated.pin = LocalProfilePIN(pin: digits)
+        guard canSave else { return }
+        save(digits)
+    }
+
+    private func save(_ pin: String) {
+        guard var updated = profile else { return }
+        updated.pin = LocalProfilePIN(pin: pin)
         sessionManager.profileStore.updateLocalProfile(updated)
         dismiss()
     }

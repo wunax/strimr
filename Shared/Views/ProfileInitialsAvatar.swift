@@ -30,6 +30,14 @@ struct ProfilePINPrompt: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
+        #if os(tvOS)
+            TVPINPadView(title: title, message: message, onComplete: onSubmit, onCancel: onCancel)
+        #else
+            form
+        #endif
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.headline)
