@@ -41,7 +41,7 @@ struct TVAccountsSettingsView: View {
                 ReconnectAccountView(account: account) { reconnectingAccount = nil }
             }
         }
-        .taskPresentation(item: $detailServer) { session in
+        .taskPresentation(item: $detailServer, style: .compactModal) { session in
             TaskModalNavigationView {
                 ServerDetailView(server: session.identity)
             }
@@ -150,7 +150,7 @@ struct TVProfilesSettingsView: View {
                 }
             }
         }
-        .taskPresentation(isPresented: $isCreatingProfile) {
+        .taskPresentation(isPresented: $isCreatingProfile, style: .compactModal) {
             CreateLocalProfileView(
                 onCreate: { profile in
                     isCreatingProfile = false
@@ -160,7 +160,7 @@ struct TVProfilesSettingsView: View {
                 onCancel: { isCreatingProfile = false },
             )
         }
-        .taskPresentation(item: $editedProfile) { sheet in
+        .taskPresentation(item: $editedProfile, style: .compactModal) { sheet in
             TaskModalNavigationView {
                 ProfileDetailView(profileID: sheet.id, startsWithNewConnection: sheet.startsWithNewConnection)
             }

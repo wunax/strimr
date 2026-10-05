@@ -15,6 +15,7 @@ struct ProfileDetailView: View {
     @State private var isBorrowingConnection = false
     @State private var isConfirmingDeletion = false
     @State private var hasPresentedInitialConnection = false
+    @State private var linkPendingRemoval: ProfileLink?
 
     private var profile: StrimrProfile? {
         sessionManager.profileStore.profile(id: profileID, accounts: sessionManager.accounts)
@@ -45,13 +46,28 @@ struct ProfileDetailView: View {
                 isAddingNewConnection = false
             }
         }
-        .taskPresentation(isPresented: $isBorrowingConnection) {
+        .taskPresentation(isPresented: $isBorrowingConnection, style: .compactModal) {
             TaskModalNavigationView {
                 BorrowConnectionView(profileID: profileID) { isBorrowingConnection = false }
             }
         }
-        .taskPresentation(isPresented: $isEditingPIN) {
+        .taskPresentation(isPresented: $isEditingPIN, style: .compactModal) {
             ProfilePINSettingsView(profileID: profileID)
+        }
+        .confirmationDialog(
+            linkPendingRemoval.map(title(of:)) ?? "",
+            isPresented: Binding(get: { linkPendingRemoval != nil }, set: {
+                if !$0 {
+                    linkPendingRemoval = nil
+                }
+            }),
+            titleVisibility: .visible,
+            presenting: linkPendingRemoval,
+        ) { link in
+            Button("profiles.connection.remove", role: .destructive) {
+                sessionManager.removeLink(profileID: profileID, accountID: link.accountID)
+            }
+            Button("common.actions.cancel", role: .cancel) {}
         }
         .alert("profiles.delete.title", isPresented: $isConfirmingDeletion) {
             Button("profiles.delete", role: .destructive) {
@@ -132,22 +148,35 @@ struct ProfileDetailView: View {
         }
     }
 
+    @ViewBuilder
     private func connectionRow(_ link: ProfileLink, profile: StrimrProfile) -> some View {
         let isImplicit = profile.plexHomeProfile?.implicitLink == link
-        return HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title(of: link))
-                Text(subtitle(of: link))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        #if os(tvOS)
+            // A trailing button cannot take focus inside a tvOS row: the row itself offers the removal.
+            Button { linkPendingRemoval = link } label: {
+                connectionLabel(link)
             }
-            Spacer()
-            if !isImplicit {
-                Button("profiles.connection.remove", role: .destructive) {
-                    sessionManager.removeLink(profileID: profile.id, accountID: link.accountID)
+            .disabled(isImplicit)
+        #else
+            HStack {
+                connectionLabel(link)
+                Spacer()
+                if !isImplicit {
+                    Button("profiles.connection.remove", role: .destructive) {
+                        sessionManager.removeLink(profileID: profile.id, accountID: link.accountID)
+                    }
+                    .buttonStyle(.borderless)
                 }
-                .buttonStyle(.borderless)
             }
+        #endif
+    }
+
+    private func connectionLabel(_ link: ProfileLink) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title(of: link))
+            Text(subtitle(of: link))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

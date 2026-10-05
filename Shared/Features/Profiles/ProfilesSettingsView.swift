@@ -37,7 +37,7 @@ struct ProfilesSettingsView: View {
             }
         }
         .taskModalTitle("profiles.title")
-        .taskPresentation(isPresented: $isCreatingProfile) {
+        .taskPresentation(isPresented: $isCreatingProfile, style: .compactModal) {
             CreateLocalProfileView(
                 onCreate: { profile in
                     isCreatingProfile = false

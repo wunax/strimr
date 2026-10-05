@@ -32,10 +32,10 @@ struct ProfileSwitcherView: View {
         }
         .task { await viewModel.load() }
         // Keeps a navigation stack: profiles are pushed from the list.
-        .taskPresentation(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
+        .taskPresentation(isPresented: $isShowingProfiles, style: .compactModal, onDismiss: viewModel.refreshChoices) {
             NavigationStack { ProfilesSettingsView() }
         }
-        .taskPresentation(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
+        .taskPresentation(item: $viewModel.profileNeedingConnection, style: .compactModal, onDismiss: viewModel.refreshChoices) { profile in
             TaskModalNavigationView { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
         }
         .onAppear {

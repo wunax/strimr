@@ -4,6 +4,8 @@ import SwiftUI
 /// handling and restoration of the presenting focus. Other platforms retain sheets.
 enum TaskPresentationStyle {
     case modal
+    /// A narrower modal, for short forms and lists.
+    case compactModal
     case contextual
     /// Opaque and edge to edge, for flows that need full attention and keep their own navigation stack.
     case fullScreen
@@ -45,13 +47,16 @@ extension View {
 
 #if os(tvOS)
     struct TVModalView<Content: View>: View {
+        var maxWidth: CGFloat = 1560
         @ViewBuilder var content: () -> Content
 
         var body: some View {
             ZStack {
                 Color.black.opacity(0.8).ignoresSafeArea()
                 content()
-                    .frame(maxWidth: 1560, maxHeight: .infinity)
+                    // Focused rows and fields grow past their scroll view's bounds.
+                    .scrollClipDisabled()
+                    .frame(maxWidth: maxWidth, maxHeight: .infinity)
                     .padding(40)
                     .background(Color("Background"), in: RoundedRectangle(cornerRadius: 28))
                     .padding(48)
@@ -102,6 +107,10 @@ extension View {
             switch style {
             case .modal:
                 TVModalView(content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
+            case .compactModal:
+                TVModalView(maxWidth: 1000, content: content)
                     .presentationBackground(.clear)
                     .onExitCommand { dismiss() }
             case .contextual:
