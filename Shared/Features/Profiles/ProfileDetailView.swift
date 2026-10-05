@@ -164,6 +164,9 @@ struct ProfileDetailView: View {
                 }
             }
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
     }
 
     @ViewBuilder

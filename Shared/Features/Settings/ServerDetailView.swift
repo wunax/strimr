@@ -67,6 +67,9 @@ struct ServerDetailView: View {
                 }
             }
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
     }
 
     private func loadCustomAddress() {
