@@ -211,7 +211,15 @@ struct PlaybackOffsetBar: View {
                 resetButton
                 doneButton
             }
+            #if os(tvOS)
+            // Up/down must reach the other row even when no control sits right above or below,
+            // e.g. when the increase buttons are disabled at the maximum.
+            .focusSection()
+            #endif
             stepper
+            #if os(tvOS)
+                .focusSection()
+            #endif
         }
     }
 
