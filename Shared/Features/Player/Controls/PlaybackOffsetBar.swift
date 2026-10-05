@@ -495,7 +495,7 @@ enum PlaybackOffsetControl: String, Hashable {
         }
     }
 
-    /// No hold-to-repeat on tvOS in v1: a plain focusable button.
+    /// Steps once on press, then repeats while the remote's select button is held, faster and faster.
     private struct PlaybackOffsetStepButton: View {
         let title: String
         let accessibilityLabel: String
@@ -503,17 +503,92 @@ enum PlaybackOffsetControl: String, Hashable {
         let isEnabled: Bool
         let action: () -> Void
 
+        @State private var repeatTask: Task<Void, Never>?
+
         var body: some View {
-            Button(action: action) {
+            // Stepping is driven by the press itself, so the release action stays empty.
+            Button {} label: {
                 Text(title)
                     .font(.headline)
                     .monospacedDigit()
-                    .foregroundStyle(.foreground)
                     .frame(minWidth: 72)
             }
+            .buttonStyle(PlaybackOffsetRepeatButtonStyle { pressed in
+                if pressed {
+                    startIfNeeded()
+                } else {
+                    stop()
+                }
+            })
             .disabled(!isEnabled)
+            .onChange(of: isEnabled) { _, enabled in
+                if !enabled {
+                    stop()
+                }
+            }
+            .onDisappear(perform: stop)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue(accessibilityValue)
+            .accessibilityAction {
+                if isEnabled {
+                    action()
+                }
+            }
+        }
+
+        private func startIfNeeded() {
+            guard repeatTask == nil, isEnabled else { return }
+            action()
+            repeatTask = Task { @MainActor in
+                var index = 0
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: PlaybackOffsetRepeat.interval(beforeRepeat: index))
+                    guard !Task.isCancelled else { return }
+                    action()
+                    index += 1
+                }
+            }
+        }
+
+        private func stop() {
+            repeatTask?.cancel()
+            repeatTask = nil
+        }
+    }
+
+    /// The native style hides `isPressed`, so this one redraws the tvOS focus look itself.
+    private struct PlaybackOffsetRepeatButtonStyle: ButtonStyle {
+        let onPressChanged: (Bool) -> Void
+
+        func makeBody(configuration: Configuration) -> some View {
+            PlaybackOffsetRepeatButtonBody(configuration: configuration, onPressChanged: onPressChanged)
+        }
+    }
+
+    private struct PlaybackOffsetRepeatButtonBody: View {
+        let configuration: ButtonStyleConfiguration
+        let onPressChanged: (Bool) -> Void
+
+        @Environment(\.isFocused) private var isFocused
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(isFocused ? Color.black : Color.primary)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 20)
+                .background(
+                    isFocused ? Color.white : Color.primary.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                )
+                .scaleEffect(isFocused && !configuration.isPressed ? 1.1 : 1)
+                .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: 14, y: 8)
+                .opacity(isEnabled ? 1 : 0.35)
+                .animation(.easeOut(duration: 0.15), value: isFocused)
+                .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+                .onChange(of: configuration.isPressed) { _, pressed in
+                    onPressChanged(pressed)
+                }
         }
     }
 #else
