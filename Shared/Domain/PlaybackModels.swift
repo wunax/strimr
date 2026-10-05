@@ -182,6 +182,8 @@ struct PlaybackPlan: Sendable {
     let versions: [MediaFileVersion]
     /// The version actually played.
     let versionID: String?
+    /// The server draws the selected subtitle into the transcoded picture.
+    var burnsSubtitles = false
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {

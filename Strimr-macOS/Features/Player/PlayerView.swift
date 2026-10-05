@@ -93,6 +93,7 @@ struct PlayerView: View {
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
+    @State private var activeOffsetBar: PlaybackOffsetKind?
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -116,7 +117,7 @@ struct PlayerView: View {
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
-                currentTime: playerController.sourcePosition,
+                currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
                 bottomPadding: controlsVisible ? 96 : 48,
@@ -146,6 +147,10 @@ struct PlayerView: View {
             if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented {
                 controls
                     .transition(.opacity)
+            }
+
+            if let activeOffsetBar, !isShowingPlayQueue {
+                offsetBar(activeOffsetBar)
             }
 
             if isShowingPlayQueue,
@@ -737,6 +742,8 @@ struct PlayerView: View {
                     }
                 }
             }
+            Divider()
+            offsetMenuButton(.audio)
         } label: {
             Label("player.settings.audio", systemImage: "waveform")
         }
@@ -745,6 +752,9 @@ struct PlayerView: View {
     private var subtitleMenu: some View {
         Menu {
             Button {
+                if selectedSubtitleTrackID != nil {
+                    playerController.setSubtitleDelay(milliseconds: 0)
+                }
                 selectedSubtitleTrackID = nil
                 playerController.selectSubtitleTrack(
                     id: nil,
@@ -765,6 +775,9 @@ struct PlayerView: View {
             }
             ForEach(subtitleTracks) { track in
                 Button {
+                    if selectedSubtitleTrackID != track.id {
+                        playerController.setSubtitleDelay(milliseconds: 0)
+                    }
                     selectedSubtitleTrackID = track.id
                     playerController.selectSubtitleTrack(
                         id: track.id,
@@ -801,9 +814,67 @@ struct PlayerView: View {
                     Label("player.settings.tracks.reset", systemImage: "arrow.counterclockwise")
                 }
             }
+            Divider()
+            offsetMenuButton(.subtitles)
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
         }
+        .overlay(alignment: .topTrailing) {
+            if playerController.subtitleDelayMilliseconds != 0 {
+                PlaybackOffsetIndicator()
+                    .offset(x: 3, y: -3)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private func offsetMenuButton(_ kind: PlaybackOffsetKind) -> some View {
+        let item = playerController.offsetMenuItem(kind, burnsSubtitles: viewModel.burnsSubtitles)
+        return Button {
+            openOffsetBar(kind)
+        } label: {
+            Label {
+                Text(item.kind.title)
+                Text(item.availability.message ?? item.value)
+            } icon: {
+                Image(systemName: item.kind.systemImage)
+            }
+        }
+        .disabled(!item.availability.isAvailable)
+    }
+
+    private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
+        let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
+        let edge: Edge.Set = alignment == .top ? .top : .bottom
+        // Clears the title row (top) or the transport controls (bottom) while they are shown.
+        let inset: CGFloat = controlsVisible ? (alignment == .top ? 84 : 140) : 24
+        return PlayerOffsetBar(
+            controller: playerController,
+            kind: kind,
+            burnsSubtitles: viewModel.burnsSubtitles,
+            onDone: closeOffsetBar,
+        )
+        .padding(.horizontal, 24)
+        .padding(edge, inset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .transition(.opacity)
+    }
+
+    private func openOffsetBar(_ kind: PlaybackOffsetKind) {
+        hideControlsWorkItem?.cancel()
+        restoreCursor()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = kind
+            controlsVisible = true
+        }
+    }
+
+    private func closeOffsetBar() {
+        playerController.commitAudioDelay()
+        withAnimation(.easeInOut) {
+            activeOffsetBar = nil
+        }
+        showControls(temporarily: true)
     }
 
     private func playerTrackTitle(_ track: PlayerTrack) -> String {
@@ -927,6 +998,7 @@ struct PlayerView: View {
             isLive: viewModel.isLivePlayback,
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !wasPaused,
         )
         playerController.setPlaybackRate(playbackRate)
@@ -939,6 +1011,7 @@ struct PlayerView: View {
                 subtitle,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             )
+            playerController.setSubtitleDelay(milliseconds: 0)
             selectedSubtitleTrackID = id
             let tracks = viewModel.isTranscoding
                 ? viewModel.sourcePlayerTracks()
@@ -982,7 +1055,14 @@ struct PlayerView: View {
             Button(action: { keyboardSeek(by: seekForwardInterval) }) { EmptyView() }
                 .keyboardShortcut(.rightArrow, modifiers: [])
 
-            if isShowingPlayQueue {
+            if activeOffsetBar != nil {
+                Button {
+                    closeOffsetBar()
+                } label: {
+                    EmptyView()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            } else if isShowingPlayQueue {
                 Button {
                     hidePlayQueue()
                 } label: {
@@ -1104,6 +1184,7 @@ struct PlayerView: View {
             isLive: viewModel.isLivePlayback,
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !isSharePlayPlayback,
         )
         playerController.setPlaybackRate(playbackRate)
@@ -1319,6 +1400,7 @@ struct PlayerView: View {
                 isLive: viewModel.isLivePlayback,
                 nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
                 dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+                audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
                 autoplay: !isSharePlay,
             )
             playerController.setPlaybackRate(playbackRate)
@@ -1534,7 +1616,8 @@ struct PlayerView: View {
             !playerController.isPaused,
             !isScrubbing,
             !isShowingError,
-            !isShowingChapterPopover
+            !isShowingChapterPopover,
+            activeOffsetBar == nil
         else {
             return
         }
@@ -1554,6 +1637,7 @@ struct PlayerView: View {
                     && !isScrubbing
                     && !isShowingError
                     && !isShowingChapterPopover
+                    && activeOffsetBar == nil
             )
         else {
             return

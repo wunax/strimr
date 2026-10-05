@@ -42,6 +42,7 @@ struct PlayerControlsView: View {
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
+    var showsSettingsIndicator = false
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -75,6 +76,7 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
+                    showsSettingsIndicator: showsSettingsIndicator,
                     showsChapters: chapters.count >= 2,
                     onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
@@ -218,6 +220,7 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var showsSettingsIndicator: Bool
     var showsChapters: Bool
     var onShowChapters: () -> Void
     var isSharePlay: Bool
@@ -278,7 +281,7 @@ private struct PlayerControlsHeader: View {
                 PlayerChaptersButton(action: onShowChapters)
             }
 
-            PlayerSettingsButton(action: onShowSettings)
+            PlayerSettingsButton(showsIndicator: showsSettingsIndicator, action: onShowSettings)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)

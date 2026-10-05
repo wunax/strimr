@@ -16,6 +16,8 @@ struct PlaybackSettingsView: View {
     var onResetTrackSelections: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
     var onSelectQuality: (TranscodeQualityPreset) -> Void
+    var syncItems: [PlaybackOffsetMenuItem] = []
+    var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
     var onClose: () -> Void
 
     var body: some View {
@@ -97,6 +99,16 @@ struct PlaybackSettingsView: View {
                     }
                 }
 
+                if !syncItems.isEmpty {
+                    Section("player.settings.sync") {
+                        ForEach(syncItems) { item in
+                            PlaybackOffsetMenuRow(item: item) {
+                                onSelectSync(item.kind)
+                            }
+                        }
+                    }
+                }
+
                 Section {
                     Picker(
                         "player.settings.speed",
@@ -130,5 +142,32 @@ struct PlaybackSettingsView: View {
                 }
             }
         }
+    }
+}
+
+private struct PlaybackOffsetMenuRow: View {
+    let item: PlaybackOffsetMenuItem
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(item.kind.title, systemImage: item.kind.systemImage)
+                        .foregroundStyle(.primary)
+                    if let message = item.availability.message {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+                Text(item.value)
+                    .monospacedDigit()
+                    .fontWeight(item.isActive ? .semibold : .regular)
+                    .foregroundStyle(item.isActive ? Color.brandPrimary : .secondary)
+            }
+        }
+        .disabled(!item.availability.isAvailable)
     }
 }

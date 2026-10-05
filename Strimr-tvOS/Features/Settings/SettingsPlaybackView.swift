@@ -52,6 +52,12 @@ struct SettingsPlaybackView: View {
                 .settingsFocus("settings.playback.fastForward")
             }
 
+            Section {
+                AudioDelaySettingsRow(settingsFocusID: "settings.playback.audioDelay")
+            } footer: {
+                Text("settings.playback.audioDelay.footer")
+            }
+
             Section("settings.playback.skipping.title") {
                 Toggle("settings.playback.autoSkipIntros", isOn: viewModel.autoSkipIntrosBinding)
                     .settingsFocus("settings.playback.autoSkipIntros")

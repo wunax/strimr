@@ -83,6 +83,35 @@ struct AppSettingsTests {
         #expect(manager.interface.libraryBrowseByKey["b"] == nil)
     }
 
+    @Test func `missing audio delay decodes as zero`() throws {
+        let settings = try decode(#"{"playback":{"losslessAudio":true}}"#)
+
+        #expect(settings.playback.audioDelayMilliseconds == 0)
+        #expect(settings.playback.losslessAudio)
+    }
+
+    @Test func `out of range audio delay decodes clamped`() throws {
+        #expect(try decode(#"{"playback":{"audioDelayMilliseconds":9000}}"#).playback.audioDelayMilliseconds == 2000)
+        #expect(try decode(#"{"playback":{"audioDelayMilliseconds":-9000}}"#).playback.audioDelayMilliseconds == -2000)
+    }
+
+    @Test func `corrupt audio delay keeps other settings`() throws {
+        let settings = try decode(#"{"playback":{"audioDelayMilliseconds":"late","seekForwardSeconds":30}}"#)
+
+        #expect(settings.playback.audioDelayMilliseconds == 0)
+        #expect(settings.playback.seekForwardSeconds == 30)
+    }
+
+    @MainActor
+    @Test func `saved audio delay survives a reload`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+
+        SettingsManager(userDefaults: defaults).setAudioDelayMilliseconds(-350)
+
+        #expect(SettingsManager(userDefaults: defaults).playback.audioDelayMilliseconds == -350)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

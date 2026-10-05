@@ -102,6 +102,7 @@ struct SkipMarkerButton: View {
 }
 
 struct PlayerSettingsButton: View {
+    var showsIndicator = false
     let action: () -> Void
 
     var body: some View {
@@ -115,6 +116,12 @@ struct PlayerSettingsButton: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(Color.white.opacity(0.18), lineWidth: 1),
                 )
+                .overlay(alignment: .topTrailing) {
+                    if showsIndicator {
+                        PlaybackOffsetIndicator()
+                            .offset(x: 2, y: -2)
+                    }
+                }
         }
         .accessibilityLabel(String(localized: "settings.title"))
     }

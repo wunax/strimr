@@ -52,6 +52,10 @@ final class PlayerViewModel {
         playbackPlan?.method == .transcode
     }
 
+    var burnsSubtitles: Bool {
+        playbackPlan?.burnsSubtitles ?? false
+    }
+
     var resumePosition: Double? {
         media?.viewOffset
     }
