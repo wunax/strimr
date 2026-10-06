@@ -277,6 +277,9 @@ final class ServerRegistry {
             guard let entry = entries[server], entry.session.isEnabled else { continue }
             if entry.session.services == nil, entry.session.status == .unreachable {
                 connect(server)
+            } else if availability.isUnreachable(server) {
+                // The network may have changed under a connected server: its current address can be stale.
+                refreshPlexAccess(server)
             }
         }
         availability.refresh()
@@ -522,11 +525,14 @@ final class ServerRegistry {
             #if os(tvOS)
                 try await context.selectServer(resource)
             #else
-                // Start from the last connection that worked so the app stays usable offline; it is refreshed below.
-                if context.restoreServerAccess(using: resource) {
-                    Task { try? await context.refreshServerAccess(using: resource) }
-                } else {
+                // The last connection that worked can be stale (the LAN address after leaving Wi-Fi), so it is only
+                // restored when no connection answers, which keeps the app usable offline.
+                do {
                     try await context.selectServer(resource)
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation, context.restoreServerAccess(using: resource) else {
+                        throw error
+                    }
                 }
             #endif
             guard !Task.isCancelled, entries[server]?.session.isEnabled == true else { return }
@@ -662,7 +668,10 @@ final class ServerRegistry {
         guard let entry = entries[server], let context = entry.plexContext, let resource = entry.plexResource else {
             return
         }
-        Task { try? await context.refreshServerAccess(using: resource) }
+        Task { [weak self] in
+            guard await (try? context.refreshServerAccess(using: resource)) != nil else { return }
+            self?.availability.refresh()
+        }
     }
 
     private func recoverPlexAccess(_ server: ServerIdentity) async throws {
