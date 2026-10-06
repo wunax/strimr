@@ -50,6 +50,7 @@ extension MediaItem {
             grandparentRatingKey: jellyfinItem.seriesID,
             genres: jellyfinItem.genres ?? [],
             year: jellyfinItem.productionYear,
+            releaseDate: jellyfinItem.premiereDate.flatMap(JellyfinDate.date(from:)),
             duration: jellyfinItem.duration,
             videoResolution: nil,
             rating: jellyfinItem.communityRating,

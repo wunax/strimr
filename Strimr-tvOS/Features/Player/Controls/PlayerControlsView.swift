@@ -21,10 +21,6 @@ struct PlayerControlsView: View {
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
-    var currentPosition: Double
-    var isShowingChapterTray: Bool
-    var onShowChapters: () -> Void
-    var onSelectChapter: (MediaChapter) -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -35,8 +31,8 @@ struct PlayerControlsView: View {
     var onSkipMarker: (() -> Void)?
     var onUserInteraction: () -> Void
     var isSharePlay: Bool
-    var hasQueue: Bool
-    var onShowQueue: () -> Void
+    var hasInfoPanel: Bool
+    var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
     var onGoLive: () -> Void
@@ -120,15 +116,6 @@ struct PlayerControlsView: View {
             }
 
             Spacer()
-
-            if isShowingChapterTray {
-                PlayerChapterTrayView(
-                    chapters: chapters,
-                    currentPosition: currentPosition,
-                    onSelect: onSelectChapter,
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
 
             if !isScrubbing {
                 PlayerAuxiliaryControlsRow(
@@ -245,19 +232,10 @@ struct PlayerControlsView: View {
                         action: onShowSettings,
                     )
                     .focused($focusedControl, equals: .settings)
-
-                    if chapters.count >= 2 {
-                        PlayerSettingButton(
-                            systemImage: "list.bullet.rectangle",
-                            accessibilityLabel: String(localized: "player.chapters.title"),
-                            action: onShowChapters,
-                        )
-                        .focused($focusedControl, equals: .chapters)
-                    }
                 }
             }
             .overlay(alignment: .bottom) {
-                if hasQueue, !isShowingChapterTray {
+                if hasInfoPanel {
                     PlayerQueueDisclosureIndicator()
                         .offset(y: 26)
                 }
@@ -282,14 +260,9 @@ struct PlayerControlsView: View {
                 }
             }
         }
-        .onChange(of: isShowingChapterTray) { _, isShowing in
-            DispatchQueue.main.async {
-                focusedControl = isShowing ? nil : .chapters
-            }
-        }
         .onMoveCommand { direction in
-            if direction == .down, hasQueue, !isShowingChapterTray {
-                onShowQueue()
+            if direction == .down, hasInfoPanel {
+                onShowInfoPanel()
             } else {
                 onUserInteraction()
             }
@@ -352,7 +325,6 @@ enum PlayerSettingsControl {
 private enum FocusTarget: Hashable {
     case audio, subtitle, speed, settings
     case playPause
-    case chapters
 }
 
 private struct PlayerControlsBackground: View {

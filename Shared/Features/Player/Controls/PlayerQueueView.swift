@@ -13,6 +13,8 @@ struct PlayerQueueView: View {
     let layout: PlayerQueueLayout
     let onSelect: (Int) -> Void
     let onClose: () -> Void
+    var showsCarouselHeader = true
+    var focusesCurrentItemOnAppear = true
 
     #if os(tvOS)
         @FocusState private var focusedItemID: UUID?
@@ -29,16 +31,18 @@ struct PlayerQueueView: View {
 
     private var carousel: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                Label("player.queue.title", systemImage: "list.bullet.rectangle")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
+            if showsCarouselHeader {
+                HStack(spacing: 10) {
+                    Label("player.queue.title", systemImage: "list.bullet.rectangle")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
 
-                Spacer()
+                    Spacer()
 
-                Text(String(localized: "player.queue.count \(items.count)"))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.7))
+                    Text(String(localized: "player.queue.count \(items.count)"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -55,6 +59,7 @@ struct PlayerQueueView: View {
             #endif
             #if os(tvOS)
             .focusSection()
+            .defaultFocus($focusedItemID, currentItem?.id)
             #endif
         }
         .padding(.horizontal, 28)
@@ -65,6 +70,7 @@ struct PlayerQueueView: View {
         .shadow(color: .black.opacity(0.45), radius: 18, x: 0, y: 8)
         #if os(tvOS)
             .onAppear {
+                guard focusesCurrentItemOnAppear else { return }
                 focusedItemID = currentItem?.id
             }
         #endif

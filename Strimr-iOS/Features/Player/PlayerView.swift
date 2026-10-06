@@ -223,6 +223,7 @@ struct PlayerView: View {
                         playbackRate: playbackRate,
                         chapters: viewModel.chapters,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+                        media: viewModel.media,
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
@@ -232,6 +233,9 @@ struct PlayerView: View {
                             .presentationDetents([.medium])
                     case .chapters:
                         chapterSelectionSheet
+                            .presentationDetents([.medium, .large])
+                    case .info:
+                        mediaInfoSheet
                             .presentationDetents([.medium, .large])
                     case .subtitleSearch:
                         subtitleSearchSheet
@@ -366,6 +370,7 @@ struct PlayerView: View {
                     isScrubbing: isScrubbing,
                     onDismiss: { dismissPlayer() },
                     onShowSettings: showSettings,
+                    onShowInfo: showInfoAction,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     scrubPreview: playerController.scrubPreview,
@@ -545,6 +550,36 @@ struct PlayerView: View {
         .presentationBackground(.ultraThinMaterial)
     }
 
+    @ViewBuilder
+    private var mediaInfoSheet: some View {
+        if let media = viewModel.media {
+            NavigationStack {
+                ScrollView {
+                    PlayerMediaInfoView(media: media, services: viewModel.artworkServices)
+                        .padding(20)
+                }
+                .navigationTitle("player.info.title")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("common.actions.done") { sheetPresentation.item = nil }
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
+            .presentationBackground(.ultraThinMaterial)
+        }
+    }
+
+    private var canShowInfo: Bool {
+        viewModel.media != nil && !viewModel.isLivePlayback
+    }
+
+    private var showInfoAction: (() -> Void)? {
+        guard canShowInfo else { return nil }
+        return showInfo
+    }
+
     private var timelineBinding: Binding<Double> {
         Binding(
             get: { timelinePosition },
@@ -591,6 +626,12 @@ struct PlayerView: View {
     private func showChapters() {
         guard viewModel.hasNavigableChapters else { return }
         sheetPresentation.item = .chapters
+        hideControlsWorkItem?.cancel()
+    }
+
+    private func showInfo() {
+        guard canShowInfo else { return }
+        sheetPresentation.item = .info
         hideControlsWorkItem?.cancel()
     }
 
@@ -1407,11 +1448,13 @@ private struct PlayerSheetRefreshID: Hashable {
     let playbackRate: Float
     let chapters: [MediaChapter]
     let syncItems: [PlaybackOffsetMenuItem]
+    let media: MediaItem?
 }
 
 private enum PlayerSheet: String, Identifiable {
     case settings
     case chapters
+    case info
     case subtitleSearch
 
     var id: String {

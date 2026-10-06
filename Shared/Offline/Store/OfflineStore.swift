@@ -1072,6 +1072,7 @@ extension MediaItem {
             grandparentRatingKey: grandparentRatingKey,
             genres: genres,
             year: year,
+            releaseDate: releaseDate,
             duration: duration,
             videoResolution: videoResolution,
             rating: rating,

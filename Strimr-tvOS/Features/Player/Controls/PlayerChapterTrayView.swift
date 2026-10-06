@@ -8,44 +8,40 @@ struct PlayerChapterTrayView: View {
     @FocusState private var focusedChapterID: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("player.chapters.title")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 28) {
-                        ForEach(chapters, id: \.stableID) { chapter in
-                            chapterCard(chapter)
-                                .id(chapter.stableID)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 16)
-                }
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
-                .onAppear {
-                    let initialID = currentChapter?.stableID ?? chapters.first?.stableID
-                    DispatchQueue.main.async {
-                        focusedChapterID = initialID
-                        if let initialID {
-                            proxy.scrollTo(initialID, anchor: .center)
-                        }
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 28) {
+                    ForEach(chapters, id: \.stableID) { chapter in
+                        chapterCard(chapter)
+                            .id(chapter.stableID)
                     }
                 }
-                .onChange(of: focusedChapterID) { _, chapterID in
-                    if let chapterID {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            proxy.scrollTo(chapterID, anchor: .center)
-                        }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 16)
+            }
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
+            .defaultFocus($focusedChapterID, initialChapterID)
+            .onAppear {
+                guard let initialChapterID else { return }
+                DispatchQueue.main.async {
+                    proxy.scrollTo(initialChapterID, anchor: .center)
+                }
+            }
+            .onChange(of: focusedChapterID) { _, chapterID in
+                if let chapterID {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(chapterID, anchor: .center)
                     }
                 }
             }
         }
-        .frame(height: 310)
+        .frame(height: 270)
         .focusSection()
+    }
+
+    private var initialChapterID: String? {
+        currentChapter?.stableID ?? chapters.first?.stableID
     }
 
     private var currentChapter: MediaChapter? {

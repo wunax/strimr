@@ -14,6 +14,7 @@ struct JellyfinMappingTests {
         #expect(media.guid == "jellyfin://server-1/movie-1")
         #expect(media.type == .movie)
         #expect(media.year == 2021)
+        #expect(media.releaseDate == ISO8601DateFormatter().date(from: "2021-06-18T00:00:00Z"))
         #expect(media.duration == 7200)
         #expect(media.genres == ["Drama", "Thriller"])
         #expect(media.studio == "Example Studio")

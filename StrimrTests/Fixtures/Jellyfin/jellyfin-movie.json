@@ -5,6 +5,7 @@
   "Overview": "A movie used by tests.",
   "RunTimeTicks": 72000000000,
   "ProductionYear": 2021,
+  "PremiereDate": "2021-06-18T00:00:00.0000000Z",
   "CommunityRating": 7.4,
   "CriticRating": 88,
   "OfficialRating": "PG-13",

@@ -15,6 +15,7 @@ struct PlayerControlsView: View {
     var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var onShowInfo: (() -> Void)?
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
@@ -77,6 +78,7 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
+                    onShowInfo: onShowInfo,
                     showsSettingsIndicator: showsSettingsIndicator,
                     sleepTimer: sleepTimer,
                     showsChapters: chapters.count >= 2,
@@ -222,6 +224,7 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
+    var onShowInfo: (() -> Void)?
     var showsSettingsIndicator: Bool
     var sleepTimer: SleepTimer?
     var showsChapters: Bool
@@ -246,19 +249,7 @@ private struct PlayerControlsHeader: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                if let title = media?.primaryLabel {
-                    Text(title)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                }
-
-                if let subtitle = media?.tertiaryLabel {
-                    Text(subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.white.opacity(0.8))
-                        .lineLimit(2)
-                }
+                titleLabels
 
                 if isSharePlay {
                     Text("sharePlay.badge")
@@ -295,6 +286,46 @@ private struct PlayerControlsHeader: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var titleLabels: some View {
+        if let onShowInfo {
+            Button(action: onShowInfo) {
+                titleText(showsDisclosure: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("player.info.open"))
+        } else {
+            titleText(showsDisclosure: false)
+        }
+    }
+
+    private func titleText(showsDisclosure: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let title = media?.primaryLabel {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title)
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(2)
+
+                    if showsDisclosure {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.bold))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                }
+                .foregroundStyle(.white)
+            }
+
+            if let subtitle = media?.tertiaryLabel {
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(2)
+            }
+        }
+        .contentShape(Rectangle())
     }
 }
 
