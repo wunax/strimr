@@ -22,7 +22,7 @@ extension MediaChapter {
 }
 
 struct PlayerChapterArtworkView: View {
-    @Environment(MediaServices.self) private var services
+    @Environment(MediaServices.self) private var services: MediaServices?
 
     var artworkPath: String?
     var width: Int
@@ -54,7 +54,7 @@ struct PlayerChapterArtworkView: View {
 
     private func loadArtwork() async {
         resource = nil
-        guard let artworkPath else {
+        guard let artworkPath, let services else {
             isLoading = false
             return
         }

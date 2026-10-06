@@ -12,6 +12,7 @@ struct PlayerWindowView: View {
                 viewModel: viewModel,
                 presentationID: presentation.id,
             )
+            .environment(presentation.mediaServices)
             .id(presentation.id)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
