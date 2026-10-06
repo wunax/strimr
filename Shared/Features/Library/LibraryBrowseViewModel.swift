@@ -133,6 +133,9 @@ final class LibraryBrowseViewModel {
     func load() async {
         guard browseItems.isEmpty, folderTree == nil else { return }
         await fetch(reset: true)
+        if isFolderTreeActive, folderTree == nil {
+            await reloadFolderTree()
+        }
     }
 
     func loadMore() async {
