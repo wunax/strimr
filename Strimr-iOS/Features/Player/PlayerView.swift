@@ -7,6 +7,7 @@ struct PlayerView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -53,6 +54,7 @@ struct PlayerView: View {
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
     @State private var sleepTimer = SleepTimer()
+    @State private var pauseScreen = PauseScreenPresentation()
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
@@ -110,6 +112,7 @@ struct PlayerView: View {
                 .onDisappear {
                     nextEpisodePresentation.cancel()
                     sleepTimer.cancel()
+                    pauseScreen.cancel()
                     viewModel.handleStop()
                     playerController.onPictureInPictureStartFailed = nil
                     hideControlsWorkItem?.cancel()
@@ -306,6 +309,38 @@ struct PlayerView: View {
             } message: {
                 Text("sharePlay.leave.message")
             }
+            .onChange(of: isPauseScreenEligible, initial: true) { _, isEligible in
+                pauseScreen.update(isEligible: isEligible)
+            }
+            .onChange(of: pauseScreen.isPresented) { _, isPresented in
+                if isPresented {
+                    hideControls()
+                }
+            }
+    }
+
+    private var isPauseScreenEligible: Bool {
+        settingsManager.playback.showInfoWhenPaused
+            && playerController.isPaused
+            && !playerController.isBuffering
+            && viewModel.media != nil
+            && !isScrubbing
+            && !isVoiceOverEnabled
+            && !playerController.isPictureInPictureActive
+            && !playerController.isPictureInPictureTransitioning
+            && sheetPresentation.item == nil
+            && !isShowingInfoPanel
+            && activeOffsetBar == nil
+            && viewModel.activeSkipMarker == nil
+            && !nextEpisodePresentation.isPresented
+            && !sleepTimer.isPromptPresented
+            && !isRecoveringServerAccess
+            && !showingTerminationAlert
+            && !isShowingOfflineInterruption
+            && !showingSubtitleSearchError
+            && !isShowingServerRecoveryAlert
+            && qualityNoticeMessage == nil
+            && !isShowingSharePlayExitPrompt
     }
 
     private var playerScene: some View {
@@ -330,6 +365,7 @@ struct PlayerView: View {
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()
+            .opacity(pauseScreen.isPresented ? 0 : 1)
         }
     }
 
@@ -342,6 +378,7 @@ struct PlayerView: View {
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
                 .onTapGesture {
+                    pauseScreen.registerInteraction()
                     if isShowingInfoPanel {
                         hideInfoPanel()
                     } else {
@@ -431,6 +468,26 @@ struct PlayerView: View {
                     .allowsHitTesting(false)
             }
 
+            if pauseScreen.isPresented, let media = viewModel.media {
+                PauseScreenOverlay(
+                    media: media,
+                    position: viewModel.position,
+                    duration: viewModel.duration,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
+                    isLive: viewModel.isLivePlayback,
+                )
+                .overlay {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showControls(temporarily: true)
+                        }
+                }
+                .transition(.opacity)
+            }
+
             if nextEpisodePresentation.isPresented,
                let services = viewModel.artworkServices
             {
@@ -448,6 +505,7 @@ struct PlayerView: View {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
+        .animation(.easeInOut(duration: 0.5), value: pauseScreen.isPresented)
     }
 
     private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
@@ -1071,6 +1129,7 @@ struct PlayerView: View {
     }
 
     private func showControls(temporarily: Bool) {
+        pauseScreen.registerInteraction()
         withAnimation(.easeInOut) {
             controlsVisible = true
         }

@@ -119,30 +119,7 @@ struct PlayerMediaInfoView: View {
     }
 
     private var metadataText: String? {
-        var items: [String] = []
-
-        if let episodeLabel = media.tertiaryLabel {
-            items.append(episodeLabel)
-        }
-
-        if let releaseDate = media.releaseDate {
-            // Release dates are calendar days anchored to UTC midnight; formatting them in the local
-            // time zone would shift them to the previous day west of Greenwich.
-            let style = Date.FormatStyle(date: .long, time: .omitted, timeZone: .gmt)
-            items.append(String(localized: "player.info.releaseDate \(releaseDate.formatted(style))"))
-        } else if let year = media.year {
-            items.append(String(year))
-        }
-
-        if let duration = media.duration, duration > 0 {
-            items.append(duration.mediaDurationText())
-        }
-
-        if let contentRating = media.contentRating, !contentRating.isEmpty {
-            items.append(contentRating)
-        }
-
-        return items.isEmpty ? nil : items.joined(separator: " · ")
+        media.playerMetadataText
     }
 
     private var artworkSize: CGSize {
@@ -180,5 +157,34 @@ struct PlayerMediaInfoView: View {
         #else
             16
         #endif
+    }
+}
+
+extension MediaItem {
+    var playerMetadataText: String? {
+        var items: [String] = []
+
+        if let episodeLabel = tertiaryLabel {
+            items.append(episodeLabel)
+        }
+
+        if let releaseDate {
+            // Release dates are calendar days anchored to UTC midnight; formatting them in the local
+            // time zone would shift them to the previous day west of Greenwich.
+            let style = Date.FormatStyle(date: .long, time: .omitted, timeZone: .gmt)
+            items.append(String(localized: "player.info.releaseDate \(releaseDate.formatted(style))"))
+        } else if let year {
+            items.append(String(year))
+        }
+
+        if let duration, duration > 0 {
+            items.append(duration.mediaDurationText())
+        }
+
+        if let contentRating, !contentRating.isEmpty {
+            items.append(contentRating)
+        }
+
+        return items.isEmpty ? nil : items.joined(separator: " · ")
     }
 }

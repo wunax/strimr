@@ -149,6 +149,7 @@ struct PlaybackSettings: Codable, Equatable {
     var showChaptersOnTimeline = true
     var showEndsAtTime = true
     var showClock = false
+    var showInfoWhenPaused = true
     var showScrubThumbnailPreviews = true
     var generateMissingScrubThumbnailPreviews = true
     var styledASSSubtitles = true
@@ -190,6 +191,7 @@ struct PlaybackSettings: Codable, Equatable {
             forKey: .showEndsAtTime,
         ) ?? true
         showClock = try container.decodeIfPresent(Bool.self, forKey: .showClock) ?? false
+        showInfoWhenPaused = try container.decodeIfPresent(Bool.self, forKey: .showInfoWhenPaused) ?? true
         showScrubThumbnailPreviews = try container.decodeIfPresent(
             Bool.self,
             forKey: .showScrubThumbnailPreviews,
