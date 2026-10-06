@@ -16,6 +16,7 @@ struct PlayerSettingsOption: Identifiable {
 struct PlayerSettingsOptionsView: View {
     let title: LocalizedStringKey
     let options: [PlayerSettingsOption]
+    var initialOptionID: String?
     let onClose: () -> Void
     @FocusState private var focusedOption: String?
 
@@ -89,7 +90,9 @@ struct PlayerSettingsOptionsView: View {
                     .padding(4)
                 }
                 .onAppear {
-                    let initialID = options.first(where: \.isSelected)?.id ?? displayedOptions.first?.id
+                    let initialID = initialOptionID
+                        ?? options.first(where: \.isSelected)?.id
+                        ?? displayedOptions.first?.id
                     if let initialID {
                         proxy.scrollTo(initialID, anchor: .center)
                         DispatchQueue.main.async { focusedOption = initialID }

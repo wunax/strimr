@@ -12638,28 +12638,6 @@
         }
       }
     },
-    "player.settings.quality.streaming" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming quality"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualité de streaming"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "串流画质"
-          }
-        }
-      }
-    },
     "player.settings.speed" : {
       "localizations" : {
         "en" : {

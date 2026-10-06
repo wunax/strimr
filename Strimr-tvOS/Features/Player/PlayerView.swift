@@ -35,6 +35,7 @@ struct PlayerView: View {
     @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSettingsSheet>()
     @State private var isSearchingSubtitles = false
     @State private var settingsControl: PlayerSettingsControl?
+    @State private var settingsMenuFocusID: String?
     @State private var settingsFocusGeneration = 0
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
@@ -273,7 +274,7 @@ struct PlayerView: View {
                         playbackSettingsSheet(sheet)
                             .id(sheet)
                     }
-                    .onExitCommand { closeSettingsPanel() }
+                    .onExitCommand { navigateBackInSettingsPanel() }
                     .onPlayPauseCommand { togglePlayPause() }
                 }
             }
@@ -397,8 +398,7 @@ struct PlayerView: View {
                     onShowAudioSettings: showAudioSettings,
                     onShowSubtitleSettings: showSubtitleSettings,
                     onShowSpeedSettings: showSpeedSettings,
-                    onShowQualitySettings: showQualitySettings,
-                    onShowSleepTimerSettings: showSleepTimerSettings,
+                    onShowSettings: showSettings,
                     sleepTimer: sleepTimer,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
@@ -551,13 +551,23 @@ struct PlayerView: View {
                 onSelect: selectPlaybackRate(_:),
                 onClose: closeSettingsPanel,
             )
+        case .settings:
+            PlayerSettingsMenuView(
+                qualityTitle: viewModel.isLivePlayback ? nil : viewModel.selectedQuality.title,
+                versionTitle: viewModel.showsVersionSelection
+                    ? viewModel.versionOptions.first(where: \.isSelected)?.title ?? ""
+                    : nil,
+                sleepTimer: sleepTimer,
+                mediaKind: viewModel.media?.type,
+                initialOptionID: settingsMenuFocusID,
+                onShowQuality: { sheetPresentation.item = .quality },
+                onShowVersions: { sheetPresentation.item = .version },
+                onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
+                onClose: closeSettingsPanel,
+            )
         case .quality:
             PlayerQualitySelectionView(
                 selectedQuality: viewModel.selectedQuality,
-                versionLabel: viewModel.versionOptions.first(where: \.isSelected)?.title,
-                onShowVersions: viewModel.showsVersionSelection
-                    ? { sheetPresentation.item = .version }
-                    : nil,
                 onSelect: { selectQuality($0) },
                 onClose: closeSettingsPanel,
             )
@@ -653,16 +663,20 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func showQualitySettings() {
-        settingsControl = .quality
-        sheetPresentation.item = .quality
+    private func showSettings() {
+        settingsControl = .settings
+        settingsMenuFocusID = nil
+        sheetPresentation.item = .settings
         showControls(temporarily: true)
     }
 
-    private func showSleepTimerSettings() {
-        settingsControl = .sleepTimer
-        sheetPresentation.item = .sleepTimer
-        showControls(temporarily: true)
+    private func navigateBackInSettingsPanel() {
+        guard let sheet = sheetPresentation.item, let parent = sheet.parent else {
+            closeSettingsPanel()
+            return
+        }
+        settingsMenuFocusID = sheet.rawValue
+        sheetPresentation.item = parent
     }
 
     private func configureSleepTimer() {
@@ -795,7 +809,7 @@ struct PlayerView: View {
             return
         }
         if sheetPresentation.item != nil {
-            closeSettingsPanel()
+            navigateBackInSettingsPanel()
             return
         }
         if nextEpisodePresentation.isPresented {
@@ -1601,6 +1615,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case audio
     case subtitle
     case speed
+    case settings
     case quality
     case version
     case sleepTimer
@@ -1608,6 +1623,15 @@ private enum PlayerSettingsSheet: String, Identifiable {
 
     var id: String {
         rawValue
+    }
+
+    var parent: PlayerSettingsSheet? {
+        switch self {
+        case .quality, .version, .sleepTimer:
+            .settings
+        case .audio, .subtitle, .speed, .settings, .subtitleSearch:
+            nil
+        }
     }
 
     var titleKey: LocalizedStringKey {
@@ -1618,6 +1642,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.subtitles"
         case .speed:
             "player.settings.speed"
+        case .settings:
+            "settings.title"
         case .quality:
             "player.settings.quality"
         case .version:

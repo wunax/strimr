@@ -16,8 +16,7 @@ struct PlayerControlsView: View {
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
-    var onShowQualitySettings: () -> Void
-    var onShowSleepTimerSettings: () -> Void
+    var onShowSettings: () -> Void
     var sleepTimer: SleepTimer
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
@@ -231,13 +230,6 @@ struct PlayerControlsView: View {
                 HStack(spacing: 42) {
                     Spacer()
 
-                    PlayerSettingButton(
-                        systemImage: sleepTimer.isActive ? "moon.zzz.fill" : "moon.zzz",
-                        accessibilityLabel: String(localized: "player.sleepTimer.title"),
-                        action: onShowSleepTimerSettings,
-                    )
-                    .focused($focusedControl, equals: .sleepTimer)
-
                     if !isLive {
                         PlayerSettingButton(
                             systemImage: "speedometer",
@@ -245,14 +237,14 @@ struct PlayerControlsView: View {
                             action: onShowSpeedSettings,
                         )
                         .focused($focusedControl, equals: .speed)
-
-                        PlayerSettingButton(
-                            systemImage: "slider.horizontal.3",
-                            accessibilityLabel: String(localized: "player.settings.quality"),
-                            action: onShowQualitySettings,
-                        )
-                        .focused($focusedControl, equals: .quality)
                     }
+
+                    PlayerSettingButton(
+                        systemImage: "slider.horizontal.3",
+                        accessibilityLabel: String(localized: "settings.title"),
+                        action: onShowSettings,
+                    )
+                    .focused($focusedControl, equals: .settings)
 
                     if chapters.count >= 2 {
                         PlayerSettingButton(
@@ -285,8 +277,7 @@ struct PlayerControlsView: View {
                 case .audio: focusedControl = .audio
                 case .subtitle: focusedControl = .subtitle
                 case .speed: focusedControl = .speed
-                case .quality: focusedControl = .quality
-                case .sleepTimer: focusedControl = .sleepTimer
+                case .settings: focusedControl = .settings
                 case nil: break
                 }
             }
@@ -355,11 +346,11 @@ private struct PlayerAuxiliaryControlsRow: View {
 }
 
 enum PlayerSettingsControl {
-    case audio, subtitle, speed, quality, sleepTimer
+    case audio, subtitle, speed, settings
 }
 
 private enum FocusTarget: Hashable {
-    case audio, subtitle, speed, quality, sleepTimer
+    case audio, subtitle, speed, settings
     case playPause
     case chapters
 }
