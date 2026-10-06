@@ -100,6 +100,7 @@ final class PlayerController {
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
+    @ObservationIgnored private var volumeAttenuation: Float = 1.0
     @ObservationIgnored private var pendingSeekTarget: Double?
     @ObservationIgnored private var scrubThumbnailTask: Task<Void, Never>?
     @ObservationIgnored private var scrubAetherTask: Task<Void, Never>?
@@ -384,7 +385,13 @@ final class PlayerController {
         if clampedVolume > 0 {
             lastAudibleVolume = clampedVolume
         }
-        engine.volume = clampedVolume
+        engine.volume = clampedVolume * volumeAttenuation
+    }
+
+    /// Scales the output without touching the user's volume, so a fade never shows up on the volume control.
+    func setVolumeAttenuation(_ attenuation: Float) {
+        volumeAttenuation = min(max(attenuation, 0), 1)
+        engine.volume = volume * volumeAttenuation
     }
 
     func toggleMute() {

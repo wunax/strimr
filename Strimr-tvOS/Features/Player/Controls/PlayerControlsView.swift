@@ -17,6 +17,8 @@ struct PlayerControlsView: View {
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
     var onShowQualitySettings: () -> Void
+    var onShowSleepTimerSettings: () -> Void
+    var sleepTimer: SleepTimer
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
@@ -105,6 +107,8 @@ struct PlayerControlsView: View {
                 }
 
                 Spacer()
+
+                SleepTimerBadge(sleepTimer: sleepTimer, mediaKind: media?.type)
 
                 if showsClock {
                     TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -227,6 +231,13 @@ struct PlayerControlsView: View {
                 HStack(spacing: 42) {
                     Spacer()
 
+                    PlayerSettingButton(
+                        systemImage: sleepTimer.isActive ? "moon.zzz.fill" : "moon.zzz",
+                        accessibilityLabel: String(localized: "player.sleepTimer.title"),
+                        action: onShowSleepTimerSettings,
+                    )
+                    .focused($focusedControl, equals: .sleepTimer)
+
                     if !isLive {
                         PlayerSettingButton(
                             systemImage: "speedometer",
@@ -275,6 +286,7 @@ struct PlayerControlsView: View {
                 case .subtitle: focusedControl = .subtitle
                 case .speed: focusedControl = .speed
                 case .quality: focusedControl = .quality
+                case .sleepTimer: focusedControl = .sleepTimer
                 case nil: break
                 }
             }
@@ -343,11 +355,11 @@ private struct PlayerAuxiliaryControlsRow: View {
 }
 
 enum PlayerSettingsControl {
-    case audio, subtitle, speed, quality
+    case audio, subtitle, speed, quality, sleepTimer
 }
 
 private enum FocusTarget: Hashable {
-    case audio, subtitle, speed, quality
+    case audio, subtitle, speed, quality, sleepTimer
     case playPause
     case chapters
 }

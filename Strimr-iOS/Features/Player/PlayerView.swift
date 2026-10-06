@@ -51,6 +51,7 @@ struct PlayerView: View {
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
+    @State private var sleepTimer = SleepTimer()
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
@@ -94,6 +95,7 @@ struct PlayerView: View {
                         guard scenePhase == .background else { return }
                         preparePlaybackForBackground()
                     }
+                    configureSleepTimer()
                     showControls(temporarily: true)
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
@@ -106,6 +108,7 @@ struct PlayerView: View {
                 }
                 .onDisappear {
                     nextEpisodePresentation.cancel()
+                    sleepTimer.cancel()
                     viewModel.handleStop()
                     playerController.onPictureInPictureStartFailed = nil
                     hideControlsWorkItem?.cancel()
@@ -128,8 +131,9 @@ struct PlayerView: View {
                 .onChange(of: viewModel.playbackURL) { _, newURL in
                     startPlaybackIfNeeded(url: newURL)
                 }
-                .onChange(of: playerController.isPaused) { _, _ in
+                .onChange(of: playerController.isPaused) { _, isPaused in
                     syncPlaybackState()
+                    sleepTimer.handlePlaybackStateChange(isPaused: isPaused)
                 }
                 .onChange(of: playerController.isBuffering) { _, _ in
                     syncPlaybackState()
@@ -137,6 +141,11 @@ struct PlayerView: View {
                 .onChange(of: playerController.position) { _, newValue in
                     viewModel.handlePlaybackPosition(newValue, isScrubbing: isScrubbing)
                     handleAutomaticMarkerSkipIfNeeded()
+                    sleepTimer.handlePosition(
+                        newValue,
+                        duration: playerController.duration ?? viewModel.duration,
+                        chapters: viewModel.chapters,
+                    )
                 }
                 .onChange(of: playerController.duration) { _, newValue in
                     viewModel.handlePlaybackDuration(newValue)
@@ -188,6 +197,17 @@ struct PlayerView: View {
                           activity.ratingKey != viewModel.currentRatingKey
                     else { return }
                     Task { await startPlayback(for: activity) }
+                }
+                .onChange(of: sharePlayCoordinator.isInSession) { _, isInSession in
+                    if isInSession {
+                        sleepTimer.cancel()
+                    }
+                }
+                .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
+                    if isPresented {
+                        sheetPresentation.item = nil
+                        hideControls()
+                    }
                 },
         )
 
@@ -378,6 +398,7 @@ struct PlayerView: View {
                     onPreviousChannel: { switchLiveChannel(by: -1) },
                     onNextChannel: { switchLiveChannel(by: 1) },
                     showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
+                    sleepTimer: sleepTimer,
                 )
                 .transition(.opacity)
             }
@@ -410,6 +431,10 @@ struct PlayerView: View {
                     },
                     onClose: { dismissPlayer(force: true) },
                 )
+            }
+
+            if sleepTimer.isPromptPresented {
+                SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
     }
@@ -485,6 +510,14 @@ struct PlayerView: View {
             onSelectQuality: { selectQuality($0) },
             syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
             onSelectSync: openOffsetBar(_:),
+            sleepTimer: sleepTimer,
+            sleepTimerModes: SleepTimerMode.available(
+                isLive: viewModel.isLivePlayback,
+                hasChapters: viewModel.hasNavigableChapters,
+            ),
+            sleepTimerMediaKind: viewModel.media?.type,
+            isSleepTimerAvailable: !sharePlayCoordinator.isInSession,
+            onSelectSleepTimer: selectSleepTimer(_:),
             onClose: { sheetPresentation.item = nil },
         )
         .presentationBackground(.ultraThinMaterial)
@@ -729,6 +762,35 @@ struct PlayerView: View {
         playbackRate = rate
         playerController.setPlaybackRate(rate)
         showControls(temporarily: true)
+    }
+
+    private func configureSleepTimer() {
+        sleepTimer.pausePlayback = {
+            nextEpisodePresentation.cancelCountdown()
+            wasPlayingBeforeBackground = false
+            playerController.pause()
+        }
+        sleepTimer.isPlaybackActive = {
+            !playerController.isPaused
+                && !nextEpisodePresentation.isPresented
+                && !needsPlaybackReloadAfterBackground
+        }
+        sleepTimer.setVolumeAttenuation = { playerController.setVolumeAttenuation($0) }
+        sleepTimer.onBoundaryPause = {
+            showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
+        }
+    }
+
+    private func selectSleepTimer(_ mode: SleepTimerMode?) {
+        guard let mode else {
+            sleepTimer.cancel()
+            return
+        }
+        sleepTimer.start(mode)
+        sheetPresentation.item = nil
+        showFeedbackMessage(
+            String(localized: "player.sleepTimer.confirmation \(mode.title(for: viewModel.media?.type))"),
+        )
     }
 
     private func selectQuality(_ quality: TranscodeQualityPreset, force: Bool = false) {
@@ -1079,10 +1141,13 @@ struct PlayerView: View {
     }
 
     private func showAutomaticSkipFeedback(for marker: SkipSegment) {
-        automaticSkipFeedbackWorkItem?.cancel()
-        let message = marker.isIntro
+        showFeedbackMessage(marker.isIntro
             ? String(localized: "player.skip.intro.automaticConfirmation")
-            : String(localized: "player.skip.credits.automaticConfirmation")
+            : String(localized: "player.skip.credits.automaticConfirmation"))
+    }
+
+    private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
+        automaticSkipFeedbackWorkItem?.cancel()
 
         withAnimation(.easeInOut(duration: 0.2)) {
             automaticSkipFeedbackMessage = message
@@ -1094,7 +1159,7 @@ struct PlayerView: View {
             }
         }
         automaticSkipFeedbackWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
     private func skipOverlay(marker: SkipSegment, title: String) -> some View {
@@ -1106,6 +1171,7 @@ struct PlayerView: View {
     }
 
     private func handlePlaybackEnded() {
+        let stopsForSleepTimer = sleepTimer.consumePlaybackEnd()
         guard let media = viewModel.media else {
             dismissPlayer(force: true)
             return
@@ -1114,27 +1180,33 @@ struct PlayerView: View {
         switch media.type {
         case .movie:
             Task {
-                await handleMovieCompletion()
+                await handleMovieCompletion(stopsForSleepTimer: stopsForSleepTimer)
             }
         case .episode:
             Task {
-                await handleEpisodeCompletion(for: media)
+                await handleEpisodeCompletion(for: media, stopsForSleepTimer: stopsForSleepTimer)
             }
         default:
-            dismissPlayer(force: true)
+            if !stopsForSleepTimer {
+                dismissPlayer(force: true)
+            }
         }
     }
 
-    private func handleEpisodeCompletion(for _: MediaItem) async {
+    private func handleEpisodeCompletion(for _: MediaItem, stopsForSleepTimer: Bool) async {
         await viewModel.markPlaybackFinished()
 
         guard viewModel.usesCommonPlaybackQueue else {
-            await MainActor.run { dismissPlayer(force: true) }
+            if !stopsForSleepTimer {
+                await MainActor.run { dismissPlayer(force: true) }
+            }
             return
         }
 
         guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
-            await MainActor.run { dismissPlayer(force: true) }
+            if !stopsForSleepTimer {
+                await MainActor.run { dismissPlayer(force: true) }
+            }
             return
         }
 
@@ -1143,7 +1215,8 @@ struct PlayerView: View {
             return
         }
 
-        let autoplay = settingsManager.playback.nextEpisodeAutoplay
+        // The sleep timer asked to stop here: offer the next episode without counting down to it.
+        let autoplay = stopsForSleepTimer ? .disabled : settingsManager.playback.nextEpisodeAutoplay
         if autoplay == .immediately {
             await startPlayback(using: nextViewModel)
         } else {
@@ -1151,8 +1224,9 @@ struct PlayerView: View {
         }
     }
 
-    private func handleMovieCompletion() async {
+    private func handleMovieCompletion(stopsForSleepTimer: Bool) async {
         await viewModel.markPlaybackFinished()
+        guard !stopsForSleepTimer else { return }
 
         if viewModel.usesCommonPlaybackQueue {
             guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
