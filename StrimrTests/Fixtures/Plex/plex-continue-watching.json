@@ -18,6 +18,7 @@
             "type": "movie",
             "title": "Example Movie",
             "year": 2021,
+            "originallyAvailableAt": "2021-06-18",
             "viewOffset": 600000,
             "lastViewedAt": 1772000000,
             "duration": 7200000,

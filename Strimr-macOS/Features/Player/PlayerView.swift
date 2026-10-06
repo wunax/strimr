@@ -12,6 +12,7 @@ struct PlayerWindowView: View {
                 viewModel: viewModel,
                 presentationID: presentation.id,
             )
+            .environment(presentation.mediaServices)
             .id(presentation.id)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
@@ -82,6 +83,7 @@ struct PlayerView: View {
     @State private var isShowingSharePlayExitPrompt = false
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
+    @State private var isShowingInfoPopover = false
     @State private var isShowingPlayQueue = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
@@ -324,6 +326,13 @@ struct PlayerView: View {
                         showControls(temporarily: true)
                     }
                 }
+                .onChange(of: isShowingInfoPopover) { _, isShowing in
+                    if isShowing {
+                        hideControlsWorkItem?.cancel()
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
                 .onChange(of: isShowingPlayQueue) { _, isShowing in
                     if isShowing {
                         hideControlsWorkItem?.cancel()
@@ -443,12 +452,7 @@ struct PlayerView: View {
         VStack {
             HStack {
                 if let media = viewModel.media {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(media.primaryLabel).font(.title3.bold())
-                        if let secondary = media.tertiaryLabel ?? media.secondaryLabel {
-                            Text(secondary).font(.subheadline).foregroundStyle(.secondary)
-                        }
-                    }
+                    titleButton(for: media)
                 }
                 Spacer()
                 if let badge = playerController.videoFormatBadge {
@@ -1146,10 +1150,58 @@ struct PlayerView: View {
         }
     }
 
+    private func titleButton(for media: MediaItem) -> some View {
+        Button {
+            toggleInfoPopover()
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(media.primaryLabel).font(.title3.bold())
+                    if canShowInfo {
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let secondary = media.tertiaryLabel ?? media.secondaryLabel {
+                    Text(secondary).font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!canShowInfo)
+        .help(Text("player.info.open"))
+        .popover(isPresented: $isShowingInfoPopover, arrowEdge: .bottom) {
+            ScrollView {
+                PlayerMediaInfoView(media: media, services: viewModel.artworkServices)
+                    .padding(20)
+            }
+            .frame(width: 460)
+            .frame(maxHeight: 520)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var canShowInfo: Bool {
+        viewModel.media != nil && !viewModel.isLivePlayback
+    }
+
+    private func toggleInfoPopover() {
+        guard canShowInfo else { return }
+        if !isShowingInfoPopover {
+            showControls(temporarily: false)
+        }
+        isShowingInfoPopover.toggle()
+    }
+
     private var keyboardCommands: some View {
         HStack {
             Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
+
+            Button(action: { toggleInfoPopover() }) { EmptyView() }
+                .keyboardShortcut("i", modifiers: [])
 
             Button(action: { keyboardSeek(by: -seekBackwardInterval) }) { EmptyView() }
                 .keyboardShortcut(.leftArrow, modifiers: [])
@@ -1736,6 +1788,7 @@ struct PlayerView: View {
             !isScrubbing,
             !isShowingError,
             !isShowingChapterPopover,
+            !isShowingInfoPopover,
             activeOffsetBar == nil
         else {
             return
@@ -1756,6 +1809,7 @@ struct PlayerView: View {
                     && !isScrubbing
                     && !isShowingError
                     && !isShowingChapterPopover
+                    && !isShowingInfoPopover
                     && activeOffsetBar == nil
             )
         else {

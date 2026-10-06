@@ -31,7 +31,6 @@ struct PlayerView: View {
     @State private var appliedResumeOffset = false
     @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
-    @State private var isShowingChapterTray = false
     @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSettingsSheet>()
     @State private var isSearchingSubtitles = false
     @State private var settingsControl: PlayerSettingsControl?
@@ -51,7 +50,8 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
-    @State private var isShowingPlayQueue = false
+    @State private var isShowingInfoPanel = false
+    @State private var infoPanelTab = PlayerInfoTab.info
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
@@ -93,7 +93,7 @@ struct PlayerView: View {
                         .opacity(sheetPresentation.item != nil ? 0 : 1)
                 }
                 .overlay(alignment: .bottom) {
-                    playQueueOverlay
+                    infoPanelOverlay
                 },
         )
 
@@ -198,6 +198,7 @@ struct PlayerView: View {
                 .onChange(of: nextEpisodePresentation.isPresented) { _, isPresented in
                     guard isPresented else { return }
 
+                    hideInfoPanel()
                     hideControlsWorkItem?.cancel()
                     focusedPlayerSurface = nil
                     withAnimation(.easeInOut) {
@@ -210,8 +211,7 @@ struct PlayerView: View {
                             closeOffsetBar()
                         }
                         sheetPresentation.item = nil
-                        hidePlayQueue()
-                        hideChapters()
+                        hideInfoPanel()
                         hideControlsWorkItem?.cancel()
                         focusedPlayerSurface = nil
                         withAnimation(.easeInOut) {
@@ -230,8 +230,8 @@ struct PlayerView: View {
                     playerController.updateScrubPreview(to: newValue)
                 }
                 .onChange(of: viewModel.hasNavigableChapters) { _, hasChapters in
-                    if !hasChapters {
-                        isShowingChapterTray = false
+                    if !hasChapters, infoPanelTab == .chapters {
+                        infoPanelTab = .info
                     }
                 }
                 .onChange(of: viewModel.terminationMessage) { _, newValue in
@@ -352,10 +352,7 @@ struct PlayerView: View {
 
     private var subtitleBottomPadding: CGFloat {
         guard controlsVisible else { return 48 }
-        if isShowingPlayQueue {
-            return 330
-        }
-        return isShowingChapterTray ? 520 : 380
+        return isShowingInfoPanel ? 440 : 380
     }
 
     private var playerOverlay: some View {
@@ -364,7 +361,7 @@ struct PlayerView: View {
         let hasSkipOverlay = activeMarker != nil
 
         return ZStack {
-            if !controlsVisible, !isShowingPlayQueue, !hasSkipOverlay, !sleepTimer.isPromptPresented {
+            if !controlsVisible, !isShowingInfoPanel, !hasSkipOverlay, !sleepTimer.isPromptPresented {
                 Color.clear
                     .contentShape(Rectangle())
                     .focusable()
@@ -381,7 +378,7 @@ struct PlayerView: View {
                 bufferingOverlay
             }
 
-            if controlsVisible, !isShowingPlayQueue {
+            if controlsVisible, !isShowingInfoPanel {
                 PlayerControlsView(
                     media: viewModel.media,
                     isPaused: viewModel.isPaused,
@@ -403,10 +400,6 @@ struct PlayerView: View {
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     scrubPreview: playerController.scrubPreview,
-                    currentPosition: viewModel.position,
-                    isShowingChapterTray: isShowingChapterTray,
-                    onShowChapters: showChapters,
-                    onSelectChapter: selectChapter(_:),
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekForwardInterval) },
@@ -419,8 +412,8 @@ struct PlayerView: View {
                     },
                     onUserInteraction: { showControls(temporarily: true) },
                     isSharePlay: sharePlayCoordinator.isInSession,
-                    hasQueue: viewModel.hasNavigableQueue,
-                    onShowQueue: showPlayQueue,
+                    hasInfoPanel: canShowInfoPanel,
+                    onShowInfoPanel: showInfoPanel,
                     isLive: viewModel.isLivePlayback,
                     behindLiveSeconds: playerController.behindLiveSeconds,
                     onGoLive: playerController.seekToLiveEdge,
@@ -435,7 +428,7 @@ struct PlayerView: View {
                 .transition(.opacity)
             }
 
-            if !controlsVisible, let activeMarker, let skipTitle {
+            if !controlsVisible, !isShowingInfoPanel, let activeMarker, let skipTitle {
                 skipOverlay(marker: activeMarker, title: skipTitle)
                     .onMoveCommand { direction in
                         handleSkipOverlayMoveCommand(direction)
@@ -474,27 +467,32 @@ struct PlayerView: View {
     }
 
     @ViewBuilder
-    private var playQueueOverlay: some View {
-        if isShowingPlayQueue,
-           let services = viewModel.artworkServices
-        {
-            PlayerQueueView(
-                items: viewModel.queueItems,
-                currentIndex: viewModel.queueCurrentIndex ?? 0,
-                services: services,
-                layout: .carousel,
-                onSelect: selectQueueItem(at:),
-                onClose: hidePlayQueue,
+    private var infoPanelOverlay: some View {
+        if isShowingInfoPanel, let media = viewModel.media {
+            PlayerInfoPanelView(
+                media: media,
+                services: viewModel.artworkServices,
+                queueItems: viewModel.queueItems,
+                queueCurrentIndex: viewModel.queueCurrentIndex ?? 0,
+                showsQueue: showsQueueTab,
+                chapters: viewModel.chapters,
+                currentPosition: viewModel.position,
+                selectedTab: $infoPanelTab,
+                onSelectQueueItem: selectQueueItem(at:),
+                onSelectChapter: selectChapter(_:),
+                onClose: hideInfoPanel,
             )
-            .frame(maxWidth: .infinity, alignment: .leading)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .onMoveCommand { direction in
-                if direction == .up {
-                    hidePlayQueue()
-                }
-            }
-            .onExitCommand(perform: hidePlayQueue)
+            .onExitCommand(perform: hideInfoPanel)
         }
+    }
+
+    private var canShowInfoPanel: Bool {
+        viewModel.media != nil && !viewModel.isLivePlayback
+    }
+
+    private var showsQueueTab: Bool {
+        viewModel.hasNavigableQueue && viewModel.artworkServices != nil
     }
 
     private var bufferingOverlay: some View {
@@ -757,24 +755,6 @@ struct PlayerView: View {
         }
     }
 
-    private func showChapters() {
-        guard viewModel.hasNavigableChapters else { return }
-        hidePlayQueue()
-        hideControlsWorkItem?.cancel()
-        withAnimation(.easeInOut) {
-            isShowingChapterTray = true
-            controlsVisible = true
-        }
-    }
-
-    private func hideChapters() {
-        guard isShowingChapterTray else { return }
-        withAnimation(.easeInOut) {
-            isShowingChapterTray = false
-        }
-        showControls(temporarily: true)
-    }
-
     private func openOffsetBar(_ kind: PlaybackOffsetKind) {
         sheetPresentation.item = nil
         hideControlsWorkItem?.cancel()
@@ -818,13 +798,8 @@ struct PlayerView: View {
             return
         }
 
-        if isShowingPlayQueue {
-            hidePlayQueue()
-            return
-        }
-
-        if isShowingChapterTray {
-            hideChapters()
+        if isShowingInfoPanel {
+            hideInfoPanel()
             return
         }
 
@@ -838,29 +813,24 @@ struct PlayerView: View {
         playerController.seek(to: chapter.startTime)
         viewModel.position = chapter.startTime
         timelinePosition = chapter.startTime
-        withAnimation(.easeInOut) {
-            isShowingChapterTray = false
-        }
-        showControls(temporarily: true)
+        hideInfoPanel()
     }
 
-    private func showPlayQueue() {
-        guard viewModel.hasNavigableQueue,
-              viewModel.artworkServices != nil,
-              !isShowingChapterTray
-        else { return }
+    private func showInfoPanel() {
+        guard canShowInfoPanel else { return }
 
         hideControlsWorkItem?.cancel()
         focusedPlayerSurface = nil
+        infoPanelTab = .info
         withAnimation(.easeInOut) {
-            isShowingPlayQueue = true
+            isShowingInfoPanel = true
         }
     }
 
-    private func hidePlayQueue() {
-        guard isShowingPlayQueue else { return }
+    private func hideInfoPanel() {
+        guard isShowingInfoPanel else { return }
         withAnimation(.easeInOut) {
-            isShowingPlayQueue = false
+            isShowingInfoPanel = false
         }
         DispatchQueue.main.async {
             showControls(temporarily: true)
@@ -871,7 +841,7 @@ struct PlayerView: View {
         guard let currentIndex = viewModel.queueCurrentIndex,
               index != currentIndex
         else {
-            hidePlayQueue()
+            hideInfoPanel()
             return
         }
 
@@ -880,7 +850,7 @@ struct PlayerView: View {
             shouldResumeFromOffset: true,
         ) else { return }
 
-        hidePlayQueue()
+        hideInfoPanel()
         Task {
             await startPlayback(using: nextViewModel)
         }
@@ -1237,7 +1207,7 @@ struct PlayerView: View {
             controlsVisible = true
         }
 
-        if temporarily, !isScrubbing, !isShowingChapterTray {
+        if temporarily, !isScrubbing {
             scheduleControlsHide()
         } else {
             hideControlsWorkItem?.cancel()
@@ -1246,7 +1216,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard !isShowingChapterTray, sheetPresentation.item == nil, activeOffsetBar == nil else { return }
+        guard sheetPresentation.item == nil, activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(.easeInOut) {
@@ -1342,7 +1312,11 @@ struct PlayerView: View {
     private func focusHiddenControlsTarget(hasSkipOverlay: Bool) {
         let target: PlayerFocusTarget = hasSkipOverlay ? .skipOverlay : .controlsProxy
         DispatchQueue.main.async {
-            guard !controlsVisible, !nextEpisodePresentation.isPresented, !sleepTimer.isPromptPresented else { return }
+            guard !controlsVisible,
+                  !isShowingInfoPanel,
+                  !nextEpisodePresentation.isPresented,
+                  !sleepTimer.isPromptPresented
+            else { return }
             focusedPlayerSurface = target
         }
     }
@@ -1368,6 +1342,9 @@ struct PlayerView: View {
         case .right:
             guard !controlsVisible else { return }
             quickSeek(by: seekForwardInterval)
+        case .down:
+            guard !controlsVisible else { return }
+            showInfoPanel()
         default:
             break
         }
@@ -1376,10 +1353,10 @@ struct PlayerView: View {
     private func handleSkipOverlayMoveCommand(_ direction: MoveCommandDirection) {
         handleMoveCommand(direction)
 
-        guard !controlsVisible, viewModel.activeSkipMarker != nil else { return }
+        guard !controlsVisible, !isShowingInfoPanel, viewModel.activeSkipMarker != nil else { return }
 
         DispatchQueue.main.async {
-            guard !controlsVisible, viewModel.activeSkipMarker != nil else { return }
+            guard !controlsVisible, !isShowingInfoPanel, viewModel.activeSkipMarker != nil else { return }
             focusedPlayerSurface = .skipOverlay
         }
     }

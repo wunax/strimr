@@ -18,7 +18,6 @@ struct PlayerControlsView: View {
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
-    var onShowChapters: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -33,8 +32,8 @@ struct PlayerControlsView: View {
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
     var onStartPictureInPicture: () -> Void
-    var hasQueue: Bool
-    var onShowQueue: () -> Void
+    var hasInfoPanel: Bool
+    var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
     var onGoLive: () -> Void
@@ -79,8 +78,6 @@ struct PlayerControlsView: View {
                     onShowSettings: onShowSettings,
                     showsSettingsIndicator: showsSettingsIndicator,
                     sleepTimer: sleepTimer,
-                    showsChapters: chapters.count >= 2,
-                    onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
                     showsPictureInPicture: showsPictureInPicture,
                     isPictureInPictureEnabled: isPictureInPictureEnabled,
@@ -135,8 +132,8 @@ struct PlayerControlsView: View {
                                 onEditingChanged: onScrubbingChanged,
                             )
 
-                            if hasQueue {
-                                PlayerQueueDisclosureButton(action: onShowQueue)
+                            if hasInfoPanel {
+                                PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
                                     .opacity(isScrubbing ? 0 : 1)
                                     .allowsHitTesting(!isScrubbing)
                                     .offset(y: 18)
@@ -224,8 +221,6 @@ private struct PlayerControlsHeader: View {
     var onShowSettings: () -> Void
     var showsSettingsIndicator: Bool
     var sleepTimer: SleepTimer?
-    var showsChapters: Bool
-    var onShowChapters: () -> Void
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
@@ -285,10 +280,6 @@ private struct PlayerControlsHeader: View {
             if showsPictureInPicture {
                 PlayerPictureInPictureButton(action: onStartPictureInPicture)
                     .disabled(!isPictureInPictureEnabled)
-            }
-
-            if showsChapters {
-                PlayerChaptersButton(action: onShowChapters)
             }
 
             PlayerSettingsButton(showsIndicator: showsSettingsIndicator, action: onShowSettings)

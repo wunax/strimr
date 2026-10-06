@@ -44,6 +44,7 @@ extension MediaItem {
             grandparentRatingKey: plexItem.grandparentRatingKey,
             genres: plexItem.genres?.map(\.tag) ?? [],
             year: plexItem.year,
+            releaseDate: plexItem.originallyAvailableAt.flatMap(PlexDate.date(from:)),
             duration: plexItem.duration.map { TimeInterval($0) / 1000 },
             videoResolution: plexItem.media?.first?.videoResolution,
             rating: plexItem.rating ?? plexItem.audienceRating,
@@ -79,5 +80,16 @@ extension MediaItem {
             lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
             externalIDs: ExternalIDs(plexGuids: plexItem.guids?.map(\.id) ?? []),
         )
+    }
+}
+
+nonisolated enum PlexDate {
+    /// Plex sends calendar dates (`yyyy-MM-dd`) without a time zone; they are anchored to UTC midnight.
+    static func date(from value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: String(value.prefix(10)))
     }
 }

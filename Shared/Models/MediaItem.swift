@@ -11,6 +11,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let grandparentRatingKey: String?
     let genres: [String]
     let year: Int?
+    let releaseDate: Date?
     let duration: TimeInterval?
     let videoResolution: String?
     let rating: Double?
@@ -62,6 +63,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         grandparentRatingKey: String?,
         genres: [String],
         year: Int?,
+        releaseDate: Date? = nil,
         duration: TimeInterval?,
         videoResolution: String?,
         rating: Double?,
@@ -99,6 +101,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.grandparentRatingKey = grandparentRatingKey
         self.genres = genres
         self.year = year
+        self.releaseDate = releaseDate
         self.duration = duration
         self.videoResolution = videoResolution
         self.rating = rating

@@ -47,7 +47,8 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
-    @State private var isShowingPlayQueue = false
+    @State private var isShowingInfoPanel = false
+    @State private var infoPanelTab = PlayerInfoTab.info
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
     @State private var nextEpisodePresentation = NextEpisodePresentation()
@@ -82,7 +83,7 @@ struct PlayerView: View {
                     playerOverlay
                 }
                 .overlay(alignment: .bottom) {
-                    playQueueOverlay
+                    infoPanelOverlay
                 },
         )
 
@@ -206,7 +207,14 @@ struct PlayerView: View {
                 .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
                     if isPresented {
                         sheetPresentation.item = nil
+                        hideInfoPanel()
                         hideControls()
+                    }
+                }
+                .onChange(of: nextEpisodePresentation.isPresented) { _, isPresented in
+                    guard isPresented else { return }
+                    withAnimation(.easeInOut) {
+                        isShowingInfoPanel = false
                     }
                 },
         )
@@ -221,7 +229,6 @@ struct PlayerView: View {
                         selectedAudioTrackID: selectedAudioTrackID,
                         selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
-                        chapters: viewModel.chapters,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
                     ),
                     onDismiss: { showControls(temporarily: true) },
@@ -230,9 +237,6 @@ struct PlayerView: View {
                     case .settings:
                         playbackSettingsSheet
                             .presentationDetents([.medium])
-                    case .chapters:
-                        chapterSelectionSheet
-                            .presentationDetents([.medium, .large])
                     case .subtitleSearch:
                         subtitleSearchSheet
                     }
@@ -338,19 +342,27 @@ struct PlayerView: View {
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
                 .onTapGesture {
-                    if isShowingPlayQueue {
-                        hidePlayQueue()
+                    if isShowingInfoPanel {
+                        hideInfoPanel()
                     } else {
                         controlsVisible ? hideControls() : showControls(temporarily: true)
                     }
                 }
+                .gesture(
+                    DragGesture(minimumDistance: 24).onEnded { value in
+                        let translation = value.translation
+                        if translation.height < -60, abs(translation.height) > abs(translation.width) {
+                            showInfoPanel()
+                        }
+                    },
+                )
 
             if viewModel.isBuffering || isRecoveringServerAccess {
                 bufferingOverlay
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
-            if controlsVisible, !isShowingPlayQueue {
+            if controlsVisible, !isShowingInfoPanel {
                 PlayerControlsView(
                     media: viewModel.media,
                     isPaused: viewModel.isPaused,
@@ -369,7 +381,6 @@ struct PlayerView: View {
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
                     scrubPreview: playerController.scrubPreview,
-                    onShowChapters: showChapters,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
                     onSeekForward: { jump(by: seekForwardInterval) },
@@ -388,8 +399,8 @@ struct PlayerView: View {
                         && !playerController.isPictureInPictureActive
                         && !playerController.isPictureInPictureTransitioning,
                     onStartPictureInPicture: playerController.startPictureInPicture,
-                    hasQueue: viewModel.hasNavigableQueue,
-                    onShowQueue: showPlayQueue,
+                    hasInfoPanel: canShowInfoPanel,
+                    onShowInfoPanel: showInfoPanel,
                     isLive: viewModel.isLivePlayback,
                     behindLiveSeconds: playerController.behindLiveSeconds,
                     onGoLive: playerController.seekToLiveEdge,
@@ -403,7 +414,7 @@ struct PlayerView: View {
                 .transition(.opacity)
             }
 
-            if let activeOffsetBar, !isShowingPlayQueue {
+            if let activeOffsetBar, !isShowingInfoPanel {
                 offsetBar(activeOffsetBar)
             }
 
@@ -457,19 +468,26 @@ struct PlayerView: View {
     }
 
     @ViewBuilder
-    private var playQueueOverlay: some View {
-        if isShowingPlayQueue,
-           let services = viewModel.artworkServices
-        {
-            PlayerQueueView(
-                items: viewModel.queueItems,
-                currentIndex: viewModel.queueCurrentIndex ?? 0,
-                services: services,
-                layout: .carousel,
-                onSelect: selectQueueItem(at:),
-                onClose: hidePlayQueue,
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private var infoPanelOverlay: some View {
+        if isShowingInfoPanel, let media = viewModel.media {
+            GeometryReader { proxy in
+                PlayerInfoPanelView(
+                    media: media,
+                    services: viewModel.artworkServices,
+                    queueItems: viewModel.queueItems,
+                    queueCurrentIndex: viewModel.queueCurrentIndex ?? 0,
+                    showsQueue: viewModel.hasNavigableQueue && viewModel.artworkServices != nil,
+                    chapters: viewModel.chapters,
+                    currentPosition: viewModel.position,
+                    selectedTab: $infoPanelTab,
+                    onSelectQueueItem: selectQueueItem(at:),
+                    onSelectChapter: selectChapter(_:),
+                    onClose: hideInfoPanel,
+                )
+                // Keeps at least the upper part of the video visible.
+                .frame(maxHeight: proxy.size.height * 0.6)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+            }
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
@@ -535,14 +553,8 @@ struct PlayerView: View {
         }
     }
 
-    private var chapterSelectionSheet: some View {
-        PlayerChapterSelectionView(
-            chapters: viewModel.chapters,
-            currentPosition: viewModel.position,
-            onSelect: selectChapter(_:),
-            onClose: { sheetPresentation.item = nil },
-        )
-        .presentationBackground(.ultraThinMaterial)
+    private var canShowInfoPanel: Bool {
+        viewModel.media != nil && !viewModel.isLivePlayback
     }
 
     private var timelineBinding: Binding<Double> {
@@ -588,24 +600,19 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func showChapters() {
-        guard viewModel.hasNavigableChapters else { return }
-        sheetPresentation.item = .chapters
+    private func showInfoPanel() {
+        guard canShowInfoPanel, !isShowingInfoPanel else { return }
         hideControlsWorkItem?.cancel()
-    }
-
-    private func showPlayQueue() {
-        guard viewModel.hasNavigableQueue, viewModel.artworkServices != nil else { return }
-        hideControlsWorkItem?.cancel()
+        infoPanelTab = .info
         withAnimation(.easeInOut) {
-            isShowingPlayQueue = true
+            isShowingInfoPanel = true
         }
     }
 
-    private func hidePlayQueue() {
-        guard isShowingPlayQueue else { return }
+    private func hideInfoPanel() {
+        guard isShowingInfoPanel else { return }
         withAnimation(.easeInOut) {
-            isShowingPlayQueue = false
+            isShowingInfoPanel = false
         }
         showControls(temporarily: true)
     }
@@ -614,7 +621,7 @@ struct PlayerView: View {
         guard let currentIndex = viewModel.queueCurrentIndex,
               index != currentIndex
         else {
-            hidePlayQueue()
+            hideInfoPanel()
             return
         }
 
@@ -623,7 +630,7 @@ struct PlayerView: View {
             shouldResumeFromOffset: true,
         ) else { return }
 
-        hidePlayQueue()
+        hideInfoPanel()
         Task {
             await startPlayback(using: nextViewModel)
         }
@@ -633,7 +640,7 @@ struct PlayerView: View {
         playerController.seek(to: chapter.startTime)
         viewModel.position = chapter.startTime
         timelinePosition = chapter.startTime
-        sheetPresentation.item = nil
+        hideInfoPanel()
     }
 
     private func toggleRotationLock() {
@@ -1405,13 +1412,11 @@ private struct PlayerSheetRefreshID: Hashable {
     let selectedAudioTrackID: Int?
     let selectedSubtitleTrackID: Int?
     let playbackRate: Float
-    let chapters: [MediaChapter]
     let syncItems: [PlaybackOffsetMenuItem]
 }
 
 private enum PlayerSheet: String, Identifiable {
     case settings
-    case chapters
     case subtitleSearch
 
     var id: String {
