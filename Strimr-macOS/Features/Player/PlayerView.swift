@@ -90,6 +90,7 @@ struct PlayerView: View {
     @State private var shouldResumeAfterMediaLoad = false
     @State private var shouldPauseAfterMediaLoad = false
     @State private var nextEpisodePresentation = NextEpisodePresentation()
+    @State private var sleepTimer = SleepTimer()
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
@@ -144,7 +145,9 @@ struct PlayerView: View {
                     .tint(.white)
             }
 
-            if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented {
+            if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented,
+               !sleepTimer.isPromptPresented
+            {
                 controls
                     .transition(.opacity)
             }
@@ -205,6 +208,10 @@ struct PlayerView: View {
                     onClose: { closePlayer(force: true) },
                 )
             }
+
+            if sleepTimer.isPromptPresented {
+                SleepTimerPromptOverlay(sleepTimer: sleepTimer)
+            }
         }
         .simultaneousGesture(
             TapGesture(count: 2)
@@ -238,6 +245,7 @@ struct PlayerView: View {
                 }
                 .onDisappear {
                     nextEpisodePresentation.cancel()
+                    sleepTimer.cancel()
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
                     seekFeedbackWorkItem?.cancel()
@@ -260,6 +268,7 @@ struct PlayerView: View {
                 }
                 .onChange(of: playerController.isPaused) { _, isPaused in
                     viewModel.handlePlaybackState(isPaused: isPaused, isBuffering: playerController.isBuffering)
+                    sleepTimer.handlePlaybackStateChange(isPaused: isPaused)
                     if isPaused {
                         showControls(temporarily: false)
                     } else {
@@ -275,6 +284,11 @@ struct PlayerView: View {
                     }
                     viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
                     handleAutomaticMarkerSkipIfNeeded()
+                    sleepTimer.handlePosition(
+                        position,
+                        duration: playerController.duration ?? viewModel.duration,
+                        chapters: viewModel.chapters,
+                    )
                 }
                 .onChange(of: scrubPosition) { _, position in
                     guard isScrubbing else { return }
@@ -340,6 +354,11 @@ struct PlayerView: View {
                 .onChange(of: isStreamingServerUnreachable) { _, isUnreachable in
                     guard isUnreachable else { return }
                     handleStreamingServerLost()
+                }
+                .onChange(of: isSharePlayPlayback) { _, isSharePlay in
+                    if isSharePlay {
+                        sleepTimer.cancel()
+                    }
                 },
         )
 
@@ -438,6 +457,7 @@ struct PlayerView: View {
                 if participatesInSharePlay, sharePlayCoordinator.isInSession {
                     PlayerBadge(String(localized: "sharePlay.badge"))
                 }
+                SleepTimerBadge(sleepTimer: sleepTimer, mediaKind: viewModel.media?.type)
                 Button("common.actions.close", systemImage: "xmark") {
                     closePlayer()
                 }
@@ -612,6 +632,7 @@ struct PlayerView: View {
                     audioMenu
                     subtitleMenu
                     speedMenu
+                    sleepTimerMenu
                     if viewModel.showsVersionSelection {
                         versionMenu
                     }
@@ -903,6 +924,90 @@ struct PlayerView: View {
         }
     }
 
+    private var sleepTimerMenu: some View {
+        let mediaKind = viewModel.media?.type
+        return Menu {
+            Button {
+                selectSleepTimer(nil)
+            } label: {
+                if sleepTimer.mode == nil {
+                    Label("player.sleepTimer.off", systemImage: "checkmark")
+                } else {
+                    Text("player.sleepTimer.off")
+                }
+            }
+            ForEach(
+                SleepTimerMode.available(
+                    isLive: viewModel.isLivePlayback,
+                    hasChapters: viewModel.hasNavigableChapters,
+                ),
+                id: \.self,
+            ) { mode in
+                Button {
+                    selectSleepTimer(mode)
+                } label: {
+                    if sleepTimer.mode == mode {
+                        Label(mode.title(for: mediaKind), systemImage: "checkmark")
+                    } else {
+                        Text(mode.title(for: mediaKind))
+                    }
+                }
+            }
+            if sleepTimer.deadline != nil {
+                Divider()
+                Button {
+                    sleepTimer.extend()
+                } label: {
+                    Label(
+                        String(localized: "player.sleepTimer.extend \(SleepTimer.extensionMinutes)"),
+                        systemImage: "plus",
+                    )
+                }
+            }
+        } label: {
+            Label("player.sleepTimer.title", systemImage: sleepTimer.isActive ? "moon.zzz.fill" : "moon.zzz")
+        }
+        .disabled(isSharePlayPlayback)
+        .help(isSharePlayPlayback ? Text("player.sleepTimer.unavailableSharePlay") : Text("player.sleepTimer.title"))
+    }
+
+    private var isSharePlayPlayback: Bool {
+        participatesInSharePlay && sharePlayCoordinator.isInSession
+    }
+
+    private func selectSleepTimer(_ mode: SleepTimerMode?) {
+        guard let mode else {
+            sleepTimer.cancel()
+            return
+        }
+        sleepTimer.start(mode)
+        showFeedbackMessage(
+            String(localized: "player.sleepTimer.confirmation \(mode.title(for: viewModel.media?.type))"),
+        )
+    }
+
+    private func configureSleepTimer() {
+        sleepTimer.pausePlayback = {
+            nextEpisodePresentation.cancelCountdown()
+            playerController.pause()
+        }
+        sleepTimer.isPlaybackActive = {
+            !playerController.isPaused && !nextEpisodePresentation.isPresented
+        }
+        sleepTimer.setVolumeAttenuation = { playerController.setVolumeAttenuation($0) }
+        sleepTimer.onBoundaryPause = {
+            showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
+        }
+    }
+
+    private func togglePlayPauseFromKeyboard() {
+        if sleepTimer.isPromptPresented {
+            sleepTimer.pauseNow()
+        } else {
+            playerController.togglePlayback()
+        }
+    }
+
     private var qualityMenu: some View {
         Menu {
             ForEach(TranscodeQualityPreset.displayOrder) { preset in
@@ -1049,13 +1154,20 @@ struct PlayerView: View {
             Button(action: { keyboardSeek(by: -seekBackwardInterval) }) { EmptyView() }
                 .keyboardShortcut(.leftArrow, modifiers: [])
 
-            Button(action: { playerController.togglePlayback() }) { EmptyView() }
+            Button(action: { togglePlayPauseFromKeyboard() }) { EmptyView() }
                 .keyboardShortcut(.space, modifiers: [])
 
             Button(action: { keyboardSeek(by: seekForwardInterval) }) { EmptyView() }
                 .keyboardShortcut(.rightArrow, modifiers: [])
 
-            if activeOffsetBar != nil {
+            if sleepTimer.isPromptPresented {
+                Button {
+                    sleepTimer.continueAfterPrompt()
+                } label: {
+                    EmptyView()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            } else if activeOffsetBar != nil {
                 Button {
                     closeOffsetBar()
                 } label: {
@@ -1097,6 +1209,7 @@ struct PlayerView: View {
     }
 
     private func configureController() {
+        configureSleepTimer()
         playerController.onPictureInPictureRestoreRequested = {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: AppModel.playerWindowID)
@@ -1207,10 +1320,13 @@ struct PlayerView: View {
     }
 
     private func showAutomaticSkipFeedback(for marker: SkipSegment) {
-        automaticSkipFeedbackWorkItem?.cancel()
-        let message = marker.isIntro
+        showFeedbackMessage(marker.isIntro
             ? String(localized: "player.skip.intro.automaticConfirmation")
-            : String(localized: "player.skip.credits.automaticConfirmation")
+            : String(localized: "player.skip.credits.automaticConfirmation"))
+    }
+
+    private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
+        automaticSkipFeedbackWorkItem?.cancel()
 
         withAnimation(.easeInOut(duration: 0.2)) {
             automaticSkipFeedbackMessage = message
@@ -1222,12 +1338,12 @@ struct PlayerView: View {
             }
         }
         automaticSkipFeedbackWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
     private func handlePlaybackEnded() async {
+        let stopsForSleepTimer = sleepTimer.consumePlaybackEnd()
         await viewModel.markPlaybackFinished()
-        let isSharePlayPlayback = participatesInSharePlay && sharePlayCoordinator.isInSession
 
         if viewModel.media?.type == .episode {
             guard viewModel.usesCommonPlaybackQueue else {
@@ -1257,7 +1373,8 @@ struct PlayerView: View {
                 return
             }
 
-            let autoplay = settingsManager.playback.nextEpisodeAutoplay
+            // The sleep timer asked to stop here: offer the next episode without counting down to it.
+            let autoplay = stopsForSleepTimer ? .disabled : settingsManager.playback.nextEpisodeAutoplay
             if autoplay == .immediately {
                 await startPlayback(using: nextViewModel)
             } else {
@@ -1266,7 +1383,9 @@ struct PlayerView: View {
             return
         }
 
-        guard isSharePlayPlayback || settingsManager.playback.nextEpisodeAutoplay.isEnabled else {
+        guard !stopsForSleepTimer,
+              isSharePlayPlayback || settingsManager.playback.nextEpisodeAutoplay.isEnabled
+        else {
             playerController.pause()
             return
         }

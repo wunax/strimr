@@ -177,6 +177,8 @@
 				Features/Player/PlaybackSettingsTrack.swift,
 				Features/Player/PlaybackSpeedOption.swift,
 				Features/Player/PlayerViewModel.swift,
+				Features/Player/SleepTimer.swift,
+				Features/Player/SleepTimerPromptOverlay.swift,
 				Features/PlaylistDetail/PlaylistDetailViewModel.swift,
 				Features/Profiles/BorrowConnectionView.swift,
 				Features/Profiles/ProfileDetailView.swift,

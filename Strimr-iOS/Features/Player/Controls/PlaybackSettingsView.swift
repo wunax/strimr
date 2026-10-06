@@ -18,6 +18,11 @@ struct PlaybackSettingsView: View {
     var onSelectQuality: (TranscodeQualityPreset) -> Void
     var syncItems: [PlaybackOffsetMenuItem] = []
     var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
+    var sleepTimer: SleepTimer?
+    var sleepTimerModes: [SleepTimerMode] = []
+    var sleepTimerMediaKind: MediaKind?
+    var isSleepTimerAvailable = true
+    var onSelectSleepTimer: (SleepTimerMode?) -> Void = { _ in }
     var onClose: () -> Void
 
     var body: some View {
@@ -125,6 +130,16 @@ struct PlaybackSettingsView: View {
                     .pickerStyle(.menu)
                 }
 
+                if let sleepTimer {
+                    SleepTimerSettingsSection(
+                        sleepTimer: sleepTimer,
+                        modes: sleepTimerModes,
+                        mediaKind: sleepTimerMediaKind,
+                        isAvailable: isSleepTimerAvailable,
+                        onSelect: onSelectSleepTimer,
+                    )
+                }
+
                 if let onResetTrackSelections {
                     Section {
                         Button("player.settings.tracks.reset", action: onResetTrackSelections)
@@ -140,6 +155,60 @@ struct PlaybackSettingsView: View {
                     Button("common.actions.done", action: onClose)
                         .fontWeight(.semibold)
                 }
+            }
+        }
+    }
+}
+
+private struct SleepTimerSettingsSection: View {
+    let sleepTimer: SleepTimer
+    let modes: [SleepTimerMode]
+    let mediaKind: MediaKind?
+    let isAvailable: Bool
+    let onSelect: (SleepTimerMode?) -> Void
+
+    var body: some View {
+        Section {
+            Picker(
+                selection: Binding(
+                    get: { sleepTimer.mode },
+                    set: { onSelect($0) },
+                ),
+            ) {
+                Text("player.sleepTimer.off").tag(SleepTimerMode?.none)
+                ForEach(modes, id: \.self) { mode in
+                    Text(mode.title(for: mediaKind)).tag(Optional(mode))
+                }
+            } label: {
+                Label("player.sleepTimer.title", systemImage: "moon.zzz")
+            }
+            .pickerStyle(.menu)
+            .disabled(!isAvailable)
+
+            if let deadline = sleepTimer.deadline, deadline > .now {
+                LabeledContent("player.sleepTimer.remaining") {
+                    Text(timerInterval: Date.now ... deadline, countsDown: true)
+                        .monospacedDigit()
+                }
+
+                Button {
+                    sleepTimer.extend()
+                } label: {
+                    Label(
+                        String(localized: "player.sleepTimer.extend \(SleepTimer.extensionMinutes)"),
+                        systemImage: "plus",
+                    )
+                }
+            }
+
+            if sleepTimer.isActive {
+                Button("player.sleepTimer.cancel", role: .destructive) {
+                    onSelect(nil)
+                }
+            }
+        } footer: {
+            if !isAvailable {
+                Text("player.sleepTimer.unavailableSharePlay")
             }
         }
     }

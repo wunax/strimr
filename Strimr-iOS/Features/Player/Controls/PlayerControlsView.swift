@@ -43,6 +43,7 @@ struct PlayerControlsView: View {
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
     var showsSettingsIndicator = false
+    var sleepTimer: SleepTimer?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -77,6 +78,7 @@ struct PlayerControlsView: View {
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
                     showsSettingsIndicator: showsSettingsIndicator,
+                    sleepTimer: sleepTimer,
                     showsChapters: chapters.count >= 2,
                     onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
@@ -221,6 +223,7 @@ private struct PlayerControlsHeader: View {
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
     var showsSettingsIndicator: Bool
+    var sleepTimer: SleepTimer?
     var showsChapters: Bool
     var onShowChapters: () -> Void
     var isSharePlay: Bool
@@ -271,6 +274,13 @@ private struct PlayerControlsHeader: View {
             }
 
             Spacer()
+
+            if let sleepTimer, sleepTimer.isActive {
+                Button(action: onShowSettings) {
+                    SleepTimerBadge(sleepTimer: sleepTimer, mediaKind: media?.type)
+                }
+                .buttonStyle(.plain)
+            }
 
             if showsPictureInPicture {
                 PlayerPictureInPictureButton(action: onStartPictureInPicture)

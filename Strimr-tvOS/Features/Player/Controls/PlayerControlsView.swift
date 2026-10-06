@@ -16,7 +16,8 @@ struct PlayerControlsView: View {
     var onShowAudioSettings: () -> Void
     var onShowSubtitleSettings: () -> Void
     var onShowSpeedSettings: () -> Void
-    var onShowQualitySettings: () -> Void
+    var onShowSettings: () -> Void
+    var sleepTimer: SleepTimer
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
@@ -105,6 +106,8 @@ struct PlayerControlsView: View {
                 }
 
                 Spacer()
+
+                SleepTimerBadge(sleepTimer: sleepTimer, mediaKind: media?.type)
 
                 if showsClock {
                     TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -234,14 +237,14 @@ struct PlayerControlsView: View {
                             action: onShowSpeedSettings,
                         )
                         .focused($focusedControl, equals: .speed)
-
-                        PlayerSettingButton(
-                            systemImage: "slider.horizontal.3",
-                            accessibilityLabel: String(localized: "player.settings.quality"),
-                            action: onShowQualitySettings,
-                        )
-                        .focused($focusedControl, equals: .quality)
                     }
+
+                    PlayerSettingButton(
+                        systemImage: "slider.horizontal.3",
+                        accessibilityLabel: String(localized: "settings.title"),
+                        action: onShowSettings,
+                    )
+                    .focused($focusedControl, equals: .settings)
 
                     if chapters.count >= 2 {
                         PlayerSettingButton(
@@ -274,7 +277,7 @@ struct PlayerControlsView: View {
                 case .audio: focusedControl = .audio
                 case .subtitle: focusedControl = .subtitle
                 case .speed: focusedControl = .speed
-                case .quality: focusedControl = .quality
+                case .settings: focusedControl = .settings
                 case nil: break
                 }
             }
@@ -343,11 +346,11 @@ private struct PlayerAuxiliaryControlsRow: View {
 }
 
 enum PlayerSettingsControl {
-    case audio, subtitle, speed, quality
+    case audio, subtitle, speed, settings
 }
 
 private enum FocusTarget: Hashable {
-    case audio, subtitle, speed, quality
+    case audio, subtitle, speed, settings
     case playPause
     case chapters
 }
