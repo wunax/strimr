@@ -58,6 +58,13 @@ struct AppSettingsTests {
         #expect(reloaded.libraryBrowsePreferences(for: "key") == preferences)
     }
 
+    @Test func `missing pause screen setting decodes as enabled`() throws {
+        let settings = try decode(#"{"playback":{"showClock":true}}"#)
+
+        #expect(settings.playback.showInfoWhenPaused)
+        #expect(settings.playback.showClock)
+    }
+
     @Test func `missing library display defaults decode as automatic and medium`() throws {
         let settings = try decode(#"{"interface":{"libraryDefaultLayout":"mosaic"}}"#)
 

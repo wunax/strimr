@@ -53,6 +53,7 @@ struct PlayerView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
 
     @State private var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
@@ -93,6 +94,8 @@ struct PlayerView: View {
     @State private var shouldPauseAfterMediaLoad = false
     @State private var nextEpisodePresentation = NextEpisodePresentation()
     @State private var sleepTimer = SleepTimer()
+    @State private var pauseScreen = PauseScreenPresentation()
+    @State private var lastPointerLocation: CGPoint?
     @State private var qualityNoticeMessage: String?
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
@@ -130,6 +133,7 @@ struct PlayerView: View {
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()
+            .opacity(pauseScreen.isPresented ? 0 : 1)
 
             Color.clear
                 .contentShape(Rectangle())
@@ -196,6 +200,18 @@ struct PlayerView: View {
                 .allowsHitTesting(false)
             }
 
+            if pauseScreen.isPresented, let media = viewModel.media {
+                PauseScreenOverlay(
+                    media: media,
+                    position: playerController.position,
+                    duration: playerController.duration ?? viewModel.duration,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
+                    isLive: viewModel.isLivePlayback,
+                )
+                .transition(.opacity)
+            }
+
             keyboardCommands
 
             if nextEpisodePresentation.isPresented,
@@ -215,6 +231,7 @@ struct PlayerView: View {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
+        .animation(.easeInOut(duration: 0.5), value: pauseScreen.isPresented)
         .simultaneousGesture(
             TapGesture(count: 2)
                 .onEnded { toggleFullScreen() },
@@ -248,6 +265,7 @@ struct PlayerView: View {
                 .onDisappear {
                     nextEpisodePresentation.cancel()
                     sleepTimer.cancel()
+                    pauseScreen.cancel()
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
                     seekFeedbackWorkItem?.cancel()
@@ -367,6 +385,14 @@ struct PlayerView: View {
                 .onChange(of: isSharePlayPlayback) { _, isSharePlay in
                     if isSharePlay {
                         sleepTimer.cancel()
+                    }
+                }
+                .onChange(of: isPauseScreenEligible, initial: true) { _, isEligible in
+                    pauseScreen.update(isEligible: isEligible)
+                }
+                .onChange(of: pauseScreen.isPresented) { _, isPresented in
+                    if isPresented {
+                        hideControls(force: true)
                     }
                 },
         )
@@ -1005,6 +1031,7 @@ struct PlayerView: View {
     }
 
     private func togglePlayPauseFromKeyboard() {
+        pauseScreen.registerInteraction()
         if sleepTimer.isPromptPresented {
             sleepTimer.pauseNow()
         } else {
@@ -1200,19 +1227,41 @@ struct PlayerView: View {
             Button(action: { toggleControlsVisibility() }) { EmptyView() }
                 .keyboardShortcut("c", modifiers: [])
 
-            Button(action: { toggleInfoPopover() }) { EmptyView() }
-                .keyboardShortcut("i", modifiers: [])
+            Button {
+                guard !dismissPauseScreen() else { return }
+                toggleInfoPopover()
+            } label: {
+                EmptyView()
+            }
+            .keyboardShortcut("i", modifiers: [])
 
-            Button(action: { keyboardSeek(by: -seekBackwardInterval) }) { EmptyView() }
-                .keyboardShortcut(.leftArrow, modifiers: [])
+            Button {
+                guard !dismissPauseScreen() else { return }
+                keyboardSeek(by: -seekBackwardInterval)
+            } label: {
+                EmptyView()
+            }
+            .keyboardShortcut(.leftArrow, modifiers: [])
 
             Button(action: { togglePlayPauseFromKeyboard() }) { EmptyView() }
                 .keyboardShortcut(.space, modifiers: [])
 
-            Button(action: { keyboardSeek(by: seekForwardInterval) }) { EmptyView() }
-                .keyboardShortcut(.rightArrow, modifiers: [])
+            Button {
+                guard !dismissPauseScreen() else { return }
+                keyboardSeek(by: seekForwardInterval)
+            } label: {
+                EmptyView()
+            }
+            .keyboardShortcut(.rightArrow, modifiers: [])
 
-            if sleepTimer.isPromptPresented {
+            if pauseScreen.isPresented {
+                Button {
+                    dismissPauseScreen()
+                } label: {
+                    EmptyView()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            } else if sleepTimer.isPromptPresented {
                 Button {
                     sleepTimer.continueAfterPrompt()
                 } label: {
@@ -1671,13 +1720,26 @@ struct PlayerView: View {
 
     private func handlePointerMovement(_ phase: HoverPhase) {
         switch phase {
-        case .active:
+        case let .active(location):
             isPointerInsidePlayer = true
+            // Hover also reports when the view tree changes under a still pointer, which must not dismiss the
+            // pause screen.
+            guard location != lastPointerLocation else { return }
+            lastPointerLocation = location
             showControls(temporarily: true)
         case .ended:
             isPointerInsidePlayer = false
+            lastPointerLocation = nil
             restoreCursor()
         }
+    }
+
+    /// Returns whether the pause screen was visible, in which case the input only dismisses it.
+    @discardableResult
+    private func dismissPauseScreen() -> Bool {
+        guard pauseScreen.registerInteraction() else { return false }
+        showControls(temporarily: true)
+        return true
     }
 
     private var seekBackwardInterval: Double {
@@ -1719,6 +1781,7 @@ struct PlayerView: View {
     }
 
     private func toggleControlsVisibility() {
+        guard !dismissPauseScreen() else { return }
         if isShowingPlayQueue {
             hidePlayQueue()
             return
@@ -1732,6 +1795,7 @@ struct PlayerView: View {
     }
 
     private func showControls(temporarily: Bool) {
+        pauseScreen.registerInteraction()
         guard !isShowingPlayQueue else { return }
         hideControlsWorkItem?.cancel()
         restoreCursor()
@@ -1778,6 +1842,32 @@ struct PlayerView: View {
         Task {
             await startPlayback(using: nextViewModel)
         }
+    }
+
+    private var isPauseScreenEligible: Bool {
+        settingsManager.playback.showInfoWhenPaused
+            && playerController.isPaused
+            && !playerController.isBuffering
+            && !viewModel.isLoading
+            && viewModel.media != nil
+            && !isScrubbing
+            && !isVoiceOverEnabled
+            && !playerController.isPictureInPictureActive
+            && !playerController.isPictureInPictureTransitioning
+            && sheetPresentation.item == nil
+            && !isShowingChapterPopover
+            && !isShowingInfoPopover
+            && !isShowingPlayQueue
+            && activeOffsetBar == nil
+            && !nextEpisodePresentation.isPresented
+            && !sleepTimer.isPromptPresented
+            && !isRecoveringServerAccess
+            && !isShowingError
+            && !isShowingServerRecoveryAlert
+            && !isShowingOfflineInterruption
+            && !isShowingSubtitleSearchError
+            && qualityNoticeMessage == nil
+            && !isShowingSharePlayExitPrompt
     }
 
     private func scheduleControlsHide() {

@@ -65,6 +65,18 @@ struct SettingsPlaybackView: View {
                 )
             }
 
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle(
+                        "settings.playback.showInfoWhenPaused",
+                        isOn: viewModel.showInfoWhenPausedBinding,
+                    )
+                    Text("settings.playback.showInfoWhenPaused.description")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             scrubThumbnailSection
         }
         .listStyle(.insetGrouped)

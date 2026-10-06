@@ -20130,6 +20130,72 @@
           }
         }
       }
+    },
+    "player.pauseScreen.watching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're watching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous regardez"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您正在观看"
+          }
+        }
+      }
+    },
+    "settings.playback.showInfoWhenPaused" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Info When Paused"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les infos en pause"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停时显示信息"
+          }
+        }
+      }
+    },
+    "settings.playback.showInfoWhenPaused.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After 10 seconds paused, show the title and synopsis of what you're watching."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Après 10 secondes de pause, affiche le titre et le synopsis de ce que vous regardez."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停 10 秒后，显示正在观看内容的标题和简介。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

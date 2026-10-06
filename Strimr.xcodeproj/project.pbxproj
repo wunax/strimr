@@ -175,6 +175,8 @@
 				Features/Player/Controls/SubtitleOverlayView.swift,
 				Features/Player/NextEpisodeOverlay.swift,
 				Features/Player/NextEpisodePresentation.swift,
+				Features/Player/PauseScreenOverlay.swift,
+				Features/Player/PauseScreenPresentation.swift,
 				Features/Player/PlaybackLauncher.swift,
 				Features/Player/PlaybackOffset.swift,
 				Features/Player/PlaybackSettingsTrack.swift,

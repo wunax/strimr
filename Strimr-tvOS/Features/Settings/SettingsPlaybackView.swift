@@ -84,6 +84,15 @@ struct SettingsPlaybackView: View {
                     isOn: viewModel.showClockBinding,
                 )
                 .settingsFocus("settings.playback.showClock")
+                Toggle(isOn: viewModel.showInfoWhenPausedBinding) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("settings.playback.showInfoWhenPaused")
+                        Text("settings.playback.showInfoWhenPaused.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .settingsFocus("settings.playback.showInfoWhenPaused")
             }
 
             scrubThumbnailSection

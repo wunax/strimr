@@ -85,6 +85,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showInfoWhenPausedBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showInfoWhenPaused },
+            set: { self.settingsManager.setShowInfoWhenPaused($0) },
+        )
+    }
+
     var showScrubThumbnailPreviewsBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showScrubThumbnailPreviews },

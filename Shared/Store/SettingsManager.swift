@@ -77,6 +77,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowInfoWhenPaused(_ enabled: Bool) {
+        settings.playback.showInfoWhenPaused = enabled
+        persist()
+    }
+
     func setShowScrubThumbnailPreviews(_ enabled: Bool) {
         settings.playback.showScrubThumbnailPreviews = enabled
         persist()
