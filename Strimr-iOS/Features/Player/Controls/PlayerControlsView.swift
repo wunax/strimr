@@ -15,11 +15,9 @@ struct PlayerControlsView: View {
     var isScrubbing: Bool
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
-    var onShowInfo: (() -> Void)?
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
-    var onShowChapters: () -> Void
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
     var onSeekForward: () -> Void
@@ -34,8 +32,8 @@ struct PlayerControlsView: View {
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
     var onStartPictureInPicture: () -> Void
-    var hasQueue: Bool
-    var onShowQueue: () -> Void
+    var hasInfoPanel: Bool
+    var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
     var onGoLive: () -> Void
@@ -78,11 +76,8 @@ struct PlayerControlsView: View {
                     media: media,
                     onDismiss: onDismiss,
                     onShowSettings: onShowSettings,
-                    onShowInfo: onShowInfo,
                     showsSettingsIndicator: showsSettingsIndicator,
                     sleepTimer: sleepTimer,
-                    showsChapters: chapters.count >= 2,
-                    onShowChapters: onShowChapters,
                     isSharePlay: isSharePlay,
                     showsPictureInPicture: showsPictureInPicture,
                     isPictureInPictureEnabled: isPictureInPictureEnabled,
@@ -137,8 +132,8 @@ struct PlayerControlsView: View {
                                 onEditingChanged: onScrubbingChanged,
                             )
 
-                            if hasQueue {
-                                PlayerQueueDisclosureButton(action: onShowQueue)
+                            if hasInfoPanel {
+                                PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
                                     .opacity(isScrubbing ? 0 : 1)
                                     .allowsHitTesting(!isScrubbing)
                                     .offset(y: 18)
@@ -224,11 +219,8 @@ private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
     var onShowSettings: () -> Void
-    var onShowInfo: (() -> Void)?
     var showsSettingsIndicator: Bool
     var sleepTimer: SleepTimer?
-    var showsChapters: Bool
-    var onShowChapters: () -> Void
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
@@ -249,7 +241,19 @@ private struct PlayerControlsHeader: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                titleLabels
+                if let title = media?.primaryLabel {
+                    Text(title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                }
+
+                if let subtitle = media?.tertiaryLabel {
+                    Text(subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(2)
+                }
 
                 if isSharePlay {
                     Text("sharePlay.badge")
@@ -278,54 +282,10 @@ private struct PlayerControlsHeader: View {
                     .disabled(!isPictureInPictureEnabled)
             }
 
-            if showsChapters {
-                PlayerChaptersButton(action: onShowChapters)
-            }
-
             PlayerSettingsButton(showsIndicator: showsSettingsIndicator, action: onShowSettings)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private var titleLabels: some View {
-        if let onShowInfo {
-            Button(action: onShowInfo) {
-                titleText(showsDisclosure: true)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(Text("player.info.open"))
-        } else {
-            titleText(showsDisclosure: false)
-        }
-    }
-
-    private func titleText(showsDisclosure: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let title = media?.primaryLabel {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(title)
-                        .font(.title3.weight(.semibold))
-                        .lineLimit(2)
-
-                    if showsDisclosure {
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                }
-                .foregroundStyle(.white)
-            }
-
-            if let subtitle = media?.tertiaryLabel {
-                Text(subtitle)
-                    .font(.callout)
-                    .foregroundStyle(.white.opacity(0.8))
-                    .lineLimit(2)
-            }
-        }
-        .contentShape(Rectangle())
     }
 }
 

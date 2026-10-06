@@ -328,30 +328,3 @@ struct PlayerQueueItemView: View {
         }
     }
 }
-
-struct PlayerQueueDisclosureButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "chevron.up")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white.opacity(0.85))
-                .frame(width: 32, height: 22)
-                .background(.white.opacity(0.12), in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "player.queue.open"))
-    }
-}
-
-struct PlayerQueueDisclosureIndicator: View {
-    var body: some View {
-        Image(systemName: "chevron.down")
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.white.opacity(0.65))
-            .frame(width: 32, height: 22)
-            .accessibilityHidden(true)
-            .allowsHitTesting(false)
-    }
-}

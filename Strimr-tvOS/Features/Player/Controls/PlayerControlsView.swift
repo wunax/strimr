@@ -236,7 +236,7 @@ struct PlayerControlsView: View {
             }
             .overlay(alignment: .bottom) {
                 if hasInfoPanel {
-                    PlayerQueueDisclosureIndicator()
+                    PlayerInfoPanelDisclosureIndicator()
                         .offset(y: 26)
                 }
             }
