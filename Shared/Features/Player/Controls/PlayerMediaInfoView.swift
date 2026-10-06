@@ -14,6 +14,8 @@ struct PlayerMediaInfoView: View {
     var layout: PlayerMediaInfoLayout = .stacked
     var summaryLineLimit: Int?
 
+    @Environment(SettingsManager.self) private var settingsManager
+
     private var isEpisode: Bool {
         media.type == .episode
     }
@@ -80,7 +82,11 @@ struct PlayerMediaInfoView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let summary = media.summary, !summary.isEmpty {
+            if media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else if let summary = media.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.callout)
                     .lineLimit(summaryLineLimit)
