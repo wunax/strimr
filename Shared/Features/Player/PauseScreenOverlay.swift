@@ -9,6 +9,8 @@ struct PauseScreenOverlay: View {
     let showsEndsAtTime: Bool
     let isLive: Bool
 
+    @Environment(SettingsManager.self) private var settingsManager
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             scrim
@@ -61,7 +63,9 @@ struct PauseScreenOverlay: View {
                     .foregroundStyle(.white.opacity(0.7))
             }
 
-            if let summary = media.summary, !summary.isEmpty {
+            if let summary = media.summary, !summary.isEmpty,
+               !media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection)
+            {
                 Text(summary)
                     .font(.callout)
                     .lineLimit(summaryLineLimit)
