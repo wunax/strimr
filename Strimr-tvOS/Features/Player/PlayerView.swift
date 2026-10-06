@@ -569,13 +569,13 @@ struct PlayerView: View {
             PlayerQualitySelectionView(
                 selectedQuality: viewModel.selectedQuality,
                 onSelect: { selectQuality($0) },
-                onClose: closeSettingsPanel,
+                onClose: navigateBackInSettingsPanel,
             )
         case .version:
             PlayerVersionSelectionView(
                 versions: viewModel.versionOptions,
                 onSelect: selectVersion(_:),
-                onClose: closeSettingsPanel,
+                onClose: navigateBackInSettingsPanel,
             )
         case .sleepTimer:
             PlayerSleepTimerSelectionView(
@@ -587,7 +587,7 @@ struct PlayerView: View {
                 mediaKind: viewModel.media?.type,
                 isAvailable: !sharePlayCoordinator.isInSession,
                 onSelect: selectSleepTimer(_:),
-                onClose: closeSettingsPanel,
+                onClose: navigateBackInSettingsPanel,
             )
         case .subtitleSearch:
             if let services = viewModel.subtitleSearchServices {

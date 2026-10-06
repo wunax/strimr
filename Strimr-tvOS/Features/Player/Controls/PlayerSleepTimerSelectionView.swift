@@ -9,7 +9,12 @@ struct PlayerSleepTimerSelectionView: View {
     var onClose: () -> Void
 
     var body: some View {
-        PlayerSettingsOptionsView(title: "player.sleepTimer.title", options: options, onClose: onClose)
+        PlayerSettingsOptionsView(
+            title: "player.sleepTimer.title",
+            options: options,
+            closeStyle: .back,
+            onClose: onClose,
+        )
     }
 
     private var options: [PlayerSettingsOption] {

@@ -16,6 +16,7 @@ struct PlayerQualitySelectionView: View {
                     action: { onSelect(preset) },
                 )
             },
+            closeStyle: .back,
             onClose: onClose,
         )
     }

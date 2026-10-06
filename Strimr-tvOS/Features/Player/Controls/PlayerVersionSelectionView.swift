@@ -18,6 +18,7 @@ struct PlayerVersionSelectionView: View {
                     action: { onSelect(version.id) },
                 )
             },
+            closeStyle: .back,
             onClose: onClose,
         )
     }
