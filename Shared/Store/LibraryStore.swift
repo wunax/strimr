@@ -13,6 +13,8 @@ final class LibraryStore {
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var generation = -1
+    /// Servers arrived while a load was running; they are synced once it ends.
+    @ObservationIgnored private var syncPending = false
 
     init(sessionManager: SessionManager, settingsManager: SettingsManager) {
         self.sessionManager = sessionManager
@@ -82,14 +84,24 @@ final class LibraryStore {
             loadedServers.remove(server)
         }
         let arrived = registry.readyServers.subtracting(loadedServers)
-        guard !arrived.isEmpty, !isLoading else { return }
+        guard !arrived.isEmpty else { return }
+        guard !isLoading else {
+            syncPending = true
+            return
+        }
         try? await load(servers: arrived)
     }
 
     private func load(servers: Set<ServerIdentity>?) async throws {
         isLoading = true
         loadFailed = false
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            if syncPending {
+                syncPending = false
+                Task { await syncServers() }
+            }
+        }
         let sessions = registry.sessions.filter { servers?.contains($0.identity) ?? true }
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
             try await services.library.libraries()
@@ -121,5 +133,6 @@ final class LibraryStore {
         librariesByServer = [:]
         loadedServers = []
         loadFailed = false
+        syncPending = false
     }
 }
