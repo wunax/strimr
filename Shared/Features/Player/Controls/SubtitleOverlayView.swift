@@ -228,7 +228,7 @@ struct SubtitleOverlayView: View {
             )
         }
 
-        let videoRect = self.videoRect(in: overlaySize)
+        let videoRect = videoRect(in: overlaySize)
 
         let canvasSize = image.canvasSize.width > 0 && image.canvasSize.height > 0
             ? image.canvasSize
