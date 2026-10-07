@@ -22,11 +22,16 @@ struct SubtitleOverlayView: View {
 
     var body: some View {
         if let assRenderer {
-            ASSRenderedSubtitles(
-                renderer: assRenderer,
-                reloadSignal: assReloadSignal,
-                currentOffset: currentTime,
-            )
+            GeometryReader { geometry in
+                let rect = videoRect(in: geometry.size)
+                ASSRenderedSubtitles(
+                    renderer: assRenderer,
+                    reloadSignal: assReloadSignal,
+                    currentOffset: currentTime,
+                )
+                .frame(width: rect.width, height: rect.height)
+                .position(x: rect.midX, y: rect.midY)
+            }
             .allowsHitTesting(false)
         } else {
             cueOverlay
@@ -182,6 +187,32 @@ struct SubtitleOverlayView: View {
             )
     }
 
+    private func videoRect(in overlaySize: CGSize) -> CGRect {
+        guard let videoSize,
+              videoSize.width > 0,
+              videoSize.height > 0,
+              overlaySize.width > 0,
+              overlaySize.height > 0
+        else {
+            return CGRect(origin: .zero, size: overlaySize)
+        }
+
+        let videoScale = min(
+            overlaySize.width / videoSize.width,
+            overlaySize.height / videoSize.height,
+        )
+        let fittedVideoSize = CGSize(
+            width: videoSize.width * videoScale,
+            height: videoSize.height * videoScale,
+        )
+        return CGRect(
+            x: (overlaySize.width - fittedVideoSize.width) / 2,
+            y: (overlaySize.height - fittedVideoSize.height) / 2,
+            width: fittedVideoSize.width,
+            height: fittedVideoSize.height,
+        )
+    }
+
     private func imageFrame(_ image: SubtitleImage, in overlaySize: CGSize) -> CGRect {
         guard let videoSize,
               videoSize.width > 0,
@@ -197,20 +228,7 @@ struct SubtitleOverlayView: View {
             )
         }
 
-        let videoScale = min(
-            overlaySize.width / videoSize.width,
-            overlaySize.height / videoSize.height,
-        )
-        let fittedVideoSize = CGSize(
-            width: videoSize.width * videoScale,
-            height: videoSize.height * videoScale,
-        )
-        let videoRect = CGRect(
-            x: (overlaySize.width - fittedVideoSize.width) / 2,
-            y: (overlaySize.height - fittedVideoSize.height) / 2,
-            width: fittedVideoSize.width,
-            height: fittedVideoSize.height,
-        )
+        let videoRect = self.videoRect(in: overlaySize)
 
         let canvasSize = image.canvasSize.width > 0 && image.canvasSize.height > 0
             ? image.canvasSize
