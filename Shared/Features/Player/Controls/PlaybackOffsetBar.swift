@@ -371,9 +371,10 @@ struct PlaybackOffsetStepper: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .fixedSize()
+                .minimumScaleFactor(0.7)
         }
-        .frame(minWidth: valueWidth)
+        // Gives up width before the step buttons do on narrow rows, which must never truncate.
+        .frame(minWidth: compactValueWidth, idealWidth: valueWidth)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind.title)
         .accessibilityValue(caption.map { "\(formattedValue), \($0)" } ?? formattedValue)
@@ -430,6 +431,14 @@ struct PlaybackOffsetStepper: View {
             200
         #else
             96
+        #endif
+    }
+
+    private var compactValueWidth: CGFloat {
+        #if os(tvOS)
+            200
+        #else
+            72
         #endif
     }
 
@@ -615,6 +624,7 @@ enum PlaybackOffsetControl: String, Hashable {
                 .font(.callout.weight(.semibold))
                 .monospacedDigit()
                 .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, 8)
                 .frame(minWidth: minSize, minHeight: minSize)
                 .background(
@@ -681,21 +691,43 @@ struct AudioDelaySettingsRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("settings.playback.audioDelay")
+            HStack {
+                Text("settings.playback.audioDelay")
+                #if !os(tvOS)
+                    // Beside the title: next to the steppers it pushes them past an iPhone row's width.
+                    Spacer(minLength: 0)
+                    PlaybackOffsetResetButton(isEnabled: milliseconds != 0, action: reset)
+                #endif
+            }
             PlaybackOffsetStepper(
                 kind: .audio,
-                milliseconds: settingsManager.playback.audioDelayMilliseconds,
-                caption: PlaybackOffsetKind.audio.directionLabel(
-                    milliseconds: settingsManager.playback.audioDelayMilliseconds,
-                ),
+                milliseconds: milliseconds,
+                caption: PlaybackOffsetKind.audio.directionLabel(milliseconds: milliseconds),
                 settingsFocusID: settingsFocusID,
                 onStep: { direction, coarse in
-                    let current = PlaybackOffset(milliseconds: settingsManager.playback.audioDelayMilliseconds)
+                    let current = PlaybackOffset(milliseconds: milliseconds)
                     let stepped = PlaybackOffsetRange.audio.stepped(current, by: direction, coarse: coarse)
                     settingsManager.setAudioDelayMilliseconds(stepped.milliseconds)
                 },
-                onReset: { settingsManager.setAudioDelayMilliseconds(0) },
+                onReset: stepperReset,
             )
         }
+    }
+
+    private var milliseconds: Int {
+        settingsManager.playback.audioDelayMilliseconds
+    }
+
+    /// tvOS keeps reset in the stepper so focus can move to it from the buttons.
+    private var stepperReset: (() -> Void)? {
+        #if os(tvOS)
+            reset
+        #else
+            nil
+        #endif
+    }
+
+    private func reset() {
+        settingsManager.setAudioDelayMilliseconds(0)
     }
 }
