@@ -42,8 +42,8 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayLiveTVTab($0) },
                     ),
                 )
-            } footer: {
-                Text("settings.interface.displayLiveTVTab.description")
+            } header: {
+                Text("settings.interface.tabs.section")
             }
 
             Section {

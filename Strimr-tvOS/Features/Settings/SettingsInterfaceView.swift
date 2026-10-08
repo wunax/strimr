@@ -35,6 +35,9 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayPlaylists")
+            }
+
+            Section {
                 Toggle(
                     "settings.interface.displayFavoritesTab",
                     isOn: Binding(
@@ -43,11 +46,6 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayFavoritesTab")
-            } footer: {
-                Text("settings.interface.displayFavoritesTab.description")
-            }
-
-            Section {
                 Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(
@@ -56,8 +54,8 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayLiveTVTab")
-            } footer: {
-                Text("settings.interface.displayLiveTVTab.description")
+            } header: {
+                Text("settings.interface.tabs.section")
             }
 
             Section {
