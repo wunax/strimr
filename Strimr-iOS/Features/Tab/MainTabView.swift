@@ -89,8 +89,16 @@ struct MainTabView: View {
                 }
             }
 
-            Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
-                searchTabContent
+            // On iOS 27, a search-role tab sits in the bar like any tab and, once the bar overflows into More, tapping
+            // a tab crashes UIKit; the prominent role keeps it as the separate button.
+            if #available(iOS 27.0, *) {
+                Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .prominent) {
+                    searchTabContent
+                }
+            } else {
+                Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
+                    searchTabContent
+                }
             }
 
             if settingsManager.interface.displayDownloadsTab {
