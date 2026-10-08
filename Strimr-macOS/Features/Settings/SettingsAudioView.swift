@@ -30,6 +30,12 @@ struct SettingsAudioView: View {
             } header: {
                 Text("settings.playback.audio.title")
             }
+
+            Section {
+                AudioDelaySettingsRow()
+            } footer: {
+                Text("settings.playback.audioDelay.footer")
+            }
         }
         .listStyle(.inset)
         .navigationTitle("settings.playback.audio.title")

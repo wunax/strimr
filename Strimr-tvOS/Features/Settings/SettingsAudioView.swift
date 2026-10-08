@@ -32,6 +32,12 @@ struct SettingsAudioView: View {
             } header: {
                 Text("settings.playback.audio.title")
             }
+
+            Section {
+                AudioDelaySettingsRow(settingsFocusID: "settings.playback.audioDelay")
+            } footer: {
+                Text("settings.playback.audioDelay.footer")
+            }
         }
     }
 }
