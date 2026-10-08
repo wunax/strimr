@@ -32,48 +32,19 @@ struct NavigationLibrariesSectionView: View {
             Text("settings.interface.displayedLibraries.empty")
                 .foregroundStyle(.secondary)
         } else {
-            #if os(tvOS)
-                ForEach(Array(viewModel.libraries.enumerated()), id: \.element.identity) { index, library in
-                    let key = "navigation-library-\(library.identity.stableKey)"
-                    VStack(alignment: .leading, spacing: 16) {
-                        Toggle(isOn: viewModel.navigationBinding(for: library)) {
-                            LibrarySettingsLabel(title: library.title, subtitle: viewModel.subtitle(for: library))
-                        }
-                        .settingsFocus(key)
-
-                        if viewModel.isSelected(library) {
-                            HStack(spacing: 16) {
-                                Button {
-                                    viewModel.moveLibraries(from: IndexSet(integer: index), to: index - 1)
-                                } label: {
-                                    Image(systemName: "arrow.up")
-                                }
-                                .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
-                                .settingsFocus("\(key)-up")
-                                .disabled(index == 0)
-
-                                Button {
-                                    viewModel.moveLibraries(from: IndexSet(integer: index), to: index + 2)
-                                } label: {
-                                    Image(systemName: "arrow.down")
-                                }
-                                .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
-                                .settingsFocus("\(key)-down", exitsLeft: false)
-                                .disabled(index == viewModel.selectedCount - 1)
-                            }
-                        }
-                    }
+            ForEach(Array(viewModel.libraries.enumerated()), id: \.element.identity) { index, library in
+                LibraryOrderRow(
+                    title: library.title,
+                    subtitle: viewModel.subtitle(for: library),
+                    isOn: viewModel.navigationBinding(for: library),
+                    key: "navigation-library-\(library.identity.stableKey)",
+                    canReorder: viewModel.isSelected(library),
+                    canMoveUp: index > 0,
+                    canMoveDown: index < viewModel.selectedCount - 1,
+                ) { offset in
+                    viewModel.moveLibrary(at: index, by: offset)
                 }
-            #else
-                ForEach(viewModel.libraries, id: \.identity) { library in
-                    Toggle(isOn: viewModel.navigationBinding(for: library)) {
-                        LibrarySettingsLabel(title: library.title, subtitle: viewModel.subtitle(for: library))
-                    }
-                    .id("navigation-library-\(library.identity.stableKey)")
-                    .moveDisabled(!viewModel.isSelected(library))
-                }
-                .onMove(perform: viewModel.moveLibraries)
-            #endif
+            }
         }
     }
 }

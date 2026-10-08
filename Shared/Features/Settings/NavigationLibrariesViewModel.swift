@@ -56,11 +56,12 @@ final class NavigationLibrariesViewModel {
         libraries.count(where: isSelected)
     }
 
-    /// Reorders the pinned libraries; pinned libraries of servers missing from the list keep their place at the end.
-    func moveLibraries(from source: IndexSet, to destination: Int) {
-        var ordered = libraries
-        ordered.move(fromOffsets: source, toOffset: destination)
-        let visible = ordered.filter(isSelected).map(\.identity)
+    /// Moves a pinned library; pinned libraries of servers missing from the list keep their place at the end.
+    func moveLibrary(at index: Int, by offset: Int) {
+        var visible = libraries.filter(isSelected).map(\.identity)
+        let destination = index + offset
+        guard visible.indices.contains(index), visible.indices.contains(destination) else { return }
+        visible.insert(visible.remove(at: index), at: destination)
         let absent = navigationLibraries.filter { !visible.contains($0) }
         update(visible + absent)
     }

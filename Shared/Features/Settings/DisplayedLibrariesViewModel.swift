@@ -47,11 +47,13 @@ final class DisplayedLibrariesViewModel {
         )
     }
 
-    func moveLibraries(from source: IndexSet, to destination: Int) {
-        var ordered = libraries
-        ordered.move(fromOffsets: source, toOffset: destination)
+    func moveLibrary(at index: Int, by offset: Int) {
+        var ordered = libraries.map(\.identity)
+        let destination = index + offset
+        guard ordered.indices.contains(index), ordered.indices.contains(destination) else { return }
+        ordered.insert(ordered.remove(at: index), at: destination)
         settingsManager.updateLibraryPreferences(profileID: libraryStore.profileID) {
-            $0.setOrder(ordered.map(\.identity))
+            $0.setOrder(ordered)
         }
     }
 }
