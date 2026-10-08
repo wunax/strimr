@@ -42,11 +42,6 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayFavoritesTab($0) },
                     ),
                 )
-            } footer: {
-                Text("settings.interface.displayFavoritesTab.description")
-            }
-
-            Section {
                 Toggle(
                     "settings.interface.displayDownloadsTab",
                     isOn: Binding(
@@ -54,11 +49,6 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayDownloadsTab($0) },
                     ),
                 )
-            } footer: {
-                Text("settings.interface.displayDownloadsTab.description")
-            }
-
-            Section {
                 Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(
@@ -66,8 +56,8 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayLiveTVTab($0) },
                     ),
                 )
-            } footer: {
-                Text("settings.interface.displayLiveTVTab.description")
+            } header: {
+                Text("settings.interface.tabs.section")
             }
 
             Section {
