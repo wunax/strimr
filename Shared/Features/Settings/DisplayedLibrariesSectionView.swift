@@ -32,45 +32,18 @@ struct DisplayedLibrariesSectionView: View {
             Text("settings.interface.displayedLibraries.empty")
                 .foregroundStyle(.secondary)
         } else {
-            #if os(tvOS)
-                ForEach(Array(viewModel.libraries.enumerated()), id: \.element.identity) { index, library in
-                    let key = "displayed-library-\(library.identity.stableKey)"
-                    VStack(alignment: .leading, spacing: 16) {
-                        Toggle(isOn: viewModel.displayedBinding(for: library)) {
-                            LibrarySettingsLabel(title: library.title, subtitle: viewModel.subtitle(for: library))
-                        }
-                        .settingsFocus(key)
-
-                        HStack(spacing: 16) {
-                            Button {
-                                viewModel.moveLibraries(from: IndexSet(integer: index), to: index - 1)
-                            } label: {
-                                Image(systemName: "arrow.up")
-                            }
-                            .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
-                            .settingsFocus("\(key)-up")
-                            .disabled(index == 0)
-
-                            Button {
-                                viewModel.moveLibraries(from: IndexSet(integer: index), to: index + 2)
-                            } label: {
-                                Image(systemName: "arrow.down")
-                            }
-                            .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
-                            .settingsFocus("\(key)-down", exitsLeft: false)
-                            .disabled(index == viewModel.libraries.count - 1)
-                        }
-                    }
+            ForEach(Array(viewModel.libraries.enumerated()), id: \.element.identity) { index, library in
+                LibraryOrderRow(
+                    title: library.title,
+                    subtitle: viewModel.subtitle(for: library),
+                    isOn: viewModel.displayedBinding(for: library),
+                    key: "displayed-library-\(library.identity.stableKey)",
+                    canMoveUp: index > 0,
+                    canMoveDown: index < viewModel.libraries.count - 1,
+                ) { offset in
+                    viewModel.moveLibrary(at: index, by: offset)
                 }
-            #else
-                ForEach(viewModel.libraries, id: \.identity) { library in
-                    Toggle(isOn: viewModel.displayedBinding(for: library)) {
-                        LibrarySettingsLabel(title: library.title, subtitle: viewModel.subtitle(for: library))
-                    }
-                    .id("displayed-library-\(library.identity.stableKey)")
-                }
-                .onMove(perform: viewModel.moveLibraries)
-            #endif
+            }
         }
     }
 }
@@ -89,5 +62,87 @@ struct LibrarySettingsLabel: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// Library toggle with the same up/down arrows as the home rows settings.
+struct LibraryOrderRow: View {
+    let title: String
+    let subtitle: String?
+    let isOn: Binding<Bool>
+    let key: String
+    var canReorder = true
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let move: (Int) -> Void
+
+    var body: some View {
+        #if os(tvOS)
+            VStack(alignment: .leading, spacing: 16) {
+                Toggle(isOn: isOn) {
+                    LibrarySettingsLabel(title: title, subtitle: subtitle)
+                        .foregroundStyle(isOn.wrappedValue ? .primary : .secondary)
+                }
+                .settingsFocus(key)
+
+                if canReorder {
+                    HStack(spacing: 12) {
+                        Button {
+                            move(-1)
+                        } label: {
+                            Image(systemName: "arrow.up")
+                        }
+                        .buttonStyle(.bordered)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
+                        .settingsFocus("\(key)-up")
+                        .disabled(!canMoveUp)
+
+                        Button {
+                            move(1)
+                        } label: {
+                            Image(systemName: "arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
+                        .settingsFocus("\(key)-down", exitsLeft: false)
+                        .disabled(!canMoveDown)
+                    }
+                }
+            }
+        #else
+            HStack(spacing: 12) {
+                Toggle(isOn: isOn) {
+                    LibrarySettingsLabel(title: title, subtitle: subtitle)
+                        .foregroundStyle(isOn.wrappedValue ? .primary : .secondary)
+                }
+
+                // Hidden rather than removed so every toggle stays aligned.
+                Group {
+                    Button {
+                        move(-1)
+                    } label: {
+                        Image(systemName: "arrow.up")
+                    }
+                    .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
+                    .disabled(!canMoveUp)
+
+                    Button {
+                        move(1)
+                    } label: {
+                        Image(systemName: "arrow.down")
+                    }
+                    .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
+                    .disabled(!canMoveDown)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .opacity(canReorder ? 1 : 0)
+                .disabled(!canReorder)
+                .accessibilityHidden(!canReorder)
+            }
+            .id(key)
+        #endif
     }
 }

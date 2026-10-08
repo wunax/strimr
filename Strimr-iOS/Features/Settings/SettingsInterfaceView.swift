@@ -135,11 +135,6 @@ struct SettingsInterfaceView: View {
             )
         }
         .listStyle(.insetGrouped)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                EditButton()
-            }
-        }
         .navigationTitle("settings.interface.title")
     }
 }
