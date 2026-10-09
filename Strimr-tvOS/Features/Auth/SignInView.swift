@@ -16,10 +16,11 @@ struct SignInView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                Image("plex_logo")
+                Image("Icon")
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: 320, maxHeight: 148)
+                    .frame(width: 192, height: 192)
+                    .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
                     .accessibilityHidden(true)
 
                 Text("signIn.title")

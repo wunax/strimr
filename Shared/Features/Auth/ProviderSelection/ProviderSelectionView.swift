@@ -56,13 +56,13 @@ struct ProviderSelectionView: View {
     private var providerButtons: some View {
         providerButton(
             title: "provider.plex",
-            image: "plex_logo",
+            symbol: "play.rectangle.fill",
             accent: Color(red: 0.95, green: 0.68, blue: 0.0),
             provider: .plex,
         )
         providerButton(
             title: "provider.jellyfin",
-            image: "jellyfin_logo",
+            symbol: "server.rack",
             accent: Color(red: 0.46, green: 0.49, blue: 0.96),
             provider: .jellyfin,
         )
@@ -70,7 +70,7 @@ struct ProviderSelectionView: View {
 
     private func providerButton(
         title: LocalizedStringKey,
-        image: String,
+        symbol: String,
         accent: Color,
         provider: MediaProvider,
     ) -> some View {
@@ -79,14 +79,16 @@ struct ProviderSelectionView: View {
         return Button {
             onSelect(provider)
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                Image(image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
-                    .frame(maxWidth: .infinity, minHeight: logoAreaHeight)
+            HStack(spacing: symbolSpacing) {
+                Image(systemName: symbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(accent)
                     .accessibilityHidden(true)
+                Text(title)
+                    .font(.title.bold())
+                    .foregroundStyle(.primary)
             }
+            .frame(maxWidth: .infinity, minHeight: logoAreaHeight)
             .padding(cardPadding)
             .frame(maxWidth: .infinity, minHeight: cardMinimumHeight, alignment: .leading)
             .background {
@@ -202,19 +204,19 @@ struct ProviderSelectionView: View {
         #endif
     }
 
-    private var logoMaxWidth: CGFloat {
+    private var symbolSize: CGFloat {
         #if os(tvOS)
-            280
+            56
         #else
-            210
+            36
         #endif
     }
 
-    private var logoMaxHeight: CGFloat {
+    private var symbolSpacing: CGFloat {
         #if os(tvOS)
-            108
+            24
         #else
-            76
+            14
         #endif
     }
 
