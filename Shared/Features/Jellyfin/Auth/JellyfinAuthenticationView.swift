@@ -17,10 +17,11 @@ struct JellyfinAuthenticationView: View {
             Spacer(minLength: 0)
 
             VStack(spacing: headerSpacing) {
-                Image("jellyfin_logo")
+                Image("Icon")
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
+                    .frame(width: appLogoSize, height: appLogoSize)
+                    .clipShape(RoundedRectangle(cornerRadius: appLogoCornerRadius, style: .continuous))
                     .accessibilityHidden(true)
 
                 if viewModel.step == .server {
@@ -249,11 +250,11 @@ struct JellyfinAuthenticationView: View {
         .padding(.vertical, 4)
     }
 
-    private var logoMaxWidth: CGFloat {
+    private var appLogoSize: CGFloat {
         #if os(tvOS)
-            300
+            192
         #else
-            240
+            128
         #endif
     }
 
@@ -265,11 +266,11 @@ struct JellyfinAuthenticationView: View {
         #endif
     }
 
-    private var logoMaxHeight: CGFloat {
+    private var appLogoCornerRadius: CGFloat {
         #if os(tvOS)
-            96
+            40
         #else
-            72
+            28
         #endif
     }
 
