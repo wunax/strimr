@@ -299,8 +299,8 @@ struct MediaDetailView: View {
     private var ratingsRow: some View {
         if !viewModel.media.ratings.isEmpty {
             HStack(spacing: 14) {
-                ForEach(viewModel.media.ratings.indices, id: \.self) { index in
-                    MediaRatingLabel(rating: viewModel.media.ratings[index], iconHeight: 16)
+                ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
+                    MediaRatingLabel(rating: rating, iconHeight: 16)
                 }
             }
             .font(.subheadline)
