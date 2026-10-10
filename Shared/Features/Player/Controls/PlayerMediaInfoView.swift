@@ -64,8 +64,8 @@ struct PlayerMediaInfoView: View {
 
             if !media.ratings.isEmpty {
                 HStack(spacing: 16) {
-                    ForEach(media.ratings.indices, id: \.self) { index in
-                        MediaRatingLabel(rating: media.ratings[index], iconHeight: ratingIconHeight)
+                    ForEach(Array(media.ratings.enumerated()), id: \.offset) { _, rating in
+                        MediaRatingLabel(rating: rating, iconHeight: ratingIconHeight)
                     }
                 }
                 .font(.subheadline)

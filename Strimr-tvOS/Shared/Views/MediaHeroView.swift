@@ -160,8 +160,8 @@ struct MediaHeroContentView: View {
     private var ratingsLine: some View {
         if !media.ratings.isEmpty {
             HStack(spacing: 16) {
-                ForEach(media.ratings.indices, id: \.self) { index in
-                    MediaRatingLabel(rating: media.ratings[index])
+                ForEach(Array(media.ratings.enumerated()), id: \.offset) { _, rating in
+                    MediaRatingLabel(rating: rating)
                 }
             }
             .font(.subheadline)
