@@ -120,6 +120,18 @@ struct MultiServerMigrationTests {
         #expect(context.accounts.accounts.isEmpty)
     }
 
+    @Test func `revoked plex token drops the old session instead of retrying forever`() async {
+        let context = makeContext()
+        legacyPlex(token: "token", serverID: "server-a")
+        let migration = context.migration { _ in throw PlexAPIError.requestFailed(statusCode: 401) }
+
+        #expect(await migration.run() == .nothingToMigrate)
+        #expect(secureStore.values[MultiServerMigration.LegacyKeys.plexToken] == nil)
+        #expect(defaults.string(forKey: MultiServerMigration.LegacyKeys.provider) == nil)
+        #expect(defaults.integer(forKey: MultiServerMigration.versionKey) == MultiServerMigration.currentVersion)
+        #expect(context.accounts.accounts.isEmpty)
+    }
+
     @Test func `migration is idempotent`() async {
         let context = makeContext()
         legacyPlex(token: "token", serverID: "server-a")

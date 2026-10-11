@@ -74,7 +74,14 @@ struct MultiServerMigration {
 
     private func migratePlex() async throws -> Outcome {
         guard let token = try secureStore.string(forKey: LegacyKeys.plexToken) else { return .nothingToMigrate }
-        let user = try await resolvePlexUser(token)
+        let user: PlexCloudUser
+        do {
+            user = try await resolvePlexUser(token)
+        } catch let error as PlexAPIError where error.isUnauthorized {
+            // A revoked token fails on every retry, even after a reinstall since the keychain survives it; the
+            // previous version asked to sign in again, so the new one starts with no account.
+            return .nothingToMigrate
+        }
         guard let uuid = user.uuid, !uuid.isEmpty else { throw MigrationError.missingPlexUser }
 
         let account = PlexAccount(id: uuid, displayName: Self.displayName(of: user))
