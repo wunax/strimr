@@ -248,7 +248,7 @@ private extension TranscodeQualityPreset {
     }
 }
 
-nonisolated private struct PlexTranscodeDecisionResponse: Decodable {
+private nonisolated struct PlexTranscodeDecisionResponse: Decodable {
     let mediaContainer: MediaContainer
 
     struct MediaContainer: Decodable {
@@ -303,7 +303,7 @@ nonisolated private struct PlexTranscodeDecisionResponse: Decodable {
     }
 }
 
-nonisolated private extension KeyedDecodingContainer {
+private nonisolated extension KeyedDecodingContainer {
     func flexibleInt(forKey key: Key) -> Int? {
         if let value = try? decode(Int.self, forKey: key) {
             return value

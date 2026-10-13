@@ -141,7 +141,7 @@ private extension TranscodeQualityPreset {
     }
 }
 
-nonisolated private struct QueueResponse: Decodable {
+private nonisolated struct QueueResponse: Decodable {
     let mediaContainer: Container
     struct Container: Decodable {
         let queues: [Queue]?
@@ -152,7 +152,7 @@ nonisolated private struct QueueResponse: Decodable {
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }
 
-nonisolated private struct AddResponse: Decodable {
+private nonisolated struct AddResponse: Decodable {
     let mediaContainer: Container
     struct Container: Decodable {
         let items: [Item]?
@@ -172,7 +172,7 @@ nonisolated private struct AddResponse: Decodable {
     private enum CodingKeys: String, CodingKey { case mediaContainer = "MediaContainer" }
 }
 
-nonisolated private struct ItemsResponse: Decodable {
+private nonisolated struct ItemsResponse: Decodable {
     let mediaContainer: Container
     struct Container: Decodable {
         let items: [Item]?

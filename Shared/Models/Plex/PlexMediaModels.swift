@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated private extension KeyedDecodingContainer {
+private nonisolated extension KeyedDecodingContainer {
     /// Failed `decode` calls build a `DecodingError` with its full coding path, which is costly in large payloads; most
     /// optional Plex keys are absent, so check presence before trying each type.
     func hasPlexValue(forKey key: Key) -> Bool {
@@ -885,7 +885,7 @@ nonisolated struct PlexHubMediaContainer: Codable, Equatable {
     }
 }
 
-nonisolated final class PlexOnDeck: Codable, Equatable, Sendable {
+final nonisolated class PlexOnDeck: Codable, Equatable, Sendable {
     let metadata: PlexItem?
 
     init(metadata: PlexItem?) {
