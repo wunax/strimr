@@ -11,18 +11,31 @@
 Strimr is a third-party client for Plex and Jellyfin, built in Swift with native interfaces for iPhone, iPad, Mac, and Apple TV.
 
 ## Key Features
+
+### Playback
 - **HDR**, **HDR10+**, **HLG**, and **Dolby Vision** profiles 5, 8.1, 8.4, and 7 (profile 7 converted to 8.1 due to Apple platform limitations)
 - **Dolby Atmos**, **TrueHD**, **DTS**, and **DTS-HD MA** (passthrough or conversion when required)<sup>[1]</sup>
-- **Multi-server**: connect several Plex and Jellyfin servers at once, with a unified home, libraries, and search
+- Direct play or server transcoding with selectable quality, and multiple versions per title
+- Audio and subtitle track selection remembered across episodes, audio/subtitle sync offset, external subtitle search, and customizable subtitle appearance
+- Chapter navigation, scrubbing thumbnails, automatic intro and credits skipping, and autoplay of the next episode
+- Picture in Picture, sleep timer, and detailed media info in the player
+
+### Live TV
+- **Live TV** with program guide, favorite channels, and DVR recordings and series rules for Plex and Jellyfin
+
+### Servers & Profiles
+- **Plex and Jellyfin**, with several servers at once in a unified home, libraries, and search
 - Strimr profiles with optional PIN, alongside Plex Home users, each with their own connections and settings
 - Seerr integration
-- Customizable library visibility and navigation order
-- Media hubs, filtered search, and rich movie, show, season, episode, and person details
+
+### Browsing
+- Customizable home rows, library visibility, and navigation order
+- Grid, list, and folder views, with sort and filters remembered per library
+- Rich movie, show, season, episode, and person details, with extras, favorites, and spoiler protection
 - SharePlay synchronized viewing, including sessions started outside FaceTime
-- Audio and subtitle track selection, external subtitle search, and customizable subtitle appearance
-- Chapter navigation and scrubbing thumbnails
-- Downloads with offline mode
-- Automatic intro and credits skipping
+
+### Downloads
+- Downloads with optional transcoding, cellular control, and offline mode
 
 <small><sup>[1]</sup> Apple platforms do not support HDMI bitstream passthrough for Dolby TrueHD, DTS, DTS-HD MA, or DTS:X. These formats are decoded for playback and output either as **Dolby Digital Plus (compatibility mode, default)** or **lossless multichannel LPCM (lossless mode)**. Dolby Atmos (TrueHD) and DTS:X object metadata cannot be preserved due to tvOS limitations, while Dolby Atmos delivered as Dolby Digital Plus (E-AC3/JOC) is preserved via stream copy.</small>
 
