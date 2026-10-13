@@ -1,6 +1,6 @@
 import Foundation
 
-struct PlexTimelineResponse: Codable, Equatable {
+nonisolated struct PlexTimelineResponse: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let playbackState: String?
         let terminationCode: Int?

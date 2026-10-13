@@ -1,6 +1,6 @@
 import Foundation
 
-struct PlexPlayQueueResponse: Codable, Equatable {
+nonisolated struct PlexPlayQueueResponse: Codable, Equatable {
     let mediaContainer: MediaContainer
 
     struct MediaContainer: Codable, Equatable {

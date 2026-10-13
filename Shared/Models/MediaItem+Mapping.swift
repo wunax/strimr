@@ -85,11 +85,9 @@ extension MediaItem {
 
 nonisolated enum PlexDate {
     /// Plex sends calendar dates (`yyyy-MM-dd`) without a time zone; they are anchored to UTC midnight.
+    private static let calendarDate = Date.ISO8601FormatStyle(timeZone: .gmt).year().month().day()
+
     static func date(from value: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: String(value.prefix(10)))
+        try? calendarDate.parse(String(value.prefix(10)))
     }
 }

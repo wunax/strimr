@@ -1,6 +1,6 @@
 import Foundation
 
-struct PlexDiscoverUserStateResponse: Codable, Equatable {
+nonisolated struct PlexDiscoverUserStateResponse: Codable, Equatable {
     let mediaContainer: PlexDiscoverUserStateContainer
 
     private enum CodingKeys: String, CodingKey {
@@ -8,7 +8,7 @@ struct PlexDiscoverUserStateResponse: Codable, Equatable {
     }
 }
 
-struct PlexDiscoverUserStateContainer: Codable, Equatable {
+nonisolated struct PlexDiscoverUserStateContainer: Codable, Equatable {
     let identifier: String?
     let size: Int?
     let userState: [PlexDiscoverUserState]?
@@ -20,7 +20,7 @@ struct PlexDiscoverUserStateContainer: Codable, Equatable {
     }
 }
 
-struct PlexDiscoverUserState: Codable, Equatable {
+nonisolated struct PlexDiscoverUserState: Codable, Equatable {
     let ratingKey: String
     let type: String
     let viewCount: Int?

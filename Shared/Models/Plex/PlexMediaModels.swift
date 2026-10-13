@@ -1,7 +1,14 @@
 import Foundation
 
-private extension KeyedDecodingContainer {
+nonisolated private extension KeyedDecodingContainer {
+    /// Failed `decode` calls build a `DecodingError` with its full coding path, which is costly in large payloads; most
+    /// optional Plex keys are absent, so check presence before trying each type.
+    func hasPlexValue(forKey key: Key) -> Bool {
+        contains(key) && (try? decodeNil(forKey: key)) == false
+    }
+
     func decodePlexStringIfPresent(forKey key: Key) -> String? {
+        guard hasPlexValue(forKey: key) else { return nil }
         if let value = try? decode(String.self, forKey: key) {
             return value
         }
@@ -18,6 +25,7 @@ private extension KeyedDecodingContainer {
     }
 
     func decodePlexIntIfPresent(forKey key: Key) -> Int? {
+        guard hasPlexValue(forKey: key) else { return nil }
         if let value = try? decode(Int.self, forKey: key) {
             return value
         }
@@ -45,6 +53,7 @@ private extension KeyedDecodingContainer {
     }
 
     func decodePlexInt64IfPresent(forKey key: Key) -> Int64? {
+        guard hasPlexValue(forKey: key) else { return nil }
         if let value = try? decode(Int64.self, forKey: key) {
             return value
         }
@@ -72,6 +81,7 @@ private extension KeyedDecodingContainer {
     }
 
     func decodePlexDoubleIfPresent(forKey key: Key) -> Double? {
+        guard hasPlexValue(forKey: key) else { return nil }
         if let value = try? decode(Double.self, forKey: key) {
             return value
         }
@@ -82,6 +92,7 @@ private extension KeyedDecodingContainer {
     }
 
     func decodePlexBoolIfPresent(forKey key: Key) -> Bool? {
+        guard hasPlexValue(forKey: key) else { return nil }
         if let value = try? decode(Bool.self, forKey: key) {
             return value
         }
@@ -106,7 +117,7 @@ private extension KeyedDecodingContainer {
     }
 }
 
-enum PlexItemType: String, Codable, Hashable, Sendable {
+nonisolated enum PlexItemType: String, Codable, Hashable, Sendable {
     case movie
     case show
     case season
@@ -152,7 +163,7 @@ enum PlexItemType: String, Codable, Hashable, Sendable {
     }
 }
 
-extension PlexItemType {
+nonisolated extension PlexItemType {
     var mediaKind: MediaKind {
         switch self {
         case .movie: .movie
@@ -182,7 +193,7 @@ extension MediaKind {
     }
 }
 
-struct PlexHub: Codable, Equatable {
+nonisolated struct PlexHub: Codable, Equatable {
     let hubKey: String?
     let key: String
     let title: String
@@ -197,14 +208,14 @@ struct PlexHub: Codable, Equatable {
     }
 }
 
-struct PlexSection: Codable, Equatable {
+nonisolated struct PlexSection: Codable, Equatable {
     let agent: String
     let key: String
     let type: PlexItemType
     let title: String
 }
 
-struct PlexSectionItemMeta: Codable, Equatable {
+nonisolated struct PlexSectionItemMeta: Codable, Equatable {
     let type: [PlexSectionItemMetaType]
 
     private enum CodingKeys: String, CodingKey {
@@ -212,7 +223,7 @@ struct PlexSectionItemMeta: Codable, Equatable {
     }
 }
 
-struct PlexSectionItemMetaType: Codable, Equatable {
+nonisolated struct PlexSectionItemMetaType: Codable, Equatable {
     let key: String
     let type: PlexItemType
     let title: String
@@ -227,7 +238,7 @@ struct PlexSectionItemMetaType: Codable, Equatable {
     }
 }
 
-struct PlexSectionItemFilter: Codable, Equatable {
+nonisolated struct PlexSectionItemFilter: Codable, Equatable {
     let filter: String
     let filterType: String
     let key: String
@@ -239,7 +250,7 @@ struct PlexSectionItemFilter: Codable, Equatable {
     }
 }
 
-enum PlexSortDirection: String, Codable {
+nonisolated enum PlexSortDirection: String, Codable {
     case asc
     case desc
 
@@ -253,7 +264,7 @@ enum PlexSortDirection: String, Codable {
     }
 }
 
-struct PlexSectionItemSort: Codable, Equatable {
+nonisolated struct PlexSectionItemSort: Codable, Equatable {
     let active: Bool?
     let activeDirection: PlexSortDirection?
     let defaultDirection: PlexSortDirection
@@ -273,18 +284,18 @@ struct PlexSectionItemSort: Codable, Equatable {
     }
 }
 
-struct PlexTag: Codable, Equatable {
+nonisolated struct PlexTag: Codable, Equatable {
     let tag: String
 }
 
-struct PlexTagPerson: Codable, Equatable {
+nonisolated struct PlexTagPerson: Codable, Equatable {
     let id: Int?
     let tag: String
     let role: String?
     let thumb: String?
 }
 
-struct PlexPersonDirectory: Codable, Equatable {
+nonisolated struct PlexPersonDirectory: Codable, Equatable {
     let id: Int
     let filter: String?
     let tag: String
@@ -293,33 +304,33 @@ struct PlexPersonDirectory: Codable, Equatable {
     let thumb: String?
 }
 
-struct PlexImage: Codable, Equatable {
+nonisolated struct PlexImage: Codable, Equatable {
     let alt: String
     let type: String
     let url: URL
 }
 
-struct PlexRating: Codable, Equatable {
+nonisolated struct PlexRating: Codable, Equatable {
     let image: String
     let value: Double
     let type: String
 }
 
-struct PlexGuid: Codable, Equatable {
+nonisolated struct PlexGuid: Codable, Equatable {
     let id: String
 }
 
-struct PlexMarkerAttributes: Codable, Equatable {
+nonisolated struct PlexMarkerAttributes: Codable, Equatable {
     let id: Int
     let version: Int?
 }
 
-enum PlexMarkerType: String, Codable {
+nonisolated enum PlexMarkerType: String, Codable {
     case intro
     case credits
 }
 
-struct PlexMarker: Codable, Equatable {
+nonisolated struct PlexMarker: Codable, Equatable {
     let id: Int
     let type: PlexMarkerType
     let startTimeOffset: Int
@@ -360,7 +371,7 @@ struct PlexMarker: Codable, Equatable {
     }
 }
 
-struct PlexChapter: Codable, Equatable, Hashable {
+nonisolated struct PlexChapter: Codable, Equatable, Hashable {
     let id: Int
     let filter: String
     let index: Int
@@ -389,7 +400,7 @@ struct PlexChapter: Codable, Equatable, Hashable {
     }
 }
 
-struct PlexPartStream: Codable, Equatable, Hashable {
+nonisolated struct PlexPartStream: Codable, Equatable, Hashable {
     enum PlexPartStreamType: Int, Codable, Equatable {
         case unknown = 0
         case video = 1
@@ -584,7 +595,7 @@ extension MediaTrackMetadata {
     }
 }
 
-struct PlexPart: Codable, Equatable {
+nonisolated struct PlexPart: Codable, Equatable {
     let id: Int
     let key: String
     let file: String?
@@ -641,7 +652,7 @@ struct PlexPart: Codable, Equatable {
     }
 }
 
-struct PlexSubtitleSearchResponse: Decodable {
+nonisolated struct PlexSubtitleSearchResponse: Decodable {
     let mediaContainer: MediaContainer
 
     struct MediaContainer: Decodable {
@@ -659,7 +670,7 @@ struct PlexSubtitleSearchResponse: Decodable {
     }
 }
 
-struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, Sendable {
+nonisolated struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, Sendable {
     let id: Int
     let key: String
     let codec: String
@@ -677,7 +688,7 @@ struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, Sendable {
     let hearingImpaired: Bool?
 }
 
-struct PlexMedia: Codable, Equatable {
+nonisolated struct PlexMedia: Codable, Equatable {
     let id: Int
     let title: String?
     let container: String?
@@ -741,7 +752,7 @@ struct PlexMedia: Codable, Equatable {
     }
 }
 
-struct PlexItem: Codable, Equatable {
+nonisolated struct PlexItem: Codable, Equatable {
     // Base fields
     let ratingKey: String
     let key: String
@@ -856,7 +867,7 @@ struct PlexItem: Codable, Equatable {
     }
 }
 
-struct PlexHubMediaContainer: Codable, Equatable {
+nonisolated struct PlexHubMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let hub: [PlexHub]?
@@ -874,7 +885,7 @@ struct PlexHubMediaContainer: Codable, Equatable {
     }
 }
 
-final class PlexOnDeck: Codable, Equatable {
+nonisolated final class PlexOnDeck: Codable, Equatable, Sendable {
     let metadata: PlexItem?
 
     init(metadata: PlexItem?) {
@@ -890,7 +901,7 @@ final class PlexOnDeck: Codable, Equatable {
     }
 }
 
-struct PlexItemMediaContainer: Codable, Equatable {
+nonisolated struct PlexItemMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let totalSize: Int?
@@ -912,7 +923,7 @@ struct PlexItemMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexPersonMediaContainer: Codable, Equatable {
+nonisolated struct PlexPersonMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let directory: [PlexPersonDirectory]?
@@ -930,7 +941,7 @@ struct PlexPersonMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexBrowseMediaContainer: Codable, Equatable {
+nonisolated struct PlexBrowseMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let totalSize: Int?
@@ -952,7 +963,7 @@ struct PlexBrowseMediaContainer: Codable, Equatable {
     }
 }
 
-enum PlexBrowseMetadata: Codable, Equatable {
+nonisolated enum PlexBrowseMetadata: Codable, Equatable {
     case item(PlexItem)
     case folder(PlexFolderItem)
 
@@ -984,12 +995,12 @@ enum PlexBrowseMetadata: Codable, Equatable {
     }
 }
 
-struct PlexFolderItem: Codable, Equatable {
+nonisolated struct PlexFolderItem: Codable, Equatable {
     let key: String
     let title: String
 }
 
-struct PlexFilterMediaContainer: Codable, Equatable {
+nonisolated struct PlexFilterMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let directory: [PlexFilterDirectory]?
@@ -1007,14 +1018,14 @@ struct PlexFilterMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexFilterDirectory: Codable, Equatable {
+nonisolated struct PlexFilterDirectory: Codable, Equatable {
     let fastKey: String?
     let key: String
     let title: String
     let type: String?
 }
 
-struct PlexSearchResult: Codable, Equatable {
+nonisolated struct PlexSearchResult: Codable, Equatable {
     let score: Double?
     let metadata: PlexItem?
 
@@ -1024,7 +1035,7 @@ struct PlexSearchResult: Codable, Equatable {
     }
 }
 
-struct PlexSearchMediaContainer: Codable, Equatable {
+nonisolated struct PlexSearchMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let searchResult: [PlexSearchResult]?
@@ -1042,7 +1053,7 @@ struct PlexSearchMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexSectionMediaContainer: Codable, Equatable {
+nonisolated struct PlexSectionMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let directory: [PlexSection]?
@@ -1060,7 +1071,7 @@ struct PlexSectionMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexFirstCharacterMediaContainer: Codable, Equatable {
+nonisolated struct PlexFirstCharacterMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
         let directory: [PlexFirstCharacterDirectory]?
@@ -1078,7 +1089,7 @@ struct PlexFirstCharacterMediaContainer: Codable, Equatable {
     }
 }
 
-struct PlexFirstCharacterDirectory: Codable, Equatable {
+nonisolated struct PlexFirstCharacterDirectory: Codable, Equatable {
     let size: Int?
     let key: String?
     let title: String?

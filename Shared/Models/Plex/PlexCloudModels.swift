@@ -1,6 +1,6 @@
 import Foundation
 
-struct PlexCloudResource: Codable, Equatable {
+nonisolated struct PlexCloudResource: Codable, Equatable {
     struct Connection: Codable, Equatable {
         let scheme: String
         let address: String
@@ -33,7 +33,7 @@ struct PlexCloudResource: Codable, Equatable {
     }
 }
 
-struct PlexCloudUser: Codable, Equatable {
+nonisolated struct PlexCloudUser: Codable, Equatable {
     let id: Int?
     let uuid: String?
     let username: String?
@@ -43,14 +43,14 @@ struct PlexCloudUser: Codable, Equatable {
     let thumb: String?
 }
 
-struct PlexCloudPin: Codable, Equatable {
+nonisolated struct PlexCloudPin: Codable, Equatable {
     let id: Int
     let code: String
     let clientIdentifier: String
     let authToken: String?
 }
 
-struct PlexHome: Codable, Equatable {
+nonisolated struct PlexHome: Codable, Equatable {
     let users: [PlexHomeUser]
 
     private enum CodingKeys: String, CodingKey {
@@ -58,7 +58,7 @@ struct PlexHome: Codable, Equatable {
     }
 }
 
-struct PlexHomeUser: Codable, Hashable, Identifiable {
+nonisolated struct PlexHomeUser: Codable, Hashable, Identifiable {
     let id: Int?
     let uuid: String
     let title: String?

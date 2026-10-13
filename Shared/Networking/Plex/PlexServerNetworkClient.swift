@@ -25,7 +25,7 @@ final class PlexServerNetworkClient {
         self.language = Locale.preferredLanguages.first ?? language
     }
 
-    func request<Response: Decodable>(
+    func request<Response: Decodable & Sendable>(
         path: String,
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
@@ -46,9 +46,17 @@ final class PlexServerNetworkClient {
             throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
         }
 
+        return try await Self.decode(Response.self, from: data)
+    }
+
+    /// Large Plex payloads (hubs, sections, seasons) take long enough to decode to drop frames on the main actor.
+    @concurrent
+    private nonisolated static func decode<Response: Decodable & Sendable>(
+        _: Response.Type,
+        from data: Data,
+    ) async throws -> Response {
         do {
-            let decoder = JSONDecoder()
-            return try decoder.decode(Response.self, from: data)
+            return try JSONDecoder().decode(Response.self, from: data)
         } catch {
             debugPrint(error)
             throw PlexAPIError.decodingFailed(error)
