@@ -449,11 +449,20 @@ final class JellyfinAPIContext {
         )
         try validateStatus(response.statusCode)
         do {
-            return try JSONDecoder().decode(Response.self, from: data)
+            return try await Self.decode(Response.self, from: data)
         } catch {
             ErrorReporter.capture(JellyfinAPIError.invalidResponse)
             throw JellyfinAPIError.invalidResponse
         }
+    }
+
+    /// Large Jellyfin payloads (libraries, seasons) take long enough to decode to drop frames on the main actor.
+    @concurrent
+    private nonisolated static func decode<Response: Decodable & Sendable>(
+        _: Response.Type,
+        from data: Data,
+    ) async throws -> Response {
+        try JSONDecoder().decode(Response.self, from: data)
     }
 
     private func authenticatedRequest(

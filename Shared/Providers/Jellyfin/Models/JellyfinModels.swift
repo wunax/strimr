@@ -1,7 +1,14 @@
 import Foundation
 
 private extension KeyedDecodingContainer {
+    /// Failed `decode` calls build a `DecodingError` with its full coding path, which is costly in large payloads; most
+    /// optional Jellyfin keys are absent, so check presence before trying each type.
+    nonisolated func hasJellyfinValue(forKey key: Key) -> Bool {
+        contains(key) && (try? decodeNil(forKey: key)) == false
+    }
+
     nonisolated func decodeJellyfinStringIfPresent(forKey key: Key) -> String? {
+        guard hasJellyfinValue(forKey: key) else { return nil }
         if let value = try? decode(String.self, forKey: key) {
             return value
         }
@@ -15,6 +22,7 @@ private extension KeyedDecodingContainer {
     }
 
     nonisolated func decodeJellyfinIntIfPresent(forKey key: Key) -> Int? {
+        guard hasJellyfinValue(forKey: key) else { return nil }
         if let value = try? decode(Int.self, forKey: key) {
             return value
         }
@@ -28,6 +36,7 @@ private extension KeyedDecodingContainer {
     }
 
     nonisolated func decodeJellyfinInt64IfPresent(forKey key: Key) -> Int64? {
+        guard hasJellyfinValue(forKey: key) else { return nil }
         if let value = try? decode(Int64.self, forKey: key) {
             return value
         }
@@ -41,6 +50,7 @@ private extension KeyedDecodingContainer {
     }
 
     nonisolated func decodeJellyfinDoubleIfPresent(forKey key: Key) -> Double? {
+        guard hasJellyfinValue(forKey: key) else { return nil }
         if let value = try? decode(Double.self, forKey: key) {
             return value
         }
@@ -51,6 +61,7 @@ private extension KeyedDecodingContainer {
     }
 
     nonisolated func decodeJellyfinBoolIfPresent(forKey key: Key) -> Bool? {
+        guard hasJellyfinValue(forKey: key) else { return nil }
         if let value = try? decode(Bool.self, forKey: key) {
             return value
         }
@@ -503,16 +514,19 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
 }
 
 nonisolated enum JellyfinDate {
+    private static let internetDateTime = Date.ISO8601FormatStyle()
+
     static func date(from value: String) -> Date? {
-        // Jellyfin emits 7 fractional digits, which ISO8601DateFormatter rejects.
-        let trimmed = value.replacingOccurrences(
-            of: "\\.\\d+",
-            with: "",
-            options: .regularExpression,
-        )
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: trimmed)
+        try? internetDateTime.parse(removingFractionalSeconds(from: value))
+    }
+
+    /// Jellyfin emits 7 fractional digits, which the ISO 8601 parsers reject.
+    private static func removingFractionalSeconds(from value: String) -> String {
+        guard let dot = value.firstIndex(of: ".") else { return value }
+        let digits = value[value.index(after: dot)...]
+        let end = digits.firstIndex { !("0" ... "9").contains($0) } ?? value.endIndex
+        guard end > digits.startIndex else { return value }
+        return String(value[..<dot] + value[end...])
     }
 
     static func string(from date: Date) -> String {
