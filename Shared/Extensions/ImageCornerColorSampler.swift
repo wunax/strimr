@@ -1,42 +1,31 @@
+import ImageIO
 import SwiftUI
 
-#if canImport(UIKit)
-    import UIKit
-#elseif canImport(AppKit)
-    import AppKit
-#endif
-
-enum ImageCornerColorSampler {
+nonisolated enum ImageCornerColorSampler {
     static func colors(from resource: ArtworkResource) async throws -> [Color] {
         switch resource {
         case let .data(data):
-            return colors(from: data)
+            return await colors(from: data)
         case let .url(url):
             let (data, _) = try await URLSession.shared.data(from: url)
-            return colors(from: data)
+            return await colors(from: data)
         }
     }
 
-    static func colors(from data: Data) -> [Color] {
-        #if canImport(UIKit)
-            guard let image = UIImage(data: data) else { return [] }
-            return colors(from: image)
-        #elseif canImport(AppKit)
-            guard let image = NSImage(data: data),
-                  let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
-            else { return [] }
-            return colors(from: cgImage)
-        #else
-            return []
-        #endif
+    /// Hero artwork can be 4K; a full decode only to read four corners stalled the main actor, so ImageIO decodes a
+    /// thumbnail instead, off the main actor. Below 256 px the corner averages drift visibly from the full image.
+    @concurrent
+    static func colors(from data: Data) async -> [Color] {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: 256,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        else { return [] }
+        return colors(from: thumbnail)
     }
-
-    #if canImport(UIKit)
-        static func colors(from image: UIImage) -> [Color] {
-            guard let cgImage = image.cgImage else { return [] }
-            return colors(from: cgImage)
-        }
-    #endif
 
     private static func colors(from cgImage: CGImage) -> [Color] {
         let width = 4

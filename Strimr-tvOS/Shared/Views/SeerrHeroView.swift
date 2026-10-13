@@ -54,7 +54,7 @@ struct SeerrHeroBackgroundView: View {
 
         do {
             let (data, _) = try await URLSession.shared.data(from: gradientURL)
-            let colors = ImageCornerColorSampler.colors(from: data)
+            let colors = await ImageCornerColorSampler.colors(from: data)
             backdropColors = colors.count == 4 ? colors : []
         } catch {
             backdropColors = []

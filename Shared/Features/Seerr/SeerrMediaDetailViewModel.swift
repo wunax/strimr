@@ -403,7 +403,7 @@ final class SeerrMediaDetailViewModel {
 
         do {
             let (data, _) = try await session.data(from: url)
-            let colors = ImageCornerColorSampler.colors(from: data)
+            let colors = await ImageCornerColorSampler.colors(from: data)
             if colors.count == 4 {
                 backdropGradient = colors
             }
