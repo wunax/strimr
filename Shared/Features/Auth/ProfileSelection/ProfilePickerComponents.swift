@@ -321,9 +321,10 @@ extension View {
 
         var body: some View {
             let spacing = ProfilePickerMetrics.keySize * 0.3
-            VStack(spacing: spacing) {
+            // A grid keeps the last row aligned: tvOS buttons are larger than their label, the empty key is not.
+            Grid(horizontalSpacing: spacing, verticalSpacing: spacing) {
                 ForEach(rows, id: \.self) { row in
-                    HStack(spacing: spacing) {
+                    GridRow {
                         ForEach(row, id: \.self) { key in
                             keyView(key)
                         }
@@ -337,10 +338,9 @@ extension View {
 
         @ViewBuilder
         private func keyView(_ key: String) -> some View {
-            let size = ProfilePickerMetrics.keySize
             switch key {
             case "":
-                Color.clear.frame(width: size, height: size)
+                Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
             case "delete":
                 keyButton(key, action: onDelete) {
                     Image(systemName: "delete.left")
