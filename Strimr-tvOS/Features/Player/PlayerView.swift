@@ -284,7 +284,7 @@ struct PlayerView: View {
             .overlay {
                 ZStack {
                     if let sheet = sheetPresentation.item {
-                        TVContextPanelView(style: .glass) {
+                        TVContextPanelView {
                             ZStack {
                                 playbackSettingsSheet(sheet)
                                     .id(sheet)

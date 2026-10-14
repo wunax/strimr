@@ -65,56 +65,32 @@ extension View {
         }
     }
 
-    enum TVContextPanelStyle {
-        /// An opaque reading surface attached to the trailing edge.
-        case opaque
-        /// A floating glass panel for use over video, darkened so text stays legible over bright scenes.
-        case glass
-    }
-
-    /// A surface covering only the trailing portion of the screen.
+    /// A floating glass panel covering only the trailing portion of the screen,
+    /// darkened so text stays legible over bright video or artwork.
     /// Also used directly by the player, without presenting/remounting the video.
     struct TVContextPanelView<Content: View>: View {
-        var style: TVContextPanelStyle = .opaque
         @ViewBuilder var content: () -> Content
 
-        private let glassShape = RoundedRectangle(cornerRadius: 36, style: .continuous)
+        private let shape = RoundedRectangle(cornerRadius: 36, style: .continuous)
 
         var body: some View {
             GeometryReader { geometry in
                 HStack(spacing: 0) {
                     Spacer(minLength: 0)
-                    panel(width: min(720, geometry.size.width * 0.44))
+                    content()
+                        .padding(32)
+                        .frame(width: min(720, geometry.size.width * 0.44))
+                        .frame(maxHeight: .infinity)
+                        .background(Color.black.opacity(0.5), in: shape)
+                        .glassEffect(.regular, in: shape)
+                        .shadow(color: .black.opacity(0.35), radius: 30, x: -8)
+                        .padding(.vertical, 40)
+                        .padding(.trailing, 40)
                 }
             }
             .ignoresSafeArea()
             .environment(\.colorScheme, .dark)
             .focusSection()
-        }
-
-        @ViewBuilder
-        private func panel(width: CGFloat) -> some View {
-            let content = content()
-                .padding(32)
-                .frame(width: width)
-                .frame(maxHeight: .infinity)
-
-            switch style {
-            case .opaque:
-                content
-                    .background(Color("Background").opacity(0.98))
-                    .overlay(alignment: .leading) {
-                        Rectangle().fill(Color.white.opacity(0.15)).frame(width: 1)
-                    }
-                    .shadow(color: .black.opacity(0.5), radius: 30, x: -12)
-            case .glass:
-                content
-                    .background(Color.black.opacity(0.5), in: glassShape)
-                    .glassEffect(.regular, in: glassShape)
-                    .shadow(color: .black.opacity(0.35), radius: 30, x: -8)
-                    .padding(.vertical, 40)
-                    .padding(.trailing, 40)
-            }
         }
     }
 
