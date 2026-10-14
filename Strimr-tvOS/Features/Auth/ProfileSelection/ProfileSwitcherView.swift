@@ -55,19 +55,24 @@ struct ProfileSwitcherView: View {
     }
 
     private var picker: some View {
-        VStack(spacing: 72) {
-            Text("auth.profile.header.title")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 72) {
+                    Text("auth.profile.header.title")
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(.white)
 
-            if let error = viewModel.errorMessage {
-                errorBanner(error)
+                    if let error = viewModel.errorMessage {
+                        errorBanner(error)
+                    }
+
+                    profiles
+                }
+                .padding(80)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-
-            profiles
+            .scrollClipDisabled()
         }
-        .padding(80)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 24) {
                 if viewModel.canManageProfiles {

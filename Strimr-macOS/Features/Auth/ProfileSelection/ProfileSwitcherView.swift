@@ -3,6 +3,8 @@ import SwiftUI
 struct ProfileSwitcherView: View {
     @State private var viewModel: ProfileSwitcherViewModel
     @State private var isShowingProfiles = false
+    /// Scrolls to the profile picked with the arrows; hovering must not scroll.
+    @State private var keyboardHighlightID: String?
     @FocusState private var isKeyboardFocused: Bool
     @Namespace private var namespace
 
@@ -43,23 +45,31 @@ struct ProfileSwitcherView: View {
     }
 
     private var picker: some View {
-        ScrollView {
-            VStack(spacing: 48) {
-                Text("auth.profile.header.title")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(.white)
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 48) {
+                        Text("auth.profile.header.title")
+                            .font(.system(size: 40, weight: .bold))
+                            .foregroundStyle(.white)
 
-                if let error = viewModel.errorMessage {
-                    errorBanner(error)
+                        if let error = viewModel.errorMessage {
+                            errorBanner(error)
+                        }
+
+                        profiles
+                    }
+                    .padding(.horizontal, 48)
+                    .padding(.vertical, 64)
+                    .frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
-
-                profiles
+                .scrollBounceBehavior(.basedOnSize)
+                .onChange(of: keyboardHighlightID) { _, id in
+                    guard let id else { return }
+                    withAnimation { proxy.scrollTo(id, anchor: .center) }
+                }
             }
-            .padding(48)
-            .frame(maxWidth: .infinity)
         }
-        .defaultScrollAnchor(.center)
-        .scrollBounceBehavior(.basedOnSize)
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 12) {
                 if viewModel.canManageProfiles {
@@ -111,6 +121,7 @@ struct ProfileSwitcherView: View {
         }
         .buttonStyle(.plain)
         .disabled(viewModel.switchingID != nil)
+        .id(choice.id)
         .onHover { isHovering in
             if isHovering {
                 viewModel.highlightedID = choice.id
@@ -197,6 +208,7 @@ struct ProfileSwitcherView: View {
         let current = choices.firstIndex { $0.id == viewModel.highlightedID }
         let next = current.map { ($0 + offset + choices.count) % choices.count } ?? 0
         viewModel.highlightedID = choices[next].id
+        keyboardHighlightID = choices[next].id
     }
 
     private func refreshAfterSheet() {
