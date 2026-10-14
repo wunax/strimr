@@ -3,7 +3,6 @@ import SwiftUI
 struct PlayerVersionSelectionView: View {
     var versions: [PlaybackSettingsVersion]
     var onSelect: (String) -> Void
-    var onClose: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
@@ -18,8 +17,7 @@ struct PlayerVersionSelectionView: View {
                     action: { onSelect(version.id) },
                 )
             },
-            closeStyle: .back,
-            onClose: onClose,
+            parentTitle: "settings.title",
         )
     }
 }

@@ -3,7 +3,6 @@ import SwiftUI
 struct PlayerQualitySelectionView: View {
     var selectedQuality: TranscodeQualityPreset
     var onSelect: (TranscodeQualityPreset) -> Void
-    var onClose: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
@@ -16,8 +15,7 @@ struct PlayerQualitySelectionView: View {
                     action: { onSelect(preset) },
                 )
             },
-            closeStyle: .back,
-            onClose: onClose,
+            parentTitle: "settings.title",
         )
     }
 }

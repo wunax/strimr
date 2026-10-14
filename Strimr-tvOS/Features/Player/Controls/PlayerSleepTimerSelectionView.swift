@@ -6,14 +6,12 @@ struct PlayerSleepTimerSelectionView: View {
     var mediaKind: MediaKind?
     var isAvailable: Bool
     var onSelect: (SleepTimerMode?) -> Void
-    var onClose: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
             title: "player.sleepTimer.title",
             options: options,
-            closeStyle: .back,
-            onClose: onClose,
+            parentTitle: "settings.title",
         )
     }
 

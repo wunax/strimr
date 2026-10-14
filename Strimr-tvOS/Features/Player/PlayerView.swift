@@ -282,14 +282,22 @@ struct PlayerView: View {
 
         return sessionObservers
             .overlay {
-                if let sheet = sheetPresentation.item {
-                    TVContextPanelView {
-                        playbackSettingsSheet(sheet)
-                            .id(sheet)
+                ZStack {
+                    if let sheet = sheetPresentation.item {
+                        TVContextPanelView(style: .glass) {
+                            ZStack {
+                                playbackSettingsSheet(sheet)
+                                    .id(sheet)
+                                    .transition(settingsPanelPageTransition(for: sheet))
+                            }
+                            .clipped()
+                        }
+                        .transition(.move(edge: .trailing))
+                        .onExitCommand { navigateBackInSettingsPanel() }
+                        .onPlayPauseCommand { togglePlayPause() }
                     }
-                    .onExitCommand { navigateBackInSettingsPanel() }
-                    .onPlayPauseCommand { togglePlayPause() }
                 }
+                .animation(.smooth(duration: 0.3), value: sheetPresentation.item)
             }
             .overlay {
                 if let activeOffsetBar {
@@ -551,7 +559,6 @@ struct PlayerView: View {
                 onSelect: selectAudioTrack(_:),
                 syncItem: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
-                onClose: closeSettingsPanel,
             )
         case .subtitle:
             PlayerTrackSelectionView(
@@ -568,13 +575,11 @@ struct PlayerView: View {
                     : nil,
                 syncItem: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
-                onClose: closeSettingsPanel,
             )
         case .speed:
             PlayerSpeedSelectionView(
                 selectedRate: playbackRate,
                 onSelect: selectPlaybackRate(_:),
-                onClose: closeSettingsPanel,
             )
         case .settings:
             PlayerSettingsMenuView(
@@ -588,19 +593,16 @@ struct PlayerView: View {
                 onShowQuality: { sheetPresentation.item = .quality },
                 onShowVersions: { sheetPresentation.item = .version },
                 onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
-                onClose: closeSettingsPanel,
             )
         case .quality:
             PlayerQualitySelectionView(
                 selectedQuality: viewModel.selectedQuality,
                 onSelect: { selectQuality($0) },
-                onClose: navigateBackInSettingsPanel,
             )
         case .version:
             PlayerVersionSelectionView(
                 versions: viewModel.versionOptions,
                 onSelect: selectVersion(_:),
-                onClose: navigateBackInSettingsPanel,
             )
         case .sleepTimer:
             PlayerSleepTimerSelectionView(
@@ -612,7 +614,6 @@ struct PlayerView: View {
                 mediaKind: viewModel.media?.type,
                 isAvailable: !sharePlayCoordinator.isInSession,
                 onSelect: selectSleepTimer(_:),
-                onClose: navigateBackInSettingsPanel,
             )
         case .subtitleSearch:
             if let services = viewModel.subtitleSearchServices {
@@ -693,6 +694,13 @@ struct PlayerView: View {
         settingsMenuFocusID = nil
         sheetPresentation.item = .settings
         showControls(temporarily: true)
+    }
+
+    /// Submenus enter and leave on the trailing side and their parent on the leading side,
+    /// so pushing and popping slide in opposite directions without tracking navigation state.
+    private func settingsPanelPageTransition(for sheet: PlayerSettingsSheet) -> AnyTransition {
+        let edge: Edge = sheet.parent == nil ? .leading : .trailing
+        return .move(edge: edge).combined(with: .opacity)
     }
 
     private func navigateBackInSettingsPanel() {

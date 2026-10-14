@@ -9,14 +9,12 @@ struct PlayerSettingsMenuView: View {
     var onShowQuality: () -> Void
     var onShowVersions: () -> Void
     var onShowSleepTimer: () -> Void
-    var onClose: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
             title: "settings.title",
             options: options,
             initialOptionID: initialOptionID,
-            onClose: onClose,
         )
     }
 

@@ -14,37 +14,38 @@ struct PlayerSettingsOption: Identifiable {
 }
 
 struct PlayerSettingsOptionsView: View {
-    enum CloseStyle {
-        case done
-        /// Submenus go back to their parent menu, like the remote's Back button.
-        case back
-    }
-
     let title: LocalizedStringKey
     let options: [PlayerSettingsOption]
     var initialOptionID: String?
-    var closeStyle = CloseStyle.done
-    let onClose: () -> Void
+    /// Shown before the title of a submenu, since the remote's Back button returns to it.
+    var parentTitle: LocalizedStringKey?
     @FocusState private var focusedOption: String?
 
-    private var displayedOptions: [PlayerSettingsOption] {
-        options + [PlayerSettingsOption(
-            id: "close",
-            title: closeStyle == .back
-                ? String(localized: "common.actions.back")
-                : String(localized: "common.actions.done"),
-            systemImage: closeStyle == .back ? "chevron.left" : "xmark",
-            action: onClose,
-        )]
+    private var initialFocusID: String? {
+        initialOptionID ?? options.first(where: \.isSelected)?.id ?? options.first?.id
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text(title).font(.title2.bold())
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                if let parentTitle {
+                    Text(parentTitle)
+                        .foregroundStyle(.white.opacity(0.5))
+                        .accessibilityHidden(true)
+                    Image(systemName: "chevron.right")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.35))
+                        .accessibilityHidden(true)
+                }
+                Text(title)
+                    .layoutPriority(1)
+            }
+            .font(.title2.bold())
+            .lineLimit(1)
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(displayedOptions) { option in
+                        ForEach(options) { option in
                             if let sectionTitle = option.sectionTitle {
                                 Text(sectionTitle)
                                     .font(.caption.weight(.semibold))
@@ -53,11 +54,13 @@ struct PlayerSettingsOptionsView: View {
                                     .padding(.top, 24)
                                     .padding(.horizontal, 20)
                             }
+                            let isFocused = focusedOption == option.id
+                            let foreground: Color = isFocused ? .black : .white
                             Button(action: option.action) {
                                 HStack(spacing: 16) {
                                     Image(systemName: option
                                         .isSelected ? "checkmark.circle.fill" : (option.systemImage ?? "circle"))
-                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : .white
+                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : foreground
                                             .opacity(option.opensSubmenu ? 1 : 0.5))
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(option.title).font(.headline)
@@ -66,27 +69,25 @@ struct PlayerSettingsOptionsView: View {
                                                 .font(.caption.weight(option.highlightsSubtitle ? .semibold : .regular))
                                                 .foregroundStyle(option.highlightsSubtitle
                                                     ? Color.brandPrimary
-                                                    : .white.opacity(0.7))
+                                                    : foreground.opacity(0.65))
                                         }
                                     }
                                     Spacer(minLength: 0)
                                     if option.opensSubmenu {
                                         Image(systemName: "chevron.right")
                                             .font(.headline)
-                                            .foregroundStyle(.white.opacity(0.5))
+                                            .foregroundStyle(foreground.opacity(0.5))
                                     }
                                 }
-                                .foregroundStyle(.white)
+                                .foregroundStyle(foreground)
                                 .padding(20)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
-                                    Color.white.opacity(focusedOption == option.id ? 0.18 : 0.04),
+                                    isFocused ? Color.white : Color.white.opacity(0.06),
                                     in: RoundedRectangle(cornerRadius: 14),
                                 )
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(focusedOption == option.id ? Color.white : .clear, lineWidth: 3)
-                                }
+                                .scaleEffect(isFocused ? 1.02 : 1)
+                                .animation(.easeOut(duration: 0.15), value: isFocused)
                             }
                             .buttonStyle(PlayerPanelButtonStyle())
                             .disabled(option.isDisabled)
@@ -96,15 +97,13 @@ struct PlayerSettingsOptionsView: View {
                             .id(option.id)
                         }
                     }
-                    .padding(4)
+                    // Room for the focused row's scale inside the scroll view's clipping.
+                    .padding(8)
                 }
                 .onAppear {
-                    let initialID = initialOptionID
-                        ?? options.first(where: \.isSelected)?.id
-                        ?? displayedOptions.first?.id
-                    if let initialID {
-                        proxy.scrollTo(initialID, anchor: .center)
-                        DispatchQueue.main.async { focusedOption = initialID }
+                    if let initialFocusID {
+                        proxy.scrollTo(initialFocusID, anchor: .center)
+                        DispatchQueue.main.async { focusedOption = initialFocusID }
                     }
                 }
             }

@@ -10,10 +10,9 @@ struct PlayerTrackSelectionView: View {
     var onResetTrackSelections: (() -> Void)?
     var syncItem: PlaybackOffsetMenuItem?
     var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
-    var onClose: () -> Void
 
     var body: some View {
-        PlayerSettingsOptionsView(title: titleKey, options: options, onClose: onClose)
+        PlayerSettingsOptionsView(title: titleKey, options: options)
             .overlay {
                 if tracks.isEmpty, !showOffOption {
                     Text("player.settings.audio.empty").foregroundStyle(.secondary)
