@@ -2,137 +2,205 @@ import SwiftUI
 
 struct ProfileSwitcherView: View {
     @State private var viewModel: ProfileSwitcherViewModel
-    @State private var pinUser: ProfileChoice?
-    @State private var pin = ""
     @State private var isShowingProfiles = false
+    @FocusState private var isKeyboardFocused: Bool
+    @Namespace private var namespace
 
     init(viewModel: ProfileSwitcherViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("auth.profile.header.title")
-                        .font(.largeTitle.bold())
-                    Text("auth.profile.header.subtitle")
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                if viewModel.canManageProfiles {
-                    Button("profiles.manage") { isShowingProfiles = true }
-                }
-                if viewModel.canCancel {
-                    Button("common.actions.cancel") { viewModel.cancel() }
-                }
-            }
+        ZStack {
+            ProfilePickerBackground(tint: viewModel.tint)
 
-            if let errorMessage = viewModel.errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-            }
-
-            if viewModel.isLoading, viewModel.choices.isEmpty {
-                ProgressView("auth.profile.loading")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if let entering = viewModel.enteringChoice {
+                ProfileEntranceView(choice: entering, namespace: namespace)
+            } else if let pinChoice = viewModel.pinChoice {
+                pinStage(for: pinChoice)
             } else {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 24)], spacing: 24) {
-                        ForEach(viewModel.choices) { user in
-                            profileButton(for: user)
-                        }
-                    }
-                    .padding(4)
-                }
+                picker
             }
         }
-        .padding(32)
+        .animation(ProfilePickerMetrics.entranceAnimation, value: viewModel.enteringID)
+        .animation(ProfilePickerMetrics.entranceAnimation, value: viewModel.pinChoice)
+        .environment(\.colorScheme, .dark)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .focusable()
+        .focusEffectDisabled()
+        .focused($isKeyboardFocused)
+        .onKeyPress(action: handleKey)
+        .onAppear { isKeyboardFocused = true }
         .task { await viewModel.load() }
-        .sheet(isPresented: $isShowingProfiles, onDismiss: viewModel.refreshChoices) {
+        .sheet(isPresented: $isShowingProfiles, onDismiss: refreshAfterSheet) {
             NavigationStack { ProfilesSettingsView() }
                 .frame(minWidth: 520, minHeight: 480)
         }
-        .sheet(item: $viewModel.profileNeedingConnection, onDismiss: viewModel.refreshChoices) { profile in
+        .sheet(item: $viewModel.profileNeedingConnection, onDismiss: refreshAfterSheet) { profile in
             NavigationStack { ProfileDetailView(profileID: profile.id, startsWithNewConnection: true) }
                 .frame(minWidth: 520, minHeight: 480)
         }
-        .sheet(item: $pinUser) { user in
-            VStack(alignment: .leading, spacing: 16) {
-                Text("auth.profile.pin.title").font(.headline)
-                Text("auth.profile.pin.prompt \(user.name)")
-                    .foregroundStyle(.secondary)
-                SecureField("auth.profile.pin.placeholder", text: $pin)
-                    .pinDigits($pin)
-                    .frame(width: 240)
-                    .onSubmit { submitPin(for: user) }
-                HStack {
-                    Button("common.actions.cancel", role: .cancel) {
-                        pinUser = nil
-                    }
-                    Spacer()
-                    Button("signIn.button.continue") {
-                        submitPin(for: user)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(pin.isEmpty)
+    }
+
+    private var picker: some View {
+        ScrollView {
+            VStack(spacing: 48) {
+                Text("auth.profile.header.title")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(.white)
+
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                }
+
+                profiles
+            }
+            .padding(48)
+            .frame(maxWidth: .infinity)
+        }
+        .defaultScrollAnchor(.center)
+        .scrollBounceBehavior(.basedOnSize)
+        .overlay(alignment: .topTrailing) {
+            HStack(spacing: 12) {
+                if viewModel.canManageProfiles {
+                    Button("profiles.manage", systemImage: "pencil") { isShowingProfiles = true }
+                }
+                if viewModel.canCancel {
+                    Button("common.actions.cancel") { viewModel.cancel() }
+                        .keyboardShortcut(.cancelAction)
                 }
             }
-            .padding(24)
-            .frame(width: 360)
+            .padding(20)
+        }
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var profiles: some View {
+        if viewModel.choices.isEmpty {
+            if viewModel.isLoading {
+                ProgressView("auth.profile.loading")
+            } else {
+                Text("auth.profile.empty")
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        } else {
+            CenteredFlowLayout(spacing: ProfilePickerMetrics.itemSpacing, lineSpacing: 36) {
+                ForEach(viewModel.choices) { choice in
+                    profileButton(for: choice)
+                }
+            }
         }
     }
 
-    private func profileButton(for user: ProfileChoice) -> some View {
-        Button {
-            if user.requiresPIN {
-                pin = ""
-                pinUser = user
-            } else {
-                Task { await viewModel.select(user, pin: nil) }
-            }
+    private func profileButton(for choice: ProfileChoice) -> some View {
+        let isHighlighted = viewModel.highlightedID == choice.id
+        return Button {
+            viewModel.choose(choice)
         } label: {
-            VStack(spacing: 10) {
-                Group {
-                    if user.isLocal {
-                        ProfileInitialsAvatar(initials: user.initials)
-                    } else {
-                        AsyncImage(url: user.avatarURL) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Image(systemName: "person.crop.square.fill")
-                                    .resizable()
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                .frame(width: 132, height: 132)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    if user.requiresPIN {
-                        Image(systemName: "lock.fill").padding(8)
-                    } else if user.isActive {
-                        Image(systemName: "checkmark.circle.fill").padding(8)
-                    }
-                }
-                Text(user.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                if viewModel.switchingID == user.id {
-                    ProgressView().controlSize(.small)
-                }
+            VStack(spacing: 14) {
+                ProfileAvatarView(
+                    choice: choice,
+                    isHighlighted: isHighlighted,
+                    isSwitching: viewModel.switchingID == choice.id,
+                    namespace: namespace,
+                )
+                ProfileNameLabel(choice: choice, isHighlighted: isHighlighted)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(viewModel.switchingID != nil)
+        .onHover { isHovering in
+            if isHovering {
+                viewModel.highlightedID = choice.id
+            }
+        }
     }
 
-    private func submitPin(for user: ProfileChoice) {
-        let submittedPin = pin
-        pinUser = nil
-        pin = ""
-        Task { await viewModel.select(user, pin: submittedPin) }
+    private func pinStage(for choice: ProfileChoice) -> some View {
+        VStack(spacing: 28) {
+            ProfileAvatarView(
+                choice: choice,
+                size: ProfilePickerMetrics.entranceAvatarSize,
+                isSwitching: viewModel.switchingID == choice.id,
+                showsBadges: false,
+                namespace: namespace,
+            )
+            VStack(spacing: 8) {
+                Text(choice.name)
+                    .font(.title.bold())
+                Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.white)
+
+            PINDotsView(count: viewModel.pin.count)
+                .shake(viewModel.rejectedPINCount)
+
+            Button("common.actions.cancel", action: viewModel.cancelPIN)
+                .disabled(viewModel.switchingID != nil)
+        }
+        .padding(48)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity)
+    }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 16) {
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.white)
+            Button("common.actions.retry") {
+                Task { await viewModel.load() }
+            }
+        }
+        .padding(16)
+        .profileGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        if viewModel.pinChoice != nil {
+            switch press.key {
+            case .escape:
+                viewModel.cancelPIN()
+            case .delete:
+                viewModel.deletePINDigit()
+            default:
+                guard let digit = press.characters.first, press.characters.count == 1, digit.isASCII,
+                      digit.isNumber
+                else { return .ignored }
+                viewModel.appendPINDigit(String(digit))
+            }
+            return .handled
+        }
+
+        switch press.key {
+        case .leftArrow:
+            moveHighlight(by: -1)
+        case .rightArrow:
+            moveHighlight(by: 1)
+        case .return, .space:
+            guard let choice = viewModel.choices.first(where: { $0.id == viewModel.highlightedID }) else {
+                return .ignored
+            }
+            viewModel.choose(choice)
+        default:
+            return .ignored
+        }
+        return .handled
+    }
+
+    private func moveHighlight(by offset: Int) {
+        let choices = viewModel.choices
+        guard !choices.isEmpty else { return }
+        let current = choices.firstIndex { $0.id == viewModel.highlightedID }
+        let next = current.map { ($0 + offset + choices.count) % choices.count } ?? 0
+        viewModel.highlightedID = choices[next].id
+    }
+
+    private func refreshAfterSheet() {
+        viewModel.refreshChoices()
+        isKeyboardFocused = true
     }
 }

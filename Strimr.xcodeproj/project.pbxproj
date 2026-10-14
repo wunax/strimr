@@ -120,7 +120,9 @@
 				Features/Auth/AccountSetupFlow.swift,
 				Features/Auth/AccountSetupView.swift,
 				Features/Auth/MigrationFailedView.swift,
+				Features/Auth/ProfileSelection/ProfilePickerComponents.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
+				Features/Auth/ProfileSelection/ProfileTint.swift,
 				Features/Auth/ProviderSelection/ProviderSelectionView.swift,
 				Features/Auth/ServerSelection/CustomServerAddressModel.swift,
 				Features/Auth/ServerSelection/CustomServerAddressView.swift,
@@ -353,9 +355,9 @@
 				Views/Seerr/SeerrSearchCard.swift,
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
 				Views/ServerScopedView.swift,
-				Views/TVPINPadView.swift,
 				Views/TaskPresentation.swift,
 				Views/Toast/ToastOverlay.swift,
+				Views/TVPINPadView.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
 		};

@@ -17,9 +17,13 @@ struct ContentView: View {
 
             switch sessionManager.status {
             case .hydrating:
-                ProgressView(sessionManager.loadingPhase.title)
-                    .progressViewStyle(.circular)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                if let profile = sessionManager.activeProfile {
+                    ProfileActivationView(profile: profile)
+                } else {
+                    ProgressView(sessionManager.loadingPhase.title)
+                        .progressViewStyle(.circular)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
             case .needsAccount:
                 AccountSetupView(purpose: .firstLaunch, sessionManager: sessionManager)
             case .needsProfileSelection:
@@ -40,6 +44,7 @@ struct ContentView: View {
                 .id(registry.generation)
             }
         }
+        .animation(.easeInOut(duration: 0.4), value: sessionManager.status)
         .onChange(of: registry.readyServers) { _, _ in
             sessionManager.updateTopShelf()
         }

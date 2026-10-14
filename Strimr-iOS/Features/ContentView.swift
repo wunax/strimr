@@ -22,9 +22,13 @@ struct ContentView: View {
             } else {
                 switch sessionManager.status {
                 case .hydrating:
-                    ProgressView(sessionManager.loadingPhase.title)
-                        .progressViewStyle(.circular)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if let profile = sessionManager.activeProfile {
+                        ProfileActivationView(profile: profile)
+                    } else {
+                        ProgressView(sessionManager.loadingPhase.title)
+                            .progressViewStyle(.circular)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 case .needsAccount:
                     AccountSetupView(purpose: .firstLaunch, sessionManager: sessionManager)
                 case .needsProfileSelection:
@@ -46,6 +50,7 @@ struct ContentView: View {
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.4), value: sessionManager.status)
         .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
             guard hasNetworkPath, sessionManager.status == .migrationFailed else { return }
             Task {

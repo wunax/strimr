@@ -3,19 +3,23 @@ import SwiftUI
 /// Avatar of a local profile: its initials on a gradient.
 struct ProfileInitialsAvatar: View {
     let initials: String
+    var tint: Color = .brandPrimary
 
     var body: some View {
         LinearGradient(
-            colors: [Color.brandPrimary.opacity(0.9), Color.brandPrimary.opacity(0.5)],
+            colors: [tint, tint.opacity(0.55)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing,
         )
         .overlay {
-            Text(initials)
-                .font(.system(size: 48, weight: .bold, design: .rounded))
-                .minimumScaleFactor(0.3)
-                .foregroundStyle(.white)
-                .padding(12)
+            GeometryReader { geometry in
+                Text(initials)
+                    .font(.system(size: geometry.size.width * 0.36, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.3)
+                    .lineLimit(1)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 }

@@ -197,15 +197,10 @@ struct ProfileRow: View {
     private var avatar: some View {
         switch profile {
         case let .local(local):
-            ProfileInitialsAvatar(initials: ProfileChoice(
-                id: local.id,
-                name: local.name,
-                detail: nil,
-                avatarURL: nil,
-                requiresPIN: false,
-                isActive: false,
-                isLocal: true,
-            ).initials)
+            ProfileInitialsAvatar(
+                initials: ProfileChoice.initials(for: local.name),
+                tint: ProfileTint.color(for: local.id),
+            )
         case let .plexHome(home):
             AsyncImage(url: home.user.thumb) { image in
                 image.resizable().scaledToFill()
