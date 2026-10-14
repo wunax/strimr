@@ -12,7 +12,6 @@ enum ProfilePickerMetrics {
         static let entranceAvatarSize: CGFloat = 168
         static let itemSpacing: CGFloat = 40
         static let dotSize: CGFloat = 16
-        static let keySize: CGFloat = 0
     #else
         static let avatarSize: CGFloat = 112
         static let entranceAvatarSize: CGFloat = 148
@@ -24,39 +23,38 @@ enum ProfilePickerMetrics {
     static let entranceAnimation = Animation.spring(duration: 0.5, bounce: 0.2)
 }
 
-/// Dark backdrop washed with the highlighted profile's tint; tints crossfade.
+/// Dark backdrop washed with the highlighted profile's tint.
 struct ProfilePickerBackground: View {
-    let tint: Color
+    /// Nil until profiles are known: the wash then fades in instead of switching from a placeholder color.
+    let tint: Color?
 
     var body: some View {
         ZStack {
             Color.black
-            wash(tint)
-                .id(tint)
-                .transition(.opacity)
+            // One layer per palette color, crossfaded by opacity alone: an animation on the whole backdrop
+            // also caught the navigation stack's first sizing pass, and the wash grew from the center.
+            ForEach(ProfileTint.palette.indices, id: \.self) { index in
+                let color = ProfileTint.palette[index]
+                wash(color)
+                    .animation(.easeInOut(duration: 0.7)) { $0.opacity(color == tint ? 1 : 0) }
+            }
+            LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)
         }
-        .animation(.easeInOut(duration: 0.7), value: tint)
         .ignoresSafeArea()
     }
 
-    private func wash(_ tint: Color) -> some View {
-        GeometryReader { geometry in
-            let radius = max(geometry.size.width, geometry.size.height)
-            ZStack {
-                RadialGradient(
-                    colors: [tint.opacity(0.6), tint.opacity(0.18), .clear],
-                    center: .top,
-                    startRadius: 0,
-                    endRadius: radius * 0.85,
-                )
-                RadialGradient(
-                    colors: [tint.opacity(0.22), .clear],
-                    center: .bottomLeading,
-                    startRadius: 0,
-                    endRadius: radius * 0.6,
-                )
-                LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)
-            }
+    private func wash(_ color: Color) -> some View {
+        ZStack {
+            EllipticalGradient(
+                colors: [color.opacity(0.6), color.opacity(0.18), .clear],
+                center: .top,
+                endRadiusFraction: 1.1,
+            )
+            EllipticalGradient(
+                colors: [color.opacity(0.22), .clear],
+                center: .bottomLeading,
+                endRadiusFraction: 0.8,
+            )
         }
     }
 }
@@ -98,9 +96,11 @@ struct ProfileAvatarView: View {
                     lockBadge
                 }
             }
-            .shadow(color: choice.tint.opacity(isHighlighted ? 0.7 : 0), radius: size * 0.16)
-            .scaleEffect(isHighlighted ? 1.1 : 1)
-            .animation(.spring(duration: 0.35), value: isHighlighted)
+            .animation(.spring(duration: 0.35)) { content in
+                content
+                    .shadow(color: choice.tint.opacity(isHighlighted ? 0.7 : 0), radius: size * 0.16)
+                    .scaleEffect(isHighlighted ? 1.1 : 1)
+            }
     }
 
     @ViewBuilder
@@ -385,3 +385,8 @@ extension View {
         }
     #endif
 #endif
+
+extension AnyTransition {
+    /// Carries its own animation, so switching the session screen does not animate the layout of the others.
+    static let profileActivation = AnyTransition.opacity.animation(.easeInOut(duration: 0.4))
+}

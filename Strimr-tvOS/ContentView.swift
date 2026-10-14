@@ -19,6 +19,7 @@ struct ContentView: View {
             case .hydrating:
                 if let profile = sessionManager.activeProfile {
                     ProfileActivationView(profile: profile)
+                        .transition(.profileActivation)
                 } else {
                     ProgressView(sessionManager.loadingPhase.title)
                         .progressViewStyle(.circular)
@@ -44,7 +45,6 @@ struct ContentView: View {
                 .id(registry.generation)
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: sessionManager.status)
         .onChange(of: registry.readyServers) { _, _ in
             sessionManager.updateTopShelf()
         }

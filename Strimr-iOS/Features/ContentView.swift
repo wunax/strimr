@@ -24,6 +24,7 @@ struct ContentView: View {
                 case .hydrating:
                     if let profile = sessionManager.activeProfile {
                         ProfileActivationView(profile: profile)
+                            .transition(.profileActivation)
                     } else {
                         ProgressView(sessionManager.loadingPhase.title)
                             .progressViewStyle(.circular)
@@ -50,7 +51,6 @@ struct ContentView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: sessionManager.status)
         .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
             guard hasNetworkPath, sessionManager.status == .migrationFailed else { return }
             Task {

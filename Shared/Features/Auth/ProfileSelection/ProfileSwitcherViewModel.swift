@@ -105,10 +105,10 @@ final class ProfileSwitcherViewModel {
         return false
     }
 
-    var tint: Color {
+    var tint: Color? {
         let highlighted = choices.first { $0.id == highlightedID }
         let fallback = choices.first(where: \.isActive) ?? choices.first
-        return (pinChoice ?? highlighted ?? fallback)?.tint ?? .brandPrimary
+        return (pinChoice ?? highlighted ?? fallback)?.tint
     }
 
     var enteringChoice: ProfileChoice? {
