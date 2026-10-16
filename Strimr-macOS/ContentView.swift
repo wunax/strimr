@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(ExternalPlaybackCallbackRouter.self) private var externalPlaybackCallbackRouter
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -54,9 +55,8 @@ struct ContentView: View {
         .onChange(of: registry.connectedServices.map(ObjectIdentifier.init), initial: true) { _, _ in
             downloadManager.activateSession(services: registry.connectedServices)
         }
-        // External players call back only to bring Strimr to the front; this window takes the URL so the
-        // window group does not open a new one.
-        .onOpenURL { _ in }
+        // This window takes the external player callbacks so the window group does not open a new one.
+        .onOpenURL { externalPlaybackCallbackRouter.receive($0) }
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
 

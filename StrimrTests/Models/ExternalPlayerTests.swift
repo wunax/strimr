@@ -6,9 +6,12 @@ struct ExternalPlayerTests {
     private let target = ExternalPlaybackTarget(
         url: URL(string: "http://server.example.com/Videos/item-1/stream.mkv?Static=true&api_key=token")!,
         title: "Show — S01E02 — Pilot",
+        item: MediaIdentity(server: ServerIdentity(provider: .plex, id: "server-1"), itemID: "item-1"),
+        duration: nil,
     )
     private let encodedURL = "http%3A%2F%2Fserver.example.com%2FVideos%2Fitem-1%2Fstream.mkv%3FStatic%3Dtrue%26api_key%3Dtoken"
-    private let encodedCallback = "strimr%3A%2F%2Fx-callback-url%2FplaybackDidFinish"
+    private let encodedCallback =
+        "strimr%3A%2F%2Fx-callback-url%2FplaybackDidFinish%3Fserver%3Dplex%3Aserver-1%26item%3Ditem-1"
 
     @Test(arguments: [Platform.iOS, .macOS, .tvOS])
     func `infuse uses its x-callback URL everywhere`(platform: Platform) throws {
@@ -46,13 +49,15 @@ struct ExternalPlayerTests {
         #expect(try request == .url(#require(URL(string: "iina://weblink?url=\(encodedURL)"))))
     }
 
-    @Test func `native player passes the title on tvOS`() throws {
+    @Test func `native player passes the title and start position on tvOS`() throws {
+        var target = target
+        target.startPosition = 754.8
         let request = ExternalPlayer.known(.nativePlayer).launchRequest(for: target, platform: .tvOS)
 
         #expect(try request ==
             .url(
                 #require(URL(
-                    string: "nativeplayer://x-callback-url/play?url=\(encodedURL)&filename=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot&x-success=\(encodedCallback)&x-error=\(encodedCallback)",
+                    string: "nativeplayer://x-callback-url/play?url=\(encodedURL)&filename=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot&position=754&x-success=\(encodedCallback)&x-error=\(encodedCallback)",
                 )),
             ))
     }

@@ -74,7 +74,7 @@ struct PlaybackLauncher {
             ? queue.items[queue.currentIndex].media
             : queue.items[0].media
         let fallbackNotice = String(localized: "player.external.launchFailed \(player.displayName)")
-        let target: ExternalPlaybackTarget
+        var target: ExternalPlaybackTarget
         do {
             target = try await services.playback.externalPlaybackTarget(
                 for: media,
@@ -90,6 +90,9 @@ struct PlaybackLauncher {
                 notice: fallbackNotice,
             )
             return
+        }
+        if shouldResumeFromOffset {
+            target.startPosition = media.viewOffset ?? 0
         }
         if let request = player.launchRequest(for: target, platform: .current),
            await coordinator.openExternalPlayer(request)

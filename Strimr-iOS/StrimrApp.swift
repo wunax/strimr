@@ -10,6 +10,7 @@ struct StrimrApp: App {
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
     @State private var sharePlayCoordinator: SharePlayCoordinator
+    @State private var externalPlaybackCallbackRouter = ExternalPlaybackCallbackRouter()
 
     init() {
         let favoritesStore = FavoritesStore()
@@ -49,7 +50,9 @@ struct StrimrApp: App {
                 .environment(seerrStore)
                 .environment(sharePlayCoordinator)
                 .environment(OfflineCoordinator.shared)
+                .environment(externalPlaybackCallbackRouter)
                 .preferredColorScheme(.dark)
+                .onOpenURL { externalPlaybackCallbackRouter.receive($0) }
         }
     }
 }

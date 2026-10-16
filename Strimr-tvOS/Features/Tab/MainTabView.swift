@@ -178,6 +178,9 @@ struct MainTabView: View {
                 coordinator.resetLiveTVNavigation()
             }
         }
+        .handlesExternalPlaybackCallbacks { server in
+            Task { await homeViewModel.refresh(server: server) }
+        }
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }
             defer { topShelfDeepLinkRouter.clear(action) }

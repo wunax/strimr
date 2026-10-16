@@ -57,7 +57,7 @@ nonisolated enum ExternalPlayerID: String, Codable, CaseIterable, Identifiable, 
             .template("iina://weblink?url={url}")
         case (.nativePlayer, .tvOS):
             .template(
-                "nativeplayer://x-callback-url/play?url={url}&filename={title}&x-success={callback}&x-error={callback}",
+                "nativeplayer://x-callback-url/play?url={url}&filename={title}&position={position}&x-success={callback}&x-error={callback}",
             )
         case (.iina, _), (.nativePlayer, _):
             nil
@@ -91,9 +91,16 @@ nonisolated enum ExternalPlayerSelection: Codable, Equatable, Hashable, Sendable
 nonisolated struct ExternalPlaybackTarget: Equatable, Sendable {
     let url: URL
     let title: String
+    let item: MediaIdentity
+    let duration: TimeInterval?
+    var startPosition: TimeInterval = 0
 }
 
 extension ExternalPlaybackTarget {
+    init(url: URL, media: MediaItem) {
+        self.init(url: url, title: Self.title(for: media), item: media.identity, duration: media.duration)
+    }
+
     /// "Series — S01E02 — Title" for an episode, the item title otherwise.
     static func title(for media: MediaItem) -> String {
         guard media.type == .episode else { return media.title }
@@ -163,7 +170,7 @@ nonisolated enum ExternalPlayer: Equatable, Sendable {
         case let .custom(player):
             template = player.template
         }
-        guard let url = try? ExternalPlayerTemplate.render(template, url: target.url, title: target.title) else {
+        guard let url = try? ExternalPlayerTemplate.render(template, target: target) else {
             return nil
         }
         return .url(url)

@@ -10,6 +10,7 @@ struct StrimrApp: App {
     @State private var seerrFocusModel: SeerrFocusModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
     @State private var topShelfDeepLinkRouter = TopShelfDeepLinkRouter()
+    @State private var externalPlaybackCallbackRouter = ExternalPlaybackCallbackRouter()
 
     init() {
         let favoritesStore = FavoritesStore()
@@ -50,8 +51,13 @@ struct StrimrApp: App {
                 .environment(seerrFocusModel)
                 .environment(sharePlayCoordinator)
                 .environment(topShelfDeepLinkRouter)
+                .environment(externalPlaybackCallbackRouter)
                 .preferredColorScheme(.dark)
-                .onOpenURL(perform: topShelfDeepLinkRouter.receive)
+                .onOpenURL { url in
+                    if !externalPlaybackCallbackRouter.receive(url) {
+                        topShelfDeepLinkRouter.receive(url)
+                    }
+                }
         }
     }
 }

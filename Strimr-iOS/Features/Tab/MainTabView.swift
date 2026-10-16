@@ -34,6 +34,9 @@ struct MainTabView: View {
                 guard phase == .active else { return }
                 Task { await refreshLiveTVAvailability() }
             }
+            .handlesExternalPlaybackCallbacks { server in
+                Task { await homeViewModel.refresh(server: server) }
+            }
             .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
                 if !isDisplayed {
                     coordinator.resetLiveTVNavigation()

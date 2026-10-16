@@ -809,7 +809,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             baseURL: access.baseURL,
             token: access.token,
         )
-        return ExternalPlaybackTarget(url: url, title: ExternalPlaybackTarget.title(for: media))
+        return ExternalPlaybackTarget(url: url, media: media)
     }
 
     /// The container extension tells the player the file format.

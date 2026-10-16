@@ -817,7 +817,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             baseURL: snapshot.baseURL,
             token: snapshot.authToken,
         ) else { throw ExternalPlaybackError.noPlayableSource }
-        return ExternalPlaybackTarget(url: url, title: ExternalPlaybackTarget.title(for: media))
+        return ExternalPlaybackTarget(url: url, media: media)
     }
 
     static func externalPlaybackURL(

@@ -9,6 +9,7 @@ struct StrimrApp: App {
     @State private var seerrStore: SeerrStore
     @State private var appModel: AppModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
+    @State private var externalPlaybackCallbackRouter = ExternalPlaybackCallbackRouter()
 
     init() {
         let favoritesStore = FavoritesStore()
@@ -66,5 +67,6 @@ struct StrimrApp: App {
             .environment(appModel)
             .environment(sharePlayCoordinator)
             .environment(OfflineCoordinator.shared)
+            .environment(externalPlaybackCallbackRouter)
     }
 }

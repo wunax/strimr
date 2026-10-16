@@ -10845,6 +10845,28 @@
         }
       }
     },
+    "player.external.playbackFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback failed in the external player"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture a échoué dans le lecteur externe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外部播放器播放失败"
+          }
+        }
+      }
+    },
     "player.info.open" : {
       "localizations" : {
         "en" : {

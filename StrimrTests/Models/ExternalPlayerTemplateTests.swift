@@ -6,20 +6,29 @@ struct ExternalPlayerTemplateTests {
     private let streamURL =
         URL(string: "https://plex.example.com:32400/library/parts/1/file.mkv?X-Plex-Token=secret+token")!
 
+    private func target(url: URL, title: String = "", startPosition: TimeInterval = 0) -> ExternalPlaybackTarget {
+        ExternalPlaybackTarget(
+            url: url,
+            title: title,
+            item: MediaIdentity(server: ServerIdentity(provider: .plex, id: "server-1"), itemID: "item-1"),
+            duration: 3600,
+            startPosition: startPosition,
+        )
+    }
+
     @Test func `substitutes every variable`() throws {
         let url = try ExternalPlayerTemplate.render(
-            "myplayer://play?url={url}&name={title}&back={callback}",
-            url: #require(URL(string: "http://host/a")),
-            title: "Movie",
+            "myplayer://play?url={url}&name={title}&at={position}&back={callback}",
+            target: target(url: #require(URL(string: "http://host/a")), title: "Movie", startPosition: 90.6),
         )
 
         #expect(url
             .absoluteString ==
-            "myplayer://play?url=http%3A%2F%2Fhost%2Fa&name=Movie&back=strimr%3A%2F%2Fx-callback-url%2FplaybackDidFinish")
+            "myplayer://play?url=http%3A%2F%2Fhost%2Fa&name=Movie&at=90&back=strimr%3A%2F%2Fx-callback-url%2FplaybackDidFinish%3Fserver%3Dplex%3Aserver-1%26item%3Ditem-1%26duration%3D3600")
     }
 
     @Test func `fully encodes a stream URL that already has a query`() throws {
-        let url = try ExternalPlayerTemplate.render("myplayer://play?url={url}", url: streamURL, title: "")
+        let url = try ExternalPlayerTemplate.render("myplayer://play?url={url}", target: target(url: streamURL))
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
 
         #expect(url
@@ -32,8 +41,7 @@ struct ExternalPlayerTemplateTests {
     @Test func `encodes special characters in the title`() throws {
         let url = try ExternalPlayerTemplate.render(
             "myplayer://play?url={url}&name={title}",
-            url: #require(URL(string: "http://host/a")),
-            title: "Tom & Jerry — S01E02 — 100% Café?",
+            target: target(url: #require(URL(string: "http://host/a")), title: "Tom & Jerry — S01E02 — 100% Café?"),
         )
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
 
@@ -45,8 +53,7 @@ struct ExternalPlayerTemplateTests {
     @Test func `keeps the rest of the template untouched`() throws {
         let url = try ExternalPlayerTemplate.render(
             "my-player+x://open/now?mode=a%20b&u={url}",
-            url: #require(URL(string: "http://h/v")),
-            title: "",
+            target: target(url: #require(URL(string: "http://h/v"))),
         )
 
         #expect(url.absoluteString == "my-player+x://open/now?mode=a%20b&u=http%3A%2F%2Fh%2Fv")
