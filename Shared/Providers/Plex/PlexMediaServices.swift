@@ -425,7 +425,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             params: .init(checkFiles: true),
         )
         let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
-        let versions = plexMedia.map(mapFileInfoVersion)
+        let versions = plexMedia.map(Self.mapFileInfoVersion)
         let defaultVersion = MediaVersionResolver.resolve(.automatic, in: versions, default: Self.defaultVersion)
         let selected = Self.selection(
             in: plexMedia,
@@ -460,7 +460,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             return nil
         }
 
-        return MediaFileInfo(versions: plexMedia.map(mapFileInfoVersion))
+        return MediaFileInfo(versions: plexMedia.map(Self.mapFileInfoVersion))
     }
 
     func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws {
@@ -565,7 +565,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
         guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidURL }
         let plexMedia = item.media ?? []
-        let versions = plexMedia.map(mapFileInfoVersion)
+        let versions = plexMedia.map(Self.mapFileInfoVersion)
         guard let selected = Self.selection(in: plexMedia, versions: versions, request: version),
               let directURL = try MediaRepository(context: context).mediaURL(path: selected.part.key)
         else { throw PlexAPIError.invalidURL }
@@ -801,6 +801,37 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         ).externalSubtitles
     }
 
+    func externalPlaybackTarget(
+        for media: MediaItem,
+        version: MediaVersionRequest,
+    ) async throws -> ExternalPlaybackTarget {
+        let response = try await MetadataRepository(context: context).getMetadata(
+            ratingKey: media.id,
+            params: .init(checkFiles: true),
+        )
+        guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidResponse }
+        let snapshot = try context.serverAccessSnapshot()
+        guard let url = Self.externalPlaybackURL(
+            in: item.media ?? [],
+            version: version,
+            baseURL: snapshot.baseURL,
+            token: snapshot.authToken,
+        ) else { throw ExternalPlaybackError.noPlayableSource }
+        return ExternalPlaybackTarget(url: url, title: ExternalPlaybackTarget.title(for: media))
+    }
+
+    static func externalPlaybackURL(
+        in plexMedia: [PlexMedia],
+        version: MediaVersionRequest,
+        baseURL: URL,
+        token: String,
+    ) -> URL? {
+        guard let selected = selection(in: plexMedia, versions: plexMedia.map(mapFileInfoVersion), request: version),
+              selected.part.isAvailable
+        else { return nil }
+        return MediaRepository.mediaURL(path: selected.part.key, baseURL: baseURL, token: token)
+    }
+
     func prepareDownload(
         itemID: String,
         quality: TranscodeQualityPreset,
@@ -813,7 +844,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
         guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidURL }
         let plexMedia = item.media ?? []
-        let versions = plexMedia.map(mapFileInfoVersion)
+        let versions = plexMedia.map(Self.mapFileInfoVersion)
         guard let selected = Self.selection(in: plexMedia, versions: versions, request: version),
               let url = try MediaRepository(context: context).mediaURL(path: selected.part.key)
         else { throw PlexAPIError.invalidURL }
@@ -1076,7 +1107,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
         guard let selected = Self.selection(
             in: plexMedia,
-            versions: plexMedia.map(mapFileInfoVersion),
+            versions: plexMedia.map(Self.mapFileInfoVersion),
             request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
         ) else {
             throw PlexAPIError.invalidResponse
@@ -1119,7 +1150,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
-    private func mapFileInfoVersion(_ media: PlexMedia) -> MediaFileVersion {
+    private static func mapFileInfoVersion(_ media: PlexMedia) -> MediaFileVersion {
         MediaFileVersion(
             id: String(media.id),
             title: media.title,
@@ -1136,7 +1167,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             audioCodec: media.audioCodec,
             audioProfile: media.audioProfile,
             audioChannels: media.audioChannels,
-            parts: media.parts.map(mapFileInfoPart),
+            parts: media.parts.map(Self.mapFileInfoPart),
             attachments: [],
             isAvailable: media.deletedAt == nil && media.parts.contains(where: \.isAvailable),
             isOptimized: media.proxyType == 42,
@@ -1144,7 +1175,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
-    private func mapFileInfoPart(_ part: PlexPart) -> MediaFilePart {
+    private static func mapFileInfoPart(_ part: PlexPart) -> MediaFilePart {
         MediaFilePart(
             id: String(part.id),
             path: part.file,
@@ -1153,11 +1184,11 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             duration: part.duration.map { TimeInterval($0) / 1000 },
             exists: part.exists,
             accessible: part.accessible,
-            streams: (part.stream ?? []).map(mapFileInfoStream),
+            streams: (part.stream ?? []).map(Self.mapFileInfoStream),
         )
     }
 
-    private func mapFileInfoStream(_ stream: PlexPartStream) -> MediaFileStream {
+    private static func mapFileInfoStream(_ stream: PlexPartStream) -> MediaFileStream {
         let kind: MediaFileStreamKind = switch stream.streamType {
         case .video:
             .video
@@ -1190,7 +1221,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             height: stream.height,
             frameRate: stream.frameRate,
             bitDepth: stream.bitDepth,
-            dynamicRange: plexDynamicRange(stream),
+            dynamicRange: Self.plexDynamicRange(stream),
             pixelFormat: stream.pixelFormat,
             colorSpace: stream.colorSpace,
             colorTransfer: stream.colorTransfer,
@@ -1198,13 +1229,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             channels: stream.channels,
             channelLayout: stream.audioChannelLayout,
             sampleRate: stream.samplingRate,
-            spatialFormat: plexSpatialFormat(stream),
+            spatialFormat: Self.plexSpatialFormat(stream),
             subtitleFormat: stream.format,
             path: stream.key,
         )
     }
 
-    private func plexDynamicRange(_ stream: PlexPartStream) -> String? {
+    private static func plexDynamicRange(_ stream: PlexPartStream) -> String? {
         if stream.dolbyVisionPresent == true {
             if stream.dolbyVisionCompatibilityID == 1 || stream.dolbyVisionCompatibilityID == 6 {
                 return "Dolby Vision (HDR10)"
@@ -1222,7 +1253,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
     }
 
-    private func plexSpatialFormat(_ stream: PlexPartStream) -> String? {
+    private static func plexSpatialFormat(_ stream: PlexPartStream) -> String? {
         let text = [stream.title, stream.displayTitle, stream.extendedDisplayTitle]
             .compactMap { $0?.lowercased() }
             .joined(separator: " ")

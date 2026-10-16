@@ -478,7 +478,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func fileInfo(for media: MediaItem) async throws -> MediaFileInfo? {
         let item = try await catalog.item(id: media.id)
         guard let sources = item.mediaSources, !sources.isEmpty else { return nil }
-        return MediaFileInfo(versions: sources.map(mapFileInfoVersion))
+        return MediaFileInfo(versions: sources.map(Self.mapFileInfoVersion))
     }
 
     private func parentSeries(for item: JellyfinItem) async throws -> MediaItem? {
@@ -533,7 +533,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
         let item = try await catalog.item(id: itemID)
         let sources = item.mediaSources ?? []
-        let versions = sources.map(mapFileInfoVersion)
+        let versions = sources.map(Self.mapFileInfoVersion)
         let defaultVersion = MediaVersionResolver.resolve(.automatic, in: versions, default: Self.defaultVersion)
         let source = Self.source(
             in: sources,
@@ -661,7 +661,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     ) async throws -> PlaybackPlan {
         let item = try await catalog.item(id: media.id)
         let sources = item.mediaSources ?? []
-        let versions = sources.map(mapFileInfoVersion)
+        let versions = sources.map(Self.mapFileInfoVersion)
         let requestedSource = Self.source(in: sources, versions: versions, request: version)
         let plan = try await playbackService.prepare(
             item: item,
@@ -797,6 +797,44 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
     }
 
+    func externalPlaybackTarget(
+        for media: MediaItem,
+        version: MediaVersionRequest,
+    ) async throws -> ExternalPlaybackTarget {
+        let item = try await catalog.item(id: media.id)
+        let access = try context.externalMediaAccess()
+        let url = try Self.externalPlaybackURL(
+            item: item,
+            version: version,
+            baseURL: access.baseURL,
+            token: access.token,
+        )
+        return ExternalPlaybackTarget(url: url, title: ExternalPlaybackTarget.title(for: media))
+    }
+
+    /// The container extension tells the player the file format.
+    static func externalPlaybackURL(
+        item: JellyfinItem,
+        version: MediaVersionRequest,
+        baseURL: URL,
+        token: String,
+    ) throws -> URL {
+        let sources = item.mediaSources ?? []
+        guard let source = source(in: sources, versions: sources.map(mapFileInfoVersion), request: version) else {
+            throw ExternalPlaybackError.noPlayableSource
+        }
+        let container = MediaVersionSignature.normalizedContainer(source.container)
+        return try JellyfinAPIContext.makeURL(
+            baseURL: baseURL,
+            path: ["Videos", item.id, container.isEmpty ? "stream" : "stream.\(container)"],
+            query: [
+                URLQueryItem(name: "Static", value: "true"),
+                URLQueryItem(name: "MediaSourceId", value: source.id),
+                URLQueryItem(name: "api_key", value: token),
+            ],
+        )
+    }
+
     private static func defaultVersion(_ versions: [MediaFileVersion]) -> MediaFileVersion? {
         versions.first(where: { $0.supportsDirectPlay == true }) ?? versions.first
     }
@@ -818,7 +856,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return "\(itemID)|\(versionID.lowercased())"
     }
 
-    private func mapFileInfoVersion(_ source: JellyfinMediaSource) -> MediaFileVersion {
+    private static func mapFileInfoVersion(_ source: JellyfinMediaSource) -> MediaFileVersion {
         let streams = source.mediaStreams ?? []
         let video = streams.first(where: { $0.type.lowercased() == "video" })
         let audio = streams.first(where: { $0.type.lowercased() == "audio" })
@@ -850,7 +888,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 exists: nil,
                 accessible: nil,
                 streams: streams.map {
-                    mapFileInfoStream(
+                    Self.mapFileInfoStream(
                         $0,
                         defaultAudioIndex: source.defaultAudioStreamIndex,
                         defaultSubtitleIndex: source.defaultSubtitleStreamIndex,
@@ -869,7 +907,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
-    private func mapFileInfoStream(
+    private static func mapFileInfoStream(
         _ stream: JellyfinMediaStream,
         defaultAudioIndex: Int?,
         defaultSubtitleIndex: Int?,
@@ -1130,7 +1168,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
         let media = MediaItem(jellyfinItem: item, server: server)
         let sources = item.mediaSources ?? []
-        let versions = sources.map(mapFileInfoVersion)
+        let versions = sources.map(Self.mapFileInfoVersion)
         let selectedSource = Self.source(in: sources, versions: versions, request: version)
         let selectedVersion = selectedSource.flatMap { source in versions.first { $0.id == source.id } }
         let versionLabel = versions.count > 1 ? selectedVersion?.displayLabel(among: versions) : nil
@@ -1230,7 +1268,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let sources = item.mediaSources ?? []
         guard let source = Self.source(
             in: sources,
-            versions: sources.map(mapFileInfoVersion),
+            versions: sources.map(Self.mapFileInfoVersion),
             request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
         ),
             let stream = source.resolveSubtitleStream(preference: tracks.subtitle)

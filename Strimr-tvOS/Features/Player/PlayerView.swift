@@ -346,6 +346,19 @@ struct PlayerView: View {
             } message: {
                 Text(qualityNoticeMessage ?? "")
             }
+            .alert(
+                Text(viewModel.launchNotice ?? ""),
+                isPresented: Binding(
+                    get: { viewModel.launchNotice != nil },
+                    set: {
+                        if !$0 {
+                            viewModel.launchNotice = nil
+                        }
+                    },
+                ),
+            ) {
+                Button("common.actions.done") { viewModel.launchNotice = nil }
+            }
     }
 
     private var playerScene: some View {
@@ -1272,6 +1285,7 @@ struct PlayerView: View {
             && !showingSubtitleSearchError
             && !isShowingServerRecoveryAlert
             && qualityNoticeMessage == nil
+            && viewModel.launchNotice == nil
     }
 
     /// Returns whether the pause screen was visible, in which case the input only dismisses it.

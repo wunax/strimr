@@ -419,6 +419,14 @@ final class JellyfinAPIContext {
         return try Self.makeURL(baseURL: baseURL, path: path, query: query)
     }
 
+    /// For URLs opened outside Strimr, which cannot carry the authorization headers.
+    func externalMediaAccess() throws -> (baseURL: URL, token: String) {
+        guard let baseURL = connection?.baseURL, let accessToken else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        return (baseURL, accessToken)
+    }
+
     func playbackHeaders() throws -> [String: String] {
         guard accessToken != nil else { throw JellyfinAPIError.authenticationRequired }
         return authorizationHeaders()
@@ -584,7 +592,7 @@ final class JellyfinAPIContext {
         return url
     }
 
-    private static func makeURL(
+    static func makeURL(
         baseURL: URL,
         path: [String],
         query: [URLQueryItem],

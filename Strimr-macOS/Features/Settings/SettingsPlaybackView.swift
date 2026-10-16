@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct SettingsPlaybackView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @State private var isEditingCustomPlayer = false
 
     private var viewModel: SettingsViewModel {
         SettingsViewModel(settingsManager: settingsManager)
@@ -10,6 +11,8 @@ struct SettingsPlaybackView: View {
 
     var body: some View {
         List {
+            externalPlayerSection
+
             Section {
                 Picker("settings.playback.quality", selection: viewModel.qualityPresetBinding) {
                     ForEach(TranscodeQualityPreset.displayOrder) { preset in
@@ -75,6 +78,42 @@ struct SettingsPlaybackView: View {
         }
         .listStyle(.inset)
         .navigationTitle("settings.playback.title")
+        .sheet(isPresented: $isEditingCustomPlayer) {
+            CustomExternalPlayerView(player: viewModel.customExternalPlayer) { player in
+                viewModel.saveCustomExternalPlayer(player)
+            }
+        }
+    }
+
+    private var externalPlayerSection: some View {
+        Section {
+            Picker("settings.playback.externalPlayer.title", selection: externalPlayerBinding) {
+                ForEach(viewModel.externalPlayerOptions) { option in
+                    Text(viewModel.title(for: option)).tag(option)
+                }
+            }
+
+            if viewModel.customExternalPlayer != nil {
+                Button("settings.playback.externalPlayer.custom.edit") {
+                    isEditingCustomPlayer = true
+                }
+            }
+        } footer: {
+            if let footer = viewModel.externalPlayerFooter {
+                Text(footer)
+            }
+        }
+    }
+
+    private var externalPlayerBinding: Binding<ExternalPlayerOption> {
+        Binding(
+            get: { viewModel.selectedExternalPlayerOption },
+            set: { option in
+                if !viewModel.selectExternalPlayer(option) {
+                    isEditingCustomPlayer = true
+                }
+            },
+        )
     }
 
     private var scrubThumbnailSection: some View {

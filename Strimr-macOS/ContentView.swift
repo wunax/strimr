@@ -54,6 +54,10 @@ struct ContentView: View {
         .onChange(of: registry.connectedServices.map(ObjectIdentifier.init), initial: true) { _, _ in
             downloadManager.activateSession(services: registry.connectedServices)
         }
+        // External players call back only to bring Strimr to the front; this window takes the URL so the
+        // window group does not open a new one.
+        .onOpenURL { _ in }
+        .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
 
     /// Without a restorable session and without network, downloads are shown directly at launch.

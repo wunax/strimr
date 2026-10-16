@@ -142,6 +142,17 @@ final class SettingsManager {
         persist()
     }
 
+    func setExternalPlayer(_ selection: ExternalPlayerSelection?) {
+        settings.playback.externalPlayer = selection
+        persist()
+    }
+
+    func setCustomExternalPlayer(_ player: CustomExternalPlayer) {
+        settings.playback.customExternalPlayer = player
+        settings.playback.externalPlayer = .custom
+        persist()
+    }
+
     func resetSubtitleAppearance() {
         settings.playback.resetSubtitleAppearance()
         persist()

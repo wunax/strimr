@@ -332,6 +332,7 @@ final class SharePlayCoordinator {
                 ratingKey: activity.ratingKey,
                 type: activity.mediaKind,
                 shouldResumeFromOffset: false,
+                allowsExternalPlayer: false,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }

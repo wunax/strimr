@@ -177,3 +177,63 @@ final class SettingsViewModel {
         settingsManager.resetSubtitleAppearance()
     }
 }
+
+extension SettingsViewModel {
+    /// Known players are listed when installed, or when already selected so the user can switch away.
+    var externalPlayerOptions: [ExternalPlayerOption] {
+        let selected = settingsManager.playback.externalPlayer
+        let known = ExternalPlayerID.allCases.filter { player in
+            player.isSupported(on: .current)
+                && (selected == .known(player) || ExternalPlayerApps.isInstalled(player))
+        }
+        return [.builtIn] + known.map(ExternalPlayerOption.known) + [.custom]
+    }
+
+    var selectedExternalPlayerOption: ExternalPlayerOption {
+        switch settingsManager.playback.resolvedExternalPlayer {
+        case let .known(player): .known(player)
+        case .custom: .custom
+        case nil: .builtIn
+        }
+    }
+
+    var customExternalPlayer: CustomExternalPlayer? {
+        settingsManager.playback.customExternalPlayer.flatMap { $0.isValid ? $0 : nil }
+    }
+
+    func title(for option: ExternalPlayerOption) -> String {
+        switch option {
+        case .builtIn:
+            String(localized: "settings.playback.externalPlayer.builtIn")
+        case let .known(player):
+            player.displayName
+        case .custom:
+            customExternalPlayer?.name ?? String(localized: "settings.playback.externalPlayer.custom")
+        }
+    }
+
+    /// Returns false when the custom player must be defined first.
+    @discardableResult
+    func selectExternalPlayer(_ option: ExternalPlayerOption) -> Bool {
+        switch option {
+        case .builtIn:
+            settingsManager.setExternalPlayer(nil)
+        case let .known(player):
+            settingsManager.setExternalPlayer(.known(player))
+        case .custom:
+            guard customExternalPlayer != nil else { return false }
+            settingsManager.setExternalPlayer(.custom)
+        }
+        return true
+    }
+
+    func saveCustomExternalPlayer(_ player: CustomExternalPlayer) {
+        settingsManager.setCustomExternalPlayer(player)
+    }
+
+    var externalPlayerFooter: String? {
+        settingsManager.playback.resolvedExternalPlayer.map {
+            String(localized: "settings.playback.externalPlayer.footer \($0.displayName)")
+        }
+    }
+}

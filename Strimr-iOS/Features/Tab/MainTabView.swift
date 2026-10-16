@@ -8,11 +8,12 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject var coordinator = MainCoordinator()
+    @StateObject var coordinator: MainCoordinator
     @State var homeViewModel: HomeViewModel
     @State var libraryViewModel: LibraryViewModel
 
-    init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
+    init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel, settingsManager: SettingsManager) {
+        _coordinator = StateObject(wrappedValue: MainCoordinator(settingsManager: settingsManager))
         _homeViewModel = State(initialValue: homeViewModel)
         _libraryViewModel = State(initialValue: libraryViewModel)
     }
@@ -47,6 +48,7 @@ struct MainTabView: View {
                             queue: queue,
                             services: services,
                             shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                            launchNotice: coordinator.playerNotice,
                         ),
                     )
                     .environment(services)

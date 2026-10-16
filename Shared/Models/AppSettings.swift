@@ -162,6 +162,10 @@ struct PlaybackSettings: Codable, Equatable {
     var subtitleBackgroundStrength = SubtitleBackgroundStrength.standard
     var subtitleEdgeStyle = SubtitleEdgeStyle.shadow
     var subtitleVerticalPosition = SubtitleVerticalPosition.bottom
+    /// Nil plays in Strimr's built-in player.
+    var externalPlayer: ExternalPlayerSelection?
+    /// Kept apart from the selection so switching to another player does not lose the template.
+    var customExternalPlayer: CustomExternalPlayer?
 
     init() {}
 
@@ -222,6 +226,15 @@ struct PlaybackSettings: Codable, Equatable {
             try? container.decode(SubtitleVerticalPosition.self, forKey: .subtitleVerticalPosition),
         )
             ?? .bottom
+        externalPlayer = try? container.decodeIfPresent(ExternalPlayerSelection.self, forKey: .externalPlayer)
+        customExternalPlayer = try? container.decodeIfPresent(
+            CustomExternalPlayer.self,
+            forKey: .customExternalPlayer,
+        )
+    }
+
+    var resolvedExternalPlayer: ExternalPlayer? {
+        ExternalPlayer(selection: externalPlayer, custom: customExternalPlayer)
     }
 
     var subtitleAppearance: SubtitleAppearance {

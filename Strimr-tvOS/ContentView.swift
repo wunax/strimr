@@ -41,6 +41,7 @@ struct ContentView: View {
                         libraryStore: libraryStore,
                         settingsManager: settingsManager,
                     ),
+                    settingsManager: settingsManager,
                 )
                 .id(registry.generation)
             }

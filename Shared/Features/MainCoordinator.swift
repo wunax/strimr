@@ -55,12 +55,18 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published var seerrDiscoverPath = NavigationPath()
     @Published private var libraryDetailPaths: [LibraryIdentity: NavigationPath] = [:]
     private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
+    private let settingsManager: SettingsManager
+
+    init(settingsManager: SettingsManager) {
+        self.settingsManager = settingsManager
+    }
 
     @Published var isPresentingPlayer = false
     @Published var shouldResumeFromOffset = true
     @Published var selectedMediaQueue: PlaybackQueue?
     @Published var selectedMediaServices: MediaServices?
     @Published var selectedLiveTVContext: LiveTVLaunchContext?
+    @Published var playerNotice: String?
     #if !os(tvOS)
         @Published var selectedLocalPlayback: LocalPlaybackRequest?
     #endif
@@ -328,15 +334,25 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
+    var externalPlayer: ExternalPlayer? {
+        settingsManager.playback.resolvedExternalPlayer
+    }
+
     func showPlayer(
         for queue: PlaybackQueue,
         services: MediaServices,
-        shouldResumeFromOffset: Bool = true,
+        shouldResumeFromOffset: Bool,
+        notice: String?,
     ) {
         selectedMediaQueue = queue
         selectedMediaServices = services
         self.shouldResumeFromOffset = shouldResumeFromOffset
+        playerNotice = notice
         isPresentingPlayer = true
+    }
+
+    func openExternalPlayer(_ request: ExternalLaunchRequest) async -> Bool {
+        await ExternalPlayerApps.open(request)
     }
 
     func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices) {
@@ -362,6 +378,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         selectedMediaQueue = nil
         selectedMediaServices = nil
         selectedLiveTVContext = nil
+        playerNotice = nil
         isPresentingPlayer = false
         shouldResumeFromOffset = true
     }

@@ -23,6 +23,8 @@ final class PlayerViewModel {
     var terminationMessage: String?
     var selectedQuality: TranscodeQualityPreset = .original
     var qualityFallbackMessage: String?
+    /// Shown once when the player opens, such as an external player that could not be opened.
+    var launchNotice: String?
     var isLivePlayback: Bool {
         liveContext != nil
     }
@@ -192,7 +194,9 @@ final class PlayerViewModel {
         queue: PlaybackQueue,
         services: MediaServices,
         shouldResumeFromOffset: Bool = true,
+        launchNotice: String? = nil,
     ) {
+        self.launchNotice = launchNotice
         mediaQueue = queue
         mediaServices = services
         let currentMedia = queue.items.indices.contains(queue.currentIndex)

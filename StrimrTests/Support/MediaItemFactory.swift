@@ -12,6 +12,7 @@ extension MediaItem {
         year: Int? = nil,
         seasonNumber: Int? = nil,
         episodeNumber: Int? = nil,
+        seriesTitle: String? = nil,
         librarySectionID: String? = nil,
         lastViewedAt: Date? = nil,
     ) -> MediaItem {
@@ -41,7 +42,7 @@ extension MediaItem {
             childCount: nil,
             leafCount: nil,
             viewedLeafCount: nil,
-            grandparentTitle: nil,
+            grandparentTitle: seriesTitle,
             parentTitle: nil,
             parentIndex: seasonNumber,
             index: episodeNumber,

@@ -9,11 +9,12 @@ struct MainTabView: View {
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject var coordinator = MainCoordinator()
+    @StateObject var coordinator: MainCoordinator
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
 
-    init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel) {
+    init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel, settingsManager: SettingsManager) {
+        _coordinator = StateObject(wrappedValue: MainCoordinator(settingsManager: settingsManager))
         _homeViewModel = State(initialValue: homeViewModel)
         _libraryViewModel = State(initialValue: libraryViewModel)
     }
@@ -210,6 +211,7 @@ struct MainTabView: View {
                             queue: queue,
                             services: services,
                             shouldResumeFromOffset: coordinator.shouldResumeFromOffset,
+                            launchNotice: coordinator.playerNotice,
                         ),
                         onExit: playerDidClose,
                     )

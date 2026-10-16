@@ -1,0 +1,72 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Metadata": [
+      {
+        "ratingKey": "101",
+        "key": "/library/metadata/101",
+        "guid": "plex://movie/5d7768000000000000000001",
+        "type": "movie",
+        "title": "Example Movie",
+        "Media": [
+          {
+            "id": 201,
+            "container": "mkv",
+            "videoResolution": "1080",
+            "width": 1920,
+            "height": 1080,
+            "Part": [
+              {
+                "id": 301,
+                "key": "/library/parts/301/1700000000/file.mkv",
+                "file": "/media/movies/Example Movie (2021) - 1080p.mkv",
+                "container": "mkv",
+                "exists": true,
+                "accessible": true
+              }
+            ]
+          },
+          {
+            "id": 202,
+            "container": "mp4",
+            "videoResolution": "4k",
+            "width": 3840,
+            "height": 2160,
+            "Part": [
+              {
+                "id": 302,
+                "key": "/library/parts/302/1700000001/file.mp4",
+                "file": "/media/movies/Example Movie (2021) - 2160p.mp4",
+                "container": "mp4",
+                "exists": true,
+                "accessible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "102",
+        "key": "/library/metadata/102",
+        "guid": "plex://movie/5d7768000000000000000002",
+        "type": "movie",
+        "title": "Missing Movie",
+        "Media": [
+          {
+            "id": 203,
+            "container": "mkv",
+            "Part": [
+              {
+                "id": 303,
+                "key": "/library/parts/303/1700000002/file.mkv",
+                "file": "/media/movies/Missing Movie (2020).mkv",
+                "exists": false,
+                "accessible": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

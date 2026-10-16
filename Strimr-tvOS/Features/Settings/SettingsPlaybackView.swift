@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct SettingsPlaybackView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(SettingsNavigation.self) private var navigation
 
     private var viewModel: SettingsViewModel {
         SettingsViewModel(settingsManager: settingsManager)
@@ -10,6 +11,8 @@ struct SettingsPlaybackView: View {
 
     var body: some View {
         SettingsList {
+            externalPlayerSection
+
             Section {
                 SettingsPicker(
                     "settings.playback.quality",
@@ -18,7 +21,7 @@ struct SettingsPlaybackView: View {
                 ) { preset in
                     Text(preset.title)
                 }
-                .settingsFocus("settings.playback.quality", isDefault: true)
+                .settingsFocus("settings.playback.quality")
             } footer: {
                 Text("settings.playback.quality.footer")
             }
@@ -90,6 +93,43 @@ struct SettingsPlaybackView: View {
             }
 
             scrubThumbnailSection
+        }
+    }
+
+    private var externalPlayerSection: some View {
+        Section {
+            Button {
+                navigation.push("settings.playback.externalPlayer.title") {
+                    ExternalPlayerOptionsView(viewModel: viewModel)
+                }
+            } label: {
+                HStack(spacing: 20) {
+                    Text("settings.playback.externalPlayer.title")
+                    Spacer(minLength: 16)
+                    Text(viewModel.title(for: viewModel.selectedExternalPlayerOption))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .settingsFocus("settings.playback.externalPlayer", isDefault: true)
+
+            if let customPlayer = viewModel.customExternalPlayer {
+                Button("settings.playback.externalPlayer.custom.edit") {
+                    navigation.push("settings.playback.externalPlayer.custom.title") {
+                        CustomExternalPlayerView(player: customPlayer) { player in
+                            viewModel.saveCustomExternalPlayer(player)
+                        }
+                    }
+                }
+                .settingsFocus("settings.playback.externalPlayer.custom.edit")
+            }
+        } footer: {
+            if let footer = viewModel.externalPlayerFooter {
+                Text(footer)
+            }
         }
     }
 

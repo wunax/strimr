@@ -253,6 +253,11 @@ protocol MediaPlaybackService: AnyObject {
         version: MediaVersionRequest,
     ) async throws -> PlaybackPlan
     func release(plan: PlaybackPlan) async
+    /// Direct-play URL of the original file, carrying the token for players that cannot send headers.
+    func externalPlaybackTarget(
+        for media: MediaItem,
+        version: MediaVersionRequest,
+    ) async throws -> ExternalPlaybackTarget
     func reportStarted(
         plan: PlaybackPlan,
         position: TimeInterval,

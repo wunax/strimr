@@ -32,7 +32,7 @@ struct StrimrApp: App {
             settingsManager: settingsManager,
         ))
         _seerrStore = State(initialValue: SeerrStore())
-        _appModel = State(initialValue: AppModel())
+        _appModel = State(initialValue: AppModel(settingsManager: settingsManager))
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
         ))

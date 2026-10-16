@@ -36,6 +36,7 @@ struct PlayerWindowView: View {
                 queue: queue,
                 services: services,
                 shouldResumeFromOffset: presentation.shouldResumeFromOffset,
+                launchNotice: presentation.notice,
             )
         }
         if let context = presentation.liveTVContext, let services = presentation.mediaServices {
@@ -460,6 +461,19 @@ struct PlayerView: View {
                 Button("common.actions.done") { qualityNoticeMessage = nil }
             } message: {
                 Text(qualityNoticeMessage ?? "")
+            }
+            .alert(
+                Text(viewModel.launchNotice ?? ""),
+                isPresented: Binding(
+                    get: { viewModel.launchNotice != nil },
+                    set: {
+                        if !$0 {
+                            viewModel.launchNotice = nil
+                        }
+                    },
+                ),
+            ) {
+                Button("common.actions.done") { viewModel.launchNotice = nil }
             }
             .confirmationDialog("sharePlay.leave.title", isPresented: $isShowingSharePlayExitPrompt) {
                 Button("sharePlay.leave.action", role: .destructive) {
@@ -1867,6 +1881,7 @@ struct PlayerView: View {
             && !isShowingOfflineInterruption
             && !isShowingSubtitleSearchError
             && qualityNoticeMessage == nil
+            && viewModel.launchNotice == nil
             && !isShowingSharePlayExitPrompt
     }
 

@@ -64,6 +64,7 @@ final class AppModel: PlaybackPresenting {
     struct PlayerPresentation {
         let id = UUID()
         let shouldResumeFromOffset: Bool
+        let notice: String?
         let localMedia: MediaItem?
         let localPlaybackURL: URL?
         let localExternalSubtitles: [ExternalSubtitleTrack]
@@ -72,8 +73,9 @@ final class AppModel: PlaybackPresenting {
         let mediaServices: MediaServices?
         let liveTVContext: LiveTVLaunchContext?
 
-        init(queue: PlaybackQueue, services: MediaServices, shouldResumeFromOffset: Bool) {
+        init(queue: PlaybackQueue, services: MediaServices, shouldResumeFromOffset: Bool, notice: String?) {
             self.shouldResumeFromOffset = shouldResumeFromOffset
+            self.notice = notice
             localMedia = nil
             localPlaybackURL = nil
             localExternalSubtitles = []
@@ -90,6 +92,7 @@ final class AppModel: PlaybackPresenting {
             localOwner: MediaOwner?,
         ) {
             shouldResumeFromOffset = true
+            notice = nil
             self.localMedia = localMedia
             self.localPlaybackURL = localPlaybackURL
             self.localExternalSubtitles = localExternalSubtitles
@@ -101,6 +104,7 @@ final class AppModel: PlaybackPresenting {
 
         init(request: LocalPlaybackRequest) {
             shouldResumeFromOffset = request.resumes
+            notice = nil
             localMedia = request.media
             localPlaybackURL = request.url
             localExternalSubtitles = request.externalSubtitles
@@ -112,6 +116,7 @@ final class AppModel: PlaybackPresenting {
 
         init(liveTVContext: LiveTVLaunchContext, services: MediaServices) {
             shouldResumeFromOffset = false
+            notice = nil
             localMedia = nil
             localPlaybackURL = nil
             localExternalSubtitles = []
@@ -126,6 +131,15 @@ final class AppModel: PlaybackPresenting {
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
+    @ObservationIgnored private let settingsManager: SettingsManager
+
+    init(settingsManager: SettingsManager) {
+        self.settingsManager = settingsManager
+    }
+
+    var externalPlayer: ExternalPlayer? {
+        settingsManager.playback.resolvedExternalPlayer
+    }
 
     func pathBinding(for item: SidebarItem) -> Binding<NavigationPath> {
         Binding(
@@ -208,13 +222,19 @@ final class AppModel: PlaybackPresenting {
     func showPlayer(
         for queue: PlaybackQueue,
         services: MediaServices,
-        shouldResumeFromOffset: Bool = true,
+        shouldResumeFromOffset: Bool,
+        notice: String?,
     ) {
         playerPresentation = PlayerPresentation(
             queue: queue,
             services: services,
             shouldResumeFromOffset: shouldResumeFromOffset,
+            notice: notice,
         )
+    }
+
+    func openExternalPlayer(_ request: ExternalLaunchRequest) async -> Bool {
+        await ExternalPlayerApps.open(request)
     }
 
     func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices) {

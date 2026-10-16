@@ -119,6 +119,57 @@ struct AppSettingsTests {
         #expect(SettingsManager(userDefaults: defaults).playback.audioDelayMilliseconds == -350)
     }
 
+    @Test func `missing external player settings decode as the built-in player`() throws {
+        let settings = try decode(#"{"playback":{"showClock":true}}"#)
+
+        #expect(settings.playback.externalPlayer == nil)
+        #expect(settings.playback.customExternalPlayer == nil)
+        #expect(settings.playback.resolvedExternalPlayer == nil)
+        #expect(settings.playback.showClock)
+    }
+
+    @Test func `external player settings survive a round trip`() throws {
+        var settings = AppSettings()
+        settings.playback.externalPlayer = .known(.infuse)
+
+        var decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.playback.externalPlayer == .known(.infuse))
+
+        let custom = CustomExternalPlayer(name: "Mine", template: "mine://play?url={url}")
+        settings.playback.externalPlayer = .custom
+        settings.playback.customExternalPlayer = custom
+        decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+
+        #expect(decoded.playback.externalPlayer == .custom)
+        #expect(decoded.playback.customExternalPlayer == custom)
+        #expect(decoded.playback.resolvedExternalPlayer == .custom(custom))
+    }
+
+    @Test func `corrupt external player keeps other settings`() throws {
+        let settings = try decode(#"{"playback":{"externalPlayer":{"known":{"_0":"mpv"}},"showClock":true}}"#)
+
+        #expect(settings.playback.externalPlayer == nil)
+        #expect(settings.playback.showClock)
+    }
+
+    @MainActor
+    @Test func `custom player is kept after switching players`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let manager = SettingsManager(userDefaults: defaults)
+        let custom = CustomExternalPlayer(name: "Mine", template: "mine://play?url={url}")
+
+        manager.setCustomExternalPlayer(custom)
+        manager.setExternalPlayer(.known(.vlc))
+        manager.setExternalPlayer(nil)
+        let reloaded = SettingsManager(userDefaults: defaults)
+
+        #expect(reloaded.playback.externalPlayer == nil)
+        #expect(reloaded.playback.customExternalPlayer == custom)
+        reloaded.setExternalPlayer(.custom)
+        #expect(reloaded.playback.resolvedExternalPlayer == .custom(custom))
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

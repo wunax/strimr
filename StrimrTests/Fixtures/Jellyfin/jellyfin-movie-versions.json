@@ -1,0 +1,29 @@
+{
+  "Id": "movie-1",
+  "Name": "Example Movie",
+  "Type": "Movie",
+  "MediaSources": [
+    {
+      "Id": "source-1",
+      "Name": "Example Movie - 1080p",
+      "Path": "/media/movies/Example Movie (2021) - 1080p.mkv",
+      "Container": "mkv",
+      "Protocol": "File",
+      "SupportsDirectPlay": true,
+      "MediaStreams": [
+        { "Type": "Video", "Index": 0, "Codec": "h264", "Width": 1920, "Height": 1080 }
+      ]
+    },
+    {
+      "Id": "source-2",
+      "Name": "Example Movie - 2160p",
+      "Path": "/media/movies/Example Movie (2021) - 2160p.mp4",
+      "Container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "Protocol": "File",
+      "SupportsDirectPlay": true,
+      "MediaStreams": [
+        { "Type": "Video", "Index": 0, "Codec": "hevc", "Width": 3840, "Height": 2160 }
+      ]
+    }
+  ]
+}
