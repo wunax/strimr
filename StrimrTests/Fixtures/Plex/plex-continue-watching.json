@@ -37,6 +37,7 @@
             "title": "Pilot",
             "grandparentTitle": "Example Show",
             "grandparentGuid": "plex://show/5d7768000000000000000003",
+            "grandparentTheme": "/library/metadata/100/theme/1700000000",
             "parentIndex": 1,
             "index": 1,
             "viewOffset": 300000,

@@ -37,6 +37,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let parentThumbPath: String?
     let librarySectionID: String?
     let lastViewedAt: Date?
+    /// Theme music of the item or of its series.
+    let themePath: String?
     /// Optional so items persisted before external ids existed still decode.
     private let storedExternalIDs: ExternalIDs?
 
@@ -90,6 +92,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         librarySectionID: String? = nil,
         lastViewedAt: Date? = nil,
         externalIDs: ExternalIDs = ExternalIDs(),
+        themePath: String? = nil,
     ) {
         self.id = id
         self.identity = identity ?? Self.legacyIdentity(id: id, guid: guid)
@@ -127,6 +130,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.parentThumbPath = parentThumbPath
         self.librarySectionID = librarySectionID
         self.lastViewedAt = lastViewedAt
+        self.themePath = themePath
         storedExternalIDs = externalIDs.isEmpty ? nil : externalIDs
     }
 

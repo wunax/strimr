@@ -325,6 +325,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setThemeMusicVolume(_ volume: ThemeMusicVolume) {
+        settings.interface.themeMusicVolume = volume
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

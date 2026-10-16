@@ -79,6 +79,7 @@ extension MediaItem {
             librarySectionID: plexItem.librarySectionID.map(String.init),
             lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
             externalIDs: ExternalIDs(plexGuids: plexItem.guids?.map(\.id) ?? []),
+            themePath: plexItem.theme ?? plexItem.parentTheme ?? plexItem.grandparentTheme,
         )
     }
 }

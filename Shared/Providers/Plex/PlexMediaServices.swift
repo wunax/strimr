@@ -335,6 +335,10 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         artworkURL(path: path, width: width, height: height).map(ArtworkResource.url)
     }
 
+    func themeMusicURL(path: String) -> URL? {
+        try? MediaRepository(context: context).mediaURL(path: path)
+    }
+
     func details(for media: MediaItem) async throws -> MediaDetailContent {
         let metadataRepository = try MetadataRepository(context: context)
         let response = try await metadataRepository.getMetadata(

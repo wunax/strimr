@@ -33,6 +33,10 @@ final class CachedArtworkService: MediaArtworkService {
         nil
     }
 
+    func themeMusicURL(path: String) -> URL? {
+        base.themeMusicURL(path: path)
+    }
+
     func artwork(
         for media: MediaDisplayItem,
         kind: MediaImageViewModel.ArtworkKind,

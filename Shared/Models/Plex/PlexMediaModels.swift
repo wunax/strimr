@@ -764,6 +764,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let summary: String?
     let thumb: String?
     let art: String?
+    let theme: String?
     let year: Int?
     let viewOffset: Int?
     let lastViewedAt: Int?
@@ -810,6 +811,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let parentKey: String?
     let parentTitle: String?
     let parentThumb: String?
+    let parentTheme: String?
     let parentYear: Int?
     let parentIndex: Int?
 
@@ -823,6 +825,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let originalTitle: String?
     let grandparentThumb: String?
     let grandparentArt: String?
+    let grandparentTheme: String?
 
     let onDeck: PlexOnDeck?
 
@@ -840,15 +843,15 @@ nonisolated struct PlexItem: Codable, Equatable {
     let smart: Bool?
 
     private enum CodingKeys: String, CodingKey {
-        case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, summary, thumb, art, year,
-             viewOffset, lastViewedAt, viewCount
+        case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, summary, thumb, art, theme,
+             year, viewOffset, lastViewedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
         case contentRatingAge, tagline, slug, studio, rating, chapterSource, primaryExtraKey, ratingImage
         case index, leafCount, viewedLeafCount, childCount
         case parentRatingKey, parentGuid, parentSlug, parentStudio, parentKey, parentTitle, parentThumb, parentYear
-        case parentIndex
+        case parentIndex, parentTheme
         case grandparentRatingKey, grandparentGuid, grandparentSlug, titleSort, grandparentKey, grandparentTitle
-        case originalTitle, grandparentThumb, grandparentArt
+        case originalTitle, grandparentThumb, grandparentArt, grandparentTheme
         case ultraBlurColors = "UltraBlurColors"
         case images = "Image"
         case guids = "Guid"

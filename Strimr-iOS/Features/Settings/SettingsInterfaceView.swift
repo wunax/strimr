@@ -94,6 +94,22 @@ struct SettingsInterfaceView: View {
 
             Section {
                 Picker(
+                    "settings.interface.themeMusic",
+                    selection: Binding(
+                        get: { settingsManager.interface.themeMusicVolume },
+                        set: { settingsManager.setThemeMusicVolume($0) },
+                    ),
+                ) {
+                    ForEach(ThemeMusicVolume.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+            } footer: {
+                Text("settings.interface.themeMusic.footer")
+            }
+
+            Section {
+                Picker(
                     "settings.interface.libraries.defaultLayout",
                     selection: Binding(
                         get: { settingsManager.interface.libraryDefaultLayout },

@@ -162,6 +162,7 @@
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaFileInfoView.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
+				Features/MediaDetail/ThemeMusicPlayer.swift,
 				Features/PersonDetail/PersonDetailView.swift,
 				Features/PersonDetail/PersonDetailViewModel.swift,
 				Features/Player/Controls/AutomaticSkipFeedbackView.swift,

@@ -30,6 +30,7 @@ struct PlaybackLauncher {
         shouldResumeFromOffset: Bool = true,
         allowsExternalPlayer: Bool = true,
     ) async {
+        ThemeMusicPlayer.shared.silence()
         #if !os(tvOS)
             // Without the server, the downloaded copy is played instead of streaming.
             if !shuffle, OfflineCoordinator.shared.isUnreachable(services.identity) {

@@ -51,6 +51,35 @@ enum PosterSize: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum ThemeMusicVolume: String, Codable, CaseIterable, Hashable {
+    case off
+    case low
+    case medium
+    case high
+
+    var level: Float {
+        switch self {
+        case .off: 0
+        case .low: 0.15
+        case .medium: 0.35
+        case .high: 0.6
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .off:
+            String(localized: "settings.interface.themeMusic.off")
+        case .low:
+            String(localized: "settings.interface.themeMusic.low")
+        case .medium:
+            String(localized: "settings.interface.themeMusic.medium")
+        case .high:
+            String(localized: "settings.interface.themeMusic.high")
+        }
+    }
+}
+
 enum SubtitleTextColor: String, Codable, CaseIterable, Hashable {
     case white
     case yellow
@@ -284,6 +313,7 @@ struct InterfaceSettings: Codable, Equatable {
     var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
     var libraryDefaultLayout = LibraryDefaultLayout.automatic
     var posterSize = PosterSize.medium
+    var themeMusicVolume = ThemeMusicVolume.off
 
     init() {}
 
@@ -320,6 +350,7 @@ struct InterfaceSettings: Codable, Equatable {
             forKey: .libraryDefaultLayout,
         )) ?? .automatic
         posterSize = (try? container.decode(PosterSize.self, forKey: .posterSize)) ?? .medium
+        themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
     }
 }
 

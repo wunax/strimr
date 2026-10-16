@@ -10,6 +10,12 @@ struct AppSettingsTests {
         #expect(!settings.interface.displayPlaylists)
     }
 
+    @Test func `theme music is off unless chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.themeMusicVolume == .off)
+        #expect(try decode(#"{"interface":{"themeMusicVolume":"loud"}}"#).interface.themeMusicVolume == .off)
+        #expect(try decode(#"{"interface":{"themeMusicVolume":"medium"}}"#).interface.themeMusicVolume == .medium)
+    }
+
     @Test func `corrupt library browse preferences keep other settings`() throws {
         let settings = try decode(#"""
         {"interface":{"displayPlaylists":false,"libraryBrowseByKey":{"plex|server|account|1":{"plex":{"filters":42}}}}}

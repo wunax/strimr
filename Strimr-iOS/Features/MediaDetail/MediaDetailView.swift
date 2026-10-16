@@ -107,6 +107,7 @@ struct MediaDetailView: View {
             Task { await bindableViewModel.refreshSilently() }
         }
         .background(gradientBackground(for: bindableViewModel))
+        .themeMusic(path: bindableViewModel.media.mediaItem.themePath)
     }
 
     private func gradientBackground(for viewModel: MediaDetailViewModel) -> some View {
