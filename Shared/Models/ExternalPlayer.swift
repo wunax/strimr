@@ -56,7 +56,9 @@ nonisolated enum ExternalPlayerID: String, Codable, CaseIterable, Identifiable, 
         case (.iina, .macOS):
             .template("iina://weblink?url={url}")
         case (.nativePlayer, .tvOS):
-            .template("nativeplayer://play?url={url}&name={title}")
+            .template(
+                "nativeplayer://x-callback-url/play?url={url}&filename={title}&x-success={callback}&x-error={callback}",
+            )
         case (.iina, _), (.nativePlayer, _):
             nil
         }

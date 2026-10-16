@@ -52,7 +52,7 @@ struct ExternalPlayerTests {
         #expect(try request ==
             .url(
                 #require(URL(
-                    string: "nativeplayer://play?url=\(encodedURL)&name=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot",
+                    string: "nativeplayer://x-callback-url/play?url=\(encodedURL)&filename=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot&x-success=\(encodedCallback)&x-error=\(encodedCallback)",
                 )),
             ))
     }
