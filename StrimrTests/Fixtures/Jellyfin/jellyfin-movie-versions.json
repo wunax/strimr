@@ -10,8 +10,13 @@
       "Container": "mkv",
       "Protocol": "File",
       "SupportsDirectPlay": true,
+      "DefaultSubtitleStreamIndex": 3,
       "MediaStreams": [
-        { "Type": "Video", "Index": 0, "Codec": "h264", "Width": 1920, "Height": 1080 }
+        { "Type": "Video", "Index": 0, "Codec": "h264", "Width": 1920, "Height": 1080 },
+        { "Type": "Subtitle", "Index": 1, "Codec": "subrip", "Language": "eng", "IsExternal": false },
+        { "Type": "Subtitle", "Index": 2, "Codec": "subrip", "Language": "eng", "IsExternal": true },
+        { "Type": "Subtitle", "Index": 3, "Codec": "ass", "Language": "fre", "IsExternal": true },
+        { "Type": "Subtitle", "Index": 4, "Codec": "PGSSUB", "Language": "ger", "IsExternal": true }
       ]
     },
     {

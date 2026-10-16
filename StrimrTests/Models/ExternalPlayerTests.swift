@@ -62,6 +62,22 @@ struct ExternalPlayerTests {
             ))
     }
 
+    @Test func `native player passes each subtitle on tvOS`() throws {
+        var target = target
+        target.subtitles = try [
+            #require(URL(string: "http://server.example.com/s/1.srt")),
+            #require(URL(string: "http://server.example.com/s/2.srt")),
+        ]
+        let request = ExternalPlayer.known(.nativePlayer).launchRequest(for: target, platform: .tvOS)
+
+        #expect(try request ==
+            .url(
+                #require(URL(
+                    string: "nativeplayer://x-callback-url/play?url=\(encodedURL)&filename=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot&position=0&sub=http%3A%2F%2Fserver.example.com%2Fs%2F1.srt&sub=http%3A%2F%2Fserver.example.com%2Fs%2F2.srt&x-success=\(encodedCallback)&x-error=\(encodedCallback)",
+                )),
+            ))
+    }
+
     @Test func `unsupported players have no launch request`() {
         #expect(ExternalPlayer.known(.iina).launchRequest(for: target, platform: .iOS) == nil)
         #expect(ExternalPlayer.known(.iina).launchRequest(for: target, platform: .tvOS) == nil)

@@ -50,6 +50,8 @@ final class CustomExternalPlayerFormModel {
                 return String(localized: "settings.playback.externalPlayer.custom.error.missingURL")
             case let .unknownVariable(name):
                 return String(localized: "settings.playback.externalPlayer.custom.error.unknownVariable \(name)")
+            case let .misplacedListVariable(name):
+                return String(localized: "settings.playback.externalPlayer.custom.error.misplacedListVariable \(name)")
             case .invalidURL:
                 return String(localized: "settings.playback.externalPlayer.custom.error.invalidURL")
             }

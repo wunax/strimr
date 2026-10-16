@@ -809,7 +809,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             baseURL: access.baseURL,
             token: access.token,
         )
-        return ExternalPlaybackTarget(url: url, media: media)
+        var target = ExternalPlaybackTarget(url: url, media: media)
+        target.subtitles = try Self.externalSubtitleURLs(
+            item: item,
+            version: version,
+            baseURL: access.baseURL,
+            token: access.token,
+        )
+        return target
     }
 
     /// The container extension tells the player the file format.
@@ -833,6 +840,30 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 URLQueryItem(name: "api_key", value: token),
             ],
         )
+    }
+
+    /// External text subtitles converted to SRT by the server: the player reads the embedded tracks from the file
+    /// itself. The source default comes first.
+    static func externalSubtitleURLs(
+        item: JellyfinItem,
+        version: MediaVersionRequest,
+        baseURL: URL,
+        token: String,
+    ) throws -> [URL] {
+        let sources = item.mediaSources ?? []
+        guard let source = source(in: sources, versions: sources.map(mapFileInfoVersion), request: version) else {
+            return []
+        }
+        let external = (source.mediaStreams ?? []).filter { $0.isExternal == true && $0.isDownloadableTextSubtitle }
+        let ordered = external.filter { $0.index == source.defaultSubtitleStreamIndex }
+            + external.filter { $0.index != source.defaultSubtitleStreamIndex }
+        return try ordered.map { stream in
+            try JellyfinAPIContext.makeURL(
+                baseURL: baseURL,
+                path: ["Videos", item.id, source.id, "Subtitles", String(stream.index), "0", "Stream.srt"],
+                query: [URLQueryItem(name: "api_key", value: token)],
+            )
+        }
     }
 
     private static func defaultVersion(_ versions: [MediaFileVersion]) -> MediaFileVersion? {

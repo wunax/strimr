@@ -22,7 +22,14 @@
                 "file": "/media/movies/Example Movie (2021) - 1080p.mkv",
                 "container": "mkv",
                 "exists": true,
-                "accessible": true
+                "accessible": true,
+                "Stream": [
+                  { "id": 401, "streamType": 1, "codec": "h264", "displayTitle": "1080p (H.264)" },
+                  { "id": 402, "streamType": 3, "codec": "srt", "displayTitle": "English (SRT)", "language": "English" },
+                  { "id": 403, "streamType": 3, "codec": "srt", "displayTitle": "English (SRT External)", "key": "/library/streams/403", "language": "English" },
+                  { "id": 404, "streamType": 3, "codec": "srt", "displayTitle": "French (SRT External)", "key": "/library/streams/404", "language": "French", "selected": true },
+                  { "id": 405, "streamType": 3, "codec": "ass", "displayTitle": "German (ASS External)", "key": "/library/streams/405", "language": "German" }
+                ]
               }
             ]
           },

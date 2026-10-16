@@ -6,13 +6,19 @@ struct ExternalPlayerTemplateTests {
     private let streamURL =
         URL(string: "https://plex.example.com:32400/library/parts/1/file.mkv?X-Plex-Token=secret+token")!
 
-    private func target(url: URL, title: String = "", startPosition: TimeInterval = 0) -> ExternalPlaybackTarget {
+    private func target(
+        url: URL,
+        title: String = "",
+        startPosition: TimeInterval = 0,
+        subtitles: [URL] = [],
+    ) -> ExternalPlaybackTarget {
         ExternalPlaybackTarget(
             url: url,
             title: title,
             item: MediaIdentity(server: ServerIdentity(provider: .plex, id: "server-1"), itemID: "item-1"),
             duration: 3600,
             startPosition: startPosition,
+            subtitles: subtitles,
         )
     }
 
@@ -57,6 +63,51 @@ struct ExternalPlayerTemplateTests {
         )
 
         #expect(url.absoluteString == "my-player+x://open/now?mode=a%20b&u=http%3A%2F%2Fh%2Fv")
+    }
+
+    @Test func `repeats a list parameter for each subtitle`() throws {
+        let url = try ExternalPlayerTemplate.render(
+            "myplayer://play?url={url}&sub={subtitles}&name={title}",
+            target: target(
+                url: #require(URL(string: "http://h/v")),
+                title: "T",
+                subtitles: [
+                    #require(URL(string: "http://h/s/1.srt?token=a&b")),
+                    #require(URL(string: "http://h/s/2.srt")),
+                ],
+            ),
+        )
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+
+        #expect(url.absoluteString ==
+            "myplayer://play?url=http%3A%2F%2Fh%2Fv&sub=http%3A%2F%2Fh%2Fs%2F1.srt%3Ftoken%3Da%26b&sub=http%3A%2F%2Fh%2Fs%2F2.srt&name=T")
+        #expect(components.queryItems?.filter { $0.name == "sub" }.map(\.value) == [
+            "http://h/s/1.srt?token=a&b",
+            "http://h/s/2.srt",
+        ])
+    }
+
+    @Test func `drops a list parameter without subtitles`() throws {
+        let withOthers = try ExternalPlayerTemplate.render(
+            "myplayer://play?url={url}&sub={subtitles}&name={title}",
+            target: target(url: #require(URL(string: "http://h/v")), title: "T"),
+        )
+        let alone = try ExternalPlayerTemplate.render(
+            "myplayer://play/{url}?sub={subtitles}",
+            target: target(url: #require(URL(string: "http://h/v"))),
+        )
+
+        #expect(withOthers.absoluteString == "myplayer://play?url=http%3A%2F%2Fh%2Fv&name=T")
+        #expect(alone.absoluteString == "myplayer://play/http%3A%2F%2Fh%2Fv")
+    }
+
+    @Test func `rejects a list variable that is not a whole parameter value`() {
+        #expect(throws: ExternalPlayerTemplateError.misplacedListVariable("subtitles")) {
+            try ExternalPlayerTemplate.validate("myplayer://play?url={url}&sub=x{subtitles}")
+        }
+        #expect(throws: ExternalPlayerTemplateError.misplacedListVariable("subtitles")) {
+            try ExternalPlayerTemplate.validate("myplayer://{subtitles}?url={url}")
+        }
     }
 
     @Test func `requires the url variable`() {

@@ -811,13 +811,21 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
         guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidResponse }
         let snapshot = try context.serverAccessSnapshot()
+        let plexMedia = item.media ?? []
         guard let url = Self.externalPlaybackURL(
-            in: item.media ?? [],
+            in: plexMedia,
             version: version,
             baseURL: snapshot.baseURL,
             token: snapshot.authToken,
         ) else { throw ExternalPlaybackError.noPlayableSource }
-        return ExternalPlaybackTarget(url: url, media: media)
+        var target = ExternalPlaybackTarget(url: url, media: media)
+        target.subtitles = Self.externalSubtitleURLs(
+            in: plexMedia,
+            version: version,
+            baseURL: snapshot.baseURL,
+            token: snapshot.authToken,
+        )
+        return target
     }
 
     static func externalPlaybackURL(
@@ -830,6 +838,25 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
               selected.part.isAvailable
         else { return nil }
         return MediaRepository.mediaURL(path: selected.part.key, baseURL: baseURL, token: token)
+    }
+
+    /// SRT sidecar files only: the player reads the embedded tracks from the file itself. The server selection
+    /// comes first.
+    static func externalSubtitleURLs(
+        in plexMedia: [PlexMedia],
+        version: MediaVersionRequest,
+        baseURL: URL,
+        token: String,
+    ) -> [URL] {
+        guard let selected = selection(in: plexMedia, versions: plexMedia.map(mapFileInfoVersion), request: version)
+        else { return [] }
+        let sidecars = (selected.part.stream ?? []).filter { stream in
+            stream.streamType == .subtitle && stream.key != nil && stream.codec.lowercased() == "srt"
+        }
+        let ordered = sidecars.filter { $0.selected == true } + sidecars.filter { $0.selected != true }
+        return ordered.compactMap { stream in
+            stream.key.flatMap { MediaRepository.mediaURL(path: $0, baseURL: baseURL, token: token) }
+        }
     }
 
     func prepareDownload(

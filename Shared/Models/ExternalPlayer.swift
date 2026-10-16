@@ -57,7 +57,7 @@ nonisolated enum ExternalPlayerID: String, Codable, CaseIterable, Identifiable, 
             .template("iina://weblink?url={url}")
         case (.nativePlayer, .tvOS):
             .template(
-                "nativeplayer://x-callback-url/play?url={url}&filename={title}&position={position}&x-success={callback}&x-error={callback}",
+                "nativeplayer://x-callback-url/play?url={url}&filename={title}&position={position}&sub={subtitles}&x-success={callback}&x-error={callback}",
             )
         case (.iina, _), (.nativePlayer, _):
             nil
@@ -94,6 +94,8 @@ nonisolated struct ExternalPlaybackTarget: Equatable, Sendable {
     let item: MediaIdentity
     let duration: TimeInterval?
     var startPosition: TimeInterval = 0
+    /// SRT files beside the video, best match first.
+    var subtitles: [URL] = []
 }
 
 extension ExternalPlaybackTarget {

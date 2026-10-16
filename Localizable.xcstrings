@@ -17405,6 +17405,28 @@
         }
       }
     },
+    "settings.playback.externalPlayer.custom.error.misplacedListVariable %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{%1$@} must be the whole value of a parameter, such as sub={%1$@}."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{%1$@} doit être la valeur entière d'un paramètre, comme sub={%1$@}."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{%1$@} 必须是参数的完整值，例如 sub={%1$@}。"
+          }
+        }
+      }
+    },
     "settings.playback.externalPlayer.custom.error.missingURL" : {
       "localizations" : {
         "en" : {
@@ -17454,19 +17476,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use {url} for the video link (required), {title} for its title and {callback} to come back to Strimr. Example: myplayer://play?url={url}"
+            "value" : "Use {url} for the video link (required), {title} for its title, {position} for the start position in seconds and {callback} to come back to Strimr. sub={subtitles} repeats the parameter for each subtitle file. Example: myplayer://play?url={url}"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilisez {url} pour le lien de la vidéo (obligatoire), {title} pour son titre et {callback} pour revenir dans Strimr. Exemple : myplayer://play?url={url}"
+            "value" : "Utilisez {url} pour le lien de la vidéo (obligatoire), {title} pour son titre, {position} pour la position de départ en secondes et {callback} pour revenir dans Strimr. sub={subtitles} répète le paramètre pour chaque fichier de sous-titres. Exemple : myplayer://play?url={url}"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 {url} 表示视频链接（必填），{title} 表示标题，{callback} 用于返回 Strimr。示例：myplayer://play?url={url}"
+            "value" : "使用 {url} 表示视频链接（必填），{title} 表示标题，{position} 表示起始位置（秒），{callback} 用于返回 Strimr。sub={subtitles} 会为每个字幕文件重复该参数。示例：myplayer://play?url={url}"
           }
         }
       }
