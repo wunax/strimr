@@ -8,13 +8,17 @@ struct JellyfinExternalPlaybackTests {
     @Test func `streams the default source statically with the token`() throws {
         let url = try externalURL(version: .automatic)
 
-        #expect(url.absoluteString == "https://jellyfin.example.com/jellyfin/Videos/movie-1/stream.mkv?Static=true&MediaSourceId=source-1&api_key=test-token")
+        #expect(url
+            .absoluteString ==
+            "https://jellyfin.example.com/jellyfin/Videos/movie-1/stream.mkv?Static=true&MediaSourceId=source-1&api_key=test-token")
     }
 
     @Test func `streams the requested source with its container extension`() throws {
         let url = try externalURL(version: .explicit(versionID: "source-2"))
 
-        #expect(url.absoluteString == "https://jellyfin.example.com/jellyfin/Videos/movie-1/stream.mov?Static=true&MediaSourceId=source-2&api_key=test-token")
+        #expect(url
+            .absoluteString ==
+            "https://jellyfin.example.com/jellyfin/Videos/movie-1/stream.mov?Static=true&MediaSourceId=source-2&api_key=test-token")
     }
 
     @Test func `fails without a media source`() throws {

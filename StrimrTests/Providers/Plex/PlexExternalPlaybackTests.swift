@@ -8,13 +8,17 @@ struct PlexExternalPlaybackTests {
     @Test func `uses the part of the default version with the token in the query`() throws {
         let url = try externalURL(itemIndex: 0, version: .automatic)
 
-        #expect(url?.absoluteString == "https://plex.example.com:32400/library/parts/301/1700000000/file.mkv?X-Plex-Token=test-token")
+        #expect(url?
+            .absoluteString ==
+            "https://plex.example.com:32400/library/parts/301/1700000000/file.mkv?X-Plex-Token=test-token")
     }
 
     @Test func `uses the part of the requested version`() throws {
         let url = try externalURL(itemIndex: 0, version: .explicit(versionID: "202"))
 
-        #expect(url?.absoluteString == "https://plex.example.com:32400/library/parts/302/1700000001/file.mp4?X-Plex-Token=test-token")
+        #expect(url?
+            .absoluteString ==
+            "https://plex.example.com:32400/library/parts/302/1700000001/file.mp4?X-Plex-Token=test-token")
     }
 
     @Test func `has no URL when the file is missing`() throws {

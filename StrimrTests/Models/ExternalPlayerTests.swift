@@ -11,17 +11,27 @@ struct ExternalPlayerTests {
     private let encodedCallback = "strimr%3A%2F%2Fx-callback-url%2FplaybackDidFinish"
 
     @Test(arguments: [Platform.iOS, .macOS, .tvOS])
-    func `infuse uses its x-callback URL everywhere`(platform: Platform) {
+    func `infuse uses its x-callback URL everywhere`(platform: Platform) throws {
         let request = ExternalPlayer.known(.infuse).launchRequest(for: target, platform: platform)
 
-        #expect(request == .url(URL(string: "infuse://x-callback-url/play?url=\(encodedURL)&x-success=\(encodedCallback)&x-error=\(encodedCallback)")!))
+        #expect(try request ==
+            .url(
+                #require(URL(
+                    string: "infuse://x-callback-url/play?url=\(encodedURL)&x-success=\(encodedCallback)&x-error=\(encodedCallback)",
+                )),
+            ))
     }
 
     @Test(arguments: [Platform.iOS, .tvOS])
-    func `vlc uses its x-callback URL on iOS and tvOS`(platform: Platform) {
+    func `vlc uses its x-callback URL on iOS and tvOS`(platform: Platform) throws {
         let request = ExternalPlayer.known(.vlc).launchRequest(for: target, platform: platform)
 
-        #expect(request == .url(URL(string: "vlc-x-callback://x-callback-url/stream?url=\(encodedURL)&x-success=\(encodedCallback)")!))
+        #expect(try request ==
+            .url(
+                #require(URL(
+                    string: "vlc-x-callback://x-callback-url/stream?url=\(encodedURL)&x-success=\(encodedCallback)",
+                )),
+            ))
     }
 
     @Test func `vlc opens the stream in the app on macOS`() {
@@ -30,16 +40,21 @@ struct ExternalPlayerTests {
         #expect(request == .open(target.url, bundleID: "org.videolan.vlc"))
     }
 
-    @Test func `iina uses its weblink URL on macOS`() {
+    @Test func `iina uses its weblink URL on macOS`() throws {
         let request = ExternalPlayer.known(.iina).launchRequest(for: target, platform: .macOS)
 
-        #expect(request == .url(URL(string: "iina://weblink?url=\(encodedURL)")!))
+        #expect(try request == .url(#require(URL(string: "iina://weblink?url=\(encodedURL)"))))
     }
 
-    @Test func `native player passes the title on tvOS`() {
+    @Test func `native player passes the title on tvOS`() throws {
         let request = ExternalPlayer.known(.nativePlayer).launchRequest(for: target, platform: .tvOS)
 
-        #expect(request == .url(URL(string: "nativeplayer://play?url=\(encodedURL)&name=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot")!))
+        #expect(try request ==
+            .url(
+                #require(URL(
+                    string: "nativeplayer://play?url=\(encodedURL)&name=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot",
+                )),
+            ))
     }
 
     @Test func `unsupported players have no launch request`() {
@@ -60,10 +75,17 @@ struct ExternalPlayerTests {
     }
 
     @Test(arguments: [Platform.iOS, .macOS, .tvOS])
-    func `custom player renders its template`(platform: Platform) {
-        let player = ExternalPlayer.custom(CustomExternalPlayer(name: "Mine", template: "mine://play?u={url}&t={title}"))
+    func `custom player renders its template`(platform: Platform) throws {
+        let player = ExternalPlayer.custom(CustomExternalPlayer(
+            name: "Mine",
+            template: "mine://play?u={url}&t={title}",
+        ))
 
-        #expect(player.launchRequest(for: target, platform: platform) == .url(URL(string: "mine://play?u=\(encodedURL)&t=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot")!))
+        #expect(try player
+            .launchRequest(for: target, platform: platform) ==
+            .url(
+                #require(URL(string: "mine://play?u=\(encodedURL)&t=Show%20%E2%80%94%20S01E02%20%E2%80%94%20Pilot")),
+            ))
     }
 
     @Test func `invalid custom player has no launch request`() {
@@ -79,8 +101,10 @@ struct ExternalPlayerTests {
         #expect(ExternalPlayer(selection: .known(.vlc), custom: valid) == .known(.vlc))
         #expect(ExternalPlayer(selection: .custom, custom: valid) == .custom(valid))
         #expect(ExternalPlayer(selection: .custom, custom: nil) == nil)
-        #expect(ExternalPlayer(selection: .custom, custom: CustomExternalPlayer(name: "Mine", template: "mine://")) == nil)
-        #expect(ExternalPlayer(selection: .custom, custom: CustomExternalPlayer(name: " ", template: valid.template)) == nil)
+        #expect(ExternalPlayer(selection: .custom, custom: CustomExternalPlayer(name: "Mine", template: "mine://")) ==
+            nil)
+        #expect(ExternalPlayer(selection: .custom, custom: CustomExternalPlayer(name: " ", template: valid.template)) ==
+            nil)
     }
 
     @Test func `episode title includes the series and episode number`() {

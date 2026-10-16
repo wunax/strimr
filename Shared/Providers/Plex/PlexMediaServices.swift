@@ -1167,7 +1167,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             audioCodec: media.audioCodec,
             audioProfile: media.audioProfile,
             audioChannels: media.audioChannels,
-            parts: media.parts.map(Self.mapFileInfoPart),
+            parts: media.parts.map(mapFileInfoPart),
             attachments: [],
             isAvailable: media.deletedAt == nil && media.parts.contains(where: \.isAvailable),
             isOptimized: media.proxyType == 42,
@@ -1184,7 +1184,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             duration: part.duration.map { TimeInterval($0) / 1000 },
             exists: part.exists,
             accessible: part.accessible,
-            streams: (part.stream ?? []).map(Self.mapFileInfoStream),
+            streams: (part.stream ?? []).map(mapFileInfoStream),
         )
     }
 
