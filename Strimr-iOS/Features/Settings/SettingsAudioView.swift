@@ -18,6 +18,15 @@ struct SettingsAudioView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if viewModel.isSpatialAudioAvailable {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.spatialAudio", isOn: viewModel.spatialAudioBinding)
+                        Text("settings.playback.spatialAudio.footer")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle(
                         "settings.playback.rememberTrackSelections",

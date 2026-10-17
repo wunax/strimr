@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 import Observation
 
@@ -54,6 +55,11 @@ final class SettingsManager {
 
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
+        persist()
+    }
+
+    func setSpatialAudioLayout(_ layout: SpatialSpeakerLayout?) {
+        settings.playback.spatialAudioLayout = layout
         persist()
     }
 

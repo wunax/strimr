@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 
 enum SpoilerProtectionLevel: String, Codable, CaseIterable, Hashable {
@@ -174,6 +175,8 @@ struct PlaybackSettings: Codable, Equatable {
     var autoSkipIntros = false
     var autoSkipCredits = false
     var losslessAudio = false
+    /// Nil keeps TrueHD Atmos and DTS:X on the channel bridge.
+    var spatialAudioLayout: SpatialSpeakerLayout?
     var rememberTrackSelections = true
     var showChaptersOnTimeline = true
     var showEndsAtTime = true
@@ -211,6 +214,10 @@ struct PlaybackSettings: Codable, Equatable {
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
+        spatialAudioLayout = try? container.decodeIfPresent(
+            SpatialSpeakerLayout.self,
+            forKey: .spatialAudioLayout,
+        )
         rememberTrackSelections = try container.decodeIfPresent(
             Bool.self,
             forKey: .rememberTrackSelections,

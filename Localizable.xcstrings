@@ -18351,6 +18351,50 @@
         }
       }
     },
+    "settings.playback.spatialAudio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atmos & DTS:X spatial audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio spatial Atmos et DTS:X"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atmos 与 DTS:X 空间音频"
+          }
+        }
+      }
+    },
+    "settings.playback.spatialAudio.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keeps the height channels and objects of TrueHD Atmos and DTS:X tracks by converting them to Apple spatial audio, sent to Atmos receivers as Dolby Atmos. The conversion is lossy and replaces lossless audio for these tracks only."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserve les canaux de hauteur et les objets des pistes TrueHD Atmos et DTS:X en les convertissant en audio spatial Apple, transmis aux amplis compatibles en Dolby Atmos. La conversion est avec perte et remplace l’audio sans perte pour ces pistes uniquement."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 TrueHD Atmos 和 DTS:X 音轨转换为 Apple 空间音频，保留其高度声道和对象，并以杜比全景声输出到兼容的接收器。此转换为有损转换，仅替代这些音轨的无损音频。"
+          }
+        }
+      }
+    },
     "settings.playback.subtitleFontSize" : {
       "localizations" : {
         "en" : {

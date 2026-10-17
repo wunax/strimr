@@ -1,3 +1,4 @@
+import AetherEngine
 import Observation
 import SwiftUI
 
@@ -54,6 +55,20 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },
             set: { self.settingsManager.setLosslessAudio($0) },
+        )
+    }
+
+    var isSpatialAudioAvailable: Bool {
+        guard #available(iOS 26.0, tvOS 26.0, macOS 26.0, *) else { return false }
+        return AetherEngine.OptionalComponent.trueHDObjectAudio.isBuiltIn
+            || AetherEngine.OptionalComponent.dtsxObjectAudio.isBuiltIn
+    }
+
+    /// The widest bed loses no object position; the receiver folds it down to its own speakers.
+    var spatialAudioBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.spatialAudioLayout != nil },
+            set: { self.settingsManager.setSpatialAudioLayout($0 ? .l916 : nil) },
         )
     }
 
