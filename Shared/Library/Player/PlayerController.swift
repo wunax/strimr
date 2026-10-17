@@ -147,6 +147,7 @@ final class PlayerController {
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
+        spatialAudioLayout: SpatialSpeakerLayout?,
         styledASSSubtitles: Bool,
         mediaIdentifier: String,
         providerStreamIDsByFFIndex: [Int: Int],
@@ -203,6 +204,7 @@ final class PlayerController {
                     options: LoadOptions(
                         httpHeaders: httpHeaders,
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
+                        objectAudioRendering: spatialAudioLayout.map { .apac($0) } ?? .off,
                         isLive: isLive,
                         dvrWindowSeconds: dvrWindowSeconds,
                         liveJoinProfile: .fastZap,
