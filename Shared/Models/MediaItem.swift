@@ -217,8 +217,10 @@ struct MediaItem: Identifiable, Hashable, Codable {
         grandparentTitle ?? parentTitle ?? title
     }
 
+    /// Only modern-agent guids (`plex://movie/<id>`) map to a Plex Discover ID; legacy agent and local guids do not.
     var plexGuidID: String? {
-        guid.split(separator: "/").last.map(String.init)
+        guard guid.hasPrefix("plex://") else { return nil }
+        return guid.split(separator: "/").last.map(String.init)
     }
 
     var preferredThumbPath: String? {
