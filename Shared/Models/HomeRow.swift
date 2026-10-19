@@ -60,6 +60,19 @@ struct HomeRow: Identifiable, Hashable {
         }
     }
 
+    /// Plex hub ids read `<context>.<sectionID>[.<variant>]`, e.g. `movie.genre.1.7`: the variant (a genre, an actor)
+    /// is picked by the server and changes over time, so it is dropped.
+    static func stablePlexHubID(_ hubID: String) -> String {
+        let components = hubID.split(separator: ".", omittingEmptySubsequences: false)
+        guard let sectionIndex = components.firstIndex(where: { Int($0) != nil }) else { return hubID }
+        return components[...sectionIndex].joined(separator: ".")
+    }
+
+    /// Library section of a Plex hub id, `nil` for hubs that span libraries.
+    static func plexSectionID(fromHubID hubID: String) -> String? {
+        hubID.split(separator: ".").first { Int($0) != nil }.map(String.init)
+    }
+
     static func continueWatching(server: ServerIdentity, hub: Hub) -> HomeRow {
         HomeRow(
             id: ["home", server.provider.rawValue, server.id, "continueWatching"].joined(separator: ":"),
@@ -79,9 +92,12 @@ struct HomeRow: Identifiable, Hashable {
     }
 
     static func providerHub(server: ServerIdentity, hub: Hub) -> HomeRow {
-        let route = routePath(hub.key)
-        let hubRoute = hub.hubKey.map(routePath) ?? ""
-        let sourceID = [hub.id, hubRoute, route].joined(separator: ":")
+        let sourceID: String = if server.provider == .plex {
+            // A Plex hubKey lists the hub's items, so it changes whenever media is added.
+            stablePlexHubID(hub.id)
+        } else {
+            [hub.id, hub.hubKey.map(routePath) ?? "", routePath(hub.key)].joined(separator: ":")
+        }
         return HomeRow(
             id: ["home", server.provider.rawValue, server.id, "hub", sourceID].joined(separator: ":"),
             kind: .hub,

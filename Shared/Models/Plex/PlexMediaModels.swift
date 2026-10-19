@@ -198,12 +198,13 @@ nonisolated struct PlexHub: Codable, Equatable {
     let key: String
     let title: String
     let hubIdentifier: String
+    let type: String?
     let size: Int
     let more: Bool?
     let metadata: [PlexItem]?
 
     private enum CodingKeys: String, CodingKey {
-        case hubKey, key, title, hubIdentifier, size, more
+        case hubKey, key, title, hubIdentifier, type, size, more
         case metadata = "Metadata"
     }
 }
@@ -215,6 +216,7 @@ nonisolated extension PlexHub {
         key = try container.decode(String.self, forKey: .key)
         title = try container.decode(String.self, forKey: .title)
         hubIdentifier = try container.decode(String.self, forKey: .hubIdentifier)
+        type = container.decodePlexStringIfPresent(forKey: .type)
         size = try container.decode(Int.self, forKey: .size)
         more = try container.decodeIfPresent(Bool.self, forKey: .more)
         metadata = try container.decodeLossyArrayIfPresent(PlexItem.self, forKey: .metadata)

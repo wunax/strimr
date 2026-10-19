@@ -51,7 +51,7 @@ enum HomeAggregation {
         return rows
     }
 
-    /// Library of a "recently added" row: Jellyfin names its hubs after the library, Plex hubs point to their section.
+    /// Library a hub row belongs to: Jellyfin names its hubs after the library, Plex hubs point to their section.
     static func libraryIdentity(of row: HomeRow) -> LibraryIdentity? {
         guard let server = row.hub.server ?? HomeRow.server(fromRowID: row.id) else { return nil }
         let jellyfinPrefix = "jellyfin.latest."
@@ -61,6 +61,9 @@ enum HomeAggregation {
         if let sectionID = URLComponents(string: row.hub.key)?.queryItems?
             .first(where: { $0.name == "sectionID" || $0.name == "contentDirectoryID" })?.value
         {
+            return LibraryIdentity(server: server, libraryID: sectionID)
+        }
+        if server.provider == .plex, let sectionID = HomeRow.plexSectionID(fromHubID: row.hub.id) {
             return LibraryIdentity(server: server, libraryID: sectionID)
         }
         if let sectionID = row.items.lazy.compactMap({ $0.playableItem?.librarySectionID }).first {

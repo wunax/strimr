@@ -162,11 +162,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         if let continueHub, continueHub.hasItems {
             rows.append(.continueWatching(server: server, hub: continueHub))
         }
+        var rowIDs = Set<String>()
         rows.append(contentsOf: promoted
-            .filter { $0.hubIdentifier.lowercased().contains("recentlyadded") && $0.size > 0 }
+            .filter { $0.type != "playlist" && $0.size > 0 }
             .map { Hub(plexHub: $0, server: server) }
             .filter(\.hasItems)
-            .map { HomeRow.providerHub(server: server, hub: $0) })
+            .map { HomeRow.providerHub(server: server, hub: $0) }
+            .filter { rowIDs.insert($0.id).inserted })
         return HomeContent(rows: rows)
     }
 
