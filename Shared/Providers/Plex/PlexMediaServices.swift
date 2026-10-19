@@ -798,12 +798,18 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             tracks: tracks,
             externalSubtitles: subtitles,
             chapters: chapters,
-            skipSegments: (item.markers ?? []).map {
-                SkipSegment(
-                    id: String($0.id),
-                    kind: $0.isIntro ? .intro : .credits,
-                    startTime: $0.startTime,
-                    endTime: $0.endTime,
+            skipSegments: (item.markers ?? []).compactMap { marker in
+                let kind: SkipSegment.Kind
+                switch marker.type {
+                case .intro: kind = .intro
+                case .credits: kind = .credits
+                case .commercial, .unknown: return nil
+                }
+                return SkipSegment(
+                    id: String(marker.id),
+                    kind: kind,
+                    startTime: marker.startTime,
+                    endTime: marker.endTime,
                 )
             },
             scrubThumbnailSource: PlexBIFSource(partID: part.id, context: context)

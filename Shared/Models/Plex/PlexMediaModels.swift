@@ -345,6 +345,14 @@ nonisolated struct PlexMarkerAttributes: Codable, Equatable {
 nonisolated enum PlexMarkerType: String, Codable {
     case intro
     case credits
+    /// Added by the Plex DVR commercial detection on recordings.
+    case commercial
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: value) ?? .unknown
+    }
 }
 
 nonisolated struct PlexMarker: Codable, Equatable {
