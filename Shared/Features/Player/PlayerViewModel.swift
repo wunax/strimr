@@ -66,7 +66,7 @@ final class PlayerViewModel {
     var chapters: [MediaChapter] = []
 
     var activeSkipMarker: SkipSegment? {
-        activeMarker(where: \.isIntro) ?? activeMarker(where: \.isCredits)
+        activeMarker(where: \.isIntro) ?? activeMarker(where: \.isCommercial) ?? activeMarker(where: \.isCredits)
     }
 
     var hasNavigableChapters: Bool {
@@ -766,6 +766,7 @@ final class PlayerViewModel {
     func automaticSkipMarker(
         autoSkipIntros: Bool,
         autoSkipCredits: Bool,
+        autoSkipCommercials: Bool,
     ) -> SkipSegment? {
         if let automaticSkipMarkerInFlight {
             guard !automaticSkipMarkerInFlight.contains(time: position) else { return nil }
@@ -773,8 +774,12 @@ final class PlayerViewModel {
         }
 
         guard let marker = markers.first(where: {
-            $0.contains(time: position)
-                && (($0.isIntro && autoSkipIntros) || ($0.isCredits && autoSkipCredits))
+            guard $0.contains(time: position) else { return false }
+            return switch $0.kind {
+            case .intro: autoSkipIntros
+            case .credits: autoSkipCredits
+            case .commercial: autoSkipCommercials
+            }
         }) else { return nil }
 
         automaticSkipMarkerInFlight = marker

@@ -385,6 +385,17 @@ nonisolated struct PlexMarker: Codable, Equatable {
         return false
     }
 
+    var skipSegment: SkipSegment? {
+        let kind: SkipSegment.Kind
+        switch type {
+        case .intro: kind = .intro
+        case .credits: kind = .credits
+        case .commercial: kind = .commercial
+        case .unknown: return nil
+        }
+        return SkipSegment(id: String(id), kind: kind, startTime: startTime, endTime: endTime)
+    }
+
     func contains(time: Double) -> Bool {
         time >= startTime && time <= endTime
     }

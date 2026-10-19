@@ -11901,6 +11901,50 @@
         }
       }
     },
+    "player.skip.commercial" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip commercial"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer la pub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过广告"
+          }
+        }
+      }
+    },
+    "player.skip.commercial.automaticConfirmation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commercial skipped automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pub passée automatiquement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已自动跳过广告"
+          }
+        }
+      }
+    },
     "player.skip.credits" : {
       "localizations" : {
         "en" : {
@@ -17467,6 +17511,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自动播放下一集"
+          }
+        }
+      }
+    },
+    "settings.playback.autoSkipCommercials" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically skip commercials"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer automatiquement les pubs"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动跳过广告"
+          }
+        }
+      }
+    },
+    "settings.playback.autoSkipCommercials.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requires commercial detection on your server, such as Plex DVR commercial detection."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite la détection des pubs sur votre serveur, comme celle du DVR Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要服务器启用广告检测，例如 Plex DVR 的广告检测。"
           }
         }
       }

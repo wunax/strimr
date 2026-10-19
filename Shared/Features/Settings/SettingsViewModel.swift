@@ -51,6 +51,13 @@ final class SettingsViewModel {
         )
     }
 
+    var autoSkipCommercialsBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.autoSkipCommercials },
+            set: { self.settingsManager.setAutoSkipCommercials($0) },
+        )
+    }
+
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },

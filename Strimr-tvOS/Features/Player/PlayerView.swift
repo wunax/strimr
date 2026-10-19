@@ -392,7 +392,7 @@ struct PlayerView: View {
 
     private var playerOverlay: some View {
         let activeMarker = viewModel.activeSkipMarker
-        let skipTitle = skipTitle(for: activeMarker)
+        let skipTitle = activeMarker?.skipTitle
         let hasSkipOverlay = activeMarker != nil
 
         return ZStack {
@@ -663,14 +663,6 @@ struct PlayerView: View {
             get: { timelinePosition },
             set: { timelinePosition = $0 },
         )
-    }
-
-    private func skipTitle(for marker: SkipSegment?) -> String? {
-        marker.map {
-            $0.isCredits
-                ? String(localized: "player.skip.credits")
-                : String(localized: "player.skip.intro")
-        }
     }
 
     private func togglePlayPause() {
@@ -1344,6 +1336,7 @@ struct PlayerView: View {
         guard let marker = viewModel.automaticSkipMarker(
             autoSkipIntros: settingsManager.playback.autoSkipIntros,
             autoSkipCredits: settingsManager.playback.autoSkipCredits,
+            autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
         ) else {
             return
         }
@@ -1355,9 +1348,7 @@ struct PlayerView: View {
     }
 
     private func showAutomaticSkipFeedback(for marker: SkipSegment) {
-        showFeedbackMessage(marker.isIntro
-            ? String(localized: "player.skip.intro.automaticConfirmation")
-            : String(localized: "player.skip.credits.automaticConfirmation"))
+        showFeedbackMessage(marker.automaticSkipConfirmation)
     }
 
     private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {

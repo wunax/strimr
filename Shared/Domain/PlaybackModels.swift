@@ -139,6 +139,7 @@ struct SkipSegment: Sendable, Hashable, Identifiable {
     enum Kind: String, Sendable, Hashable {
         case intro
         case credits
+        case commercial
     }
 
     let id: String
@@ -152,6 +153,26 @@ struct SkipSegment: Sendable, Hashable, Identifiable {
 
     var isCredits: Bool {
         kind == .credits
+    }
+
+    var isCommercial: Bool {
+        kind == .commercial
+    }
+
+    var skipTitle: String {
+        switch kind {
+        case .intro: String(localized: "player.skip.intro")
+        case .credits: String(localized: "player.skip.credits")
+        case .commercial: String(localized: "player.skip.commercial")
+        }
+    }
+
+    var automaticSkipConfirmation: String {
+        switch kind {
+        case .intro: String(localized: "player.skip.intro.automaticConfirmation")
+        case .credits: String(localized: "player.skip.credits.automaticConfirmation")
+        case .commercial: String(localized: "player.skip.commercial.automaticConfirmation")
+        }
     }
 
     func contains(time: TimeInterval) -> Bool {

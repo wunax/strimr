@@ -3,10 +3,16 @@ import SwiftUI
 @MainActor
 struct SettingsPlaybackView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(ServerRegistry.self) private var registry
     @State private var isEditingCustomPlayer = false
 
     private var viewModel: SettingsViewModel {
         SettingsViewModel(settingsManager: settingsManager)
+    }
+
+    /// Commercial markers come from DVR recordings in practice, so the setting stays hidden without Live TV.
+    private var hasLiveTV: Bool {
+        !registry.liveTVServices.isEmpty
     }
 
     var body: some View {
@@ -46,9 +52,18 @@ struct SettingsPlaybackView: View {
                 }
             }
 
-            Section("settings.playback.skipping.title") {
+            Section {
                 Toggle("settings.playback.autoSkipIntros", isOn: viewModel.autoSkipIntrosBinding)
                 Toggle("settings.playback.autoSkipCredits", isOn: viewModel.autoSkipCreditsBinding)
+                if hasLiveTV {
+                    Toggle("settings.playback.autoSkipCommercials", isOn: viewModel.autoSkipCommercialsBinding)
+                }
+            } header: {
+                Text("settings.playback.skipping.title")
+            } footer: {
+                if hasLiveTV {
+                    Text("settings.playback.autoSkipCommercials.footer")
+                }
             }
 
             Section("settings.playback.timeline.title") {

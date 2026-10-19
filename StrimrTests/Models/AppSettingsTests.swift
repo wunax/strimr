@@ -176,6 +176,11 @@ struct AppSettingsTests {
         #expect(reloaded.playback.resolvedExternalPlayer == .custom(custom))
     }
 
+    @Test func `commercial auto skip is off unless chosen`() throws {
+        #expect(try !decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.autoSkipCommercials)
+        #expect(try decode(#"{"playback":{"autoSkipCommercials":true}}"#).playback.autoSkipCommercials)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

@@ -174,6 +174,7 @@ struct PlaybackSettings: Codable, Equatable {
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
     var autoSkipIntros = false
     var autoSkipCredits = false
+    var autoSkipCommercials = false
     var losslessAudio = false
     /// Nil keeps TrueHD Atmos and DTS:X on the channel bridge.
     var spatialAudioLayout: SpatialSpeakerLayout?
@@ -213,6 +214,7 @@ struct PlaybackSettings: Codable, Equatable {
         ) ?? .after15Seconds
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
+        autoSkipCommercials = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCommercials) ?? false
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
         spatialAudioLayout = try? container.decodeIfPresent(
             SpatialSpeakerLayout.self,

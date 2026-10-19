@@ -774,6 +774,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 switch segment.type.lowercased() {
                 case "intro": kind = .intro
                 case "outro", "credits": kind = .credits
+                case "commercial": kind = .commercial
                 default: return nil
                 }
                 return SkipSegment(

@@ -24,4 +24,10 @@ struct PlexMarkerTests {
         #expect(markers.first?.isIntro == false)
         #expect(markers.first?.isCredits == false)
     }
+
+    @Test func `maps commercial markers to skip segments and drops unknown ones`() throws {
+        let markers = try decodeMarkers(["intro", "commercial", "credits", "advertisement"])
+
+        #expect(markers.compactMap(\.skipSegment).map(\.kind) == [.intro, .commercial, .credits])
+    }
 }

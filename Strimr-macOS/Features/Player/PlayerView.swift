@@ -515,7 +515,7 @@ struct PlayerView: View {
                 if let marker = viewModel.activeSkipMarker {
                     HStack {
                         Spacer()
-                        Button(marker.isIntro ? "player.skip.intro" : "player.skip.credits") {
+                        Button(marker.skipTitle) {
                             playerController.seek(to: marker.endTime)
                         }
                         .buttonStyle(.borderedProminent)
@@ -1426,6 +1426,7 @@ struct PlayerView: View {
         guard let marker = viewModel.automaticSkipMarker(
             autoSkipIntros: settingsManager.playback.autoSkipIntros,
             autoSkipCredits: settingsManager.playback.autoSkipCredits,
+            autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
         ) else {
             return
         }
@@ -1437,9 +1438,7 @@ struct PlayerView: View {
     }
 
     private func showAutomaticSkipFeedback(for marker: SkipSegment) {
-        showFeedbackMessage(marker.isIntro
-            ? String(localized: "player.skip.intro.automaticConfirmation")
-            : String(localized: "player.skip.credits.automaticConfirmation"))
+        showFeedbackMessage(marker.automaticSkipConfirmation)
     }
 
     private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {

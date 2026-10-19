@@ -53,6 +53,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutoSkipCommercials(_ enabled: Bool) {
+        settings.playback.autoSkipCommercials = enabled
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()
