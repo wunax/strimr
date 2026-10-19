@@ -134,7 +134,7 @@ struct HomeRowsSettingsView: View {
                 } label: {
                     Image(systemName: "arrow.up")
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(index == 0 ? .tertiary : .secondary)
                 .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
                 .disabled(index == 0)
 
@@ -143,10 +143,15 @@ struct HomeRowsSettingsView: View {
                 } label: {
                     Image(systemName: "arrow.down")
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(index == count - 1 ? .tertiary : .secondary)
                 .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
                 .disabled(index == count - 1)
             }
+            #if os(iOS)
+            // Otherwise a tap anywhere on the List row triggers every button in it.
+            // Borderless buttons no longer dim when disabled, hence the explicit tertiary style above.
+            .buttonStyle(.borderless)
+            #endif
         #endif
     }
 
