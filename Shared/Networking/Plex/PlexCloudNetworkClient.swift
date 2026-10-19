@@ -45,6 +45,7 @@ final class PlexCloudNetworkClient {
             let decoder = JSONDecoder()
             return try decoder.decode(Response.self, from: data)
         } catch {
+            ErrorReporter.capture(error)
             throw PlexAPIError.decodingFailed(error)
         }
     }

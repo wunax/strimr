@@ -195,6 +195,7 @@ final class JellyfinAPIContext {
         do {
             return try JSONDecoder().decode(QuickConnectState.self, from: data)
         } catch {
+            ErrorReporter.capture(error)
             throw JellyfinAPIError.invalidResponse
         }
     }
@@ -212,6 +213,7 @@ final class JellyfinAPIContext {
         do {
             return try JSONDecoder().decode(QuickConnectState.self, from: data)
         } catch {
+            ErrorReporter.capture(error)
             throw JellyfinAPIError.invalidResponse
         }
     }
@@ -256,6 +258,7 @@ final class JellyfinAPIContext {
         do {
             authenticated = try JSONDecoder().decode(JellyfinAuthenticatedSession.self, from: data)
         } catch {
+            ErrorReporter.capture(error)
             throw JellyfinAPIError.invalidResponse
         }
 
@@ -459,7 +462,7 @@ final class JellyfinAPIContext {
         do {
             return try await Self.decode(Response.self, from: data)
         } catch {
-            ErrorReporter.capture(JellyfinAPIError.invalidResponse)
+            ErrorReporter.capture(error)
             throw JellyfinAPIError.invalidResponse
         }
     }

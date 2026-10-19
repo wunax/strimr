@@ -46,7 +46,12 @@ final class PlexServerNetworkClient {
             throw PlexAPIError.requestFailed(statusCode: httpResponse.statusCode)
         }
 
-        return try await Self.decode(Response.self, from: data)
+        do {
+            return try await Self.decode(Response.self, from: data)
+        } catch {
+            ErrorReporter.capture(error)
+            throw error
+        }
     }
 
     /// Large Plex payloads (hubs, sections, seasons) take long enough to decode to drop frames on the main actor.
@@ -103,10 +108,18 @@ final class PlexServerNetworkClient {
                 statusCode: (result.response as? HTTPURLResponse)?.statusCode ?? -1,
             )
         }
-        guard let object = try JSONSerialization.jsonObject(with: result.data) as? [String: Any] else {
+        let object: Any
+        do {
+            object = try JSONSerialization.jsonObject(with: result.data)
+        } catch {
+            ErrorReporter.capture(error)
+            throw error
+        }
+        guard let dictionary = object as? [String: Any] else {
+            ErrorReporter.capture(PlexAPIError.invalidResponse)
             throw PlexAPIError.invalidResponse
         }
-        return object
+        return dictionary
     }
 
     func download(

@@ -39,3 +39,25 @@ nonisolated struct PlexPlayQueueResponse: Codable, Equatable {
         case mediaContainer = "MediaContainer"
     }
 }
+
+nonisolated extension PlexPlayQueueResponse.MediaContainer {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        size = try container.decodeIfPresent(Int.self, forKey: .size)
+        identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
+        mediaTagPrefix = try container.decodeIfPresent(String.self, forKey: .mediaTagPrefix)
+        mediaTagVersion = try container.decodeIfPresent(Int.self, forKey: .mediaTagVersion)
+        playQueueID = try container.decode(Int.self, forKey: .playQueueID)
+        playQueueSelectedItemID = try container.decodeIfPresent(Int.self, forKey: .playQueueSelectedItemID)
+        playQueueSelectedItemOffset = try container.decodeIfPresent(Int.self, forKey: .playQueueSelectedItemOffset)
+        playQueueSelectedMetadataItemID = try container.decodeIfPresent(
+            String.self,
+            forKey: .playQueueSelectedMetadataItemID,
+        )
+        playQueueShuffled = try container.decodeIfPresent(Bool.self, forKey: .playQueueShuffled)
+        playQueueSourceURI = try container.decodeIfPresent(String.self, forKey: .playQueueSourceURI)
+        playQueueTotalCount = try container.decodeIfPresent(Int.self, forKey: .playQueueTotalCount)
+        playQueueVersion = try container.decodeIfPresent(Int.self, forKey: .playQueueVersion)
+        metadata = try container.decodeLossyArrayIfPresent(PlexItem.self, forKey: .metadata)
+    }
+}

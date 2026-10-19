@@ -72,8 +72,8 @@ extension CollectionMediaItem {
             summary: plexItem.summary,
             thumbPath: plexItem.thumb,
             childCount: plexItem.childCount,
-            minYear: plexItem.minYear,
-            maxYear: plexItem.maxYear,
+            minYear: plexItem.minYear?.value,
+            maxYear: plexItem.maxYear?.value,
             server: server,
         )
     }

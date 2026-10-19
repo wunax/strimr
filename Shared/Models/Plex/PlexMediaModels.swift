@@ -208,6 +208,19 @@ nonisolated struct PlexHub: Codable, Equatable {
     }
 }
 
+nonisolated extension PlexHub {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hubKey = try container.decodeIfPresent(String.self, forKey: .hubKey)
+        key = try container.decode(String.self, forKey: .key)
+        title = try container.decode(String.self, forKey: .title)
+        hubIdentifier = try container.decode(String.self, forKey: .hubIdentifier)
+        size = try container.decode(Int.self, forKey: .size)
+        more = try container.decodeIfPresent(Bool.self, forKey: .more)
+        metadata = try container.decodeLossyArrayIfPresent(PlexItem.self, forKey: .metadata)
+    }
+}
+
 nonisolated struct PlexSection: Codable, Equatable {
     let agent: String
     let key: String
@@ -834,13 +847,13 @@ nonisolated struct PlexItem: Codable, Equatable {
 
     // Collection
     let subtype: PlexItemType?
-    let minYear: String?
-    let maxYear: String?
+    let minYear: PlexLenient<String>?
+    let maxYear: PlexLenient<String>?
 
     // Playlist
     let composite: String?
     let playlistType: String?
-    let smart: Bool?
+    let smart: PlexLenient<Bool>?
 
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, summary, thumb, art, theme,
@@ -926,6 +939,16 @@ nonisolated struct PlexItemMediaContainer: Codable, Equatable {
     }
 }
 
+nonisolated extension PlexItemMediaContainer.MediaContainer {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        size = try container.decodeIfPresent(Int.self, forKey: .size)
+        totalSize = try container.decodeIfPresent(Int.self, forKey: .totalSize)
+        metadata = try container.decodeLossyArrayIfPresent(PlexItem.self, forKey: .metadata)
+        meta = try container.decodeIfPresent(PlexSectionItemMeta.self, forKey: .meta)
+    }
+}
+
 nonisolated struct PlexPersonMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
@@ -963,6 +986,16 @@ nonisolated struct PlexBrowseMediaContainer: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case mediaContainer = "MediaContainer"
+    }
+}
+
+nonisolated extension PlexBrowseMediaContainer.MediaContainer {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        size = try container.decodeIfPresent(Int.self, forKey: .size)
+        totalSize = try container.decodeIfPresent(Int.self, forKey: .totalSize)
+        metadata = try container.decodeLossyArrayIfPresent(PlexBrowseMetadata.self, forKey: .metadata)
+        meta = try container.decodeIfPresent(PlexSectionItemMeta.self, forKey: .meta)
     }
 }
 
