@@ -52,6 +52,34 @@ struct HomeRowTests {
         #expect(HomeAggregation.libraryIdentity(of: row) == LibraryIdentity(server: plex, libraryID: "3"))
     }
 
+    @Test func `rows off the server home are hidden until turned on`() {
+        var preferences = HomeRowPreferences()
+
+        #expect(preferences.isVisible("promoted", onServerHome: true))
+        #expect(!preferences.isVisible("extra", onServerHome: false))
+
+        preferences.setRow("extra", visible: true)
+        preferences.setRow("promoted", visible: false)
+
+        #expect(preferences.isVisible("extra", onServerHome: false))
+        #expect(!preferences.isVisible("promoted", onServerHome: true))
+
+        preferences.setRow("extra", visible: false)
+
+        #expect(!preferences.isVisible("extra", onServerHome: false))
+        #expect(preferences.shownRowIDs.isEmpty)
+    }
+
+    @Test func `removing a server forgets the rows turned on for it`() {
+        var preferences = HomeRowPreferences()
+        preferences.setRow("home:plex:plex-a:hub:movie.topunwatched.1", visible: true)
+        preferences.setRow("home:jellyfin:jf-b:hub:x::/y", visible: true)
+
+        preferences.removeRows(of: [plex])
+
+        #expect(preferences.shownRowIDs == ["home:jellyfin:jf-b:hub:x::/y"])
+    }
+
     private func hub(_ id: String, key: String = "", hubKey: String? = nil) -> Hub {
         Hub(id: id, key: key, hubKey: hubKey, title: id, size: 1, more: false, items: [], server: nil)
     }

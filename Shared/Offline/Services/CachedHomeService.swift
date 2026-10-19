@@ -25,10 +25,18 @@ final class CachedHomeService: MediaHomeService {
         self.policy = policy
     }
 
-    func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists: Bool) async throws -> HomeContent {
+    func loadHome(
+        hiddenLibraryIDs: Set<String>,
+        includesPlaylists: Bool,
+        shownRowIDs: Set<String>,
+    ) async throws -> HomeContent {
         let content = try await policy.read(
             network: {
-                try await base.loadHome(hiddenLibraryIDs: hiddenLibraryIDs, includesPlaylists: includesPlaylists)
+                try await base.loadHome(
+                    hiddenLibraryIDs: hiddenLibraryIDs,
+                    includesPlaylists: includesPlaylists,
+                    shownRowIDs: shownRowIDs,
+                )
             },
             write: save,
             fallback: offlineHome,
@@ -40,8 +48,14 @@ final class CachedHomeService: MediaHomeService {
                 kind: row.kind,
                 style: row.style,
                 hub: hub(row.hub, items: policy.overlayLocalProgress(row.hub.items)),
+                libraryName: row.libraryName,
+                isExcludedFromServerHome: row.isExcludedFromServerHome,
             )
         })
+    }
+
+    func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+        try await base.homeRowCatalog(hiddenLibraryIDs: hiddenLibraryIDs)
     }
 
     /// Last home snapshot, shown immediately while the network response is loading.

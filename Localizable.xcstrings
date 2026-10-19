@@ -16342,6 +16342,28 @@
         }
       }
     },
+    "settings.homeRows.excludedFromServerHome" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluded from the home screen on the server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exclue de l’accueil sur le serveur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在服务器上从主页排除"
+          }
+        }
+      }
+    },
     "settings.homeRows.serverSubtitle %@" : {
       "localizations" : {
         "en" : {

@@ -228,6 +228,8 @@ nonisolated struct PlexSection: Codable, Equatable {
     let key: String
     let type: PlexItemType
     let title: String
+    /// 0 when the library is on the home screen, 1 when excluded from it, 2 when also excluded from search.
+    let hidden: Int?
 }
 
 nonisolated struct PlexSectionItemMeta: Codable, Equatable {

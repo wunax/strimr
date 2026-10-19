@@ -144,13 +144,17 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         )
     }
 
-    func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists: Bool) async throws -> HomeContent {
+    func loadHome(
+        hiddenLibraryIDs: Set<String>,
+        includesPlaylists: Bool,
+        shownRowIDs: Set<String>,
+    ) async throws -> HomeContent {
         let repository = try HubRepository(context: context)
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
-        let visibleSectionIDs = sections
-            .filter { !hiddenLibraryIDs.contains($0.key) }
-            .compactMap { Int($0.key) }
-        let params = hiddenLibraryIDs.isEmpty ? nil : HubRepository.HubParams(sectionIds: visibleSectionIDs)
+        let visibleSections = sections.filter { !hiddenLibraryIDs.contains($0.key) }
+        let params = hiddenLibraryIDs.isEmpty
+            ? nil
+            : HubRepository.HubParams(sectionIds: visibleSections.compactMap { Int($0.key) })
         async let continueResponse = repository.getContinueWatchingHub(params: params)
         async let promotedResponse = repository.getPromotedHub(
             params: params,
@@ -163,13 +167,71 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             rows.append(.continueWatching(server: server, hub: continueHub))
         }
         var rowIDs = Set<String>()
-        rows.append(contentsOf: promoted
-            .filter { $0.type != "playlist" && $0.size > 0 }
+        rows.append(contentsOf: homeRows(from: promoted, sections: visibleSections)
+            .filter { rowIDs.insert($0.id).inserted })
+
+        let missingRowIDs = shownRowIDs.subtracting(rowIDs)
+        let prefix = HomeRow.hubRowIDPrefix(server: server)
+        let missingSectionIDs = Set(missingRowIDs.compactMap { rowID in
+            rowID.hasPrefix(prefix) ? HomeRow.plexSectionID(fromHubID: String(rowID.dropFirst(prefix.count))) : nil
+        })
+        let shownRows = try await sectionHubRows(in: visibleSections.filter { missingSectionIDs.contains($0.key) })
+        rows.append(contentsOf: shownRows.filter { missingRowIDs.contains($0.id) && rowIDs.insert($0.id).inserted })
+        return HomeContent(rows: rows)
+    }
+
+    func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+        let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
+        var rowIDs = Set<String>()
+        return try await sectionHubRows(in: sections
+            .filter { $0.type.isSupported && !hiddenLibraryIDs.contains($0.key) })
+            .filter { rowIDs.insert($0.id).inserted }
+    }
+
+    /// The hubs of each library, whether or not the server puts them on its home. A library that fails to load is
+    /// skipped so it does not take the other rows down.
+    private func sectionHubRows(in sections: [PlexSection]) async throws -> [HomeRow] {
+        let hubsBySection = await withTaskGroup(of: (String, [PlexHub]).self) { group in
+            for section in sections {
+                guard let sectionID = Int(section.key) else { continue }
+                group.addTask { @MainActor [self] in
+                    do {
+                        let response = try await HubRepository(context: context).getSectionHubs(sectionId: sectionID)
+                        return (section.key, response.mediaContainer.hub ?? [])
+                    } catch {
+                        if !Task.isCancelled, !error.isCancellation {
+                            ErrorReporter.capture(error)
+                        }
+                        return (section.key, [])
+                    }
+                }
+            }
+            var values: [String: [PlexHub]] = [:]
+            for await (sectionID, hubs) in group {
+                values[sectionID] = hubs
+            }
+            return values
+        }
+        try Task.checkCancellation()
+        return sections.flatMap { section in
+            homeRows(from: hubsBySection[section.key] ?? [], sections: [section])
+        }
+    }
+
+    private func homeRows(from hubs: [PlexHub], sections: [PlexSection]) -> [HomeRow] {
+        let sectionsByID = Dictionary(sections.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        return hubs
+            // Continue Watching and playlists have their own rows.
+            .filter { $0.type != "playlist" && !$0.hubIdentifier.contains(".inprogress.") && $0.size > 0 }
             .map { Hub(plexHub: $0, server: server) }
             .filter(\.hasItems)
-            .map { HomeRow.providerHub(server: server, hub: $0) }
-            .filter { rowIDs.insert($0.id).inserted })
-        return HomeContent(rows: rows)
+            .map { hub in
+                var row = HomeRow.providerHub(server: server, hub: hub)
+                let section = HomeRow.plexSectionID(fromHubID: hub.id).flatMap { sectionsByID[$0] }
+                row.libraryName = section?.title
+                row.isExcludedFromServerHome = (section?.hidden ?? 0) > 0
+                return row
+            }
     }
 
     func libraries() async throws -> [Library] {

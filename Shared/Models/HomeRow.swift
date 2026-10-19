@@ -18,6 +18,10 @@ struct HomeRow: Identifiable, Hashable {
     let hub: Hub
     /// Name of the row's server, shown when the profile has several servers.
     var serverName: String?
+    /// Library of the row, shown in the settings where rows of several libraries share a title.
+    var libraryName: String?
+    /// The server's owner excluded the row's library from the home screen.
+    var isExcludedFromServerHome = false
 
     var title: String {
         hub.title
@@ -91,6 +95,10 @@ struct HomeRow: Identifiable, Hashable {
         )
     }
 
+    static func hubRowIDPrefix(server: ServerIdentity) -> String {
+        ["home", server.provider.rawValue, server.id, "hub", ""].joined(separator: ":")
+    }
+
     static func providerHub(server: ServerIdentity, hub: Hub) -> HomeRow {
         let sourceID: String = if server.provider == .plex {
             // A Plex hubKey lists the hub's items, so it changes whenever media is added.
@@ -99,7 +107,7 @@ struct HomeRow: Identifiable, Hashable {
             [hub.id, hub.hubKey.map(routePath) ?? "", routePath(hub.key)].joined(separator: ":")
         }
         return HomeRow(
-            id: ["home", server.provider.rawValue, server.id, "hub", sourceID].joined(separator: ":"),
+            id: hubRowIDPrefix(server: server) + sourceID,
             kind: .hub,
             style: .portrait,
             hub: hub,
@@ -116,6 +124,8 @@ struct HomeRow: Identifiable, Hashable {
 struct HomeRowPreferences: Codable, Equatable {
     var orderedRowIDs: [String] = []
     var hiddenRowIDs: [String] = []
+    /// Rows turned on although the server does not put them on its home.
+    var shownRowIDs: [String] = []
 
     init() {}
 
@@ -123,11 +133,13 @@ struct HomeRowPreferences: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         orderedRowIDs = try container.decodeIfPresent([String].self, forKey: .orderedRowIDs) ?? []
         hiddenRowIDs = try container.decodeIfPresent([String].self, forKey: .hiddenRowIDs) ?? []
+        shownRowIDs = try container.decodeIfPresent([String].self, forKey: .shownRowIDs) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
         case orderedRowIDs
         case hiddenRowIDs
+        case shownRowIDs
     }
 
     func orderedRows(from rows: [HomeRow]) -> [HomeRow] {
@@ -139,14 +151,23 @@ struct HomeRowPreferences: Codable, Equatable {
         return orderedRows(from: rows).filter { !hiddenIDs.contains($0.id) }
     }
 
+    /// A row is shown when the user turned it on, or when the server puts it on its home and the user did not hide it.
+    func isVisible(_ id: String, onServerHome: Bool) -> Bool {
+        !hiddenRowIDs.contains(id) && (onServerHome || shownRowIDs.contains(id))
+    }
+
     mutating func setRow(_ id: String, visible: Bool) {
         var hiddenIDs = Set(hiddenRowIDs)
+        var shownIDs = Set(shownRowIDs)
         if visible {
             hiddenIDs.remove(id)
+            shownIDs.insert(id)
         } else {
             hiddenIDs.insert(id)
+            shownIDs.remove(id)
         }
         hiddenRowIDs = hiddenIDs.sorted()
+        shownRowIDs = shownIDs.sorted()
     }
 
     mutating func setOrder(_ availableRowIDs: [String]) {
@@ -158,9 +179,10 @@ struct HomeRowPreferences: Codable, Equatable {
         let belongs: (String) -> Bool = { HomeRow.server(fromRowID: $0).map(servers.contains) ?? false }
         orderedRowIDs.removeAll(where: belongs)
         hiddenRowIDs.removeAll(where: belongs)
+        shownRowIDs.removeAll(where: belongs)
     }
 
     var isEmpty: Bool {
-        orderedRowIDs.isEmpty && hiddenRowIDs.isEmpty
+        orderedRowIDs.isEmpty && hiddenRowIDs.isEmpty && shownRowIDs.isEmpty
     }
 }

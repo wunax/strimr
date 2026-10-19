@@ -7,11 +7,15 @@ import Observation
 @Observable
 final class HomeViewModel {
     private(set) var availableRows: [HomeRow] = []
+    /// The home rows plus every row the user can add, for the settings.
+    private(set) var editableRows: [HomeRow] = []
     var isLoading = false
     var errorMessage: String?
 
     private var rowsByServer: [ServerIdentity: [HomeRow]] = [:]
+    private var catalogByServer: [ServerIdentity: [HomeRow]] = [:]
     private(set) var loadedServers: Set<ServerIdentity> = []
+    @ObservationIgnored private var loadedShownRowIDs: Set<String> = []
 
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let settingsManager: SettingsManager
@@ -35,7 +39,7 @@ final class HomeViewModel {
 
     var orderedRowsForEditing: [HomeRow] {
         let preferences = settingsManager.homeRowPreferences(profileID: profileID)
-        return pinningOfflineDownloads(preferences.orderedRows(from: availableRows), preferences: preferences)
+        return pinningOfflineDownloads(preferences.orderedRows(from: editableRows), preferences: preferences)
     }
 
     var rows: [HomeRow] {
@@ -61,7 +65,10 @@ final class HomeViewModel {
     }
 
     func isRowVisible(_ rowID: String) -> Bool {
-        !settingsManager.homeRowPreferences(profileID: profileID).hiddenRowIDs.contains(rowID)
+        settingsManager.homeRowPreferences(profileID: profileID).isVisible(
+            rowID,
+            onServerHome: availableRows.contains { $0.id == rowID },
+        )
     }
 
     func setRowVisible(_ rowID: String, visible: Bool) {
@@ -97,8 +104,19 @@ final class HomeViewModel {
         await reload(servers: nil, preservingExistingContent: false)
     }
 
-    /// Automatic refresh only retries the servers that have not answered yet.
+    /// Automatic refresh only retries the servers that have not answered yet, and loads the rows turned on in the
+    /// settings since the last load.
     func refreshIfNeeded(now: Date = Date()) async {
+        let shownRowIDs = shownRowIDs
+        if refreshGate.hasStartedInitialLoad, shownRowIDs != loadedShownRowIDs {
+            let changed = shownRowIDs.symmetricDifference(loadedShownRowIDs)
+            let servers = Set(changed.compactMap(HomeRow.server(fromRowID:)))
+            loadedShownRowIDs = shownRowIDs
+            if !servers.isEmpty {
+                await reload(servers: servers, preservingExistingContent: true)
+                return
+            }
+        }
         guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         let pending = Set(registry.enabledSessions.map(\.identity)).subtracting(loadedServers)
         guard !pending.isEmpty else { return }
@@ -120,6 +138,7 @@ final class HomeViewModel {
         if !removed.isEmpty {
             for server in removed {
                 rowsByServer[server] = nil
+                catalogByServer[server] = nil
                 cachedOnlyServers.remove(server)
             }
             loadedServers.subtract(removed)
@@ -158,9 +177,15 @@ final class HomeViewModel {
         let sessions = registry.sessions.filter { servers?.contains($0.identity) ?? true }
         let includesPlaylists = settingsManager.interface.displayPlaylists
         let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
+        let shownRowIDs = shownRowIDs
+        loadedShownRowIDs = shownRowIDs
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
             let hiddenIDs = Set(hidden.filter { $0.server == services.identity }.map(\.libraryID))
-            return try await services.home.loadHome(hiddenLibraryIDs: hiddenIDs, includesPlaylists: includesPlaylists)
+            return try await services.home.loadHome(
+                hiddenLibraryIDs: hiddenIDs,
+                includesPlaylists: includesPlaylists,
+                shownRowIDs: shownRowIDs,
+            )
         }
         guard !Task.isCancelled else { return }
 
@@ -200,12 +225,45 @@ final class HomeViewModel {
             guard let rows = rowsByServer[server] else { return nil }
             return HomeAggregation.ServerHome(server: server, serverName: names[server] ?? server.id, rows: rows)
         }
+        let libraryOrder = settingsManager.libraryPreferences(profileID: profileID).libraryOrder
         availableRows = HomeAggregation.merge(
             homes,
-            libraryOrder: settingsManager.libraryPreferences(profileID: profileID).libraryOrder,
+            libraryOrder: libraryOrder,
             showsServerNames: showsServerNames,
             localPlaybackDate: localPlaybackDate(for: homes),
         )
+        let catalogHomes = order.compactMap { server -> HomeAggregation.ServerHome? in
+            let loaded = Set(rowsByServer[server]?.map(\.id) ?? [])
+            let extra = (catalogByServer[server] ?? []).filter { !loaded.contains($0.id) }
+            guard !extra.isEmpty else { return nil }
+            return HomeAggregation.ServerHome(server: server, serverName: names[server] ?? server.id, rows: extra)
+        }
+        let catalogRows = HomeAggregation.merge(
+            catalogHomes,
+            libraryOrder: libraryOrder,
+            showsServerNames: showsServerNames,
+        )
+        editableRows = availableRows + catalogRows
+    }
+
+    // MARK: - Catalog
+
+    private var shownRowIDs: Set<String> {
+        Set(settingsManager.homeRowPreferences(profileID: profileID).shownRowIDs)
+    }
+
+    /// Loads the rows the user can add to the home, for the settings.
+    func loadCatalog() async {
+        let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
+        let result = await sessionManager.aggregation.fanOut(servers: registry.sessions) { services in
+            let hiddenIDs = Set(hidden.filter { $0.server == services.identity }.map(\.libraryID))
+            return try await services.home.homeRowCatalog(hiddenLibraryIDs: hiddenIDs)
+        }
+        guard !Task.isCancelled else { return }
+        for (server, rows) in result.value {
+            catalogByServer[server] = rows
+        }
+        rebuild()
     }
 
     // MARK: - Offline
@@ -232,6 +290,7 @@ final class HomeViewModel {
                 guard let content = try? await services.home.loadHome(
                     hiddenLibraryIDs: Set(hidden),
                     includesPlaylists: settingsManager.interface.displayPlaylists,
+                    shownRowIDs: shownRowIDs,
                 ) else { continue }
                 rowsByServer[services.identity] = content.rows
                 cachedOnlyServers.insert(services.identity)

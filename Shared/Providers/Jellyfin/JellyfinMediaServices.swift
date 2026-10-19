@@ -122,7 +122,11 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
-    func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists _: Bool) async throws -> HomeContent {
+    func loadHome(
+        hiddenLibraryIDs: Set<String>,
+        includesPlaylists _: Bool,
+        shownRowIDs _: Set<String>,
+    ) async throws -> HomeContent {
         let visibleLibraries = try await catalog.libraries().filter {
             !hiddenLibraryIDs.contains($0.id)
                 && ($0.collectionType?.lowercased() == "movies" || $0.collectionType?.lowercased() == "tvshows")

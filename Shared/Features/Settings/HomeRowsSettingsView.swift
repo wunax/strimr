@@ -15,9 +15,11 @@ struct HomeRowsSettingsView: View {
         settingsContainer
             .task {
                 await viewModel.load()
+                await viewModel.loadCatalog()
             }
             .refreshable {
                 await viewModel.reload()
+                await viewModel.loadCatalog()
             }
     }
 
@@ -146,14 +148,26 @@ struct HomeRowsSettingsView: View {
         #endif
     }
 
-    /// Tells apart two "Recently added" rows of different servers.
+    /// Tells apart rows sharing a title in different libraries or servers.
     @ViewBuilder
     private func serverSubtitle(for row: HomeRow) -> some View {
-        if let serverName = row.serverName {
-            Text("settings.homeRows.serverSubtitle \(serverName)")
+        if let subtitle = subtitle(for: row) {
+            subtitle
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        if row.isExcludedFromServerHome {
+            Text("settings.homeRows.excludedFromServerHome")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func subtitle(for row: HomeRow) -> Text? {
+        let server = row.serverName.map { Text("settings.homeRows.serverSubtitle \($0)") }
+        guard let libraryName = row.libraryName else { return server }
+        guard let server else { return Text(verbatim: libraryName) }
+        return Text(verbatim: "\(libraryName) · ") + server
     }
 
     private func tvOSActionLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {

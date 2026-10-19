@@ -156,8 +156,21 @@ struct RemoteSubtitleResult: Hashable, Identifiable {
 
 @MainActor
 protocol MediaHomeService: AnyObject {
-    func loadHome(hiddenLibraryIDs: Set<String>, includesPlaylists: Bool) async throws -> HomeContent
+    /// `shownRowIDs` are the rows the user turned on that the server does not put on its home.
+    func loadHome(
+        hiddenLibraryIDs: Set<String>,
+        includesPlaylists: Bool,
+        shownRowIDs: Set<String>,
+    ) async throws -> HomeContent
+    /// Every row the user can add to the home, including the ones the server does not put there.
+    func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
     func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem>
+}
+
+extension MediaHomeService {
+    func homeRowCatalog(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
+        []
+    }
 }
 
 @MainActor
