@@ -70,10 +70,12 @@ final class PlaybackRepository {
         playQueueItemID: Int? = nil,
         includesKey: Bool = false,
     ) async throws -> PlexTimelineResponse {
+        // Plex answers 400 when time exceeds duration, which the player position does by a few ms at the end.
+        let reportedTime = duration > 0 ? min(time, duration) : time
         var queryItems = [
             URLQueryItem(name: "ratingKey", value: ratingKey),
             URLQueryItem(name: "state", value: state.rawValue),
-            URLQueryItem(name: "time", value: String(time)),
+            URLQueryItem(name: "time", value: String(reportedTime)),
             URLQueryItem(name: "duration", value: String(duration)),
         ]
         if includesKey {
