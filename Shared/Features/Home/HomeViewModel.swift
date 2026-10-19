@@ -14,6 +14,7 @@ final class HomeViewModel {
 
     private var rowsByServer: [ServerIdentity: [HomeRow]] = [:]
     private var catalogByServer: [ServerIdentity: [HomeRow]] = [:]
+    private var libraryGroupOrder: [String] = []
     private(set) var loadedServers: Set<ServerIdentity> = []
     @ObservationIgnored private var loadedShownRowIDs: Set<String> = []
 
@@ -48,15 +49,13 @@ final class HomeViewModel {
         return orderedRowsForEditing.filter { isVisible($0.id) }
     }
 
-    /// The rows the user can add, grouped by library.
+    /// The rows the user can add, grouped by library. Libraries keep the same order whatever rows are turned on.
     var availableRowGroups: [HomeRowGroup] {
         let isVisible = rowVisibility()
         var groups: [HomeRowGroup] = []
         var groupIndexes: [String: Int] = [:]
         for row in orderedRowsForEditing where !isVisible(row.id) {
-            let server = row.hub.server ?? HomeRow.server(fromRowID: row.id)
-            let groupID = [server?.provider.rawValue, server?.id, row.libraryName].compactMap(\.self)
-                .joined(separator: ":")
+            let groupID = Self.groupID(of: row)
             if let index = groupIndexes[groupID] {
                 groups[index].rows.append(row)
             } else {
@@ -70,7 +69,19 @@ final class HomeViewModel {
                 ))
             }
         }
-        return groups
+        let rank = Dictionary(libraryGroupOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        return groups.enumerated()
+            .sorted { lhs, rhs in
+                let left = rank[lhs.element.id] ?? .max
+                let right = rank[rhs.element.id] ?? .max
+                return left == right ? lhs.offset < rhs.offset : left < right
+            }
+            .map(\.element)
+    }
+
+    private static func groupID(of row: HomeRow) -> String {
+        let server = row.hub.server ?? HomeRow.server(fromRowID: row.id)
+        return [server?.provider.rawValue, server?.id, row.libraryName].compactMap(\.self).joined(separator: ":")
     }
 
     var rows: [HomeRow] {
@@ -289,6 +300,15 @@ final class HomeViewModel {
             showsServerNames: showsServerNames,
         )
         editableRows = availableRows + catalogRows
+        let allCatalogRows = HomeAggregation.merge(
+            order.compactMap { server in
+                catalogByServer[server].map { HomeAggregation.ServerHome(server: server, serverName: "", rows: $0) }
+            },
+            libraryOrder: libraryOrder,
+            showsServerNames: false,
+        )
+        var seenGroups = Set<String>()
+        libraryGroupOrder = allCatalogRows.map(Self.groupID(of:)).filter { seenGroups.insert($0).inserted }
     }
 
     // MARK: - Catalog
