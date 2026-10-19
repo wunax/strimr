@@ -16776,29 +16776,6 @@
         }
       }
     },
-    "settings.interface.homeRows.show" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show row"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher la rangée"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示内容行"
-          }
-        }
-      }
-    },
     "settings.interface.homeRows.title" : {
       "localizations" : {
         "en" : {
