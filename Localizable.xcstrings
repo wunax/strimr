@@ -16666,6 +16666,28 @@
         }
       }
     },
+    "settings.interface.homeRows.otherRows" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other rows"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres rangées"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他内容行"
+          }
+        }
+      }
+    },
     "settings.interface.homeRows.restoreDefaults" : {
       "localizations" : {
         "en" : {
@@ -16711,6 +16733,7 @@
       }
     },
     "settings.interface.homeRows.show" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

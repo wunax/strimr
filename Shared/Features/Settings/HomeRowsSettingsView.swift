@@ -41,6 +41,7 @@ struct HomeRowsSettingsView: View {
                 .foregroundStyle(.secondary)
         }
 
+        let shownRows = viewModel.shownRowsForEditing
         Section("settings.interface.homeRows.section") {
             if viewModel.isLoading, viewModel.availableRows.isEmpty {
                 ProgressView("home.loading")
@@ -48,12 +49,26 @@ struct HomeRowsSettingsView: View {
             } else if let errorMessage = viewModel.errorMessage, viewModel.availableRows.isEmpty {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
-            } else if viewModel.orderedRowsForEditing.isEmpty {
+            } else if shownRows.isEmpty {
                 Text("common.empty.nothingToShow")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(viewModel.orderedRowsForEditing.enumerated()), id: \.element.id) { index, row in
-                    rowControls(at: index, row: row)
+                ForEach(Array(shownRows.enumerated()), id: \.element.id) { index, row in
+                    shownRowControls(at: index, row: row, count: shownRows.count)
+                }
+            }
+        }
+
+        ForEach(viewModel.availableRowGroups) { group in
+            Section {
+                ForEach(group.rows) { row in
+                    availableRowControls(row)
+                }
+            } header: {
+                groupHeader(group)
+            } footer: {
+                if group.isExcludedFromServerHome {
+                    Text("settings.homeRows.excludedFromServerHome")
                 }
             }
         }
@@ -63,32 +78,24 @@ struct HomeRowsSettingsView: View {
                 viewModel.resetRowPreferences()
             }
             #if os(tvOS)
-            .settingsFocus("restoreRows", isDefault: viewModel.orderedRowsForEditing.isEmpty)
+            .settingsFocus("restoreRows", isDefault: shownRows.isEmpty)
             #endif
         }
     }
 
     @ViewBuilder
-    private func rowControls(at index: Int, row: HomeRow) -> some View {
+    private func shownRowControls(at index: Int, row: HomeRow, count: Int) -> some View {
         #if os(tvOS)
-            let isVisible = viewModel.isRowVisible(row.id)
-
             VStack(alignment: .leading, spacing: 12) {
                 Text(row.title)
                     .font(.headline)
-                    .foregroundStyle(isVisible ? .primary : .secondary)
-                serverSubtitle(for: row)
+                rowSubtitle(for: row)
 
                 HStack(spacing: 12) {
                     Button {
-                        viewModel.setRowVisible(row.id, visible: !isVisible)
+                        viewModel.setRowVisible(row.id, visible: false)
                     } label: {
-                        tvOSActionLabel(
-                            isVisible
-                                ? "settings.interface.homeRows.hide"
-                                : "settings.interface.homeRows.show",
-                            systemImage: isVisible ? "eye" : "eye.slash",
-                        )
+                        tvOSActionLabel("settings.interface.homeRows.hide", systemImage: "eye")
                     }
                     .buttonStyle(.bordered)
                     .settingsFocus("row-\(row.id)-visibility", isDefault: index == 0)
@@ -111,19 +118,19 @@ struct HomeRowsSettingsView: View {
                     .buttonStyle(.bordered)
                     .foregroundStyle(.secondary)
                     .settingsFocus("row-\(row.id)-down", exitsLeft: false)
-                    .disabled(index == viewModel.orderedRowsForEditing.count - 1)
+                    .disabled(index == count - 1)
                 }
             }
             .padding(.vertical, 8)
         #else
             HStack(spacing: 12) {
                 Toggle(isOn: Binding(
-                    get: { viewModel.isRowVisible(row.id) },
+                    get: { true },
                     set: { viewModel.setRowVisible(row.id, visible: $0) },
                 )) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.title)
-                        serverSubtitle(for: row)
+                        rowSubtitle(for: row)
                     }
                 }
 
@@ -143,21 +150,45 @@ struct HomeRowsSettingsView: View {
                 }
                 .foregroundStyle(.secondary)
                 .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
-                .disabled(index == viewModel.orderedRowsForEditing.count - 1)
+                .disabled(index == count - 1)
             }
         #endif
     }
 
+    @ViewBuilder
+    private func availableRowControls(_ row: HomeRow) -> some View {
+        #if os(tvOS)
+            Button {
+                viewModel.setRowVisible(row.id, visible: true)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "plus")
+                    Text(row.title)
+                }
+            }
+            .settingsFocus("row-\(row.id)-visibility")
+        #else
+            Toggle(row.title, isOn: Binding(
+                get: { false },
+                set: { viewModel.setRowVisible(row.id, visible: $0) },
+            ))
+        #endif
+    }
+
+    private func groupHeader(_ group: HomeRowGroup) -> Text {
+        let server = group.serverName.map { Text("settings.homeRows.serverSubtitle \($0)") }
+        guard let libraryName = group.libraryName else {
+            return server ?? Text("settings.interface.homeRows.otherRows")
+        }
+        guard let server else { return Text(verbatim: libraryName) }
+        return Text(verbatim: "\(libraryName) · ") + server
+    }
+
     /// Tells apart rows sharing a title in different libraries or servers.
     @ViewBuilder
-    private func serverSubtitle(for row: HomeRow) -> some View {
+    private func rowSubtitle(for row: HomeRow) -> some View {
         if let subtitle = subtitle(for: row) {
             subtitle
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        if row.isExcludedFromServerHome {
-            Text("settings.homeRows.excludedFromServerHome")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

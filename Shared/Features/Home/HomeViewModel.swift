@@ -42,6 +42,37 @@ final class HomeViewModel {
         return pinningOfflineDownloads(preferences.orderedRows(from: editableRows), preferences: preferences)
     }
 
+    /// The rows on the home, in their order.
+    var shownRowsForEditing: [HomeRow] {
+        let isVisible = rowVisibility()
+        return orderedRowsForEditing.filter { isVisible($0.id) }
+    }
+
+    /// The rows the user can add, grouped by library.
+    var availableRowGroups: [HomeRowGroup] {
+        let isVisible = rowVisibility()
+        var groups: [HomeRowGroup] = []
+        var groupIndexes: [String: Int] = [:]
+        for row in orderedRowsForEditing where !isVisible(row.id) {
+            let server = row.hub.server ?? HomeRow.server(fromRowID: row.id)
+            let groupID = [server?.provider.rawValue, server?.id, row.libraryName].compactMap(\.self)
+                .joined(separator: ":")
+            if let index = groupIndexes[groupID] {
+                groups[index].rows.append(row)
+            } else {
+                groupIndexes[groupID] = groups.count
+                groups.append(HomeRowGroup(
+                    id: groupID,
+                    libraryName: row.libraryName,
+                    serverName: row.serverName,
+                    isExcludedFromServerHome: row.isExcludedFromServerHome,
+                    rows: [row],
+                ))
+            }
+        }
+        return groups
+    }
+
     var rows: [HomeRow] {
         let preferences = settingsManager.homeRowPreferences(profileID: profileID)
         return pinningOfflineDownloads(preferences.visibleRows(from: availableRows), preferences: preferences)
@@ -65,23 +96,37 @@ final class HomeViewModel {
     }
 
     func isRowVisible(_ rowID: String) -> Bool {
-        settingsManager.homeRowPreferences(profileID: profileID).isVisible(
-            rowID,
-            onServerHome: availableRows.contains { $0.id == rowID },
-        )
+        rowVisibility()(rowID)
     }
 
+    private func rowVisibility() -> (String) -> Bool {
+        let preferences = settingsManager.homeRowPreferences(profileID: profileID)
+        let onServerHome = Set(availableRows.map(\.id))
+        return { preferences.isVisible($0, onServerHome: onServerHome.contains($0)) }
+    }
+
+    /// A row turned on goes to the end of the home.
     func setRowVisible(_ rowID: String, visible: Bool) {
+        if visible {
+            let shown = shownRowsForEditing.map(\.id).filter { $0 != rowID }
+            saveOrder(shown: shown + [rowID])
+        }
         settingsManager.setHomeRowVisibility(rowID, visible: visible, profileID: profileID)
     }
 
     func moveRow(at index: Int, by offset: Int) {
-        var rowIDs = orderedRowsForEditing.map(\.id)
+        var shown = shownRowsForEditing.map(\.id)
         let destination = index + offset
-        guard rowIDs.indices.contains(index), rowIDs.indices.contains(destination) else { return }
-        let rowID = rowIDs.remove(at: index)
-        rowIDs.insert(rowID, at: destination)
-        settingsManager.setHomeRowOrder(rowIDs, profileID: profileID)
+        guard shown.indices.contains(index), shown.indices.contains(destination) else { return }
+        let rowID = shown.remove(at: index)
+        shown.insert(rowID, at: destination)
+        saveOrder(shown: shown)
+    }
+
+    private func saveOrder(shown: [String]) {
+        let shownIDs = Set(shown)
+        let others = orderedRowsForEditing.map(\.id).filter { !shownIDs.contains($0) }
+        settingsManager.setHomeRowOrder(shown + others, profileID: profileID)
     }
 
     func resetRowPreferences() {
@@ -316,4 +361,12 @@ final class HomeViewModel {
             return { dates[$0] }
         #endif
     }
+}
+
+struct HomeRowGroup: Identifiable {
+    let id: String
+    let libraryName: String?
+    let serverName: String?
+    let isExcludedFromServerHome: Bool
+    var rows: [HomeRow]
 }
