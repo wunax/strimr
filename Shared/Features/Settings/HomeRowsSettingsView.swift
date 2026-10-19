@@ -104,7 +104,7 @@ struct HomeRowsSettingsView: View {
                         tvOSActionLabel("settings.interface.homeRows.moveUp", systemImage: "arrow.up")
                     }
                     .buttonStyle(.bordered)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(index == 0 ? .tertiary : .secondary)
                     .settingsFocus("row-\(row.id)-up", exitsLeft: false)
                     .disabled(index == 0)
 
@@ -114,7 +114,7 @@ struct HomeRowsSettingsView: View {
                         tvOSActionLabel("settings.interface.homeRows.moveDown", systemImage: "arrow.down")
                     }
                     .buttonStyle(.bordered)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(index == count - 1 ? .tertiary : .secondary)
                     .settingsFocus("row-\(row.id)-down", exitsLeft: false)
                     .disabled(index == count - 1)
                 }
