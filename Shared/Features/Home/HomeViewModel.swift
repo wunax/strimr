@@ -49,12 +49,11 @@ final class HomeViewModel {
         return orderedRowsForEditing.filter { isVisible($0.id) }
     }
 
-    /// The rows the user can add, grouped by library. Libraries keep the same order whatever rows are turned on.
-    var availableRowGroups: [HomeRowGroup] {
-        let isVisible = rowVisibility()
+    /// Every editable row, grouped by library. Libraries keep the same order whatever rows are turned on.
+    var rowGroups: [HomeRowGroup] {
         var groups: [HomeRowGroup] = []
         var groupIndexes: [String: Int] = [:]
-        for row in orderedRowsForEditing where !isVisible(row.id) {
+        for row in orderedRowsForEditing {
             let groupID = Self.groupID(of: row)
             if let index = groupIndexes[groupID] {
                 groups[index].rows.append(row)
