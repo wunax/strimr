@@ -146,6 +146,13 @@ final class SettingsViewModel {
         )
     }
 
+    var doubleTapToSeekBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.doubleTapToSeek },
+            set: { self.settingsManager.setDoubleTapToSeek($0) },
+        )
+    }
+
     var subtitleFontSizeBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.subtitleFontSize },

@@ -50,6 +50,13 @@ struct SettingsPlaybackView: View {
                         Text("settings.playback.seconds \(seconds)").tag(seconds)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("settings.playback.doubleTapToSeek", isOn: viewModel.doubleTapToSeekBinding)
+                    Text("settings.playback.doubleTapToSeek.description")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section {

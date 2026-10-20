@@ -118,6 +118,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDoubleTapToSeek(_ enabled: Bool) {
+        settings.playback.doubleTapToSeek = enabled
+        persist()
+    }
+
     func setAudioDelayMilliseconds(_ milliseconds: Int) {
         settings.playback.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(milliseconds)
         persist()

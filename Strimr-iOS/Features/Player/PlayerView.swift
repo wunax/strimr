@@ -59,6 +59,8 @@ struct PlayerView: View {
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var doubleTapSeek = DoubleTapSeek()
+    @State private var tapAreaWidth = 0.0
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -94,6 +96,7 @@ struct PlayerView: View {
                 .onAppear {
                     playerController.onMediaLoaded = handleMediaLoaded
                     playerController.onPlaybackEnded = handlePlaybackEnded
+                    doubleTapSeek.onCommit = commitDoubleTapSeek
                     playerController.onPictureInPictureStartFailed = {
                         guard scenePhase == .background else { return }
                         preparePlaybackForBackground()
@@ -117,6 +120,7 @@ struct PlayerView: View {
                     playerController.onPictureInPictureStartFailed = nil
                     hideControlsWorkItem?.cancel()
                     automaticSkipFeedbackWorkItem?.cancel()
+                    doubleTapSeek.cancel()
                     playerController.stop()
                     AppDelegate.orientationLock = .all
                     isRotationLocked = false
@@ -391,11 +395,12 @@ struct PlayerView: View {
             Color.clear
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
-                .onTapGesture {
+                .onGeometryChange(for: Double.self) { $0.size.width } action: { tapAreaWidth = $0 }
+                .onTapGesture { location in
                     pauseScreen.registerInteraction()
                     if isShowingInfoPanel {
                         hideInfoPanel()
-                    } else {
+                    } else if !handleDoubleTapSeek(at: location) {
                         controlsVisible ? hideControls() : showControls(temporarily: true)
                     }
                 }
@@ -472,6 +477,14 @@ struct PlayerView: View {
             if !controlsVisible, let activeMarker, let skipTitle {
                 skipOverlay(marker: activeMarker, title: skipTitle)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            }
+
+            if let pending = doubleTapSeek.pending {
+                SeekFeedbackView(feedback: doubleTapSeekFeedback(for: pending))
+                    .padding(.horizontal, 32)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: pending.forward ? .trailing : .leading)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
             }
 
             if let automaticSkipFeedbackMessage {
@@ -935,6 +948,32 @@ struct PlayerView: View {
     private func jump(by seconds: Double) {
         playerController.seek(by: seconds)
         showControls(temporarily: true)
+    }
+
+    /// VoiceOver already claims double taps to activate elements.
+    private func handleDoubleTapSeek(at location: CGPoint) -> Bool {
+        guard settingsManager.playback.doubleTapToSeek, !isVoiceOverEnabled else { return false }
+        let zone = DoubleTapSeekZone(x: location.x, width: tapAreaWidth)
+        guard doubleTapSeek.registerTap(in: zone) else { return false }
+        showControls(temporarily: true)
+        return true
+    }
+
+    private func doubleTapSeekOffset(for pending: DoubleTapSeek.Pending) -> Double {
+        Double(pending.steps) * (pending.forward ? seekForwardInterval : -seekBackwardInterval)
+    }
+
+    private func doubleTapSeekFeedback(for pending: DoubleTapSeek.Pending) -> SeekFeedback {
+        let start = viewModel.position
+        var target = max(0, start + doubleTapSeekOffset(for: pending))
+        if let duration = viewModel.duration, !viewModel.isLivePlayback {
+            target = min(target, duration)
+        }
+        return SeekFeedback(forward: pending.forward, start: start, target: target)
+    }
+
+    private func commitDoubleTapSeek(_ pending: DoubleTapSeek.Pending) {
+        jump(by: doubleTapSeekOffset(for: pending))
     }
 
     private func applyResumeOffsetIfNeeded() {

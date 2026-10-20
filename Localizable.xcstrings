@@ -18247,6 +18247,50 @@
         }
       }
     },
+    "settings.playback.doubleTapToSeek" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double tap to seek"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double tap pour avancer/reculer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击快进/快退"
+          }
+        }
+      }
+    },
+    "settings.playback.doubleTapToSeek.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double tap the left or right side of the player to rewind or fast forward. Keep tapping to skip further."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez deux fois le côté gauche ou droit du lecteur pour reculer ou avancer. Continuez à toucher pour aller plus loin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击播放器左侧或右侧即可快退或快进。继续点按可跳过更多。"
+          }
+        }
+      }
+    },
     "settings.playback.externalPlayer.builtIn" : {
       "localizations" : {
         "en" : {

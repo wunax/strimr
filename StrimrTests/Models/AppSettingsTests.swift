@@ -181,6 +181,11 @@ struct AppSettingsTests {
         #expect(try decode(#"{"playback":{"autoSkipCommercials":true}}"#).playback.autoSkipCommercials)
     }
 
+    @Test func `double tap to seek is on unless turned off`() throws {
+        #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.doubleTapToSeek)
+        #expect(try !decode(#"{"playback":{"doubleTapToSeek":false}}"#).playback.doubleTapToSeek)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }
