@@ -45,7 +45,7 @@ struct SubtitleOverlayView: View {
                     .overlay(alignment: .topLeading) {
                         ForEach(activeCues, id: \.id) { cue in
                             if case let .image(image) = cue.body {
-                                imageView(image, in: geometry.size)
+                                imageView(image, frame: imageFrame(image, in: geometry.size))
                             }
                         }
                     }
@@ -171,10 +171,8 @@ struct SubtitleOverlayView: View {
         return result.reversed()
     }
 
-    private func imageView(_ image: SubtitleImage, in size: CGSize) -> some View {
-        let frame = imageFrame(image, in: size)
-
-        return Image(decorative: image.cgImage, scale: 1, orientation: .up)
+    private func imageView(_ image: SubtitleImage, frame: CGRect) -> some View {
+        Image(decorative: image.cgImage, scale: 1, orientation: .up)
             .resizable()
             .interpolation(.high)
             .frame(
@@ -188,62 +186,42 @@ struct SubtitleOverlayView: View {
     }
 
     private func videoRect(in overlaySize: CGSize) -> CGRect {
-        guard let videoSize,
-              videoSize.width > 0,
-              videoSize.height > 0,
+        aspectFitRect(for: videoSize, in: overlaySize)
+    }
+
+    private func aspectFitRect(for contentSize: CGSize?, in overlaySize: CGSize) -> CGRect {
+        guard let contentSize,
+              contentSize.width > 0,
+              contentSize.height > 0,
               overlaySize.width > 0,
               overlaySize.height > 0
         else {
             return CGRect(origin: .zero, size: overlaySize)
         }
 
-        let videoScale = min(
-            overlaySize.width / videoSize.width,
-            overlaySize.height / videoSize.height,
+        let scale = min(
+            overlaySize.width / contentSize.width,
+            overlaySize.height / contentSize.height,
         )
-        let fittedVideoSize = CGSize(
-            width: videoSize.width * videoScale,
-            height: videoSize.height * videoScale,
+        let fittedSize = CGSize(
+            width: contentSize.width * scale,
+            height: contentSize.height * scale,
         )
         return CGRect(
-            x: (overlaySize.width - fittedVideoSize.width) / 2,
-            y: (overlaySize.height - fittedVideoSize.height) / 2,
-            width: fittedVideoSize.width,
-            height: fittedVideoSize.height,
+            x: (overlaySize.width - fittedSize.width) / 2,
+            y: (overlaySize.height - fittedSize.height) / 2,
+            width: fittedSize.width,
+            height: fittedSize.height,
         )
     }
 
     private func imageFrame(_ image: SubtitleImage, in overlaySize: CGSize) -> CGRect {
-        guard let videoSize,
-              videoSize.width > 0,
-              videoSize.height > 0,
-              overlaySize.width > 0,
-              overlaySize.height > 0
-        else {
-            return CGRect(
-                x: image.position.minX * overlaySize.width,
-                y: image.position.minY * overlaySize.height,
-                width: image.position.width * overlaySize.width,
-                height: image.position.height * overlaySize.height,
-            )
-        }
-
-        let videoRect = videoRect(in: overlaySize)
-
         let canvasSize = image.canvasSize.width > 0 && image.canvasSize.height > 0
             ? image.canvasSize
             : videoSize
-        let canvasScale = videoRect.width / videoSize.width
-        let fittedCanvasSize = CGSize(
-            width: canvasSize.width * canvasScale,
-            height: canvasSize.height * canvasScale,
-        )
-        let canvasRect = CGRect(
-            x: videoRect.midX - fittedCanvasSize.width / 2,
-            y: videoRect.midY - fittedCanvasSize.height / 2,
-            width: fittedCanvasSize.width,
-            height: fittedCanvasSize.height,
-        )
+        // Fit the whole canvas on screen rather than width-aligning it to the video: a 16:9 canvas
+        // over a cropped (e.g. 2.39:1) video would otherwise push lower-bar cues off a wide screen.
+        let canvasRect = aspectFitRect(for: canvasSize, in: overlaySize)
 
         return CGRect(
             x: canvasRect.minX + image.position.minX * canvasRect.width,
