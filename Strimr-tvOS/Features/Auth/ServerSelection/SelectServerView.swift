@@ -78,17 +78,22 @@ struct SelectServerView: View {
                         serverRow(server)
                     }
 
-                    Button {
-                        viewModel.continueWithSelection()
-                    } label: {
-                        Text("common.actions.continue")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: 480)
-                            .padding()
+                    // Full-width focus section so focus can reach the centered button from the trailing custom address button.
+                    HStack {
+                        Button {
+                            viewModel.continueWithSelection()
+                        } label: {
+                            Text("common.actions.continue")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: 480)
+                                .padding()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.brandPrimary)
+                        .disabled(viewModel.selectedServerIDs.isEmpty)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.brandPrimary)
-                    .disabled(viewModel.selectedServerIDs.isEmpty)
+                    .frame(maxWidth: .infinity)
+                    .focusSection()
                 }
                 .padding(.horizontal, 36)
                 .padding(.vertical, 60)
@@ -97,7 +102,7 @@ struct SelectServerView: View {
     }
 
     private func serverRow(_ server: PlexCloudResource) -> some View {
-        VStack(alignment: .trailing, spacing: 16) {
+        VStack(alignment: .trailing, spacing: 32) {
             serverToggle(server)
             if viewModel.suggestsCustomAddress(for: server) {
                 Button("serverSelection.customAddress.suggest") {
