@@ -13,7 +13,10 @@ struct JellyfinCatalogService {
             path: ["UserViews"],
             query: commonUserQuery,
         )
+        // Jellyfin-compatible servers such as AIOStreams can return the same view twice.
+        var seenIDs = Set<String>()
         return response.items.filter {
+            guard seenIDs.insert($0.id).inserted else { return false }
             let type = $0.type?.lowercased()
             let collectionType = $0.collectionType?.lowercased()
             return (type == "collectionfolder" || type == "userview")
