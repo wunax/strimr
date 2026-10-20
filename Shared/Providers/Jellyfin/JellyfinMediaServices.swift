@@ -7,6 +7,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     AdvancedLibraryBrowseService, MediaFavoritesService, MediaAuthorizationService,
     MediaTrackSelectionMemoryService
 {
+    private static let artworkCache: NSCache<NSURL, NSData> = {
+        let cache = NSCache<NSURL, NSData>()
+        cache.totalCostLimit = 64 * 1024 * 1024
+        return cache
+    }()
+
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
     private let playbackService: JellyfinPlaybackService
@@ -422,8 +428,15 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             imagePath.append(String(imageIndex))
         }
         let url = try context.url(path: imagePath, query: query)
+        // tvOS skips the offline artwork cache, and hero art is too large for URLCache: without this, every focus
+        // move re-downloaded it.
+        if let cached = Self.artworkCache.object(forKey: url as NSURL) {
+            return .data(cached as Data)
+        }
         let request = try context.mediaRequest(url: url)
-        return try await .data(context.data(for: request))
+        let data = try await context.data(for: request)
+        Self.artworkCache.setObject(data as NSData, forKey: url as NSURL, cost: data.count)
+        return .data(data)
     }
 
     func details(for media: MediaItem) async throws -> MediaDetailContent {

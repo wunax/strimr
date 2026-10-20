@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 #if os(macOS)
     import AppKit
@@ -13,11 +14,7 @@ struct ArtworkResourceView: View {
         case let .url(url):
             RemoteArtworkImage(url: url)
         case let .data(data):
-            if let image = platformImage(data: data) {
-                image.resizable().scaledToFill()
-            } else {
-                placeholder
-            }
+            DataArtworkImage(data: data)
         case nil:
             placeholder
         }
@@ -26,12 +23,74 @@ struct ArtworkResourceView: View {
     private var placeholder: some View {
         Color.gray.opacity(0.1)
     }
+}
 
-    private func platformImage(data: Data) -> Image? {
+/// `UIImage(data:)` in `body` decoded the image lazily on the main actor at every render, which stalled tvOS focus
+/// moves on Jellyfin rows (raw artwork data, unlike Plex URLs). Decoding now happens once, off the main actor.
+private struct DataArtworkImage: View {
+    /// `NSData` hashes only its first bytes and compares contents on collision, so lookups stay cheap.
+    private static let cache: NSCache<NSData, PlatformImage> = {
+        let cache = NSCache<NSData, PlatformImage>()
+        cache.totalCostLimit = 256 * 1024 * 1024
+        return cache
+    }()
+
+    let data: Data
+    @State private var loaded: (data: Data, image: PlatformImage)?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let image = currentImage {
+                platformImage(image).resizable().scaledToFill()
+            } else if failed {
+                Color.gray.opacity(0.1)
+            } else {
+                Color.clear
+            }
+        }
+        .task(id: data) { await load() }
+    }
+
+    private var currentImage: PlatformImage? {
+        if let loaded, loaded.data == data {
+            return loaded.image
+        }
+        return Self.cache.object(forKey: data as NSData)
+    }
+
+    private func load() async {
+        guard currentImage == nil else { return }
+        failed = false
+        guard let (image, cost) = await Self.decode(data) else {
+            guard !Task.isCancelled else { return }
+            failed = true
+            return
+        }
+        Self.cache.setObject(image, forKey: data as NSData, cost: cost)
+        guard !Task.isCancelled else { return }
+        loaded = (data, image)
+    }
+
+    @concurrent
+    private nonisolated static func decode(_ data: Data) async -> (PlatformImage, cost: Int)? {
+        let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options)
+        else { return nil }
+        let cost = cgImage.bytesPerRow * cgImage.height
         #if os(macOS)
-            NSImage(data: data).map(Image.init(nsImage:))
+            return (NSImage(cgImage: cgImage, size: .zero), cost)
         #else
-            UIImage(data: data).map(Image.init(uiImage:))
+            return (UIImage(cgImage: cgImage), cost)
+        #endif
+    }
+
+    private func platformImage(_ image: PlatformImage) -> Image {
+        #if os(macOS)
+            Image(nsImage: image)
+        #else
+            Image(uiImage: image)
         #endif
     }
 }
