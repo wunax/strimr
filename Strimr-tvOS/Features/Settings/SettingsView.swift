@@ -24,6 +24,16 @@ struct SettingsView: View {
                 Rectangle()
                     .fill(.white.opacity(0.1))
                     .frame(width: 1)
+                    .overlay {
+                        switch focusedTarget {
+                        case .category, .detailEntry:
+                            focusGate(.detailEntry)
+                        case .control, .back, .sidebarEntry:
+                            focusGate(.sidebarEntry)
+                        case nil:
+                            EmptyView()
+                        }
+                    }
 
                 detail
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -38,18 +48,30 @@ struct SettingsView: View {
         .onAppear {
             guard !didSetInitialFocus else { return }
             didSetInitialFocus = true
+            if let first = visibleCategories.first {
+                navigation.category = first
+            }
             focusedTarget = .category(navigation.category)
         }
-        .onChange(of: focusedTarget) { _, target in
+        .onChange(of: focusedTarget) { previous, target in
             switch target {
             case let .category(category):
                 // Ignore a transient native fallback while the new detail page mounts.
                 guard navigation.pendingDetailFocus == nil else { return }
+                // Entering from the tab bar lands on the geometrically closest row; restore the selection.
+                if previous == nil, category != navigation.category {
+                    focusedTarget = .category(navigation.category)
+                    return
+                }
                 navigation.sidebarFocused = true
                 navigation.category = category
             case .control:
                 // FocusState also changes when a request is issued; it is not an acknowledgement.
                 break
+            case .detailEntry:
+                navigation.enterDetailFromSidebar()
+            case .sidebarEntry:
+                navigation.enterSidebar()
             case .back:
                 navigation.sidebarFocused = false
             case nil:
@@ -108,6 +130,22 @@ struct SettingsView: View {
         }
     }
 
+    /// Crossing the divider would otherwise land on the geometrically closest row or control,
+    /// visibly, and in the sidebar that would also change the selected category.
+    private func focusGate(_ target: SettingsFocusTarget) -> some View {
+        Color.clear
+            .frame(width: 2)
+            .frame(maxHeight: .infinity)
+            .focusable()
+            .focusEffectDisabled()
+            .focused($focusedTarget, equals: target)
+            .accessibilityHidden(true)
+    }
+
+    private var visibleCategories: [SettingsCategory] {
+        SettingsCategory.visible(canManageAccounts: sessionManager.canManageAccounts)
+    }
+
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 32) {
             Text("settings.title")
@@ -115,10 +153,10 @@ struct SettingsView: View {
                 .padding(.leading, 20)
 
             VStack(spacing: 16) {
-                ForEach(SettingsCategory.visible(canManageAccounts: sessionManager.canManageAccounts)) { category in
+                ForEach(visibleCategories) { category in
                     Button {
                         navigation.category = category
-                        navigation.enterDetail()
+                        navigation.enterDetailFromSidebar()
                     } label: {
                         HStack(spacing: 18) {
                             Image(systemName: category.symbol)

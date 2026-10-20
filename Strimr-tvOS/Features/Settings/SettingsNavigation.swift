@@ -63,6 +63,12 @@ final class SettingsNavigation {
         detailRequest += 1
     }
 
+    /// Coming from the sidebar starts at the top of the page rather than the last focused control.
+    func enterDetailFromSidebar() {
+        focusedControls[pageID] = nil
+        enterDetail()
+    }
+
     func enterSidebar() {
         pendingDetailFocus = nil
         sidebarFocused = true
@@ -111,6 +117,8 @@ enum SettingsFocusTarget: Hashable {
     case category(SettingsCategory)
     case control(pageID: String, id: String)
     case back
+    case detailEntry
+    case sidebarEntry
 }
 
 struct SettingsFocusCandidate: Equatable {
