@@ -118,6 +118,7 @@
 				Features/Auth/AccountSetupFlow.swift,
 				Features/Auth/AccountSetupView.swift,
 				Features/Auth/MigrationFailedView.swift,
+				Features/Auth/PinPollingBackoff.swift,
 				Features/Auth/ProfileSelection/ProfilePickerComponents.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ProfileSelection/ProfileTint.swift,

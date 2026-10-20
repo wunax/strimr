@@ -85,14 +85,18 @@ final class SignInViewModel {
         pollTask?.cancel()
         pollTask = Task { [weak self] in
             guard let self else { return }
+            var backoff = PinPollingBackoff()
             while !Task.isCancelled, isAuthenticating {
                 do {
                     let result = try await AuthRepository(context: context).pollToken(pinId: pinID)
+                    backoff.recordResponse()
                     if let token = result.authToken {
                         try await onToken(token)
                         cancelSignIn()
                         return
                     }
+                } catch PlexAPIError.requestFailed(statusCode: 429) {
+                    backoff.recordRateLimit()
                 } catch {
                     if case PlexAPIError.requestFailed(statusCode: 404) = error {
                         errorMessage = String(localized: "signIn.error.pinExpired")
@@ -103,7 +107,7 @@ final class SignInViewModel {
                     ErrorReporter.capture(error)
                 }
 
-                try? await Task.sleep(for: .seconds(2))
+                try? await Task.sleep(for: backoff.interval)
             }
         }
     }

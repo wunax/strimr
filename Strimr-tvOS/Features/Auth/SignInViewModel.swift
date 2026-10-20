@@ -43,10 +43,12 @@ final class SignInViewModel {
         pollTask?.cancel()
 
         pollTask = Task {
+            var backoff = PinPollingBackoff()
             while !Task.isCancelled, isAuthenticating {
                 do {
                     let authRepository = AuthRepository(context: plexContext)
                     let result = try await authRepository.pollToken(pinId: pinID)
+                    backoff.recordResponse()
                     if let token = result.authToken {
                         do {
                             try await onToken(token)
@@ -59,6 +61,8 @@ final class SignInViewModel {
                             cancelSignIn()
                         }
                     }
+                } catch PlexAPIError.requestFailed(statusCode: 429) {
+                    backoff.recordRateLimit()
                 } catch {
                     if case PlexAPIError.requestFailed(statusCode: 404) = error {
                         do {
@@ -78,7 +82,7 @@ final class SignInViewModel {
                     ErrorReporter.capture(error)
                 }
 
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(for: backoff.interval)
             }
         }
     }
