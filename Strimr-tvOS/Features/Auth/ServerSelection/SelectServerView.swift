@@ -78,7 +78,8 @@ struct SelectServerView: View {
                         serverRow(server)
                     }
 
-                    // Full-width focus section so focus can reach the centered button from the trailing custom address button.
+                    // Full-width focus section so focus can reach the centered button from the trailing custom address
+                    // button.
                     HStack {
                         Button {
                             viewModel.continueWithSelection()
