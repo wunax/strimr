@@ -164,10 +164,14 @@ final class PlaybackRepository {
     }
 
     func stopTranscode(sessionIdentifier: String) async throws {
-        try await network.send(
-            path: "/video/:/transcode/universal/stop",
-            queryItems: [URLQueryItem(name: "session", value: sessionIdentifier)],
-        )
+        do {
+            try await network.send(
+                path: "/video/:/transcode/universal/stop",
+                queryItems: [URLQueryItem(name: "session", value: sessionIdentifier)],
+            )
+        } catch PlexAPIError.requestFailed(statusCode: 404) {
+            // The server already ended the session, which is the outcome we asked for.
+        }
     }
 
     private func transcodeQuery(
