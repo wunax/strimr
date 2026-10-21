@@ -1,144 +1,162 @@
 import SwiftUI
 
-/// Version, audio and subtitle choices for what will play.
+/// Version, audio and subtitle choices for what will play, as Settings-style rows that open the existing menus.
 struct DetailPlaybackCard: View {
     @Bindable var viewModel: MediaDetailViewModel
     let isServerUnreachable: Bool
     let onSearchSubtitles: () -> Void
 
     var body: some View {
-        if viewModel.showsVersionSelection {
-            versionButton
-        }
-
-        if !viewModel.audioTracks.isEmpty {
-            audioTrackButton
-        }
-
-        if !viewModel.subtitleTracks.isEmpty || (viewModel.canSearchSubtitles && !isServerUnreachable) {
-            subtitleTrackButton
+        if showsSkeleton {
+            skeleton
+        } else if !rows.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element) { index, row in
+                    if index > 0 {
+                        Divider()
+                            .padding(.leading, 52)
+                    }
+                    menu(for: row)
+                }
+            }
+            .background(.surfaceSubtle, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .disabled(viewModel.isUpdatingTracks)
         }
     }
 
-    private var versionButton: some View {
-        VStack(spacing: 2) {
+    private enum Row: Hashable { case version, audio, subtitles }
+
+    private let cornerRadius: CGFloat = 14
+    private let rowHeight: CGFloat = 48
+
+    private var rows: [Row] {
+        var rows: [Row] = []
+        if viewModel.showsVersionSelection {
+            rows.append(.version)
+        }
+        if !viewModel.audioTracks.isEmpty {
+            rows.append(.audio)
+        }
+        if !viewModel.subtitleTracks.isEmpty || (viewModel.canSearchSubtitles && !isServerUnreachable) {
+            rows.append(.subtitles)
+        }
+        return rows
+    }
+
+    /// Keeps the space of the card while the tracks of a playable item load, so the page does not jump.
+    private var showsSkeleton: Bool {
+        rows.isEmpty && viewModel.isLoadingTracks && [.movie, .episode].contains(viewModel.media.type)
+    }
+
+    private var skeleton: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.surfaceSubtle)
+            .frame(height: rowHeight * 2)
+            .accessibilityLabel(Text("common.loading"))
+    }
+
+    @ViewBuilder
+    private func menu(for row: Row) -> some View {
+        switch row {
+        case .version:
             Menu {
                 MediaDetailVersionMenuItems(viewModel: viewModel)
             } label: {
-                if viewModel.isUpdatingTracks {
-                    ProgressView()
-                } else {
-                    Image(systemName: "film.stack")
-                        .font(.headline.weight(.semibold))
-                }
+                rowLabel("media.versions.title", systemImage: "film.stack", value: viewModel.selectedVersionShortLabel)
             }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isUpdatingTracks)
-            .accessibilityLabel(Text("media.versions.title"))
-            .accessibilityValue(Text(viewModel.selectedVersionShortLabel))
-
-            Text(verbatim: viewModel.selectedVersionShortLabel)
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 56)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-        }
-    }
-
-    private var audioTrackButton: some View {
-        VStack(spacing: 2) {
+        case .audio:
             Menu {
-                ForEach(viewModel.audioTracks, id: \.self) { track in
-                    if let id = track.id {
-                        Button {
-                            Task { await viewModel.selectAudioStream(id: id) }
-                        } label: {
-                            Label(
-                                track.displayTitle,
-                                systemImage: viewModel.selectedAudioStreamID == id ? "checkmark" : "circle",
-                            )
-                        }
-                    }
-                }
+                audioMenuItems
             } label: {
-                if viewModel.isUpdatingTracks {
-                    ProgressView()
-                } else {
-                    Image(systemName: "waveform")
-                        .font(.headline.weight(.semibold))
-                }
+                rowLabel(
+                    "player.settings.audio",
+                    systemImage: "waveform",
+                    value: viewModel.selectedAudioTrackTitle ?? "",
+                )
             }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isUpdatingTracks)
-
-            Text("player.settings.audio")
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 48)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+        case .subtitles:
+            Menu {
+                subtitleMenuItems
+            } label: {
+                rowLabel(
+                    "player.settings.subtitles",
+                    systemImage: "captions.bubble",
+                    value: viewModel.selectedSubtitleTrackTitle,
+                )
+            }
         }
     }
 
-    private var subtitleTrackButton: some View {
-        VStack(spacing: 2) {
-            Menu {
+    private func rowLabel(_ title: LocalizedStringKey, systemImage: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.textSecondary)
+                .frame(width: 28)
+            Text(title)
+                .foregroundStyle(.textPrimary)
+            Spacer(minLength: 12)
+            if viewModel.isUpdatingTracks {
+                ProgressView()
+            } else {
+                Text(verbatim: value)
+                    .foregroundStyle(.textSecondary)
+                    .lineLimit(1)
+            }
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.textTertiary)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 12)
+        .frame(minHeight: rowHeight)
+        .contentShape(Rectangle())
+    }
+
+    private var audioMenuItems: some View {
+        ForEach(viewModel.audioTracks, id: \.self) { track in
+            if let id = track.id {
                 Button {
-                    Task { await viewModel.selectSubtitleStream(id: nil) }
+                    Task { await viewModel.selectAudioStream(id: id) }
                 } label: {
                     Label(
-                        String(localized: "player.settings.subtitles.off"),
-                        systemImage: viewModel.selectedSubtitleStreamID == nil ? "checkmark" : "circle",
+                        track.displayTitle,
+                        systemImage: viewModel.selectedAudioStreamID == id ? "checkmark" : "circle",
                     )
                 }
+            }
+        }
+    }
 
-                ForEach(viewModel.subtitleTracks, id: \.self) { track in
-                    if let id = track.id {
-                        Button {
-                            Task { await viewModel.selectSubtitleStream(id: id) }
-                        } label: {
-                            Label(
-                                track.displayTitle,
-                                systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
-                            )
-                        }
-                    }
-                }
+    @ViewBuilder
+    private var subtitleMenuItems: some View {
+        Button {
+            Task { await viewModel.selectSubtitleStream(id: nil) }
+        } label: {
+            Label(
+                String(localized: "player.settings.subtitles.off"),
+                systemImage: viewModel.selectedSubtitleStreamID == nil ? "checkmark" : "circle",
+            )
+        }
 
-                if viewModel.canSearchSubtitles {
-                    Divider()
-                    Button(action: onSearchSubtitles) {
-                        Label("subtitles.search.action", systemImage: "magnifyingglass")
-                    }
-                    .tint(.secondary)
-                }
-            } label: {
-                if viewModel.isUpdatingTracks {
-                    ProgressView()
-                } else {
-                    Image(systemName: "captions.bubble")
-                        .font(.headline.weight(.semibold))
+        ForEach(viewModel.subtitleTracks, id: \.self) { track in
+            if let id = track.id {
+                Button {
+                    Task { await viewModel.selectSubtitleStream(id: id) }
+                } label: {
+                    Label(
+                        track.displayTitle,
+                        systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
+                    )
                 }
             }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isUpdatingTracks)
+        }
 
-            Text("player.settings.subtitles")
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 56)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+        if viewModel.canSearchSubtitles {
+            Divider()
+            Button(action: onSearchSubtitles) {
+                Label("subtitles.search.action", systemImage: "magnifyingglass")
+            }
         }
     }
 }

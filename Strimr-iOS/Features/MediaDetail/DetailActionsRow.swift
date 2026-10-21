@@ -11,14 +11,13 @@ struct DetailActionsRow: View {
     let onPlay: (String, MediaKind) -> Void
     let onPlayFromStart: (String, MediaKind) -> Void
     let onShuffle: (String, MediaKind) -> Void
-    let onSearchSubtitles: () -> Void
     let onShowDownloadOptions: () -> Void
     let onShowShowDownloadSheet: () -> Void
     let onShowFileInfo: () -> Void
     let onStartSharePlay: () -> Void
 
     var body: some View {
-        playButtonsRow
+        playButton
         if isServerUnreachable, downloadedPlayback == nil {
             if viewModel.reachableCopyReplacingUnavailableServer != nil {
                 ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
@@ -35,27 +34,40 @@ struct DetailActionsRow: View {
     }
 
     private var secondaryButtonsRow: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 20) {
             watchToggleButton
 
-            DetailPlaybackCard(
-                viewModel: viewModel,
-                isServerUnreachable: isServerUnreachable,
-                onSearchSubtitles: onSearchSubtitles,
-            )
+            if viewModel.shouldShowFavoriteButton {
+                favoriteButton
+            }
 
             if mediaServices.capabilities.downloads {
                 downloadButton
             }
+
             moreButton
-                .disabled(isServerUnreachable)
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var moreButton: some View {
-        VStack(spacing: 2) {
-            Menu {
+        Menu {
+            if canPlayFromStart {
+                Button(action: handlePlayFromStart) {
+                    Label("media.detail.playFromStart", systemImage: "arrow.counterclockwise")
+                }
+            }
+
+            // Streaming stays the default online (the download may be lower quality); this plays the local copy.
+            if !isServerUnreachable, let request = downloadedPlayback {
+                Button {
+                    coordinator.showLocalPlayer(request)
+                } label: {
+                    Label("offline.detail.playDownloaded", systemImage: "arrow.down.circle")
+                }
+            }
+
+            if !isServerUnreachable {
                 if viewModel.shouldShowWatchlistButton {
                     Button {
                         Task { await viewModel.toggleWatchlistStatus() }
@@ -66,19 +78,6 @@ struct DetailActionsRow: View {
                         viewModel.isLoading
                             || viewModel.isLoadingWatchlistStatus
                             || viewModel.isUpdatingWatchlistStatus,
-                    )
-                }
-
-                if viewModel.shouldShowFavoriteButton {
-                    Button {
-                        Task { await viewModel.toggleFavoriteStatus() }
-                    } label: {
-                        Label(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon)
-                    }
-                    .disabled(
-                        viewModel.isLoading
-                            || viewModel.isLoadingFavoriteStatus
-                            || viewModel.isUpdatingFavoriteStatus,
                     )
                 }
 
@@ -111,41 +110,23 @@ struct DetailActionsRow: View {
                         Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                     }
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 20, height: 20)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .frame(width: 48, height: 44)
-
-            Text("common.actions.more")
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 48)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+        } label: {
+            DetailRoundActionLabel(
+                title: "common.actions.more",
+                systemImage: "ellipsis",
+                isActive: false,
+                isLoading: false,
+            )
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(Text("common.actions.more"))
     }
 
-    private var playButtonsRow: some View {
-        HStack(spacing: 12) {
-            playButton
-
-            if viewModel.shouldShowPlayFromStartButton, !isServerUnreachable || downloadedPlayback != nil {
-                playFromStartButton
-            }
-
-            if !isServerUnreachable, downloadedPlayback != nil {
-                playDownloadedButton
-            }
-        }
+    private var canPlayFromStart: Bool {
+        viewModel.shouldShowPlayFromStartButton && (!isServerUnreachable || downloadedPlayback != nil)
     }
 
-    /// The disabled prominent background is dark, so the dark brand foreground would hide the label.
     private var isPlayDisabled: Bool {
         viewModel.primaryActionRatingKey == nil || (isServerUnreachable && downloadedPlayback == nil)
     }
@@ -158,123 +139,87 @@ struct DetailActionsRow: View {
         downloadManager.localPlaybackRequest(forDetail: viewModel)
     }
 
-    /// Streaming stays the default online (the download may be lower quality); this plays the local copy instead.
-    private var playDownloadedButton: some View {
-        Button {
-            if let request = downloadedPlayback {
-                coordinator.showLocalPlayer(request)
-            }
-        } label: {
-            Image(systemName: "arrow.down.circle")
-                .font(.title2.weight(.semibold))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .accessibilityLabel(Text("offline.detail.playDownloaded"))
-    }
-
     private var playButton: some View {
         Button(action: handlePlay) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 PlayProgressIcon(progress: viewModel.primaryActionProgress)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(viewModel.primaryActionTitle)
-                        .fontWeight(.semibold)
-                    if let detail = viewModel.primaryActionDetail {
-                        Text(detail)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Text(viewModel.primaryActionCompactTitle)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(isPlayDisabled ? Color.surfaceRaised : Color.white, in: Capsule(style: .continuous))
+            .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .foregroundStyle(isPlayDisabled ? Color.secondary : Color.brandSecondaryForeground)
+        .buttonStyle(.plain)
         .disabled(isPlayDisabled)
     }
 
-    private var playFromStartButton: some View {
-        Button(action: handlePlayFromStart) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.title2.weight(.semibold))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .accessibilityLabel(Text("media.detail.playFromStart"))
-    }
-
     private var watchToggleButton: some View {
-        VStack(spacing: 2) {
-            Button {
-                Task {
-                    if viewModel.shouldShowBothWatchActions {
-                        await viewModel.markWatched()
-                    } else {
-                        await viewModel.toggleWatchStatus()
-                    }
-                }
-            } label: {
-                if viewModel.isUpdatingWatchStatus {
-                    ProgressView()
-                        .tint(.brandSecondaryForeground)
-                } else if viewModel.shouldShowBothWatchActions {
-                    Image(systemName: "checkmark.circle")
-                        .font(.headline.weight(.semibold))
+        Button {
+            Task {
+                if viewModel.shouldShowBothWatchActions {
+                    await viewModel.markWatched()
                 } else {
-                    Image(systemName: viewModel.watchActionIcon)
-                        .font(.headline.weight(.semibold))
+                    await viewModel.toggleWatchStatus()
                 }
             }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus || isServerUnreachable)
-
-            Text(
-                viewModel.shouldShowBothWatchActions
-                    ? String(localized: "media.detail.watchAction.markWatched")
-                    : viewModel.watchActionTitle,
+        } label: {
+            DetailRoundActionLabel(
+                title: "media.detail.action.watched",
+                systemImage: isWatched ? "checkmark.circle.fill" : "checkmark.circle",
+                isActive: isWatched,
+                isLoading: viewModel.isUpdatingWatchStatus,
             )
-            .font(.caption2)
-            .foregroundStyle(.primary)
-            .frame(maxWidth: 48)
-            .multilineTextAlignment(.center)
-            .lineLimit(2)
         }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus || isServerUnreachable)
+        .accessibilityLabel(Text(
+            viewModel.shouldShowBothWatchActions
+                ? String(localized: "media.detail.watchAction.markWatched")
+                : viewModel.watchActionTitle,
+        ))
+    }
+
+    private var isWatched: Bool {
+        viewModel.isWatched(viewModel.media.mediaItem)
+    }
+
+    private var favoriteButton: some View {
+        Button {
+            Task { await viewModel.toggleFavoriteStatus() }
+        } label: {
+            DetailRoundActionLabel(
+                title: "media.detail.action.favorite",
+                systemImage: viewModel.isFavorite ? "star.fill" : "star",
+                isActive: viewModel.isFavorite,
+                isLoading: viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus,
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(
+            viewModel.isLoading
+                || viewModel.isLoadingFavoriteStatus
+                || viewModel.isUpdatingFavoriteStatus
+                || isServerUnreachable,
+        )
+        .accessibilityLabel(Text(viewModel.favoriteActionTitle))
     }
 
     private var downloadButton: some View {
-        VStack(spacing: 2) {
-            Button {
-                handleDownloadTap()
-            } label: {
-                if isDownloadInProgress {
-                    ProgressView()
-                        .tint(.brandSecondaryForeground)
-                } else {
-                    Image(systemName: downloadIconName)
-                        .font(.headline.weight(.semibold))
-                }
-            }
-            .frame(width: 48, height: 44)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(.brandSecondary)
-            .disabled(viewModel.isLoading || isServerUnreachable)
-
-            Text("downloads.action")
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: 52)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+        Button {
+            handleDownloadTap()
+        } label: {
+            DetailRoundActionLabel(
+                title: "downloads.action",
+                systemImage: downloadIconName,
+                isActive: downloadStatus == .completed,
+                isLoading: isDownloadInProgress,
+            )
         }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading || isServerUnreachable)
     }
 
     private func handlePlay() {
@@ -365,11 +310,11 @@ private struct PlayProgressIcon: View {
         ZStack {
             if let progress {
                 Circle()
-                    .stroke(Color.brandSecondaryForeground.opacity(0.25), lineWidth: 4)
+                    .stroke(Color.black.opacity(0.25), lineWidth: 4)
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        Color.brandSecondaryForeground,
+                        Color.black,
                         style: StrokeStyle(lineWidth: 4, lineCap: .round),
                     )
                     .rotationEffect(.degrees(-90))
@@ -379,5 +324,39 @@ private struct PlayProgressIcon: View {
                 .font(.title3.weight(.semibold))
         }
         .frame(width: 30, height: 30)
+    }
+}
+
+/// 48 pt round icon with a short caption; filled icon and full-white caption when the state is on.
+private struct DetailRoundActionLabel: View {
+    @Environment(\.isEnabled) private var isEnabled
+    let title: LocalizedStringKey
+    let systemImage: String
+    let isActive: Bool
+    let isLoading: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(.surfaceRaised)
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(isActive ? .textPrimary : .textSecondary)
+                }
+            }
+            .frame(width: 48, height: 48)
+
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(isActive ? .textPrimary : .textSecondary)
+                .lineLimit(1)
+        }
+        .frame(minWidth: 56)
+        .opacity(isEnabled ? 1 : 0.5)
+        .contentShape(Rectangle())
     }
 }

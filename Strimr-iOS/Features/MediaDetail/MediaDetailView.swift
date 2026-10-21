@@ -74,6 +74,10 @@ struct MediaDetailView: View {
                     viewModel: bindableViewModel,
                     onSelectMedia: onSelectMedia,
                 )
+
+                DetailFactsSection(viewModel: bindableViewModel)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 32)
             }
         }
         .ignoresSafeArea(edges: .top)

@@ -5,6 +5,7 @@ import UIKit
 
 struct MediaDetailHeaderSection: View {
     @Environment(DownloadManager.self) private var downloadManager
+    @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(MediaServices.self) private var mediaServices
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -30,55 +31,34 @@ struct MediaDetailHeaderSection: View {
             )
 
             VStack(alignment: .leading, spacing: 16) {
-                Spacer().frame(height: heroHeight - 40)
+                // The title block straddles the bottom of the backdrop.
+                Spacer().frame(height: heroHeight - LayoutMetrics.heroLogoMaxSize.height - 24)
 
-                headerSection
+                DetailHeroTitle(viewModel: viewModel)
                 DetailActionsRow(
                     viewModel: viewModel,
                     isStartingSharePlay: isStartingSharePlay,
                     onPlay: onPlay,
                     onPlayFromStart: onPlayFromStart,
                     onShuffle: onShuffle,
-                    onSearchSubtitles: onSearchSubtitles,
                     onShowDownloadOptions: { isShowingDownloadOptions = true },
                     onShowShowDownloadSheet: { isShowingShowDownloadSheet = true },
                     onShowFileInfo: { isShowingFileInfo = true },
                     onStartSharePlay: startSharePlay,
                 )
-                badgesSection
-                ratingsSection
+                DetailPlaybackCard(
+                    viewModel: viewModel,
+                    isServerUnreachable: offlineCoordinator.isUnreachable(mediaServices.identity),
+                    onSearchSubtitles: onSearchSubtitles,
+                )
 
-                if let tagline = viewModel.media.tagline, !tagline.isEmpty {
-                    Text(tagline)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                synopsis
+
+                if let starring = StarringFormatter.text(from: viewModel.cast) {
+                    Text(starring)
+                        .font(.subheadline)
+                        .foregroundStyle(.textTertiary)
                 }
-
-                if viewModel.media.mediaItem.shouldHideSpoilerSummary(
-                    at: settingsManager.interface.spoilerProtection,
-                ) {
-                    Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                } else if let summary = viewModel.media.summary, !summary.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(summary)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(isSummaryExpanded ? nil : 3)
-
-                        Button(action: { isSummaryExpanded.toggle() }) {
-                            Text(isSummaryExpanded ? "common.actions.showLess" : "common.actions.readMore")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .tint(.brandSecondary)
-                        }
-                        .tint(.accentColor)
-                    }
-                }
-
-                DetailFactsSection(viewModel: viewModel)
 
                 if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -190,81 +170,45 @@ struct MediaDetailHeaderSection: View {
         }
     }
 
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.detailPrimaryLabel)
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-
-            if let secondary = viewModel.detailSecondaryLabel {
-                Text(secondary)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let tertiary = viewModel.detailTertiaryLabel {
-                Text(tertiary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var badgesSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                if let year = viewModel.yearText {
-                    badge(text: year)
-                }
-
-                if let runtime = viewModel.runtimeText {
-                    badge(text: runtime, systemImage: "clock")
-                }
-
-                if let contentRating = viewModel.media.contentRating {
-                    badge(text: contentRating)
-                }
-
-                if let versionCount = viewModel.versionCountBadge {
-                    badge(
-                        text: String(localized: "media.versions.count \(versionCount)"),
-                        systemImage: "film.stack",
-                    )
-                }
-            }
-        }
-        .scrollClipDisabled()
-    }
-
     @ViewBuilder
-    private var ratingsSection: some View {
-        if !viewModel.media.ratings.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
-                        MediaRatingLabel(rating: rating, iconHeight: 16)
-                            .font(.footnote)
-                    }
+    private var synopsis: some View {
+        if viewModel.media.mediaItem.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+            Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                .font(.body)
+                .foregroundStyle(.textSecondary)
+        } else if let summaryText {
+            VStack(alignment: .leading, spacing: 8) {
+                summaryText
+                    .font(.body)
+                    .foregroundStyle(.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(isSummaryExpanded ? nil : 3)
+
+                Button(action: { isSummaryExpanded.toggle() }) {
+                    Text(isSummaryExpanded ? "common.actions.showLess" : "common.actions.readMore")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.textPrimary)
                 }
             }
-            .scrollClipDisabled()
         }
     }
 
-    private func badge(text: String, systemImage: String? = nil) -> some View {
-        HStack(spacing: 6) {
-            if let systemImage {
-                Image(systemName: systemImage)
-            }
-            Text(text)
-                .font(.subheadline)
-                .fontWeight(.medium)
+    /// The tagline leads the synopsis in semibold instead of taking a line of its own.
+    private var summaryText: Text? {
+        let tagline = viewModel.media.tagline.flatMap { $0.isEmpty ? nil : $0 }
+        let summary = viewModel.media.summary.flatMap { $0.isEmpty ? nil : $0 }
+        switch (tagline, summary) {
+        case let (tagline?, summary?):
+            return Text(verbatim: tagline + " ").fontWeight(.semibold).foregroundStyle(.textPrimary)
+                + Text(verbatim: summary)
+        case let (tagline?, nil):
+            return Text(verbatim: tagline).fontWeight(.semibold).foregroundStyle(.textPrimary)
+        case let (nil, summary?):
+            return Text(verbatim: summary)
+        case (nil, nil):
+            return nil
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
-        .background(.ultraThinMaterial, in: Capsule())
     }
 
     private var isStartingSharePlay: Bool {

@@ -3,6 +3,7 @@ import SwiftUI
 /// Backdrop at the top of the detail page.
 struct DetailHeroView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: MediaDetailViewModel
     let heroHeight: CGFloat
     let onSelectParentSeries: () -> Void
@@ -53,6 +54,14 @@ struct DetailHeroView: View {
                 }
             }
             .frame(height: heroHeight)
+            // Pulling down zooms the backdrop to fill the gap; scrolling up moves it at half speed. Computed in
+            // `visualEffect` so scrolling publishes no state.
+            .visualEffect { [reduceMotion, heroHeight] content, proxy in
+                let minY = reduceMotion ? 0 : proxy.frame(in: .scrollView(axis: .vertical)).minY
+                return content
+                    .scaleEffect(minY > 0 ? 1 + minY / heroHeight : 1, anchor: .bottom)
+                    .offset(y: minY < 0 ? -minY * 0.5 : 0)
+            }
             .overlay(alignment: .topLeading) {
                 if viewModel.media.mediaItem.isSpoilerProtected(
                     at: settingsManager.interface.spoilerProtection,
@@ -87,5 +96,74 @@ struct DetailHeroView: View {
             startPoint: .top,
             endPoint: .bottom,
         )
+    }
+}
+
+/// Logo or title centered over the bottom of the backdrop, with the facts and ratings under it.
+struct DetailHeroTitle: View {
+    @Bindable var viewModel: MediaDetailViewModel
+
+    var body: some View {
+        VStack(spacing: 10) {
+            TitleLogoView(
+                media: viewModel.media.mediaItem,
+                title: logoTitle,
+                logoPath: viewModel.media.mediaItem.preferredLogoPath ?? seriesLogoPath,
+                maxSize: LayoutMetrics.heroLogoMaxSize,
+                alignment: .bottom,
+            )
+            .frame(maxWidth: .infinity, minHeight: LayoutMetrics.heroLogoMaxSize.height / 2, alignment: .bottom)
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(.headline)
+                    .foregroundStyle(.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            MediaFactsLine(facts: facts, badges: badges)
+                .frame(maxWidth: .infinity)
+
+            if !viewModel.media.ratings.isEmpty {
+                HStack(spacing: 12) {
+                    ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
+                        MediaRatingLabel(rating: rating, iconHeight: 16)
+                            .font(.footnote)
+                    }
+                }
+                .foregroundStyle(.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var isChildItem: Bool {
+        [.season, .episode].contains(viewModel.media.type)
+    }
+
+    /// Episodes and seasons show their series' logo or name, with their own title under it.
+    private var logoTitle: String {
+        isChildItem ? viewModel.detailSecondaryLabel ?? viewModel.detailPrimaryLabel : viewModel.detailPrimaryLabel
+    }
+
+    private var subtitle: String? {
+        isChildItem ? viewModel.detailPrimaryLabel : nil
+    }
+
+    private var seriesLogoPath: String? {
+        viewModel.parentSeries?.mediaItem.logoPath
+    }
+
+    private var facts: MediaFacts {
+        MediaFactsFormatter.facts(
+            for: viewModel.media.mediaItem,
+            seasonCount: viewModel.seasons.isEmpty ? nil : viewModel.seasons.count,
+        )
+    }
+
+    private var badges: [String] {
+        guard viewModel.activeVersionID(for: nil) != nil else { return [] }
+        return viewModel.selectedVersion?.badgeLabels ?? []
     }
 }
