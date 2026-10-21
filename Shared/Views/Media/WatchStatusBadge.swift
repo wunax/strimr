@@ -17,7 +17,7 @@ struct WatchStatusBadge: View {
 
     private func badge(@ViewBuilder content: () -> some View) -> some View {
         content()
-            .font(.caption.weight(.semibold))
+            .font(.badge)
             .foregroundStyle(.white)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)

@@ -28,8 +28,7 @@ struct HomeView: View {
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    ProgressView("home.loading")
-                        .frame(maxWidth: .infinity)
+                    RailsSkeleton()
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -46,6 +45,9 @@ struct HomeView: View {
         .navigationTitle("tabs.home")
         .navigationBarTitleDisplayMode(.inline)
         .userMenuToolbar()
+        .environment(\.reloadAfterMediaCardAction) { item in
+            Task { await viewModel.refresh(server: item.identity.server) }
+        }
         .task {
             await viewModel.load()
         }

@@ -14,6 +14,7 @@ final class ImageRepository {
         height: Int = 360,
         minSize: Int = 1,
         upscale: Int = 1,
+        format: String? = nil,
     ) -> URL? {
         guard let snapshot = try? context?.serverAccessSnapshot() else { return nil }
         var components = URLComponents(
@@ -28,6 +29,9 @@ final class ImageRepository {
             URLQueryItem(name: "minSize", value: String(minSize)),
             URLQueryItem(name: "upscale", value: String(upscale)),
         ]
+        if let format {
+            components?.queryItems?.append(URLQueryItem(name: "format", value: format))
+        }
         return components?.url
     }
 }

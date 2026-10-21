@@ -20,16 +20,13 @@ struct MediaHubSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 titleView
                 if let subtitle {
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textTertiary)
                 }
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(Color.brandPrimary)
-                    .frame(width: 32, height: 4)
             }
 
             content
@@ -45,6 +42,7 @@ struct MediaHubSection<Content: View>: View {
                         titleText
                         Image(systemName: "chevron.right")
                             .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.textTertiary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -59,8 +57,7 @@ struct MediaHubSection<Content: View>: View {
 
     private var titleText: some View {
         Text(title)
-            .font(.headline)
-            .fontWeight(.semibold)
-            .foregroundStyle(.brandSecondary)
+            .font(.sectionTitle)
+            .foregroundStyle(.textPrimary)
     }
 }

@@ -49,6 +49,9 @@ struct LibraryBrowseView: View {
                             switch viewModel.layout {
                             case .grid:
                                 PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
+                                    if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
+                                        PosterSkeletonCards(width: cardWidth)
+                                    }
                                     browseItems(cardWidth: cardWidth)
                                 }
                             case .list:
@@ -75,7 +78,9 @@ struct LibraryBrowseView: View {
                 if viewModel.folderTree != nil {
                     EmptyView()
                 } else if viewModel.isLoading, viewModel.itemsByIndex.isEmpty {
-                    ProgressView("library.browse.loading")
+                    if viewModel.layout == .list {
+                        ProgressView("library.browse.loading")
+                    }
                 } else if let errorMessage = viewModel.errorMessage, viewModel.itemsByIndex.isEmpty {
                     ContentUnavailableView(
                         errorMessage,

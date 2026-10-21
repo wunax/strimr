@@ -27,8 +27,7 @@ struct LibraryRecommendedView: View {
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    ProgressView("library.recommended.loading")
-                        .frame(maxWidth: .infinity)
+                    RailsSkeleton()
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -41,6 +40,9 @@ struct LibraryRecommendedView: View {
             }
             .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 20)
+        }
+        .environment(\.reloadAfterMediaCardAction) { _ in
+            Task { await viewModel.refreshSilently() }
         }
         .task {
             await viewModel.load()

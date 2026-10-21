@@ -37,8 +37,7 @@ struct FavoritesView: View {
                 }
 
                 if viewModel.isLoading, viewModel.itemsByCategory.isEmpty {
-                    ProgressView("favorites.loading")
-                        .frame(maxWidth: .infinity)
+                    RailsSkeleton()
                 } else if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
@@ -65,6 +64,9 @@ struct FavoritesView: View {
             .environment(\.railPageMargin, 16)
         }
         .navigationTitle("tabs.favorites")
+        .environment(\.reloadAfterMediaCardAction) { _ in
+            Task { await viewModel.load() }
+        }
         .task { await viewModel.load() }
         .refreshable { await viewModel.load() }
         .navigationDestination(item: $selectedCategory) { category in

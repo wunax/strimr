@@ -392,6 +392,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             path: path,
             width: width ?? 240,
             height: height ?? 360,
+            // The transcoder outputs JPEG by default, which would lose the logo's transparency.
+            format: path.contains("/clearLogo") ? "png" : nil,
         )
     }
 

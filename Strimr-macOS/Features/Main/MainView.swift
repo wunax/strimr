@@ -71,6 +71,7 @@ struct MainView: View {
                 }
             }
         }
+        .mediaCardActions(registry: registry, presenter: appModel, showMedia: appModel.showMedia)
         .task {
             sharePlayCoordinator.configurePlaybackPresenter(appModel)
             do {

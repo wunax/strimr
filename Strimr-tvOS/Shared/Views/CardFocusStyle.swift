@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Lift applied to card artwork when it takes focus.
 struct CardFocusStyle: ViewModifier {
+    static let focusedScale: CGFloat = 1.06
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let isFocused: Bool
@@ -24,7 +26,7 @@ struct CardFocusStyle: ViewModifier {
         if isPressed {
             return 0.97
         }
-        return isFocused ? 1.06 : 1
+        return isFocused ? Self.focusedScale : 1
     }
 }
 

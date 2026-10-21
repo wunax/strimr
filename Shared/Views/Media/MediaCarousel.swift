@@ -95,10 +95,10 @@ struct MediaCarousel: View {
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
         }
-        .foregroundStyle(.brandSecondary)
+        .foregroundStyle(.textSecondary)
         .frame(width: size.width, height: size.height)
-        .background(Color.brandSecondary.opacity(0.08))
-        .mediaArtworkStyle(borderColor: Color.brandSecondary.opacity(0.24))
+        .background(.surfaceSubtle)
+        .mediaArtworkStyle(borderColor: .strokeSubtle)
         #if os(tvOS)
             .cardFocusStyle(isFocused: isViewAllFocused)
         #endif

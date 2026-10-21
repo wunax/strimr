@@ -26,12 +26,28 @@ struct ArtworkResourceView: View {
 
     /// Warms the image caches so a view created afterwards renders the artwork on its first frame.
     static func preload(_ resource: ArtworkResource) async {
-        switch resource {
+        _ = await image(for: resource)
+    }
+
+    /// The decoded artwork, for callers that lay it out themselves; nil when it cannot be loaded.
+    static func image(for resource: ArtworkResource) async -> Image? {
+        let image: PlatformImage? = switch resource {
         case let .url(url):
-            _ = try? await RemoteArtworkImage.image(for: url)
+            try? await RemoteArtworkImage.image(for: url)
         case let .data(data):
-            _ = await DataArtworkImage.image(for: data)
+            await DataArtworkImage.image(for: data)
         }
+        return image.map(Image.init(platformImage:))
+    }
+}
+
+private extension Image {
+    init(platformImage: PlatformImage) {
+        #if os(macOS)
+            self.init(nsImage: platformImage)
+        #else
+            self.init(uiImage: platformImage)
+        #endif
     }
 }
 

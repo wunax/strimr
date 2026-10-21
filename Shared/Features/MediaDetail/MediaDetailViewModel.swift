@@ -106,6 +106,10 @@ final class MediaDetailViewModel {
         services.identity
     }
 
+    private var quickActions: MediaQuickActions {
+        MediaQuickActions(services: services)
+    }
+
     private var detailTargetID: String {
         resolutionMode == .seriesRoot ? media.metadataRatingKey : media.id
     }
@@ -164,13 +168,13 @@ final class MediaDetailViewModel {
         watchActionErrorMessage = nil
         defer { updatingWatchStatusIds.remove(item.id) }
 
-        do {
-            try await services.detail.setPlayed(played, itemID: item.id)
+        switch await quickActions.setPlayed(played, for: item) {
+        case .succeeded:
             await loadCommonDetails(preservingExistingContent: true)
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            watchActionErrorMessage = error.localizedDescription
-            ErrorReporter.capture(error)
+        case let .failed(message):
+            watchActionErrorMessage = message
+        case .cancelled:
+            break
         }
     }
 
@@ -213,18 +217,17 @@ final class MediaDetailViewModel {
             }
         }
 
-        do {
-            let updatedValue = !isFavorite(for: item)
-            try await services.favorites.setFavorite(updatedValue, media: item)
-            guard !Task.isCancelled else { return }
+        let updatedValue = !isFavorite(for: item)
+        switch await quickActions.setFavorite(updatedValue, for: item) {
+        case .succeeded:
             favoriteStatusByID[item.id] = updatedValue
             if isPrimaryItem {
                 isFavorite = updatedValue
             }
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            favoriteActionErrorMessage = error.localizedDescription
-            ErrorReporter.capture(error)
+        case let .failed(message):
+            favoriteActionErrorMessage = message
+        case .cancelled:
+            break
         }
     }
 
@@ -880,18 +883,19 @@ final class MediaDetailViewModel {
     }
 
     func favoriteActionTitle(for item: MediaItem) -> String {
-        isFavorite(for: item)
-            ? String(localized: "media.detail.favorite.remove")
-            : String(localized: "media.detail.favorite.add")
+        favoriteAction(for: item).title
     }
 
     func favoriteActionIcon(for item: MediaItem) -> String {
-        isFavorite(for: item) ? "star.fill" : "star"
+        favoriteAction(for: item).systemImage
+    }
+
+    private func favoriteAction(for item: MediaItem) -> MediaQuickAction {
+        isFavorite(for: item) ? .removeFavorite : .addFavorite
     }
 
     func shouldShowFavoriteButton(for item: MediaItem) -> Bool {
-        services.capabilities.favorites
-            && [.movie, .series, .season, .episode].contains(item.type)
+        quickActions.canFavorite(item)
     }
 
     var shouldShowWatchlistButton: Bool {
@@ -908,13 +912,15 @@ final class MediaDetailViewModel {
     }
 
     func watchActionTitle(for item: MediaItem) -> String {
-        isWatched(item)
-            ? String(localized: "media.detail.watchAction.markUnwatched")
-            : String(localized: "media.detail.watchAction.markWatched")
+        watchAction(for: item).title
     }
 
     func watchActionIcon(for item: MediaItem) -> String {
-        isWatched(item) ? "checkmark.circle.fill" : "checkmark.circle"
+        watchAction(for: item).systemImage
+    }
+
+    private func watchAction(for item: MediaItem) -> MediaQuickAction {
+        isWatched(item) ? .markUnwatched : .markWatched
     }
 
     func isUpdatingWatchStatus(for item: MediaItem) -> Bool {

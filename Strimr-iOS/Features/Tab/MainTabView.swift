@@ -21,6 +21,7 @@ struct MainTabView: View {
     var body: some View {
         tabView
             .environmentObject(coordinator)
+            .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
             .task {
                 sharePlayCoordinator.configurePlaybackPresenter(coordinator)
                 try? await libraryStore.loadLibraries()

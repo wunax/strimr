@@ -125,3 +125,28 @@ private struct SkeletonLine: View {
             }
     }
 }
+
+/// Placeholder for a page of rails while its first rows load.
+struct RailsSkeleton: View {
+    var showsLabels = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            SectionSkeleton(layout: .landscape, count: 4, showsLabels: showsLabels)
+            SectionSkeleton(layout: .portrait, showsLabels: showsLabels)
+            SectionSkeleton(layout: .portrait, showsLabels: showsLabels)
+        }
+    }
+}
+
+/// Poster placeholders to drop into a `PosterGrid` while its first page loads.
+struct PosterSkeletonCards: View {
+    let width: CGFloat
+    var count = 12
+
+    var body: some View {
+        ForEach(0 ..< count, id: \.self) { _ in
+            PosterSkeletonCard(width: width)
+        }
+    }
+}

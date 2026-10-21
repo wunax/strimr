@@ -20,6 +20,15 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Largest box a title logo may fill in a hero.
+    static var heroLogoMaxSize: CGSize {
+        #if os(tvOS)
+            CGSize(width: 560, height: 200)
+        #else
+            CGSize(width: 320, height: 120)
+        #endif
+    }
+
     /// Room above and below tvOS rails for the focused card to grow into.
     static let tvRailVerticalInset: CGFloat = 20
 

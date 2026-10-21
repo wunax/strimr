@@ -27,9 +27,19 @@ struct MediaHeroBackgroundView: View {
     }
 
     private func loadBackdrop() async -> HeroBackdrop {
+        let services = registry.services(for: .playable(media), scoped: scopedServices)
+        async let backdrop = loadBackdropImage(services: services)
+        // Loaded alongside the backdrop so the hero shows the logo from its first frame instead of swapping it in.
+        if let services, settingsManager.interface.showsTitleLogo {
+            await TitleLogoView.preload(media: media, services: services, maxSize: LayoutMetrics.heroLogoMaxSize)
+        }
+        return await backdrop
+    }
+
+    private func loadBackdropImage(services: MediaServices?) async -> HeroBackdrop {
         let providerColors = MediaBackdropGradient.colors(for: .playable(media))
         guard let path = artworkPath,
-              let services = registry.services(for: .playable(media), scoped: scopedServices),
+              let services,
               let resource = try? await services.artwork.artwork(path: path, width: 3840, height: 2160)
         else {
             return HeroBackdrop(colors: providerColors)

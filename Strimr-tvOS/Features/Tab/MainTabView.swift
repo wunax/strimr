@@ -166,6 +166,7 @@ struct MainTabView: View {
             }
         }
         .environmentObject(coordinator)
+        .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
         .task {
             sharePlayCoordinator.configurePlaybackPresenter(coordinator)
             try? await libraryStore.loadLibraries()

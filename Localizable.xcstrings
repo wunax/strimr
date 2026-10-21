@@ -7360,6 +7360,28 @@
         }
       }
     },
+    "media.detail.contentRating %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rated %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classification %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分级：%@"
+          }
+        }
+      }
+    },
     "media.detail.duration.hoursMinutes %lld %lld" : {
       "localizations" : {
         "en" : {
@@ -9387,6 +9409,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无封面"
+          }
+        }
+      }
+    },
+    "media.quickActions.goToSeason" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Season"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller à la saison"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前往本季"
+          }
+        }
+      }
+    },
+    "media.quickActions.goToSeries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller à la série"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前往剧集"
           }
         }
       }

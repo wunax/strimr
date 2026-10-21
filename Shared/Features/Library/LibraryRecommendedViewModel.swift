@@ -30,6 +30,11 @@ final class LibraryRecommendedViewModel {
         await fetchHubs(preservingExistingContent: false)
     }
 
+    /// Reloads without clearing the rows on screen.
+    func refreshSilently() async {
+        await fetchHubs(preservingExistingContent: true)
+    }
+
     func refreshIfNeeded(now: Date = Date()) async {
         guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await fetchHubs(preservingExistingContent: true)

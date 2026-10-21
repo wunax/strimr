@@ -39,6 +39,9 @@ struct HomeView: View {
                 emptyState
             }
         }
+        .environment(\.reloadAfterMediaCardAction) { item in
+            Task { await viewModel.refresh(server: item.identity.server) }
+        }
         .task {
             await viewModel.load()
         }
@@ -68,8 +71,7 @@ struct HomeView: View {
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    ProgressView("home.loading")
-                        .frame(maxWidth: .infinity)
+                    RailsSkeleton(showsLabels: false)
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -84,11 +86,23 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
+        if viewModel.isLoading {
+            GeometryReader { proxy in
+                RailsSkeleton(showsLabels: false)
+                    .padding(.trailing, LayoutMetrics.pageMargin)
+                    .frame(height: proxy.size.height * 0.60, alignment: .top)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+            }
+        } else {
+            emptyMessage
+        }
+    }
+
+    private var emptyMessage: some View {
         VStack(spacing: 16) {
-            if viewModel.isLoading {
-                ProgressView("home.loading")
-            } else if let errorMessage = viewModel.errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
             } else {

@@ -15,6 +15,9 @@ struct HubDetailView: View {
     var body: some View {
         ScrollView {
             PosterGrid(spacing: columnSpacing, rowSpacing: gridSpacing) { cardWidth in
+                if viewModel.isLoading, viewModel.items.isEmpty {
+                    PosterSkeletonCards(width: cardWidth)
+                }
                 ForEach(viewModel.items, id: \.id) { item in
                     PortraitMediaCard(media: item, width: cardWidth, showsLabels: true) {
                         onSelectMedia(item)
@@ -38,7 +41,7 @@ struct HubDetailView: View {
         #endif
             .overlay {
                 if viewModel.isLoading, viewModel.items.isEmpty {
-                    ProgressView("hub.loading")
+                    EmptyView()
                 } else if let errorMessage = viewModel.errorMessage, viewModel.items.isEmpty {
                     ContentUnavailableView(
                         errorMessage,
