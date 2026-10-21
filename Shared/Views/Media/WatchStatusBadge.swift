@@ -5,23 +5,24 @@ struct WatchStatusBadge: View {
 
     var body: some View {
         if let remaining = media.remainingUnwatchedLeaves {
-            badge {
-                Text("\(remaining)")
-            }
+            Text("\(remaining)")
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.black.opacity(0.65), in: Capsule(style: .continuous))
+                .badgeStyle()
         } else if media.isFullyWatched {
-            badge {
-                Image(systemName: "checkmark")
-            }
+            Image(systemName: "checkmark")
+                .padding(6)
+                .background(.black.opacity(0.65), in: Circle())
+                .badgeStyle()
         }
     }
+}
 
-    private func badge(@ViewBuilder content: () -> some View) -> some View {
-        content()
-            .font(.badge)
+private extension View {
+    func badgeStyle() -> some View {
+        font(.badge)
             .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(.black.opacity(0.65), in: Capsule(style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
             .padding(8)
     }

@@ -106,7 +106,7 @@ private struct SkeletonCard: View {
 }
 
 /// A bar as tall as one line of `font`, so the skeleton matches the height of the text it stands in for.
-private struct SkeletonLine: View {
+struct SkeletonLine: View {
     let font: Font
     let fraction: CGFloat
 

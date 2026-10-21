@@ -286,26 +286,45 @@ struct MediaDetailTrackMenuItems: View {
     }
 }
 
+/// One capsule summing up what will play: version badges, audio track and subtitles.
 struct MediaDetailTrackSummary: View {
     @Bindable var viewModel: MediaDetailViewModel
-    var spacing: CGFloat = 16
 
     var body: some View {
-        HStack(spacing: spacing) {
+        HStack(spacing: 18) {
             // Shown even for a single version, as file info; only the menu needs several.
-            if viewModel.selectedVersion != nil {
-                Label(viewModel.selectedVersionShortLabel, systemImage: "film.stack")
+            if let version = viewModel.selectedVersion {
+                HStack(spacing: 8) {
+                    if version.badgeLabels.isEmpty {
+                        Text(viewModel.selectedVersionShortLabel)
+                    } else {
+                        ForEach(version.badgeLabels, id: \.self) { label in
+                            TechBadge(text: label)
+                        }
+                    }
+                }
             }
             if let audioTitle = viewModel.selectedAudioTrackTitle {
-                Label(audioTitle, systemImage: "waveform")
+                separator
+                Label(audioTitle, systemImage: "speaker.wave.2.fill")
             }
             if !viewModel.subtitleTracks.isEmpty {
-                Label(viewModel.selectedSubtitleTrackTitle, systemImage: "captions.bubble")
+                separator
+                Label(viewModel.selectedSubtitleTrackTitle, systemImage: "captions.bubble.fill")
             }
         }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+        .font(.facts)
+        .foregroundStyle(.textSecondary)
         .lineLimit(1)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 10)
+        .strimrGlass(in: Capsule(style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(.strokeSubtle)
+            .frame(width: 1, height: 24)
     }
 }

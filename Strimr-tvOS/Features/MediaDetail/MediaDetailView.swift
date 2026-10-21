@@ -7,6 +7,7 @@ struct MediaDetailView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(MediaFocusModel.self) private var focusModel
     @State var viewModel: MediaDetailViewModel
     @State private var focusedMedia: MediaItem?
     @State private var contextualEpisodeID: String?
@@ -45,14 +46,19 @@ struct MediaDetailView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        MediaHeroContentView(media: contextualEpisode ?? focusedMedia ?? bindableViewModel.media
-                            .mediaItem)
-                            .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
+                        MediaHeroContentView(
+                            media: heroMedia,
+                            fallbackLogoPath: seriesLogoPath,
+                            starring: heroMedia.id == bindableViewModel.media.id
+                                ? StarringFormatter.text(from: bindableViewModel.cast) : nil,
+                            badges: heroBadges,
+                        )
+                        .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         buttonsRow
 
                         if bindableViewModel.hasTrackSelection || bindableViewModel.selectedVersion != nil {
-                            MediaDetailTrackSummary(viewModel: bindableViewModel, spacing: 24)
+                            MediaDetailTrackSummary(viewModel: bindableViewModel)
                         }
 
                         if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
@@ -189,28 +195,32 @@ struct MediaDetailView: View {
         return viewModel.episodes.first(where: { $0.id == contextualEpisodeID })
     }
 
+    private var heroMedia: MediaItem {
+        contextualEpisode ?? focusedMedia ?? viewModel.media.mediaItem
+    }
+
+    /// Plex only returns a logo on the series itself, so its episodes and seasons borrow it from the loaded series.
+    private var seriesLogoPath: String? {
+        (viewModel.parentSeries ?? viewModel.media).mediaItem.logoPath
+    }
+
+    /// Badges of the version that would play, once its tracks are loaded for the item the hero shows.
+    private var heroBadges: [String]? {
+        guard viewModel.activeVersionID(for: heroMedia) != nil else { return nil }
+        return viewModel.selectedVersion?.badgeLabels
+    }
+
     private var playButton: some View {
         Button(action: handlePlay) {
-            HStack(spacing: 12) {
-                Image(systemName: "play.fill")
-                    .font(.title3.weight(.semibold))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(viewModel.primaryActionTitle)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    if let detail = viewModel.primaryActionDetail {
-                        Text(detail)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .frame(maxWidth: 520, alignment: .leading)
+            Label(viewModel.primaryActionCompactTitle, systemImage: "play.fill")
+                .font(.facts.weight(.semibold))
+                .lineLimit(1)
+                .padding(.horizontal, 12)
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(.brandSecondary)
-        .foregroundStyle(.brandSecondaryForeground)
+        .buttonBorderShape(.capsule)
+        .tint(.white)
+        .foregroundStyle(.black)
         .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
@@ -224,6 +234,16 @@ struct MediaDetailView: View {
 
             ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
 
+            watchStatusButton
+
+            if viewModel.shouldShowFavoriteButton {
+                favoriteButton
+            }
+
+            if showsPlaybackOptionsButton {
+                playbackOptionsMenu
+            }
+
             moreActionsMenu
         }
     }
@@ -231,12 +251,62 @@ struct MediaDetailView: View {
     private var playFromStartButton: some View {
         Button(action: handlePlayFromStart) {
             Image(systemName: "arrow.counterclockwise")
-                .font(.title2.weight(.semibold))
+                .font(.title3.weight(.semibold))
         }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
+        .detailRoundButtonStyle()
         .accessibilityLabel(Text("media.detail.playFromStart"))
+    }
+
+    private var watchStatusButton: some View {
+        Button {
+            Task { await viewModel.toggleWatchStatus() }
+        } label: {
+            if viewModel.isUpdatingWatchStatus {
+                ProgressView()
+            } else {
+                Image(systemName: viewModel.watchActionIcon)
+                    .font(.title3.weight(.semibold))
+            }
+        }
+        .detailRoundButtonStyle()
+        .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+        .accessibilityLabel(Text(viewModel.watchActionTitle))
+    }
+
+    private var favoriteButton: some View {
+        Button {
+            Task { await viewModel.toggleFavoriteStatus() }
+        } label: {
+            if viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus {
+                ProgressView()
+            } else {
+                Image(systemName: viewModel.favoriteActionIcon)
+                    .font(.title3.weight(.semibold))
+            }
+        }
+        .detailRoundButtonStyle()
+        .disabled(viewModel.isLoading || viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus)
+        .accessibilityLabel(Text(viewModel.favoriteActionTitle))
+    }
+
+    private var showsPlaybackOptionsButton: Bool {
+        viewModel.showsVersionSelection || viewModel.audioTracks.count > 1 || !viewModel.subtitleTracks.isEmpty
+    }
+
+    private var playbackOptionsMenu: some View {
+        Menu {
+            MediaDetailTrackMenuItems(
+                viewModel: viewModel,
+                onSearchSubtitles: { isShowingSubtitleSearch = true },
+            )
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.title3.weight(.semibold))
+        }
+        .detailRoundButtonStyle()
+        .menuIndicator(.hidden)
+        .disabled(viewModel.isUpdatingTracks)
+        .accessibilityLabel(Text("media.detail.playbackOptions"))
     }
 
     private var shouldShowShuffleAction: Bool {
@@ -364,23 +434,16 @@ struct MediaDetailView: View {
                 }
             }
         } label: {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.title2.weight(.semibold))
-                .opacity(0)
+            Image(systemName: "ellipsis")
+                .font(.title3.weight(.semibold))
+                .opacity(isPerformingMenuAction ? 0 : 1)
                 .overlay {
                     if isPerformingMenuAction {
                         ProgressView()
-                            .tint(.brandSecondaryForeground)
-                    } else {
-                        Image(systemName: "ellipsis")
-                            .font(.title2.weight(.semibold))
-                            .rotationEffect(.degrees(90))
                     }
                 }
         }
-        .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .tint(.secondary)
+        .detailRoundButtonStyle()
         .menuIndicator(.hidden)
         .accessibilityLabel(Text("common.actions.more"))
     }
@@ -420,11 +483,13 @@ struct MediaDetailView: View {
                                 Task { await viewModel.selectSeason(id: season.id) }
                             },
                             onFocus: {
-                                focusedMedia = season
+                                focusModel.settle { focusedMedia = season }
                             },
                             onBlur: {
-                                if focusedMedia?.id == season.id {
-                                    focusedMedia = nil
+                                focusModel.settle {
+                                    if focusedMedia?.id == season.id {
+                                        focusedMedia = nil
+                                    }
                                 }
                             },
                         )
@@ -442,14 +507,21 @@ struct MediaDetailView: View {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
         } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
-            ProgressView("media.detail.loadingEpisodes")
+            HStack(alignment: .top, spacing: episodeSpacing) {
+                ForEach(0 ..< 4, id: \.self) { _ in
+                    EpisodeSkeletonCard(width: episodeWidth)
+                }
+            }
+            .padding(.vertical, 16)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("media.detail.loadingEpisodes"))
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
                 .foregroundStyle(.secondary)
         } else {
             ScrollViewReader { scrollProxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 36) {
+                    LazyHStack(alignment: .top, spacing: episodeSpacing) {
                         ForEach(viewModel.episodes) { episode in
                             EpisodeArtworkCard(
                                 episode: episode,
@@ -461,7 +533,7 @@ struct MediaDetailView: View {
                                 ),
                                 runtime: viewModel.runtimeText(for: episode),
                                 progress: viewModel.progressFraction(for: episode),
-                                width: 460,
+                                width: episodeWidth,
                                 shouldShowPlayFromStart: viewModel.shouldShowPlayFromStartButton(for: episode),
                                 watchActionIcon: viewModel.watchActionIcon(for: episode),
                                 watchActionTitle: viewModel.watchActionTitle(for: episode),
@@ -487,10 +559,13 @@ struct MediaDetailView: View {
                                 onMarkWatched: {
                                     Task { await viewModel.markWatched(for: episode) }
                                 },
+                                isOnDeck: viewModel.onDeckItem?.id == episode.id,
                                 onFocus: {
-                                    contextualEpisodeID = episode.id
-                                    focusedMedia = episode
-                                    Task { await viewModel.loadTrackSelection(for: episode.id) }
+                                    focusModel.settle {
+                                        contextualEpisodeID = episode.id
+                                        focusedMedia = episode
+                                        Task { await viewModel.loadTrackSelection(for: episode.id) }
+                                    }
                                 },
                                 onFileInfo: {
                                     fileInfoMedia = episode
@@ -509,6 +584,9 @@ struct MediaDetailView: View {
             }
         }
     }
+
+    private let episodeWidth: CGFloat = 460
+    private let episodeSpacing: CGFloat = 36
 
     @MainActor
     private func positionOnDeckEpisodeIfNeeded(using scrollProxy: ScrollViewProxy) async {
@@ -590,40 +668,38 @@ private struct SeasonPillButton: View {
     let onFocus: () -> Void
     let onBlur: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack {
-            Text(title)
-                .font(.headline)
-                .fontWeight(.semibold)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .foregroundStyle(.brandSecondary)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isSelected ? Color.brandSecondary.opacity(0.5) : Color.gray.opacity(0.12)),
-                )
-                .overlay {
-                    Capsule(style: .continuous)
-                        .stroke(
-                            isFocused ? Color.brandSecondary : Color.gray.opacity(0.25),
-                            lineWidth: isFocused ? 3 : 1,
-                        )
+        Text(title)
+            .font(.facts.weight(.semibold))
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
+            .foregroundStyle(isSelected ? Color.black : Color.textPrimary)
+            .background(Capsule(style: .continuous).fill(background))
+            .scaleEffect(isFocused && !reduceMotion ? CardFocusStyle.focusedScale : 1)
+            .animation(Motion.focus, value: isFocused)
+            .animation(Motion.crossfade, value: isSelected)
+            .focusable()
+            .focused($isFocused)
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    onFocus()
+                } else {
+                    onBlur()
                 }
-        }
-        .focusable()
-        .focused($isFocused)
-        .animation(.easeOut(duration: 0.15), value: isFocused)
-        .onChange(of: isFocused) { _, focused in
-            if focused {
-                onFocus()
-            } else {
-                onBlur()
             }
+            .onPlayPauseCommand(perform: onSelect)
+            .onTapGesture(perform: onSelect)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var background: Color {
+        if isSelected {
+            return .white
         }
-        .onPlayPauseCommand(perform: onSelect)
-        .onTapGesture(perform: onSelect)
+        return isFocused ? .white.opacity(0.3) : .surfaceRaised
     }
 }
 
@@ -646,28 +722,67 @@ private struct EpisodeArtworkCard: View {
     let onMarkUnwatched: () -> Void
     let shouldShowBothWatchActions: Bool
     let onMarkWatched: () -> Void
+    let isOnDeck: Bool
     let onFocus: () -> Void
     let onFileInfo: () -> Void
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            artwork
+            caption
+        }
+        .frame(width: width, alignment: .leading)
+    }
+
+    private var caption: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            (Text(episodeNumberText).font(.eyebrow).tracking(1.2).foregroundStyle(.textTertiary)
+                + Text(verbatim: " · \(episode.title)").font(.cardTitle).foregroundStyle(.textPrimary))
+                .lineLimit(1)
+            if let runtime {
+                Text(runtime)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textTertiary)
+            }
+        }
+        .opacity(isFocused ? 1 : 0.65)
+        .animation(Motion.focus, value: isFocused)
+    }
+
+    private var episodeNumberText: String {
+        guard let index = episode.index else { return String(localized: "search.fallback.episode").localizedUppercase }
+        return String(localized: "media.detail.episodeNumber \(index)").localizedUppercase
+    }
+
+    @ViewBuilder
+    private var onDeckBadge: some View {
+        if isOnDeck {
+            Text(progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext")
+                .font(.badge)
+                .textCase(.uppercase)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color.brandPrimary, in: Capsule(style: .continuous))
+                .padding(12)
+        }
+    }
+
+    private var artwork: some View {
         EpisodeArtworkView(
             episode: episode,
             imageURL: imageURL,
             width: width,
-            runtime: runtime,
+            runtime: nil,
             progress: progress,
         )
+        .overlay(alignment: .topLeading) {
+            onDeckBadge
+        }
         .focusable()
         .focused($isFocused)
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(
-                    Color.brandSecondary.opacity(isFocused ? 1 : 0),
-                    lineWidth: isFocused ? 3 : 2,
-                )
-        }
         .overlay(alignment: .trailing) {
             if isFocused {
                 Group {
@@ -763,13 +878,39 @@ private struct EpisodeArtworkCard: View {
         }
         .onPlayPauseCommand(perform: onPlay)
         .onTapGesture(perform: onPlay)
-        .frame(width: width, alignment: .leading)
-        .animation(.easeOut(duration: 0.15), value: isFocused)
+        .animation(Motion.focus, value: isFocused)
         .onChange(of: isFocused) { _, focused in
             if focused {
                 onFocus()
                 Task { await trackViewModel.loadFavoriteStatus(for: episode) }
             }
         }
+    }
+}
+
+/// Same footprint as an episode card, so switching seasons does not change the page height.
+private struct EpisodeSkeletonCard: View {
+    let width: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
+                .fill(.surfaceSubtle)
+                .frame(width: width, height: width * 9 / 16)
+            VStack(alignment: .leading, spacing: 4) {
+                SkeletonLine(font: .cardTitle, fraction: 0.7)
+                SkeletonLine(font: .cardMetadata, fraction: 0.25)
+            }
+        }
+        .frame(width: width, alignment: .leading)
+    }
+}
+
+private extension View {
+    /// Round icon button beside Play; the system bordered style keeps the native tvOS focus lift.
+    func detailRoundButtonStyle() -> some View {
+        buttonStyle(.bordered)
+            .buttonBorderShape(.circle)
+            .controlSize(.regular)
     }
 }

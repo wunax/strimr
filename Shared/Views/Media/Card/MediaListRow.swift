@@ -118,7 +118,7 @@ struct MediaListRow: View {
             .focused($isFocused)
             .onChange(of: isFocused) { _, focused in
                 if focused, let playableItem = media.playableItem {
-                    focusModel.focusedMedia = playableItem
+                    focusModel.focus(playableItem)
                 }
             }
             .onPlayPauseCommand(perform: onTap)

@@ -56,10 +56,20 @@ struct MediaHeroBackgroundView: View {
 
 struct MediaHeroContentView: View {
     let media: MediaItem
+    /// Logo to use when the item has none of its own, e.g. the series logo loaded by the detail page.
+    var fallbackLogoPath: String?
+    var starring: String?
+    /// Technical badges of the version that would play; defaults to the resolution the item reports.
+    var badges: [String]?
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
-            MediaHeroDetailsView(media: media)
+            MediaHeroDetailsView(
+                media: media,
+                logoPath: media.preferredLogoPath ?? fallbackLogoPath,
+                starring: starring,
+                badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
+            )
         }
     }
 }
@@ -67,60 +77,56 @@ struct MediaHeroContentView: View {
 private struct MediaHeroDetailsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
+    let logoPath: String?
+    let starring: String?
+    let badges: [String]
     private let summaryLineLimit = 3
 
     var body: some View {
-        heroContent
-    }
-
-    private var heroContent: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(media.primaryLabel)
-                .font(.title2.bold())
-                .lineLimit(2)
+        VStack(alignment: .leading, spacing: 12) {
+            // Fixed height so a tall logo or a two-line title never moves what follows during hero transitions.
+            TitleLogoView(media: media, logoPath: logoPath, maxSize: LayoutMetrics.heroLogoMaxSize)
+                .frame(height: LayoutMetrics.heroLogoMaxSize.height, alignment: .bottomLeading)
 
             if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
                 Text(secondary)
-                    .font(.headline)
-                    .foregroundStyle(.brandSecondary)
+                    .font(.facts.weight(.semibold))
+                    .foregroundStyle(.textPrimary)
+                    .lineLimit(1)
             }
 
-            metadataLine
+            MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
             ratingsLine
-            genresLine
+            summary
 
-            if media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
-                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                    .font(.callout)
-                    .foregroundStyle(.brandSecondary)
-                    .lineLimit(summaryLineLimit)
-                    .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
-            } else if let summary = media.summary, !summary.isEmpty {
-                Text(summary)
-                    .font(.callout)
-                    .foregroundStyle(.brandSecondary)
-                    .lineLimit(summaryLineLimit)
-                    .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
+            if let starring {
+                Text(starring)
+                    .font(.facts)
+                    .foregroundStyle(.textTertiary)
+                    .lineLimit(1)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var summary: some View {
+        if media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+            Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+                .font(.bodyText)
+                .foregroundStyle(.textSecondary)
+                .lineLimit(summaryLineLimit)
+                .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
+        } else if let summary = media.summary, !summary.isEmpty {
+            Text(summary)
+                .font(.bodyText)
+                .foregroundStyle(.textSecondary)
+                .lineLimit(summaryLineLimit)
+                .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
         }
     }
 
     private var summaryLineHeight: CGFloat {
-        UIFont.preferredFont(forTextStyle: .callout).lineHeight
-    }
-
-    @ViewBuilder
-    private var metadataLine: some View {
-        let items = metadataItems
-        if !items.isEmpty {
-            HStack(spacing: 16) {
-                ForEach(items.indices, id: \.self) { index in
-                    Text(items[index])
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(.brandSecondary)
-        }
+        UIFont.systemFont(ofSize: 26).lineHeight
     }
 
     @ViewBuilder
@@ -131,49 +137,8 @@ private struct MediaHeroDetailsView: View {
                     MediaRatingLabel(rating: rating)
                 }
             }
-            .font(.subheadline)
-            .foregroundStyle(.brandSecondary)
+            .font(.facts)
+            .foregroundStyle(.textSecondary)
         }
-    }
-
-    @ViewBuilder
-    private var genresLine: some View {
-        let genres = media.genres
-        if !genres.isEmpty {
-            HStack(spacing: 12) {
-                ForEach(genres, id: \.self) { genre in
-                    Text(genre)
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.brandSecondary)
-            .lineLimit(1)
-        }
-    }
-
-    private var metadataItems: [String] {
-        var items: [String] = []
-        if let tertiary = media.tertiaryLabel {
-            items.append(tertiary)
-        }
-        if let year = yearText {
-            items.append(year)
-        }
-        if let runtime = runtimeText {
-            items.append(runtime)
-        }
-        if let contentRating = media.contentRating {
-            items.append(contentRating)
-        }
-        return items
-    }
-
-    private var runtimeText: String? {
-        guard let duration = media.duration else { return nil }
-        return duration.mediaDurationText()
-    }
-
-    private var yearText: String? {
-        media.year.map(String.init)
     }
 }

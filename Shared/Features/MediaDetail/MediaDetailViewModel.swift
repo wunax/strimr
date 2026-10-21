@@ -484,6 +484,14 @@ final class MediaDetailViewModel {
             : String(localized: "common.actions.play")
     }
 
+    /// One-line title for compact play buttons: "Play S2 · E1" on a series or season, "Resume" or "Play" otherwise.
+    var primaryActionCompactTitle: String {
+        guard [.show, .season].contains(media.type), let episode = primaryPlaybackTarget?.item.tertiaryLabel else {
+            return primaryActionTitle
+        }
+        return String(localized: "media.detail.primaryAction.episode \(primaryActionTitle) \(episode)")
+    }
+
     var primaryActionDetail: String? {
         guard let target = primaryPlaybackTarget else { return nil }
         let timeLeft = target.shouldResumeFromOffset ? timeLeftText(for: target.item) : nil
