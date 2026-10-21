@@ -26,6 +26,9 @@ struct HeroContentTransitionView<Item: Identifiable, Content: View>: View {
     private func transition() async {
         guard let current = displayedItem, current.id != item.id else {
             displayedItem = item
+            withAnimation(.easeOut(duration: fadeInDuration)) {
+                isVisible = true
+            }
             return
         }
 
