@@ -23,6 +23,16 @@ struct ArtworkResourceView: View {
     private var placeholder: some View {
         Color.gray.opacity(0.1)
     }
+
+    /// Warms the image caches so a view created afterwards renders the artwork on its first frame.
+    static func preload(_ resource: ArtworkResource) async {
+        switch resource {
+        case let .url(url):
+            _ = try? await RemoteArtworkImage.image(for: url)
+        case let .data(data):
+            _ = await DataArtworkImage.image(for: data)
+        }
+    }
 }
 
 /// `UIImage(data:)` in `body` decoded the image lazily on the main actor at every render, which stalled tvOS focus
@@ -62,14 +72,22 @@ private struct DataArtworkImage: View {
     private func load() async {
         guard currentImage == nil else { return }
         failed = false
-        guard let (image, cost) = await Self.decode(data) else {
+        guard let image = await Self.image(for: data) else {
             guard !Task.isCancelled else { return }
             failed = true
             return
         }
-        Self.cache.setObject(image, forKey: data as NSData, cost: cost)
         guard !Task.isCancelled else { return }
         loaded = (data, image)
+    }
+
+    static func image(for data: Data) async -> PlatformImage? {
+        if let cached = cache.object(forKey: data as NSData) {
+            return cached
+        }
+        guard let (image, cost) = await decode(data) else { return nil }
+        cache.setObject(image, forKey: data as NSData, cost: cost)
+        return image
     }
 
     @concurrent
@@ -131,12 +149,7 @@ private struct RemoteArtworkImage: View {
     private func load() async {
         guard currentImage == nil else { return }
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            if let status = (response as? HTTPURLResponse)?.statusCode, !(200 ..< 300).contains(status) {
-                throw URLError(.badServerResponse)
-            }
-            guard let image = PlatformImage(data: data) else { throw URLError(.cannotDecodeContentData) }
-            Self.cache.setObject(image, forKey: url as NSURL)
+            let image = try await Self.image(for: url)
             loaded = (url, image)
             failedURL = nil
         } catch {
@@ -144,6 +157,19 @@ private struct RemoteArtworkImage: View {
             guard !Task.isCancelled, !error.isCancellation else { return }
             failedURL = url
         }
+    }
+
+    static func image(for url: URL) async throws -> PlatformImage {
+        if let cached = cache.object(forKey: url as NSURL) {
+            return cached
+        }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let status = (response as? HTTPURLResponse)?.statusCode, !(200 ..< 300).contains(status) {
+            throw URLError(.badServerResponse)
+        }
+        guard let image = PlatformImage(data: data) else { throw URLError(.cannotDecodeContentData) }
+        cache.setObject(image, forKey: url as NSURL)
+        return image
     }
 
     private func platformImage(_ image: PlatformImage) -> Image {

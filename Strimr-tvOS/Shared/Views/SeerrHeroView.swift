@@ -4,31 +4,8 @@ import UIKit
 struct SeerrHeroBackgroundView: View {
     let media: SeerrMedia
 
-    @State private var imageURL: URL?
-    @State private var backdropColors: [Color] = []
-    @State private var gradientSourceURL: URL?
-
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                MediaBackdropGradient(colors: backdropColors)
-                    .ignoresSafeArea()
-
-                HeroImageView(imageURL: imageURL)
-                    .frame(
-                        width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
-                        height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
-                    )
-                    .clipped()
-                    .overlay(Color.black.opacity(0.2))
-                    .mask(HeroMaskView())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .ignoresSafeArea()
-            }
-        }
-        .task(id: media.id) {
-            await loadImages()
-        }
+        HeroBackdropView(key: media.id, load: loadBackdrop)
     }
 
     private var heroImageURL: URL? {
@@ -41,28 +18,33 @@ struct SeerrHeroBackgroundView: View {
             ?? TMDBImageService.posterURL(path: media.posterPath, width: 300)
     }
 
-    private func loadImages() async {
-        imageURL = heroImageURL
-
-        guard let gradientURL = gradientImageURL else {
-            gradientSourceURL = nil
-            backdropColors = []
-            return
+    private func loadBackdrop() async -> HeroBackdrop {
+        let resource = heroImageURL.map(ArtworkResource.url)
+        if let resource {
+            await ArtworkResourceView.preload(resource)
         }
-        guard gradientSourceURL != gradientURL else { return }
-        gradientSourceURL = gradientURL
 
-        do {
-            let (data, _) = try await URLSession.shared.data(from: gradientURL)
-            let colors = await ImageCornerColorSampler.colors(from: data)
-            backdropColors = colors.count == 4 ? colors : []
-        } catch {
-            backdropColors = []
+        guard let gradientImageURL,
+              let colors = try? await ImageCornerColorSampler.colors(from: .url(gradientImageURL)),
+              colors.count == 4
+        else {
+            return HeroBackdrop(resource: resource)
         }
+        return HeroBackdrop(resource: resource, colors: colors)
     }
 }
 
 struct SeerrHeroContentView: View {
+    let media: SeerrMedia
+
+    var body: some View {
+        HeroContentTransitionView(item: media) { media in
+            SeerrHeroDetailsView(media: media)
+        }
+    }
+}
+
+private struct SeerrHeroDetailsView: View {
     let media: SeerrMedia
     private let summaryLineLimit = 3
 

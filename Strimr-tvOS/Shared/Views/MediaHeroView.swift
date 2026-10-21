@@ -8,31 +8,11 @@ struct MediaHeroBackgroundView: View {
 
     let media: MediaItem
 
-    @State private var imageResource: ArtworkResource?
-    @State private var imageSourcePath: String?
-    @State private var sampledBackdropColors: [Color] = []
-
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                MediaBackdropGradient(colors: backdropColors)
-                    .ignoresSafeArea()
-
-                ArtworkResourceView(resource: imageSourcePath == artworkPath ? imageResource : nil)
-                    .frame(
-                        width: (proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing) * 0.66,
-                        height: (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) * 0.66,
-                    )
-                    .clipped()
-                    .overlay(Color.black.opacity(0.2))
-                    .mask(HeroMaskView())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .ignoresSafeArea()
-            }
-        }
-        .task(id: "\(media.id)-\(artworkPath ?? "none")-\(settingsManager.interface.spoilerProtection.rawValue)") {
-            await loadImage()
-        }
+        HeroBackdropView(
+            key: "\(media.id)-\(artworkPath ?? "none")-\(settingsManager.interface.spoilerProtection.rawValue)",
+            load: loadBackdrop,
+        )
     }
 
     private var artworkPath: String? {
@@ -46,58 +26,35 @@ struct MediaHeroBackgroundView: View {
             ?? media.thumbPath
     }
 
-    private var backdropColors: [Color] {
+    private func loadBackdrop() async -> HeroBackdrop {
         let providerColors = MediaBackdropGradient.colors(for: .playable(media))
+        guard let path = artworkPath,
+              let services = registry.services(for: .playable(media), scoped: scopedServices),
+              let resource = try? await services.artwork.artwork(path: path, width: 3840, height: 2160)
+        else {
+            return HeroBackdrop(colors: providerColors)
+        }
+
+        await ArtworkResourceView.preload(resource)
         if providerColors.count == 4 {
-            return providerColors
+            return HeroBackdrop(resource: resource, colors: providerColors)
         }
-        return sampledBackdropColors
-    }
-
-    private func loadImage() async {
-        let path = artworkPath
-        guard let path else {
-            imageResource = nil
-            imageSourcePath = nil
-            sampledBackdropColors = []
-            return
-        }
-
-        guard let services = registry.services(for: .playable(media), scoped: scopedServices) else {
-            imageResource = nil
-            imageSourcePath = path
-            return
-        }
-        do {
-            let resource = try await services.artwork.artwork(
-                path: path,
-                width: 3840,
-                height: 2160,
-            )
-            guard !Task.isCancelled, artworkPath == path else { return }
-            imageResource = resource
-            imageSourcePath = path
-
-            let providerColors = MediaBackdropGradient.colors(for: .playable(media))
-            guard providerColors.count != 4, let resource else {
-                sampledBackdropColors = []
-                return
-            }
-
-            let colors = try await ImageCornerColorSampler.colors(from: resource)
-            guard !Task.isCancelled, artworkPath == path, colors.count == 4 else { return }
-            withAnimation(.easeInOut(duration: 0.15)) {
-                sampledBackdropColors = colors
-            }
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation, artworkPath == path else { return }
-            imageResource = nil
-            imageSourcePath = path
-        }
+        let sampledColors = (try? await ImageCornerColorSampler.colors(from: resource)) ?? []
+        return HeroBackdrop(resource: resource, colors: sampledColors.count == 4 ? sampledColors : [])
     }
 }
 
 struct MediaHeroContentView: View {
+    let media: MediaItem
+
+    var body: some View {
+        HeroContentTransitionView(item: media) { media in
+            MediaHeroDetailsView(media: media)
+        }
+    }
+}
+
+private struct MediaHeroDetailsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
     private let summaryLineLimit = 3
