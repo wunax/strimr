@@ -138,7 +138,7 @@ struct ProfileAvatarView: View {
             .font(.system(size: size * 0.11, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size * 0.26, height: size * 0.26)
-            .strimrGlass(in: Circle())
+            .glassSurface(in: Circle())
     }
 }
 
@@ -369,7 +369,7 @@ extension View {
                 configuration.label
                     .foregroundStyle(.white)
                     .contentShape(Circle())
-                    .strimrGlass(in: Circle())
+                    .glassSurface(in: Circle())
                     .scaleEffect(configuration.isPressed ? 0.92 : 1)
                     .animation(.spring(duration: 0.2), value: configuration.isPressed)
             }

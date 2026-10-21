@@ -2,22 +2,22 @@ import SwiftUI
 
 extension View {
     /// Liquid Glass where available, a thin material otherwise.
-    func strimrGlass(
+    func glassSurface(
         in shape: some Shape = Capsule(style: .continuous),
         tint: Color? = nil,
         interactive: Bool = false,
     ) -> some View {
-        modifier(StrimrGlassModifier(shape: shape, tint: tint, interactive: interactive))
+        modifier(GlassSurfaceModifier(shape: shape, tint: tint, interactive: interactive))
     }
 
     /// Glass for surfaces drawn over playing video. Re-blurring the video every frame is too costly on older
     /// hardware, so those devices get a near-opaque fill instead.
-    func strimrPlayerGlass(in shape: some Shape = Capsule(style: .continuous)) -> some View {
-        modifier(StrimrPlayerGlassModifier(shape: shape))
+    func videoOverlayGlass(in shape: some Shape = Capsule(style: .continuous)) -> some View {
+        modifier(VideoOverlayGlassModifier(shape: shape))
     }
 }
 
-private struct StrimrGlassModifier<S: Shape>: ViewModifier {
+private struct GlassSurfaceModifier<S: Shape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let shape: S
@@ -35,7 +35,7 @@ private struct StrimrGlassModifier<S: Shape>: ViewModifier {
     }
 }
 
-private struct StrimrPlayerGlassModifier<S: Shape>: ViewModifier {
+private struct VideoOverlayGlassModifier<S: Shape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let shape: S
@@ -44,7 +44,7 @@ private struct StrimrPlayerGlassModifier<S: Shape>: ViewModifier {
         if reduceTransparency || DeviceCapabilities.prefersOpaqueVideoOverlays {
             content.background(Color.black.opacity(0.88), in: shape)
         } else {
-            content.strimrGlass(in: shape)
+            content.glassSurface(in: shape)
         }
     }
 }

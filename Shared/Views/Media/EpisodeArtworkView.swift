@@ -47,7 +47,7 @@ struct EpisodeArtworkView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .strimrGlass(in: Capsule())
+                .glassSurface(in: Capsule())
                 .padding(10)
             }
         }

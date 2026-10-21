@@ -799,7 +799,7 @@ private struct EpisodeArtworkCard: View {
                 }
                 .frame(width: 24, height: 24)
                 .frame(width: 48, height: 48)
-                .strimrGlass(in: Circle())
+                .glassSurface(in: Circle())
                 .padding(12)
                 .accessibilityHidden(true)
                 .transition(.opacity.combined(with: .scale))

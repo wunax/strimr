@@ -167,6 +167,6 @@ struct ProfileSwitcherView: View {
         }
         .padding(20)
         .frame(maxWidth: 420)
-        .strimrGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }

@@ -216,7 +216,7 @@ struct MediaDetailTrackSummary: View {
         .lineLimit(1)
         .padding(.horizontal, 22)
         .padding(.vertical, 10)
-        .strimrGlass(in: Capsule(style: .continuous))
+        .glassSurface(in: Capsule(style: .continuous))
         .accessibilityElement(children: .combine)
     }
 

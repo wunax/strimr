@@ -134,7 +134,7 @@ struct LibraryDetailView: View {
         .padding(.trailing, 12)
         .background(alignment: .leading) {
             Color.clear
-                .strimrGlass(in: Rectangle())
+                .glassSurface(in: Rectangle())
                 .frame(width: sidebarBackgroundWidth)
                 .opacity(isSidebarFocused ? 1 : 0)
                 .ignoresSafeArea(edges: [.leading, .top, .bottom])

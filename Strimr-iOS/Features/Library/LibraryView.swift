@@ -83,7 +83,7 @@ struct LibraryView: View {
                         .font(.title3)
                         .foregroundStyle(.white)
                         .padding(10)
-                        .strimrGlass(in: Circle())
+                        .glassSurface(in: Circle())
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(library.title)

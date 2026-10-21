@@ -153,7 +153,7 @@ struct SpoilerProtectionIndicator: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.primary)
             .padding(7)
-            .strimrGlass(in: Circle())
+            .glassSurface(in: Circle())
             .accessibilityLabel("media.spoilerProtection.artworkHidden")
     }
 }

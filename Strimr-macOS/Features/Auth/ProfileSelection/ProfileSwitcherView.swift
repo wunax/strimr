@@ -167,7 +167,7 @@ struct ProfileSwitcherView: View {
             }
         }
         .padding(16)
-        .strimrGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {

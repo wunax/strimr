@@ -173,7 +173,7 @@ struct ProfileSwitcherView: View {
             }
         }
         .padding(28)
-        .strimrGlass(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
         .focusSection()
     }
 }
