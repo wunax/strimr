@@ -63,6 +63,9 @@ struct MediaDetailView: View {
                             onSelectMedia(item)
                         }
                     }
+
+                    DetailFactsSection(viewModel: viewModel)
+                        .padding(.horizontal, 28)
                 }
                 .padding(.bottom, 32)
             }
@@ -229,23 +232,7 @@ struct MediaDetailView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                if let tagline = viewModel.media.tagline, !tagline.isEmpty {
-                    Text(tagline).font(.headline).foregroundStyle(.secondary)
-                }
-                Text(viewModel.detailPrimaryLabel)
-                    .font(.system(size: 36, weight: .bold))
-                if let secondary = viewModel.detailSecondaryLabel {
-                    Text(secondary)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
-                if let tertiary = viewModel.detailTertiaryLabel {
-                    Text(tertiary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                metadataRow
-                ratingsRow
+                DetailHeroTitle(viewModel: viewModel, alignment: .leading)
                 if [.show, .season].contains(viewModel.media.type) {
                     DownloadedEpisodesLabel(media: viewModel.media.mediaItem)
                 }
@@ -274,63 +261,35 @@ struct MediaDetailView: View {
         )
     }
 
-    private var metadataRow: some View {
-        HStack(spacing: 10) {
-            if let year = viewModel.yearText {
-                Text(year)
-            }
-            if let runtime = viewModel.runtimeText {
-                Text(runtime)
-            }
-            if let contentRating = viewModel.media.contentRating {
-                Text(contentRating)
-            }
-            if let versionCount = viewModel.versionCountBadge {
-                Label("media.versions.count \(versionCount)", systemImage: "film.stack")
-            }
-            if viewModel.media.ratings.isEmpty, let rating = viewModel.ratingText {
-                Label(rating, systemImage: "star.fill").foregroundStyle(.yellow)
-            }
-        }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-    }
-
-    @ViewBuilder
-    private var ratingsRow: some View {
-        if !viewModel.media.ratings.isEmpty {
-            HStack(spacing: 14) {
-                ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
-                    MediaRatingLabel(rating: rating, iconHeight: 16)
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        }
-    }
-
     private var details: some View {
         VStack(alignment: .leading, spacing: 18) {
             actionButtons
+
+            DetailPlaybackCard(
+                viewModel: viewModel,
+                isServerUnreachable: isServerUnreachable,
+                onSearchSubtitles: { isShowingSubtitleSearch = true },
+            )
+            .frame(maxWidth: 520)
 
             if viewModel.media.mediaItem.shouldHideSpoilerSummary(
                 at: settingsManager.interface.spoilerProtection,
             ) {
                 Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
                     .font(.body)
-                    .foregroundStyle(.secondary)
-            } else if let summary = viewModel.media.summary, !summary.isEmpty {
-                Text(summary)
+                    .foregroundStyle(.textSecondary)
+            } else if let summaryText {
+                summaryText
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
                     .textSelection(.enabled)
                     .frame(maxWidth: 900, alignment: .leading)
             }
 
-            if !viewModel.media.genres.isEmpty {
-                Text(viewModel.media.genres.joined(separator: " • "))
+            if let starring = StarringFormatter.text(from: viewModel.cast) {
+                Text(starring)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textTertiary)
             }
 
             if let error = viewModel.errorMessage
@@ -345,77 +304,27 @@ struct MediaDetailView: View {
         .padding(.horizontal, 28)
     }
 
+    /// The tagline leads the synopsis in semibold instead of taking a line of its own.
+    private var summaryText: Text? {
+        let tagline = viewModel.media.tagline.flatMap { $0.isEmpty ? nil : $0 }
+        let summary = viewModel.media.summary.flatMap { $0.isEmpty ? nil : $0 }
+        switch (tagline, summary) {
+        case let (tagline?, summary?):
+            return Text(verbatim: tagline + " ").fontWeight(.semibold).foregroundStyle(.textPrimary)
+                + Text(verbatim: summary)
+        case let (tagline?, nil):
+            return Text(verbatim: tagline).fontWeight(.semibold).foregroundStyle(.textPrimary)
+        case let (nil, summary?):
+            return Text(verbatim: summary)
+        case (nil, nil):
+            return nil
+        }
+    }
+
     private var actionButtons: some View {
-        HStack(alignment: .center, spacing: 24) {
-            HStack(alignment: .center, spacing: 6) {
-                Button {
-                    if isServerUnreachable {
-                        playDownloaded(resumes: !viewModel.shouldPlayPrimaryActionFromStart)
-                        return
-                    }
-                    guard
-                        let ratingKey = viewModel.primaryActionRatingKey,
-                        let type = viewModel.primaryActionType
-                    else { return }
-                    onPlay(
-                        ratingKey,
-                        type,
-                        false,
-                        !viewModel.shouldPlayPrimaryActionFromStart,
-                    )
-                } label: {
-                    HStack(spacing: 12) {
-                        PlayProgressIcon(progress: viewModel.primaryActionProgress)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(viewModel.primaryActionTitle)
-                                .fontWeight(.semibold)
-                            if let detail = viewModel.primaryActionDetail {
-                                Text(detail)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .frame(minWidth: 240, alignment: .leading)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(.brandSecondary)
-                .foregroundStyle(isPlayDisabled ? Color.secondary : Color.brandSecondaryForeground)
-                .disabled(isPlayDisabled)
-
-                if viewModel.shouldShowPlayFromStartButton,
-                   !isServerUnreachable || downloadedPlayback != nil,
-                   let ratingKey = viewModel.primaryActionRatingKey,
-                   let type = viewModel.primaryActionType
-                {
-                    Button {
-                        if isServerUnreachable {
-                            playDownloaded(resumes: false)
-                        } else {
-                            onPlay(ratingKey, type, false, false)
-                        }
-                    } label: {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.title2.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .tint(.secondary)
-                    .frame(width: 52, height: 52)
-                    .buttonBorderShape(.capsule)
-                    .help(Text("media.detail.playFromStart"))
-                    .accessibilityLabel(Text("media.detail.playFromStart"))
-                }
-
-                if !isServerUnreachable, downloadedPlayback != nil {
-                    Button("offline.detail.playDownloaded", systemImage: "arrow.down.circle") {
-                        playDownloaded(resumes: true)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .help(Text("offline.detail.playDownloaded.help"))
-                }
+        HStack(alignment: .center, spacing: 28) {
+            HStack(alignment: .center, spacing: 12) {
+                playButton
 
                 if isServerUnreachable, downloadedPlayback == nil {
                     if viewModel.reachableCopyReplacingUnavailableServer != nil {
@@ -428,103 +337,192 @@ struct MediaDetailView: View {
                 }
             }
 
-            HStack(alignment: .center, spacing: 12) {
-                moreActionsMenu
-                    .disabled(isServerUnreachable)
-                    .help(isServerUnreachable ? Text("offline.unavailable") : Text("common.actions.more"))
+            HStack(alignment: .top, spacing: 16) {
+                watchStatusButton
 
-                if viewModel.hasTrackSelection || viewModel.showsVersionSelection
-                    || (viewModel.canSearchSubtitles && !isServerUnreachable)
-                {
-                    MediaDetailTrackButtons(
-                        viewModel: viewModel,
-                        onSearchSubtitles: { isShowingSubtitleSearch = true },
-                    )
+                if viewModel.shouldShowFavoriteButton {
+                    favoriteButton
                 }
+
+                if mediaServices.capabilities.downloads,
+                   [.movie, .episode, .season, .show].contains(viewModel.media.type)
+                {
+                    Button(action: handleDownload) {
+                        DetailRoundActionLabel(
+                            title: "downloads.action",
+                            systemImage: downloadIconName,
+                            isActive: downloadStatus == .completed,
+                            isLoading: isDownloadInProgress,
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isLoading || isDownloadInProgress || isServerUnreachable)
+                }
+
+                moreActionsMenu
             }
         }
     }
 
-    private var moreActionsMenu: some View {
-        Menu {
-            if viewModel.media.type == .show || viewModel.media.type == .season {
-                Button("common.actions.shuffle", systemImage: "shuffle") {
-                    onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
-                }
+    private var playButton: some View {
+        Button {
+            if isServerUnreachable {
+                playDownloaded(resumes: !viewModel.shouldPlayPrimaryActionFromStart)
+                return
             }
-
-            if viewModel.shouldShowBothWatchActions {
-                Button("media.detail.watchAction.markWatched", systemImage: "checkmark.circle") {
-                    Task { await viewModel.markWatched() }
-                }
-                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-
-                Button("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill") {
-                    Task { await viewModel.markUnwatched() }
-                }
-                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-            } else {
-                Button(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon) {
-                    Task { await viewModel.toggleWatchStatus() }
-                }
-                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+            guard
+                let ratingKey = viewModel.primaryActionRatingKey,
+                let type = viewModel.primaryActionType
+            else { return }
+            onPlay(ratingKey, type, false, !viewModel.shouldPlayPrimaryActionFromStart)
+        } label: {
+            HStack(spacing: 10) {
+                PlayProgressIcon(progress: viewModel.primaryActionProgress)
+                Text(viewModel.primaryActionCompactTitle)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
             }
+            .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
+            .padding(.horizontal, 24)
+            .frame(minWidth: 240, minHeight: 48)
+            .background(isPlayDisabled ? Color.surfaceRaised : Color.white, in: Capsule(style: .continuous))
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isPlayDisabled)
+    }
 
-            if viewModel.shouldShowWatchlistButton {
-                Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
-                    Task { await viewModel.toggleWatchlistStatus() }
-                }
-                .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
-            }
-
-            if viewModel.shouldShowFavoriteButton {
-                Button(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon) {
-                    Task { await viewModel.toggleFavoriteStatus() }
-                }
-                .disabled(
-                    viewModel.isLoading
-                        || viewModel.isLoadingFavoriteStatus
-                        || viewModel.isUpdatingFavoriteStatus,
-                )
-            }
-
-            if mediaServices.capabilities.downloads,
-               [.movie, .episode, .season, .show].contains(viewModel.media.type)
-            {
-                Button("downloads.action", systemImage: downloadIconName) {
-                    handleDownload()
-                }
-                .disabled(viewModel.isLoading || isDownloadInProgress)
-            }
-
-            if viewModel.primaryActionRatingKey != nil {
-                Button {
-                    startSharePlay()
-                } label: {
-                    if isStartingSharePlay {
-                        Label {
-                            Text("sharePlay.action")
-                        } icon: {
-                            ProgressView()
-                        }
-                    } else {
-                        Label("sharePlay.action", systemImage: "shareplay")
-                    }
-                }
-                .disabled(isStartingSharePlay)
-            }
-
-            if viewModel.canShowFileInfo {
-                Divider()
-                Button("media.fileInfo.title", systemImage: "doc.text.magnifyingglass") {
-                    isShowingFileInfo = true
+    private var watchStatusButton: some View {
+        Button {
+            Task {
+                if viewModel.shouldShowBothWatchActions {
+                    await viewModel.markWatched()
+                } else {
+                    await viewModel.toggleWatchStatus()
                 }
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .frame(width: 20, height: 20)
+            DetailRoundActionLabel(
+                title: "media.detail.action.watched",
+                systemImage: isWatched ? "checkmark.circle.fill" : "checkmark.circle",
+                isActive: isWatched,
+                isLoading: viewModel.isUpdatingWatchStatus,
+            )
         }
-        .controlSize(.large)
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus || isServerUnreachable)
+        .help(Text(
+            viewModel.shouldShowBothWatchActions
+                ? String(localized: "media.detail.watchAction.markWatched")
+                : viewModel.watchActionTitle,
+        ))
+    }
+
+    private var isWatched: Bool {
+        viewModel.isWatched(viewModel.media.mediaItem)
+    }
+
+    private var favoriteButton: some View {
+        Button {
+            Task { await viewModel.toggleFavoriteStatus() }
+        } label: {
+            DetailRoundActionLabel(
+                title: "media.detail.action.favorite",
+                systemImage: viewModel.isFavorite ? "star.fill" : "star",
+                isActive: viewModel.isFavorite,
+                isLoading: viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus,
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(
+            viewModel.isLoading
+                || viewModel.isLoadingFavoriteStatus
+                || viewModel.isUpdatingFavoriteStatus
+                || isServerUnreachable,
+        )
+        .help(Text(viewModel.favoriteActionTitle))
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            if viewModel.shouldShowPlayFromStartButton,
+               !isServerUnreachable || downloadedPlayback != nil,
+               let ratingKey = viewModel.primaryActionRatingKey,
+               let type = viewModel.primaryActionType
+            {
+                Button("media.detail.playFromStart", systemImage: "arrow.counterclockwise") {
+                    if isServerUnreachable {
+                        playDownloaded(resumes: false)
+                    } else {
+                        onPlay(ratingKey, type, false, false)
+                    }
+                }
+            }
+
+            if !isServerUnreachable, downloadedPlayback != nil {
+                Button("offline.detail.playDownloaded", systemImage: "arrow.down.circle") {
+                    playDownloaded(resumes: true)
+                }
+                .help(Text("offline.detail.playDownloaded.help"))
+            }
+
+            if !isServerUnreachable {
+                if viewModel.media.type == .show || viewModel.media.type == .season {
+                    Button("common.actions.shuffle", systemImage: "shuffle") {
+                        onPlay(viewModel.media.id, viewModel.media.mediaKind, true, true)
+                    }
+                }
+
+                if viewModel.shouldShowBothWatchActions {
+                    Button("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill") {
+                        Task { await viewModel.markUnwatched() }
+                    }
+                    .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
+                }
+
+                if viewModel.shouldShowWatchlistButton {
+                    Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
+                        Task { await viewModel.toggleWatchlistStatus() }
+                    }
+                    .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+                }
+
+                if viewModel.primaryActionRatingKey != nil {
+                    Button {
+                        startSharePlay()
+                    } label: {
+                        if isStartingSharePlay {
+                            Label {
+                                Text("sharePlay.action")
+                            } icon: {
+                                ProgressView()
+                            }
+                        } else {
+                            Label("sharePlay.action", systemImage: "shareplay")
+                        }
+                    }
+                    .disabled(isStartingSharePlay)
+                }
+
+                if viewModel.canShowFileInfo {
+                    Divider()
+                    Button("media.fileInfo.title", systemImage: "doc.text.magnifyingglass") {
+                        isShowingFileInfo = true
+                    }
+                }
+            }
+        } label: {
+            DetailRoundActionLabel(
+                title: "common.actions.more",
+                systemImage: "ellipsis",
+                isActive: false,
+                isLoading: false,
+            )
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
         .help(Text("common.actions.more"))
         .accessibilityLabel(Text("common.actions.more"))
     }
@@ -745,11 +743,11 @@ private struct PlayProgressIcon: View {
         ZStack {
             if let progress {
                 Circle()
-                    .stroke(Color.brandSecondaryForeground.opacity(0.25), lineWidth: 4)
+                    .stroke(Color.black.opacity(0.25), lineWidth: 4)
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        Color.brandSecondaryForeground,
+                        Color.black,
                         style: StrokeStyle(lineWidth: 4, lineCap: .round),
                     )
                     .rotationEffect(.degrees(-90))
