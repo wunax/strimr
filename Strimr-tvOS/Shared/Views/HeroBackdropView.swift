@@ -12,7 +12,7 @@ struct HeroBackdropView<Key: Equatable>: View {
     @State private var layers: [Layer] = []
     @State private var nextLayerID = 0
 
-    private let settleDelay: Duration = .milliseconds(200)
+    private let settleDelay: Duration = .milliseconds(100)
     private let fadeDuration: TimeInterval = 0.5
 
     var body: some View {
