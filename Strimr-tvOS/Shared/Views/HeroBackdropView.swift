@@ -50,9 +50,9 @@ struct HeroBackdropView<Key: Equatable>: View {
         }
     }
 
-    // The new backdrop is only committed once its artwork and colors are ready, then fades in over the
-    // previous one, which stays opaque underneath so the crossfade never dips to the plain background.
-    // The settle delay skips loading every item crossed during a fast focus scroll.
+    /// The new backdrop is only committed once its artwork and colors are ready, then fades in over the
+    /// previous one, which stays opaque underneath so the crossfade never dips to the plain background.
+    /// The settle delay skips loading every item crossed during a fast focus scroll.
     private func update() async {
         if !layers.isEmpty {
             try? await Task.sleep(for: settleDelay)

@@ -21,8 +21,8 @@ struct HeroContentTransitionView<Item: Identifiable, Content: View>: View {
             }
     }
 
-    // Sequential fade out then in so the outgoing and incoming text never overlap;
-    // rapid focus changes cancel the task and keep the text hidden until focus settles.
+    /// Sequential fade out then in so the outgoing and incoming text never overlap;
+    /// rapid focus changes cancel the task and keep the text hidden until focus settles.
     private func transition() async {
         guard let current = displayedItem, current.id != item.id else {
             displayedItem = item

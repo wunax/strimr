@@ -39,7 +39,7 @@ struct MediaHeroBackgroundView: View {
         if providerColors.count == 4 {
             return HeroBackdrop(resource: resource, colors: providerColors)
         }
-        let sampledColors = (try? await ImageCornerColorSampler.colors(from: resource)) ?? []
+        let sampledColors = await (try? ImageCornerColorSampler.colors(from: resource)) ?? []
         return HeroBackdrop(resource: resource, colors: sampledColors.count == 4 ? sampledColors : [])
     }
 }
