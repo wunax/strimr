@@ -88,7 +88,7 @@ struct LibraryRecommendedView: View {
                 }
             }
             .padding(.leading, focusOverflowInset)
-            .padding(.trailing, 24)
+            .padding(.trailing, LayoutMetrics.pageMargin)
         }
     }
 

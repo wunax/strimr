@@ -62,6 +62,7 @@ struct FavoritesView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
+            .environment(\.railPageMargin, 16)
         }
         .navigationTitle("tabs.favorites")
         .task { await viewModel.load() }

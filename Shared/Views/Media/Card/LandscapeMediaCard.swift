@@ -31,17 +31,7 @@ struct LandscapeMediaCard: View {
     }
 
     private var baseHeight: CGFloat {
-        #if os(tvOS)
-            180
-        #elseif os(macOS)
-            140
-        #else
-            if sizeClass == .compact {
-                90
-            } else {
-                124
-            }
-        #endif
+        LayoutMetrics.baseCardHeight(for: .landscape, sizeClass: sizeClass)
     }
 
     var body: some View {

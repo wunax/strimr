@@ -5,6 +5,7 @@ struct MediaCarousel: View {
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.railPageMargin) private var pageMargin
     #if os(tvOS)
         @FocusState private var isViewAllFocused: Bool
     #endif
@@ -31,7 +32,7 @@ struct MediaCarousel: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: spacing(for: layout)) {
+            LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: layout)) {
                 ForEach(items, id: \.id) { item in
                     card(for: item)
                 }
@@ -40,9 +41,10 @@ struct MediaCarousel: View {
                 }
             }
             #if os(tvOS)
-            .padding(.vertical, 20)
+            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
             #endif
         }
+        .railBleed(pageMargin: pageMargin)
         .mouseDragScrolling()
         #if os(tvOS)
             .scrollClipDisabled()
@@ -98,35 +100,16 @@ struct MediaCarousel: View {
         .background(Color.brandSecondary.opacity(0.08))
         .mediaArtworkStyle(borderColor: Color.brandSecondary.opacity(0.24))
         #if os(tvOS)
-            .scaleEffect(isViewAllFocused ? 1.12 : 1)
-            .animation(.easeOut(duration: 0.15), value: isViewAllFocused)
+            .cardFocusStyle(isFocused: isViewAllFocused)
         #endif
     }
 
     private func cardSize(for layout: Layout) -> CGSize {
-        let scale = settingsManager.interface.posterSize.scale
-        switch layout {
-        case .portrait:
-            let height: CGFloat
-            #if os(tvOS)
-                height = 320
-            #elseif os(macOS)
-                height = 260
-            #else
-                height = sizeClass == .compact ? 180 : 240
-            #endif
-            return CGSize(width: height * scale * 2 / 3, height: height * scale)
-        case .landscape:
-            let height: CGFloat
-            #if os(tvOS)
-                height = 180
-            #elseif os(macOS)
-                height = 140
-            #else
-                height = sizeClass == .compact ? 90 : 124
-            #endif
-            return CGSize(width: height * scale * 16 / 9, height: height * scale)
-        }
+        LayoutMetrics.cardSize(
+            for: layout,
+            sizeClass: sizeClass,
+            posterScale: settingsManager.interface.posterSize.scale,
+        )
     }
 
     private func iconSize(for layout: Layout) -> CGFloat {
@@ -152,22 +135,5 @@ struct MediaCarousel: View {
         #else
             .subheadline
         #endif
-    }
-
-    private func spacing(for layout: Layout) -> CGFloat {
-        switch layout {
-        case .portrait:
-            #if os(tvOS)
-                28
-            #else
-                12
-            #endif
-        case .landscape:
-            #if os(tvOS)
-                32
-            #else
-                16
-            #endif
-        }
     }
 }

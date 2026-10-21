@@ -26,6 +26,7 @@ struct ExtrasSection: View {
                     )
                 }
                 .padding(.horizontal, extrasSectionHorizontalPadding)
+                .environment(\.railPageMargin, extrasSectionHorizontalPadding)
             }
             .textCase(nil)
         }

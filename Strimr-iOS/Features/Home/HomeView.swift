@@ -40,7 +40,7 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 20)
         }
         .navigationTitle("tabs.home")

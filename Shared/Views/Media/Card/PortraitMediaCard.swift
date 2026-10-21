@@ -31,17 +31,7 @@ struct PortraitMediaCard: View {
     }
 
     private var baseHeight: CGFloat {
-        #if os(tvOS)
-            320
-        #elseif os(macOS)
-            260
-        #else
-            if sizeClass == .compact {
-                180
-            } else {
-                240
-            }
-        #endif
+        LayoutMetrics.baseCardHeight(for: .portrait, sizeClass: sizeClass)
     }
 
     var body: some View {

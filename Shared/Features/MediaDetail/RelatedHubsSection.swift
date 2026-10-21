@@ -20,6 +20,7 @@ struct RelatedHubsSection: View {
                 relatedContent
             }
             .padding(.horizontal, relatedSectionHorizontalPadding)
+            .environment(\.railPageMargin, relatedSectionHorizontalPadding)
             .padding(.bottom, 32)
         }
         .textCase(nil)

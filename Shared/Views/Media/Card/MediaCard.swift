@@ -19,11 +19,10 @@ struct MediaCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: labelSpacing) {
+        VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
             artwork
             #if os(tvOS)
-                .scaleEffect(isFocused ? 1.12 : 1)
-                .animation(.easeOut(duration: 0.15), value: isFocused)
+                .cardFocusStyle(isFocused: isFocused)
             #endif
 
             if showsLabels {
@@ -78,14 +77,6 @@ struct MediaCard: View {
                     .padding(.bottom, 10)
             }
         }
-    }
-
-    private var labelSpacing: CGFloat {
-        #if os(tvOS)
-            20
-        #else
-            8
-        #endif
     }
 
     private var primaryLabelFont: Font {

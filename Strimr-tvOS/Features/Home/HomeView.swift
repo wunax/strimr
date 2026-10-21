@@ -80,7 +80,7 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.trailing, 24)
+            .padding(.trailing, LayoutMetrics.pageMargin)
         }
     }
 

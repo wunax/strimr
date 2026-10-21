@@ -690,11 +690,7 @@ private struct EpisodeArtworkCard: View {
                 .transition(.opacity.combined(with: .scale))
             }
         }
-        .shadow(
-            color: Color.brandSecondary.opacity(isFocused ? 0.22 : 0),
-            radius: isFocused ? 14 : 0,
-        )
-        .scaleEffect(isFocused ? 1.12 : 1)
+        .cardFocusStyle(isFocused: isFocused)
         .contextMenu {
             if shouldShowPlayFromStart {
                 Button(action: onPlayFromStart) {
