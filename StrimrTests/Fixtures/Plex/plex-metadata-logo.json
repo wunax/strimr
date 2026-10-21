@@ -1,0 +1,32 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Metadata": [
+      {
+        "ratingKey": "201",
+        "key": "/library/metadata/201",
+        "guid": "plex://movie/5d7768000000000000000201",
+        "type": "movie",
+        "title": "Example Movie",
+        "year": 2021,
+        "Image": [
+          { "alt": "Example Movie", "type": "coverPoster", "url": "/library/metadata/201/thumb/1700000000" },
+          { "alt": "Example Movie", "type": "background", "url": "/library/metadata/201/art/1700000000" },
+          { "alt": "Example Movie", "type": "clearLogo", "url": "/library/metadata/201/clearLogo/1700000000" }
+        ]
+      },
+      {
+        "ratingKey": "202",
+        "key": "/library/metadata/202/children",
+        "guid": "plex://show/5d7768000000000000000202",
+        "type": "show",
+        "title": "Example Show",
+        "year": 2019,
+        "childCount": 2,
+        "Image": [
+          { "alt": "Example Show", "type": "coverPoster", "url": "/library/metadata/202/thumb/1700000000" }
+        ]
+      }
+    ]
+  }
+}

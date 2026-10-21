@@ -124,7 +124,7 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "ItemLimit", value: String(itemLimit)),
                 URLQueryItem(name: "Fields", value: Self.cardFields),
                 URLQueryItem(name: "ImageTypeLimit", value: "1"),
-                URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Banner,Thumb"),
+                URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Banner,Thumb,Logo"),
             ],
         )
     }

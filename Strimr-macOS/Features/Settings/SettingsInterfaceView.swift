@@ -63,6 +63,18 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Toggle(
+                    "settings.interface.titleLogo",
+                    isOn: Binding(
+                        get: { settingsManager.interface.showsTitleLogo },
+                        set: { settingsManager.setShowsTitleLogo($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.titleLogo.footer")
+            }
+
+            Section {
                 Picker(
                     "settings.interface.posterSize",
                     selection: Binding(

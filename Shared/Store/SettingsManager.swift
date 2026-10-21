@@ -346,6 +346,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowsTitleLogo(_ enabled: Bool) {
+        settings.interface.showsTitleLogo = enabled
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

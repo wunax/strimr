@@ -34,6 +34,12 @@ extension MediaFileVersion {
         return components.joined(separator: " ")
     }
 
+    /// Hero badges, e.g. `4K`, `DV`, `5.1`; stereo and mono are not worth a badge.
+    var badgeLabels: [String] {
+        let channels = (audioChannels ?? primaryAudioStream?.channels).flatMap { $0 >= 6 ? Self.channelLabel($0) : nil }
+        return [resolutionLabel, shortDynamicRangeLabel, channels].compactMap(\.self)
+    }
+
     var technicalLabel: String {
         let components = [resolutionLabel, dynamicRangeLabel, videoCodecLabel].compactMap(\.self)
         if components.isEmpty {

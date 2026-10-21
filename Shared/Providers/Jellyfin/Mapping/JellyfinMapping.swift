@@ -89,6 +89,14 @@ extension MediaItem {
             parentThumbPath: nil,
             lastViewedAt: jellyfinItem.userData?.lastPlayedDate,
             externalIDs: ExternalIDs(providerIDs: jellyfinItem.providerIDs ?? [:]),
+            logoPath: JellyfinArtworkPath.make(
+                ownerID: jellyfinItem.id,
+                type: "Logo",
+                tag: jellyfinItem.imageTags?["Logo"],
+            ),
+            grandparentLogoPath: jellyfinItem.parentLogoItemID.flatMap {
+                JellyfinArtworkPath.make(ownerID: $0, type: "Logo", tag: jellyfinItem.parentLogoImageTag)
+            },
         )
     }
 }

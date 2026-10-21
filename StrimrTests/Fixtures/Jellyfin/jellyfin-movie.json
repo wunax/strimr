@@ -12,7 +12,7 @@
   "Genres": ["Drama", "Thriller"],
   "Studios": [{ "Name": "Example Studio" }, { "Name": "Other Studio" }],
   "Taglines": ["The tagline."],
-  "ImageTags": { "Primary": "primary-tag" },
+  "ImageTags": { "Primary": "primary-tag", "Logo": "logo-tag" },
   "BackdropImageTags": ["backdrop-tag", "backdrop-tag-2"],
   "UserData": {
     "Played": false,

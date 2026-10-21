@@ -302,6 +302,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let parentThumbItemID: String?
     let seriesPrimaryImageTag: String?
     let seriesThumbImageTag: String?
+    let parentLogoItemID: String?
+    let parentLogoImageTag: String?
     let userData: JellyfinUserData?
     let people: [JellyfinPerson]?
     let mediaSources: [JellyfinMediaSource]?
@@ -339,6 +341,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case parentThumbItemID = "ParentThumbItemId"
         case seriesPrimaryImageTag = "SeriesPrimaryImageTag"
         case seriesThumbImageTag = "SeriesThumbImageTag"
+        case parentLogoItemID = "ParentLogoItemId"
+        case parentLogoImageTag = "ParentLogoImageTag"
         case userData = "UserData"
         case people = "People"
         case mediaSources = "MediaSources"

@@ -325,6 +325,7 @@ struct InterfaceSettings: Codable, Equatable {
     var libraryDefaultLayout = LibraryDefaultLayout.automatic
     var posterSize = PosterSize.medium
     var themeMusicVolume = ThemeMusicVolume.off
+    var showsTitleLogo = true
 
     init() {}
 
@@ -362,6 +363,7 @@ struct InterfaceSettings: Codable, Equatable {
         )) ?? .automatic
         posterSize = (try? container.decode(PosterSize.self, forKey: .posterSize)) ?? .medium
         themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
+        showsTitleLogo = try container.decodeIfPresent(Bool.self, forKey: .showsTitleLogo) ?? true
     }
 }
 

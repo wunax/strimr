@@ -13,6 +13,8 @@
   "ImageTags": {},
   "BackdropImageTags": [],
   "SeriesPrimaryImageTag": "series-tag",
+  "ParentLogoItemId": "series-1",
+  "ParentLogoImageTag": "series-logo-tag",
   "UserData": {
     "Played": true,
     "PlaybackPositionTicks": 0,

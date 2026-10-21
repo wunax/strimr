@@ -80,6 +80,7 @@ extension MediaItem {
             lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
             externalIDs: ExternalIDs(plexGuids: plexItem.guids?.map(\.id) ?? []),
             themePath: plexItem.theme ?? plexItem.parentTheme ?? plexItem.grandparentTheme,
+            logoPath: plexItem.images?.first { $0.type == "clearLogo" }?.url.absoluteString,
         )
     }
 }

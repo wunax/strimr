@@ -65,4 +65,12 @@ struct MediaFileVersionLabelsTests {
 
         #expect(version.detailLabel == "TrueHD 7.1 · Movie (2160p).mkv")
     }
+
+    @Test func `badge labels keep resolution, dynamic range and surround channels`() {
+        let surround = MediaFileVersion.make(id: "1", height: 2160, dynamicRange: "Dolby Vision", audioChannels: 6)
+        let stereo = MediaFileVersion.make(id: "2", height: 1080, audioChannels: 2)
+
+        #expect(surround.badgeLabels == ["4K", "DV", "5.1"])
+        #expect(stereo.badgeLabels == ["1080p"])
+    }
 }
