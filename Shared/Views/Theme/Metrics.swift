@@ -20,10 +20,10 @@ enum LayoutMetrics {
         #endif
     }
 
-    /// Largest box a title logo may fill in a hero.
+    /// Largest box a title logo may fill in a hero; on tvOS, small enough for the hero details to end above the rails.
     static var heroLogoMaxSize: CGSize {
         #if os(tvOS)
-            CGSize(width: 560, height: 200)
+            CGSize(width: 480, height: 120)
         #else
             CGSize(width: 320, height: 120)
         #endif
