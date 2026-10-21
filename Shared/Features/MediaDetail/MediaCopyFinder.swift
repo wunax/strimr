@@ -103,7 +103,8 @@ struct ReachableCopyPlayButton: View {
                 Label(String(localized: "media.availableOn.play \(copy.serverName)"), systemImage: "play.fill")
             }
             .buttonStyle(.borderedProminent)
-            .tint(.brandPrimary)
+            .tint(.white)
+            .foregroundStyle(.black)
         }
     }
 }

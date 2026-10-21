@@ -209,7 +209,7 @@ struct LiveTVView: View {
                             ForEach(displayedChannels) { channel in guideRow(channel) }
                         } header: {
                             guideHeader
-                                .background(.regularMaterial)
+                                .strimrGlass(in: Rectangle())
                         }
                     }
                     .padding(.horizontal)

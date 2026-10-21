@@ -149,7 +149,7 @@ private struct TypeBadge: View {
     private var color: Color {
         switch type {
         case .movie:
-            .brandPrimary
+            .gray
         case .series:
             .mint
         case .season:
@@ -157,7 +157,7 @@ private struct TypeBadge: View {
         case .episode:
             .purple
         case .clip:
-            .brandPrimary
+            .gray
         case .collection:
             .teal
         case .playlist:

@@ -75,6 +75,8 @@ final class MediaDetailViewModel {
     var isUpdatingFavoriteStatus = false
     private(set) var isFavorite = false
     var favoriteActionErrorMessage: String?
+    /// Bumped each time a watched or favorite change is confirmed, to drive success feedback.
+    private(set) var confirmedActionCount = 0
     private var favoriteStatusByID: [String: Bool] = [:]
     private var loadingFavoriteStatusIDs: Set<String> = []
     private var updatingFavoriteStatusIDs: Set<String> = []
@@ -170,6 +172,7 @@ final class MediaDetailViewModel {
 
         switch await quickActions.setPlayed(played, for: item) {
         case .succeeded:
+            confirmedActionCount += 1
             await loadCommonDetails(preservingExistingContent: true)
         case let .failed(message):
             watchActionErrorMessage = message
@@ -220,6 +223,7 @@ final class MediaDetailViewModel {
         let updatedValue = !isFavorite(for: item)
         switch await quickActions.setFavorite(updatedValue, for: item) {
         case .succeeded:
+            confirmedActionCount += 1
             favoriteStatusByID[item.id] = updatedValue
             if isPrimaryItem {
                 isFavorite = updatedValue

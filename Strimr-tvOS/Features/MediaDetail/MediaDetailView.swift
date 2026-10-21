@@ -679,7 +679,7 @@ private struct SeasonPillButton: View {
             .foregroundStyle(isSelected ? Color.black : Color.textPrimary)
             .background(Capsule(style: .continuous).fill(background))
             .scaleEffect(isFocused && !reduceMotion ? CardFocusStyle.focusedScale : 1)
-            .animation(Motion.focus, value: isFocused)
+            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
             .animation(Motion.crossfade, value: isSelected)
             .focusable()
             .focused($isFocused)
@@ -799,7 +799,7 @@ private struct EpisodeArtworkCard: View {
                 }
                 .frame(width: 24, height: 24)
                 .frame(width: 48, height: 48)
-                .background(.ultraThinMaterial, in: Circle())
+                .strimrGlass(in: Circle())
                 .padding(12)
                 .accessibilityHidden(true)
                 .transition(.opacity.combined(with: .scale))

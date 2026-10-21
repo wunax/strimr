@@ -138,7 +138,7 @@ struct ProfileAvatarView: View {
             .font(.system(size: size * 0.11, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size * 0.26, height: size * 0.26)
-            .profileGlass(in: Circle())
+            .strimrGlass(in: Circle())
     }
 }
 
@@ -191,15 +191,6 @@ extension View {
     func shake(_ count: Int) -> some View {
         modifier(ShakeEffect(trigger: CGFloat(count)))
             .animation(.linear(duration: 0.4), value: count)
-    }
-
-    @ViewBuilder
-    func profileGlass(in shape: some Shape) -> some View {
-        if #available(iOS 26.0, *) {
-            glassEffect(.regular, in: shape)
-        } else {
-            background(.ultraThinMaterial, in: shape)
-        }
     }
 }
 
@@ -378,7 +369,7 @@ extension View {
                 configuration.label
                     .foregroundStyle(.white)
                     .contentShape(Circle())
-                    .profileGlass(in: Circle())
+                    .strimrGlass(in: Circle())
                     .scaleEffect(configuration.isPressed ? 0.92 : 1)
                     .animation(.spring(duration: 0.2), value: configuration.isPressed)
             }

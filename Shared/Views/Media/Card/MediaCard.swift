@@ -87,7 +87,7 @@ struct MediaCard: View {
         #if os(tvOS)
         // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
         .offset(y: isFocused && !reduceMotion ? size.height * (CardFocusStyle.focusedScale - 1) / 2 : 0)
-        .animation(Motion.focusScale, value: isFocused)
+        .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         #endif
     }
 

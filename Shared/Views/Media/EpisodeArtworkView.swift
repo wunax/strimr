@@ -47,15 +47,13 @@ struct EpisodeArtworkView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(.ultraThinMaterial, in: Capsule())
+                .strimrGlass(in: Capsule())
                 .padding(10)
             }
         }
         .overlay(alignment: .bottomLeading) {
             if let progress {
-                ProgressView(value: progress)
-                    .progressViewStyle(.linear)
-                    .tint(.brandPrimary)
+                CardProgressBar(progress: progress)
                     .padding(.horizontal, 10)
                     .padding(.bottom, 10)
             }

@@ -18,7 +18,7 @@ struct CardFocusStyle: ViewModifier {
             )
             .animation(Motion.focus, value: isFocused)
             .scaleEffect(scale)
-            .animation(Motion.focusScale, value: scale)
+            .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: scale)
     }
 
     private var scale: CGFloat {

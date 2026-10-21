@@ -21,6 +21,7 @@ struct MediaDetailHeaderSection: View {
     @State private var isShowingDownloadOptions = false
     @State private var isShowingFileInfo = false
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
+    @State private var queuedDownloadCount = 0
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -89,6 +90,10 @@ struct MediaDetailHeaderSection: View {
             .padding(.bottom, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .sensoryFeedback(.success, trigger: viewModel.confirmedActionCount)
+        .sensoryFeedback(.success, trigger: queuedDownloadCount)
+        .sensoryFeedback(.error, trigger: viewModel.watchActionErrorMessage) { _, message in message != nil }
+        .sensoryFeedback(.error, trigger: viewModel.favoriteActionErrorMessage) { _, message in message != nil }
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             NavigationStack {
                 ShowDownloadSelectionSheet(
@@ -105,6 +110,7 @@ struct MediaDetailHeaderSection: View {
                                 services: mediaServices,
                             )
                         }
+                        queuedDownloadCount += 1
                     },
                     statusForIdentity: downloadManager.status,
                 )
@@ -135,6 +141,7 @@ struct MediaDetailHeaderSection: View {
                         services: mediaServices,
                     )
                 }
+                queuedDownloadCount += 1
             }
         }
         .sheet(isPresented: $isShowingFileInfo) {
