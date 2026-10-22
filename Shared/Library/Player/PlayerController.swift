@@ -7,6 +7,12 @@ import Observation
 import SwiftAssRenderer
 import SwiftUI
 
+extension PlayerVideoScaleMode {
+    var videoGravity: AVLayerVideoGravity {
+        self == .fit ? .resizeAspect : .resizeAspectFill
+    }
+}
+
 struct PlayerScrubPreview {
     var position: Double
     var image: CGImage?
@@ -28,6 +34,9 @@ final class PlayerController {
     var behindLiveSeconds = 0.0
     var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
+    private(set) var displayVideoSize: CGSize?
+    var isPresentationOrientationReady = true
+    private(set) var videoScaleMode = PlayerVideoScaleMode.fit
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
@@ -50,6 +59,11 @@ final class PlayerController {
     private(set) var selectedSubtitleTrackID: Int?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
+
+    func setVideoScaleMode(_ mode: PlayerVideoScaleMode) {
+        videoScaleMode = mode
+        engine.videoGravity = mode.videoGravity
+    }
 
     var isMuted: Bool {
         volume == 0
@@ -181,6 +195,7 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         subtitleCues = []
         sourceVideoSize = nil
+        displayVideoSize = nil
         activeSubtitleCodec = nil
         self.styledASSSubtitles = styledASSSubtitles
         if mediaIdentifier != self.mediaIdentifier {
@@ -629,6 +644,7 @@ final class PlayerController {
         isPaused = true
         isBuffering = false
         sourceVideoSize = nil
+        displayVideoSize = nil
         activeSubtitleCodec = nil
         selectedSubtitleTrackID = nil
         cancelPendingAudioDelay()
@@ -910,6 +926,27 @@ final class PlayerController {
     }
 
     private func observeEngine() {
+        engine.$currentAVPlayerItem
+            .map { item -> AnyPublisher<CGSize, Never> in
+                guard let item else { return Just(.zero).eraseToAnyPublisher() }
+                return item.publisher(for: \.presentationSize).eraseToAnyPublisher()
+            }
+            .switchToLatest()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] size in
+                guard size.width > 0, size.height > 0 else { return }
+                self?.displayVideoSize = size
+            }
+            .store(in: &cancellables)
+
+        engine.$softwareDisplaySize
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] size in
+                guard let size, size.width > 0, size.height > 0 else { return }
+                self?.displayVideoSize = size
+            }
+            .store(in: &cancellables)
+
         engine.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in

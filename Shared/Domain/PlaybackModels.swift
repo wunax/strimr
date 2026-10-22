@@ -1,6 +1,29 @@
 import AetherEngine
 import Foundation
 
+enum PlayerVideoScaleMode: String, Codable, CaseIterable, Sendable, Hashable, Identifiable {
+    case fit
+    case fill
+
+    var id: Self {
+        self
+    }
+
+    var feedbackTitle: String {
+        switch self {
+        case .fit: String(localized: "player.feedback.videoScale.fit")
+        case .fill: String(localized: "player.feedback.videoScale.fill")
+        }
+    }
+
+    var feedbackSystemImage: String {
+        switch self {
+        case .fit: "arrow.down.right.and.arrow.up.left"
+        case .fill: "arrow.up.left.and.arrow.down.right"
+        }
+    }
+}
+
 enum PlaybackMethod: String, Sendable {
     case directPlay
     case transcode

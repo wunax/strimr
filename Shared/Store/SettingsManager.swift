@@ -43,6 +43,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setVideoScaleMode(_ mode: PlayerVideoScaleMode) {
+        settings.playback.videoScaleMode = mode
+        persist()
+    }
+
     func setAutoSkipIntros(_ enabled: Bool) {
         settings.playback.autoSkipIntros = enabled
         persist()

@@ -19,6 +19,7 @@ struct SubtitleOverlayView: View {
     let assRenderer: AssSubtitlesRenderer?
     let assReloadSignal: PassthroughSubject<Void, Never>
     let activeSubtitleCodec: String?
+    var videoScaleMode: PlayerVideoScaleMode = .fit
 
     var body: some View {
         if let assRenderer {
@@ -32,6 +33,7 @@ struct SubtitleOverlayView: View {
                 .frame(width: rect.width, height: rect.height)
                 .position(x: rect.midX, y: rect.midY)
             }
+            .clipped()
             .allowsHitTesting(false)
         } else {
             cueOverlay
@@ -50,6 +52,7 @@ struct SubtitleOverlayView: View {
                         }
                     }
             }
+            .clipped()
             .ignoresSafeArea()
 
             GeometryReader { geometry in
@@ -186,7 +189,7 @@ struct SubtitleOverlayView: View {
     }
 
     private func videoRect(in overlaySize: CGSize) -> CGRect {
-        aspectFitRect(for: videoSize, in: overlaySize)
+        zoomedRect(aspectFitRect(for: videoSize, in: overlaySize), in: overlaySize)
     }
 
     private func aspectFitRect(for contentSize: CGSize?, in overlaySize: CGSize) -> CGRect {
@@ -215,13 +218,31 @@ struct SubtitleOverlayView: View {
         )
     }
 
+    /// Apply the video's fit-to-fill transform to the existing subtitle layout, including oversized canvases.
+    private func zoomedRect(_ rect: CGRect, in overlaySize: CGSize) -> CGRect {
+        guard videoScaleMode == .fill, let videoSize,
+              videoSize.width > 0, videoSize.height > 0,
+              overlaySize.width > 0, overlaySize.height > 0
+        else { return rect }
+
+        let widthScale = overlaySize.width / videoSize.width
+        let heightScale = overlaySize.height / videoSize.height
+        let zoom = max(widthScale, heightScale) / min(widthScale, heightScale)
+        return CGRect(
+            x: overlaySize.width / 2 + (rect.minX - overlaySize.width / 2) * zoom,
+            y: overlaySize.height / 2 + (rect.minY - overlaySize.height / 2) * zoom,
+            width: rect.width * zoom,
+            height: rect.height * zoom,
+        )
+    }
+
     private func imageFrame(_ image: SubtitleImage, in overlaySize: CGSize) -> CGRect {
         let canvasSize = image.canvasSize.width > 0 && image.canvasSize.height > 0
             ? image.canvasSize
             : videoSize
         // Fit the whole canvas on screen rather than width-aligning it to the video: a 16:9 canvas
         // over a cropped (e.g. 2.39:1) video would otherwise push lower-bar cues off a wide screen.
-        let canvasRect = aspectFitRect(for: canvasSize, in: overlaySize)
+        let canvasRect = zoomedRect(aspectFitRect(for: canvasSize, in: overlaySize), in: overlaySize)
 
         return CGRect(
             x: canvasRect.minX + image.position.minX * canvasRect.width,
