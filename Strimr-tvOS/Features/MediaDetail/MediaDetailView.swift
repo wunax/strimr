@@ -726,6 +726,7 @@ private struct EpisodeArtworkCard: View {
     let onFocus: () -> Void
     let onFileInfo: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -738,22 +739,24 @@ private struct EpisodeArtworkCard: View {
 
     private var caption: some View {
         VStack(alignment: .leading, spacing: 4) {
-            (Text(episodeNumberText).font(.eyebrow).tracking(1.2).foregroundStyle(.textTertiary)
-                + Text(verbatim: " · \(episode.title)").font(.cardTitle).foregroundStyle(.textPrimary))
+            Text([episodeNumberText, runtime].compactMap(\.self).joined(separator: " · "))
+                .eyebrowStyle()
+                .foregroundStyle(.textTertiary)
+                .opacity(isFocused ? 1 : 0.32 / 0.45)
                 .lineLimit(1)
-            if let runtime {
-                Text(runtime)
-                    .font(.cardMetadata)
-                    .foregroundStyle(.textTertiary)
-            }
+            Text(episode.title)
+                .font(.cardTitle)
+                .foregroundStyle(.textPrimary.opacity(isFocused ? 1 : 0.45))
+                .lineLimit(1)
         }
-        .opacity(isFocused ? 1 : 0.65)
-        .animation(Motion.focus, value: isFocused)
+        // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
+        .offset(y: isFocused && !reduceMotion ? width / (16 / 9) * (CardFocusStyle.focusedScale - 1) / 2 : 0)
+        .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
     }
 
     private var episodeNumberText: String {
-        guard let index = episode.index else { return String(localized: "search.fallback.episode").localizedUppercase }
-        return String(localized: "media.detail.episodeNumber \(index)").localizedUppercase
+        guard let index = episode.index else { return String(localized: "search.fallback.episode") }
+        return String(localized: "media.detail.episodeNumber \(index)")
     }
 
     @ViewBuilder
