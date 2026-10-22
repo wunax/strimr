@@ -67,11 +67,8 @@ struct MediaHeroContentView: View {
     /// Lines that keep their room when the item shown has nothing for them. Where the hero sits in the page flow
     /// rather than over it, this keeps the page below still as the hero moves between items.
     var reservedLines: HeroLines = []
-    /// Fades the logo out while keeping its room, for a page scrolled just past it.
-    var hidesLogo = false
-
-    /// Height of the logo and the gap under it, which a page scrolls by to start at the lines that follow.
-    static let logoBlockHeight = LayoutMetrics.heroLogoMaxSize.height + MediaHeroDetailsView.lineSpacing
+    /// Shrinks the logo to give its room to what follows, e.g. while browsing episodes under the hero.
+    var compactsLogo = false
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
@@ -82,7 +79,7 @@ struct MediaHeroContentView: View {
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
                 onExpandSummary: onExpandSummary,
                 reservedLines: reservedLines,
-                hidesLogo: hidesLogo,
+                compactsLogo: compactsLogo,
             )
         }
     }
@@ -93,12 +90,11 @@ struct HeroLines: OptionSet {
 
     static let secondaryLabel = HeroLines(rawValue: 1 << 0)
     static let facts = HeroLines(rawValue: 1 << 1)
-    static let ratings = HeroLines(rawValue: 1 << 2)
-    static let summary = HeroLines(rawValue: 1 << 3)
-    static let starring = HeroLines(rawValue: 1 << 4)
+    static let summary = HeroLines(rawValue: 1 << 2)
+    static let starring = HeroLines(rawValue: 1 << 3)
 }
 
-struct MediaHeroDetailsView: View {
+private struct MediaHeroDetailsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
     let logoPath: String?
@@ -106,32 +102,24 @@ struct MediaHeroDetailsView: View {
     let badges: [String]
     let onExpandSummary: ((MediaItem) -> Void)?
     let reservedLines: HeroLines
-    let hidesLogo: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    static let lineSpacing: CGFloat = 12
+    let compactsLogo: Bool
     private let summaryLineLimit = 3
+    private let compactLogoHeight: CGFloat = 48
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Self.lineSpacing) {
+        VStack(alignment: .leading, spacing: 12) {
             // Fixed height so a tall logo or a two-line title never moves what follows during hero transitions.
+            // Compacting scales the logo rather than resizing it, so it is not loaded again at another size.
             TitleLogoView(media: media, logoPath: logoPath, maxSize: LayoutMetrics.heroLogoMaxSize)
                 .frame(height: LayoutMetrics.heroLogoMaxSize.height, alignment: .bottomLeading)
-                .opacity(hidesLogo ? 0 : 1)
-                .animation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion), value: hidesLogo)
+                .scaleEffect(compactsLogo ? logoScale : 1, anchor: .bottomLeading)
+                .frame(height: compactsLogo ? compactLogoHeight : LayoutMetrics.heroLogoMaxSize.height, alignment: .bottomLeading)
 
             if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
-                HStack(spacing: 0) {
-                    // With the logo faded out, the series name moves onto this line.
-                    if hidesLogo {
-                        Text(verbatim: "\(media.primaryLabel) · ")
-                            .foregroundStyle(.textSecondary)
-                            .fixedSize()
-                    }
-                    Text(secondary)
-                        .foregroundStyle(.textPrimary)
-                }
-                .font(.facts.weight(.semibold))
-                .lineLimit(1)
+                Text(secondary)
+                    .font(.facts.weight(.semibold))
+                    .foregroundStyle(.textPrimary)
+                    .lineLimit(1)
             } else if reservedLines.contains(.secondaryLabel) {
                 lineSpacer(font: .facts.weight(.semibold))
             }
@@ -141,14 +129,10 @@ struct MediaHeroDetailsView: View {
                     // A badge is taller than the text, so it sets the room of a line that may or may not show one.
                     TechBadge(text: "4K").hidden()
                 }
-                MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
-            }
-
-            ZStack(alignment: .leading) {
-                if reservedLines.contains(.ratings) {
-                    lineSpacer(font: .facts)
+                HStack(spacing: 24) {
+                    MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
+                    ratingsLine
                 }
-                ratingsLine
             }
 
             summary
@@ -195,6 +179,10 @@ struct MediaHeroDetailsView: View {
             Color.clear
                 .frame(height: summaryLineHeight * CGFloat(summaryLineLimit))
         }
+    }
+
+    private var logoScale: CGFloat {
+        compactLogoHeight / LayoutMetrics.heroLogoMaxSize.height
     }
 
     private var summaryLineHeight: CGFloat {

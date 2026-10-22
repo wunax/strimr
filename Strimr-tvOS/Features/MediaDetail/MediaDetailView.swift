@@ -16,7 +16,7 @@ struct MediaDetailView: View {
     /// The episode the bar under the rail acts on: the last one focused, the next one to watch until then.
     @State private var selectedEpisodeID: String?
     @State private var pageScrollPosition = ScrollPosition(edge: .top)
-    /// Focus is on the episodes or their bar, so the page sits just past the logo to fit them under the hero.
+    /// Focus is on the episodes or their bar, so the logo shrinks to fit them under the hero.
     @State private var isBrowsingEpisodes = false
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
@@ -64,8 +64,8 @@ struct MediaDetailView: View {
                             onExpandSummary: { expandedSummaryMedia = $0 },
                             // A series previews its seasons and episodes, which fill different lines; a movie only
                             // gains its cast once loaded.
-                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .ratings, .summary] : [.starring],
-                            hidesLogo: isBrowsingEpisodes,
+                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [.starring],
+                            compactsLogo: isBrowsingEpisodes,
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
@@ -136,14 +136,16 @@ struct MediaDetailView: View {
             Task { await bindableViewModel.refreshIfNeeded() }
         }
         .onChange(of: focus) { oldValue, newValue in
-            switch newValue {
-            case .episode, .episodeBar:
-                isBrowsingEpisodes = true
-            case .season, .pageActions:
-                isBrowsingEpisodes = false
-            case nil:
-                // A menu of the bar or the sections below: the first screen keeps its position.
-                break
+            withAnimation(Motion.animation(Motion.pageScroll, reduceMotion: reduceMotion)) {
+                switch newValue {
+                case .episode, .episodeBar:
+                    isBrowsingEpisodes = true
+                case .season, .pageActions:
+                    isBrowsingEpisodes = false
+                case nil:
+                    // A menu of the bar, the summary or the sections below: the logo keeps its size.
+                    break
+                }
             }
             if isInFirstScreen(newValue), !isInFirstScreen(oldValue) {
                 scrollFirstScreen()
@@ -154,9 +156,6 @@ struct MediaDetailView: View {
                     selectedEpisodeID = id
                 }
             }
-        }
-        .onChange(of: isBrowsingEpisodes) {
-            scrollFirstScreen()
         }
         .onChange(of: bindableViewModel.episodes) { _, episodes in
             if let selectedEpisodeID, !episodes.contains(where: { $0.id == selectedEpisodeID }) {
@@ -242,11 +241,7 @@ struct MediaDetailView: View {
 
     private func scrollFirstScreen() {
         withAnimation(Motion.animation(Motion.pageScroll, reduceMotion: reduceMotion)) {
-            if isBrowsingEpisodes {
-                pageScrollPosition.scrollTo(y: MediaHeroContentView.logoBlockHeight)
-            } else {
-                pageScrollPosition.scrollTo(edge: .top)
-            }
+            pageScrollPosition.scrollTo(edge: .top)
         }
     }
 
