@@ -255,13 +255,23 @@ struct MediaDetailView: View {
 
     private var watchStatusButton: some View {
         Button {
-            Task { await viewModel.toggleWatchStatus() }
+            Task {
+                if viewModel.shouldShowBothWatchActions {
+                    await viewModel.markWatched()
+                } else {
+                    await viewModel.toggleWatchStatus()
+                }
+            }
         } label: {
             DetailRoundIcon(systemImage: viewModel.watchActionIcon, isLoading: viewModel.isUpdatingWatchStatus)
         }
         .detailRoundButtonStyle()
         .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-        .accessibilityLabel(Text(viewModel.watchActionTitle))
+        .accessibilityLabel(Text(
+            viewModel.shouldShowBothWatchActions
+                ? String(localized: "media.detail.watchAction.markWatched")
+                : viewModel.watchActionTitle,
+        ))
     }
 
     private var favoriteButton: some View {
@@ -286,7 +296,6 @@ struct MediaDetailView: View {
         sharePlayCoordinator.isActivating
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
-            || viewModel.isUpdatingFavoriteStatus
     }
 
     private var moreActionsMenu: some View {
@@ -312,33 +321,12 @@ struct MediaDetailView: View {
             }
             .disabled(sharePlayCoordinator.isActivating)
 
+            // The round button marks an in-progress item watched; clearing its progress only lives here.
             if viewModel.shouldShowBothWatchActions {
-                Button {
-                    Task { await viewModel.markWatched() }
-                } label: {
-                    Label("media.detail.watchAction.markWatched", systemImage: "checkmark.circle")
-                }
-                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-
                 Button {
                     Task { await viewModel.markUnwatched() }
                 } label: {
                     Label("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill")
-                }
-                .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
-            } else {
-                Button {
-                    Task { await viewModel.toggleWatchStatus() }
-                } label: {
-                    if viewModel.isUpdatingWatchStatus {
-                        Label {
-                            Text(viewModel.watchActionTitle)
-                        } icon: {
-                            ProgressView()
-                        }
-                    } else {
-                        Label(viewModel.watchActionTitle, systemImage: viewModel.watchActionIcon)
-                    }
                 }
                 .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
             }
@@ -361,27 +349,6 @@ struct MediaDetailView: View {
                     viewModel.isLoading
                         || viewModel.isLoadingWatchlistStatus
                         || viewModel.isUpdatingWatchlistStatus,
-                )
-            }
-
-            if viewModel.shouldShowFavoriteButton {
-                Button {
-                    Task { await viewModel.toggleFavoriteStatus() }
-                } label: {
-                    if viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus {
-                        Label {
-                            Text(viewModel.favoriteActionTitle)
-                        } icon: {
-                            ProgressView()
-                        }
-                    } else {
-                        Label(viewModel.favoriteActionTitle, systemImage: viewModel.favoriteActionIcon)
-                    }
-                }
-                .disabled(
-                    viewModel.isLoading
-                        || viewModel.isLoadingFavoriteStatus
-                        || viewModel.isUpdatingFavoriteStatus,
                 )
             }
 
