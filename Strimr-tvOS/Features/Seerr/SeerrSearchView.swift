@@ -23,7 +23,6 @@ struct SeerrSearchView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     resultsContent
                 }
-                .padding(.horizontal, 24)
                 .padding(.vertical, 16)
             }
         }
@@ -65,7 +64,7 @@ struct SeerrSearchView: View {
             )
             .frame(maxWidth: .infinity)
         } else {
-            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 32) {
+            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 48) {
                 ForEach(viewModel.searchResults) { media in
                     SeerrSearchCard(media: media) {
                         onSelectMedia(media)
@@ -78,8 +77,8 @@ struct SeerrSearchView: View {
 
     private var gridColumns: [GridItem] {
         [
-            GridItem(.flexible(minimum: 320), spacing: 32),
-            GridItem(.flexible(minimum: 320), spacing: 32),
+            GridItem(.flexible(minimum: 320), spacing: 48),
+            GridItem(.flexible(minimum: 320), spacing: 48),
         ]
     }
 }

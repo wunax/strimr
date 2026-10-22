@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Seerr search result, laid out like a library search result.
 struct SeerrSearchCard: View {
     let media: SeerrMedia
     let onTap: () -> Void
@@ -8,22 +9,24 @@ struct SeerrSearchCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
-                SeerrMediaArtworkView(
-                    media: media,
-                    width: artworkSize.width,
-                    height: artworkSize.height,
-                )
+                SeerrMediaArtworkView(media: media, width: 100, height: 150)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        Text(title)
+                        Text(media.displayTitle)
                             .font(.headline)
                             .lineLimit(2)
+
+                        Spacer(minLength: 8)
+
+                        if let kind {
+                            MediaTypeBadge(type: kind)
+                        }
                     }
 
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
+                    if let year = media.year {
+                        Text(String(year))
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                     }
 
@@ -46,41 +49,14 @@ struct SeerrSearchCard: View {
         .buttonStyle(.plain)
     }
 
-    private var artworkSize: CGSize {
-        #if os(tvOS)
-            CGSize(width: 140, height: 210)
-        #else
-            CGSize(width: 90, height: 135)
-        #endif
-    }
-
-    private var title: String {
+    private var kind: MediaKind? {
         switch media.mediaType {
         case .movie:
-            media.title ?? media.name ?? ""
-        case .tv, .person:
-            media.name ?? media.title ?? ""
-        case .none:
-            media.title ?? media.name ?? ""
-        }
-    }
-
-    private var subtitle: String? {
-        switch media.mediaType {
-        case .movie:
-            year(from: media.releaseDate)
+            .movie
         case .tv:
-            year(from: media.firstAirDate)
-        case .person, .none:
+            .series
+        case .person, nil:
             nil
         }
-    }
-
-    private func year(from dateString: String?) -> String? {
-        guard let dateString, dateString.count >= 4 else {
-            return nil
-        }
-
-        return String(dateString.prefix(4))
     }
 }

@@ -99,30 +99,13 @@ struct SearchView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(SearchFilter.allCases) { filter in
-                    let isSelected = viewModel.activeFilters.contains(filter)
-                    Button {
+                    FilterChip(
+                        title: filter.title,
+                        systemImage: filter.systemImageName,
+                        isSelected: viewModel.activeFilters.contains(filter),
+                    ) {
                         viewModel.toggleFilter(filter)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: filter.systemImageName)
-                                .font(.subheadline)
-                            Text(filter.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : .surfaceSubtle),
-                        )
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .stroke(isSelected ? Color.brandPrimary : .strokeSubtle, lineWidth: 1)
-                        }
-                        .foregroundStyle(isSelected ? Color.brandPrimary : .textPrimary)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 2)

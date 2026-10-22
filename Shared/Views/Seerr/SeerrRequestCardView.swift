@@ -30,14 +30,17 @@ struct SeerrRequestCardView: View {
             }
         }
         .padding(cardPadding)
-        .glassSurface(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(
+            .surfaceSubtle,
+            in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+        )
     }
 
     private var posterSize: CGSize {
         #if os(tvOS)
             CGSize(width: 140, height: 210)
         #else
-            CGSize(width: 80, height: 120)
+            CGSize(width: 100, height: 150)
         #endif
     }
 
@@ -65,7 +68,7 @@ struct SeerrRequestCardView: View {
             }
         }
         .frame(width: posterSize.width, height: posterSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous))
+        .mediaArtworkStyle()
     }
 
     private var details: some View {
@@ -80,19 +83,20 @@ struct SeerrRequestCardView: View {
                     Text("seerr.manageRequests.badge.4k")
                 }
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.textSecondary)
+            .eyebrowStyle()
+            .foregroundStyle(.textTertiary)
             .lineLimit(1)
 
             Text(viewModel.mediaTitle(for: request))
                 .font(.headline)
+                .foregroundStyle(.textPrimary)
                 .lineLimit(2)
 
             statusBadge
 
             if let seasons = viewModel.seasonSummary(for: request) {
                 Label(seasons, systemImage: "rectangle.stack")
-                    .font(.caption)
+                    .font(.cardMetadata)
                     .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
@@ -113,7 +117,7 @@ struct SeerrRequestCardView: View {
 
             if let profile = request.profileName, !profile.isEmpty {
                 Text(String(localized: "seerr.manageRequests.profile \(profile)"))
-                    .font(.caption)
+                    .font(.cardMetadata)
                     .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
@@ -127,19 +131,21 @@ struct SeerrRequestCardView: View {
     private var statusBadge: some View {
         let status = viewModel.displayStatus(for: request)
         let style = Self.style(for: status)
+        // Same dark badge as the availability of Seerr media; only the icon carries the status color.
         return HStack(spacing: 4) {
             Image(systemName: style.systemName)
+                .foregroundStyle(style.color)
             Text(LocalizedStringKey(status.labelKey))
             if case let .processing(progress) = status, let progress {
                 Text("\(Int(progress * 100))%")
             }
         }
-        .font(.caption.weight(.semibold))
+        .font(.badge)
         .lineLimit(1)
         .foregroundStyle(.white)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(style.color.opacity(0.9), in: Capsule())
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.65), in: Capsule(style: .continuous))
     }
 
     private func userLine(titleKey: LocalizedStringKey, user: SeerrUser?, date: String?) -> some View {
@@ -147,7 +153,8 @@ struct SeerrRequestCardView: View {
             avatar(for: user)
             VStack(alignment: .leading, spacing: 0) {
                 Text(viewModel.displayName(for: user))
-                    .font(.caption.weight(.semibold))
+                    .font(.cardMetadata.weight(.semibold))
+                    .foregroundStyle(.textPrimary)
                     .lineLimit(1)
                 HStack(spacing: 4) {
                     Text(titleKey)
@@ -155,8 +162,8 @@ struct SeerrRequestCardView: View {
                         Text(relative)
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.textSecondary)
+                .font(.cardMetadata)
+                .foregroundStyle(.textTertiary)
                 .lineLimit(1)
             }
         }
@@ -241,6 +248,7 @@ struct SeerrRequestCardView: View {
             }
         }
         .font(.subheadline.weight(.semibold))
+        .buttonBorderShape(.capsule)
         .disabled(viewModel.isBusy(request))
         .overlay {
             if viewModel.isBusy(request) {

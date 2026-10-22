@@ -31,7 +31,7 @@ struct SearchResultCard: View {
 
                         Spacer(minLength: 8)
 
-                        TypeBadge(type: media.type)
+                        MediaTypeBadge(type: media.type)
                     }
 
                     Text(subtitle)
@@ -110,7 +110,8 @@ struct SearchServerSelectionView: View {
     }
 }
 
-private struct TypeBadge: View {
+/// Colored capsule naming the kind of a search result.
+struct MediaTypeBadge: View {
     let type: MediaKind
 
     var body: some View {

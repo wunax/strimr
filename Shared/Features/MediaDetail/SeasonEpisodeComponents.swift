@@ -77,6 +77,28 @@ struct EpisodeRowText: View {
     var summaryLineLimit = 3
 
     var body: some View {
+        EpisodeCaption(
+            eyebrow: [episode.tertiaryLabel, runtime].compactMap(\.self).joined(separator: " · "),
+            title: episode.title,
+            summaryLineLimit: summaryLineLimit,
+        ) {
+            if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
+            } else if let summary = episode.summary, !summary.isEmpty {
+                Text(summary)
+            }
+        }
+    }
+}
+
+/// Text block of an episode row: a small uppercase line over the title, then the summary.
+struct EpisodeCaption<Summary: View>: View {
+    let eyebrow: String
+    let title: String
+    var summaryLineLimit = 3
+    @ViewBuilder let summary: Summary
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if !eyebrow.isEmpty {
                 Text(eyebrow)
@@ -85,26 +107,16 @@ struct EpisodeRowText: View {
                     .lineLimit(1)
             }
 
-            Text(episode.title)
+            Text(title)
                 .font(.headline)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(1)
 
-            Group {
-                if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
-                    Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                } else if let summary = episode.summary, !summary.isEmpty {
-                    Text(summary)
-                }
-            }
-            .font(.callout)
-            .foregroundStyle(.textSecondary)
-            .lineLimit(summaryLineLimit)
-            .padding(.top, 2)
+            summary
+                .font(.callout)
+                .foregroundStyle(.textSecondary)
+                .lineLimit(summaryLineLimit)
+                .padding(.top, 2)
         }
-    }
-
-    private var eyebrow: String {
-        [episode.tertiaryLabel, runtime].compactMap(\.self).joined(separator: " · ")
     }
 }

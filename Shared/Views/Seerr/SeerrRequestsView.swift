@@ -133,7 +133,16 @@ struct SeerrRequestsView: View {
         #if os(tvOS)
             48
         #else
-            16
+            LayoutMetrics.pageMargin
+        #endif
+    }
+
+    /// Same gaps as the search filters.
+    private var chipSpacing: CGFloat {
+        #if os(tvOS)
+            32
+        #else
+            8
         #endif
     }
 
@@ -150,29 +159,14 @@ struct SeerrRequestsView: View {
 
     private var statusFilterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: chipSpacing) {
                 ForEach(SeerrRequestStatusFilter.allCases) { filter in
-                    let isSelected = viewModel.query.status == filter
-                    Button {
+                    FilterChip(
+                        title: String(localized: String.LocalizationValue(filter.titleKey)),
+                        isSelected: viewModel.query.status == filter,
+                    ) {
                         viewModel.query.status = filter
-                    } label: {
-                        Text(LocalizedStringKey(filter.titleKey))
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                        #if !os(tvOS)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .foregroundStyle(.textPrimary)
-                            .background(isSelected ? Color.brandPrimary : .surfaceSubtle, in: Capsule())
-                        #endif
                     }
-                    #if os(tvOS)
-                    .buttonStyle(.bordered)
-                    .tint(isSelected ? .brandPrimary : .secondary)
-                    #else
-                    .buttonStyle(.plain)
-                    #endif
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
             #if os(tvOS)
@@ -181,6 +175,7 @@ struct SeerrRequestsView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         #if os(tvOS)
+            .scrollClipDisabled()
             .focusSection()
         #endif
     }
@@ -218,19 +213,13 @@ struct SeerrRequestsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "tray")
-                .font(.largeTitle)
-                .foregroundStyle(.textSecondary)
-            Text("seerr.requests.empty")
-                .font(.headline)
-            Text("seerr.requests.empty.description")
-                .font(.subheadline)
-                .foregroundStyle(.textSecondary)
-                .multilineTextAlignment(.center)
-        }
+        ContentUnavailableView(
+            "seerr.requests.empty",
+            systemImage: "tray",
+            description: Text("seerr.requests.empty.description"),
+        )
         .frame(maxWidth: .infinity)
-        .padding(.top, 48)
+        .padding(.top, 24)
     }
 
     private func open(_ request: SeerrRequest) {

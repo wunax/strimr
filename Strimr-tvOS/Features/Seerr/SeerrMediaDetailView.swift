@@ -149,7 +149,10 @@ struct SeerrMediaDetailView: View {
                         SeasonPillButton(
                             title: viewModel.seasonTitle(for: season),
                             isSelected: season.seasonNumber == viewModel.selectedSeasonNumber,
-                            onSelect: { toggleSeasonSelection(season) },
+                            onSelect: {
+                                guard let number = season.seasonNumber else { return }
+                                Task { await viewModel.selectSeason(number: number) }
+                            },
                         )
                     }
                 }
@@ -162,10 +165,7 @@ struct SeerrMediaDetailView: View {
 
     @ViewBuilder
     private var episodesRow: some View {
-        if viewModel.selectedSeasonNumber == nil {
-            Text("seerr.detail.selectSeason")
-                .foregroundStyle(.textSecondary)
-        } else if let error = viewModel.episodesErrorMessage {
+        if let error = viewModel.episodesErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
         } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
@@ -202,17 +202,6 @@ struct SeerrMediaDetailView: View {
 
     private let episodeWidth: CGFloat = 460
     private let episodeSpacing: CGFloat = 36
-
-    private func toggleSeasonSelection(_ season: SeerrSeason) {
-        guard let seasonNumber = season.seasonNumber else { return }
-        if viewModel.selectedSeasonNumber == seasonNumber {
-            viewModel.selectedSeasonNumber = nil
-            viewModel.episodes = []
-            viewModel.episodesErrorMessage = nil
-        } else {
-            Task { await viewModel.selectSeason(number: seasonNumber) }
-        }
-    }
 }
 
 /// Episode of a series that is not in the library yet: artwork and caption like the library episode rail, without

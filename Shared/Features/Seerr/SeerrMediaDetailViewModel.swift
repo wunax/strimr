@@ -414,9 +414,12 @@ final class SeerrMediaDetailViewModel {
     }
 
     private func loadSeasonIfNeeded() async {
-        guard let selectedSeasonNumber else { return }
+        // Opens on the first regular season like library series; specials only when there is nothing else.
+        let defaultSeason = seasons.first { ($0.seasonNumber ?? 0) > 0 } ?? seasons.first
+        guard let number = selectedSeasonNumber ?? defaultSeason?.seasonNumber else { return }
+        selectedSeasonNumber = number
         if episodes.isEmpty {
-            await loadSeason(number: selectedSeasonNumber)
+            await loadSeason(number: number)
         }
     }
 

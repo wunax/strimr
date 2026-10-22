@@ -1,152 +1,85 @@
 import SwiftUI
 
+/// Episode row of a Seerr series, laid out like the library one but without playback.
 struct SeerrEpisodeCardView: View {
     let episode: SeerrEpisode
     let imageURL: URL?
     let label: String?
     let airDateText: String?
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-    private var isRegularWidth: Bool {
-        #if os(tvOS)
-            false
-        #else
-            horizontalSizeClass == .regular
-        #endif
-    }
-
-    private var regularImageWidth: CGFloat {
-        #if os(macOS)
-            280
-        #else
-            UIScreen.main.bounds.width / 3
-        #endif
-    }
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
-        Group {
-            if isRegularWidth {
-                HStack(alignment: .top, spacing: 16) {
-                    SeerrEpisodeArtworkView(
-                        imageURL: imageURL,
-                        width: regularImageWidth,
-                    )
-
-                    detailStack
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    GeometryReader { proxy in
-                        SeerrEpisodeArtworkView(
-                            imageURL: imageURL,
-                            width: proxy.size.width,
-                        )
+        #if os(macOS)
+            HStack(spacing: 16) {
+                SeerrEpisodeArtworkView(imageURL: imageURL, width: 200)
+                caption
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(10)
+            .background(
+                .surfaceSubtle,
+                in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+            )
+        #else
+            Group {
+                if horizontalSizeClass == .regular {
+                    HStack(alignment: .top, spacing: 16) {
+                        SeerrEpisodeArtworkView(imageURL: imageURL, width: UIScreen.main.bounds.width / 3)
+                        caption
                     }
-                    .aspectRatio(16 / 9, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        GeometryReader { proxy in
+                            SeerrEpisodeArtworkView(imageURL: imageURL, width: proxy.size.width)
+                        }
+                        .aspectRatio(16 / 9, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
 
-                    detailStack
+                        caption
+                    }
                 }
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+        #endif
     }
 
-    private var detailStack: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                if let label {
-                    Text(label)
-                        .font(labelFont)
-                        .foregroundStyle(.textSecondary)
-                }
-
-                Spacer(minLength: 0)
-
-                if let airDateText {
-                    Text(airDateText)
-                        .font(labelFont)
-                        .foregroundStyle(.textSecondary)
-                }
-            }
-
-            if !episodeTitle.isEmpty {
-                Text(episodeTitle)
-                    .font(titleFont)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-            }
-
+    private var caption: some View {
+        EpisodeCaption(
+            eyebrow: [label, airDateText].compactMap(\.self).joined(separator: " · "),
+            title: title,
+        ) {
             if let summary = episode.overview, !summary.isEmpty {
                 Text(summary)
-                    .font(summaryFont)
-                    .foregroundStyle(.textSecondary)
-                    .lineLimit(3)
             }
         }
     }
 
-    private var labelFont: Font {
-        #if os(tvOS)
-            .caption2
-        #else
-            .callout
-        #endif
-    }
-
-    private var titleFont: Font {
-        #if os(tvOS)
-            .subheadline
-        #else
-            .title3
-        #endif
-    }
-
-    private var summaryFont: Font {
-        #if os(tvOS)
-            .caption
-        #else
-            .callout
-        #endif
-    }
-
-    private var episodeTitle: String {
+    private var title: String {
         if let name = episode.name, !name.isEmpty {
             return name
         }
-        if let episodeNumber = episode.episodeNumber {
-            return String(localized: "media.detail.episodeNumber \(episodeNumber)")
-        }
-        return ""
+        return episode.episodeNumber.map { String(localized: "media.detail.episodeNumber \($0)") } ?? ""
     }
 }
 
 private struct SeerrEpisodeArtworkView: View {
     let imageURL: URL?
     let width: CGFloat
-    private let aspectRatio: CGFloat = 16 / 9
-
-    var height: CGFloat {
-        width / aspectRatio
-    }
 
     var body: some View {
         AsyncImage(url: imageURL) { phase in
-            switch phase {
-            case let .success(image):
+            if let image = phase.image {
                 image
                     .resizable()
                     .scaledToFill()
-            case .empty:
-                Color.surfaceSubtle
-            case .failure:
-                Color.surfaceSubtle
-            @unknown default:
+            } else {
                 Color.surfaceSubtle
             }
         }
-        .frame(width: width, height: height)
+        .frame(width: width, height: width * 9 / 16)
         .mediaArtworkStyle(.compact, borderColor: .white.opacity(0.05))
     }
 }
