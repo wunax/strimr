@@ -6,7 +6,7 @@ import Observation
 @Observable
 final class LibraryViewModel {
     var errorMessage: String?
-    var artworkResources: [LibraryIdentity: ArtworkResource] = [:]
+    var previews: [LibraryIdentity: LibraryPreview] = [:]
 
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let settingsManager: SettingsManager
@@ -74,16 +74,29 @@ final class LibraryViewModel {
     }
 
     func artwork(for library: Library) -> ArtworkResource? {
-        artworkResources[library.identity]
+        previews[library.identity]?.artwork
     }
 
-    func ensureArtwork(for library: Library) async {
-        guard artworkResources[library.identity] == nil,
+    /// Size of the library, then its server when the list covers several, e.g. "1245 movies · Living room".
+    func caption(for library: Library) -> String? {
+        let count = previews[library.identity]?.itemCount.map { count in
+            switch library.type {
+            case .movie: String(localized: "library.count.movies \(count)")
+            case .series: String(localized: "library.count.shows \(count)")
+            default: String(localized: "library.browse.count.items \(count)")
+            }
+        }
+        let parts = [count, subtitle(for: library)].compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    func ensurePreview(for library: Library) async {
+        guard previews[library.identity] == nil,
               let services = sessionManager.registry.services(for: library.server)
         else { return }
         do {
-            if let resource = try await services.library.randomArtwork(for: library) {
-                artworkResources[library.identity] = resource
+            if let preview = try await services.library.preview(for: library) {
+                previews[library.identity] = preview
             }
         } catch {
             guard !Task.isCancelled, !error.isCancellation, !error.isTransportFailure else { return }

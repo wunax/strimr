@@ -42,6 +42,38 @@ extension View {
     }
 }
 
+/// Card lift for a whole button: on focus on tvOS, under the pointer on macOS, and while pressed everywhere.
+struct CardLiftButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Lifted(configuration: configuration)
+    }
+
+    private struct Lifted: View {
+        let configuration: Configuration
+        #if os(tvOS)
+            @Environment(\.isFocused) private var isFocused
+        #elseif os(macOS)
+            @State private var isFocused = false
+        #else
+            private let isFocused = false
+        #endif
+
+        var body: some View {
+            configuration.label
+                .cardFocusStyle(isFocused: isFocused, isPressed: configuration.isPressed)
+            #if os(macOS)
+                .onHover { isFocused = $0 }
+            #endif
+        }
+    }
+}
+
+extension ButtonStyle where Self == CardLiftButtonStyle {
+    static var cardLift: CardLiftButtonStyle {
+        CardLiftButtonStyle()
+    }
+}
+
 #if os(macOS)
     /// Pointer counterpart of the tvOS focus lift for buttons that are not cards: a slight grow and a soft shadow.
     struct HoverLift: ViewModifier {

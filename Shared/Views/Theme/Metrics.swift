@@ -55,6 +55,25 @@ enum LayoutMetrics {
         #endif
     }
 
+    static var libraryTileSpacing: CGFloat {
+        #if os(tvOS)
+            48
+        #elseif os(macOS)
+            20
+        #else
+            16
+        #endif
+    }
+
+    /// One tile per row on iPhone, two or three on iPad and Mac depending on the width, three on tvOS.
+    static var libraryGridColumns: [GridItem] {
+        #if os(tvOS)
+            Array(repeating: GridItem(.flexible(), spacing: libraryTileSpacing, alignment: .top), count: 3)
+        #else
+            [GridItem(.adaptive(minimum: 300, maximum: 560), spacing: libraryTileSpacing, alignment: .top)]
+        #endif
+    }
+
     static func railSpacing(for layout: MediaCarousel.Layout) -> CGFloat {
         switch layout {
         case .portrait:

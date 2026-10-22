@@ -435,7 +435,6 @@
       }
     },
     "common.actions.playFromStart" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1947,6 +1946,7 @@
       }
     },
     "favorites.loading" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2138,6 +2138,7 @@
       }
     },
     "hub.loading" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5138,6 +5139,110 @@
         }
       }
     },
+    "library.count.movies %lld" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movie"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movies"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld film"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld films"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 部电影"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "library.count.shows %lld" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld show"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld shows"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld série"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld séries"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 部剧集"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "library.detail.tab.browse" : {
       "localizations" : {
         "en" : {
@@ -5359,6 +5464,7 @@
       }
     },
     "library.recommended.loading" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9810,6 +9916,7 @@
       }
     },
     "media.versions.count %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14323,6 +14430,22 @@
         }
       }
     },
+    "seerr.collection.quotaLimited %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your request quota allows %lld more."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre quota de demandes en autorise encore %lld."
+          }
+        }
+      }
+    },
     "seerr.collection.requestAll %lld" : {
       "localizations" : {
         "en" : {
@@ -14355,22 +14478,6 @@
         }
       }
     },
-    "seerr.detail.collection" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection"
-          }
-        }
-      }
-    },
     "seerr.collection.requestResult %lld %lld" : {
       "localizations" : {
         "en" : {
@@ -14387,34 +14494,18 @@
         }
       }
     },
-    "seerr.collection.quotaLimited %lld" : {
+    "seerr.detail.collection" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your request quota allows %lld more."
+            "value" : "Collection"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre quota de demandes en autorise encore %lld."
-          }
-        }
-      }
-    },
-    "seerr.requests.unavailableTitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title unavailable"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Titre indisponible"
+            "value" : "Collection"
           }
         }
       }
@@ -16191,6 +16282,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Demandes"
+          }
+        }
+      }
+    },
+    "seerr.requests.unavailableTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title unavailable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre indisponible"
           }
         }
       }

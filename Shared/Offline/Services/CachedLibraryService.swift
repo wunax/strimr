@@ -26,27 +26,48 @@ class CachedLibraryService: MediaLibraryService {
         )
     }
 
-    func randomArtwork(for library: Library) async throws -> ArtworkResource? {
-        let key = "library-artwork:\(library.id)|720"
+    func preview(for library: Library) async throws -> LibraryPreview? {
+        let artworkKey = "library-artwork:\(library.id)|720"
+        let countKey = "library-count:\(library.id)"
         return try await policy.read(
             network: {
-                guard let resource = try await base.randomArtwork(for: library) else { return nil }
-                switch resource {
-                case .data:
-                    return resource
+                guard let preview = try await base.preview(for: library) else { return nil }
+                let artwork: ArtworkResource? = switch preview.artwork {
                 case let .url(url):
-                    return try await .data(URLSession.shared.data(from: url).0)
+                    try await .data(URLSession.shared.data(from: url).0)
+                case let resource:
+                    resource
+                }
+                return LibraryPreview(artwork: artwork, itemCount: preview.itemCount)
+            },
+            write: { preview in
+                if case let .data(data)? = preview?.artwork {
+                    policy.store.storeArtwork(
+                        data,
+                        key: artworkKey,
+                        owner: policy.owner,
+                        width: nil,
+                        height: nil,
+                        pinned: false,
+                    )
+                }
+                if let itemCount = preview?.itemCount {
+                    policy.store.store(
+                        list: [],
+                        key: countKey,
+                        payload: policy.store.encode(itemCount),
+                        owner: policy.owner,
+                    )
                 }
             },
-            write: { resource in
-                guard case let .data(data)? = resource else { return }
-                policy.store.storeArtwork(data, key: key, owner: policy.owner, width: nil, height: nil, pinned: false)
-            },
             fallback: {
-                guard let url = policy.store.artworkFileURL(key: key, owner: policy.owner),
-                      let data = try? Data(contentsOf: url)
-                else { return nil }
-                return .data(data)
+                let artwork = policy.store.artworkFileURL(key: artworkKey, owner: policy.owner)
+                    .flatMap { try? Data(contentsOf: $0) }
+                    .map(ArtworkResource.data)
+                let itemCount = policy.store.list(key: countKey, owner: policy.owner)?.payload
+                    .flatMap { policy.store.decode(Int.self, from: $0) }
+                guard artwork != nil || itemCount != nil else { return nil }
+                return LibraryPreview(artwork: artwork, itemCount: itemCount)
             },
         )
     }

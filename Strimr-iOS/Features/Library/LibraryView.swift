@@ -3,9 +3,6 @@ import SwiftUI
 struct LibraryView: View {
     @State var viewModel: LibraryViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
-    private let cardMinHeight: CGFloat = 120
-    private let cardMaxHeight: CGFloat = 160
-    @State private var isHiddenExpanded = false
 
     init(
         viewModel: LibraryViewModel,
@@ -16,96 +13,9 @@ struct LibraryView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                ForEach(viewModel.visibleLibraries, id: \.identity) { library in
-                    libraryRow(for: library)
-                }
-            }
-
-            if !viewModel.hiddenLibraries.isEmpty {
-                Section {
-                    DisclosureGroup("library.hidden.title", isExpanded: $isHiddenExpanded) {
-                        ForEach(viewModel.hiddenLibraries, id: \.identity) { library in
-                            libraryRow(for: library)
-                        }
-                    }
-                }
-            }
-        }
-        .listStyle(.plain)
-        .overlay {
-            if viewModel.isLoading, viewModel.libraries.isEmpty {
-                ProgressView("library.loading")
-            } else if let errorMessage = viewModel.errorMessage, viewModel.libraries.isEmpty {
-                ContentUnavailableView(
-                    errorMessage,
-                    systemImage: "exclamationmark.triangle.fill",
-                    description: Text("library.error.description"),
-                )
-                .symbolRenderingMode(.multicolor)
-            } else if viewModel.libraries.isEmpty {
-                ContentUnavailableView(
-                    "library.empty.title",
-                    systemImage: "rectangle.stack.fill",
-                    description: Text("library.empty.description"),
-                )
-            }
-        }
-        .navigationTitle("tabs.libraries")
-        .navigationBarTitleDisplayMode(.inline)
-        .userMenuToolbar()
-        .task {
-            await viewModel.load()
-        }
-    }
-
-    private func libraryRow(for library: Library) -> some View {
-        NavigationLink(value: library) {
-            ZStack(alignment: .bottomLeading) {
-                ArtworkResourceView(resource: viewModel.artwork(for: library))
-                    .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight)
-                    .clipped()
-
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.6),
-                        Color.black.opacity(0.3),
-                        .clear,
-                    ],
-                    startPoint: .bottom,
-                    endPoint: .top,
-                )
-                .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight)
-
-                HStack(spacing: 12) {
-                    Image(systemName: library.iconName)
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                        .padding(10)
-                        .glassSurface(in: Circle())
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(library.title)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-
-                        Text(viewModel.subtitle(for: library) ?? library.type.rawValue.capitalized)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
-                }
-                .padding(16)
-            }
-            .frame(maxWidth: .infinity, minHeight: cardMinHeight, maxHeight: cardMaxHeight, alignment: .leading)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
-            .padding(.vertical, 4)
-        }
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-        .task {
-            await viewModel.ensureArtwork(for: library)
-        }
+        LibraryTileGrid(viewModel: viewModel)
+            .navigationTitle("tabs.libraries")
+            .navigationBarTitleDisplayMode(.inline)
+            .userMenuToolbar()
     }
 }

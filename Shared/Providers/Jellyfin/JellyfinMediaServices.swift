@@ -199,31 +199,28 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await catalog.libraries().map { Library(jellyfinItem: $0, server: server) }
     }
 
-    func randomArtwork(for library: Library) async throws -> ArtworkResource? {
+    func preview(for library: Library) async throws -> LibraryPreview? {
         let type = switch library.type {
         case .series: "Series"
         case .collection: "BoxSet"
         case .playlist: "Playlist"
         default: "Movie"
         }
-        let item: JellyfinItem? = switch library.type {
-        case .collection, .playlist:
-            try await catalog.items(
-                parentID: library.id,
-                includeTypes: type,
-                limit: 1,
-            ).items.first
-        default:
-            try await catalog.latest(types: type, parentID: library.id, limit: 1).first
-        }
-        guard let item, let media = MediaDisplayItem(jellyfinItem: item, server: server) else {
-            return nil
-        }
+        let result = try await catalog.items(
+            parentID: library.id,
+            includeTypes: type,
+            limit: 1,
+            sortBy: "Random",
+        )
         let artworkKind: MediaImageViewModel.ArtworkKind = switch library.type {
         case .collection, .playlist: .thumb
         default: .art
         }
-        return try await artwork(for: media, kind: artworkKind, width: 800, height: 450)
+        var artwork: ArtworkResource?
+        if let item = result.items.first, let media = MediaDisplayItem(jellyfinItem: item, server: server) {
+            artwork = try await self.artwork(for: media, kind: artworkKind, width: 1280, height: 720)
+        }
+        return LibraryPreview(artwork: artwork, itemCount: result.totalRecordCount)
     }
 
     func recommended(in library: Library) async throws -> [Hub] {
@@ -719,13 +716,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let scrubSource: ScrubThumbnailSource? = {
             guard let variants = item.trickplay?[plan.mediaSourceID],
                   let info = variants.values
-                  .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
-                  .sorted(by: { lhs, rhs in
-                      let lhsDistance = abs(lhs.width - 320)
-                      let rhsDistance = abs(rhs.width - 320)
-                      return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
-                  })
-                  .first,
+                      .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
+                      .sorted(by: { lhs, rhs in
+                          let lhsDistance = abs(lhs.width - 320)
+                          let rhsDistance = abs(rhs.width - 320)
+                          return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
+                      })
+                      .first,
                   let directoryURL = try? context.url(
                       path: ["Videos", item.id, "Trickplay", String(info.width)],
                   )
@@ -1333,7 +1330,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let fileExtension = stream.downloadSubtitleExtension
         let subtitleURL: URL = if let deliveryURL = stream.deliveryURL,
                                   let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?
-                                  .absoluteURL
+                                      .absoluteURL
         {
             resolved
         } else {

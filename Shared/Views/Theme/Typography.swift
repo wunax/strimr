@@ -19,6 +19,14 @@ extension Font {
         #endif
     }
 
+    static var tileTitle: Font {
+        #if os(tvOS)
+            .system(size: 38, weight: .bold)
+        #else
+            .title2.bold()
+        #endif
+    }
+
     static var cardTitle: Font {
         #if os(tvOS)
             .system(size: 24, weight: .medium)

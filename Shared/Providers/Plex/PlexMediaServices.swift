@@ -239,17 +239,19 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return sections.filter(\.type.isSupported).map { Library(plexSection: $0, server: server) }
     }
 
-    func randomArtwork(for library: Library) async throws -> ArtworkResource? {
+    func preview(for library: Library) async throws -> LibraryPreview? {
         guard let sectionID = library.sectionId else { return nil }
         let response = try await SectionRepository(context: context).getSectionsItems(
             sectionId: sectionID,
-            params: .init(sort: "random", limit: 1),
+            // Paginated rather than limited: `limit` also caps `totalSize`, which the tile shows as the count.
+            params: .init(sort: "random"),
             pagination: PlexPagination(start: 0, size: 1),
         )
-        guard let item = response.mediaContainer.metadata?.first,
-              let path = item.art ?? item.thumb
-        else { return nil }
-        return try await artwork(path: path, width: 800, height: 450)
+        var artwork: ArtworkResource?
+        if let item = response.mediaContainer.metadata?.first, let path = item.art ?? item.thumb {
+            artwork = try await self.artwork(path: path, width: 1280, height: 720)
+        }
+        return LibraryPreview(artwork: artwork, itemCount: response.mediaContainer.totalSize)
     }
 
     func recommended(in library: Library) async throws -> [Hub] {
