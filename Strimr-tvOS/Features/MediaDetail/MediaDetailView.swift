@@ -50,10 +50,14 @@ struct MediaDetailView: View {
                         MediaHeroContentView(
                             media: heroMedia,
                             fallbackLogoPath: seriesLogoPath,
-                            starring: heroMedia.id == bindableViewModel.media.id
+                            // A series needs the room for its episodes; its cast follows just below anyway.
+                            starring: heroMedia.id == bindableViewModel.media.id && !showsEpisodes
                                 ? StarringFormatter.text(from: bindableViewModel.cast) : nil,
                             badges: heroBadges,
                             onExpandSummary: { expandedSummaryMedia = $0 },
+                            // A series previews its seasons and episodes, which fill different lines; a movie only
+                            // gains its cast once loaded.
+                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [.starring],
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
@@ -69,7 +73,7 @@ struct MediaDetailView: View {
                                 .foregroundStyle(.red)
                         }
 
-                        if bindableViewModel.media.type == .show {
+                        if showsEpisodes {
                             seasonsSection
                         }
 
@@ -199,6 +203,10 @@ struct MediaDetailView: View {
     private var contextualEpisode: MediaItem? {
         guard let contextualEpisodeID else { return nil }
         return viewModel.episodes.first(where: { $0.id == contextualEpisodeID })
+    }
+
+    private var showsEpisodes: Bool {
+        viewModel.media.type == .show
     }
 
     private var heroMedia: MediaItem {
