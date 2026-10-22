@@ -41,12 +41,15 @@ struct TitleLogoView: View {
                     .shadow(color: .black.opacity(0.4), radius: 8)
                     .transition(.opacity)
             } else {
+                // The name takes the full width rather than the logo's box, and shrinks a little so two lines still
+                // fit the height reserved for the logo.
                 Text(title)
                     .font(.heroTitle)
                     .foregroundStyle(.textPrimary)
                     .multilineTextAlignment(textAlignment)
                     .lineLimit(2)
-                    .frame(maxWidth: maxSize.width, alignment: alignment)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: alignment)
                     .transition(.opacity)
             }
         }
