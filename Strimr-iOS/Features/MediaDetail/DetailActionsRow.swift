@@ -111,6 +111,10 @@ struct DetailActionsRow: View {
                     }
                 }
             }
+
+            if !viewModel.listsCopiesWithVersions {
+                MediaCopiesMenuItems(viewModel: viewModel)
+            }
         } label: {
             DetailRoundActionLabel(
                 title: "common.actions.more",

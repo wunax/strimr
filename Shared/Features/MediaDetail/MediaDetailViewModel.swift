@@ -675,7 +675,13 @@ final class MediaDetailViewModel {
     }
 
     var showsVersionSelection: Bool {
-        versions.count > 1 || !copies.isEmpty
+        versions.count > 1 || (listsCopiesWithVersions && !copies.isEmpty)
+    }
+
+    /// A series copy is the whole series on another server, not a version of the episode the version menu describes,
+    /// so it goes in the more menu instead.
+    var listsCopiesWithVersions: Bool {
+        media.type != .show
     }
 
     /// Copies grouped by server, in the order of their best copy.

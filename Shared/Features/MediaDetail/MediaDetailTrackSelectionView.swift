@@ -46,11 +46,23 @@ struct MediaDetailVersionMenuItems: View {
             .disabled(!version.isAvailable || version.id == nil)
         }
 
-        copiesSections
+        if viewModel.listsCopiesWithVersions {
+            MediaCopiesMenuItems(viewModel: viewModel)
+        }
     }
 
-    /// Copies on other servers or libraries open their own page; offline copies are greyed out.
-    private var copiesSections: some View {
+    /// "Automatic" carries the checkmark until a version is picked explicitly.
+    private func isChecked(_ version: MediaFileVersion) -> Bool {
+        guard viewModel.hasVersionPreference else { return false }
+        return viewModel.selectedVersionID.map { version.matchesVersionID($0) } ?? false
+    }
+}
+
+/// Copies on other servers or libraries open their own page; offline copies are greyed out.
+struct MediaCopiesMenuItems: View {
+    let viewModel: MediaDetailViewModel
+
+    var body: some View {
         ForEach(viewModel.copiesByServer, id: \.serverName) { group in
             Section(String(localized: "media.availableOn \(group.serverName)")) {
                 ForEach(group.copies) { copy in
@@ -70,12 +82,6 @@ struct MediaDetailVersionMenuItems: View {
                 }
             }
         }
-    }
-
-    /// "Automatic" carries the checkmark until a version is picked explicitly.
-    private func isChecked(_ version: MediaFileVersion) -> Bool {
-        guard viewModel.hasVersionPreference else { return false }
-        return viewModel.selectedVersionID.map { version.matchesVersionID($0) } ?? false
     }
 }
 

@@ -385,6 +385,10 @@ struct MediaDetailView: View {
                     Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                 }
             }
+
+            if !viewModel.listsCopiesWithVersions {
+                MediaCopiesMenuItems(viewModel: viewModel)
+            }
         } label: {
             DetailRoundIcon(systemImage: "ellipsis", isLoading: isPerformingMenuAction)
         }
