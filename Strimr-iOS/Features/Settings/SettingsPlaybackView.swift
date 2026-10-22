@@ -19,6 +19,14 @@ struct SettingsPlaybackView: View {
         List {
             externalPlayerSection
 
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                Section {
+                    Toggle("settings.playback.autoRotateVideo", isOn: viewModel.autoRotateVideoBinding)
+                } footer: {
+                    Text("settings.playback.autoRotateVideo.description")
+                }
+            }
+
             Section {
                 Picker("settings.playback.quality", selection: viewModel.qualityPresetBinding) {
                     ForEach(TranscodeQualityPreset.displayOrder) { preset in

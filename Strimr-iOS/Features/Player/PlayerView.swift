@@ -14,6 +14,7 @@ struct PlayerView: View {
     @State private var hideControlsWorkItem: DispatchWorkItem?
     @State private var automaticSkipFeedbackWorkItem: DispatchWorkItem?
     @State private var automaticSkipFeedbackMessage: String?
+    @State private var feedbackSystemImage: String?
     @State private var isScrubbing = false
     @State private var videoFormatBadge: PlayerVideoFormatBadge?
     @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSheet>()
@@ -38,7 +39,7 @@ struct PlayerView: View {
     @State private var terminationAlertMessage = ""
     @State private var subtitleSearchErrorMessage = ""
     @State private var showingSubtitleSearchError = false
-    @State private var isRotationLocked = false
+    @State private var orientationController = PlayerOrientationController()
     @State private var isShowingSharePlayExitPrompt = false
     @State private var activePlaybackURL: URL?
     @State private var needsPlaybackReloadAfterBackground = false
@@ -83,6 +84,9 @@ struct PlayerView: View {
         let base = AnyView(
             playerScene
                 .statusBarHidden()
+                .background {
+                    PlayerOrientationHost(controller: orientationController)
+                }
                 .overlay {
                     playerOverlay
                 }
@@ -101,6 +105,9 @@ struct PlayerView: View {
                         guard scenePhase == .background else { return }
                         preparePlaybackForBackground()
                     }
+                    orientationController.start()
+                    updateAutomaticOrientation()
+                    playerController.isPresentationOrientationReady = orientationController.isReadyForPresentation
                     configureSleepTimer()
                     showControls(temporarily: true)
                     playerController.setPlaybackRate(playbackRate)
@@ -122,8 +129,7 @@ struct PlayerView: View {
                     automaticSkipFeedbackWorkItem?.cancel()
                     doubleTapSeek.cancel()
                     playerController.stop()
-                    AppDelegate.orientationLock = .all
-                    isRotationLocked = false
+                    orientationController.stop()
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
@@ -178,6 +184,7 @@ struct PlayerView: View {
                 }
                 .onChange(of: viewModel.terminationMessage) { _, newValue in
                     guard let newValue else { return }
+                    orientationController.playbackDidFail()
                     terminationAlertMessage = newValue
                     showingTerminationAlert = true
                     playerController.pause()
@@ -191,6 +198,24 @@ struct PlayerView: View {
                 }
                 .onChange(of: scenePhase) { _, newValue in
                     handleScenePhaseChange(newValue)
+                    updateAutomaticOrientation()
+                }
+                .onChange(of: playerController.displayVideoSize) { _, _ in
+                    updateAutomaticOrientation()
+                }
+                .onChange(of: playerController.isPictureInPictureActive) { _, _ in
+                    updateAutomaticOrientation()
+                }
+                .onChange(of: settingsManager.playback.autoRotateVideo) { _, _ in
+                    updateAutomaticOrientation()
+                }
+                .onChange(of: orientationController.isReadyForPresentation) { _, isReady in
+                    playerController.isPresentationOrientationReady = isReady
+                }
+                .onChange(of: orientationController.isLocked) { _, isLocked in
+                    showFeedbackMessage(isLocked
+                        ? String(localized: "player.controls.rotation.locked")
+                        : String(localized: "player.controls.rotation.unlocked"))
                 }
                 .onChange(of: isStreamingServerUnreachable) { _, isUnreachable in
                     guard isUnreachable else { return }
@@ -447,7 +472,7 @@ struct PlayerView: View {
                     onSkipMarker: activeMarker.map { marker in
                         { skipMarker(to: marker) }
                     },
-                    isRotationLocked: isRotationLocked,
+                    isRotationLocked: orientationController.isLocked,
                     onToggleRotationLock: toggleRotationLock,
                     isSharePlay: sharePlayCoordinator.isInSession,
                     showsPictureInPicture: playerController.showsPictureInPictureControl,
@@ -488,11 +513,14 @@ struct PlayerView: View {
             }
 
             if let automaticSkipFeedbackMessage {
-                AutomaticSkipFeedbackView(message: automaticSkipFeedbackMessage)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, controlsVisible ? 150 : 32)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    .allowsHitTesting(false)
+                AutomaticSkipFeedbackView(
+                    message: automaticSkipFeedbackMessage,
+                    systemImage: feedbackSystemImage,
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.bottom, controlsVisible ? 150 : 32)
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                .allowsHitTesting(false)
             }
 
             if pauseScreen.isPresented, let media = viewModel.media {
@@ -720,14 +748,16 @@ struct PlayerView: View {
         hideInfoPanel()
     }
 
+    private func updateAutomaticOrientation() {
+        orientationController.update(
+            videoSize: playerController.displayVideoSize,
+            enabled: settingsManager.playback.autoRotateVideo,
+            isForeground: scenePhase == .active && !playerController.isPictureInPictureActive,
+        )
+    }
+
     private func toggleRotationLock() {
-        if isRotationLocked {
-            AppDelegate.orientationLock = .all
-            isRotationLocked = false
-        } else {
-            AppDelegate.lockToCurrentOrientation()
-            isRotationLocked = true
-        }
+        orientationController.toggleLock()
     }
 
     private func refreshTracks() {
@@ -1250,14 +1280,19 @@ struct PlayerView: View {
     }
 
     private func showAutomaticSkipFeedback(for marker: SkipSegment) {
-        showFeedbackMessage(marker.automaticSkipConfirmation)
+        showFeedbackMessage(marker.automaticSkipConfirmation, systemImage: "forward.fill")
     }
 
-    private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
+    private func showFeedbackMessage(
+        _ message: String,
+        duration: TimeInterval = 2.5,
+        systemImage: String? = nil,
+    ) {
         automaticSkipFeedbackWorkItem?.cancel()
 
         withAnimation(.easeInOut(duration: 0.2)) {
             automaticSkipFeedbackMessage = message
+            feedbackSystemImage = systemImage
         }
 
         let workItem = DispatchWorkItem {
@@ -1493,6 +1528,7 @@ struct PlayerView: View {
     }
 
     private func showPlaybackError(_ message: String) {
+        orientationController.playbackDidFail()
         terminationAlertMessage = message
         showingTerminationAlert = true
         playerController.pause()

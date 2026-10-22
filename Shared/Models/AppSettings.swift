@@ -172,6 +172,7 @@ struct SubtitleAppearance: Equatable {
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
+    var autoRotateVideo = true
     var autoSkipIntros = false
     var autoSkipCredits = false
     var autoSkipCommercials = false
@@ -213,6 +214,7 @@ struct PlaybackSettings: Codable, Equatable {
             NextEpisodeAutoplay.self,
             forKey: .nextEpisodeAutoplay,
         ) ?? .after15Seconds
+        autoRotateVideo = try container.decodeIfPresent(Bool.self, forKey: .autoRotateVideo) ?? true
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         autoSkipCommercials = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCommercials) ?? false

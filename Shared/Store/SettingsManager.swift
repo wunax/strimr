@@ -43,6 +43,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutoRotateVideo(_ enabled: Bool) {
+        settings.playback.autoRotateVideo = enabled
+        persist()
+    }
+
     func setAutoSkipIntros(_ enabled: Bool) {
         settings.playback.autoSkipIntros = enabled
         persist()

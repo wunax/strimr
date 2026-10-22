@@ -37,6 +37,13 @@ final class SettingsViewModel {
         )
     }
 
+    var autoRotateVideoBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.autoRotateVideo },
+            set: { self.settingsManager.setAutoRotateVideo($0) },
+        )
+    }
+
     var autoSkipIntrosBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.autoSkipIntros },

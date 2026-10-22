@@ -1,42 +1,26 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    static var orientationLock = UIInterfaceOrientationMask.all {
-        didSet {
-            for scene in UIApplication.shared.connectedScenes {
-                if let windowScene = scene as? UIWindowScene {
-                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientationLock))
-                }
-            }
-            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                scene.windows.first?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-            }
+    private static var orientationMasks: [String: UIInterfaceOrientationMask] = [:]
+
+    static func orientationMask(for scene: UIWindowScene) -> UIInterfaceOrientationMask {
+        orientationMasks[scene.session.persistentIdentifier] ?? .all
+    }
+
+    static func setOrientationMask(_ mask: UIInterfaceOrientationMask, for scene: UIWindowScene) {
+        if mask == .all {
+            orientationMasks.removeValue(forKey: scene.session.persistentIdentifier)
+        } else {
+            orientationMasks[scene.session.persistentIdentifier] = mask
         }
     }
 
-    static func lockToCurrentOrientation() {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-            orientationLock = .all
-            return
-        }
-        switch scene.interfaceOrientation {
-        case .portrait:
-            orientationLock = .portrait
-        case .portraitUpsideDown:
-            orientationLock = .portraitUpsideDown
-        case .landscapeLeft:
-            orientationLock = .landscapeLeft
-        case .landscapeRight:
-            orientationLock = .landscapeRight
-        case .unknown:
-            orientationLock = .all
-        @unknown default:
-            orientationLock = .all
-        }
-    }
-
-    func application(_: UIApplication, supportedInterfaceOrientationsFor _: UIWindow?) -> UIInterfaceOrientationMask {
-        Self.orientationLock
+    func application(
+        _: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?,
+    ) -> UIInterfaceOrientationMask {
+        guard let scene = window?.windowScene else { return .all }
+        return Self.orientationMask(for: scene)
     }
 
     func application(
