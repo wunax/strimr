@@ -250,8 +250,7 @@ struct MediaDetailView: View {
 
     private var playFromStartButton: some View {
         Button(action: handlePlayFromStart) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.title3.weight(.semibold))
+            DetailRoundIcon(systemImage: "arrow.counterclockwise")
         }
         .detailRoundButtonStyle()
         .accessibilityLabel(Text("media.detail.playFromStart"))
@@ -261,12 +260,7 @@ struct MediaDetailView: View {
         Button {
             Task { await viewModel.toggleWatchStatus() }
         } label: {
-            if viewModel.isUpdatingWatchStatus {
-                ProgressView()
-            } else {
-                Image(systemName: viewModel.watchActionIcon)
-                    .font(.title3.weight(.semibold))
-            }
+            DetailRoundIcon(systemImage: viewModel.watchActionIcon, isLoading: viewModel.isUpdatingWatchStatus)
         }
         .detailRoundButtonStyle()
         .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
@@ -277,12 +271,10 @@ struct MediaDetailView: View {
         Button {
             Task { await viewModel.toggleFavoriteStatus() }
         } label: {
-            if viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus {
-                ProgressView()
-            } else {
-                Image(systemName: viewModel.favoriteActionIcon)
-                    .font(.title3.weight(.semibold))
-            }
+            DetailRoundIcon(
+                systemImage: viewModel.favoriteActionIcon,
+                isLoading: viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus,
+            )
         }
         .detailRoundButtonStyle()
         .disabled(viewModel.isLoading || viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus)
@@ -300,8 +292,7 @@ struct MediaDetailView: View {
                 onSearchSubtitles: { isShowingSubtitleSearch = true },
             )
         } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.title3.weight(.semibold))
+            DetailRoundIcon(systemImage: "slider.horizontal.3")
         }
         .detailRoundButtonStyle()
         .menuIndicator(.hidden)
@@ -434,14 +425,7 @@ struct MediaDetailView: View {
                 }
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.title3.weight(.semibold))
-                .opacity(isPerformingMenuAction ? 0 : 1)
-                .overlay {
-                    if isPerformingMenuAction {
-                        ProgressView()
-                    }
-                }
+            DetailRoundIcon(systemImage: "ellipsis", isLoading: isPerformingMenuAction)
         }
         .detailRoundButtonStyle()
         .menuIndicator(.hidden)
@@ -906,6 +890,26 @@ private struct EpisodeSkeletonCard: View {
             }
         }
         .frame(width: width, alignment: .leading)
+    }
+}
+
+/// Icon of a round button beside Play. A fixed box keeps every circle the same size, a little shorter than Play,
+/// whatever the glyph's own height.
+private struct DetailRoundIcon: View {
+    let systemImage: String
+    var isLoading = false
+
+    var body: some View {
+        ZStack {
+            Image(systemName: systemImage)
+                .font(.system(size: 22, weight: .semibold))
+                .opacity(isLoading ? 0 : 1)
+            if isLoading {
+                ProgressView()
+                    .scaleEffect(0.5)
+            }
+        }
+        .frame(width: 28, height: 28)
     }
 }
 
