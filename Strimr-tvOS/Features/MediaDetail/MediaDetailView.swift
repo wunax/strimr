@@ -57,9 +57,10 @@ struct MediaDetailView: View {
 
                         buttonsRow
 
-                        if bindableViewModel.hasTrackSelection || bindableViewModel.selectedVersion != nil {
-                            MediaDetailTrackSummary(viewModel: bindableViewModel)
-                        }
+                        DetailTrackPickers(
+                            viewModel: bindableViewModel,
+                            onSearchSubtitles: { isShowingSubtitleSearch = true },
+                        )
 
                         if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
                             Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
@@ -240,10 +241,6 @@ struct MediaDetailView: View {
                 favoriteButton
             }
 
-            if showsPlaybackOptionsButton {
-                playbackOptionsMenu
-            }
-
             moreActionsMenu
         }
     }
@@ -281,25 +278,6 @@ struct MediaDetailView: View {
         .accessibilityLabel(Text(viewModel.favoriteActionTitle))
     }
 
-    private var showsPlaybackOptionsButton: Bool {
-        viewModel.showsVersionSelection || viewModel.audioTracks.count > 1 || !viewModel.subtitleTracks.isEmpty
-    }
-
-    private var playbackOptionsMenu: some View {
-        Menu {
-            MediaDetailTrackMenuItems(
-                viewModel: viewModel,
-                onSearchSubtitles: { isShowingSubtitleSearch = true },
-            )
-        } label: {
-            DetailRoundIcon(systemImage: "slider.horizontal.3")
-        }
-        .detailRoundButtonStyle()
-        .menuIndicator(.hidden)
-        .disabled(viewModel.isUpdatingTracks)
-        .accessibilityLabel(Text("media.detail.playbackOptions"))
-    }
-
     private var shouldShowShuffleAction: Bool {
         [.show, .season].contains(viewModel.media.type)
     }
@@ -309,7 +287,6 @@ struct MediaDetailView: View {
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
             || viewModel.isUpdatingFavoriteStatus
-            || viewModel.isUpdatingTracks
     }
 
     private var moreActionsMenu: some View {
@@ -405,14 +382,6 @@ struct MediaDetailView: View {
                     viewModel.isLoading
                         || viewModel.isLoadingFavoriteStatus
                         || viewModel.isUpdatingFavoriteStatus,
-                )
-            }
-
-            if viewModel.hasTrackSelection || viewModel.showsVersionSelection || viewModel.canSearchSubtitles {
-                Divider()
-                MediaDetailTrackMenuItems(
-                    viewModel: viewModel,
-                    onSearchSubtitles: { isShowingSubtitleSearch = true },
                 )
             }
 

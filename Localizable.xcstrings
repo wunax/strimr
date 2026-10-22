@@ -7848,28 +7848,6 @@
         }
       }
     },
-    "media.detail.playbackOptions" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version and Tracks"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version et pistes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本和音轨"
-          }
-        }
-      }
-    },
     "media.detail.playFromStart" : {
       "localizations" : {
         "en" : {
