@@ -243,6 +243,9 @@ struct MediaDetailView: View {
 
             moreActionsMenu
         }
+        // Full width so moving up from the right side of a rail below still lands on an action.
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .focusSection()
     }
 
     private var playFromStartButton: some View {

@@ -34,6 +34,8 @@ struct DetailTrackPickers: View {
                 }
             }
             .disabled(viewModel.isUpdatingTracks)
+            // Full width so moving up from the right side of a rail below still lands on a pill.
+            .frame(maxWidth: .infinity, alignment: .leading)
             .focusSection()
         }
     }
