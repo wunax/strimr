@@ -64,6 +64,9 @@ struct MediaHeroContentView: View {
     /// Makes a cut-off summary focusable and opens it in full. Left nil where the hero sits above rails that the
     /// summary would steal focus from.
     var onExpandSummary: ((MediaItem) -> Void)?
+    /// Lines that keep their room when the item shown has nothing for them. Where the hero sits in the page flow
+    /// rather than over it, this keeps the page below still as the hero moves between items.
+    var reservedLines: HeroLines = []
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
@@ -73,9 +76,20 @@ struct MediaHeroContentView: View {
                 starring: starring,
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
                 onExpandSummary: onExpandSummary,
+                reservedLines: reservedLines,
             )
         }
     }
+}
+
+struct HeroLines: OptionSet {
+    let rawValue: Int
+
+    static let secondaryLabel = HeroLines(rawValue: 1 << 0)
+    static let facts = HeroLines(rawValue: 1 << 1)
+    static let ratings = HeroLines(rawValue: 1 << 2)
+    static let summary = HeroLines(rawValue: 1 << 3)
+    static let starring = HeroLines(rawValue: 1 << 4)
 }
 
 private struct MediaHeroDetailsView: View {
@@ -85,6 +99,7 @@ private struct MediaHeroDetailsView: View {
     let starring: String?
     let badges: [String]
     let onExpandSummary: ((MediaItem) -> Void)?
+    let reservedLines: HeroLines
     private let summaryLineLimit = 3
 
     var body: some View {
@@ -98,10 +113,25 @@ private struct MediaHeroDetailsView: View {
                     .font(.facts.weight(.semibold))
                     .foregroundStyle(.textPrimary)
                     .lineLimit(1)
+            } else if reservedLines.contains(.secondaryLabel) {
+                lineSpacer(font: .facts.weight(.semibold))
             }
 
-            MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
-            ratingsLine
+            ZStack(alignment: .leading) {
+                if reservedLines.contains(.facts) {
+                    // A badge is taller than the text, so it sets the room of a line that may or may not show one.
+                    TechBadge(text: "4K").hidden()
+                }
+                MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
+            }
+
+            ZStack(alignment: .leading) {
+                if reservedLines.contains(.ratings) {
+                    lineSpacer(font: .facts)
+                }
+                ratingsLine
+            }
+
             summary
 
             if let starring {
@@ -109,8 +139,16 @@ private struct MediaHeroDetailsView: View {
                     .font(.facts)
                     .foregroundStyle(.textTertiary)
                     .lineLimit(1)
+            } else if reservedLines.contains(.starring) {
+                lineSpacer(font: .facts)
             }
         }
+    }
+
+    private func lineSpacer(font: Font) -> some View {
+        Text(verbatim: " ")
+            .font(font)
+            .hidden()
     }
 
     @ViewBuilder
@@ -134,6 +172,9 @@ private struct MediaHeroDetailsView: View {
                     .lineLimit(summaryLineLimit)
                     .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
             }
+        } else if reservedLines.contains(.summary) {
+            Color.clear
+                .frame(height: summaryLineHeight * CGFloat(summaryLineLimit))
         }
     }
 
