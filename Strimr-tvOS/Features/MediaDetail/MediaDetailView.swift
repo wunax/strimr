@@ -8,12 +8,16 @@ struct MediaDetailView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State var viewModel: MediaDetailViewModel
     @FocusState private var focus: MediaDetailFocus?
     /// `focus` once it has rested, which the hero follows.
     @State private var settledFocus: MediaDetailFocus?
     /// The episode the bar under the rail acts on: the last one focused, the next one to watch until then.
     @State private var selectedEpisodeID: String?
+    @State private var pageScrollPosition = ScrollPosition(edge: .top)
+    /// Focus is on the episodes or their bar, so the page sits just past the logo to fit them under the hero.
+    @State private var isBrowsingEpisodes = false
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
@@ -61,6 +65,7 @@ struct MediaDetailView: View {
                             // A series previews its seasons and episodes, which fill different lines; a movie only
                             // gains its cast once loaded.
                             reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .ratings, .summary] : [.starring],
+                            hidesLogo: isBrowsingEpisodes,
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
@@ -86,6 +91,10 @@ struct MediaDetailView: View {
                         RelatedHubsSection(viewModel: bindableViewModel, onSelectMedia: onSelectMedia)
                     }
                 }
+                .scrollPosition($pageScrollPosition)
+                // The system scrolls to give the focused control room from the edge, which on a series would slide
+                // the hero away from where the home left it just to reach the episode bar.
+                .scrollDisabled(keepsFirstScreen)
             }
         }
         .task {
@@ -126,13 +135,28 @@ struct MediaDetailView: View {
         .onAppear {
             Task { await bindableViewModel.refreshIfNeeded() }
         }
-        .onChange(of: focus) { _, newValue in
+        .onChange(of: focus) { oldValue, newValue in
+            switch newValue {
+            case .episode, .episodeBar:
+                isBrowsingEpisodes = true
+            case .season, .pageActions:
+                isBrowsingEpisodes = false
+            case nil:
+                // A menu of the bar or the sections below: the first screen keeps its position.
+                break
+            }
+            if isInFirstScreen(newValue), !isInFirstScreen(oldValue) {
+                scrollFirstScreen()
+            }
             focusModel.settle {
                 settledFocus = newValue
                 if case let .episode(id) = newValue {
                     selectedEpisodeID = id
                 }
             }
+        }
+        .onChange(of: isBrowsingEpisodes) {
+            scrollFirstScreen()
         }
         .onChange(of: bindableViewModel.episodes) { _, episodes in
             if let selectedEpisodeID, !episodes.contains(where: { $0.id == selectedEpisodeID }) {
@@ -203,6 +227,29 @@ struct MediaDetailView: View {
         viewModel.media.type == .show
     }
 
+    /// The hero, its actions, the seasons, the episodes and their bar share the first screen; only what follows
+    /// them scrolls.
+    private func isInFirstScreen(_ focus: MediaDetailFocus?) -> Bool {
+        guard showsEpisodes, let focus else { return false }
+        return switch focus {
+        case .season, .episode, .episodeBar, .pageActions: true
+        }
+    }
+
+    private var keepsFirstScreen: Bool {
+        isInFirstScreen(focus)
+    }
+
+    private func scrollFirstScreen() {
+        withAnimation(Motion.animation(Motion.pageScroll, reduceMotion: reduceMotion)) {
+            if isBrowsingEpisodes {
+                pageScrollPosition.scrollTo(y: MediaHeroContentView.logoBlockHeight)
+            } else {
+                pageScrollPosition.scrollTo(edge: .top)
+            }
+        }
+    }
+
     private var selectedEpisode: MediaItem? {
         let episodes = viewModel.episodes
         return episodes.first { $0.id == selectedEpisodeID }
@@ -219,7 +266,7 @@ struct MediaDetailView: View {
             viewModel.episodes.first { $0.id == id } ?? viewModel.media.mediaItem
         case .episodeBar:
             selectedEpisode ?? viewModel.media.mediaItem
-        case nil:
+        case .pageActions, nil:
             viewModel.media.mediaItem
         }
     }
@@ -274,20 +321,26 @@ struct MediaDetailView: View {
     private var buttonsRow: some View {
         HStack(spacing: 16) {
             playButton
+                .focused($focus, equals: .pageActions)
 
             if viewModel.shouldShowPlayFromStartButton {
                 playFromStartButton
+                    .focused($focus, equals: .pageActions)
             }
 
             ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
+                .focused($focus, equals: .pageActions)
 
             watchStatusButton
+                .focused($focus, equals: .pageActions)
 
             if viewModel.shouldShowFavoriteButton {
                 favoriteButton
+                    .focused($focus, equals: .pageActions)
             }
 
             moreActionsMenu
+                .focused($focus, equals: .pageActions)
         }
         // Full width so moving up from the right side of a rail below still lands on an action.
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -743,6 +796,8 @@ enum MediaDetailFocus: Hashable {
     case episode(String)
     /// Any control of the bar acting on the selected episode.
     case episodeBar
+    /// Play and the round buttons beside it.
+    case pageActions
 }
 
 private struct SeasonPillButton: View {
