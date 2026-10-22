@@ -6,9 +6,11 @@ enum Motion {
     /// Outgoing content fades rather than slides.
     static let crossfade: Animation = .easeInOut(duration: 0.2)
     static let hero: Animation = .easeInOut(duration: 0.24)
+    /// Slow enough that a backdrop changing on its own does not catch the eye like a transition would.
+    static let ambient: Animation = .easeInOut(duration: 1.2)
     static let heroFocusDelay: Duration = .milliseconds(150)
 
-    private static let fades: [Animation] = [crossfade, hero]
+    private static let fades: [Animation] = [crossfade, hero, ambient]
 
     /// Fades survive Reduce Motion; every other movement is dropped.
     static func animation(_ animation: Animation, reduceMotion: Bool) -> Animation? {

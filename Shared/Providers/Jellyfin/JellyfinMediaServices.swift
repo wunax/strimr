@@ -209,18 +209,21 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let result = try await catalog.items(
             parentID: library.id,
             includeTypes: type,
-            limit: 1,
+            limit: LibraryPreview.artworkCount,
             sortBy: "Random",
         )
         let artworkKind: MediaImageViewModel.ArtworkKind = switch library.type {
         case .collection, .playlist: .thumb
         default: .art
         }
-        var artwork: ArtworkResource?
-        if let item = result.items.first, let media = MediaDisplayItem(jellyfinItem: item, server: server) {
-            artwork = try await self.artwork(for: media, kind: artworkKind, width: 1280, height: 720)
+        var artworks: [ArtworkResource] = []
+        for item in result.items {
+            guard let media = MediaDisplayItem(jellyfinItem: item, server: server),
+                  let artwork = try await artwork(for: media, kind: artworkKind, width: 1280, height: 720)
+            else { continue }
+            artworks.append(artwork)
         }
-        return LibraryPreview(artwork: artwork, itemCount: result.totalRecordCount)
+        return LibraryPreview(artworks: artworks, itemCount: result.totalRecordCount)
     }
 
     func recommended(in library: Library) async throws -> [Hub] {

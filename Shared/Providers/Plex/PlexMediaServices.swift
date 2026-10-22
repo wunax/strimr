@@ -245,13 +245,16 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             sectionId: sectionID,
             // Paginated rather than limited: `limit` also caps `totalSize`, which the tile shows as the count.
             params: .init(sort: "random"),
-            pagination: PlexPagination(start: 0, size: 1),
+            pagination: PlexPagination(start: 0, size: LibraryPreview.artworkCount),
         )
-        var artwork: ArtworkResource?
-        if let item = response.mediaContainer.metadata?.first, let path = item.art ?? item.thumb {
-            artwork = try await self.artwork(path: path, width: 1280, height: 720)
+        var artworks: [ArtworkResource] = []
+        for item in response.mediaContainer.metadata ?? [] {
+            guard let path = item.art ?? item.thumb,
+                  let artwork = try await artwork(path: path, width: 1280, height: 720)
+            else { continue }
+            artworks.append(artwork)
         }
-        return LibraryPreview(artwork: artwork, itemCount: response.mediaContainer.totalSize)
+        return LibraryPreview(artworks: artworks, itemCount: response.mediaContainer.totalSize)
     }
 
     func recommended(in library: Library) async throws -> [Hub] {

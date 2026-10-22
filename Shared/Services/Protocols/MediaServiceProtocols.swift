@@ -10,9 +10,11 @@ enum ArtworkResource {
     case data(Data)
 }
 
-/// What a library tile shows: a backdrop from the library and how many titles it holds.
+/// What a library tile shows: a few backdrops from the library, which it cycles through, and how many titles it holds.
 struct LibraryPreview {
-    let artwork: ArtworkResource?
+    static let artworkCount = 4
+
+    let artworks: [ArtworkResource]
     let itemCount: Int?
 }
 

@@ -73,8 +73,8 @@ final class LibraryViewModel {
         await libraryStore.syncServers()
     }
 
-    func artwork(for library: Library) -> ArtworkResource? {
-        previews[library.identity]?.artwork
+    func artworks(for library: Library) -> [ArtworkResource] {
+        previews[library.identity]?.artworks ?? []
     }
 
     /// Size of the library, then its server when the list covers several, e.g. "1245 movies · Living room".

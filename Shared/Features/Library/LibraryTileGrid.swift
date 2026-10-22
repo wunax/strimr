@@ -66,7 +66,7 @@ struct LibraryTileGrid: View {
                     LibraryTile(
                         library: library,
                         caption: viewModel.caption(for: library),
-                        artwork: viewModel.artwork(for: library),
+                        artworks: viewModel.artworks(for: library),
                     )
                 }
                 .buttonStyle(.cardLift)
@@ -127,11 +127,21 @@ struct LibraryTileGrid: View {
     }
 }
 
-/// A library as a 16:9 backdrop with its name and size over the bottom, like the detail hero.
+/// A library as a 16:9 backdrop with its name and size over the bottom, like the detail hero. The backdrop slowly
+/// cycles through a few titles of the library, except while the tile is focused or hovered.
 struct LibraryTile: View {
     let library: Library
     let caption: String?
-    let artwork: ArtworkResource?
+    let artworks: [ArtworkResource]
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    #if os(tvOS)
+        @Environment(\.isFocused) private var isFocused
+    #endif
+    @State private var isPaused = false
+    @State private var artworkIndex = 0
+
+    private static let rotationInterval: Duration = .seconds(8)
 
     var body: some View {
         Color.clear
@@ -154,6 +164,33 @@ struct LibraryTile: View {
             }
             .mediaArtworkStyle(borderColor: .strokeSubtle)
             .accessibilityElement(children: .combine)
+            .task(id: artworks.count) { await rotateArtworks() }
+        #if os(tvOS)
+            .onChange(of: isFocused) { _, focused in isPaused = focused }
+        #elseif os(macOS)
+            .onHover { isPaused = $0 }
+        #endif
+    }
+
+    private var currentArtwork: ArtworkResource? {
+        artworks.isEmpty ? nil : artworks[artworkIndex % artworks.count]
+    }
+
+    private func rotateArtworks() async {
+        guard artworks.count > 1, !reduceMotion else { return }
+        // Tiles start at different times so they never all change together.
+        try? await Task.sleep(for: .milliseconds(Int.random(in: 0 ... 4000)))
+        while !Task.isCancelled {
+            try? await Task.sleep(for: Self.rotationInterval)
+            guard !Task.isCancelled, !isPaused else { continue }
+            let next = (artworkIndex + 1) % artworks.count
+            // Decoded first so the fade never goes through an empty frame.
+            await ArtworkResourceView.preload(artworks[next])
+            guard !Task.isCancelled else { return }
+            withAnimation(Motion.ambient) {
+                artworkIndex = next
+            }
+        }
     }
 
     private var backdrop: some View {
@@ -163,12 +200,13 @@ struct LibraryTile: View {
             Image(systemName: library.iconName)
                 .font(.system(size: 44, weight: .medium))
                 .foregroundStyle(.textTertiary)
-            if let artwork {
-                ArtworkResourceView(resource: artwork)
+            if let currentArtwork {
+                ArtworkResourceView(resource: currentArtwork)
+                    .id(artworkIndex)
                     .transition(.opacity)
             }
         }
-        .animation(Motion.crossfade, value: artwork != nil)
+        .animation(Motion.crossfade, value: artworks.isEmpty)
     }
 
     private var labels: some View {
