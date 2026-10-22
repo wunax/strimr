@@ -609,109 +609,71 @@ struct MediaDetailView: View {
     }
 
     private var episodesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("media.detail.episodes.title").font(.title2.bold())
-                Spacer()
-                if viewModel.media.type == .show, !viewModel.seasons.isEmpty {
-                    Menu {
-                        ForEach(viewModel.seasons) { season in
-                            Button {
-                                if season.id == viewModel.selectedSeasonId {
-                                    onSelectMedia(season)
-                                } else {
-                                    Task { await viewModel.selectSeason(id: season.id) }
-                                }
-                            } label: {
-                                if season.id == viewModel.selectedSeasonId {
-                                    Label(season.title, systemImage: "checkmark")
-                                } else {
-                                    Text(season.title)
-                                }
-                            }
-                        }
-                    } label: {
-                        Label(viewModel.selectedSeasonTitle, systemImage: "chevron.down")
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                }
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
 
-            if viewModel.media.type == .show,
-               viewModel.isLoadingSeasons || viewModel.isLoading,
-               viewModel.seasons.isEmpty
-            {
-                ProgressView("media.detail.loadingSeasons")
-            } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
-                ProgressView()
-            } else if let error = viewModel.seasonsErrorMessage ?? viewModel.episodesErrorMessage {
-                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)
-            } else if viewModel.episodes.isEmpty {
-                Text("media.detail.noEpisodes")
-                    .foregroundStyle(.secondary)
-            } else {
-                LazyVStack(spacing: 10) {
-                    ForEach(viewModel.episodes) { episode in
-                        episodeRow(episode)
+            MediaHubSection(
+                title: String(localized: "media.detail.episodes.title"),
+                subtitle: viewModel.episodes.isEmpty
+                    ? nil
+                    : String(localized: "media.labels.countEpisode \(viewModel.episodes.count)"),
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if viewModel.media.type == .show {
+                        SeasonPillsRow(viewModel: viewModel) { onSelectMedia($0) }
                     }
+                    episodesContent
                 }
             }
         }
-        .padding(.horizontal, 28)
+        .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+    }
+
+    @ViewBuilder
+    private var episodesContent: some View {
+        if viewModel.media.type == .show, viewModel.seasonsErrorMessage != nil || viewModel.seasons.isEmpty {
+            // The season row above already shows the loading, error or empty state.
+            EmptyView()
+        } else if let error = viewModel.episodesErrorMessage {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
+            ProgressView("media.detail.loadingEpisodes")
+        } else if viewModel.episodes.isEmpty {
+            Text("media.detail.noEpisodes")
+                .font(.subheadline)
+                .foregroundStyle(.textSecondary)
+        } else {
+            LazyVStack(spacing: 8) {
+                ForEach(viewModel.episodes) { episode in
+                    episodeRow(episode)
+                }
+            }
+        }
     }
 
     private func episodeRow(_ episode: MediaItem) -> some View {
         Button {
             onSelectMedia(episode)
         } label: {
-            HStack(spacing: 14) {
-                Group {
-                    if let url = viewModel.imageURL(
+            HStack(spacing: 16) {
+                EpisodeArtworkView(
+                    episode: episode,
+                    imageURL: viewModel.imageURL(
                         for: episode,
+                        width: 640,
+                        height: 360,
                         spoilerProtection: settingsManager.interface.spoilerProtection,
-                    ) {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Color.gray.opacity(0.15)
-                            }
-                        }
-                    } else {
-                        ArtworkPathView(
-                            path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
-                            width: 640,
-                            height: 360,
-                        )
-                    }
-                }
-                .frame(width: 180, height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(alignment: .topLeading) {
-                    if episode.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
-                        SpoilerProtectionIndicator()
-                            .padding(6)
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    DownloadStatusBadge(media: .playable(episode))
-                }
+                    ),
+                    width: 200,
+                    runtime: nil,
+                    progress: viewModel.progressFraction(for: episode),
+                )
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
-                        .font(.headline)
-                    if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
-                        Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    } else if let summary = episode.summary, !summary.isEmpty {
-                        Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                    }
-                }
-                Spacer()
-                Button("common.actions.play", systemImage: "play.fill") {
+                EpisodeRowText(episode: episode, runtime: viewModel.runtimeText(for: episode), summaryLineLimit: 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
                     if isServerUnreachable {
                         if let request = downloadManager.localPlaybackRequest(for: episode.identity, kind: .episode) {
                             appModel.showLocalPlayer(request)
@@ -719,8 +681,10 @@ struct MediaDetailView: View {
                     } else {
                         onPlay(episode.id, episode.type, false, true)
                     }
+                } label: {
+                    Label("common.actions.play", systemImage: "play.fill")
                 }
-                .buttonStyle(.bordered)
+                .actionButtonStyle(.secondary)
                 .disabled(isServerUnreachable && downloadManager.completedOwnedItem(for: episode.identity) == nil)
             }
             .padding(10)
@@ -735,12 +699,10 @@ private struct EpisodeRowBackground: ViewModifier {
     @State private var isHovered = false
 
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
         content
-            .background(
-                isHovered ? Color.surfaceRaised : Color.surfaceSubtle,
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous),
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(isHovered ? Color.surfaceRaised : Color.surfaceSubtle, in: shape)
+            .contentShape(shape)
             .animation(Motion.focus, value: isHovered)
             .onHover { isHovered = $0 }
     }

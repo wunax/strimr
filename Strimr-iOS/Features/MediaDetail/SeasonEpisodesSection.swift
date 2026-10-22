@@ -8,132 +8,50 @@ struct SeasonEpisodesSection: View {
     let onSelectEpisode: (MediaItem) -> Void
 
     var body: some View {
-        Section {
-            sectionContent
-        }
-        .textCase(nil)
-    }
-
-    private var sectionContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
-            VStack(alignment: .leading, spacing: 12) {
-                if viewModel.media.type == .show {
-                    seasonSelector
-                }
-                episodesCountTitle
-                episodesContent
-            }
-            .padding(.horizontal, 8)
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 32)
-    }
 
-    private var episodesCountTitle: some View {
-        Text("media.labels.countEpisode \(viewModel.episodes.count)")
-            .font(.headline)
-            .fontWeight(.semibold)
-    }
-
-    @ViewBuilder
-    private var seasonSelector: some View {
-        if let error = viewModel.seasonsErrorMessage {
-            Label(error, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-                .font(.subheadline)
-        } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
-            HStack(spacing: 8) {
-                ProgressView()
-                Text("media.detail.loadingSeasons")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        } else if viewModel.seasons.isEmpty {
-            Text("media.detail.noSeasons")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(viewModel.seasons) { season in
-                        Button {
-                            if season.id == viewModel.selectedSeasonId {
-                                onSelectSeason(season)
-                            } else {
-                                Task { await viewModel.selectSeason(id: season.id) }
-                            }
-                        } label: {
-                            Text(season.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .foregroundStyle(
-                                    season.id == viewModel.selectedSeasonId
-                                        ? Color.brandSecondaryForeground
-                                        : Color.primary,
-                                )
-                                .background {
-                                    Capsule()
-                                        .fill(
-                                            season.id == viewModel.selectedSeasonId
-                                                ? Color.brandSecondary
-                                                : Color.brandSecondary.opacity(0.12),
-                                        )
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(
-                            season.id == viewModel.selectedSeasonId ? .isSelected : [],
-                        )
+            MediaHubSection(
+                title: String(localized: "media.detail.episodes.title"),
+                subtitle: viewModel.episodes.isEmpty
+                    ? nil
+                    : String(localized: "media.labels.countEpisode \(viewModel.episodes.count)"),
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if viewModel.media.type == .show {
+                        SeasonPillsRow(viewModel: viewModel, onSelectSeason: onSelectSeason)
                     }
+                    episodesContent
                 }
-                .padding(.vertical, 2)
             }
         }
+        .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+        .padding(.bottom, 32)
     }
 
     @ViewBuilder
     private var episodesContent: some View {
-        if viewModel.media.type == .show, let error = viewModel.seasonsErrorMessage {
+        if viewModel.media.type == .show, viewModel.seasonsErrorMessage != nil || viewModel.seasons.isEmpty {
+            // The season row above already shows the loading, error or empty state.
+            EmptyView()
+        } else if let error = viewModel.episodesErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-                .padding(.vertical, 8)
-        } else if viewModel.media.type == .show,
-                  viewModel.isLoadingSeasons || viewModel.isLoading,
-                  viewModel.seasons.isEmpty
-        {
-            ProgressView("media.detail.loadingSeasons")
+        } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
+            ProgressView("media.detail.loadingEpisodes")
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
-        } else if viewModel.media.type == .show, viewModel.seasons.isEmpty {
-            Text("media.detail.noSeasonsYet")
-                .foregroundStyle(.secondary)
                 .padding(.vertical, 8)
+        } else if viewModel.episodes.isEmpty {
+            Text("media.detail.noEpisodes")
+                .font(.subheadline)
+                .foregroundStyle(.textSecondary)
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                if let error = viewModel.episodesErrorMessage {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                }
-
-                if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
-                    ProgressView("media.detail.loadingEpisodes")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                } else if viewModel.episodes.isEmpty {
-                    Text("media.detail.noEpisodes")
-                        .foregroundStyle(.secondary)
-                } else {
-                    episodeList
-                }
-            }
+            episodeList
         }
     }
 
     private var episodeList: some View {
-        LazyVStack(alignment: .leading, spacing: 8) {
+        LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
                 EpisodeCardView(
                     episode: episode,
@@ -149,8 +67,6 @@ struct SeasonEpisodesSection: View {
                 )
                 if index < viewModel.episodes.count - 1 {
                     Divider()
-                        .background(.brandSecondary)
-                        .padding(.vertical, 4)
                 }
             }
         }

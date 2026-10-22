@@ -21,7 +21,7 @@ struct EpisodeArtworkView: View {
                         if let image = phase.image {
                             image.resizable().scaledToFit()
                         } else {
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                         }
                     }
                 } else {
@@ -39,12 +39,10 @@ struct EpisodeArtworkView: View {
             if let runtime {
                 Label {
                     Text(runtime)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
                 } icon: {
                     Image(systemName: "clock")
-                        .font(.caption2)
                 }
+                .font(.badge)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .glassSurface(in: Capsule())

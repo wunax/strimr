@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct EpisodeCardView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     let episode: MediaItem
     let imageURL: URL?
     let runtime: String?
@@ -26,7 +25,7 @@ struct EpisodeCardView: View {
                             episode: episode,
                             imageURL: imageURL,
                             width: regularImageWidth,
-                            runtime: runtime,
+                            runtime: nil,
                             progress: progress,
                         )
                         detailStack
@@ -38,7 +37,7 @@ struct EpisodeCardView: View {
                                 episode: episode,
                                 imageURL: imageURL,
                                 width: proxy.size.width,
-                                runtime: runtime,
+                                runtime: nil,
                                 progress: progress,
                             )
                         }
@@ -58,23 +57,6 @@ struct EpisodeCardView: View {
     }
 
     private var detailStack: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(episode.tertiaryLabel.map { "\($0) - \(episode.title)" } ?? episode.title)
-                .font(.title3)
-                .fontWeight(.semibold)
-                .lineLimit(1)
-
-            if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
-                Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            } else if let summary = episode.summary, !summary.isEmpty {
-                Text(summary)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
-        }
+        EpisodeRowText(episode: episode, runtime: runtime)
     }
 }
