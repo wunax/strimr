@@ -48,16 +48,25 @@ enum MediaFactsFormatter {
 enum RemainingTimeFormatter {
     /// "23 min left" from the runtime and resume position, rounded to the minute; nil without progress.
     static func text(duration: TimeInterval?, viewOffset: TimeInterval?) -> String? {
+        shortText(duration: duration, viewOffset: viewOffset)
+            .map { String(localized: "media.labels.remaining \($0)") }
+    }
+
+    /// Just the time left, "23 min", for places that already say it is a resume.
+    static func shortText(duration: TimeInterval?, viewOffset: TimeInterval?) -> String? {
         guard let duration, let viewOffset, viewOffset > 0, duration > viewOffset else { return nil }
         let minutes = max(1, Int(((duration - viewOffset) / 60).rounded()))
-        let remaining = Duration.seconds(minutes * 60)
+        return Duration.seconds(minutes * 60)
             .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
-        return String(localized: "media.labels.remaining \(remaining)")
     }
 }
 
 extension MediaItem {
     var remainingTimeText: String? {
         RemainingTimeFormatter.text(duration: duration, viewOffset: viewOffset)
+    }
+
+    var shortRemainingTimeText: String? {
+        RemainingTimeFormatter.shortText(duration: duration, viewOffset: viewOffset)
     }
 }

@@ -213,10 +213,19 @@ struct MediaDetailView: View {
 
     private var playButton: some View {
         Button(action: handlePlay) {
-            Label(viewModel.primaryActionCompactTitle, systemImage: "play.fill")
-                .font(.facts.weight(.semibold))
-                .lineLimit(1)
-                .padding(.horizontal, 12)
+            HStack(spacing: 12) {
+                PlayProgressIcon(progress: viewModel.primaryActionProgress)
+                Text(viewModel.primaryActionCompactTitle)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+                if let remainingTime = viewModel.primaryActionRemainingTime {
+                    Text(verbatim: "· \(remainingTime)")
+                        .foregroundStyle(Color.black.opacity(0.55))
+                        .lineLimit(1)
+                }
+            }
+            .font(.facts.weight(.semibold))
+            .padding(.horizontal, 12)
         }
         .buttonStyle(.borderedProminent)
         .buttonBorderShape(.capsule)

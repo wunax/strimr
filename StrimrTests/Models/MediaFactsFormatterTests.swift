@@ -146,4 +146,10 @@ struct RemainingTimeFormatterTests {
         #expect(RemainingTimeFormatter.text(duration: 3600, viewOffset: 3600) == nil)
         #expect(RemainingTimeFormatter.text(duration: 3600, viewOffset: 4000) == nil)
     }
+
+    @Test func `short text keeps only the time left`() {
+        let remaining = Duration.seconds(23 * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+        #expect(RemainingTimeFormatter.shortText(duration: 2400, viewOffset: 1020) == remaining)
+        #expect(RemainingTimeFormatter.shortText(duration: 2400, viewOffset: 0) == nil)
+    }
 }

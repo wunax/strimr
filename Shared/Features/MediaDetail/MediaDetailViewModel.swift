@@ -496,20 +496,10 @@ final class MediaDetailViewModel {
         return String(localized: "media.detail.primaryAction.episode \(primaryActionTitle) \(episode)")
     }
 
-    var primaryActionDetail: String? {
-        guard let target = primaryPlaybackTarget else { return nil }
-        let timeLeft = target.shouldResumeFromOffset ? timeLeftText(for: target.item) : nil
-
-        switch media.type {
-        case .movie, .episode, .clip:
-            return timeLeft
-        case .show, .season:
-            let episodeLabel = seasonEpisodeLabel(for: target.item)
-            if let timeLeft, let episodeLabel {
-                return "\(episodeLabel) • \(timeLeft)"
-            }
-            return episodeLabel ?? timeLeft
-        }
+    /// Time left on the item the play button resumes; nil when it starts from the beginning.
+    var primaryActionRemainingTime: String? {
+        guard let target = primaryPlaybackTarget, target.shouldResumeFromOffset else { return nil }
+        return target.item.shortRemainingTimeText
     }
 
     var primaryActionProgress: Double? {
@@ -955,27 +945,6 @@ final class MediaDetailViewModel {
     private func hasProgress(for item: MediaItem?) -> Bool {
         guard let viewOffset = item?.viewOffset else { return false }
         return viewOffset > 0
-    }
-
-    private func timeLeftText(for item: MediaItem?) -> String? {
-        guard
-            let item,
-            let duration = item.duration,
-            let viewOffset = item.viewOffset,
-            viewOffset > 0
-        else {
-            return nil
-        }
-
-        let remaining = max(0, duration - viewOffset)
-        guard remaining > 0 else { return nil }
-
-        return String(localized: "media.detail.timeLeft \(remaining.mediaDurationText())")
-    }
-
-    private func seasonEpisodeLabel(for item: MediaItem) -> String? {
-        guard let season = item.parentIndex, let episode = item.index else { return nil }
-        return String(localized: "media.detail.seasonEpisode \(season) \(episode)")
     }
 
     private func fetchSeasons(preservingExistingContent: Bool) async {

@@ -146,6 +146,12 @@ struct DetailActionsRow: View {
                 Text(viewModel.primaryActionCompactTitle)
                     .fontWeight(.semibold)
                     .lineLimit(1)
+                    .layoutPriority(1)
+                if let remainingTime = viewModel.primaryActionRemainingTime {
+                    Text(verbatim: "· \(remainingTime)")
+                        .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black.opacity(0.55))
+                        .lineLimit(1)
+                }
             }
             .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
             .frame(maxWidth: .infinity, minHeight: 50)
@@ -300,29 +306,5 @@ struct DetailActionsRow: View {
         case nil:
             "arrow.down.circle"
         }
-    }
-}
-
-private struct PlayProgressIcon: View {
-    let progress: Double?
-
-    var body: some View {
-        ZStack {
-            if let progress {
-                Circle()
-                    .stroke(Color.black.opacity(0.25), lineWidth: 4)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        Color.black,
-                        style: StrokeStyle(lineWidth: 4, lineCap: .round),
-                    )
-                    .rotationEffect(.degrees(-90))
-            }
-
-            Image(systemName: "play.fill")
-                .font(.title3.weight(.semibold))
-        }
-        .frame(width: 30, height: 30)
     }
 }

@@ -7914,28 +7914,6 @@
         }
       }
     },
-    "media.detail.seasonEpisode %lld %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "S%1$lld - E%2$lld"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "S%1$lld - E%2$lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "第%1$lld季 第%2$lld集"
-          }
-        }
-      }
-    },
     "media.detail.starring %@" : {
       "localizations" : {
         "en" : {
