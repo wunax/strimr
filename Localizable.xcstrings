@@ -36,29 +36,6 @@
         }
       }
     },
-    "auth.profile.error.loadFailed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unable to load profiles. Please try again."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de charger les profils. Veuillez réessayer."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法加载配置，请重试。"
-          }
-        }
-      }
-    },
     "auth.profile.error.pinRequired" : {
       "localizations" : {
         "en" : {
@@ -345,29 +322,6 @@
         }
       }
     },
-    "common.actions.logOut" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Out"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se déconnecter"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出登录"
-          }
-        }
-      }
-    },
     "common.actions.more" : {
       "localizations" : {
         "en" : {
@@ -584,29 +538,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "切换用户"
-          }
-        }
-      }
-    },
-    "common.actions.switchServer" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Switch Server"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer de serveur"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "切换服务器"
           }
         }
       }
@@ -937,29 +868,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已下载内容"
-          }
-        }
-      }
-    },
-    "downloads.menu.count %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloads (%lld)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Téléchargements (%lld)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载（%lld）"
           }
         }
       }
@@ -1646,190 +1554,6 @@
         }
       }
     },
-    "errors.selectServer.browseLibrary" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to browse."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour parcourir."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以浏览"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadContent" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load content."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger le contenu."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载内容"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadDetails" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load details."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger les détails."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载详情"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadEpisodes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load episodes."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger les épisodes."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载剧集"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadLibraries" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load libraries."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger les bibliothèques."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载媒体库"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadRecommendations" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load recommendations."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger les recommandations."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载推荐"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadRelatedContent" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load related content."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger le contenu associé."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载相关内容"
-          }
-        }
-      }
-    },
-    "errors.selectServer.loadSeasons" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to load seasons."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour charger les saisons."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以加载季"
-          }
-        }
-      }
-    },
     "errors.selectServer.playMedia" : {
       "localizations" : {
         "en" : {
@@ -1848,29 +1572,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请选择服务器以播放媒体"
-          }
-        }
-      }
-    },
-    "errors.selectServer.searchLibrary" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a server to search your library."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez un serveur pour rechercher dans votre bibliothèque."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择服务器以搜索媒体库"
           }
         }
       }
@@ -1945,23 +1646,6 @@
         }
       }
     },
-    "favorites.loading" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading favorites"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chargement des favoris"
-          }
-        }
-      }
-    },
     "favorites.movies" : {
       "localizations" : {
         "en" : {
@@ -2006,23 +1690,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Séries"
-          }
-        }
-      }
-    },
-    "favorites.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favorites"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favoris"
           }
         }
       }
@@ -2133,29 +1800,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法加载项目。请重试。"
-          }
-        }
-      }
-    },
-    "hub.loading" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading items"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chargement des éléments"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在加载项目"
           }
         }
       }
@@ -3106,75 +2750,6 @@
         }
       }
     },
-    "jellyfin.actions.markPlayed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mark as played"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marquer comme vu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标记为已播放"
-          }
-        }
-      }
-    },
-    "jellyfin.actions.markUnplayed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mark as unplayed"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marquer comme non vu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标记为未播放"
-          }
-        }
-      }
-    },
-    "jellyfin.actions.play" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lire"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播放"
-          }
-        }
-      }
-    },
     "jellyfin.auth.credentials.subtitle %@" : {
       "localizations" : {
         "en" : {
@@ -3461,121 +3036,6 @@
         }
       }
     },
-    "jellyfin.collections.items" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection items"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Éléments de la collection"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合集项目"
-          }
-        }
-      }
-    },
-    "jellyfin.collections.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collections"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collections"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合集"
-          }
-        }
-      }
-    },
-    "jellyfin.detail.cast" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cast and crew"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Distribution et équipe"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "演职人员"
-          }
-        }
-      }
-    },
-    "jellyfin.detail.episodes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episodes"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Épisodes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剧集"
-          }
-        }
-      }
-    },
-    "jellyfin.detail.seasons" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seasons"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisons"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "季"
-          }
-        }
-      }
-    },
     "jellyfin.detail.similar" : {
       "localizations" : {
         "en" : {
@@ -3752,29 +3212,6 @@
         }
       }
     },
-    "jellyfin.errors.playbackTitle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playback unavailable"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lecture indisponible"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法播放"
-          }
-        }
-      }
-    },
     "jellyfin.errors.serverUnreachable" : {
       "localizations" : {
         "en" : {
@@ -3793,29 +3230,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法连接到 Jellyfin 服务器。"
-          }
-        }
-      }
-    },
-    "jellyfin.errors.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unable to load Jellyfin"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de charger Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法加载 Jellyfin"
           }
         }
       }
@@ -3864,52 +3278,6 @@
         }
       }
     },
-    "jellyfin.home.latestMovies" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Latest movies"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Films récents"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最新电影"
-          }
-        }
-      }
-    },
-    "jellyfin.home.latestSeries" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Latest series"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Séries récentes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最新剧集"
-          }
-        }
-      }
-    },
     "jellyfin.home.nextUp" : {
       "localizations" : {
         "en" : {
@@ -3950,52 +3318,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "继续观看"
-          }
-        }
-      }
-    },
-    "jellyfin.libraries.items" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library items"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Éléments de la bibliothèque"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "媒体库项目"
-          }
-        }
-      }
-    },
-    "jellyfin.libraries.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Movie and series libraries"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bibliothèques Films et Séries"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "电影和剧集媒体库"
           }
         }
       }
@@ -4128,213 +3450,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推荐"
-          }
-        }
-      }
-    },
-    "jellyfin.person.media" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Movies and series"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Films et séries"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "电影和剧集"
-          }
-        }
-      }
-    },
-    "jellyfin.playlists.items" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playlist items"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Éléments de la playlist"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播放列表项目"
-          }
-        }
-      }
-    },
-    "jellyfin.playlists.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playlists"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playlists"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播放列表"
-          }
-        }
-      }
-    },
-    "jellyfin.search.empty" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Jellyfin results"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun résultat Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有 Jellyfin 搜索结果"
-          }
-        }
-      }
-    },
-    "jellyfin.search.placeholder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search this Jellyfin server"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechercher sur ce serveur Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索此 Jellyfin 服务器"
-          }
-        }
-      }
-    },
-    "jellyfin.settings.server" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serveur"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "服务器"
-          }
-        }
-      }
-    },
-    "jellyfin.settings.session" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jellyfin session"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Session Jellyfin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jellyfin 会话"
-          }
-        }
-      }
-    },
-    "jellyfin.settings.user" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "User"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisateur"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用户"
-          }
-        }
-      }
-    },
-    "jellyfin.settings.version" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server version"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version du serveur"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "服务器版本"
           }
         }
       }
@@ -5459,29 +4574,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "加载媒体库"
-          }
-        }
-      }
-    },
-    "library.recommended.loading" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading recommendations"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chargement des recommandations"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加载推荐"
           }
         }
       }
@@ -7422,50 +6514,6 @@
         }
       }
     },
-    "media.detail.cast.empty" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No cast information available."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune information sur la distribution."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无演员信息"
-          }
-        }
-      }
-    },
-    "media.detail.cast.loading" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading cast…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chargement de la distribution…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加载演员表…"
-          }
-        }
-      }
-    },
     "media.detail.cast.noPhoto" : {
       "localizations" : {
         "en" : {
@@ -7910,28 +6958,6 @@
         }
       }
     },
-    "media.detail.noSeasonsYet" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No seasons available yet."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune saison disponible pour le moment."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无可用季"
-          }
-        }
-      }
-    },
     "media.detail.openSeries" : {
       "localizations" : {
         "en" : {
@@ -8016,28 +7042,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "季"
-          }
-        }
-      }
-    },
-    "media.detail.starring %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starring %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avec %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "主演：%@"
           }
         }
       }
@@ -9252,29 +8256,6 @@
         }
       }
     },
-    "media.fileInfo.summary" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Summary"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Résumé"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "摘要"
-          }
-        }
-      }
-    },
     "media.fileInfo.title" : {
       "localizations" : {
         "en" : {
@@ -9915,29 +8896,6 @@
         }
       }
     },
-    "media.versions.count %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld versions"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld versions"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个版本"
-          }
-        }
-      }
-    },
     "media.versions.optimized" : {
       "localizations" : {
         "en" : {
@@ -10044,29 +9002,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在更新"
-          }
-        }
-      }
-    },
-    "more.logout.message" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You will need to sign in again."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vous devrez vous reconnecter."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你需要重新登录"
           }
         }
       }
@@ -10507,121 +9442,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "继续播放已下载版本"
-          }
-        }
-      }
-    },
-    "offline.signOut.delete" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除"
-          }
-        }
-      }
-    },
-    "offline.signOut.keep" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conserver"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保留"
-          }
-        }
-      }
-    },
-    "offline.signOut.message %lld %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld downloaded items (%2$@) belong to this account. Kept downloads reappear when you sign back in."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld éléments téléchargés (%2$@) appartiennent à ce compte. Les téléchargements conservés réapparaîtront à votre prochaine connexion."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此账户有 %1$lld 个已下载项目（%2$@）。保留的下载内容会在你重新登录后再次显示。"
-          }
-        }
-      }
-    },
-    "offline.signOut.message.unsynced %lld %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld downloaded items (%2$@) belong to this account. Kept downloads reappear when you sign back in. Watch progress recorded offline could not be synchronized yet."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld éléments téléchargés (%2$@) appartiennent à ce compte. Les téléchargements conservés réapparaîtront à votre prochaine connexion. La progression enregistrée hors ligne n'a pas encore pu être synchronisée."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此账户有 %1$lld 个已下载项目（%2$@）。保留的下载内容会在你重新登录后再次显示。离线记录的观看进度尚未同步。"
-          }
-        }
-      }
-    },
-    "offline.signOut.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete downloads too?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer aussi les téléchargements ?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同时删除下载内容？"
           }
         }
       }
@@ -12870,29 +11690,6 @@
         }
       }
     },
-    "player.tracks.subtitles.off" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subtitles off"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sous-titres désactivés"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭字幕"
-          }
-        }
-      }
-    },
     "player.window.title" : {
       "localizations" : {
         "en" : {
@@ -13443,29 +12240,6 @@
         }
       }
     },
-    "profiles.pin.change" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change the 4-digit PIN"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modifier le code PIN à 4 chiffres"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改 4 位 PIN 码"
-          }
-        }
-      }
-    },
     "profiles.pin.define" : {
       "localizations" : {
         "en" : {
@@ -13598,29 +12372,6 @@
         }
       }
     },
-    "profiles.pin.save" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save the PIN"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enregistrer le code PIN"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存 PIN 码"
-          }
-        }
-      }
-    },
     "profiles.pin.set" : {
       "localizations" : {
         "en" : {
@@ -13705,29 +12456,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plex 待看列表"
-          }
-        }
-      }
-    },
-    "provider.change" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change service"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer de service"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改服务"
           }
         }
       }
@@ -14598,28 +13326,6 @@
         }
       }
     },
-    "seerr.detail.selectSeason" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a season to view episodes."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez une saison pour voir les épisodes."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择一季以查看剧集。"
-          }
-        }
-      }
-    },
     "seerr.detail.similar" : {
       "localizations" : {
         "en" : {
@@ -15120,28 +13826,6 @@
         }
       }
     },
-    "seerr.media.badge.series" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Series"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Série"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剧集"
-          }
-        }
-      }
-    },
     "seerr.media.badge.tv" : {
       "localizations" : {
         "en" : {
@@ -15154,38 +13838,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Série"
-          }
-        }
-      }
-    },
-    "seerr.ratings.audienceScore" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audience"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Public"
-          }
-        }
-      }
-    },
-    "seerr.ratings.criticsScore" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Critics"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Critiques"
           }
         }
       }
@@ -18028,29 +16680,6 @@
         }
       }
     },
-    "settings.interface.multiServerSearch.description" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Merge matching results from every available Plex server."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fusionne les résultats correspondants de tous les serveurs Plex disponibles."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合并所有可用 Plex 服务器中的匹配结果。"
-          }
-        }
-      }
-    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {
@@ -18591,29 +17220,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "校正由音响系统（如回音壁或功放）引起的音画不同步。适用于此设备上的所有播放。"
-          }
-        }
-      }
-    },
-    "settings.playback.autoPlayNext" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play next episode automatically"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lire automatiquement l'épisode suivant"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动播放下一集"
           }
         }
       }
@@ -19912,29 +18518,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "黄色"
-          }
-        }
-      }
-    },
-    "settings.playback.subtitles.customize" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appearance"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apparence"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "外观"
           }
         }
       }
