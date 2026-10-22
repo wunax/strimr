@@ -11,5 +11,12 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
+      - name: Install SwiftFormat
+        run: |
+          curl -sSL -o "$RUNNER_TEMP/swiftformat.zip" https://github.com/nicklockwood/SwiftFormat/releases/download/0.64.0/swiftformat.zip
+          unzip -o -q "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat"
+          echo "$RUNNER_TEMP/swiftformat" >> "$GITHUB_PATH"
       - name: SwiftFormat
-        run: swiftformat --lint . --reporter github-actions-log
+        run: |
+          swiftformat --version
+          swiftformat --lint . --reporter github-actions-log
