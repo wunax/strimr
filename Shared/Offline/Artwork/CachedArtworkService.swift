@@ -155,7 +155,8 @@ final class CachedArtworkService: MediaArtworkService {
         return sizeBuckets.first { $0 >= requested } ?? sizeBuckets[sizeBuckets.count - 1]
     }
 
-    /// Downscales to the displayed size and re-encodes as JPEG; originals can be 10 to 40 times larger.
+    /// Downscales to the displayed size and re-encodes as JPEG; originals can be 10 to 40 times larger. Images with
+    /// transparency, like title logos, stay PNG since JPEG would flatten them onto an opaque background.
     @concurrent
     private nonisolated static func resized(_ data: Data, maximumPixelSize: Int) async -> Data {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return data }
@@ -166,9 +167,10 @@ final class CachedArtworkService: MediaArtworkService {
         ]
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return data }
         let output = NSMutableData()
+        let type: UTType = image.hasAlpha ? .png : .jpeg
         guard let destination = CGImageDestinationCreateWithData(
             output as CFMutableData,
-            UTType.jpeg.identifier as CFString,
+            type.identifier as CFString,
             1,
             nil,
         ) else { return data }
@@ -179,5 +181,14 @@ final class CachedArtworkService: MediaArtworkService {
         )
         guard CGImageDestinationFinalize(destination) else { return data }
         return output.length < data.count ? output as Data : data
+    }
+}
+
+private extension CGImage {
+    var hasAlpha: Bool {
+        switch alphaInfo {
+        case .none, .noneSkipFirst, .noneSkipLast: false
+        default: true
+        }
     }
 }
