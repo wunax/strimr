@@ -2,6 +2,7 @@ import Observation
 import SwiftUI
 
 struct PlaylistDetailView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: PlaylistDetailViewModel
@@ -31,7 +32,11 @@ struct PlaylistDetailView: View {
 
                 PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                     ForEach(bindableViewModel.items) { media in
-                        PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
+                        PortraitMediaCard(
+                            media: media,
+                            width: cardWidth,
+                            showsLabels: settingsManager.interface.showsCardLabels,
+                        ) {
                             onSelectMedia(media)
                         }
                     }

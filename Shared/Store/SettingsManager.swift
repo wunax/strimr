@@ -351,6 +351,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowsCardLabels(_ enabled: Bool) {
+        settings.interface.showsCardLabels = enabled
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

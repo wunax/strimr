@@ -143,10 +143,11 @@ struct RailsSkeleton: View {
 struct PosterSkeletonCards: View {
     let width: CGFloat
     var count = 12
+    var showsLabels = true
 
     var body: some View {
         ForEach(0 ..< count, id: \.self) { _ in
-            PosterSkeletonCard(width: width)
+            PosterSkeletonCard(width: width, showsLabels: showsLabels)
         }
     }
 }

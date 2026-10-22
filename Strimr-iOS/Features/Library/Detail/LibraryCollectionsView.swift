@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryCollectionsView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryCollectionsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -9,7 +10,11 @@ struct LibraryCollectionsView: View {
         ScrollView {
             PosterGrid(spacing: 12, rowSpacing: 16) { cardWidth in
                 ForEach(viewModel.items) { media in
-                    PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
+                    PortraitMediaCard(
+                        media: media,
+                        width: cardWidth,
+                        showsLabels: settingsManager.interface.showsCardLabels,
+                    ) {
                         onSelectMedia(media)
                     }
                     .task {

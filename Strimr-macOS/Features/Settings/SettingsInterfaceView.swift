@@ -75,6 +75,18 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Toggle(
+                    "settings.interface.cardLabels",
+                    isOn: Binding(
+                        get: { settingsManager.interface.showsCardLabels },
+                        set: { settingsManager.setShowsCardLabels($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.cardLabels.footer")
+            }
+
+            Section {
                 Picker(
                     "settings.interface.posterSize",
                     selection: Binding(

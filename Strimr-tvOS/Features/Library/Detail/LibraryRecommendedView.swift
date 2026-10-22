@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryRecommendedView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
     @EnvironmentObject private var coordinator: MainCoordinator
@@ -78,7 +79,7 @@ struct LibraryRecommendedView: View {
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    RailsSkeleton()
+                    RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -100,7 +101,7 @@ struct LibraryRecommendedView: View {
             MediaCarousel(
                 layout: .landscape,
                 items: hub.items,
-                showsLabels: false,
+                showsLabels: settingsManager.interface.showsCardLabels,
                 onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                 onSelectMedia: onSelectMedia,
             )
@@ -108,7 +109,7 @@ struct LibraryRecommendedView: View {
             MediaCarousel(
                 layout: .portrait,
                 items: hub.items,
-                showsLabels: false,
+                showsLabels: settingsManager.interface.showsCardLabels,
                 onViewAll: hub.canShowViewAll ? { coordinator.showHubDetail(hub) } : nil,
                 onSelectMedia: onSelectMedia,
             )

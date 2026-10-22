@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
     @EnvironmentObject private var coordinator: MainCoordinator
@@ -64,14 +65,14 @@ struct HomeView: View {
                 ForEach(viewModel.rows) { row in
                     HomeRowSectionView(
                         row: row,
-                        showsLabels: false,
+                        showsLabels: settingsManager.interface.showsCardLabels,
                         onViewAll: coordinator.showHubDetail,
                         onSelectMedia: onSelectMedia,
                     )
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    RailsSkeleton(showsLabels: false)
+                    RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -90,7 +91,7 @@ struct HomeView: View {
     private var emptyState: some View {
         if viewModel.isLoading {
             GeometryReader { proxy in
-                RailsSkeleton(showsLabels: false)
+                RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
                     .padding(.trailing, LayoutMetrics.pageMargin)
                     .frame(height: proxy.size.height * 0.60, alignment: .top)
                     .frame(maxHeight: .infinity, alignment: .bottom)

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HubDetailView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: HubDetailViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -16,10 +17,14 @@ struct HubDetailView: View {
         ScrollView {
             PosterGrid(spacing: columnSpacing, rowSpacing: gridSpacing) { cardWidth in
                 if viewModel.isLoading, viewModel.items.isEmpty {
-                    PosterSkeletonCards(width: cardWidth)
+                    PosterSkeletonCards(width: cardWidth, showsLabels: settingsManager.interface.showsCardLabels)
                 }
                 ForEach(viewModel.items, id: \.id) { item in
-                    PortraitMediaCard(media: item, width: cardWidth, showsLabels: true) {
+                    PortraitMediaCard(
+                        media: item,
+                        width: cardWidth,
+                        showsLabels: settingsManager.interface.showsCardLabels,
+                    ) {
                         onSelectMedia(item)
                     }
                     .task {

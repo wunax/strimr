@@ -326,6 +326,7 @@ struct InterfaceSettings: Codable, Equatable {
     var posterSize = PosterSize.medium
     var themeMusicVolume = ThemeMusicVolume.off
     var showsTitleLogo = true
+    var showsCardLabels = true
 
     init() {}
 
@@ -364,6 +365,7 @@ struct InterfaceSettings: Codable, Equatable {
         posterSize = (try? container.decode(PosterSize.self, forKey: .posterSize)) ?? .medium
         themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
         showsTitleLogo = try container.decodeIfPresent(Bool.self, forKey: .showsTitleLogo) ?? true
+        showsCardLabels = try container.decodeIfPresent(Bool.self, forKey: .showsCardLabels) ?? true
     }
 }
 

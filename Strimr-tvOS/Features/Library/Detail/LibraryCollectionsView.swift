@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryCollectionsView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: LibraryCollectionsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
@@ -23,7 +24,11 @@ struct LibraryCollectionsView: View {
                         ForEach(0 ..< viewModel.totalItemCount, id: \.self) { index in
                             Group {
                                 if let media = viewModel.itemsByIndex[index] {
-                                    PortraitMediaCard(media: media, width: cardWidth, showsLabels: true) {
+                                    PortraitMediaCard(
+                                        media: media,
+                                        width: cardWidth,
+                                        showsLabels: settingsManager.interface.showsCardLabels,
+                                    ) {
                                         onSelectMedia(media)
                                     }
                                 } else {

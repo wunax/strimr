@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct HomeView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @State var viewModel: HomeViewModel
     @State private var selectedHub: Hub?
@@ -21,14 +22,14 @@ struct HomeView: View {
                 ForEach(viewModel.rows) { row in
                     HomeRowSectionView(
                         row: row,
-                        showsLabels: true,
+                        showsLabels: settingsManager.interface.showsCardLabels,
                         onViewAll: { selectedHub = $0 },
                         onSelectMedia: onSelectMedia,
                     )
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
-                    RailsSkeleton()
+                    RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
                 }
 
                 if let errorMessage = viewModel.errorMessage {

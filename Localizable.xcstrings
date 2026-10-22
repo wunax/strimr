@@ -17382,6 +17382,50 @@
         }
       }
     },
+    "settings.interface.cardLabels" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titles Under Posters"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titres sous les affiches"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海报下方显示标题"
+          }
+        }
+      }
+    },
+    "settings.interface.cardLabels.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the title and details under posters in rows and library grids. Episodes, extras and folders always show theirs."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche le titre et les détails sous les affiches dans les rangées et les grilles de bibliothèque. Les épisodes, bonus et dossiers les affichent toujours."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在行和资料库网格中的海报下方显示标题和详情。剧集、花絮和文件夹始终显示。"
+          }
+        }
+      }
+    },
     "settings.interface.displayCollections" : {
       "localizations" : {
         "en" : {
