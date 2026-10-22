@@ -27,19 +27,16 @@ struct SeerrDiscoverView: View {
                     ZStack(alignment: .bottom) {
                         ZStack(alignment: .topLeading) {
                             SeerrHeroBackgroundView(media: focusModel.focusedMedia ?? heroMedia)
-                            VStack(alignment: .leading, spacing: 20) {
-                                SeerrHeroContentView(media: focusModel.focusedMedia ?? heroMedia)
-                                heroActions
-                            }
-                            .frame(
-                                maxWidth: proxy.size.width * 0.60,
-                                maxHeight: .infinity,
-                                alignment: .topLeading,
-                            )
+                            SeerrHeroContentView(media: focusModel.focusedMedia ?? heroMedia)
+                                .frame(
+                                    maxWidth: proxy.size.width * 0.60,
+                                    maxHeight: .infinity,
+                                    alignment: .topLeading,
+                                )
                         }
 
                         discoverContent
-                            .frame(height: proxy.size.height * railsHeightRatio)
+                            .frame(height: proxy.size.height * 0.60)
                     }
                 }
             } else {
@@ -89,36 +86,44 @@ struct SeerrDiscoverView: View {
             .actionButtonStyle(.secondary)
         }
         .frame(maxWidth: 720, alignment: .leading)
+        // Full width so moving up from the right side of a rail still lands on an action, not on the tab bar.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .focusSection()
     }
 
     private var discoverContent: some View {
+        // The actions lead the rails inside their scroll view, as on the detail page: moving up from any rail then
+        // stays in one focus flow and scrolls back to the first rail's title on the way.
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                rail(String(localized: "integrations.seerr.discover.trending"), items: viewModel.trending)
-                rail(String(localized: "integrations.seerr.discover.popularMovies"), items: viewModel.popularMovies)
-                rail(String(localized: "integrations.seerr.discover.upcomingMovies"), items: viewModel.upcomingMovies)
-                rail(String(localized: "integrations.seerr.discover.popularTV"), items: viewModel.popularTV)
-                rail(String(localized: "integrations.seerr.discover.upcomingTV"), items: viewModel.upcomingTV)
-
-                if viewModel.isLoading, !viewModel.hasContent {
-                    RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                } else if !viewModel.hasContent, !viewModel.isLoading {
-                    Text("common.empty.nothingToShow")
-                        .foregroundStyle(.textSecondary)
-                }
+                heroActions
+                railsContent
             }
+            .padding(.top, 16)
             .padding(.trailing, LayoutMetrics.pageMargin)
         }
     }
 
-    /// Below the 0.60 of the library home: the hero here also holds the search and requests buttons.
-    private let railsHeightRatio: CGFloat = 0.54
+    @ViewBuilder
+    private var railsContent: some View {
+        rail(String(localized: "integrations.seerr.discover.trending"), items: viewModel.trending)
+        rail(String(localized: "integrations.seerr.discover.popularMovies"), items: viewModel.popularMovies)
+        rail(String(localized: "integrations.seerr.discover.upcomingMovies"), items: viewModel.upcomingMovies)
+        rail(String(localized: "integrations.seerr.discover.popularTV"), items: viewModel.popularTV)
+        rail(String(localized: "integrations.seerr.discover.upcomingTV"), items: viewModel.upcomingTV)
+
+        if viewModel.isLoading, !viewModel.hasContent {
+            RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
+        }
+
+        if let errorMessage = viewModel.errorMessage {
+            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        } else if !viewModel.hasContent, !viewModel.isLoading {
+            Text("common.empty.nothingToShow")
+                .foregroundStyle(.textSecondary)
+        }
+    }
 
     @ViewBuilder
     private func rail(_ title: String, items: [SeerrMedia]) -> some View {
@@ -139,7 +144,7 @@ struct SeerrDiscoverView: View {
             GeometryReader { proxy in
                 RailsSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
                     .padding(.trailing, LayoutMetrics.pageMargin)
-                    .frame(height: proxy.size.height * railsHeightRatio, alignment: .top)
+                    .frame(height: proxy.size.height * 0.60, alignment: .top)
                     .frame(maxHeight: .infinity, alignment: .bottom)
             }
         } else {
