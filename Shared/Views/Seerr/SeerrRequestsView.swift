@@ -163,12 +163,12 @@ struct SeerrRequestsView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .foregroundStyle(.textPrimary)
-                            .background(isSelected ? Color.purple : .surfaceSubtle, in: Capsule())
+                            .background(isSelected ? Color.brandPrimary : .surfaceSubtle, in: Capsule())
                         #endif
                     }
                     #if os(tvOS)
                     .buttonStyle(.bordered)
-                    .tint(isSelected ? .purple : .secondary)
+                    .tint(isSelected ? .brandPrimary : .secondary)
                     #else
                     .buttonStyle(.plain)
                     #endif

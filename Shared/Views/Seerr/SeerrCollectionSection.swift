@@ -59,8 +59,7 @@ struct SeerrCollectionSection: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.purple)
+            .actionButtonStyle(.secondary)
             .disabled(viewModel.isRequestingCollection)
             .confirmationDialog(
                 "seerr.collection.requestAll.confirmTitle",

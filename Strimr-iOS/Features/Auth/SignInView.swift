@@ -42,10 +42,7 @@ struct SignInView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 4)
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.roundedRectangle(radius: 12))
-            .controlSize(.large)
-            .tint(.brandPrimary)
+            .actionButtonStyle(.primary)
             .frame(maxWidth: 520)
             .disabled(viewModel.isAuthenticating)
 

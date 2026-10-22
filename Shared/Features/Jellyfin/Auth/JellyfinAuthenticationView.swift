@@ -78,10 +78,7 @@ struct JellyfinAuthenticationView: View {
                     } label: {
                         primaryButtonLabel("common.actions.continue", isLoading: viewModel.isLoading)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.roundedRectangle(radius: 12))
-                    .controlSize(.large)
-                    .tint(.brandPrimary)
+                    .actionButtonStyle(.primary)
                     .disabled(
                         viewModel.isBusy
                             || viewModel.serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -103,9 +100,7 @@ struct JellyfinAuthenticationView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 4)
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.roundedRectangle(radius: 12))
-                    .controlSize(.large)
+                    .actionButtonStyle(.secondary)
                     .disabled(viewModel.isBusy)
                 } else {
                     Button {
@@ -113,10 +108,7 @@ struct JellyfinAuthenticationView: View {
                     } label: {
                         primaryButtonLabel("jellyfin.auth.signIn", isLoading: viewModel.isLoading)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.roundedRectangle(radius: 12))
-                    .controlSize(.large)
-                    .tint(.brandPrimary)
+                    .actionButtonStyle(.primary)
                     .disabled(
                         viewModel.isBusy
                             || viewModel.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -180,9 +172,7 @@ struct JellyfinAuthenticationView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: 12))
-            .controlSize(.large)
+            .actionButtonStyle(.secondary)
             .disabled(viewModel.isBusy)
         }
     }

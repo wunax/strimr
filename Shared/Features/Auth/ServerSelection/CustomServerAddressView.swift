@@ -117,7 +117,7 @@ struct CustomServerAddressView: View {
                         } label: {
                             confirmationLabel
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .disabled(model.isWorking)
 
                         Button("common.actions.cancel") {

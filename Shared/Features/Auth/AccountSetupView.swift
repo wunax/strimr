@@ -19,8 +19,7 @@ struct AccountSetupView: View {
                         Button("common.actions.continue") {
                             Task { await flow.finish() }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.brandPrimary)
+                        .actionButtonStyle(.primary)
                         .padding()
                     }
                 }
@@ -103,10 +102,10 @@ struct AddAnotherAccountView: View {
                     .frame(maxWidth: 420)
                     .padding(.vertical, 4)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.brandPrimary)
+            .actionButtonStyle(.primary)
             .controlSize(.large)
             Button("onboarding.addAnother.button", action: onAddAccount)
+                .actionButtonStyle(.secondary)
                 .controlSize(.large)
             Spacer()
         }

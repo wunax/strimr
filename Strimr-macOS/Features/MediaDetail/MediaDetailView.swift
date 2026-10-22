@@ -389,9 +389,7 @@ struct MediaDetailView: View {
                         .lineLimit(1)
                 }
             }
-            .padding(.leading, 8)
-            .padding(.trailing, 22)
-            .frame(minWidth: 200)
+            .frame(minWidth: 160)
         }
         .actionButtonStyle(.primary)
         .disabled(isPlayDisabled)

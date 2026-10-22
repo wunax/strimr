@@ -129,7 +129,6 @@ struct PlaylistDetailView: View {
                 onShuffle(viewModel.playlist.id)
             } label: {
                 Image(systemName: "shuffle")
-                    .frame(width: 56)
             }
             .actionButtonStyle(.secondary)
             .accessibilityLabel(Text("common.actions.shuffle"))

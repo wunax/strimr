@@ -134,9 +134,7 @@ struct SeerrMediaDetailHeaderSection: View {
                 Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
                     .font(.headline)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.purple)
+            .actionButtonStyle(.primary)
             .disabled(viewModel.isRequestButtonDisabled)
 
             if let reasonKey = viewModel.requestButtonDisabledReasonKey {
@@ -156,8 +154,7 @@ struct SeerrMediaDetailHeaderSection: View {
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .buttonStyle(.bordered)
-        .tint(.secondary)
+        .actionButtonStyle(.secondary)
     }
 
     private var requestButtonIcon: String {

@@ -8,7 +8,7 @@ enum ActionButtonRole {
 
 extension View {
     /// Capsule action button. tvOS keeps the system bordered styles for the native focus lift and focused colors;
-    /// elsewhere the capsule is drawn here and the label sets its own width or horizontal padding.
+    /// elsewhere the capsule is drawn here. Like the system styles, it pads the label, which can still set a width.
     @ViewBuilder
     func actionButtonStyle(_ role: ActionButtonRole) -> some View {
         #if os(tvOS)
@@ -46,6 +46,7 @@ extension View {
             configuration.label
                 .fontWeight(.semibold)
                 .foregroundStyle(foreground)
+                .padding(.horizontal, 20)
                 .frame(minHeight: LayoutMetrics.actionButtonHeight)
                 .background(background, in: Capsule(style: .continuous))
                 .contentShape(Capsule(style: .continuous))

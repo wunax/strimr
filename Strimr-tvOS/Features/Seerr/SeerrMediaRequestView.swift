@@ -97,9 +97,7 @@ struct SeerrMediaRequestView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(.brandPrimary)
+                .actionButtonStyle(.primary)
                 .disabled(!viewModel.canSubmit || viewModel.isSubmitting)
             }
 

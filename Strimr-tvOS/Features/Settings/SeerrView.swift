@@ -46,9 +46,8 @@ struct SeerrView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 4)
             }
-            .buttonStyle(.borderedProminent)
+            .actionButtonStyle(.primary)
             .settingsFocus("seerrSetup", isDefault: true)
-            .tint(.brandPrimary)
         }
     }
 
@@ -292,9 +291,8 @@ private struct SeerrServerStepView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .settingsFocus("saveServer")
-                        .tint(.brandPrimary)
                         .disabled(viewModel.baseURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty || viewModel.isValidating)
                     }
@@ -333,9 +331,8 @@ private struct SeerrAuthMethodStepView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .settingsFocus("plexLogin", isDefault: true)
-                        .tint(.brandPrimary)
                         .disabled(!viewModel.isPlexAuthAvailable || viewModel.isAuthenticating)
 
                         Text("integrations.seerr.login.plex.connectedAccount")
@@ -415,9 +412,8 @@ private struct SeerrJellyfinAuthStepView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .settingsFocus("jellyfinLogin")
-                        .tint(.brandPrimary)
                         .disabled(
                             viewModel.jellyfinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                 || viewModel.jellyfinPassword.isEmpty
@@ -478,9 +474,8 @@ private struct SeerrLocalAuthStepView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .settingsFocus("localLogin")
-                        .tint(.brandPrimary)
                         .disabled(viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty || viewModel.password.isEmpty || viewModel.isAuthenticating)
                     }

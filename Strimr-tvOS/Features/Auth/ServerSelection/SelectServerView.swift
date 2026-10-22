@@ -66,8 +66,7 @@ struct SelectServerView: View {
                         .frame(maxWidth: 320)
                         .padding()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.brandPrimary)
+                .actionButtonStyle(.primary)
                 .disabled(viewModel.isLoading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -89,8 +88,7 @@ struct SelectServerView: View {
                                 .frame(maxWidth: 480)
                                 .padding()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.brandPrimary)
+                        .actionButtonStyle(.primary)
                         .disabled(viewModel.selectedServerIDs.isEmpty)
                     }
                     .frame(maxWidth: .infinity)

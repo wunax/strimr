@@ -13,8 +13,7 @@ struct MigrationFailedView: View {
             Button("common.actions.retry") {
                 Task { await sessionManager.hydrate() }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.brandPrimary)
+            .actionButtonStyle(.primary)
         }
     }
 }

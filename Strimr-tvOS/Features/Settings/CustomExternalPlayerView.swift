@@ -97,7 +97,7 @@ struct CustomExternalPlayerView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.borderedProminent)
+                .actionButtonStyle(.primary)
                 .settingsFocus("save")
                 .disabled(!model.canSave)
             }

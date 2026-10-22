@@ -87,9 +87,7 @@ struct SeerrMediaDetailView: View {
                     Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
                         .frame(maxWidth: 520, alignment: .leading)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(.brandPrimary)
+                .actionButtonStyle(.primary)
             }
 
             if viewModel.shouldShowManageRequestsButton,
@@ -109,9 +107,7 @@ struct SeerrMediaDetailView: View {
                     )
                     .frame(maxWidth: 360, alignment: .leading)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-                .tint(.secondary)
+                .actionButtonStyle(.secondary)
             }
         }
     }

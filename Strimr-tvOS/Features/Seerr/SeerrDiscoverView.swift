@@ -72,8 +72,7 @@ struct SeerrDiscoverView: View {
                 Label("tabs.search", systemImage: "magnifyingglass")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.primary)
+            .actionButtonStyle(.primary)
 
             Button {
                 coordinator.showSeerrRequests()
@@ -86,8 +85,7 @@ struct SeerrDiscoverView: View {
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.bordered)
-            .tint(.secondary)
+            .actionButtonStyle(.secondary)
         }
         .frame(maxWidth: 720, alignment: .leading)
         .focusSection()

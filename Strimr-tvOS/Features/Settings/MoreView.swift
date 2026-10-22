@@ -24,7 +24,7 @@ struct MoreView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
 
                     if !settingsManager.interface.displayFavoritesTab {
                         NavigationLink(value: MoreRoute.favorites) {
@@ -32,7 +32,7 @@ struct MoreView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                     }
 
                     if sessionManager.profiles.count > 1 {
@@ -43,7 +43,7 @@ struct MoreView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                     }
 
                     Spacer()

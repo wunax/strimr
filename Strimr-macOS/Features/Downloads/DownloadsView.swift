@@ -151,13 +151,13 @@ struct DownloadsView: View {
             Text("downloads.status.queued").foregroundStyle(.secondary)
         case .preparing:
             VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: item.progress).tint(.brandSecondary)
+                ProgressView(value: item.progress).tint(.progressFill)
                 Text("downloads.status.preparing \(Int((item.progress * 100).rounded()))")
                     .font(.caption).foregroundStyle(.secondary)
             }
         case .downloading:
             VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: item.progress).tint(.brandSecondary)
+                ProgressView(value: item.progress).tint(.progressFill)
                 Text("downloads.status.downloading \(Int((item.progress * 100).rounded()))")
                     .font(.caption).foregroundStyle(.secondary)
             }
