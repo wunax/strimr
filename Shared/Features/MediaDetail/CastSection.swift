@@ -26,8 +26,8 @@ struct CastSection: View {
                     }
                 }
             }
-            .padding(.horizontal, sectionHorizontalPadding)
-            .environment(\.railPageMargin, sectionHorizontalPadding)
+            .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+            .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
             .padding(.bottom, 32)
         }
     }
@@ -64,16 +64,6 @@ struct CastCarousel: View {
             .focusSection()
         #endif
     }
-}
-
-private var sectionHorizontalPadding: CGFloat {
-    #if os(macOS)
-        28
-    #elseif os(iOS)
-        16
-    #else
-        0
-    #endif
 }
 
 struct CastCard: View {
@@ -203,7 +193,7 @@ struct CastCard: View {
     }
 }
 
-private struct CastSkeleton: View {
+struct CastSkeleton: View {
     @Environment(\.railPageMargin) private var pageMargin
 
     var body: some View {

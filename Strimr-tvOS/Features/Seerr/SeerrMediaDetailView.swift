@@ -18,11 +18,12 @@ struct SeerrMediaDetailView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
-                        SeerrHeroContentView(media: bindableViewModel.media)
-                            .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
-
-                        SeerrRatingsRow(ratings: bindableViewModel.ratings)
-                            .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
+                        SeerrHeroContentView(
+                            media: bindableViewModel.media,
+                            ratings: bindableViewModel.ratings,
+                            isDownloading: bindableViewModel.isDownloading,
+                        )
+                        .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         actionButtons
 
@@ -34,7 +35,7 @@ struct SeerrMediaDetailView: View {
                         }
 
                         if bindableViewModel.media.mediaType == .tv {
-                            seasonsSection(width: proxy.size.width)
+                            seasonsSection
                         }
 
                         SeerrCastSection(viewModel: bindableViewModel)
@@ -56,7 +57,6 @@ struct SeerrMediaDetailView: View {
                             onSelectMedia: coordinator.showSeerrMediaDetail,
                         )
                     }
-                    .padding(.horizontal, 24)
                     .padding(.bottom, 32)
                 }
             }
@@ -85,7 +85,8 @@ struct SeerrMediaDetailView: View {
                     }
                 } label: {
                     Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
-                        .frame(maxWidth: 520, alignment: .leading)
+                        .font(.facts.weight(.semibold))
+                        .padding(.horizontal, 12)
                 }
                 .actionButtonStyle(.primary)
             }
@@ -105,21 +106,25 @@ struct SeerrMediaDetailView: View {
                         String(localized: "seerr.manageRequests.short \(viewModel.pendingManageRequestsCount)"),
                         systemImage: "checkmark.seal.fill",
                     )
-                    .frame(maxWidth: 360, alignment: .leading)
+                    .font(.facts.weight(.semibold))
+                    .padding(.horizontal, 12)
                 }
                 .actionButtonStyle(.secondary)
             }
         }
+        // Full width so moving up from the right side of a rail below still lands on an action.
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .focusSection()
     }
 
     private var requestButtonIcon: String {
         viewModel.pendingRequest == nil ? "paperplane.fill" : "square.and.pencil"
     }
 
-    private func seasonsSection(width: CGFloat) -> some View {
+    private var seasonsSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             seasonSelector
-            episodesSection(width: width)
+            episodesRow
         }
     }
 
@@ -141,24 +146,22 @@ struct SeerrMediaDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(viewModel.seasons) { season in
-                        SeerrSeasonPillButton(
+                        SeasonPillButton(
                             title: viewModel.seasonTitle(for: season),
-                            subtitle: episodeCountTitle(for: season),
                             isSelected: season.seasonNumber == viewModel.selectedSeasonNumber,
-                            onSelect: {
-                                toggleSeasonSelection(season)
-                            },
+                            onSelect: { toggleSeasonSelection(season) },
                         )
                     }
                 }
                 .padding(.vertical, 4)
             }
+            .scrollClipDisabled()
             .focusSection()
         }
     }
 
     @ViewBuilder
-    private func episodesSection(width: CGFloat) -> some View {
+    private var episodesRow: some View {
         if viewModel.selectedSeasonNumber == nil {
             Text("seerr.detail.selectSeason")
                 .foregroundStyle(.textSecondary)
@@ -166,33 +169,39 @@ struct SeerrMediaDetailView: View {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
         } else if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
-            ProgressView("media.detail.loadingEpisodes")
+            HStack(alignment: .top, spacing: episodeSpacing) {
+                ForEach(0 ..< 4, id: \.self) { _ in
+                    EpisodeSkeletonCard(width: episodeWidth)
+                }
+            }
+            .padding(.vertical, 16)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("media.detail.loadingEpisodes"))
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
                 .foregroundStyle(.textSecondary)
         } else {
-            LazyVGrid(columns: episodeGridColumns(for: width), alignment: .leading, spacing: 32) {
-                ForEach(viewModel.episodes) { episode in
-                    SeerrEpisodeGridCard(
-                        episode: episode,
-                        imageURL: viewModel.episodeImageURL(for: episode, width: 640),
-                        label: viewModel.episodeLabel(for: episode),
-                        airDateText: viewModel.episodeAirDateText(for: episode),
-                    )
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: episodeSpacing) {
+                    ForEach(viewModel.episodes) { episode in
+                        SeerrEpisodeRailCard(
+                            episode: episode,
+                            imageURL: viewModel.episodeImageURL(for: episode, width: 640),
+                            label: viewModel.episodeLabel(for: episode),
+                            airDateText: viewModel.episodeAirDateText(for: episode),
+                            width: episodeWidth,
+                        )
+                    }
                 }
+                .padding(.vertical, 16)
             }
-            .padding(.vertical, 8)
+            .scrollClipDisabled()
             .focusSection()
         }
     }
 
-    private func episodeGridColumns(for width: CGFloat) -> [GridItem] {
-        let columnCount = width >= 1700 ? 3 : 2
-        return Array(
-            repeating: GridItem(.flexible(minimum: 320), spacing: 32),
-            count: columnCount,
-        )
-    }
+    private let episodeWidth: CGFloat = 460
+    private let episodeSpacing: CGFloat = 36
 
     private func toggleSeasonSelection(_ season: SeerrSeason) {
         guard let seasonNumber = season.seasonNumber else { return }
@@ -204,79 +213,70 @@ struct SeerrMediaDetailView: View {
             Task { await viewModel.selectSeason(number: seasonNumber) }
         }
     }
-
-    private func episodeCountTitle(for season: SeerrSeason) -> String? {
-        let count = season.episodeCount ?? 0
-        guard count > 0 else { return nil }
-        let countTitle = String(localized: "media.labels.countEpisode \(count)")
-        return "(\(countTitle))"
-    }
 }
 
-private struct SeerrSeasonPillButton: View {
-    let title: String
-    let subtitle: String?
-    let isSelected: Bool
-    let onSelect: () -> Void
-
-    @FocusState private var isFocused: Bool
-
-    var body: some View {
-        VStack {
-            HStack(spacing: 6) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.textSecondary)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .foregroundStyle(.brandSecondary)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(isSelected ? Color.brandSecondary.opacity(0.5) : .surfaceSubtle),
-            )
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(
-                        isFocused ? Color.brandSecondary : .strokeSubtle,
-                        lineWidth: isFocused ? 3 : 1,
-                    )
-            }
-        }
-        .focusable()
-        .focused($isFocused)
-        .animation(.easeOut(duration: 0.15), value: isFocused)
-        .onPlayPauseCommand(perform: onSelect)
-        .onTapGesture(perform: onSelect)
-    }
-}
-
-private struct SeerrEpisodeGridCard: View {
+/// Episode of a series that is not in the library yet: artwork and caption like the library episode rail, without
+/// any action.
+private struct SeerrEpisodeRailCard: View {
     let episode: SeerrEpisode
     let imageURL: URL?
     let label: String?
     let airDateText: String?
+    let width: CGFloat
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        Button {} label: {
-            SeerrEpisodeCardView(
-                episode: episode,
-                imageURL: imageURL,
-                label: label,
-                airDateText: airDateText,
-            )
+        VStack(alignment: .leading, spacing: 16) {
+            artwork
+            caption
         }
-        .buttonStyle(.plain)
+        .frame(width: width, alignment: .leading)
+    }
+
+    private var height: CGFloat {
+        width * 9 / 16
+    }
+
+    private var artwork: some View {
+        AsyncImage(url: imageURL) { phase in
+            if let image = phase.image {
+                image
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color.surfaceSubtle
+            }
+        }
+        .frame(width: width, height: height)
+        .mediaArtworkStyle()
         .focusable()
         .focused($isFocused)
-        .scaleEffect(isFocused ? 1.05 : 1)
-        .animation(.easeOut(duration: 0.15), value: isFocused)
+        .cardFocusStyle(isFocused: isFocused)
+    }
+
+    private var caption: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text([label, airDateText].compactMap(\.self).joined(separator: " · "))
+                .eyebrowStyle()
+                .foregroundStyle(.textTertiary)
+                .opacity(isFocused ? 1 : 0.32 / 0.45)
+                .lineLimit(1)
+            Text(title)
+                .font(.cardTitle)
+                .foregroundStyle(.textPrimary.opacity(isFocused ? 1 : 0.45))
+                .lineLimit(1)
+        }
+        // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
+        .offset(y: isFocused && !reduceMotion ? height * (CardFocusStyle.focusedScale - 1) / 2 : 0)
+        .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
+    }
+
+    private var title: String {
+        if let name = episode.name, !name.isEmpty {
+            return name
+        }
+        return episode.episodeNumber.map { String(localized: "media.detail.episodeNumber \($0)") } ?? ""
     }
 }

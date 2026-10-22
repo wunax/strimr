@@ -8,36 +8,28 @@ struct SeerrCollectionSection: View {
 
     var body: some View {
         if let collection = viewModel.collection, let parts = collection.parts, parts.count > 1 {
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    Divider()
+            VStack(alignment: .leading, spacing: 12) {
+                Divider()
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(collection.name ?? String(localized: "seerr.detail.collection"))
-                            .font(.sectionTitle)
-                            .foregroundStyle(.textPrimary)
-
-                        SeerrMediaCarousel(
-                            items: parts,
-                            showsLabels: true,
-                            onSelectMedia: onSelectMedia,
-                        )
-
-                        requestAllButton
-
-                        if let message = viewModel.collectionErrorMessage {
-                            Label(message, systemImage: "exclamationmark.triangle.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    .padding(.horizontal, 8)
+                MediaHubSection(title: collection.name ?? String(localized: "seerr.detail.collection")) {
+                    SeerrMediaCarousel(
+                        items: parts,
+                        showsLabels: true,
+                        onSelectMedia: onSelectMedia,
+                    )
                 }
-                #if os(iOS)
-                .padding(.horizontal, 8)
-                #endif
+
+                requestAllButton
+
+                if let message = viewModel.collectionErrorMessage {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                }
             }
-            .textCase(nil)
+            .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+            .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
+            .padding(.bottom, 32)
         }
     }
 
@@ -48,15 +40,15 @@ struct SeerrCollectionSection: View {
             Button {
                 isConfirmingRequest = true
             } label: {
-                if viewModel.isRequestingCollection {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Label(
-                        String(localized: "seerr.collection.requestAll \(parts.count)"),
-                        systemImage: "paperplane.fill",
-                    )
-                    .frame(maxWidth: .infinity)
+                Label {
+                    Text("seerr.collection.requestAll \(parts.count)")
+                } icon: {
+                    if viewModel.isRequestingCollection {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "paperplane.fill")
+                    }
                 }
             }
             .actionButtonStyle(.secondary)

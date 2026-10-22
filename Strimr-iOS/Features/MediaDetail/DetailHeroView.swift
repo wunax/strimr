@@ -3,7 +3,6 @@ import SwiftUI
 /// Backdrop at the top of the detail page.
 struct DetailHeroView: View {
     @Environment(SettingsManager.self) private var settingsManager
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: MediaDetailViewModel
     let heroHeight: CGFloat
     let onSelectParentSeries: () -> Void
@@ -54,14 +53,7 @@ struct DetailHeroView: View {
                 }
             }
             .frame(height: heroHeight)
-            // Pulling down zooms the backdrop to fill the gap; scrolling up moves it at half speed. Computed in
-            // `visualEffect` so scrolling publishes no state.
-            .visualEffect { [reduceMotion, heroHeight] content, proxy in
-                let minY = reduceMotion ? 0 : proxy.frame(in: .scrollView(axis: .vertical)).minY
-                return content
-                    .scaleEffect(minY > 0 ? 1 + minY / heroHeight : 1, anchor: .bottom)
-                    .offset(y: minY < 0 ? -minY * 0.5 : 0)
-            }
+            .heroParallax(height: heroHeight)
             .overlay(alignment: .topLeading) {
                 if viewModel.media.mediaItem.isSpoilerProtected(
                     at: settingsManager.interface.spoilerProtection,
@@ -96,5 +88,27 @@ struct DetailHeroView: View {
             startPoint: .top,
             endPoint: .bottom,
         )
+    }
+}
+
+extension View {
+    /// Pulling down zooms the backdrop to fill the gap; scrolling up moves it at half speed. Computed in
+    /// `visualEffect` so scrolling publishes no state.
+    func heroParallax(height: CGFloat) -> some View {
+        modifier(HeroParallax(height: height))
+    }
+}
+
+private struct HeroParallax: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let height: CGFloat
+
+    func body(content: Content) -> some View {
+        content.visualEffect { [reduceMotion, height] content, proxy in
+            let minY = reduceMotion ? 0 : proxy.frame(in: .scrollView(axis: .vertical)).minY
+            return content
+                .scaleEffect(minY > 0 ? 1 + minY / height : 1, anchor: .bottom)
+                .offset(y: minY < 0 ? -minY * 0.5 : 0)
+        }
     }
 }

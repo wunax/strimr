@@ -7,23 +7,26 @@ struct SeerrAvailabilityBadgeView: View {
 
     var body: some View {
         if let configuration {
+            // Same dark badge as the watch status of library cards; only the icon carries the status color.
             if showsLabel {
                 HStack(spacing: 4) {
                     Image(systemName: configuration.systemName)
+                        .foregroundStyle(configuration.color)
                     Text(configuration.labelKey)
+                        .foregroundStyle(.white)
                 }
                 .font(.badge)
                 .lineLimit(1)
-                .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(configuration.color.opacity(0.9), in: Capsule())
+                .background(.black.opacity(0.65), in: Capsule(style: .continuous))
             } else {
                 Image(systemName: configuration.systemName)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
+                    .font(.badge)
+                    .foregroundStyle(configuration.color)
                     .padding(6)
-                    .background(configuration.color.opacity(0.9), in: Circle())
+                    .background(.black.opacity(0.65), in: Circle())
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
             }
         }
     }

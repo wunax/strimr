@@ -7,65 +7,27 @@ struct SeerrMediaArtworkView: View {
 
     var body: some View {
         let imageURL = TMDBImageService.posterURL(path: media.posterPath, width: width)
-        ZStack(alignment: .topLeading) {
-            AsyncImage(url: imageURL) { phase in
-                switch phase {
-                case let .success(image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .empty:
-                    Color.surfaceSubtle
-                case .failure:
-                    placeholder
-                @unknown default:
-                    placeholder
-                }
-            }
-
-            if let badgeText, let badgeColor {
-                Text(badgeText.uppercased())
-                    .font(.badge)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(badgeColor.opacity(0.9), in: Capsule())
-                    .padding(8)
-            }
-        }
-        .overlay(alignment: availabilityAlignment) {
-            if let status = media.mediaInfo?.status {
-                SeerrAvailabilityBadgeView(status: status, isDownloading: media.mediaInfo?.isDownloading ?? false)
-                    .padding(8)
+        AsyncImage(url: imageURL) { phase in
+            switch phase {
+            case let .success(image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            case .empty:
+                Color.surfaceSubtle
+            case .failure:
+                placeholder
+            @unknown default:
+                placeholder
             }
         }
         .frame(width: width, height: height)
         .mediaArtworkStyle()
-    }
-
-    private var badgeText: String? {
-        switch media.mediaType {
-        case .movie:
-            String(localized: .init("seerr.media.badge.movie"))
-        case .tv:
-            String(localized: .init("seerr.media.badge.series"))
-        case .person, .none:
-            nil
-        }
-    }
-
-    private var availabilityAlignment: Alignment {
-        width < 120 ? .bottomTrailing : .topTrailing
-    }
-
-    private var badgeColor: Color? {
-        switch media.mediaType {
-        case .movie:
-            .blue
-        case .tv:
-            .purple
-        case .person, .none:
-            nil
+        .overlay(alignment: .topTrailing) {
+            if let status = media.mediaInfo?.status {
+                SeerrAvailabilityBadgeView(status: status, isDownloading: media.mediaInfo?.isDownloading ?? false)
+                    .padding(8)
+            }
         }
     }
 

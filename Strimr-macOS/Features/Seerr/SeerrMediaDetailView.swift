@@ -4,10 +4,8 @@ import SwiftUI
 struct SeerrMediaDetailView: View {
     @State var viewModel: SeerrMediaDetailViewModel
     let onSelectMedia: (SeerrMedia) -> Void
-    @State private var isSummaryExpanded = false
     @State private var requestSheet: SeerrMediaRequestSheetState?
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
-    private let heroHeight: CGFloat = 320
 
     init(
         viewModel: SeerrMediaDetailViewModel,
@@ -21,11 +19,9 @@ struct SeerrMediaDetailView: View {
         @Bindable var bindableViewModel = viewModel
 
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 24) {
                 SeerrMediaDetailHeaderSection(
                     viewModel: bindableViewModel,
-                    isSummaryExpanded: $isSummaryExpanded,
-                    heroHeight: heroHeight,
                     onRequestTap: presentRequestSheet,
                     onManageRequestsTap: presentManageRequestsSheet,
                 )
@@ -49,9 +45,13 @@ struct SeerrMediaDetailView: View {
                     section: .similar,
                     onSelectMedia: onSelectMedia,
                 )
+
+                SeerrDetailFactsSection(viewModel: bindableViewModel)
+                    .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+                    .padding(.bottom, 32)
             }
         }
-        .ignoresSafeArea(edges: .top)
+        .navigationTitle(bindableViewModel.media.displayTitle)
         .task {
             await bindableViewModel.loadDetails()
             async let ratings: Void = bindableViewModel.loadRatings()

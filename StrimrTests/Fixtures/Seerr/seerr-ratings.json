@@ -1,0 +1,14 @@
+{
+  "rt": {
+    "title": "Sample Movie",
+    "criticsRating": "Certified Fresh",
+    "criticsScore": 92,
+    "audienceRating": "Upright",
+    "audienceScore": 85
+  },
+  "imdb": {
+    "title": "Sample Movie",
+    "criticsScore": 7.8,
+    "criticsScoreCount": 1000
+  }
+}

@@ -12,6 +12,17 @@ enum LayoutMetrics {
 
     static let cardCornerRadius = MediaArtworkMetrics.cornerRadius
 
+    /// Horizontal inset of the sections under a detail page's header; tvOS takes it from the safe area.
+    static var detailSectionMargin: CGFloat {
+        #if os(macOS)
+            28
+        #elseif os(iOS)
+            16
+        #else
+            0
+        #endif
+    }
+
     static var cardLabelSpacing: CGFloat {
         #if os(tvOS)
             20

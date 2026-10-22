@@ -11,7 +11,11 @@ struct SeerrMediaCard: View {
     @Environment(SettingsManager.self) private var settingsManager
     #if os(tvOS)
         @Environment(SeerrFocusModel.self) private var focusModel
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @FocusState private var isFocused: Bool
+    #elseif os(macOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var isFocused = false
     #endif
 
     private let aspectRatio: CGFloat = 2 / 3
@@ -30,52 +34,25 @@ struct SeerrMediaCard: View {
         self.onTap = onTap
     }
 
-    private var defaultHeight: CGFloat {
-        baseHeight * settingsManager.interface.posterSize.scale
-    }
-
-    private var baseHeight: CGFloat {
-        #if os(macOS)
-            260
-        #else
-            if sizeClass == .compact {
-                180
-            } else {
-                240
-            }
-        #endif
+    private var size: CGSize {
+        let defaultHeight = LayoutMetrics.baseCardHeight(for: .portrait, sizeClass: sizeClass)
+            * settingsManager.interface.posterSize.scale
+        let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
+        return CGSize(width: width ?? resolvedHeight * aspectRatio, height: resolvedHeight)
     }
 
     var body: some View {
-        let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
-        let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
-
-        VStack(alignment: .leading, spacing: labelSpacing) {
-            SeerrMediaArtworkView(
-                media: media,
-                width: resolvedWidth,
-                height: resolvedHeight,
-            )
-            #if os(tvOS)
-            .scaleEffect(isFocused ? 1.12 : 1)
-            .animation(.easeOut(duration: 0.15), value: isFocused)
+        VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
+            SeerrMediaArtworkView(media: media, width: size.width, height: size.height)
+            #if os(tvOS) || os(macOS)
+                .cardFocusStyle(isFocused: isFocused)
             #endif
 
             if showsLabels {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(primaryLabel)
-                        .font(primaryLabelFont)
-                        .lineLimit(1)
-                    if let secondaryLabel {
-                        Text(secondaryLabel)
-                            .font(secondaryLabelFont)
-                            .foregroundStyle(.textSecondary)
-                            .lineLimit(1)
-                    }
-                }
+                labels
             }
         }
-        .frame(width: resolvedWidth, alignment: .leading)
+        .frame(width: size.width, alignment: .leading)
         #if os(tvOS)
             .focusable()
             .focused($isFocused)
@@ -85,61 +62,46 @@ struct SeerrMediaCard: View {
                 }
             }
             .onPlayPauseCommand(perform: onTap)
+        #elseif os(macOS)
+            .contentShape(Rectangle())
+            .onHover { isFocused = $0 }
         #endif
             .onTapGesture(perform: onTap)
     }
 
-    private var primaryLabel: String {
-        switch media.mediaType {
-        case .movie:
-            media.title ?? media.name ?? ""
-        case .tv, .person:
-            media.name ?? media.title ?? ""
-        case .none:
-            media.title ?? media.name ?? ""
+    private var labels: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(media.displayTitle)
+                .font(.cardTitle)
+                .foregroundStyle(.textPrimary.opacity(titleOpacity))
+                .lineLimit(1)
+            Text(media.year.map(String.init) ?? "")
+                .font(.cardMetadata)
+                .foregroundStyle(.textSecondary)
+                .opacity(metadataOpacity)
+                .lineLimit(1)
         }
-    }
-
-    private var secondaryLabel: String? {
-        switch media.mediaType {
-        case .movie:
-            year(from: media.releaseDate)
-        case .tv:
-            year(from: media.firstAirDate)
-        case .person, .none:
-            nil
-        }
-    }
-
-    private func year(from dateString: String?) -> String? {
-        guard let dateString, dateString.count >= 4 else {
-            return nil
-        }
-
-        return String(dateString.prefix(4))
-    }
-
-    private var labelSpacing: CGFloat {
-        #if os(tvOS)
-            16
-        #else
-            8
+        #if os(tvOS) || os(macOS)
+        // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
+        .offset(y: isFocused && !reduceMotion ? size.height * (CardFocusStyle.focusedScale - 1) / 2 : 0)
+        .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         #endif
     }
 
-    private var primaryLabelFont: Font {
+    private var titleOpacity: Double {
         #if os(tvOS)
-            .subheadline
+            isFocused ? 1 : 0.45
         #else
-            .subheadline
+            1
         #endif
     }
 
-    private var secondaryLabelFont: Font {
+    /// Matches the unfocused captions of library cards.
+    private var metadataOpacity: Double {
         #if os(tvOS)
-            .footnote
+            isFocused ? 1 : 0.32 / 0.65
         #else
-            .footnote
+            1
         #endif
     }
 }

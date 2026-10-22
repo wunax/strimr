@@ -26,20 +26,21 @@ struct SeerrSeasonAvailabilityBadgeView: View {
         if showsLabel {
             HStack(spacing: 4) {
                 Image(systemName: "paperplane.fill")
+                    .foregroundStyle(.blue)
                 Text("seerr.media.availability.requested")
+                    .foregroundStyle(.white)
             }
             .font(.badge)
             .lineLimit(1)
-            .foregroundStyle(.white)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color.blue.opacity(0.9), in: Capsule())
+            .background(.black.opacity(0.65), in: Capsule(style: .continuous))
         } else {
             Image(systemName: "paperplane.fill")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+                .font(.badge)
+                .foregroundStyle(.blue)
                 .padding(6)
-                .background(Color.blue.opacity(0.9), in: Circle())
+                .background(.black.opacity(0.65), in: Circle())
         }
     }
 }

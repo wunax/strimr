@@ -15,12 +15,9 @@ struct SeerrSeasonEpisodesSection: View {
     private var sectionContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
-            VStack(alignment: .leading, spacing: 12) {
-                seasonsList
-            }
-            .padding(.horizontal, 8)
+            seasonsList
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, LayoutMetrics.detailSectionMargin)
         .padding(.bottom, 32)
     }
 
@@ -50,7 +47,7 @@ struct SeerrSeasonEpisodesSection: View {
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                 Text(viewModel.seasonTitle(for: season))
                                     .font(.headline)
-                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.textPrimary)
                                 Text(episodeCountTitle(for: season))
                                     .font(.subheadline)
                                     .foregroundStyle(.textSecondary)
@@ -65,12 +62,12 @@ struct SeerrSeasonEpisodesSection: View {
                             }
                         },
                     )
-                    .tint(.primary)
+                    .tint(.textPrimary)
                     .padding(12)
-                    .background {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(.brandSecondary.opacity(0.12))
-                    }
+                    .background(
+                        .surfaceSubtle,
+                        in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+                    )
                 }
             }
         }
@@ -138,7 +135,6 @@ struct SeerrSeasonEpisodesSection: View {
                 )
                 if index < viewModel.episodes.count - 1 {
                     Divider()
-                        .background(.brandSecondary)
                         .padding(.vertical, 4)
                 }
             }

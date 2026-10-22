@@ -5,6 +5,34 @@ struct DetailFactsSection: View {
     @Bindable var viewModel: MediaDetailViewModel
 
     var body: some View {
+        DetailFactsList(rows: rows)
+    }
+
+    private var rows: [DetailFactRow] {
+        var rows: [DetailFactRow] = []
+        if !viewModel.media.genres.isEmpty {
+            rows.append(DetailFactRow(
+                label: String(localized: "media.detail.genres"),
+                value: viewModel.media.genres.joined(separator: ", "),
+            ))
+        }
+        if let studio = viewModel.media.studio, !studio.isEmpty {
+            rows.append(DetailFactRow(label: String(localized: "media.detail.studio"), value: studio))
+        }
+        return rows
+    }
+}
+
+struct DetailFactRow {
+    let label: String
+    let value: String
+}
+
+/// The "Details" block closing a detail page; hidden when there is nothing to list.
+struct DetailFactsList: View {
+    let rows: [DetailFactRow]
+
+    var body: some View {
         if !rows.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Divider()
@@ -29,24 +57,5 @@ struct DetailFactsSection: View {
                 }
             }
         }
-    }
-
-    private struct Row {
-        let label: String
-        let value: String
-    }
-
-    private var rows: [Row] {
-        var rows: [Row] = []
-        if !viewModel.media.genres.isEmpty {
-            rows.append(Row(
-                label: String(localized: "media.detail.genres"),
-                value: viewModel.media.genres.joined(separator: ", "),
-            ))
-        }
-        if let studio = viewModel.media.studio, !studio.isEmpty {
-            rows.append(Row(label: String(localized: "media.detail.studio"), value: studio))
-        }
-        return rows
     }
 }

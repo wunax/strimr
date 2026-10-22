@@ -23,20 +23,10 @@ struct ExtrasSection: View {
                         )
                     }
                 }
-                .padding(.horizontal, extrasSectionHorizontalPadding)
-                .environment(\.railPageMargin, extrasSectionHorizontalPadding)
+                .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+                .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
             }
             .textCase(nil)
         }
     }
-}
-
-private var extrasSectionHorizontalPadding: CGFloat {
-    #if os(macOS)
-        28
-    #elseif os(iOS)
-        16
-    #else
-        0
-    #endif
 }

@@ -5,12 +5,12 @@ enum SeerrRelatedSectionKind {
     case recommendations
     case similar
 
-    var titleKey: LocalizedStringKey {
+    var title: String {
         switch self {
         case .recommendations:
-            "seerr.detail.recommendations"
+            String(localized: "seerr.detail.recommendations")
         case .similar:
-            "seerr.detail.similar"
+            String(localized: "seerr.detail.similar")
         }
     }
 }
@@ -21,31 +21,16 @@ struct SeerrRelatedSection: View {
     let onSelectMedia: (SeerrMedia) -> Void
 
     var body: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 12) {
-                Divider()
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Text(section.titleKey)
-                            .font(.sectionTitle)
-                            .foregroundStyle(.textPrimary)
-
-                        if isLoading, items.isEmpty {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                    }
-
-                    relatedContent
-                }
-                .padding(.horizontal, 8)
+            MediaHubSection(title: section.title) {
+                relatedContent
             }
-            #if os(iOS)
-            .padding(.horizontal, 8)
-            #endif
         }
-        .textCase(nil)
+        .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+        .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
+        .padding(.bottom, 32)
     }
 
     private var items: [SeerrMedia] {
@@ -81,8 +66,10 @@ struct SeerrRelatedSection: View {
             Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .font(.subheadline)
+        } else if items.isEmpty, isLoading {
+            CarouselSkeleton(layout: .portrait)
         } else if items.isEmpty {
-            Text(isLoading ? "media.detail.loadingRelated" : "media.detail.noRelated")
+            Text("media.detail.noRelated")
                 .font(.subheadline)
                 .foregroundStyle(.textSecondary)
         } else {

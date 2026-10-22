@@ -1,0 +1,13 @@
+{
+  "id": 2002,
+  "mediaType": "tv",
+  "name": "Sample Series",
+  "firstAirDate": "2019-09-01",
+  "numberOfSeasons": 3,
+  "numberOfEpisodes": 24,
+  "voteAverage": 0,
+  "genres": [
+    { "id": 35, "name": "Comedy" },
+    { "id": 99, "name": "" }
+  ]
+}

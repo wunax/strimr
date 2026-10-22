@@ -4,6 +4,7 @@ import SwiftUI
 struct SeerrDiscoverView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(SettingsManager.self) private var settingsManager
     @State var viewModel: SeerrDiscoverViewModel
     @State var searchViewModel: SeerrSearchViewModel
     let onSelectMedia: (SeerrMedia) -> Void
@@ -32,60 +33,22 @@ struct SeerrDiscoverView: View {
                 } else {
                     requestsEntry
 
-                    if !viewModel.trending.isEmpty {
-                        SeerrMediaSection(title: "integrations.seerr.discover.trending") {
-                            SeerrMediaCarousel(
-                                items: viewModel.trending,
-                                showsLabels: true,
-                                onSelectMedia: onSelectMedia,
-                            )
-                        }
-                    }
-
-                    if !viewModel.popularMovies.isEmpty {
-                        SeerrMediaSection(title: "integrations.seerr.discover.popularMovies") {
-                            SeerrMediaCarousel(
-                                items: viewModel.popularMovies,
-                                showsLabels: true,
-                                onSelectMedia: onSelectMedia,
-                            )
-                        }
-                    }
-
-                    if !viewModel.upcomingMovies.isEmpty {
-                        SeerrMediaSection(title: "integrations.seerr.discover.upcomingMovies") {
-                            SeerrMediaCarousel(
-                                items: viewModel.upcomingMovies,
-                                showsLabels: true,
-                                onSelectMedia: onSelectMedia,
-                            )
-                        }
-                    }
-
-                    if !viewModel.popularTV.isEmpty {
-                        SeerrMediaSection(title: "integrations.seerr.discover.popularTV") {
-                            SeerrMediaCarousel(
-                                items: viewModel.popularTV,
-                                showsLabels: true,
-                                onSelectMedia: onSelectMedia,
-                            )
-                        }
-                    }
-
-                    if !viewModel.upcomingTV.isEmpty {
-                        SeerrMediaSection(title: "integrations.seerr.discover.upcomingTV") {
-                            SeerrMediaCarousel(
-                                items: viewModel.upcomingTV,
-                                showsLabels: true,
-                                onSelectMedia: onSelectMedia,
-                            )
-                        }
-                    }
+                    rail(String(localized: "integrations.seerr.discover.trending"), items: viewModel.trending)
+                    rail(String(localized: "integrations.seerr.discover.popularMovies"), items: viewModel.popularMovies)
+                    rail(
+                        String(localized: "integrations.seerr.discover.upcomingMovies"),
+                        items: viewModel.upcomingMovies,
+                    )
+                    rail(String(localized: "integrations.seerr.discover.popularTV"), items: viewModel.popularTV)
+                    rail(String(localized: "integrations.seerr.discover.upcomingTV"), items: viewModel.upcomingTV)
                 }
 
-                if viewModel.isLoading, !viewModel.hasContent {
-                    ProgressView("integrations.seerr.discover.loading")
-                        .frame(maxWidth: .infinity)
+                if viewModel.isLoading, !viewModel.hasContent, !searchViewModel.isSearchActive {
+                    VStack(alignment: .leading, spacing: 24) {
+                        ForEach(0 ..< 3, id: \.self) { _ in
+                            SectionSkeleton(showsLabels: settingsManager.interface.showsCardLabels)
+                        }
+                    }
                 }
 
                 if let errorMessage = activeErrorMessage {
@@ -102,7 +65,7 @@ struct SeerrDiscoverView: View {
                         .foregroundStyle(.textSecondary)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 20)
         }
         .navigationTitle("tabs.discover")
@@ -141,7 +104,7 @@ struct SeerrDiscoverView: View {
             HStack(spacing: 12) {
                 Image(systemName: "tray.full.fill")
                     .font(.title3)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.textSecondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("seerr.requests.title")
                         .font(.headline)
@@ -157,9 +120,22 @@ struct SeerrDiscoverView: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(14)
-            .glassSurface(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .glassSurface(in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func rail(_ title: String, items: [SeerrMedia]) -> some View {
+        if !items.isEmpty {
+            MediaHubSection(title: title) {
+                SeerrMediaCarousel(
+                    items: items,
+                    showsLabels: settingsManager.interface.showsCardLabels,
+                    onSelectMedia: onSelectMedia,
+                )
+            }
+        }
     }
 
     private var activeErrorMessage: String? {

@@ -605,48 +605,6 @@ struct MediaDetailView: View {
     }
 }
 
-private struct SeasonPillButton: View {
-    let title: String
-    let isSelected: Bool
-    let onSelect: () -> Void
-    let onFocus: () -> Void
-    let onBlur: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @FocusState private var isFocused: Bool
-
-    var body: some View {
-        Text(title)
-            .font(.facts.weight(.semibold))
-            .padding(.horizontal, 22)
-            .padding(.vertical, 10)
-            .foregroundStyle(isSelected ? Color.black : Color.textPrimary)
-            .background(Capsule(style: .continuous).fill(background))
-            .scaleEffect(isFocused && !reduceMotion ? CardFocusStyle.focusedScale : 1)
-            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
-            .animation(Motion.crossfade, value: isSelected)
-            .focusable()
-            .focused($isFocused)
-            .onChange(of: isFocused) { _, focused in
-                if focused {
-                    onFocus()
-                } else {
-                    onBlur()
-                }
-            }
-            .onPlayPauseCommand(perform: onSelect)
-            .onTapGesture(perform: onSelect)
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private var background: Color {
-        if isSelected {
-            return .white
-        }
-        return isFocused ? .white.opacity(0.3) : .surfaceRaised
-    }
-}
-
 private struct EpisodeArtworkCard: View {
     let episode: MediaItem
     let imageURL: URL?
@@ -836,7 +794,7 @@ private struct EpisodeArtworkCard: View {
 }
 
 /// Same footprint as an episode card, so switching seasons does not change the page height.
-private struct EpisodeSkeletonCard: View {
+struct EpisodeSkeletonCard: View {
     let width: CGFloat
 
     var body: some View {

@@ -19,8 +19,8 @@ struct RelatedHubsSection: View {
 
                 relatedContent
             }
-            .padding(.horizontal, relatedSectionHorizontalPadding)
-            .environment(\.railPageMargin, relatedSectionHorizontalPadding)
+            .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+            .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
             .padding(.bottom, 32)
         }
         .textCase(nil)
@@ -101,14 +101,4 @@ struct RelatedHubsSection: View {
             return nil
         #endif
     }
-}
-
-private var relatedSectionHorizontalPadding: CGFloat {
-    #if os(macOS)
-        28
-    #elseif os(iOS)
-        16
-    #else
-        0
-    #endif
 }

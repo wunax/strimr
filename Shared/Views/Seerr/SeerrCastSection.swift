@@ -5,126 +5,59 @@ struct SeerrCastSection: View {
     @Bindable var viewModel: SeerrMediaDetailViewModel
 
     var body: some View {
-        Section {
+        if viewModel.isLoading || !viewModel.cast.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Divider()
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Text("media.detail.cast.title")
-                            .font(.sectionTitle)
-                            .foregroundStyle(.textPrimary)
-
-                        if viewModel.isLoading, viewModel.cast.isEmpty {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
+                MediaHubSection(title: String(localized: "media.detail.cast.title")) {
+                    if viewModel.cast.isEmpty {
+                        CastSkeleton()
+                    } else {
+                        SeerrCastCarousel(viewModel: viewModel)
                     }
-
-                    castContent
                 }
-                .padding(.horizontal, 8)
             }
-            #if os(iOS)
-            .padding(.horizontal, 8)
-            #endif
-        }
-        .textCase(nil)
-    }
-
-    @ViewBuilder
-    private var castContent: some View {
-        if viewModel.cast.isEmpty {
-            Text(viewModel.isLoading ? "media.detail.cast.loading" : "media.detail.cast.empty")
-                .font(.subheadline)
-                .foregroundStyle(.textSecondary)
-        } else {
-            SeerrCastCarousel(viewModel: viewModel)
+            .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+            .environment(\.railPageMargin, LayoutMetrics.detailSectionMargin)
+            .padding(.bottom, 32)
         }
     }
 }
 
 private struct SeerrCastCarousel: View {
+    @Environment(\.railPageMargin) private var pageMargin
     @Bindable var viewModel: SeerrMediaDetailViewModel
+
+    private let imageSize = LayoutMetrics.castAvatarSize * 2
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 16) {
+            LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: .portrait)) {
                 ForEach(viewModel.cast) { member in
-                    SeerrCastCard(
-                        member: member,
-                        imageURL: viewModel.castImageURL(for: member, width: 240, height: 240),
+                    // Seerr people have no page in the app, so the cards are not selectable.
+                    CastCard(
+                        member: CastMember(
+                            id: String(member.id),
+                            personID: nil,
+                            name: member.name ?? "",
+                            character: member.character,
+                            thumbPath: nil,
+                        ),
+                        imageURL: viewModel.castImageURL(for: member, width: imageSize, height: imageSize),
+                        artworkPath: nil,
+                        onSelect: nil,
                     )
                 }
             }
-            .padding(.vertical, 0)
-            .padding(.horizontal, 2)
+            .padding(.vertical, LayoutMetrics.railVerticalInset)
         }
+        #if !os(tvOS)
+        .padding(.vertical, -LayoutMetrics.railVerticalInset)
+        #endif
+        .railBleed(pageMargin: pageMargin)
         .mouseDragScrolling()
-    }
-}
-
-private struct SeerrCastCard: View {
-    let member: SeerrCastMember
-    let imageURL: URL?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            thumbnail
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.name ?? "")
-                    .font(.cardTitle)
-                    .lineLimit(2)
-                if let character = member.character {
-                    Text(character)
-                        .font(.cardMetadata)
-                        .foregroundStyle(.textSecondary)
-                        .lineLimit(2)
-                }
-            }
-        }
-        .frame(width: 140, alignment: .leading)
-    }
-
-    private var thumbnail: some View {
-        ZStack {
-            Circle()
-                .fill(.surfaceSubtle)
-
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
-                    case .empty:
-                        ProgressView()
-                            .tint(.secondary)
-                    case .failure:
-                        placeholder
-                    @unknown default:
-                        placeholder
-                    }
-                }
-            } else {
-                placeholder
-            }
-        }
-        .frame(width: 120, height: 120)
-        .clipShape(Circle())
-    }
-
-    private var placeholder: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "person.fill")
-                .font(.title3)
-                .foregroundStyle(.textTertiary)
-            Text("media.detail.cast.noPhoto")
-                .font(.cardMetadata)
-                .foregroundStyle(.textTertiary)
-        }
+        #if os(tvOS)
+            .scrollClipDisabled()
+        #endif
     }
 }

@@ -45,6 +45,10 @@ struct SeerrMediaDetailView: View {
                     section: .similar,
                     onSelectMedia: coordinator.showSeerrMediaDetail,
                 )
+
+                SeerrDetailFactsSection(viewModel: bindableViewModel)
+                    .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+                    .padding(.bottom, 32)
             }
         }
         .ignoresSafeArea(edges: .top)

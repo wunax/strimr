@@ -57,52 +57,8 @@ final class SeerrMediaDetailViewModel {
         TMDBImageService.backdropURL(path: media.backdropPath, width: 300)
     }
 
-    var displayTitle: String {
-        switch media.mediaType {
-        case .movie:
-            media.title ?? media.name ?? ""
-        case .tv, .person:
-            media.name ?? media.title ?? ""
-        case .none:
-            media.title ?? media.name ?? ""
-        }
-    }
-
-    var yearText: String? {
-        switch media.mediaType {
-        case .movie:
-            year(from: media.releaseDate)
-        case .tv:
-            year(from: media.firstAirDate)
-        case .person, .none:
-            nil
-        }
-    }
-
-    var runtimeText: String? {
-        guard let runtime = media.runtime, runtime > 0 else { return nil }
-        return TimeInterval(runtime * 60).mediaDurationText()
-    }
-
-    var ratingText: String? {
-        guard let voteAverage = media.voteAverage, voteAverage > 0 else { return nil }
-        return String(format: "%.1f", locale: .current, voteAverage)
-    }
-
-    var seasonCountText: String? {
-        let count = media.numberOfSeasons ?? seasons.count
-        guard count > 0 else { return nil }
-        return String(localized: "media.labels.seasonsCount \(count)")
-    }
-
-    var episodesCountText: String? {
-        let count = media.numberOfEpisodes ?? 0
-        guard count > 0 else { return nil }
-        return String(localized: "media.labels.countEpisode \(count)")
-    }
-
     var genres: [String] {
-        media.genres?.compactMap(\.name).filter { !$0.isEmpty } ?? []
+        media.genreNames
     }
 
     var cast: [SeerrCastMember] {
@@ -581,11 +537,6 @@ final class SeerrMediaDetailViewModel {
     private var baseURL: URL? {
         guard let baseURLString = store.baseURLString else { return nil }
         return URL(string: baseURLString)
-    }
-
-    private func year(from dateString: String?) -> String? {
-        guard let dateString, dateString.count >= 4 else { return nil }
-        return String(dateString.prefix(4))
     }
 
     private func formattedDate(from dateString: String?) -> String? {
