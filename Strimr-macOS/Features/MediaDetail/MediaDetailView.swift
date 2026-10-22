@@ -287,12 +287,6 @@ struct MediaDetailView: View {
                     .frame(maxWidth: 900, alignment: .leading)
             }
 
-            if let starring = StarringFormatter.text(from: viewModel.cast) {
-                Text(starring)
-                    .font(.subheadline)
-                    .foregroundStyle(.textTertiary)
-            }
-
             if let error = viewModel.errorMessage
                 ?? viewModel.watchActionErrorMessage
                 ?? viewModel.favoriteActionErrorMessage

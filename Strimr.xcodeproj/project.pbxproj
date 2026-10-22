@@ -164,7 +164,6 @@
 				Features/MediaDetail/MediaQuickActions.swift,
 				Features/MediaDetail/PlayProgressIcon.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
-				Features/MediaDetail/StarringFormatter.swift,
 				Features/MediaDetail/ThemeMusicPlayer.swift,
 				Features/PersonDetail/PersonDetailView.swift,
 				Features/PersonDetail/PersonDetailViewModel.swift,

@@ -58,7 +58,6 @@ struct MediaHeroContentView: View {
     let media: MediaItem
     /// Logo to use when the item has none of its own, e.g. the series logo loaded by the detail page.
     var fallbackLogoPath: String?
-    var starring: String?
     /// Technical badges of the version that would play; defaults to the resolution the item reports.
     var badges: [String]?
     /// Makes a cut-off summary focusable and opens it in full. Left nil where the hero sits above rails that the
@@ -73,7 +72,6 @@ struct MediaHeroContentView: View {
             MediaHeroDetailsView(
                 media: media,
                 logoPath: media.preferredLogoPath ?? fallbackLogoPath,
-                starring: starring,
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
                 onExpandSummary: onExpandSummary,
                 reservedLines: reservedLines,
@@ -88,14 +86,12 @@ struct HeroLines: OptionSet {
     static let secondaryLabel = HeroLines(rawValue: 1 << 0)
     static let facts = HeroLines(rawValue: 1 << 1)
     static let summary = HeroLines(rawValue: 1 << 2)
-    static let starring = HeroLines(rawValue: 1 << 3)
 }
 
 private struct MediaHeroDetailsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
     let logoPath: String?
-    let starring: String?
     let badges: [String]
     let onExpandSummary: ((MediaItem) -> Void)?
     let reservedLines: HeroLines
@@ -128,15 +124,6 @@ private struct MediaHeroDetailsView: View {
             }
 
             summary
-
-            if let starring {
-                Text(starring)
-                    .font(.facts)
-                    .foregroundStyle(.textTertiary)
-                    .lineLimit(1)
-            } else if reservedLines.contains(.starring) {
-                lineSpacer(font: .facts)
-            }
         }
     }
 

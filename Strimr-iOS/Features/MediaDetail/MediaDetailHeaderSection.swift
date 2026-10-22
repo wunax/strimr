@@ -55,12 +55,6 @@ struct MediaDetailHeaderSection: View {
 
                 synopsis
 
-                if let starring = StarringFormatter.text(from: viewModel.cast) {
-                    Text(starring)
-                        .font(.subheadline)
-                        .foregroundStyle(.textTertiary)
-                }
-
                 if let errorMessage = viewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)

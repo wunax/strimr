@@ -50,14 +50,10 @@ struct MediaDetailView: View {
                         MediaHeroContentView(
                             media: heroMedia,
                             fallbackLogoPath: seriesLogoPath,
-                            // A series needs the room for its episodes; its cast follows just below anyway.
-                            starring: heroMedia.id == bindableViewModel.media.id && !showsEpisodes
-                                ? StarringFormatter.text(from: bindableViewModel.cast) : nil,
                             badges: heroBadges,
                             onExpandSummary: { expandedSummaryMedia = $0 },
-                            // A series previews its seasons and episodes, which fill different lines; a movie only
-                            // gains its cast once loaded.
-                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [.starring],
+                            // A series previews its seasons and episodes, which fill different lines.
+                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [],
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
