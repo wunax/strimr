@@ -95,13 +95,13 @@ struct SeerrDiscoverView: View {
                         .foregroundStyle(.red)
                 } else if !viewModel.hasContent, !viewModel.isLoading, !searchViewModel.isSearchActive {
                     Text("common.empty.nothingToShow")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 } else if searchViewModel.isSearchActive,
                           !searchViewModel.isSearching,
                           searchViewModel.searchResults.isEmpty
                 {
                     Text("common.empty.nothingToShow")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
             .padding(.horizontal, 16)
@@ -146,7 +146,7 @@ struct SeerrDiscoverView: View {
                     if viewModel.requestsBadgeCount > 0 {
                         Text(String(localized: "seerr.requests.pendingCount \(viewModel.requestsBadgeCount)"))
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
                 Spacer()
@@ -155,7 +155,7 @@ struct SeerrDiscoverView: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(14)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .glassSurface(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }

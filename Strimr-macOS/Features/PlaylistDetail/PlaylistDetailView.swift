@@ -42,7 +42,7 @@ struct PlaylistDetailView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.top, 16)
         }
         .overlay {
@@ -89,26 +89,25 @@ struct PlaylistDetailView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(viewModel.playlist.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if let elementsCountText = viewModel.elementsCountText {
                     Text(elementsCountText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let durationText = viewModel.durationText {
                     Text(durationText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let summary = viewModel.playlist.summary, !summary.isEmpty {
                     Text(summary)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

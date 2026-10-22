@@ -63,14 +63,14 @@ struct SeerrRatingsRow: View {
                     .font(.subheadline.weight(.semibold))
                 Text(title)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             }
         }
         .lineLimit(1)
         .fixedSize()
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
-        .background(.ultraThinMaterial, in: Capsule())
+        .glassSurface()
 
         #if os(tvOS)
             content

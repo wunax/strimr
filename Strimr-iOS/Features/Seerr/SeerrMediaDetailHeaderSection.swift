@@ -29,14 +29,14 @@ struct SeerrMediaDetailHeaderSection: View {
                 if let tagline = viewModel.media.tagline, !tagline.isEmpty {
                     Text(tagline)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.textPrimary)
                 }
 
                 if let summary = viewModel.media.overview, !summary.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(summary)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                            .font(.bodyText)
+                            .foregroundStyle(.textSecondary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(isSummaryExpanded ? nil : 3)
 
@@ -78,7 +78,7 @@ struct SeerrMediaDetailHeaderSection: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.bottom, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -87,9 +87,8 @@ struct SeerrMediaDetailHeaderSection: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(viewModel.displayTitle)
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundStyle(.primary)
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
                 .lineLimit(2)
 
             if let status = viewModel.media.mediaInfo?.status {
@@ -147,7 +146,7 @@ struct SeerrMediaDetailHeaderSection: View {
             if let reasonKey = viewModel.requestButtonDisabledReasonKey {
                 Text(LocalizedStringKey(reasonKey))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             }
         }
     }
@@ -174,7 +173,8 @@ struct SeerrMediaDetailHeaderSection: View {
         if !viewModel.genres.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("media.detail.genres")
-                    .font(.headline)
+                    .font(.sectionTitle)
+                    .foregroundStyle(.textPrimary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(viewModel.genres, id: \.self) { genre in
@@ -201,18 +201,18 @@ struct SeerrMediaDetailHeaderSection: View {
                                 .overlay(Color.black.opacity(0.2))
                                 .mask(heroMask)
                         case .empty:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         case .failure:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         @unknown default:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         }
                     }
                 } else {
-                    Color.gray.opacity(0.12)
+                    Color.surfaceSubtle
                         .frame(width: proxy.size.width, height: heroHeight)
                         .mask(heroMask)
                 }
@@ -236,16 +236,17 @@ struct SeerrMediaDetailHeaderSection: View {
         .fixedSize()
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
-        .background(.ultraThinMaterial, in: Capsule())
+        .glassSurface()
     }
 
     private func metaRow(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(label)
+                .eyebrowStyle()
+                .foregroundStyle(.textSecondary)
             Text(value)
-                .font(.body)
+                .font(.bodyText)
+                .foregroundStyle(.textPrimary)
         }
     }
 

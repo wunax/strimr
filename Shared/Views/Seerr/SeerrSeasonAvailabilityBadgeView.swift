@@ -28,7 +28,7 @@ struct SeerrSeasonAvailabilityBadgeView: View {
                 Image(systemName: "paperplane.fill")
                 Text("seerr.media.availability.requested")
             }
-            .font(.caption2.weight(.semibold))
+            .font(.badge)
             .lineLimit(1)
             .foregroundStyle(.white)
             .padding(.horizontal, 8)

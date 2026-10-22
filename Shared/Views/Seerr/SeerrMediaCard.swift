@@ -69,7 +69,7 @@ struct SeerrMediaCard: View {
                     if let secondaryLabel {
                         Text(secondaryLabel)
                             .font(secondaryLabelFont)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                             .lineLimit(1)
                     }
                 }

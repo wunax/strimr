@@ -23,7 +23,7 @@ struct SearchView: View {
                 resultsContent()
                 SearchUnavailableServersNote(names: viewModel.unavailableServerNames)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 12)
         }
         .navigationTitle("tabs.search")
@@ -109,13 +109,13 @@ struct SearchView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
+                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : .surfaceSubtle),
                         )
                         .overlay {
                             Capsule(style: .continuous)
-                                .stroke(isSelected ? Color.brandPrimary : Color.gray.opacity(0.25), lineWidth: 1)
+                                .stroke(isSelected ? Color.brandPrimary : .strokeSubtle, lineWidth: 1)
                         }
-                        .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
+                        .foregroundStyle(isSelected ? Color.brandPrimary : .textPrimary)
                     }
                     .buttonStyle(.plain)
                 }

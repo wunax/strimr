@@ -136,11 +136,11 @@ struct SeerrMediaDetailView: View {
             HStack(spacing: 8) {
                 ProgressView()
                 Text("media.detail.loadingSeasons")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             }
         } else if viewModel.seasons.isEmpty {
             Text("media.detail.noSeasons")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
@@ -165,7 +165,7 @@ struct SeerrMediaDetailView: View {
     private func episodesSection(width: CGFloat) -> some View {
         if viewModel.selectedSeasonNumber == nil {
             Text("seerr.detail.selectSeason")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else if let error = viewModel.episodesErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
@@ -173,7 +173,7 @@ struct SeerrMediaDetailView: View {
             ProgressView("media.detail.loadingEpisodes")
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else {
             LazyVGrid(columns: episodeGridColumns(for: width), alignment: .leading, spacing: 32) {
                 ForEach(viewModel.episodes) { episode in
@@ -234,7 +234,7 @@ private struct SeerrSeasonPillButton: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
             .padding(.horizontal, 18)
@@ -242,12 +242,12 @@ private struct SeerrSeasonPillButton: View {
             .foregroundStyle(.brandSecondary)
             .background(
                 Capsule(style: .continuous)
-                    .fill(isSelected ? Color.brandSecondary.opacity(0.5) : Color.gray.opacity(0.12)),
+                    .fill(isSelected ? Color.brandSecondary.opacity(0.5) : .surfaceSubtle),
             )
             .overlay {
                 Capsule(style: .continuous)
                     .stroke(
-                        isFocused ? Color.brandSecondary : Color.gray.opacity(0.25),
+                        isFocused ? Color.brandSecondary : .strokeSubtle,
                         lineWidth: isFocused ? 3 : 1,
                     )
             }

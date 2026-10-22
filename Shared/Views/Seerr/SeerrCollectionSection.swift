@@ -14,8 +14,8 @@ struct SeerrCollectionSection: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text(collection.name ?? String(localized: "seerr.detail.collection"))
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textPrimary)
 
                         SeerrMediaCarousel(
                             items: parts,

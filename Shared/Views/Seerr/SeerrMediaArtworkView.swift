@@ -15,7 +15,7 @@ struct SeerrMediaArtworkView: View {
                         .resizable()
                         .scaledToFill()
                 case .empty:
-                    Color.gray.opacity(0.15)
+                    Color.surfaceSubtle
                 case .failure:
                     placeholder
                 @unknown default:
@@ -25,7 +25,7 @@ struct SeerrMediaArtworkView: View {
 
             if let badgeText, let badgeColor {
                 Text(badgeText.uppercased())
-                    .font(.caption2.weight(.semibold))
+                    .font(.badge)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

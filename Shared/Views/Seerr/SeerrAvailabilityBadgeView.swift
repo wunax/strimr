@@ -12,7 +12,7 @@ struct SeerrAvailabilityBadgeView: View {
                     Image(systemName: configuration.systemName)
                     Text(configuration.labelKey)
                 }
-                .font(.caption2.weight(.semibold))
+                .font(.badge)
                 .lineLimit(1)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)

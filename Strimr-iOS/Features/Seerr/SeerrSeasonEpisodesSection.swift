@@ -36,7 +36,7 @@ struct SeerrSeasonEpisodesSection: View {
                 .padding(.vertical, 24)
         } else if viewModel.seasons.isEmpty {
             Text("media.detail.noSeasons")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
                 .padding(.vertical, 8)
         } else {
             LazyVStack(alignment: .leading, spacing: 12) {
@@ -53,7 +53,7 @@ struct SeerrSeasonEpisodesSection: View {
                                     .fontWeight(.semibold)
                                 Text(episodeCountTitle(for: season))
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(.textSecondary)
                                 if let badge = viewModel.seasonAvailabilityBadge(for: season) {
                                     Spacer()
                                     SeerrSeasonAvailabilityBadgeView(
@@ -115,7 +115,7 @@ struct SeerrSeasonEpisodesSection: View {
                     .padding(.vertical, 8)
             } else if viewModel.episodes.isEmpty {
                 Text("media.detail.noEpisodes")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             } else if season.seasonNumber == viewModel.selectedSeasonNumber {
                 episodeList
             } else {

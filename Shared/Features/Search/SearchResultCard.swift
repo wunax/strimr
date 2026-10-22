@@ -11,6 +11,7 @@ struct SearchResultCard: View {
         result.media
     }
 
+    /// Hierarchical styles rather than the fixed text tokens: the focused tvOS button turns white and they invert.
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
@@ -34,12 +35,12 @@ struct SearchResultCard: View {
                     }
 
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.facts)
                         .foregroundStyle(.secondary)
 
                     if result.sources.count > 1 {
                         Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
-                            .font(.caption)
+                            .font(.cardMetadata)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
@@ -63,8 +64,8 @@ struct SearchResultCard: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.gray.opacity(0.08)),
+                RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
+                    .fill(.surfaceSubtle),
             )
         }
         .buttonStyle(.plain)
@@ -83,7 +84,7 @@ struct SearchUnavailableServersNote: View {
                 systemImage: "exclamationmark.icloud",
             )
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.textTertiary)
         }
     }
 }
@@ -114,8 +115,7 @@ private struct TypeBadge: View {
 
     var body: some View {
         Text(label)
-            .font(.caption)
-            .fontWeight(.semibold)
+            .font(.badge)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(

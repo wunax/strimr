@@ -28,8 +28,8 @@ struct SeerrRelatedSection: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
                         Text(section.titleKey)
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textPrimary)
 
                         if isLoading, items.isEmpty {
                             ProgressView()
@@ -84,7 +84,7 @@ struct SeerrRelatedSection: View {
         } else if items.isEmpty {
             Text(isLoading ? "media.detail.loadingRelated" : "media.detail.noRelated")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else {
             SeerrMediaCarousel(
                 items: items,

@@ -14,7 +14,7 @@ struct SeerrManageRequestsView: View {
                 LazyVStack(alignment: .leading, spacing: 24) {
                     if viewModel.pendingRequests.isEmpty {
                         Text("seerr.manageRequests.empty")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
                         ForEach(viewModel.pendingRequests, id: \.id) { request in
@@ -55,11 +55,11 @@ struct SeerrManageRequestsView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.08)),
+                .fill(.surfaceSubtle),
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1),
+                .stroke(.strokeSubtle, lineWidth: 1),
         )
         .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 8)
     }
@@ -74,18 +74,18 @@ struct SeerrManageRequestsView: View {
                             .resizable()
                             .scaledToFill()
                     case .empty:
-                        Color.gray.opacity(0.2)
+                        Color.surfaceSubtle
                     case .failure:
-                        Color.gray.opacity(0.2)
+                        Color.surfaceSubtle
                     @unknown default:
-                        Color.gray.opacity(0.2)
+                        Color.surfaceSubtle
                     }
                 }
                 .frame(width: 56, height: 56)
                 .clipShape(Circle())
             } else {
                 Circle()
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(.surfaceSubtle)
                     .frame(width: 56, height: 56)
             }
 
@@ -96,7 +96,7 @@ struct SeerrManageRequestsView: View {
                 if let requestedAt = viewModel.requestedAtText(for: request) {
                     Text(requestedAt)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if viewModel.is4kRequest(request) {
@@ -117,7 +117,7 @@ struct SeerrManageRequestsView: View {
         let seasonNumbers = viewModel.seasonNumbers(for: request)
         if seasonNumbers.isEmpty {
             Text("seerr.manageRequests.seasons.all")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else {
             HStack(spacing: 8) {
                 ForEach(seasonNumbers, id: \.self) { seasonNumber in
@@ -125,7 +125,7 @@ struct SeerrManageRequestsView: View {
                         .font(.footnote.weight(.semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(.ultraThinMaterial, in: Capsule())
+                        .glassSurface()
                 }
             }
         }

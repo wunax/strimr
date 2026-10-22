@@ -90,25 +90,25 @@ struct PlaylistDetailView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(viewModel.playlist.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if let elementsCountText = viewModel.elementsCountText {
                     Text(elementsCountText)
-                        .font(.headline)
-                        .foregroundStyle(.brandSecondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let durationText = viewModel.durationText {
                     Text(durationText)
-                        .font(.headline)
-                        .foregroundStyle(.brandSecondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let summary = viewModel.playlist.summary, !summary.isEmpty {
                     Text(summary)
-                        .font(.headline)
-                        .foregroundStyle(.brandSecondary)
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 playButtonsRow

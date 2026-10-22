@@ -12,8 +12,8 @@ struct SeerrCastSection: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
                         Text("media.detail.cast.title")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textPrimary)
 
                         if viewModel.isLoading, viewModel.cast.isEmpty {
                             ProgressView()
@@ -37,7 +37,7 @@ struct SeerrCastSection: View {
         if viewModel.cast.isEmpty {
             Text(viewModel.isLoading ? "media.detail.cast.loading" : "media.detail.cast.empty")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         } else {
             SeerrCastCarousel(viewModel: viewModel)
         }
@@ -74,13 +74,12 @@ private struct SeerrCastCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name ?? "")
-                    .font(.callout)
-                    .fontWeight(.semibold)
+                    .font(.cardTitle)
                     .lineLimit(2)
                 if let character = member.character {
                     Text(character)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(2)
                 }
             }
@@ -91,7 +90,7 @@ private struct SeerrCastCard: View {
     private var thumbnail: some View {
         ZStack {
             Circle()
-                .fill(Color.white.opacity(0.08))
+                .fill(.surfaceSubtle)
 
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
@@ -122,10 +121,10 @@ private struct SeerrCastCard: View {
         VStack(spacing: 6) {
             Image(systemName: "person.fill")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textTertiary)
             Text("media.detail.cast.noPhoto")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.cardMetadata)
+                .foregroundStyle(.textTertiary)
         }
     }
 }

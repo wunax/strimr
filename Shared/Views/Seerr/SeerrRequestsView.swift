@@ -162,11 +162,8 @@ struct SeerrRequestsView: View {
                         #if !os(tvOS)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .foregroundStyle(isSelected ? Color.white : Color.primary)
-                            .background(
-                                isSelected ? AnyShapeStyle(Color.purple) : AnyShapeStyle(.ultraThinMaterial),
-                                in: Capsule(),
-                            )
+                            .foregroundStyle(.textPrimary)
+                            .background(isSelected ? Color.purple : .surfaceSubtle, in: Capsule())
                         #endif
                     }
                     #if os(tvOS)
@@ -224,12 +221,12 @@ struct SeerrRequestsView: View {
         VStack(spacing: 8) {
             Image(systemName: "tray")
                 .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
             Text("seerr.requests.empty")
                 .font(.headline)
             Text("seerr.requests.empty.description")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

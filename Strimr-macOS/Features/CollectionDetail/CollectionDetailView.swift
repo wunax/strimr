@@ -42,7 +42,7 @@ struct CollectionDetailView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.top, 16)
         }
         .overlay {
@@ -89,20 +89,19 @@ struct CollectionDetailView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(viewModel.collection.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if let elementsCountText = viewModel.elementsCountText {
                     Text(elementsCountText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let yearsText = viewModel.yearsText {
                     Text(yearsText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

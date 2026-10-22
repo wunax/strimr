@@ -90,19 +90,19 @@ struct CollectionDetailView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(viewModel.collection.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if let elementsCountText = viewModel.elementsCountText {
                     Text(elementsCountText)
-                        .font(.headline)
-                        .foregroundStyle(.brandSecondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let yearsText = viewModel.yearsText {
                     Text(yearsText)
-                        .font(.headline)
-                        .foregroundStyle(.brandSecondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 playButtonsRow

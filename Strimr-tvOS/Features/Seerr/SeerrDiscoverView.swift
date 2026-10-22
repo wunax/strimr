@@ -156,7 +156,7 @@ struct SeerrDiscoverView: View {
                         .foregroundStyle(.red)
                 } else if !viewModel.hasContent, !viewModel.isLoading {
                     Text("common.empty.nothingToShow")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
             .padding(.trailing, 24)
@@ -172,7 +172,7 @@ struct SeerrDiscoverView: View {
                     .foregroundStyle(.red)
             } else {
                 Text("common.empty.nothingToShow")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             }
         }
     }

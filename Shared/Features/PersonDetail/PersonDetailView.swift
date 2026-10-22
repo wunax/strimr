@@ -36,8 +36,8 @@ struct PersonDetailView: View {
             portrait
 
             Text(viewModel.person.name)
-                .font(headerFont)
-                .fontWeight(.bold)
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
                 .lineLimit(3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -80,7 +80,7 @@ struct PersonDetailView: View {
     private var portrait: some View {
         ZStack {
             Circle()
-                .fill(Color.white.opacity(0.08))
+                .fill(.surfaceSubtle)
 
             if viewModel.imageResource != nil {
                 ArtworkResourceView(resource: viewModel.imageResource)
@@ -96,10 +96,10 @@ struct PersonDetailView: View {
         VStack(spacing: 8) {
             Image(systemName: "person.fill")
                 .font(.title)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textTertiary)
             Text("media.detail.cast.noPhoto")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.cardMetadata)
+                .foregroundStyle(.textTertiary)
         }
     }
 
@@ -110,14 +110,6 @@ struct PersonDetailView: View {
             140
         #else
             112
-        #endif
-    }
-
-    private var headerFont: Font {
-        #if os(tvOS)
-            .largeTitle
-        #else
-            .title
         #endif
     }
 
@@ -149,7 +141,7 @@ struct PersonDetailView: View {
         #if os(tvOS)
             48
         #else
-            16
+            LayoutMetrics.pageMargin
         #endif
     }
 

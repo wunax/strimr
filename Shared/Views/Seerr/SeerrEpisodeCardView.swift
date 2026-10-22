@@ -59,7 +59,7 @@ struct SeerrEpisodeCardView: View {
                 if let label {
                     Text(label)
                         .font(labelFont)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 Spacer(minLength: 0)
@@ -67,7 +67,7 @@ struct SeerrEpisodeCardView: View {
                 if let airDateText {
                     Text(airDateText)
                         .font(labelFont)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
 
@@ -81,7 +81,7 @@ struct SeerrEpisodeCardView: View {
             if let summary = episode.overview, !summary.isEmpty {
                 Text(summary)
                     .font(summaryFont)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(3)
             }
         }
@@ -139,11 +139,11 @@ private struct SeerrEpisodeArtworkView: View {
                     .resizable()
                     .scaledToFill()
             case .empty:
-                Color.gray.opacity(0.15)
+                Color.surfaceSubtle
             case .failure:
-                Color.gray.opacity(0.15)
+                Color.surfaceSubtle
             @unknown default:
-                Color.gray.opacity(0.15)
+                Color.surfaceSubtle
             }
         }
         .frame(width: width, height: height)

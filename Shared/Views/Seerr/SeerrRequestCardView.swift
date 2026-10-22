@@ -30,7 +30,7 @@ struct SeerrRequestCardView: View {
             }
         }
         .padding(cardPadding)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private var posterSize: CGSize {
@@ -61,11 +61,11 @@ struct SeerrRequestCardView: View {
                     .resizable()
                     .scaledToFill()
             default:
-                Color.gray.opacity(0.15)
+                Color.surfaceSubtle
             }
         }
         .frame(width: posterSize.width, height: posterSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous))
     }
 
     private var details: some View {
@@ -81,7 +81,7 @@ struct SeerrRequestCardView: View {
                 }
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.textSecondary)
             .lineLimit(1)
 
             Text(viewModel.mediaTitle(for: request))
@@ -93,7 +93,7 @@ struct SeerrRequestCardView: View {
             if let seasons = viewModel.seasonSummary(for: request) {
                 Label(seasons, systemImage: "rectangle.stack")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
 
@@ -114,7 +114,7 @@ struct SeerrRequestCardView: View {
             if let profile = request.profileName, !profile.isEmpty {
                 Text(String(localized: "seerr.manageRequests.profile \(profile)"))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
         }
@@ -156,7 +156,7 @@ struct SeerrRequestCardView: View {
                     }
                 }
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
                 .lineLimit(1)
             }
         }
@@ -170,7 +170,7 @@ struct SeerrRequestCardView: View {
                     .resizable()
                     .scaledToFill()
             default:
-                Color.gray.opacity(0.25)
+                Color.surfaceSubtle
             }
         }
         .frame(width: 22, height: 22)

@@ -109,11 +109,11 @@ struct SearchView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
+                                .fill(isSelected ? Color.brandPrimary.opacity(0.18) : .surfaceSubtle),
                         )
                         .overlay {
                             Capsule(style: .continuous)
-                                .stroke(isSelected ? Color.brandPrimary : Color.gray.opacity(0.25), lineWidth: 1)
+                                .stroke(isSelected ? Color.brandPrimary : .strokeSubtle, lineWidth: 1)
                         }
                         .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
                     }

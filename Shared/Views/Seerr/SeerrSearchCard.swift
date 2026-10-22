@@ -4,6 +4,7 @@ struct SeerrSearchCard: View {
     let media: SeerrMedia
     let onTap: () -> Void
 
+    /// Hierarchical styles rather than the fixed text tokens: the focused tvOS button turns white and they invert.
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
@@ -38,8 +39,8 @@ struct SeerrSearchCard: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.gray.opacity(0.08)),
+                RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
+                    .fill(.surfaceSubtle),
             )
         }
         .buttonStyle(.plain)
