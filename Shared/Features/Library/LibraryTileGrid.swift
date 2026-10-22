@@ -173,10 +173,15 @@ struct LibraryTile: View {
 
     private var labels: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(library.title)
-                .font(.tileTitle)
-                .foregroundStyle(.textPrimary)
-                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: iconSpacing) {
+                Image(systemName: library.iconName)
+                    .font(iconFont)
+                    .foregroundStyle(.textSecondary)
+                Text(library.title)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
+                    .lineLimit(1)
+            }
             Text(caption ?? " ")
                 .font(.facts)
                 .foregroundStyle(.textSecondary)
@@ -185,6 +190,22 @@ struct LibraryTile: View {
                 .opacity(caption == nil ? 0 : 1)
         }
         .shadow(color: .black.opacity(0.4), radius: 8)
+    }
+
+    private var iconFont: Font {
+        #if os(tvOS)
+            .system(size: 28, weight: .semibold)
+        #else
+            .title3.weight(.semibold)
+        #endif
+    }
+
+    private var iconSpacing: CGFloat {
+        #if os(tvOS)
+            14
+        #else
+            8
+        #endif
     }
 
     private var labelPadding: CGFloat {
