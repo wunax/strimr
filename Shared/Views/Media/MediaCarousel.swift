@@ -8,6 +8,8 @@ struct MediaCarousel: View {
     @Environment(\.railPageMargin) private var pageMargin
     #if os(tvOS)
         @FocusState private var isViewAllFocused: Bool
+    #elseif os(macOS)
+        @State private var isViewAllFocused = false
     #endif
 
     let layout: Layout
@@ -40,10 +42,12 @@ struct MediaCarousel: View {
                     viewAllCard(action: onViewAll)
                 }
             }
-            #if os(tvOS)
-            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
-            #endif
+            .padding(.vertical, LayoutMetrics.railVerticalInset)
         }
+        #if !os(tvOS)
+        // Gives the lifted card room inside the clipping scroll view without moving the rail.
+        .padding(.vertical, -LayoutMetrics.railVerticalInset)
+        #endif
         .railBleed(pageMargin: pageMargin)
         .mouseDragScrolling()
         #if os(tvOS)
@@ -82,7 +86,10 @@ struct MediaCarousel: View {
                 card
             }
             .buttonStyle(.plain)
-            .frame(width: size.width, alignment: .leading)
+            #if os(macOS)
+                .onHover { isViewAllFocused = $0 }
+            #endif
+                .frame(width: size.width, alignment: .leading)
         #endif
     }
 
@@ -99,7 +106,7 @@ struct MediaCarousel: View {
         .frame(width: size.width, height: size.height)
         .background(.surfaceSubtle)
         .mediaArtworkStyle(borderColor: .strokeSubtle)
-        #if os(tvOS)
+        #if os(tvOS) || os(macOS)
             .cardFocusStyle(isFocused: isViewAllFocused)
         #endif
     }

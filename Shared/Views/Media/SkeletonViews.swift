@@ -33,7 +33,7 @@ struct CarouselSkeleton: View {
                 }
             }
             #if os(tvOS)
-            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
+            .padding(.vertical, LayoutMetrics.railVerticalInset)
             #endif
         }
         .scrollDisabled(true)

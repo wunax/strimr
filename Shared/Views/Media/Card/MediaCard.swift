@@ -7,6 +7,9 @@ struct MediaCard: View {
         @Environment(MediaFocusModel.self) private var focusModel
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @FocusState private var isFocused: Bool
+    #elseif os(macOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var isFocused = false
     #endif
 
     let size: CGSize
@@ -22,7 +25,7 @@ struct MediaCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
             artwork
-            #if os(tvOS)
+            #if os(tvOS) || os(macOS)
                 .cardFocusStyle(isFocused: isFocused)
             #endif
 
@@ -41,6 +44,9 @@ struct MediaCard: View {
                 }
             }
             .onPlayPauseCommand(perform: onTap)
+        #elseif os(macOS)
+            .contentShape(Rectangle())
+            .onHover { isFocused = $0 }
         #endif
             .onTapGesture(perform: onTap)
             .mediaCardContextMenu(media)
@@ -84,7 +90,7 @@ struct MediaCard: View {
                 .opacity(metadataOpacity)
                 .lineLimit(1)
         }
-        #if os(tvOS)
+        #if os(tvOS) || os(macOS)
         // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
         .offset(y: isFocused && !reduceMotion ? size.height * (CardFocusStyle.focusedScale - 1) / 2 : 0)
         .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)

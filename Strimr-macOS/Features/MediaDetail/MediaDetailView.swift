@@ -16,6 +16,7 @@ struct MediaDetailView: View {
     @State private var sharePlaySharingRequest: SharePlaySharingRequest?
     @State private var isShowingSubtitleSearch = false
     @State private var isShowingFileInfo = false
+    @State private var isMoreMenuHovered = false
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
@@ -322,7 +323,7 @@ struct MediaDetailView: View {
     }
 
     private var actionButtons: some View {
-        HStack(alignment: .center, spacing: 28) {
+        HStack(alignment: .center, spacing: 20) {
             HStack(alignment: .center, spacing: 12) {
                 playButton
 
@@ -337,7 +338,7 @@ struct MediaDetailView: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
                 watchStatusButton
 
                 if viewModel.shouldShowFavoriteButton {
@@ -348,8 +349,7 @@ struct MediaDetailView: View {
                    [.movie, .episode, .season, .show].contains(viewModel.media.type)
                 {
                     Button(action: handleDownload) {
-                        DetailRoundActionLabel(
-                            title: "downloads.action",
+                        DetailCircleActionLabel(
                             systemImage: downloadIconName,
                             isActive: downloadStatus == .completed,
                             isLoading: isDownloadInProgress,
@@ -357,6 +357,8 @@ struct MediaDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(viewModel.isLoading || isDownloadInProgress || isServerUnreachable)
+                    .help(Text("downloads.action"))
+                    .accessibilityLabel(Text("downloads.action"))
                 }
 
                 moreActionsMenu
@@ -389,10 +391,12 @@ struct MediaDetailView: View {
                 }
             }
             .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
-            .padding(.horizontal, 24)
-            .frame(minWidth: 240, minHeight: 48)
+            .padding(.leading, 8)
+            .padding(.trailing, 22)
+            .frame(minWidth: 200, minHeight: DetailCircleActionLabel.size)
             .background(isPlayDisabled ? Color.surfaceRaised : Color.white, in: Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
+            .hoverLift(scale: 1.03)
         }
         .buttonStyle(.plain)
         .disabled(isPlayDisabled)
@@ -408,8 +412,7 @@ struct MediaDetailView: View {
                 }
             }
         } label: {
-            DetailRoundActionLabel(
-                title: "media.detail.action.watched",
+            DetailCircleActionLabel(
                 systemImage: isWatched ? "checkmark.circle.fill" : "checkmark.circle",
                 isActive: isWatched,
                 isLoading: viewModel.isUpdatingWatchStatus,
@@ -432,8 +435,7 @@ struct MediaDetailView: View {
         Button {
             Task { await viewModel.toggleFavoriteStatus() }
         } label: {
-            DetailRoundActionLabel(
-                title: "media.detail.action.favorite",
+            DetailCircleActionLabel(
                 systemImage: viewModel.isFavorite ? "star.fill" : "star",
                 isActive: viewModel.isFavorite,
                 isLoading: viewModel.isLoadingFavoriteStatus || viewModel.isUpdatingFavoriteStatus,
@@ -522,13 +524,14 @@ struct MediaDetailView: View {
                 MediaCopiesMenuItems(viewModel: viewModel)
             }
         } label: {
-            DetailRoundActionLabel(
-                title: "common.actions.more",
+            DetailCircleActionLabel(
                 systemImage: "ellipsis",
                 isActive: false,
                 isLoading: false,
+                isHovered: isMoreMenuHovered,
             )
         }
+        .onHover { isMoreMenuHovered = $0 }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
@@ -545,15 +548,13 @@ struct MediaDetailView: View {
         guard
             let ratingKey = viewModel.primaryActionRatingKey,
             let playbackType = viewModel.primaryActionType,
-            let item = viewModel.primaryActionItem
-        else { return }
-        guard let activity = sharePlayCoordinator.makeActivity(
-            ratingKey: ratingKey,
-            type: playbackType,
-            title: item.primaryLabel,
-            initialPosition: viewModel.primaryActionInitialPosition,
-            server: viewModel.server,
-        ) else { return }
+            let item = viewModel.primaryActionItem, let activity = sharePlayCoordinator.makeActivity(
+                ratingKey: ratingKey,
+                type: playbackType,
+                title: item.primaryLabel,
+                initialPosition: viewModel.primaryActionInitialPosition,
+                server: viewModel.server,
+            ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {
             Task { await sharePlayCoordinator.activate(activity) }
@@ -730,10 +731,25 @@ struct MediaDetailView: View {
                 .disabled(isServerUnreachable && downloadManager.completedOwnedItem(for: episode.identity) == nil)
             }
             .padding(10)
-            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .modifier(EpisodeRowBackground())
         }
         .buttonStyle(.plain)
         .dimmedWhenUnavailableOffline(episode)
+    }
+}
+
+private struct EpisodeRowBackground: ViewModifier {
+    @State private var isHovered = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                isHovered ? Color.surfaceRaised : Color.surfaceSubtle,
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous),
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .animation(Motion.focus, value: isHovered)
+            .onHover { isHovered = $0 }
     }
 }
 

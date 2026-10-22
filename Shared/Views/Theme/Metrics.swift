@@ -44,8 +44,16 @@ enum LayoutMetrics {
         castAvatarSize + 24
     }
 
-    /// Room above and below tvOS rails for the focused card to grow into.
-    static let tvRailVerticalInset: CGFloat = 20
+    /// Room above and below rails for the focused or hovered card to grow into.
+    static var railVerticalInset: CGFloat {
+        #if os(tvOS)
+            20
+        #elseif os(macOS)
+            16
+        #else
+            0
+        #endif
+    }
 
     static func railSpacing(for layout: MediaCarousel.Layout) -> CGFloat {
         switch layout {

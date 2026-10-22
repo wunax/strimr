@@ -52,10 +52,11 @@ struct CastCarousel: View {
                     )
                 }
             }
-            #if os(tvOS)
-            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
-            #endif
+            .padding(.vertical, LayoutMetrics.railVerticalInset)
         }
+        #if !os(tvOS)
+        .padding(.vertical, -LayoutMetrics.railVerticalInset)
+        #endif
         .railBleed(pageMargin: pageMargin)
         .mouseDragScrolling()
         #if os(tvOS)
@@ -83,6 +84,9 @@ struct CastCard: View {
     #if os(tvOS)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @FocusState private var isFocused: Bool
+    #elseif os(macOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var isFocused = false
     #endif
 
     private let avatarSize = LayoutMetrics.castAvatarSize
@@ -104,6 +108,9 @@ struct CastCard: View {
                     content
                 }
                 .buttonStyle(.plain)
+                #if os(macOS)
+                    .onHover { isFocused = $0 }
+                #endif
             } else {
                 content
             }
@@ -113,7 +120,7 @@ struct CastCard: View {
     private var content: some View {
         VStack(spacing: LayoutMetrics.cardLabelSpacing) {
             avatar
-            #if os(tvOS)
+            #if os(tvOS) || os(macOS)
                 .cardFocusStyle(isFocused: isFocused)
             #endif
 
@@ -171,7 +178,7 @@ struct CastCard: View {
             }
         }
         .multilineTextAlignment(.center)
-        #if os(tvOS)
+        #if os(tvOS) || os(macOS)
             // Follows the bottom edge of the focused avatar so the lifted photo does not cover its caption.
             .offset(y: isFocused && !reduceMotion ? avatarSize * (CardFocusStyle.focusedScale - 1) / 2 : 0)
             .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
@@ -218,7 +225,7 @@ private struct CastSkeleton: View {
                 }
             }
             #if os(tvOS)
-            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
+            .padding(.vertical, LayoutMetrics.railVerticalInset)
             #endif
         }
         .scrollDisabled(true)

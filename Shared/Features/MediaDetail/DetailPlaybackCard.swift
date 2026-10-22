@@ -17,9 +17,11 @@ struct DetailPlaybackCard: View {
                             .padding(.leading, 52)
                     }
                     menu(for: row)
+                        .plainRowMenu()
                 }
             }
             .background(.surfaceSubtle, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .disabled(viewModel.isUpdatingTracks)
         }
     }
@@ -27,7 +29,7 @@ struct DetailPlaybackCard: View {
     private enum Row: Hashable { case version, audio, subtitles }
 
     private let cornerRadius: CGFloat = 14
-    private let rowHeight: CGFloat = 48
+    private static let rowHeight: CGFloat = 48
 
     private var rows: [Row] {
         var rows: [Row] = []
@@ -51,7 +53,7 @@ struct DetailPlaybackCard: View {
     private var skeleton: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(.surfaceSubtle)
-            .frame(height: rowHeight * 2)
+            .frame(height: Self.rowHeight * 2)
             .accessibilityLabel(Text("common.loading"))
     }
 
@@ -88,7 +90,7 @@ struct DetailPlaybackCard: View {
     }
 
     private func rowLabel(_ title: LocalizedStringKey, systemImage: String, value: String) -> some View {
-        HStack(spacing: 12) {
+        RowLabel {
             Image(systemName: systemImage)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.textSecondary)
@@ -107,10 +109,27 @@ struct DetailPlaybackCard: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.textTertiary)
         }
-        .font(.subheadline)
-        .padding(.horizontal, 12)
-        .frame(minHeight: rowHeight)
-        .contentShape(Rectangle())
+    }
+
+    /// Highlights the row under the pointer on macOS, where the menu has no chrome of its own.
+    private struct RowLabel<Content: View>: View {
+        @ViewBuilder let content: Content
+        @State private var isHovered = false
+
+        var body: some View {
+            HStack(spacing: 12) {
+                content
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: DetailPlaybackCard.rowHeight)
+            .background(isHovered ? Color.surfaceSubtle : .clear)
+            .contentShape(Rectangle())
+            .animation(Motion.focus, value: isHovered)
+            #if os(macOS)
+                .onHover { isHovered = $0 }
+            #endif
+        }
     }
 
     private var audioMenuItems: some View {
@@ -158,5 +177,19 @@ struct DetailPlaybackCard: View {
                 Label("subtitles.search.action", systemImage: "magnifyingglass")
             }
         }
+    }
+}
+
+private extension View {
+    /// The default macOS menu draws a pop-up button inside the row; the row is the control here.
+    @ViewBuilder
+    func plainRowMenu() -> some View {
+        #if os(macOS)
+            menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+        #else
+            self
+        #endif
     }
 }
