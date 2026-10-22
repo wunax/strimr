@@ -249,10 +249,8 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetchCharactersIfNeeded() async {
-        guard let advancedService else { return }
-        guard sectionCharacters.isEmpty else { return }
-        guard supportsSectionCharacters else { return }
-        guard let sectionId = library.sectionId else { return }
+        guard let advancedService, sectionCharacters.isEmpty, supportsSectionCharacters,
+              let sectionId = library.sectionId else { return }
         do {
             let endpoint = resolvedEndpoint(sectionId: sectionId)
             guard let firstCharacterEndpoint = firstCharacterEndpoint(from: endpoint) else { return }
@@ -426,8 +424,7 @@ final class LibraryBrowseViewModel {
     }
 
     private var supportsSectionCharacters: Bool {
-        guard advancedService != nil else { return false }
-        guard let sectionId = library.sectionId else { return false }
+        guard advancedService != nil, let sectionId = library.sectionId else { return false }
         let endpoint = resolvedEndpoint(sectionId: sectionId)
         return firstCharacterEndpoint(from: endpoint) != nil
     }

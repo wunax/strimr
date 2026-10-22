@@ -537,15 +537,13 @@ struct MediaDetailView: View {
         guard
             let ratingKey = viewModel.primaryActionRatingKey,
             let playbackType = viewModel.primaryActionType,
-            let item = viewModel.primaryActionItem
-        else { return }
-        guard let activity = sharePlayCoordinator.makeActivity(
-            ratingKey: ratingKey,
-            type: playbackType,
-            title: item.primaryLabel,
-            initialPosition: viewModel.primaryActionInitialPosition,
-            server: viewModel.server,
-        ) else { return }
+            let item = viewModel.primaryActionItem, let activity = sharePlayCoordinator.makeActivity(
+                ratingKey: ratingKey,
+                type: playbackType,
+                title: item.primaryLabel,
+                initialPosition: viewModel.primaryActionInitialPosition,
+                server: viewModel.server,
+            ) else { return }
 
         if sharePlayCoordinator.isEligibleForGroupSession {
             Task { await sharePlayCoordinator.activate(activity) }

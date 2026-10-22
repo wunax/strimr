@@ -120,8 +120,7 @@ struct SettingsView: View {
         let candidates = focusCandidates.filter { $0.pageID == pageID }
         guard let candidate = candidates.first(where: { $0.id == navigation.focusedControls[pageID] })
             ?? candidates.first(where: \.isDefault)
-            ?? candidates.first else { return }
-        guard requestedDetailTarget != candidate.target else { return }
+            ?? candidates.first, requestedDetailTarget != candidate.target else { return }
         requestedDetailTarget = candidate.target
         focusedTarget = candidate.target
         if actualDetailFocus == candidate.target {

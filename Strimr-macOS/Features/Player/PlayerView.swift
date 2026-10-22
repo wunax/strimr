@@ -1421,13 +1421,13 @@ struct PlayerView: View {
     }
 
     private func handleAutomaticMarkerSkipIfNeeded() {
-        guard !isScrubbing else { return }
-        guard !(participatesInSharePlay && sharePlayCoordinator.isInSession) else { return }
-        guard let marker = viewModel.automaticSkipMarker(
-            autoSkipIntros: settingsManager.playback.autoSkipIntros,
-            autoSkipCredits: settingsManager.playback.autoSkipCredits,
-            autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
-        ) else {
+        guard !isScrubbing, !(participatesInSharePlay && sharePlayCoordinator.isInSession),
+              let marker = viewModel.automaticSkipMarker(
+                  autoSkipIntros: settingsManager.playback.autoSkipIntros,
+                  autoSkipCredits: settingsManager.playback.autoSkipCredits,
+                  autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
+              )
+        else {
             return
         }
 
@@ -1462,18 +1462,7 @@ struct PlayerView: View {
         await viewModel.markPlaybackFinished()
 
         if viewModel.media?.type == .episode {
-            guard viewModel.usesCommonPlaybackQueue else {
-                if isSharePlayPlayback {
-                    sharePlayCoordinator.leave()
-                    participatesInSharePlay = false
-                    closePlayer(force: true)
-                } else {
-                    playerController.pause()
-                }
-                return
-            }
-
-            guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
+            guard viewModel.usesCommonPlaybackQueue, let nextViewModel = viewModel.makeNextPlayerViewModel() else {
                 if isSharePlayPlayback {
                     sharePlayCoordinator.leave()
                     participatesInSharePlay = false

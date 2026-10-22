@@ -130,8 +130,7 @@ final class MediaDetailViewModel {
     }
 
     func loadSeasonsIfNeeded(forceReload: Bool = false, preservingExistingContent: Bool = false) async {
-        guard media.type == .show else { return }
-        guard forceReload || seasons.isEmpty else { return }
+        guard media.type == .show, forceReload || seasons.isEmpty else { return }
         await fetchSeasons(preservingExistingContent: preservingExistingContent)
     }
 
@@ -332,12 +331,7 @@ final class MediaDetailViewModel {
     }
 
     private func loadWatchlistStatus() async {
-        guard [.movie, .show].contains(media.type) else {
-            isWatchlisted = false
-            return
-        }
-
-        guard services.detail.supportsWatchlist else {
+        guard [.movie, .show].contains(media.type), services.detail.supportsWatchlist else {
             isWatchlisted = false
             return
         }
@@ -775,8 +769,7 @@ final class MediaDetailViewModel {
         }
 
         let mediaID = target.id
-        guard forceReload || fileInfo == nil || fileInfoMediaID != mediaID else { return }
-        guard !isLoadingFileInfo else { return }
+        guard forceReload || fileInfo == nil || fileInfoMediaID != mediaID, !isLoadingFileInfo else { return }
 
         if fileInfoMediaID != mediaID {
             fileInfo = nil
@@ -798,8 +791,7 @@ final class MediaDetailViewModel {
             fileInfo = result
             fileInfoMediaID = mediaID
         } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            guard requestedFileInfoID == mediaID else { return }
+            guard !Task.isCancelled, !error.isCancellation, requestedFileInfoID == mediaID else { return }
             fileInfo = nil
             fileInfoErrorMessage = error.localizedDescription
             ErrorReporter.capture(error)

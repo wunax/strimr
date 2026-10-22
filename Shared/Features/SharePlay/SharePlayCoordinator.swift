@@ -295,9 +295,7 @@ final class SharePlayCoordinator {
         newSession.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
-                guard case .invalidated = state else { return }
-                guard let self else { return }
-                guard session === newSession else { return }
+                guard case .invalidated = state, let self, session === newSession else { return }
                 if pendingSessionAcceptanceActivityID != nil {
                     deferredSessionInvalidation = true
                     return

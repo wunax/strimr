@@ -628,7 +628,9 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
                 headers: ["Accept-Language": "en", "X-Plex-Platform": "Generic"],
             )
         } catch {
-            if error.isCancellation { throw error }
+            if error.isCancellation {
+                throw error
+            }
             LiveTVErrorReporting.capture(error)
         }
         query.append(.init(name: "X-Plex-Token", value: snapshot.authToken))

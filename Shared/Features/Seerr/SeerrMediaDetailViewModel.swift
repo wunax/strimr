@@ -465,8 +465,7 @@ final class SeerrMediaDetailViewModel {
     }
 
     private func loadSeason(number: Int) async {
-        guard let baseURL else { return }
-        guard media.mediaType == .tv else { return }
+        guard let baseURL, media.mediaType == .tv else { return }
 
         isLoadingEpisodes = true
         episodesErrorMessage = nil
@@ -527,8 +526,7 @@ final class SeerrMediaDetailViewModel {
     }
 
     private var canRequest4K: Bool {
-        guard media.mediaType == .movie || media.mediaType == .tv else { return false }
-        guard is4kEnabledForMedia else { return false }
+        guard media.mediaType == .movie || media.mediaType == .tv, is4kEnabledForMedia else { return false }
         let permissions: [SeerrPermission] = switch media.mediaType {
         case .tv:
             [.request4K, .request4KTV]

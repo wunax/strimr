@@ -13,10 +13,8 @@ final class PlayerFullscreenCoordinator {
 
     func attach(to window: NSWindow) {
         if let currentWindow = self.window {
-            if currentWindow === window {
-                if !isFullScreen, !isTransitioning {
-                    configureWindowForFullScreen(currentWindow)
-                }
+            if currentWindow === window, !isFullScreen, !isTransitioning {
+                configureWindowForFullScreen(currentWindow)
             }
             return
         }

@@ -515,15 +515,13 @@ struct MediaDetailView: View {
         guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
         hasHandledInitialEpisodePosition = true
 
-        guard let primaryEpisodeID = viewModel.primaryActionItem?.id else { return }
-        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+        guard let primaryEpisodeID = viewModel.primaryActionItem?.id,
+              viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
         await Task.yield()
 
-        guard !Task.isCancelled else { return }
-        guard !hasUserSelectedSeason else { return }
-        guard viewModel.primaryActionItem?.id == primaryEpisodeID else { return }
-        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+        guard !Task.isCancelled, !hasUserSelectedSeason, viewModel.primaryActionItem?.id == primaryEpisodeID,
+              viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
         scrollProxy.scrollTo(primaryEpisodeID, anchor: .leading)
     }

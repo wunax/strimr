@@ -719,13 +719,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let scrubSource: ScrubThumbnailSource? = {
             guard let variants = item.trickplay?[plan.mediaSourceID],
                   let info = variants.values
-                  .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
-                  .sorted(by: { lhs, rhs in
-                      let lhsDistance = abs(lhs.width - 320)
-                      let rhsDistance = abs(rhs.width - 320)
-                      return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
-                  })
-                  .first,
+                      .filter({ $0.width > 0 && $0.height > 0 && $0.interval > 0 })
+                      .sorted(by: { lhs, rhs in
+                          let lhsDistance = abs(lhs.width - 320)
+                          let rhsDistance = abs(rhs.width - 320)
+                          return lhsDistance == rhsDistance ? lhs.width < rhs.width : lhsDistance < rhsDistance
+                      })
+                      .first,
                   let directoryURL = try? context.url(
                       path: ["Videos", item.id, "Trickplay", String(info.width)],
                   )
@@ -1333,7 +1333,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let fileExtension = stream.downloadSubtitleExtension
         let subtitleURL: URL = if let deliveryURL = stream.deliveryURL,
                                   let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?
-                                  .absoluteURL
+                                      .absoluteURL
         {
             resolved
         } else {

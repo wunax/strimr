@@ -28,11 +28,11 @@ final class TopShelfDeepLinkRouter {
         case "play": .play
         default: nil
         },
-            let ratingKey = url.pathComponents.dropFirst().first,
-            let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-            let typeValue = components.queryItems?.first(where: { $0.name == "type" })?.value,
-            let type = MediaKind(rawValue: typeValue)
-            ?? (typeValue == "show" ? .series : nil)
+              let ratingKey = url.pathComponents.dropFirst().first,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let typeValue = components.queryItems?.first(where: { $0.name == "type" })?.value,
+              let type = MediaKind(rawValue: typeValue)
+              ?? (typeValue == "show" ? .series : nil)
         else {
             return
         }

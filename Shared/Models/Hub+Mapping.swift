@@ -1,7 +1,7 @@
 import Foundation
 
+@MainActor
 extension Hub {
-    @MainActor
     init(plexHub: PlexHub, server: ServerIdentity) {
         self.init(
             id: plexHub.hubIdentifier,

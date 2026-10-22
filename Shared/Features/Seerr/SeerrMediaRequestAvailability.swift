@@ -106,8 +106,7 @@ enum SeerrMediaRequestAvailability {
 
     private static func activeRequests(for media: SeerrMedia, is4k: Bool) -> [SeerrRequest] {
         media.mediaInfo?.requests?.filter { request in
-            guard request.is4k ?? false == is4k else { return false }
-            guard let status = request.status else { return false }
+            guard request.is4k ?? false == is4k, let status = request.status else { return false }
             return status != .declined && status != .completed
         } ?? []
     }

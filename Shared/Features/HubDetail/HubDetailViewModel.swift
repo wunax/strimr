@@ -45,8 +45,7 @@ final class HubDetailViewModel {
     }
 
     private func loadPage(start: Int, isInitialLoad: Bool) async {
-        guard !reachedEnd else { return }
-        guard !isLoading, !isLoadingMore else { return }
+        guard !reachedEnd, !isLoading, !isLoadingMore else { return }
 
         if isInitialLoad {
             isLoading = true
