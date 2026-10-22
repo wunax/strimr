@@ -61,6 +61,9 @@ struct MediaHeroContentView: View {
     var starring: String?
     /// Technical badges of the version that would play; defaults to the resolution the item reports.
     var badges: [String]?
+    /// Makes a cut-off summary focusable and opens it in full. Left nil where the hero sits above rails that the
+    /// summary would steal focus from.
+    var onExpandSummary: ((MediaItem) -> Void)?
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
@@ -69,6 +72,7 @@ struct MediaHeroContentView: View {
                 logoPath: media.preferredLogoPath ?? fallbackLogoPath,
                 starring: starring,
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
+                onExpandSummary: onExpandSummary,
             )
         }
     }
@@ -80,6 +84,7 @@ private struct MediaHeroDetailsView: View {
     let logoPath: String?
     let starring: String?
     let badges: [String]
+    let onExpandSummary: ((MediaItem) -> Void)?
     private let summaryLineLimit = 3
 
     var body: some View {
@@ -117,11 +122,18 @@ private struct MediaHeroDetailsView: View {
                 .lineLimit(summaryLineLimit)
                 .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
         } else if let summary = media.summary, !summary.isEmpty {
-            Text(summary)
-                .font(.bodyText)
-                .foregroundStyle(.textSecondary)
-                .lineLimit(summaryLineLimit)
+            if let onExpandSummary {
+                ExpandableHeroSummary(summary: summary, lineLimit: summaryLineLimit) {
+                    onExpandSummary(media)
+                }
                 .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
+            } else {
+                Text(summary)
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
+                    .lineLimit(summaryLineLimit)
+                    .frame(minHeight: summaryLineHeight * CGFloat(summaryLineLimit), alignment: .top)
+            }
         }
     }
 
@@ -140,5 +152,69 @@ private struct MediaHeroDetailsView: View {
             .font(.facts)
             .foregroundStyle(.textSecondary)
         }
+    }
+}
+
+/// A summary that becomes focusable once it no longer fits its lines, with a "More" hint opening it in full.
+private struct ExpandableHeroSummary: View {
+    let summary: String
+    let lineLimit: Int
+    let onExpand: () -> Void
+
+    @State private var visibleHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
+
+    var body: some View {
+        Button(action: onExpand) {
+            // The hint keeps its room even when hidden so the text wraps the same whether or not it is cut off.
+            HStack(alignment: .lastTextBaseline, spacing: 16) {
+                Text(summary)
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
+                    .lineLimit(lineLimit)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onGeometryChange(for: CGFloat.self, of: \.size.height) { visibleHeight = $0 }
+                    .background(alignment: .topLeading) {
+                        Text(summary)
+                            .font(.bodyText)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .hidden()
+                            .onGeometryChange(for: CGFloat.self, of: \.size.height) { fullHeight = $0 }
+                    }
+
+                Text("media.detail.summary.more")
+                    .eyebrowStyle()
+                    .foregroundStyle(.textPrimary)
+                    .opacity(isTruncated ? 1 : 0)
+            }
+        }
+        .buttonStyle(HeroSummaryButtonStyle())
+        .disabled(!isTruncated)
+    }
+
+    private var isTruncated: Bool {
+        fullHeight > visibleHeight + 1
+    }
+}
+
+private struct HeroSummaryButtonStyle: ButtonStyle {
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let inset: CGFloat = 16
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // Drawn outside the text so focusing it does not move the hero.
+            .padding(inset)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.surfaceRaised)
+                    .opacity(isFocused ? 1 : 0)
+            }
+            .padding(-inset)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
+            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: configuration.isPressed)
     }
 }

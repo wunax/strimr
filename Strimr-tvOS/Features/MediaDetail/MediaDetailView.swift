@@ -15,6 +15,7 @@ struct MediaDetailView: View {
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
     @State private var fileInfoMedia: MediaItem?
+    @State private var expandedSummaryMedia: MediaItem?
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -52,6 +53,7 @@ struct MediaDetailView: View {
                             starring: heroMedia.id == bindableViewModel.media.id
                                 ? StarringFormatter.text(from: bindableViewModel.cast) : nil,
                             badges: heroBadges,
+                            onExpandSummary: { expandedSummaryMedia = $0 },
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
@@ -97,6 +99,9 @@ struct MediaDetailView: View {
                     await bindableViewModel.refreshTrackSelectionAfterSubtitleAttachment()
                 }
             }
+        }
+        .taskPresentation(item: $expandedSummaryMedia, style: .fullScreen) { media in
+            DetailSummaryView(media: media, logoPath: media.preferredLogoPath ?? seriesLogoPath)
         }
         .taskPresentation(item: $fileInfoMedia) { media in
             MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
