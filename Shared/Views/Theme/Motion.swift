@@ -7,8 +7,6 @@ enum Motion {
     static let crossfade: Animation = .easeInOut(duration: 0.2)
     static let hero: Animation = .easeInOut(duration: 0.24)
     static let heroFocusDelay: Duration = .milliseconds(150)
-    /// Scrolling or reflowing a page, eased like the system's focus scrolling.
-    static let pageScroll: Animation = .smooth(duration: 0.8)
 
     private static let fades: [Animation] = [crossfade, hero]
 

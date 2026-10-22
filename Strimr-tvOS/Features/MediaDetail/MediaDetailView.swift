@@ -8,16 +8,9 @@ struct MediaDetailView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaFocusModel.self) private var focusModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State var viewModel: MediaDetailViewModel
-    @FocusState private var focus: MediaDetailFocus?
-    /// `focus` once it has rested, which the hero follows.
-    @State private var settledFocus: MediaDetailFocus?
-    /// The episode the bar under the rail acts on: the last one focused, the next one to watch until then.
-    @State private var selectedEpisodeID: String?
-    @State private var pageScrollPosition = ScrollPosition(edge: .top)
-    /// Focus is on the episodes or their bar, so the logo shrinks to fit them under the hero.
-    @State private var isBrowsingEpisodes = false
+    @State private var focusedMedia: MediaItem?
+    @State private var contextualEpisodeID: String?
     @State private var hasHandledInitialEpisodePosition = false
     @State private var hasUserSelectedSeason = false
     @State private var isShowingSubtitleSearch = false
@@ -53,32 +46,31 @@ struct MediaDetailView: View {
                 MediaHeroBackgroundView(media: bindableViewModel.media.mediaItem)
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 32) {
                         MediaHeroContentView(
                             media: heroMedia,
                             fallbackLogoPath: seriesLogoPath,
-                            // A series keeps the room for its episode bar; its cast follows just below anyway.
-                            starring: heroMedia.id == bindableViewModel.media.id && !showsEpisodes
+                            starring: heroMedia.id == bindableViewModel.media.id
                                 ? StarringFormatter.text(from: bindableViewModel.cast) : nil,
                             badges: heroBadges,
                             onExpandSummary: { expandedSummaryMedia = $0 },
-                            // A series previews its seasons and episodes, which fill different lines; a movie only
-                            // gains its cast once loaded.
-                            reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [.starring],
-                            compactsLogo: isBrowsingEpisodes,
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
                         buttonsRow
 
-                        if showsEpisodes {
+                        DetailTrackPickers(
+                            viewModel: bindableViewModel,
+                            onSearchSubtitles: { isShowingSubtitleSearch = true },
+                        )
+
+                        if let trackSelectionErrorMessage = bindableViewModel.trackSelectionErrorMessage {
+                            Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                                .foregroundStyle(.red)
+                        }
+
+                        if bindableViewModel.media.type == .show {
                             seasonsSection
-                        } else {
-                            DetailTrackPickers(
-                                viewModel: bindableViewModel,
-                                onSearchSubtitles: { isShowingSubtitleSearch = true },
-                            )
-                            trackSelectionError
                         }
 
                         CastSection(
@@ -91,12 +83,10 @@ struct MediaDetailView: View {
                         RelatedHubsSection(viewModel: bindableViewModel, onSelectMedia: onSelectMedia)
                     }
                 }
-                .scrollPosition($pageScrollPosition)
             }
         }
         .task {
             await bindableViewModel.loadDetails()
-            await loadSelectedEpisodeTracks()
         }
         .themeMusic(path: bindableViewModel.media.mediaItem.themePath)
         .taskPresentation(isPresented: $isShowingSubtitleSearch) {
@@ -120,50 +110,37 @@ struct MediaDetailView: View {
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
-            Task {
-                await bindableViewModel.loadDetails()
-                await loadSelectedEpisodeTracks()
-            }
+            Task { await bindableViewModel.loadDetails() }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
             Task { await bindableViewModel.refreshIfNeeded() }
         }
         .onAppear {
+            if focusedMedia == nil {
+                focusedMedia = bindableViewModel.media.mediaItem
+            }
             Task { await bindableViewModel.refreshIfNeeded() }
         }
-        .onChange(of: focus) { oldValue, newValue in
-            withAnimation(Motion.animation(Motion.pageScroll, reduceMotion: reduceMotion)) {
-                switch newValue {
-                case .episode, .episodeBar:
-                    isBrowsingEpisodes = true
-                case .season, .pageActions:
-                    isBrowsingEpisodes = false
-                case nil:
-                    // A menu of the bar, the summary or the sections below: the logo keeps its size.
-                    break
-                }
-            }
-            if isInFirstScreen(newValue), !isInFirstScreen(oldValue) {
-                scrollFirstScreen()
-            }
-            focusModel.settle {
-                settledFocus = newValue
-                if case let .episode(id) = newValue {
-                    selectedEpisodeID = id
-                }
+        .onChange(of: bindableViewModel.media) { oldValue, newValue in
+            if focusedMedia == nil || focusedMedia?.id == oldValue.id {
+                focusedMedia = newValue.mediaItem
             }
         }
         .onChange(of: bindableViewModel.episodes) { _, episodes in
-            if let selectedEpisodeID, !episodes.contains(where: { $0.id == selectedEpisodeID }) {
-                self.selectedEpisodeID = nil
+            guard let contextualEpisodeID else { return }
+
+            if let refreshedEpisode = episodes.first(where: { $0.id == contextualEpisodeID }) {
+                focusedMedia = refreshedEpisode
+            } else {
+                self.contextualEpisodeID = nil
+                if focusedMedia?.id == contextualEpisodeID {
+                    focusedMedia = nil
+                }
             }
         }
         .onChange(of: bindableViewModel.selectedSeasonId) {
-            selectedEpisodeID = nil
-        }
-        .task(id: selectedEpisode?.id) {
-            await loadSelectedEpisodeTracks()
+            contextualEpisodeID = nil
         }
         .toolbar(.hidden, for: .tabBar)
         .alert(
@@ -219,57 +196,13 @@ struct MediaDetailView: View {
         }
     }
 
-    private var showsEpisodes: Bool {
-        viewModel.media.type == .show
+    private var contextualEpisode: MediaItem? {
+        guard let contextualEpisodeID else { return nil }
+        return viewModel.episodes.first(where: { $0.id == contextualEpisodeID })
     }
 
-    /// The hero, its actions, the seasons, the episodes and their bar share the first screen; only what follows
-    /// them scrolls.
-    private func isInFirstScreen(_ focus: MediaDetailFocus?) -> Bool {
-        guard showsEpisodes, let focus else { return false }
-        return switch focus {
-        case .season, .episode, .episodeBar, .pageActions: true
-        }
-    }
-
-    private func scrollFirstScreen() {
-        withAnimation(Motion.animation(Motion.pageScroll, reduceMotion: reduceMotion)) {
-            pageScrollPosition.scrollTo(edge: .top)
-        }
-    }
-
-    private var selectedEpisode: MediaItem? {
-        let episodes = viewModel.episodes
-        return episodes.first { $0.id == selectedEpisodeID }
-            ?? episodes.first { $0.id == viewModel.primaryActionItem?.id }
-            ?? episodes.first
-    }
-
-    /// The series by default; a season or an episode only while focus rests on it or on the episode bar.
     private var heroMedia: MediaItem {
-        switch settledFocus {
-        case let .season(id):
-            viewModel.seasons.first { $0.id == id } ?? viewModel.media.mediaItem
-        case let .episode(id):
-            viewModel.episodes.first { $0.id == id } ?? viewModel.media.mediaItem
-        case .episodeBar:
-            selectedEpisode ?? viewModel.media.mediaItem
-        case .pageActions, nil:
-            viewModel.media.mediaItem
-        }
-    }
-
-    private func loadSelectedEpisodeTracks() async {
-        guard showsEpisodes, let episode = selectedEpisode else { return }
-        await viewModel.loadTrackSelection(for: episode.id)
-    }
-
-    @ViewBuilder
-    private var trackSelectionError: some View {
-        if let trackSelectionErrorMessage = viewModel.trackSelectionErrorMessage {
-            Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
-                .foregroundStyle(.red)
-        }
+        contextualEpisode ?? focusedMedia ?? viewModel.media.mediaItem
     }
 
     /// Plex only returns a logo on the series itself, so its episodes and seasons borrow it from the loaded series.
@@ -309,26 +242,20 @@ struct MediaDetailView: View {
     private var buttonsRow: some View {
         HStack(spacing: 16) {
             playButton
-                .focused($focus, equals: .pageActions)
 
             if viewModel.shouldShowPlayFromStartButton {
                 playFromStartButton
-                    .focused($focus, equals: .pageActions)
             }
 
             ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
-                .focused($focus, equals: .pageActions)
 
             watchStatusButton
-                .focused($focus, equals: .pageActions)
 
             if viewModel.shouldShowFavoriteButton {
                 favoriteButton
-                    .focused($focus, equals: .pageActions)
             }
 
             moreActionsMenu
-                .focused($focus, equals: .pageActions)
         }
         // Full width so moving up from the right side of a rail below still lands on an action.
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -459,10 +386,9 @@ struct MediaDetailView: View {
     }
 
     private var seasonsSection: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 32) {
             seasonSelector
             episodesRow
-            episodeBar
         }
     }
 
@@ -487,15 +413,23 @@ struct MediaDetailView: View {
                         SeasonPillButton(
                             title: season.title,
                             isSelected: season.id == viewModel.selectedSeasonId,
-                            isFocused: focus == .season(season.id),
                             onSelect: {
                                 if season.id != viewModel.selectedSeasonId {
                                     hasUserSelectedSeason = true
                                 }
                                 Task { await viewModel.selectSeason(id: season.id) }
                             },
+                            onFocus: {
+                                focusModel.settle { focusedMedia = season }
+                            },
+                            onBlur: {
+                                focusModel.settle {
+                                    if focusedMedia?.id == season.id {
+                                        focusedMedia = nil
+                                    }
+                                }
+                            },
                         )
-                        .focused($focus, equals: .season(season.id))
                     }
                 }
                 .padding(.vertical, 4)
@@ -563,10 +497,13 @@ struct MediaDetailView: View {
                                     Task { await viewModel.markWatched(for: episode) }
                                 },
                                 isOnDeck: viewModel.onDeckItem?.id == episode.id,
-                                isSelected: episode.id == selectedEpisode?.id,
-                                isDimmed: focus == .episodeBar && episode.id != selectedEpisode?.id,
-                                isFocused: focus == .episode(episode.id),
-                                focus: $focus,
+                                onFocus: {
+                                    focusModel.settle {
+                                        contextualEpisodeID = episode.id
+                                        focusedMedia = episode
+                                        Task { await viewModel.loadTrackSelection(for: episode.id) }
+                                    }
+                                },
                                 onFileInfo: {
                                     fileInfoMedia = episode
                                 },
@@ -581,131 +518,11 @@ struct MediaDetailView: View {
                     await positionOnDeckEpisodeIfNeeded(using: scrollProxy)
                 }
                 .focusSection()
-                // Coming back from the episode bar, or down from the seasons, lands on the episode the bar acts on.
-                .defaultFocus($focus, selectedEpisode.map { .episode($0.id) }, priority: .userInitiated)
             }
         }
     }
 
-    @ViewBuilder
-    private var episodeBar: some View {
-        if let episode = selectedEpisode {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 16) {
-                    if viewModel.shouldShowPlayFromStartButton(for: episode) {
-                        Button {
-                            onPlayFromStart(episode.id, .episode)
-                        } label: {
-                            DetailRoundIcon(systemImage: "arrow.counterclockwise")
-                        }
-                        .detailRoundButtonStyle()
-                        .focused($focus, equals: .episodeBar)
-                        .accessibilityLabel(Text("media.detail.playFromStart"))
-                    }
-
-                    episodeWatchStatusButton(for: episode)
-
-                    if viewModel.shouldShowFavoriteButton(for: episode) {
-                        episodeFavoriteButton(for: episode)
-                    }
-
-                    // The previous episode's pills stay while the next one's tracks load, so moving along the rail
-                    // updates their values in place instead of removing and re-adding them.
-                    if viewModel.hasTrackSelection {
-                        DetailTrackPickers(
-                            viewModel: viewModel,
-                            onSearchSubtitles: { isShowingSubtitleSearch = true },
-                            focus: $focus,
-                        )
-                    }
-
-                    episodeMoreMenu(for: episode)
-                }
-
-                trackSelectionError
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .focusSection()
-            .task(id: episode.id) {
-                await viewModel.loadFavoriteStatus(for: episode)
-            }
-        }
-    }
-
-    private func episodeWatchStatusButton(for episode: MediaItem) -> some View {
-        let showsBothActions = viewModel.shouldShowBothWatchActions(for: episode)
-        let isUpdating = viewModel.isUpdatingWatchStatus(for: episode)
-        return Button {
-            Task {
-                if showsBothActions {
-                    await viewModel.markWatched(for: episode)
-                } else {
-                    await viewModel.toggleWatchStatus(for: episode)
-                }
-            }
-        } label: {
-            DetailRoundIcon(systemImage: viewModel.watchActionIcon(for: episode), isLoading: isUpdating)
-        }
-        .detailRoundButtonStyle()
-        .disabled(isUpdating)
-        .focused($focus, equals: .episodeBar)
-        .accessibilityLabel(Text(
-            showsBothActions
-                ? String(localized: "media.detail.watchAction.markWatched")
-                : viewModel.watchActionTitle(for: episode),
-        ))
-    }
-
-    private func episodeFavoriteButton(for episode: MediaItem) -> some View {
-        // Only an update shows a spinner; loading the status of each episode passed in the rail would blink it.
-        let isUpdating = viewModel.isUpdatingFavoriteStatus(for: episode)
-        return Button {
-            // Ignored rather than disabled while the status loads, which would dim the button for the same reason.
-            guard !viewModel.isLoadingFavoriteStatus(for: episode) else { return }
-            Task { await viewModel.toggleFavoriteStatus(for: episode) }
-        } label: {
-            DetailRoundIcon(systemImage: viewModel.favoriteActionIcon(for: episode), isLoading: isUpdating)
-        }
-        .detailRoundButtonStyle()
-        .disabled(isUpdating)
-        .focused($focus, equals: .episodeBar)
-        .accessibilityLabel(Text(viewModel.favoriteActionTitle(for: episode)))
-    }
-
-    private func episodeMoreMenu(for episode: MediaItem) -> some View {
-        Menu {
-            Button {
-                Task { await activateSharePlay(for: episode) }
-            } label: {
-                Label("sharePlay.action", systemImage: "shareplay")
-            }
-            .disabled(sharePlayCoordinator.isActivating)
-
-            if viewModel.shouldShowBothWatchActions(for: episode) {
-                Button {
-                    Task { await viewModel.markUnwatched(for: episode) }
-                } label: {
-                    Label("media.detail.watchAction.markUnwatched", systemImage: "checkmark.circle.fill")
-                }
-                .disabled(viewModel.isUpdatingWatchStatus(for: episode))
-            }
-
-            Divider()
-            Button {
-                fileInfoMedia = episode
-            } label: {
-                Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
-            }
-        } label: {
-            DetailRoundIcon(systemImage: "ellipsis", isLoading: sharePlayCoordinator.isActivating)
-        }
-        .detailRoundButtonStyle()
-        .menuIndicator(.hidden)
-        .focused($focus, equals: .episodeBar)
-        .accessibilityLabel(Text("common.actions.more"))
-    }
-
-    private let episodeWidth: CGFloat = 420
+    private let episodeWidth: CGFloat = 460
     private let episodeSpacing: CGFloat = 36
 
     @MainActor
@@ -713,13 +530,15 @@ struct MediaDetailView: View {
         guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
         hasHandledInitialEpisodePosition = true
 
-        guard let primaryEpisodeID = viewModel.primaryActionItem?.id,
-              viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+        guard let primaryEpisodeID = viewModel.primaryActionItem?.id else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
         await Task.yield()
 
-        guard !Task.isCancelled, !hasUserSelectedSeason, viewModel.primaryActionItem?.id == primaryEpisodeID,
-              viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
+        guard !Task.isCancelled else { return }
+        guard !hasUserSelectedSeason else { return }
+        guard viewModel.primaryActionItem?.id == primaryEpisodeID else { return }
+        guard viewModel.episodes.contains(where: { $0.id == primaryEpisodeID }) else { return }
 
         scrollProxy.scrollTo(primaryEpisodeID, anchor: .leading)
     }
@@ -779,22 +598,15 @@ struct MediaDetailView: View {
     }
 }
 
-enum MediaDetailFocus: Hashable {
-    case season(String)
-    case episode(String)
-    /// Any control of the bar acting on the selected episode.
-    case episodeBar
-    /// Play and the round buttons beside it.
-    case pageActions
-}
-
 private struct SeasonPillButton: View {
     let title: String
     let isSelected: Bool
-    let isFocused: Bool
     let onSelect: () -> Void
+    let onFocus: () -> Void
+    let onBlur: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         Text(title)
@@ -807,6 +619,14 @@ private struct SeasonPillButton: View {
             .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
             .animation(Motion.crossfade, value: isSelected)
             .focusable()
+            .focused($isFocused)
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    onFocus()
+                } else {
+                    onBlur()
+                }
+            }
             .onPlayPauseCommand(perform: onSelect)
             .onTapGesture(perform: onSelect)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -840,15 +660,11 @@ private struct EpisodeArtworkCard: View {
     let shouldShowBothWatchActions: Bool
     let onMarkWatched: () -> Void
     let isOnDeck: Bool
-    /// The episode the bar under the rail acts on; its caption stays lit once focus moves to the bar.
-    let isSelected: Bool
-    /// Set on the other episodes while focus is on the bar, so the one it acts on stands out.
-    let isDimmed: Bool
-    let isFocused: Bool
-    let focus: FocusState<MediaDetailFocus?>.Binding
+    let onFocus: () -> Void
     let onFileInfo: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -856,8 +672,6 @@ private struct EpisodeArtworkCard: View {
             caption
         }
         .frame(width: width, alignment: .leading)
-        .opacity(isDimmed ? 0.4 : 1)
-        .animation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion), value: isDimmed)
     }
 
     private var caption: some View {
@@ -865,11 +679,11 @@ private struct EpisodeArtworkCard: View {
             Text([episodeNumberText, runtime].compactMap(\.self).joined(separator: " · "))
                 .eyebrowStyle()
                 .foregroundStyle(.textTertiary)
-                .opacity(isFocused || isSelected ? 1 : 0.32 / 0.45)
+                .opacity(isFocused ? 1 : 0.32 / 0.45)
                 .lineLimit(1)
             Text(episode.title)
                 .font(.cardTitle)
-                .foregroundStyle(.textPrimary.opacity(isFocused || isSelected ? 1 : 0.45))
+                .foregroundStyle(.textPrimary.opacity(isFocused ? 1 : 0.45))
                 .lineLimit(1)
         }
         // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
@@ -908,7 +722,29 @@ private struct EpisodeArtworkCard: View {
             onDeckBadge
         }
         .focusable()
-        .focused(focus, equals: .episode(episode.id))
+        .focused($isFocused)
+        .overlay(alignment: .trailing) {
+            if isFocused {
+                Group {
+                    if isStartingSharePlay
+                        || isUpdatingWatchStatus
+                        || trackViewModel.isUpdatingFavoriteStatus(for: episode)
+                    {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "ellipsis")
+                            .font(.body.weight(.semibold))
+                            .rotationEffect(.degrees(90))
+                    }
+                }
+                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
+                .glassSurface(in: Circle())
+                .padding(12)
+                .accessibilityHidden(true)
+                .transition(.opacity.combined(with: .scale))
+            }
+        }
         .cardFocusStyle(isFocused: isFocused)
         .contextMenu {
             if shouldShowPlayFromStart {
@@ -983,6 +819,12 @@ private struct EpisodeArtworkCard: View {
         .onPlayPauseCommand(perform: onPlay)
         .onTapGesture(perform: onPlay)
         .animation(Motion.focus, value: isFocused)
+        .onChange(of: isFocused) { _, focused in
+            if focused {
+                onFocus()
+                Task { await trackViewModel.loadFavoriteStatus(for: episode) }
+            }
+        }
     }
 }
 

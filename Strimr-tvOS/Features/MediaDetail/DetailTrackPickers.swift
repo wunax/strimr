@@ -5,8 +5,6 @@ import SwiftUI
 struct DetailTrackPickers: View {
     @Bindable var viewModel: MediaDetailViewModel
     let onSearchSubtitles: () -> Void
-    /// Set when the pickers sit in the episode bar, so the page knows focus is on it.
-    var focus: FocusState<MediaDetailFocus?>.Binding?
 
     var body: some View {
         if showsVersion || showsAudio || showsSubtitles {
@@ -36,9 +34,8 @@ struct DetailTrackPickers: View {
                 }
             }
             .disabled(viewModel.isUpdatingTracks)
-            // Full width under the page actions so moving up from the right side of a rail below still lands on a
-            // pill; in the episode bar the pickers sit among other controls.
-            .frame(maxWidth: focus == nil ? .infinity : nil, alignment: .leading)
+            // Full width so moving up from the right side of a rail below still lands on a pill.
+            .frame(maxWidth: .infinity, alignment: .leading)
             .focusSection()
         }
     }
@@ -83,20 +80,7 @@ struct DetailTrackPickers: View {
         .buttonBorderShape(.capsule)
         .controlSize(.small)
         .menuIndicator(.hidden)
-        .modifier(EpisodeBarFocus(focus: focus))
         .accessibilityLabel(Text(accessibilityLabel))
         .accessibilityValue(Text(verbatim: title))
-    }
-}
-
-private struct EpisodeBarFocus: ViewModifier {
-    let focus: FocusState<MediaDetailFocus?>.Binding?
-
-    func body(content: Content) -> some View {
-        if let focus {
-            content.focused(focus, equals: .episodeBar)
-        } else {
-            content
-        }
     }
 }
