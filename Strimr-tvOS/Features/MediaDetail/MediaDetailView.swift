@@ -235,8 +235,10 @@ struct MediaDetailView: View {
         }
     }
 
+    /// Focus reaches the episode bar while scrolling is still disabled, so the page stays put; scrolling is back
+    /// on the bar so that moving down from it brings the cast into view at once.
     private var keepsFirstScreen: Bool {
-        isInFirstScreen(focus)
+        isInFirstScreen(focus) && focus != .episodeBar
     }
 
     private func scrollFirstScreen() {
