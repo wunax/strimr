@@ -3,7 +3,7 @@ import SwiftUI
 /// Round icon of a secondary detail action, as tall as the play button so it stays the lead; the title goes in the
 /// tooltip.
 struct DetailCircleActionLabel: View {
-    static let size: CGFloat = 44
+    static let size = LayoutMetrics.actionButtonHeight
 
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

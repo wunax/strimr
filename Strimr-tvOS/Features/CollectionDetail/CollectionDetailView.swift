@@ -40,6 +40,7 @@ struct CollectionDetailView: View {
                         }
                     }
                 }
+                .focusSection()
             }
             .padding(.horizontal, 48)
             .padding(.top, 32)
@@ -117,35 +118,20 @@ struct CollectionDetailView: View {
             Button {
                 onPlay(viewModel.collection.id)
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "play.fill")
-                        .font(.title3.weight(.semibold))
-                    Text("common.actions.play")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: 520, alignment: .leading)
+                Label("common.actions.play", systemImage: "play.fill")
+                    .font(.facts.weight(.semibold))
+                    .padding(.horizontal, 12)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.brandSecondary)
-            .foregroundStyle(.brandSecondaryForeground)
+            .actionButtonStyle(.primary)
 
             Button {
                 onShuffle(viewModel.collection.id)
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "shuffle")
-                        .font(.title3.weight(.semibold))
-                    Text("common.actions.shuffle")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: 260, alignment: .leading)
+                Label("common.actions.shuffle", systemImage: "shuffle")
+                    .font(.facts.weight(.semibold))
+                    .padding(.horizontal, 12)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .tint(.secondary)
+            .actionButtonStyle(.secondary)
         }
     }
 }

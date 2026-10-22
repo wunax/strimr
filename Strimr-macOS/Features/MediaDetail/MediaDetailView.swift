@@ -381,7 +381,6 @@ struct MediaDetailView: View {
             HStack(spacing: 10) {
                 PlayProgressIcon(progress: viewModel.primaryActionProgress)
                 Text(viewModel.primaryActionCompactTitle)
-                    .fontWeight(.semibold)
                     .lineLimit(1)
                     .layoutPriority(1)
                 if let remainingTime = viewModel.primaryActionRemainingTime {
@@ -390,15 +389,11 @@ struct MediaDetailView: View {
                         .lineLimit(1)
                 }
             }
-            .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
             .padding(.leading, 8)
             .padding(.trailing, 22)
-            .frame(minWidth: 200, minHeight: DetailCircleActionLabel.size)
-            .background(isPlayDisabled ? Color.surfaceRaised : Color.white, in: Capsule(style: .continuous))
-            .contentShape(Capsule(style: .continuous))
-            .hoverLift(scale: 1.03)
+            .frame(minWidth: 200)
         }
-        .buttonStyle(.plain)
+        .actionButtonStyle(.primary)
         .disabled(isPlayDisabled)
     }
 

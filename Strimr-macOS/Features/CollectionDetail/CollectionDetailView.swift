@@ -113,32 +113,18 @@ struct CollectionDetailView: View {
             Button {
                 onPlay(viewModel.collection.id)
             } label: {
-                HStack(spacing: 12) {
-                    Spacer(minLength: 0)
-                    Image(systemName: "play.fill")
-                        .font(.headline.weight(.semibold))
-                    Text("common.actions.play")
-                        .fontWeight(.semibold)
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity)
+                Label("common.actions.play", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.brandSecondary)
-            .foregroundStyle(.brandSecondaryForeground)
-            .frame(maxWidth: .infinity)
+            .actionButtonStyle(.primary)
 
             Button {
                 onShuffle(viewModel.collection.id)
             } label: {
                 Image(systemName: "shuffle")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 48)
+                    .frame(width: 56)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .tint(.brandSecondary)
+            .actionButtonStyle(.secondary)
             .accessibilityLabel(Text("common.actions.shuffle"))
         }
     }

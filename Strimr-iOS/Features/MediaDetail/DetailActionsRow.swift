@@ -148,7 +148,6 @@ struct DetailActionsRow: View {
             HStack(spacing: 10) {
                 PlayProgressIcon(progress: viewModel.primaryActionProgress)
                 Text(viewModel.primaryActionCompactTitle)
-                    .fontWeight(.semibold)
                     .lineLimit(1)
                     .layoutPriority(1)
                 if let remainingTime = viewModel.primaryActionRemainingTime {
@@ -157,12 +156,9 @@ struct DetailActionsRow: View {
                         .lineLimit(1)
                 }
             }
-            .foregroundStyle(isPlayDisabled ? Color.secondary : Color.black)
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .background(isPlayDisabled ? Color.surfaceRaised : Color.white, in: Capsule(style: .continuous))
-            .contentShape(Capsule(style: .continuous))
+            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .actionButtonStyle(.primary)
         .disabled(isPlayDisabled)
     }
 

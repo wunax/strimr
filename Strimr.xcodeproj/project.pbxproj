@@ -381,6 +381,7 @@
 				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
 				Views/ServerScopedView.swift,
 				Views/TaskPresentation.swift,
+				Views/Theme/ActionButtonStyle.swift,
 				Views/Theme/CardFocusStyle.swift,
 				Views/Theme/Colors.swift,
 				Views/Theme/GlassSurface.swift,

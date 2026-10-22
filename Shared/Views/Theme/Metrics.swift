@@ -29,6 +29,15 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Height of capsule action buttons drawn by `actionButtonStyle`; tvOS uses the system button height.
+    static var actionButtonHeight: CGFloat {
+        #if os(macOS)
+            44
+        #else
+            50
+        #endif
+    }
+
     static var castAvatarSize: CGFloat {
         #if os(tvOS)
             176

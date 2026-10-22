@@ -240,10 +240,7 @@ struct MediaDetailView: View {
             .font(.facts.weight(.semibold))
             .padding(.horizontal, 12)
         }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.capsule)
-        .tint(.white)
-        .foregroundStyle(.black)
+        .actionButtonStyle(.primary)
         .disabled(viewModel.primaryActionRatingKey == nil)
     }
 
