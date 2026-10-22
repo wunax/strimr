@@ -620,11 +620,17 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
         if let offsetFromCaptureStart {
             query.append(.init(name: "offset", value: String(Int(offsetFromCaptureStart))))
         }
-        try await network.send(
-            path: "/video/:/transcode/universal/decision",
-            queryItems: query,
-            headers: ["Accept-Language": "en", "X-Plex-Platform": "Generic"],
-        )
+        // start.m3u8 runs its own decision, so a failed one here only gets reported.
+        do {
+            try await network.send(
+                path: "/video/:/transcode/universal/decision",
+                queryItems: query,
+                headers: ["Accept-Language": "en", "X-Plex-Platform": "Generic"],
+            )
+        } catch {
+            if error.isCancellation { throw error }
+            LiveTVErrorReporting.capture(error)
+        }
         query.append(.init(name: "X-Plex-Token", value: snapshot.authToken))
         var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent("/video/:/transcode/universal/start.m3u8"),
