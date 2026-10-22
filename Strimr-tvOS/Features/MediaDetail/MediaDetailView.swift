@@ -92,9 +92,6 @@ struct MediaDetailView: View {
                     }
                 }
                 .scrollPosition($pageScrollPosition)
-                // The system scrolls to give the focused control room from the edge, which on a series would slide
-                // the hero away from where the home left it just to reach the episode bar.
-                .scrollDisabled(keepsFirstScreen)
             }
         }
         .task {
@@ -233,12 +230,6 @@ struct MediaDetailView: View {
         return switch focus {
         case .season, .episode, .episodeBar, .pageActions: true
         }
-    }
-
-    /// Focus reaches the episode bar while scrolling is still disabled, so the page stays put; scrolling is back
-    /// on the bar so that moving down from it brings the cast into view at once.
-    private var keepsFirstScreen: Bool {
-        isInFirstScreen(focus) && focus != .episodeBar
     }
 
     private func scrollFirstScreen() {
