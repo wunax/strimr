@@ -11,19 +11,17 @@ struct ExtrasSection: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Divider()
 
-                    Text("media.detail.extras")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-
-                    MediaCarousel(
-                        layout: .landscape,
-                        items: viewModel.extras.map(MediaDisplayItem.playable),
-                        showsLabels: true,
-                        onSelectMedia: { media in
-                            guard let item = media.playableItem else { return }
-                            onPlay(item)
-                        },
-                    )
+                    MediaHubSection(title: String(localized: "media.detail.extras")) {
+                        MediaCarousel(
+                            layout: .landscape,
+                            items: viewModel.extras.map(MediaDisplayItem.playable),
+                            showsLabels: true,
+                            onSelectMedia: { media in
+                                guard let item = media.playableItem else { return }
+                                onPlay(item)
+                            },
+                        )
+                    }
                 }
                 .padding(.horizontal, extrasSectionHorizontalPadding)
                 .environment(\.railPageMargin, extrasSectionHorizontalPadding)
