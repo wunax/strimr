@@ -29,6 +29,21 @@ enum LayoutMetrics {
         #endif
     }
 
+    static var castAvatarSize: CGFloat {
+        #if os(tvOS)
+            176
+        #elseif os(macOS)
+            112
+        #else
+            96
+        #endif
+    }
+
+    /// Wider than the avatar so names and characters wrap less.
+    static var castCardWidth: CGFloat {
+        castAvatarSize + 24
+    }
+
     /// Room above and below tvOS rails for the focused card to grow into.
     static let tvRailVerticalInset: CGFloat = 20
 

@@ -14,50 +14,33 @@ struct CastSection: View {
     }
 
     var body: some View {
-        Section {
+        if viewModel.isLoading || !viewModel.cast.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Divider()
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Text("media.detail.cast.title")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-
-                        if viewModel.isLoading, viewModel.cast.isEmpty {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
+                MediaHubSection(title: String(localized: "media.detail.cast.title")) {
+                    if viewModel.cast.isEmpty {
+                        CastSkeleton()
+                    } else {
+                        CastCarousel(viewModel: viewModel, onSelectPerson: onSelectPerson)
                     }
-
-                    castContent
                 }
             }
             .padding(.horizontal, sectionHorizontalPadding)
+            .environment(\.railPageMargin, sectionHorizontalPadding)
             .padding(.bottom, 32)
-        }
-        .textCase(nil)
-    }
-
-    @ViewBuilder
-    private var castContent: some View {
-        if viewModel.cast.isEmpty {
-            Text(viewModel.isLoading ? "media.detail.cast.loading" : "media.detail.cast.empty")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        } else {
-            CastCarousel(viewModel: viewModel, onSelectPerson: onSelectPerson)
         }
     }
 }
 
 struct CastCarousel: View {
+    @Environment(\.railPageMargin) private var pageMargin
     @Bindable var viewModel: MediaDetailViewModel
     let onSelectPerson: (Person) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 16) {
+            LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: .portrait)) {
                 ForEach(viewModel.cast) { member in
                     CastCard(
                         member: member,
@@ -70,12 +53,14 @@ struct CastCarousel: View {
                 }
             }
             #if os(tvOS)
-            .padding(.vertical, 12)
+            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
             #endif
         }
+        .railBleed(pageMargin: pageMargin)
         .mouseDragScrolling()
         #if os(tvOS)
             .scrollClipDisabled()
+            .focusSection()
         #endif
     }
 }
@@ -96,8 +81,11 @@ struct CastCard: View {
     let artworkPath: String?
     let onSelect: (() -> Void)?
     #if os(tvOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @FocusState private var isFocused: Bool
     #endif
+
+    private let avatarSize = LayoutMetrics.castAvatarSize
 
     var body: some View {
         #if os(tvOS)
@@ -123,95 +111,119 @@ struct CastCard: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            thumbnail
+        VStack(spacing: LayoutMetrics.cardLabelSpacing) {
+            avatar
+            #if os(tvOS)
+                .cardFocusStyle(isFocused: isFocused)
+            #endif
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.name)
-                    .font(nameFont)
-                    .fontWeight(.semibold)
-                    .lineLimit(2)
-                if let character = member.character {
-                    Text(character)
-                        .font(characterFont)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
+            labels
         }
-        .frame(width: 140, alignment: .leading)
-        .animation(.easeOut(duration: 0.15), value: isFocusedValue)
+        .frame(width: LayoutMetrics.castCardWidth)
+        .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
-    private var thumbnail: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white.opacity(0.08))
-
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
-                    case .empty:
-                        ProgressView()
-                            .tint(.secondary)
-                    case .failure:
-                        placeholder
-                    @unknown default:
-                        placeholder
+    private var avatar: some View {
+        Circle()
+            .fill(.surfaceSubtle)
+            .overlay {
+                if let imageURL {
+                    AsyncImage(url: imageURL) { phase in
+                        switch phase {
+                        case let .success(image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty:
+                            Color.clear
+                        default:
+                            placeholder
+                        }
                     }
+                } else if artworkPath != nil {
+                    ArtworkPathView(path: artworkPath, width: Int(avatarSize * 2), height: Int(avatarSize * 2))
+                } else {
+                    placeholder
                 }
-            } else if artworkPath != nil {
-                ArtworkPathView(path: artworkPath, width: 200, height: 200)
-                    .frame(width: 120, height: 120)
-            } else {
-                placeholder
             }
-        }
-        .frame(width: 120, height: 120)
-        .clipShape(Circle())
-        #if os(tvOS)
-            .scaleEffect(isFocused ? 1.12 : 1)
-        #endif
+            .frame(width: avatarSize, height: avatarSize)
+            .clipShape(Circle())
     }
 
     private var placeholder: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "person.fill")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            Text("media.detail.cast.noPhoto")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        Image(systemName: "person.fill")
+            .font(.system(size: avatarSize * 0.4))
+            .foregroundStyle(.textTertiary)
+    }
+
+    private var labels: some View {
+        VStack(spacing: 2) {
+            Text(member.name)
+                .font(.cardTitle)
+                .foregroundStyle(.textPrimary.opacity(nameOpacity))
+                .lineLimit(2)
+            if let character = member.character {
+                Text(character)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textSecondary)
+                    .opacity(characterOpacity)
+                    .lineLimit(2)
+            }
         }
-    }
-
-    private var nameFont: Font {
+        .multilineTextAlignment(.center)
         #if os(tvOS)
-            .footnote
-        #else
-            .callout
+            // Follows the bottom edge of the focused avatar so the lifted photo does not cover its caption.
+            .offset(y: isFocused && !reduceMotion ? avatarSize * (CardFocusStyle.focusedScale - 1) / 2 : 0)
+            .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         #endif
     }
 
-    private var characterFont: Font {
+    private var nameOpacity: Double {
         #if os(tvOS)
-            .caption2
+            isFocused ? 1 : 0.45
         #else
-            .caption
+            1
         #endif
     }
 
-    private var isFocusedValue: Bool {
+    /// Relative to `textSecondary`, matching the unfocused captions of media cards.
+    private var characterOpacity: Double {
         #if os(tvOS)
-            isFocused
+            isFocused ? 1 : 0.32 / 0.65
         #else
-            false
+            1
         #endif
+    }
+}
+
+private struct CastSkeleton: View {
+    @Environment(\.railPageMargin) private var pageMargin
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: .portrait)) {
+                ForEach(0 ..< 8, id: \.self) { _ in
+                    VStack(spacing: LayoutMetrics.cardLabelSpacing) {
+                        Circle()
+                            .fill(.surfaceSubtle)
+                            .frame(width: LayoutMetrics.castAvatarSize, height: LayoutMetrics.castAvatarSize)
+                        VStack(spacing: 2) {
+                            SkeletonLine(font: .cardTitle, fraction: 1)
+                                .frame(width: LayoutMetrics.castCardWidth * 0.7)
+                            SkeletonLine(font: .cardMetadata, fraction: 1)
+                                .frame(width: LayoutMetrics.castCardWidth * 0.5)
+                        }
+                    }
+                    .frame(width: LayoutMetrics.castCardWidth)
+                }
+            }
+            #if os(tvOS)
+            .padding(.vertical, LayoutMetrics.tvRailVerticalInset)
+            #endif
+        }
+        .scrollDisabled(true)
+        .railBleed(pageMargin: pageMargin)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("common.loading"))
     }
 }
