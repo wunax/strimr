@@ -133,8 +133,8 @@ final class DownloadOptionsViewModel {
     }
 
     private func loadTracksIfNeeded() async {
-        guard showsTrackSelection, !isLoadingTracks else { return }
-        guard trackSelection == nil || trackSelection?.versionID != selectedVersionID else { return }
+        guard showsTrackSelection, !isLoadingTracks,
+              trackSelection == nil || trackSelection?.versionID != selectedVersionID else { return }
         isLoadingTracks = true
         defer { isLoadingTracks = false }
         do {

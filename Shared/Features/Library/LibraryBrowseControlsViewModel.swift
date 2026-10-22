@@ -698,8 +698,9 @@ final class LibraryBrowseControlsViewModel {
     }
 
     private func loadJellyfinFilterOptionsIfNeeded() async {
-        guard jellyfinFilterOptions.genres.isEmpty, jellyfinFilterOptions.years.isEmpty else { return }
-        guard !isLoadingJellyfinFilterOptions, let browseService, let library else { return }
+        guard jellyfinFilterOptions.genres.isEmpty, jellyfinFilterOptions.years.isEmpty,
+              !isLoadingJellyfinFilterOptions,
+              let browseService, let library else { return }
         isLoadingJellyfinFilterOptions = true
         jellyfinFilterOptionsError = nil
         defer { isLoadingJellyfinFilterOptions = false }
@@ -714,10 +715,8 @@ final class LibraryBrowseControlsViewModel {
 
     private func loadFilterOptionsIfNeeded(for filter: PlexSectionItemFilter) async {
         let filterKey = filter.filter
-        guard !filterOptionsLoading.contains(filterKey) else { return }
-        guard filterOptions[filterKey] == nil else { return }
-        guard let advancedService else { return }
-        guard let endpoint = PlexEndpoint(key: filter.key) else { return }
+        guard !filterOptionsLoading.contains(filterKey), filterOptions[filterKey] == nil, let advancedService,
+              let endpoint = PlexEndpoint(key: filter.key) else { return }
 
         filterOptionsLoading.insert(filterKey)
         filterOptionsError[filterKey] = nil

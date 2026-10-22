@@ -130,8 +130,7 @@ final class TrackSelectionCoordinator {
         server: ServerIdentity,
         accountIdentifier: String,
     ) -> MediaTrackPreference? {
-        guard let scope = media.trackSelectionScope else { return nil }
-        guard let preference = preference(
+        guard let scope = media.trackSelectionScope, let preference = preference(
             for: scope,
             server: server,
             accountIdentifier: accountIdentifier,
@@ -238,8 +237,7 @@ final class TrackSelectionCoordinator {
         server: ServerIdentity,
         accountIdentifier: String,
     ) {
-        guard settingsManager.playback.rememberTrackSelections else { return }
-        guard track.type == .audio,
+        guard settingsManager.playback.rememberTrackSelections, track.type == .audio,
               let scope = media.trackSelectionScope
         else { return }
 
@@ -298,8 +296,7 @@ final class TrackSelectionCoordinator {
         server: ServerIdentity,
         accountIdentifier: String,
     ) {
-        guard settingsManager.playback.rememberTrackSelections else { return }
-        guard let scope = media.trackSelectionScope else { return }
+        guard settingsManager.playback.rememberTrackSelections, let scope = media.trackSelectionScope else { return }
 
         let account = TrackSelectionAccount(server: server, accountID: accountIdentifier)
         var preference = store.preference(for: scope, account: account) ?? .serverDefault

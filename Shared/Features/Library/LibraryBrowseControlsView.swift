@@ -304,8 +304,7 @@ struct LibraryBrowseControlsView: View {
         for filter: PlexSectionItemFilter,
         selection: LibraryBrowseControlsViewModel.FilterSelection?,
     ) -> String {
-        guard let selection else { return filter.title }
-        guard let option = selection.selectedOption else { return filter.title }
+        guard let selection, let option = selection.selectedOption else { return filter.title }
         return filter.title + ": " + option.title
     }
 

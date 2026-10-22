@@ -83,9 +83,8 @@ final class LibraryCollectionsViewModel {
         preservingExistingContent: Bool,
         forceReload: Bool = false,
     ) async {
-        guard let advancedService else { return }
-        guard forceReload || sectionCharacters.isEmpty else { return }
-        guard let sectionId = library.sectionId else { return }
+        guard let advancedService, forceReload || sectionCharacters.isEmpty,
+              let sectionId = library.sectionId else { return }
         do {
             let values = try await advancedService.collectionCharacters(sectionID: sectionId)
             var runningIndex = 0
@@ -122,8 +121,7 @@ final class LibraryCollectionsViewModel {
         reset: Bool = false,
         preservingExistingContent: Bool = false,
     ) async {
-        guard reset || !loadedPageStarts.contains(start) else { return }
-        guard !loadingPageStarts.contains(start) else { return }
+        guard reset || !loadedPageStarts.contains(start), !loadingPageStarts.contains(start) else { return }
         guard let advancedService else {
             await loadCommonPage(
                 start: start,

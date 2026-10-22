@@ -487,9 +487,8 @@ final class PlayerViewModel {
     }
 
     func changeQuality(to quality: TranscodeQualityPreset, force: Bool = false) async throws -> URL {
-        guard !isLivePlayback else { throw PlayerPlaybackError.missingPlaybackURL }
-        guard !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
-        guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard !isLivePlayback, !isLocalPlayback, let mediaServices,
+              let media else { throw PlayerPlaybackError.missingPlaybackURL }
         if !force, quality == selectedQuality, let playbackURL {
             return playbackURL
         }
@@ -515,8 +514,8 @@ final class PlayerViewModel {
         to versionID: String,
         from position: TimeInterval,
     ) async throws -> (url: URL, position: TimeInterval) {
-        guard !isLivePlayback, !isLocalPlayback else { throw PlayerPlaybackError.missingPlaybackURL }
-        guard let mediaServices, let media else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard !isLivePlayback, !isLocalPlayback, let mediaServices,
+              let media else { throw PlayerPlaybackError.missingPlaybackURL }
 
         let previousPlan = playbackPlan
         // Track ids are specific to each file: carry the preference by language, not the old stream index.

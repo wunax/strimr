@@ -115,10 +115,7 @@ final class PlexAPIContext {
     }
 
     func serverAccessSnapshot() throws -> ServerAccessSnapshot {
-        guard let resource else {
-            throw PlexAPIError.missingConnection
-        }
-        guard let baseURLServer else {
+        guard let resource, let baseURLServer else {
             throw PlexAPIError.missingConnection
         }
         guard let authTokenServer else {
@@ -308,10 +305,9 @@ final class PlexAPIContext {
     private func resolveConnection(
         using resource: PlexCloudResource,
     ) async throws -> PlexCloudResource.Connection {
-        guard let accessToken = resource.accessToken else {
-            throw PlexServerAccessRecoveryError.serverUnavailable
-        }
-        guard let resourceConnections = resource.connections, !resourceConnections.isEmpty else {
+        guard let accessToken = resource.accessToken, let resourceConnections = resource.connections,
+              !resourceConnections.isEmpty
+        else {
             throw PlexServerAccessRecoveryError.serverUnavailable
         }
 

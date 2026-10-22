@@ -977,9 +977,8 @@ struct PlayerView: View {
     }
 
     private func applyResumeOffsetIfNeeded() {
-        guard !sharePlayCoordinator.isInSession else { return }
-        guard viewModel.shouldResumeFromOffset else { return }
-        guard !appliedResumeOffset, let offset = viewModel.resumePosition, offset > 0 else { return }
+        guard !sharePlayCoordinator.isInSession, viewModel.shouldResumeFromOffset, !appliedResumeOffset,
+              let offset = viewModel.resumePosition, offset > 0 else { return }
         appliedResumeOffset = true
         playerController.seek(to: offset)
     }
@@ -1031,8 +1030,7 @@ struct PlayerView: View {
     }
 
     private func startPlaybackIfNeeded(url: URL?) {
-        guard let url else { return }
-        guard activePlaybackURL != url else { return }
+        guard let url, activePlaybackURL != url else { return }
 
         let startPosition = sharePlayCoordinator.activity?.initialPosition
             ?? (viewModel.shouldResumeFromOffset ? viewModel.resumePosition : nil)
@@ -1131,8 +1129,7 @@ struct PlayerView: View {
                 }
             }
         }
-        guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground else { return }
-        guard !playerController.isPictureInPictureActive,
+        guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground, !playerController.isPictureInPictureActive,
               !playerController.isPictureInPictureTransitioning
         else { return }
 
@@ -1238,8 +1235,7 @@ struct PlayerView: View {
     }
 
     private func handleAutomaticMarkerSkipIfNeeded() {
-        guard !isScrubbing, !sharePlayCoordinator.isInSession else { return }
-        guard let marker = viewModel.automaticSkipMarker(
+        guard !isScrubbing, !sharePlayCoordinator.isInSession, let marker = viewModel.automaticSkipMarker(
             autoSkipIntros: settingsManager.playback.autoSkipIntros,
             autoSkipCredits: settingsManager.playback.autoSkipCredits,
             autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
@@ -1307,14 +1303,7 @@ struct PlayerView: View {
     private func handleEpisodeCompletion(for _: MediaItem, stopsForSleepTimer: Bool) async {
         await viewModel.markPlaybackFinished()
 
-        guard viewModel.usesCommonPlaybackQueue else {
-            if !stopsForSleepTimer {
-                await MainActor.run { dismissPlayer(force: true) }
-            }
-            return
-        }
-
-        guard let nextViewModel = viewModel.makeNextPlayerViewModel() else {
+        guard viewModel.usesCommonPlaybackQueue, let nextViewModel = viewModel.makeNextPlayerViewModel() else {
             if !stopsForSleepTimer {
                 await MainActor.run { dismissPlayer(force: true) }
             }

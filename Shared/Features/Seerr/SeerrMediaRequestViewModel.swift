@@ -101,8 +101,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     var canSubmit: Bool {
-        guard selectedRequestType != nil else { return false }
-        guard servicesErrorMessage == nil else { return false }
+        guard selectedRequestType != nil, servicesErrorMessage == nil else { return false }
         if isTV, selectedSeasons.isEmpty {
             return false
         }
@@ -173,8 +172,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     func isSeasonSelectable(_ seasonNumber: Int) -> Bool {
-        guard let requestType = selectedRequestType else { return false }
-        guard allowsPartialRequests else { return false }
+        guard let requestType = selectedRequestType, allowsPartialRequests else { return false }
         let requestable = SeerrMediaRequestAvailability.isSeasonRequestable(
             media: media,
             seasonNumber: seasonNumber,
@@ -197,9 +195,8 @@ final class SeerrMediaRequestViewModel {
     }
 
     func loadServiceOptionsIfNeeded() async {
-        guard requiresAdvancedConfiguration else { return }
-        guard let requestType = selectedRequestType else { return }
-        guard loadedRequestType != requestType else { return }
+        guard requiresAdvancedConfiguration, let requestType = selectedRequestType,
+              loadedRequestType != requestType else { return }
         await loadServers(for: requestType)
     }
 
@@ -210,8 +207,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     func submitRequest() async {
-        guard let payload = buildPayload() else { return }
-        guard let requestRepository else { return }
+        guard let payload = buildPayload(), let requestRepository else { return }
 
         isSubmitting = true
         defer { isSubmitting = false }
@@ -229,8 +225,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     func cancelRequest() async {
-        guard let requestRepository else { return }
-        guard let requestId = existingRequest?.id else { return }
+        guard let requestRepository, let requestId = existingRequest?.id else { return }
 
         isSubmitting = true
         defer { isSubmitting = false }
@@ -326,8 +321,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     private func seedSelectedSeasonsIfNeeded() {
-        guard isTV else { return }
-        guard let requestType = selectedRequestType else { return }
+        guard isTV, let requestType = selectedRequestType else { return }
 
         if !allowsPartialRequests {
             let requestable = SeerrMediaRequestAvailability.requestableSeasons(media: media, is4k: requestType.is4k)
@@ -402,8 +396,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     private func buildPayload() -> SeerrMediaRequestPayload? {
-        guard let requestType = selectedRequestType else { return nil }
-        guard let mediaType = media.mediaType else { return nil }
+        guard let requestType = selectedRequestType, let mediaType = media.mediaType else { return nil }
 
         var tvdbId: Int?
         var seasonsPayload: [Int]?
@@ -470,8 +463,7 @@ final class SeerrMediaRequestViewModel {
     }
 
     private var canRequest4K: Bool {
-        guard isMovie || isTV else { return false }
-        guard is4kEnabledForMedia else { return false }
+        guard isMovie || isTV, is4kEnabledForMedia else { return false }
         let permissions: [SeerrPermission] = isTV ? [.request4K, .request4KTV] : [.request4K, .request4KMovie]
         return permissionService.hasPermission(permissions, user: store.user, options: .init(type: .or))
     }

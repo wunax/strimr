@@ -407,8 +407,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     ) async throws {
         let mediaItem = preparation.media
         let owner = services.owner
-        guard !isAlreadyScheduled(for: mediaItem.identity, ownerID: owner.id) else { return }
-        guard mediaItem.kind == .movie || mediaItem.kind == .episode else { return }
+        guard !isAlreadyScheduled(for: mediaItem.identity, ownerID: owner.id),
+              mediaItem.kind == .movie || mediaItem.kind == .episode else { return }
 
         let id = UUID().uuidString
         let folderURL = downloadsDirectory.appendingPathComponent(id, isDirectory: true)
@@ -819,8 +819,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         guard !hasActiveTranscode(on: server),
               let services = servicesByServer[server],
               let item = items
-              .filter({ $0.identity?.server == server && $0.status == .queued })
-              .min(by: { $0.createdAt < $1.createdAt }),
+                  .filter({ $0.identity?.server == server && $0.status == .queued })
+                  .min(by: { $0.createdAt < $1.createdAt }),
               preparationTasks[item.id] == nil
         else { return }
 

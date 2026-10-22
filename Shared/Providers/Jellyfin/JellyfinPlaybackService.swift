@@ -98,10 +98,9 @@ struct JellyfinPlaybackService {
             appliedTrackSelection = resolvedSelection
         }
 
-        guard let resolvedSource = selectedSource(in: info, id: mediaSourceID, quality: quality) else {
-            throw JellyfinAPIError.noPlayableSource
-        }
-        guard let resolvedPlaySessionID = info.playSessionID, !resolvedPlaySessionID.isEmpty else {
+        guard let resolvedSource = selectedSource(in: info, id: mediaSourceID, quality: quality),
+              let resolvedPlaySessionID = info.playSessionID, !resolvedPlaySessionID.isEmpty
+        else {
             throw JellyfinAPIError.noPlayableSource
         }
         let transcodeURL = resolvedSource.transcodingURL.flatMap {

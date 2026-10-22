@@ -594,6 +594,12 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
 
     func source(offsetFromCaptureStart: TimeInterval?) async throws -> LiveTVPlaybackSource {
         let snapshot = try context.serverAccessSnapshot()
+        // AVPlayer cannot decode broadcast MPEG-2, so only h264 is offered and the server transcodes it.
+        let profile = [
+            "add-settings(DirectPlayStreamSelection=true)",
+            "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,ac3,eac3,mp3)",
+            "add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)",
+        ].joined(separator: "+")
         var query: [URLQueryItem] = [
             .init(name: "hasMDE", value: "1"), .init(name: "path", value: sessionPath),
             .init(name: "mediaIndex", value: "0"), .init(name: "partIndex", value: "0"),
@@ -604,12 +610,30 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
             .init(name: "session", value: transcodeIdentifier),
             .init(name: "X-Plex-Session-Identifier", value: sessionIdentifier),
             .init(name: "X-Plex-Client-Identifier", value: snapshot.clientIdentifier),
-            .init(name: "X-Plex-Token", value: snapshot.authToken),
+            .init(name: "X-Plex-Product", value: "Strimr"),
+            .init(name: "X-Plex-Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String),
+            .init(name: "X-Plex-Platform", value: "Generic"),
+            .init(name: "X-Plex-Client-Profile-Name", value: "Generic"),
+            .init(name: "X-Plex-Client-Profile-Extra", value: profile),
             .init(name: "X-Plex-Incomplete-Segments", value: "1"),
         ]
         if let offsetFromCaptureStart {
             query.append(.init(name: "offset", value: String(Int(offsetFromCaptureStart))))
         }
+        // start.m3u8 runs its own decision, so a failed one here only gets reported.
+        do {
+            try await network.send(
+                path: "/video/:/transcode/universal/decision",
+                queryItems: query,
+                headers: ["Accept-Language": "en", "X-Plex-Platform": "Generic"],
+            )
+        } catch {
+            if error.isCancellation {
+                throw error
+            }
+            LiveTVErrorReporting.capture(error)
+        }
+        query.append(.init(name: "X-Plex-Token", value: snapshot.authToken))
         var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent("/video/:/transcode/universal/start.m3u8"),
             resolvingAgainstBaseURL: false,
