@@ -10,7 +10,7 @@ final class SettingsNavigation {
         let content: AnyView
     }
 
-    var category: SettingsCategory = .playback
+    var category: SettingsCategory
     var pages: [SettingsCategory: [Page]] = [:]
     var sidebarFocused = true
     var sidebarRequest = 0
@@ -18,6 +18,10 @@ final class SettingsNavigation {
     var pendingDetailFocus: String?
     var focusedControls: [String: String] = [:]
     var scrollOffsets: [String: CGFloat] = [:]
+
+    init(category: SettingsCategory) {
+        self.category = category
+    }
 
     var currentPages: [Page] {
         pages[category, default: []]

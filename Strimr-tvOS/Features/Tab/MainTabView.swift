@@ -151,7 +151,7 @@ struct MainTabView: View {
                         .navigationDestination(for: MoreRoute.self) { route in
                             switch route {
                             case .settings:
-                                SettingsView()
+                                SettingsView(canManageAccounts: sessionManager.canManageAccounts)
                             case .favorites:
                                 FavoritesView(
                                     sessionManager: sessionManager,

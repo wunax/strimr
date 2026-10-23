@@ -6,20 +6,30 @@ struct SettingsView: View {
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(SessionManager.self) private var sessionManager
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var navigation = SettingsNavigation()
+    @State private var navigation: SettingsNavigation
     @State private var focusCandidates: [SettingsFocusCandidate] = []
-    @State private var didSetInitialFocus = false
     @State private var scrollReadyPages: Set<String> = []
+    @State private var previewedCategory: SettingsCategory?
+    @State private var categoryPreviewTask: Task<Void, Never>?
     @State private var requestedDetailTarget: SettingsFocusTarget?
     @FocusedValue(\.settingsActualFocus) private var actualDetailFocus
     @FocusState private var focusedTarget: SettingsFocusTarget?
 
+    /// The first category is known before the first frame, so neither the selection nor the detail page jumps.
+    init(canManageAccounts: Bool) {
+        let category = SettingsCategory.visible(canManageAccounts: canManageAccounts).first ?? .playback
+        _navigation = State(initialValue: SettingsNavigation(category: category))
+    }
+
     var body: some View {
         GeometryReader { geometry in
             HStack(alignment: .top, spacing: 36) {
-                sidebar
-                    .frame(width: (geometry.size.width - 73) * 0.32)
+                SettingsSidebar(
+                    categories: visibleCategories,
+                    selectedCategory: previewedCategory ?? navigation.category,
+                    focusedTarget: $focusedTarget,
+                )
+                .frame(width: (geometry.size.width - 73) * 0.32)
 
                 Rectangle()
                     .fill(.strokeSubtle)
@@ -45,14 +55,7 @@ struct SettingsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .environment(navigation)
         .environment(\.settingsFocusBinding, $focusedTarget)
-        .onAppear {
-            guard !didSetInitialFocus else { return }
-            didSetInitialFocus = true
-            if let first = visibleCategories.first {
-                navigation.category = first
-            }
-            focusedTarget = .category(navigation.category)
-        }
+        .defaultFocus($focusedTarget, .category(navigation.category))
         .onChange(of: focusedTarget) { previous, target in
             switch target {
             case let .category(category):
@@ -64,11 +67,12 @@ struct SettingsView: View {
                     return
                 }
                 navigation.sidebarFocused = true
-                navigation.category = category
+                previewCategory(category)
             case .control:
                 // FocusState also changes when a request is issued; it is not an acknowledgement.
                 break
             case .detailEntry:
+                commitPreviewedCategory()
                 navigation.enterDetailFromSidebar()
             case .sidebarEntry:
                 navigation.enterSidebar()
@@ -113,6 +117,29 @@ struct SettingsView: View {
         }
     }
 
+    /// Building a detail page is expensive; skip the pages the focus only passes through.
+    private func previewCategory(_ category: SettingsCategory) {
+        categoryPreviewTask?.cancel()
+        guard category != navigation.category else {
+            previewedCategory = nil
+            return
+        }
+        previewedCategory = category
+        categoryPreviewTask = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            commitPreviewedCategory()
+        }
+    }
+
+    private func commitPreviewedCategory() {
+        categoryPreviewTask?.cancel()
+        categoryPreviewTask = nil
+        guard let previewedCategory else { return }
+        self.previewedCategory = nil
+        navigation.category = previewedCategory
+    }
+
     /// One focus binding owns both columns. Wait for the destination's enabled controls
     /// to enter the view tree instead of racing per-row bindings against resetFocus.
     private func fulfillDetailFocusRequest() {
@@ -143,57 +170,6 @@ struct SettingsView: View {
 
     private var visibleCategories: [SettingsCategory] {
         SettingsCategory.visible(canManageAccounts: sessionManager.canManageAccounts)
-    }
-
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 32) {
-            Text("settings.title")
-                .font(.heroTitle)
-                .foregroundStyle(.textPrimary)
-                .padding(.leading, 20)
-
-            VStack(spacing: 16) {
-                ForEach(visibleCategories) { category in
-                    Button {
-                        navigation.category = category
-                        navigation.enterDetailFromSidebar()
-                    } label: {
-                        HStack(spacing: 18) {
-                            Image(systemName: category.symbol)
-                                .frame(width: 32)
-                            Text(category.title)
-                                .font(.rowTitle)
-                            Spacer(minLength: 0)
-                        }
-                        .foregroundStyle(focusedTarget == .category(category) ? Color.black : Color.primary)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 22)
-                        .background {
-                            RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
-                                .fill(
-                                    focusedTarget == .category(category) ? Color.white :
-                                        navigation.category == category ? Color.selectionAccent.opacity(0.18) : .clear,
-                                )
-                        }
-                        .overlay(alignment: .leading) {
-                            if navigation.category == category {
-                                Capsule()
-                                    .fill(Color.selectionAccent)
-                                    .frame(width: 4, height: 28)
-                            }
-                        }
-                    }
-                    .buttonStyle(SettingsCategoryButtonStyle())
-                    .focusEffectDisabled()
-                    .focused($focusedTarget, equals: .category(category))
-                    .accessibilityAddTraits(navigation.category == category ? .isSelected : [])
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .focusSection()
-        .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: navigation.category)
-        .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: focusedTarget)
     }
 
     private var detail: some View {
@@ -264,9 +240,82 @@ struct SettingsView: View {
     }
 }
 
+/// A separate view so preference and focus-request updates of the detail column do not rebuild it.
+private struct SettingsSidebar: View {
+    @Environment(SettingsNavigation.self) private var navigation
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let categories: [SettingsCategory]
+    /// Leads the debounced detail page so the previous selection does not linger behind the focus.
+    let selectedCategory: SettingsCategory
+    let focusedTarget: FocusState<SettingsFocusTarget?>.Binding
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            Text("settings.title")
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
+                .padding(.leading, 20)
+
+            VStack(spacing: 16) {
+                ForEach(categories) { category in
+                    Button {
+                        navigation.category = category
+                        navigation.enterDetailFromSidebar()
+                    } label: {
+                        HStack(spacing: 18) {
+                            Image(systemName: category.symbol)
+                                .frame(width: 32)
+                            Text(category.title)
+                                .font(.rowTitle)
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    .buttonStyle(SettingsCategoryButtonStyle(isSelected: selectedCategory == category))
+                    .focusEffectDisabled()
+                    .focused(focusedTarget, equals: .category(category))
+                    .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .focusSection()
+        .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: selectedCategory)
+    }
+}
+
 /// The sidebar draws its own focus surface; avoid the native button background and scale.
 private struct SettingsCategoryButtonStyle: ButtonStyle {
+    let isSelected: Bool
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(configuration.isPressed ? 0.7 : 1)
+        SettingsCategoryRow(label: configuration.label, isSelected: isSelected)
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+/// Follows the native focus directly: FocusState only updates after the move and made the highlight trail behind.
+private struct SettingsCategoryRow<Label: View>: View {
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let label: Label
+    let isSelected: Bool
+
+    var body: some View {
+        label
+            .foregroundStyle(isFocused ? Color.black : Color.primary)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 22)
+            .background {
+                RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
+                    .fill(isFocused ? Color.white : isSelected ? Color.selectionAccent.opacity(0.18) : .clear)
+            }
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    Capsule()
+                        .fill(Color.selectionAccent)
+                        .frame(width: 4, height: 28)
+                }
+            }
+            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
     }
 }
