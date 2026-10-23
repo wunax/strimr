@@ -625,7 +625,6 @@ struct PlayerView: View {
             onSelectSleepTimer: selectSleepTimer(_:),
             onClose: { sheetPresentation.item = nil },
         )
-        .presentationBackground(.ultraThinMaterial)
     }
 
     @ViewBuilder
