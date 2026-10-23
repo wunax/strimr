@@ -4,6 +4,7 @@ struct PlayerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State var viewModel: PlayerViewModel
@@ -204,7 +205,7 @@ struct PlayerView: View {
                     hideInfoPanel()
                     hideControlsWorkItem?.cancel()
                     focusedPlayerSurface = nil
-                    withAnimation(.easeInOut) {
+                    withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                         controlsVisible = false
                     }
                 }
@@ -217,7 +218,7 @@ struct PlayerView: View {
                         hideInfoPanel()
                         hideControlsWorkItem?.cancel()
                         focusedPlayerSurface = nil
-                        withAnimation(.easeInOut) {
+                        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                             controlsVisible = false
                         }
                     } else {
@@ -230,7 +231,7 @@ struct PlayerView: View {
                 .onChange(of: pauseScreen.isPresented) { _, isPresented in
                     guard isPresented else { return }
                     hideControlsWorkItem?.cancel()
-                    withAnimation(.easeInOut) {
+                    withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                         controlsVisible = false
                     }
                 }
@@ -297,7 +298,7 @@ struct PlayerView: View {
                         .onPlayPauseCommand { togglePlayPause() }
                     }
                 }
-                .animation(.smooth(duration: 0.3), value: sheetPresentation.item)
+                .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: sheetPresentation.item)
             }
             .overlay {
                 if let activeOffsetBar {
@@ -511,7 +512,7 @@ struct PlayerView: View {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: pauseScreen.isPresented)
+        .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
 
     @ViewBuilder
@@ -553,8 +554,9 @@ struct PlayerView: View {
                     .tint(.white)
 
                 Text("player.status.buffering")
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .font(.facts.weight(.semibold))
+                    .foregroundStyle(.textPrimary)
+                    .videoTextShadow()
             }
         }
         .padding(.bottom, 20)
@@ -798,7 +800,7 @@ struct PlayerView: View {
     private func openOffsetBar(_ kind: PlaybackOffsetKind) {
         sheetPresentation.item = nil
         hideControlsWorkItem?.cancel()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = kind
             controlsVisible = true
         }
@@ -806,7 +808,7 @@ struct PlayerView: View {
 
     private func closeOffsetBar() {
         playerController.commitAudioDelay()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = nil
         }
         settingsFocusGeneration += 1
@@ -865,14 +867,14 @@ struct PlayerView: View {
         hideControlsWorkItem?.cancel()
         focusedPlayerSurface = nil
         infoPanelTab = .info
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = true
         }
     }
 
     private func hideInfoPanel() {
         guard isShowingInfoPanel else { return }
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = false
         }
         DispatchQueue.main.async {
@@ -1089,7 +1091,7 @@ struct PlayerView: View {
             timelinePosition = viewModel.position
             playerController.beginScrubPreviewing(at: timelinePosition)
             hideControlsWorkItem?.cancel()
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                 controlsVisible = true
             }
         } else {
@@ -1246,7 +1248,7 @@ struct PlayerView: View {
 
         focusedPlayerSurface = nil
 
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
             controlsVisible = true
         }
 
@@ -1291,7 +1293,7 @@ struct PlayerView: View {
         guard sheetPresentation.item == nil, activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                 controlsVisible = false
             }
         }
@@ -1351,12 +1353,12 @@ struct PlayerView: View {
     private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
         automaticSkipFeedbackWorkItem?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
             automaticSkipFeedbackMessage = message
         }
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 automaticSkipFeedbackMessage = nil
             }
         }
@@ -1436,7 +1438,7 @@ struct PlayerView: View {
         seekFeedback = feedback
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 seekFeedback = nil
             }
         }

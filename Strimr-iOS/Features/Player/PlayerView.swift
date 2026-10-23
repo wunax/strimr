@@ -5,6 +5,7 @@ struct PlayerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
@@ -220,7 +221,7 @@ struct PlayerView: View {
                 }
                 .onChange(of: nextEpisodePresentation.isPresented) { _, isPresented in
                     guard isPresented else { return }
-                    withAnimation(.easeInOut) {
+                    withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
                         isShowingInfoPanel = false
                     }
                 },
@@ -532,7 +533,7 @@ struct PlayerView: View {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: pauseScreen.isPresented)
+        .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
 
     private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
@@ -584,8 +585,9 @@ struct PlayerView: View {
                 .tint(.white)
 
             Text("player.status.buffering")
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.facts.weight(.semibold))
+                .foregroundStyle(.textPrimary)
+                .videoTextShadow()
         }
         .padding(.bottom, 20)
     }
@@ -663,7 +665,7 @@ struct PlayerView: View {
     private func openOffsetBar(_ kind: PlaybackOffsetKind) {
         sheetPresentation.item = nil
         hideControlsWorkItem?.cancel()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = kind
             controlsVisible = true
         }
@@ -671,7 +673,7 @@ struct PlayerView: View {
 
     private func closeOffsetBar() {
         playerController.commitAudioDelay()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = nil
         }
         showControls(temporarily: true)
@@ -681,14 +683,14 @@ struct PlayerView: View {
         guard canShowInfoPanel, !isShowingInfoPanel else { return }
         hideControlsWorkItem?.cancel()
         infoPanelTab = .info
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = true
         }
     }
 
     private func hideInfoPanel() {
         guard isShowingInfoPanel else { return }
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = false
         }
         showControls(temporarily: true)
@@ -1018,7 +1020,7 @@ struct PlayerView: View {
             timelinePosition = viewModel.position
             playerController.beginScrubPreviewing(at: timelinePosition)
             hideControlsWorkItem?.cancel()
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                 controlsVisible = true
             }
         } else {
@@ -1173,7 +1175,7 @@ struct PlayerView: View {
 
     private func showControls(temporarily: Bool) {
         pauseScreen.registerInteraction()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
             controlsVisible = true
         }
 
@@ -1186,7 +1188,7 @@ struct PlayerView: View {
 
     private func hideControls() {
         hideControlsWorkItem?.cancel()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
             controlsVisible = false
         }
     }
@@ -1196,7 +1198,7 @@ struct PlayerView: View {
         guard activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                 controlsVisible = false
             }
         }
@@ -1256,12 +1258,12 @@ struct PlayerView: View {
     private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
         automaticSkipFeedbackWorkItem?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
             automaticSkipFeedbackMessage = message
         }
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 automaticSkipFeedbackMessage = nil
             }
         }

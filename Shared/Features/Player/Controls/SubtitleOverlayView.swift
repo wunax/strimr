@@ -20,6 +20,8 @@ struct SubtitleOverlayView: View {
     let assReloadSignal: PassthroughSubject<Void, Never>
     let activeSubtitleCodec: String?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         if let assRenderer {
             GeometryReader { geometry in
@@ -70,7 +72,7 @@ struct SubtitleOverlayView: View {
                                     ? bottomPadding
                                     : 0,
                             )
-                            .animation(.easeInOut(duration: 0.2), value: bottomPadding)
+                            .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomPadding)
                         }
                     }
             }

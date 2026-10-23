@@ -145,7 +145,7 @@ struct PlayerInfoPanelView: View {
 
     private func select(_ tab: PlayerInfoTab) {
         guard tab != selectedTab else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(Motion.crossfade) {
             selectedTab = tab
         }
     }

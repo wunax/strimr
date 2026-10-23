@@ -11,6 +11,7 @@ struct PlayerTimelineScrubberView: View {
     @State private var consecutiveMoves = 0
     @State private var isScrubbing = false
     @State private var commitWorkItem: DispatchWorkItem?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
     private let scrubCommitDelay: TimeInterval = 0.4
@@ -50,9 +51,9 @@ struct PlayerTimelineScrubberView: View {
                     .scaleEffect(isFocused ? 1.0 : 0.75)
                     .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 6)
                     .offset(x: thumbX - thumbDiameter / 2)
-                    .animation(.easeInOut(duration: 0.15), value: isFocused)
+                    .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
             }
-            .animation(.easeInOut(duration: 0.15), value: isFocused)
+            .animation(Motion.focus, value: isFocused)
         }
         .contentShape(Rectangle())
         .frame(maxWidth: .infinity, maxHeight: 32)

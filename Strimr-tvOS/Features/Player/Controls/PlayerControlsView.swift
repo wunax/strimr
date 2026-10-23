@@ -318,33 +318,3 @@ private enum FocusTarget: Hashable {
     case audio, subtitle, speed, settings
     case playPause
 }
-
-private struct PlayerControlsBackground: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.55),
-                    .clear,
-                ],
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            .frame(height: 200)
-
-            Spacer()
-
-            LinearGradient(
-                colors: [
-                    .clear,
-                    .black.opacity(0.7),
-                ],
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            .frame(height: 280)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-    }
-}

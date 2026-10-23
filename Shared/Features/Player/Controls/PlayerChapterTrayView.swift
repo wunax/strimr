@@ -5,6 +5,7 @@ struct PlayerChapterTrayView: View {
     var currentPosition: Double
     var onSelect: (MediaChapter) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedChapterID: String?
 
     var body: some View {
@@ -32,7 +33,7 @@ struct PlayerChapterTrayView: View {
                 }
                 .onChange(of: focusedChapterID) { _, chapterID in
                     if let chapterID {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
                             proxy.scrollTo(chapterID, anchor: .center)
                         }
                     }

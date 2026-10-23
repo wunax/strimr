@@ -51,6 +51,7 @@ struct PlayerView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
@@ -232,7 +233,7 @@ struct PlayerView: View {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: pauseScreen.isPresented)
+        .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
         .simultaneousGesture(
             TapGesture(count: 2)
                 .onEnded { toggleFullScreen() },
@@ -564,7 +565,7 @@ struct PlayerView: View {
                             value: $scrubPosition,
                             in: 0 ... max(viewModel.duration ?? 1, 1),
                             onEditingChanged: { editing in
-                                withAnimation(.easeInOut(duration: 0.15)) {
+                                withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                                     isScrubbing = editing
                                 }
                                 if editing {
@@ -593,8 +594,8 @@ struct PlayerView: View {
                                     now: context.date,
                                 ) {
                                     Text(endsAtText)
-                                        .font(.caption2.monospacedDigit())
-                                        .foregroundStyle(.white.opacity(0.7))
+                                        .font(.cardMetadata.monospacedDigit())
+                                        .foregroundStyle(.textSecondary)
                                 }
                             }
                         }
@@ -715,13 +716,9 @@ struct PlayerView: View {
         }
         .foregroundStyle(.white)
         .padding(24)
-        .background(
-            LinearGradient(
-                colors: [.black.opacity(0.72), .clear, .black.opacity(0.88)],
-                startPoint: .top,
-                endPoint: .bottom,
-            ),
-        )
+        .background {
+            PlayerControlsBackground()
+        }
     }
 
     @ViewBuilder
@@ -928,7 +925,7 @@ struct PlayerView: View {
     private func openOffsetBar(_ kind: PlaybackOffsetKind) {
         hideControlsWorkItem?.cancel()
         restoreCursor()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = kind
             controlsVisible = true
         }
@@ -936,7 +933,7 @@ struct PlayerView: View {
 
     private func closeOffsetBar() {
         playerController.commitAudioDelay()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             activeOffsetBar = nil
         }
         showControls(temporarily: true)
@@ -1444,12 +1441,12 @@ struct PlayerView: View {
     private func showFeedbackMessage(_ message: String, duration: TimeInterval = 2.5) {
         automaticSkipFeedbackWorkItem?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
             automaticSkipFeedbackMessage = message
         }
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 automaticSkipFeedbackMessage = nil
             }
         }
@@ -1776,7 +1773,7 @@ struct PlayerView: View {
         seekFeedback = feedback
 
         let workItem = DispatchWorkItem {
-            withAnimation(.easeInOut) {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 seekFeedback = nil
             }
         }
@@ -1804,7 +1801,7 @@ struct PlayerView: View {
         guard !isShowingPlayQueue else { return }
         hideControlsWorkItem?.cancel()
         restoreCursor()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
             controlsVisible = true
         }
 
@@ -1817,7 +1814,7 @@ struct PlayerView: View {
         guard viewModel.hasNavigableQueue, viewModel.artworkServices != nil else { return }
         hideControlsWorkItem?.cancel()
         restoreCursor()
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingPlayQueue = true
             controlsVisible = false
         }
@@ -1825,7 +1822,7 @@ struct PlayerView: View {
 
     private func hidePlayQueue() {
         guard isShowingPlayQueue else { return }
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingPlayQueue = false
         }
     }
@@ -1912,7 +1909,7 @@ struct PlayerView: View {
             return
         }
 
-        withAnimation(.easeInOut) {
+        withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
             controlsVisible = false
         }
         if isPointerInsidePlayer {

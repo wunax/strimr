@@ -19,6 +19,7 @@ struct PlayerSettingsOptionsView: View {
     var initialOptionID: String?
     /// Shown before the title of a submenu, since the remote's Back button returns to it.
     var parentTitle: LocalizedStringKey?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedOption: String?
 
     private var initialFocusID: String? {
@@ -90,8 +91,12 @@ struct PlayerSettingsOptionsView: View {
                                         style: .continuous,
                                     ),
                                 )
-                                .scaleEffect(isFocused ? 1.02 : 1)
-                                .animation(.easeOut(duration: 0.15), value: isFocused)
+                                .animation(Motion.focus, value: isFocused)
+                                .scaleEffect(isFocused && !reduceMotion ? 1.02 : 1)
+                                .animation(
+                                    Motion.animation(Motion.focusScale, reduceMotion: reduceMotion),
+                                    value: isFocused,
+                                )
                             }
                             .buttonStyle(PlayerPanelButtonStyle())
                             .disabled(option.isDisabled)

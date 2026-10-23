@@ -597,8 +597,8 @@ enum PlaybackOffsetControl: String, Hashable {
                 .scaleEffect(isFocused && !configuration.isPressed ? 1.1 : 1)
                 .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: 14, y: 8)
                 .opacity(isEnabled ? 1 : 0.35)
-                .animation(.easeOut(duration: 0.15), value: isFocused)
-                .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+                .animation(Motion.focus, value: isFocused)
+                .animation(Motion.focus, value: configuration.isPressed)
                 .onChange(of: configuration.isPressed) { _, pressed in
                     onPressChanged(pressed)
                 }

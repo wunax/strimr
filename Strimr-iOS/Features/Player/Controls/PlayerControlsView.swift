@@ -346,33 +346,3 @@ private struct PrimaryControls: View {
         return "\(prefix).\(seconds)"
     }
 }
-
-private struct PlayerControlsBackground: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.55),
-                    .clear,
-                ],
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            .frame(height: 180)
-
-            Spacer()
-
-            LinearGradient(
-                colors: [
-                    .clear,
-                    .black.opacity(0.7),
-                ],
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            .frame(height: 260)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-    }
-}

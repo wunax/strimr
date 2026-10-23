@@ -154,7 +154,7 @@ struct PlayerTimelineView: View {
     }
 
     private func handleEditingChanged(_ editing: Bool) {
-        withAnimation(.easeInOut(duration: 0.15)) {
+        withAnimation(Motion.crossfade) {
             isEditing = editing
         }
         onEditingChanged(editing)
@@ -262,10 +262,7 @@ struct PlayerScrubPreviewCard: View {
                 .stroke(.strokeSubtle, lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 7)
-        .animation(
-            .easeOut(duration: 0.1),
-            value: ObjectIdentifier(image),
-        )
+        .animation(Motion.crossfade, value: ObjectIdentifier(image))
     }
 }
 
