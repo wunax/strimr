@@ -228,30 +228,25 @@ private struct PlayerControlsHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Button(action: onDismiss) {
-                Image(systemName: "chevron.backward")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1),
-                    )
-            }
+            PlayerIconButton(
+                systemName: "chevron.backward",
+                accessibilityLabel: String(localized: "common.actions.close"),
+                size: .small,
+                action: onDismiss,
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 if let title = media?.primaryLabel {
                     Text(title)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .font(.sectionTitle)
+                        .foregroundStyle(.textPrimary)
                         .lineLimit(2)
                 }
 
                 if let subtitle = media?.tertiaryLabel {
                     Text(subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(2)
                 }
 
