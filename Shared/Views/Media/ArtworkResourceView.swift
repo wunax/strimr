@@ -85,15 +85,16 @@ private struct DataArtworkImage: View {
         return Self.cache.object(forKey: data as NSData)
     }
 
+    /// Always ends in a state change: an image found in the cache after a cancelled load would otherwise never
+    /// trigger a render, and the card stayed blank.
     private func load() async {
-        guard currentImage == nil else { return }
+        guard loaded?.data != data else { return }
         failed = false
         guard let image = await Self.image(for: data) else {
             guard !Task.isCancelled else { return }
             failed = true
             return
         }
-        guard !Task.isCancelled else { return }
         loaded = (data, image)
     }
 
@@ -162,8 +163,9 @@ private struct RemoteArtworkImage: View {
         return Self.cache.object(forKey: url as NSURL)
     }
 
+    /// Like `DataArtworkImage`, stores a cached image in the state so the view renders it.
     private func load() async {
-        guard currentImage == nil else { return }
+        guard loaded?.url != url else { return }
         do {
             let image = try await Self.image(for: url)
             loaded = (url, image)
