@@ -23,6 +23,15 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Gap between the chips of a row; tvOS leaves room for the focus lift of `chipAppearance`.
+    static var chipSpacing: CGFloat {
+        #if os(tvOS)
+            16
+        #else
+            8
+        #endif
+    }
+
     static var cardLabelSpacing: CGFloat {
         #if os(tvOS)
             20

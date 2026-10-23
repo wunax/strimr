@@ -10,16 +10,16 @@ enum LibraryDetailTab: String, CaseIterable, Hashable, Identifiable {
         rawValue
     }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .recommended:
-            "library.detail.tab.recommended"
+            String(localized: "library.detail.tab.recommended")
         case .browse:
-            "library.detail.tab.browse"
+            String(localized: "library.detail.tab.browse")
         case .collections:
-            "library.detail.tab.collections"
+            String(localized: "library.detail.tab.collections")
         case .playlists:
-            "library.detail.tab.playlists"
+            String(localized: "library.detail.tab.playlists")
         }
     }
 
@@ -71,38 +71,10 @@ struct LibraryDetailTabPicker: View {
     }
 
     private func tabButton(for tab: LibraryDetailTab) -> some View {
-        let isSelected = selection == tab
-
-        return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+        FilterChip(title: tab.title, systemImage: tab.systemImageName, isSelected: selection == tab) {
+            withAnimation(Motion.crossfade) {
                 selection = tab
             }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: tab.systemImageName)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(tab.title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
-            )
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(
-                        isSelected ? Color.brandPrimary : Color.gray.opacity(0.25),
-                        lineWidth: 1,
-                    )
-            }
-            .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(tab.title))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

@@ -137,15 +137,6 @@ struct SeerrRequestsView: View {
         #endif
     }
 
-    /// Same gaps as the search filters.
-    private var chipSpacing: CGFloat {
-        #if os(tvOS)
-            32
-        #else
-            8
-        #endif
-    }
-
     private var deleteDialogBinding: Binding<Bool> {
         Binding(
             get: { requestPendingDeletion != nil },
@@ -159,7 +150,7 @@ struct SeerrRequestsView: View {
 
     private var statusFilterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: chipSpacing) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 ForEach(SeerrRequestStatusFilter.allCases) { filter in
                     FilterChip(
                         title: String(localized: String.LocalizationValue(filter.titleKey)),

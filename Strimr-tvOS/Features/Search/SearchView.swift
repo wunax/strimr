@@ -92,7 +92,7 @@ struct SearchView: View {
 
     private func filterPills() -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 32) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 ForEach(SearchFilter.allCases) { filter in
                     FilterChip(
                         title: filter.title,

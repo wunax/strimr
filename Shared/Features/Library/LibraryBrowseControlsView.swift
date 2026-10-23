@@ -99,7 +99,7 @@ struct LibraryBrowseControlsView: View {
 
     private var topRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: pillSpacing) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 if let leadingToggle {
                     LibraryBrowsePillButton(
                         title: leadingToggle.title,
@@ -163,10 +163,7 @@ struct LibraryBrowseControlsView: View {
             LibraryBrowsePillButton(
                 title: viewModel.filterPillTitle,
                 systemImage: "line.3.horizontal.decrease.circle",
-                isSelected: viewModel.activePanel == .filters
-                    || (viewModel.isJellyfinBrowse
-                        ? viewModel.jellyfinActiveFilterCount > 0
-                        : !viewModel.selectedFilters.isEmpty),
+                isSelected: viewModel.activePanel == .filters,
                 showsDisclosure: true,
             ) {
                 viewModel.togglePanel(.filters)
@@ -177,7 +174,7 @@ struct LibraryBrowseControlsView: View {
             LibraryBrowsePillButton(
                 title: viewModel.sortPillTitle,
                 systemImage: "arrow.up.arrow.down.circle",
-                isSelected: viewModel.activePanel == .sort || viewModel.selectedSort != nil,
+                isSelected: viewModel.activePanel == .sort,
                 showsDisclosure: true,
             ) {
                 viewModel.togglePanel(.sort)
@@ -209,7 +206,7 @@ struct LibraryBrowseControlsView: View {
 
     private var typeOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: pillSpacing) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 ForEach(viewModel.displayTypes) { type in
                     LibraryBrowsePillButton(
                         title: type.title,
@@ -228,7 +225,7 @@ struct LibraryBrowseControlsView: View {
 
     private var filterOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: pillSpacing) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 if viewModel.isJellyfinBrowse {
                     ForEach(LibraryBrowseControlsViewModel.JellyfinFilter.allCases) { filter in
                         let isSelected = viewModel.jellyfinFilterIsSelected(filter)
@@ -265,7 +262,7 @@ struct LibraryBrowseControlsView: View {
 
     private var sortOptions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: pillSpacing) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
                 if viewModel.isJellyfinBrowse {
                     ForEach(viewModel.jellyfinSortOptions) { sort in
                         let isSelected = viewModel.browseSessionSort == sort.id
@@ -321,17 +318,9 @@ struct LibraryBrowseControlsView: View {
         }
     }
 
-    private var pillSpacing: CGFloat {
-        #if os(tvOS)
-            36
-        #else
-            8
-        #endif
-    }
-
     private var rowPadding: EdgeInsets {
         #if os(tvOS)
-            EdgeInsets(top: 20, leading: 36, bottom: 20, trailing: 36)
+            EdgeInsets(top: 12, leading: 36, bottom: 12, trailing: 36)
         #else
             EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
         #endif
@@ -351,12 +340,9 @@ private struct LibraryBrowsePillButton: View {
             HStack(spacing: 6) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.subheadline)
                 }
                 if showsTitle {
                     Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
                 }
                 if showsDisclosure {
                     Image(systemName: "chevron.down")
@@ -364,20 +350,10 @@ private struct LibraryBrowsePillButton: View {
                         .opacity(0.7)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(isSelected ? Color.brandPrimary.opacity(0.18) : Color.gray.opacity(0.12)),
-            )
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(isSelected ? Color.brandPrimary : Color.gray.opacity(0.25), lineWidth: 1)
-            }
-            .foregroundStyle(isSelected ? Color.brandPrimary : Color.primary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.chip(isSelected: isSelected))
         .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -476,7 +452,7 @@ private struct LibraryBrowseFilterSheetView: View {
                             Spacer()
                             if viewModel.filterSelection(for: filter)?.selectedOption?.id == option.id {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.brandPrimary)
+                                    .foregroundStyle(.textPrimary)
                             }
                         }
                     }
@@ -585,7 +561,7 @@ private struct JellyfinLibraryBrowseFilterSheetView: View {
                     Spacer()
                     if viewModel.jellyfinOptionIsSelected(option, for: filter) {
                         Image(systemName: filter.supportsMultiple ? "checkmark.square.fill" : "checkmark")
-                            .foregroundStyle(Color.brandPrimary)
+                            .foregroundStyle(.textPrimary)
                     }
                 }
             }

@@ -144,7 +144,7 @@ struct SeerrMediaDetailView: View {
                 .foregroundStyle(.textSecondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(viewModel.seasons) { season in
                         SeasonPillButton(
                             title: viewModel.seasonTitle(for: season),

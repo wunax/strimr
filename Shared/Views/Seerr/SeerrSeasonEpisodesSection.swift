@@ -56,7 +56,7 @@ struct SeerrSeasonEpisodesSection: View {
                 .foregroundStyle(.textSecondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(viewModel.seasons) { season in
                         FilterChip(
                             title: viewModel.seasonTitle(for: season),

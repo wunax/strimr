@@ -163,7 +163,8 @@ struct LibraryDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .foregroundStyle(selectedTab == tab ? .brandPrimary : .secondary)
+            // Hierarchical so the system focus, which turns the button white, inverts it.
+            .foregroundStyle(selectedTab == tab ? HierarchicalShapeStyle.primary : .secondary)
         }
         .focused($focusedSidebarItem, equals: tab)
         .buttonStyle(.plain)
