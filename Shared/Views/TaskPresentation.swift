@@ -54,14 +54,14 @@ extension View {
 
         var body: some View {
             ZStack {
-                Color.black.opacity(0.8).ignoresSafeArea()
+                Color.overlayScrim.ignoresSafeArea()
                 content()
                     // Focused rows and fields grow past their scroll view's bounds.
                     .scrollClipDisabled()
                     .frame(maxWidth: maxWidth, maxHeight: .infinity)
                     .padding(40)
-                    .background(Color("Background"), in: shape)
                     .clipShape(shape)
+                    .overlayPanelSurface(in: shape)
                     .padding(48)
             }
             .focusSection()
@@ -74,7 +74,7 @@ extension View {
     struct TVContextPanelView<Content: View>: View {
         @ViewBuilder var content: () -> Content
 
-        private let shape = RoundedRectangle(cornerRadius: 36, style: .continuous)
+        private let shape = RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
 
         var body: some View {
             GeometryReader { geometry in
@@ -84,9 +84,7 @@ extension View {
                         .padding(32)
                         .frame(width: min(720, geometry.size.width * 0.44))
                         .frame(maxHeight: .infinity)
-                        .background(Color.black.opacity(0.5), in: shape)
-                        .glassEffect(.regular, in: shape)
-                        .shadow(color: .black.opacity(0.35), radius: 30, x: -8)
+                        .overlayPanelSurface(in: shape)
                         .padding(.vertical, 40)
                         .padding(.trailing, 40)
                 }
@@ -164,7 +162,9 @@ extension View {
                     .foregroundStyle(.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
-                Divider()
+                Rectangle()
+                    .fill(.strokeSubtle)
+                    .frame(height: 1)
                 self
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     // Modal scroll views do not clip, so focused rows can grow sideways; content still must not
@@ -179,24 +179,44 @@ extension View {
         #endif
     }
 
-    @ViewBuilder
     func taskModalActions(grouped: Bool = false, @ViewBuilder actions: () -> some View) -> some View {
+        taskModalActions(grouped: grouped, primary: { EmptyView() }, actions: actions)
+    }
+
+    /// `primary` is the one main action of the modal; on tvOS it leads the action bar with the primary button style.
+    @ViewBuilder
+    func taskModalActions(
+        grouped: Bool = false,
+        @ViewBuilder primary: () -> some View,
+        @ViewBuilder actions: () -> some View,
+    ) -> some View {
         #if os(tvOS)
             VStack(spacing: 20) {
                 self
-                Divider()
+                Rectangle()
+                    .fill(.strokeSubtle)
+                    .frame(height: 1)
                 ScrollView(.horizontal) {
-                    HStack(spacing: 24) { actions() }
-                        .padding(12)
+                    HStack(spacing: 24) {
+                        primary()
+                            .actionButtonStyle(.primary)
+                        actions()
+                            .actionButtonStyle(.secondary)
+                    }
+                    .padding(12)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .focusSection()
             }
         #else
             if grouped {
-                toolbar { ToolbarItemGroup { actions() } }
+                toolbar {
+                    ToolbarItem(placement: .confirmationAction) { primary() }
+                    ToolbarItemGroup { actions() }
+                }
             } else {
-                toolbar { actions() }
+                toolbar { ToolbarItem(placement: .confirmationAction) { primary() } }
+                    .toolbar { actions() }
             }
         #endif
     }

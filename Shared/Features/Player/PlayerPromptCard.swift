@@ -32,7 +32,7 @@ struct PlayerPromptCard<Artwork: View, Details: View, PrimaryAction: View, Secon
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.62)
+            Color.overlayScrim
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
 

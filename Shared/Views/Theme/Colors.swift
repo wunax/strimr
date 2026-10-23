@@ -30,6 +30,11 @@ extension ShapeStyle where Self == Color {
         .white.opacity(0.18)
     }
 
+    /// Dims the page or video behind a modal, prompt or panel.
+    static var overlayScrim: Color {
+        .black.opacity(0.6)
+    }
+
     /// Dark pill behind status badges laid over artwork, so they stay legible on any image.
     static var badgeBackground: Color {
         .black.opacity(0.65)

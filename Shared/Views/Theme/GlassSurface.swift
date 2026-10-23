@@ -16,6 +16,14 @@ extension View {
         modifier(VideoOverlayGlassModifier(shape: shape))
     }
 
+    /// Surface of modals and panels floating over a page: glass over a dark base, so dense text stays legible over
+    /// bright artwork.
+    func overlayPanelSurface(in shape: some Shape) -> some View {
+        background(Color.black.opacity(0.5), in: shape)
+            .glassSurface(in: shape)
+            .shadow(color: .black.opacity(0.35), radius: 30, y: 8)
+    }
+
     /// Keeps text drawn straight on playing video, without a surface behind it, readable over bright frames.
     func videoTextShadow() -> some View {
         shadow(color: .black.opacity(0.3), radius: 4, y: 2)

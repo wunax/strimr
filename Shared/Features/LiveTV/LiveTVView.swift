@@ -846,9 +846,10 @@ private struct DVRRuleEditView: View {
             }
             .taskModalTitle("livetv.dvr.editRule")
             .taskModalActions {
-                Button("common.cancel") { dismiss() }
                 Button("common.done") { save() }
                     .disabled(isSaving)
+            } actions: {
+                Button("common.cancel") { dismiss() }
             }
         }
     }
@@ -1070,9 +1071,10 @@ private struct LiveTVProgramDetailView: View {
             .taskModalActions(grouped: true) {
                 if program.isCurrentlyAiring {
                     Button("livetv.watchLive", action: onWatch)
-                    if supportsWatchFromStart {
-                        Button("livetv.watchFromStart", action: onWatchFromStart)
-                    }
+                }
+            } actions: {
+                if program.isCurrentlyAiring, supportsWatchFromStart {
+                    Button("livetv.watchFromStart", action: onWatchFromStart)
                 }
                 if dvr?.canManageRecordings == true {
                     if let recordingID = program.recordingID {
