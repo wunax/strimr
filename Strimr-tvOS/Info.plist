@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>TopShelfKeychainAccessGroup</key>
-	<string>$(AppIdentifierPrefix)com.github.wunax.strimr.shared</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -28,9 +26,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Strimr needs local network access to connect to your media server.</string>
 	<key>SENTRY_DSN_TVOS</key>
 	<string>https://$(SENTRY_DSN_TVOS)</string>
+	<key>TopShelfKeychainAccessGroup</key>
+	<string>$(AppIdentifierPrefix)com.github.wunax.strimr.shared</string>
 </dict>
 </plist>
