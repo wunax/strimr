@@ -20,7 +20,8 @@
                 VStack(alignment: .leading, spacing: 32) {
                     if let message {
                         Text(message)
-                            .font(.title3)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     pinDisplay
@@ -44,12 +45,13 @@
             HStack(spacing: 12) {
                 ForEach(0 ..< 4, id: \.self) { index in
                     ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.white.opacity(0.1))
+                        RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
+                            .fill(.surfaceRaised)
                             .frame(width: 70, height: 70)
                         if index < pin.count {
                             Text("•")
                                 .font(.title.bold())
+                                .foregroundStyle(.textPrimary)
                         }
                     }
                 }

@@ -58,7 +58,10 @@ extension View {
                     .scrollClipDisabled()
                     .frame(maxWidth: maxWidth, maxHeight: .infinity)
                     .padding(40)
-                    .background(Color("Background"), in: RoundedRectangle(cornerRadius: 28))
+                    .background(
+                        Color("Background"),
+                        in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
+                    )
                     .padding(48)
             }
             .focusSection()
@@ -157,7 +160,8 @@ extension View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 24) {
                 title
-                    .font(.title2.bold())
+                    .font(.heroTitle)
+                    .foregroundStyle(.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
                 Divider()
@@ -200,7 +204,7 @@ extension View {
         func body(content: Content) -> some View {
             content
                 .overlay {
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
                         .stroke(isFocused ? Color.white.opacity(0.8) : .clear, lineWidth: 2)
                 }
                 .focusable()

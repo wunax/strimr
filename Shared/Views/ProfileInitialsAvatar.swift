@@ -17,7 +17,7 @@ struct ProfileInitialsAvatar: View {
                     .font(.system(size: geometry.size.width * 0.36, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.3)
                     .lineLimit(1)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.textPrimary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -44,9 +44,11 @@ struct ProfilePINPrompt: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.headline)
+                .font(.sectionTitle)
+                .foregroundStyle(.textPrimary)
             Text(message)
-                .foregroundStyle(.secondary)
+                .font(.bodyText)
+                .foregroundStyle(.textSecondary)
             SecureField("auth.profile.pin.placeholder", text: $pin)
             #if os(iOS)
                 .keyboardType(.numberPad)

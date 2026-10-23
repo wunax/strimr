@@ -9,7 +9,11 @@ struct FolderCard: View {
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     #if os(tvOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @FocusState private var isFocused: Bool
+    #elseif os(macOS)
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var isFocused = false
     #endif
 
     private let aspectRatio: CGFloat = 2 / 3
@@ -44,27 +48,34 @@ struct FolderCard: View {
         let resolvedHeight = height ?? (width.map { $0 / aspectRatio } ?? defaultHeight)
         let resolvedWidth = width ?? (height.map { $0 * aspectRatio } ?? resolvedHeight * aspectRatio)
 
-        VStack(alignment: .leading, spacing: labelSpacing) {
+        VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.gray.opacity(0.15))
+                RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
+                    .fill(.surfaceSubtle)
 
-                VStack(spacing: 8) {
-                    Image(systemName: "folder.fill")
-                        .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(.gray)
-                }
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(.textTertiary)
             }
             .frame(width: resolvedWidth, height: resolvedHeight)
-            #if os(tvOS)
-                .scaleEffect(isFocused ? 1.12 : 1)
-                .animation(.easeOut(duration: 0.15), value: isFocused)
+            #if os(tvOS) || os(macOS)
+                .cardFocusStyle(isFocused: isFocused)
             #endif
 
             if showsLabels {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.cardTitle)
+                    .foregroundStyle(.textPrimary)
                     .lineLimit(1)
+                #if os(tvOS) || os(macOS)
+                    // Follows the bottom edge of the focused artwork, as on media cards.
+                    .offset(
+                        y: isFocused && !reduceMotion
+                            ? resolvedHeight * (CardFocusStyle.focusedScale - 1) / 2
+                            : 0,
+                    )
+                    .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
+                #endif
             }
         }
         .frame(width: resolvedWidth, alignment: .leading)
@@ -72,15 +83,10 @@ struct FolderCard: View {
             .focusable()
             .focused($isFocused)
             .onPlayPauseCommand(perform: onTap)
+        #elseif os(macOS)
+            .contentShape(Rectangle())
+            .onHover { isFocused = $0 }
         #endif
             .onTapGesture(perform: onTap)
-    }
-
-    private var labelSpacing: CGFloat {
-        #if os(tvOS)
-            20
-        #else
-            8
-        #endif
     }
 }

@@ -389,7 +389,6 @@
 				Views/Theme/Metrics.swift,
 				Views/Theme/Motion.swift,
 				Views/Theme/Typography.swift,
-				Views/Toast/ToastOverlay.swift,
 				Views/TVPINPadView.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;

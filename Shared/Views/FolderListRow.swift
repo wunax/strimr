@@ -26,21 +26,22 @@ struct FolderListRow: View {
             HStack(spacing: metrics.spacing) {
                 ZStack {
                     RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
-                        .fill(Color.gray.opacity(0.15))
+                        .fill(.surfaceSubtle)
                     Image(systemName: "folder.fill")
                         .font(.title2.weight(.semibold))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.textTertiary)
                 }
                 .frame(width: metrics.posterSize.width, height: metrics.posterSize.height)
 
                 Text(title)
-                    .font(.headline)
+                    .font(.rowTitle)
+                    .foregroundStyle(.textPrimary)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.facts.weight(.semibold))
+                    .foregroundStyle(.textTertiary)
             }
             .padding(.vertical, metrics.verticalPadding)
             .modifier(MediaListRowHighlight(isFocused: isHighlighted))

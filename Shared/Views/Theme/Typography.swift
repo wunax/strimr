@@ -27,6 +27,15 @@ extension Font {
         #endif
     }
 
+    /// Title of a full-width list row, such as a library item or a folder in list mode.
+    static var rowTitle: Font {
+        #if os(tvOS)
+            .system(size: 30, weight: .semibold)
+        #else
+            .headline
+        #endif
+    }
+
     static var cardTitle: Font {
         #if os(tvOS)
             .system(size: 24, weight: .medium)

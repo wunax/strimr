@@ -48,18 +48,26 @@ struct MediaListRowMetrics {
 
 /// Full-width focus effect for list rows on tvOS.
 struct MediaListRowHighlight: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let isFocused: Bool
+
+    private let padding: CGFloat = 16
 
     func body(content: Content) -> some View {
         #if os(tvOS)
             content
-                .padding(.horizontal, 16)
+                .padding(.horizontal, padding)
                 .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(isFocused ? Color.white.opacity(0.15) : Color.clear),
+                    RoundedRectangle(
+                        cornerRadius: MediaArtworkMetrics.compactCornerRadius + padding,
+                        style: .continuous,
+                    )
+                    .fill(isFocused ? Color.surfaceRaised : Color.clear),
                 )
-                .scaleEffect(isFocused ? 1.02 : 1)
-                .animation(.easeOut(duration: 0.15), value: isFocused)
+                .animation(Motion.focus, value: isFocused)
+                .scaleEffect(isFocused && !reduceMotion ? 1.02 : 1)
+                .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         #else
             content
         #endif
@@ -146,18 +154,19 @@ struct MediaListRow: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(media.title)
-                .font(.headline)
+                .font(.rowTitle)
+                .foregroundStyle(.textPrimary)
                 .lineLimit(2)
             if let subtitle = media.listSubtitle {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
             if let metadata = media.listMetadataLine {
                 Text(metadata)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textTertiary)
                     .lineLimit(1)
             }
             summary
@@ -169,13 +178,13 @@ struct MediaListRow: View {
     private var summary: some View {
         if media.playableItem?.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) == true {
             Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.cardMetadata)
+                .foregroundStyle(.textTertiary)
                 .lineLimit(1)
         } else if let summary = media.summary, !summary.isEmpty {
             Text(summary)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.cardMetadata)
+                .foregroundStyle(.textSecondary)
                 .lineLimit(metrics.summaryLineLimit)
         }
     }
