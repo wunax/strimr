@@ -27,24 +27,27 @@ struct SearchView: View {
             .padding(.vertical, 12)
         }
         .navigationTitle("tabs.search")
-        .navigationBarTitleDisplayMode(.inline)
-        .userMenuToolbar()
-        .searchable(
-            text: $bindableViewModel.query,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "search.prompt",
-        )
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .onChange(of: bindableViewModel.query) { _, _ in
-            viewModel.queryDidChange()
-        }
-        .onSubmit(of: .search) {
-            viewModel.submitSearch()
-        }
-        .sheet(item: $selectedResult) { result in
-            SearchServerSelectionView(result: result, onSelect: onSelectMedia)
-        }
+        .tabRootChrome()
+        #if os(iOS)
+            .searchable(
+                text: $bindableViewModel.query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "search.prompt",
+            )
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        #else
+            .searchable(text: $bindableViewModel.query, prompt: "search.prompt")
+        #endif
+            .onChange(of: bindableViewModel.query) { _, _ in
+                viewModel.queryDidChange()
+            }
+            .onSubmit(of: .search) {
+                viewModel.submitSearch()
+            }
+            .sheet(item: $selectedResult) { result in
+                SearchServerSelectionView(result: result, onSelect: onSelectMedia)
+            }
     }
 
     @ViewBuilder
@@ -110,5 +113,6 @@ struct SearchView: View {
             }
             .padding(.horizontal, 2)
         }
+        .mouseDragScrolling()
     }
 }

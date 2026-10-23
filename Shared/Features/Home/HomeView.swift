@@ -44,6 +44,7 @@ struct HomeView: View {
             .padding(.vertical, 20)
         }
         .navigationTitle("tabs.home")
+        .tabRootChrome()
         .environment(\.reloadAfterMediaCardAction) { item in
             Task { await viewModel.refresh(server: item.identity.server) }
         }
