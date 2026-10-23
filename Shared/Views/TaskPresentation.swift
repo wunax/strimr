@@ -158,7 +158,7 @@ extension View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 24) {
                 title
-                    .font(.heroTitle)
+                    .font(.tileTitle)
                     .foregroundStyle(.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
