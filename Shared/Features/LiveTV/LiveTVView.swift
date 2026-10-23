@@ -85,6 +85,7 @@ struct LiveTVView: View {
     @State private var pendingRecordingDeletion: DVRRecording?
     @State private var isManagingFavorites = false
     @State private var selectedRule: DVRRecordingRule?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(tvOS)
         @FocusState private var focusedGuideItem: GuideFocusItem?
     #endif
@@ -287,6 +288,8 @@ struct LiveTVView: View {
 
     private var guideDateLabel: some View {
         Text(store.guideStart, format: .dateTime.weekday().month().day())
+            .font(.facts.weight(.semibold))
+            .foregroundStyle(.textPrimary)
             .lineLimit(1)
     }
 
@@ -311,10 +314,11 @@ struct LiveTVView: View {
             Text("livetv.channel").frame(width: 170, alignment: .leading)
             ForEach(0 ..< 12, id: \.self) { index in
                 Text(store.guideStart.addingTimeInterval(Double(index) * 1800), format: .dateTime.hour().minute())
-                    .font(.caption)
                     .frame(width: 120, alignment: .leading)
             }
         }
+        .font(.cardMetadata)
+        .foregroundStyle(.textSecondary)
     }
 
     private func guideRow(_ channel: LiveTVChannel) -> some View {
@@ -342,7 +346,7 @@ struct LiveTVView: View {
                         .buttonStyle(.plain)
                     #endif
                 }
-                .animation(.easeOut(duration: 0.15), value: isFavoriteFocused)
+                .animation(Motion.focus, value: isFavoriteFocused)
                 .accessibilityLabel(
                     Text(channel.isFavorite ? "livetv.favorite.remove" : "livetv.favorite.add"),
                 )
@@ -361,7 +365,7 @@ struct LiveTVView: View {
                         .buttonStyle(.plain)
                     #endif
                 }
-                .animation(.easeOut(duration: 0.15), value: isChannelFocused)
+                .animation(Motion.focus, value: isChannelFocused)
                 .accessibilityLabel(Text("livetv.channel.watch \(channel.displayTitle)"))
             }
             .frame(width: 160, alignment: .leading)
@@ -373,7 +377,9 @@ struct LiveTVView: View {
                 }
             ZStack(alignment: .leading) {
                 if programs.isEmpty {
-                    Text("livetv.guide.noData").foregroundStyle(.secondary)
+                    Text("livetv.guide.noData")
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textTertiary)
                 } else {
                     ForEach(programs, id: \.identity) { program in
                         let visibleStart = max(program.startDate, store.guideStart)
@@ -407,7 +413,7 @@ struct LiveTVView: View {
                         }
                         .offset(x: visibleStart.timeIntervalSince(store.guideStart) / 15)
                         .zIndex(isFocused ? 1 : 0)
-                        .animation(.easeOut(duration: 0.15), value: isFocused)
+                        .animation(Motion.focus, value: isFocused)
                     }
                 }
             }
@@ -418,90 +424,55 @@ struct LiveTVView: View {
 
     private func guideFavoriteLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
         Image(systemName: channel.isFavorite ? "star.fill" : "star")
-            .foregroundStyle(channel.isFavorite ? .yellow : .secondary)
+            .foregroundStyle(channel.isFavorite ? .yellow : .textTertiary)
             .frame(width: 34, height: 34)
-            .background {
-                Circle()
-                    .fill(.white.opacity(isFocused ? 0.18 : 0))
-            }
-            .overlay {
-                Circle()
-                    .stroke(.white.opacity(isFocused ? 0.9 : 0), lineWidth: 2)
-            }
-            .scaleEffect(isFocused ? 1.08 : 1)
-            .contentShape(Circle())
+            .guideFocusAppearance(in: Circle(), isFocused: isFocused, scale: 1.08, reduceMotion: reduceMotion)
     }
 
     private func guideChannelLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
         Text(channel.displayTitle)
+            .font(.cardTitle)
+            .foregroundStyle(.textPrimary)
             .lineLimit(2)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.white.opacity(isFocused ? 0.16 : 0))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(.white.opacity(isFocused ? 0.85 : 0), lineWidth: 2)
-            }
-            .scaleEffect(isFocused ? 1.025 : 1)
-            .contentShape(Rectangle())
+            .guideFocusAppearance(in: guideCellShape, isFocused: isFocused, scale: 1.025, reduceMotion: reduceMotion)
     }
 
     private func guideProgramLabel(_ program: LiveTVProgram, width: CGFloat, isFocused: Bool) -> some View {
         VStack(alignment: .leading) {
             HStack {
                 Text(program.title)
-                    .font(guideProgramTitleFont)
+                    .font(.cardTitle)
+                    .foregroundStyle(.textPrimary)
                     .lineLimit(1)
                 if program.recordingID != nil || program.seriesRecordingID != nil {
                     Image(systemName: "record.circle.fill").foregroundStyle(.red)
                 }
             }
             Text(program.startDate, format: .dateTime.hour().minute())
-                .font(guideProgramTimeFont)
+                .font(.cardMetadata)
+                .foregroundStyle(.textSecondary)
         }
         .padding(8)
         .frame(width: width, height: 64, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(guideProgramBackground(program, isFocused: isFocused))
+        .background(program.isCurrentlyAiring ? Color.surfaceRaised : Color.surfaceSubtle)
+        .overlay(alignment: .bottomLeading) {
+            if program.isCurrentlyAiring {
+                Rectangle()
+                    .fill(.progressFill)
+                    .frame(width: width * min(max(program.progress, 0), 1), height: 3)
+                    .accessibilityHidden(true)
+            }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(
-                    program.isCurrentlyAiring ? Color.accentColor : Color.white,
-                    lineWidth: isFocused ? 3 : 0,
-                )
-        }
+        .clipShape(guideCellShape)
+        .guideFocusAppearance(in: guideCellShape, isFocused: isFocused, scale: 1.025, reduceMotion: reduceMotion)
         .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: 10, y: 5)
-        .scaleEffect(isFocused ? 1.025 : 1)
-        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private func guideProgramBackground(_ program: LiveTVProgram, isFocused: Bool) -> Color {
-        if program.isCurrentlyAiring {
-            return Color.accentColor.opacity(isFocused ? 0.42 : 0.25)
-        }
-        return Color.secondary.opacity(isFocused ? 0.28 : 0.12)
-    }
-
-    private var guideProgramTitleFont: Font {
-        #if os(tvOS)
-            .subheadline
-        #else
-            .headline
-        #endif
-    }
-
-    private var guideProgramTimeFont: Font {
-        #if os(tvOS)
-            .caption2
-        #else
-            .caption
-        #endif
+    private var guideCellShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
     }
 
     private var onNow: some View {
@@ -512,7 +483,9 @@ struct LiveTVView: View {
                 }
                 ForEach(store.onNowSections) { row in
                     VStack(alignment: .leading) {
-                        Text(row.title).font(.title2.bold())
+                        Text(row.title)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textPrimary)
                         ScrollView(.horizontal) {
                             LazyHStack {
                                 ForEach(row.programs, id: \.identity) { program in
@@ -532,7 +505,7 @@ struct LiveTVView: View {
                                             Button { openOnNowProgram(program) } label: {
                                                 onNowProgramCard(program, isFocused: false)
                                             }
-                                            .buttonStyle(.plain)
+                                            .buttonStyle(.cardLift)
                                         #endif
                                     }
                                     .accessibilityElement(children: .combine)
@@ -553,7 +526,7 @@ struct LiveTVView: View {
     }
 
     private func onNowProgramCard(_ program: LiveTVProgram, isFocused: Bool) -> some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
             Group {
                 if let artworkPath = program.artPath ?? program.thumbPath {
                     ArtworkPathView(
@@ -567,18 +540,21 @@ struct LiveTVView: View {
             }
             .frame(width: 240, height: 135)
             .mediaArtworkStyle(.compact)
-            .scaleEffect(isFocused ? 1.12 : 1)
-            .animation(.easeOut(duration: 0.15), value: isFocused)
+            .cardFocusStyle(isFocused: isFocused)
 
-            Text(program.title)
-                .font(.headline)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Text(channelName(program.channelIdentity))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(program.title)
+                    .font(.cardTitle)
+                    .foregroundStyle(.textPrimary)
+                    .lineLimit(1)
+                Text(channelName(program.channelIdentity))
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textSecondary)
+                    .lineLimit(1)
+            }
+            // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
+            .offset(y: isFocused && !reduceMotion ? 135 * (CardFocusStyle.focusedScale - 1) / 2 : 0)
+            .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         }
         .frame(width: 240, alignment: .leading)
         .contentShape(Rectangle())
@@ -615,11 +591,11 @@ struct LiveTVView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(rule.title)
                                 Text(rule.modeTitle)
-                                    .font(.caption)
+                                    .font(.cardMetadata)
                                     .foregroundStyle(.secondary)
                                 if let library = rule.targetLibraryTitle {
                                     Label(library, systemImage: "rectangle.stack")
-                                        .font(.caption)
+                                        .font(.cardMetadata)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -670,7 +646,8 @@ struct LiveTVView: View {
                 }
                 Text(recording.status.localizedTitle)
             }
-            .font(.caption)
+            .font(.cardMetadata)
+            // Hierarchical: the row is a button, which turns white when focused on tvOS.
             .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -751,14 +728,40 @@ struct LiveTVView: View {
     private func emptyState(_ key: LocalizedStringKey, systemImage: String) -> some View {
         VStack(spacing: 12) {
             Spacer()
-            Image(systemName: systemImage).font(.largeTitle).foregroundStyle(.secondary)
-            Text(key).multilineTextAlignment(.center).foregroundStyle(.secondary)
+            Image(systemName: systemImage)
+                .font(.largeTitle)
+                .foregroundStyle(.textTertiary)
+            Text(key)
+                .font(.bodyText)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.textSecondary)
             if let message = store.errorMessage {
-                Text(message).font(.caption).foregroundStyle(.secondary)
+                Text(message)
+                    .font(.facts)
+                    .foregroundStyle(.textTertiary)
             }
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private extension View {
+    /// Focus treatment of guide cells on tvOS, where they are focusable views rather than buttons.
+    func guideFocusAppearance(
+        in shape: some Shape,
+        isFocused: Bool,
+        scale: CGFloat,
+        reduceMotion: Bool,
+    ) -> some View {
+        background {
+            shape.fill(isFocused ? Color.surfaceRaised : Color.clear)
+        }
+        .overlay {
+            shape.stroke(.textPrimary, lineWidth: isFocused ? 2 : 0)
+        }
+        .scaleEffect(isFocused && !reduceMotion ? scale : 1)
+        .contentShape(shape)
     }
 }
 
@@ -807,26 +810,28 @@ private struct DVRRuleEditView: View {
         TaskModalNavigationView {
             Form {
                 Section {
-                    Text(rule.title).font(.title2.bold())
+                    Text(rule.title)
+                        .font(.tileTitle)
+                        .foregroundStyle(.textPrimary)
                     HStack {
                         Label("livetv.recording.mode", systemImage: "record.circle")
                         Spacer()
                         Text(rule.modeTitle)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                     if let library = rule.targetLibraryTitle {
                         HStack {
                             Label("livetv.recording.library", systemImage: "rectangle.stack")
                             Spacer()
                             Text(library)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.textSecondary)
                         }
                     }
                 }
                 if rule.options.isEmpty {
                     Section {
                         Text("livetv.dvr.noEditableOptions")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 } else {
                     Section("livetv.dvr.options") {
@@ -887,7 +892,7 @@ private struct DVRRuleEditView: View {
             Text(option.title)
             if let summary = option.summary, !summary.isEmpty {
                 Text(summary)
-                    .font(.caption)
+                    .font(.cardMetadata)
                     .foregroundStyle(.secondary)
             }
         }
@@ -1013,9 +1018,13 @@ private struct LiveTVProgramDetailView: View {
         TaskModalNavigationView {
             Form {
                 Section {
-                    Text(program.title).font(.title2.bold())
+                    Text(program.title)
+                        .font(.tileTitle)
+                        .foregroundStyle(.textPrimary)
                     if let channel {
                         Text(channel.displayTitle)
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
                     }
                     Text(program.startDate.formatted(date: .abbreviated, time: .shortened) + " – " + program.endDate
                         .formatted(
@@ -1157,8 +1166,8 @@ private struct LiveTVProgramDetailView: View {
         case .integer, .text:
             VStack(alignment: .leading, spacing: 6) {
                 Text(option.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 TextField(text: valueBinding(option)) {
                     Text(option.title)
