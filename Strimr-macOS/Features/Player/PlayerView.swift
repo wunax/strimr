@@ -503,11 +503,13 @@ struct PlayerView: View {
                     PlayerBadge(String(localized: "sharePlay.badge"))
                 }
                 SleepTimerBadge(sleepTimer: sleepTimer, mediaKind: viewModel.media?.type)
-                Button("common.actions.close", systemImage: "xmark") {
+                PlayerIconButton(
+                    systemName: "xmark",
+                    accessibilityLabel: String(localized: "common.actions.close"),
+                    size: .small,
+                ) {
                     closePlayer()
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.bordered)
             }
 
             Spacer()
@@ -516,10 +518,17 @@ struct PlayerView: View {
                 if let marker = viewModel.activeSkipMarker {
                     HStack {
                         Spacer()
-                        Button(marker.skipTitle) {
+                        Button {
                             playerController.seek(to: marker.endTime)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Text(marker.skipTitle)
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.bold))
+                            }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
+                        .accessibilityLabel(marker.skipTitle)
                     }
                 }
 
@@ -540,14 +549,14 @@ struct PlayerView: View {
                    let chapter = viewModel.chapter(at: scrubPosition)
                 {
                     Text(chapter.displayTitle)
-                        .font(.caption.weight(.semibold))
+                        .font(.cardMetadata.weight(.semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .transition(.opacity)
                 }
 
                 HStack(spacing: 10) {
                     Text(formatTime(scrubPosition))
-                        .font(.caption.monospacedDigit())
+                        .font(.cardMetadata.monospacedDigit())
                         .frame(width: 64, alignment: .trailing)
                     ZStack {
                         PlayerSegmentedTimelineRail(
@@ -600,19 +609,20 @@ struct PlayerView: View {
                             }
                         }
                     }
-                    .font(.caption.monospacedDigit())
+                    .font(.cardMetadata.monospacedDigit())
                     .fixedSize()
                 }
 
-                HStack(spacing: 18) {
+                HStack(spacing: 14) {
                     if viewModel.isLivePlayback {
-                        Button {
+                        PlayerIconButton(
+                            systemName: "chevron.up",
+                            accessibilityLabel: String(localized: "livetv.player.previousChannel"),
+                            size: .small,
+                        ) {
                             switchLiveChannel(by: -1)
-                        } label: {
-                            Image(systemName: "chevron.up")
                         }
                         .disabled(!viewModel.canSwitchToPreviousLiveChannel)
-                        .accessibilityLabel(Text("livetv.player.previousChannel"))
 
                         Button {
                             playerController.seekToLiveEdge()
@@ -624,36 +634,39 @@ struct PlayerView: View {
                                 systemImage: "dot.radiowaves.left.and.right",
                             )
                         }
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .disabled(playerController.behindLiveSeconds < 2)
 
-                        Button {
+                        PlayerIconButton(
+                            systemName: "chevron.down",
+                            accessibilityLabel: String(localized: "livetv.player.nextChannel"),
+                            size: .small,
+                        ) {
                             switchLiveChannel(by: 1)
-                        } label: {
-                            Image(systemName: "chevron.down")
                         }
                         .disabled(!viewModel.canSwitchToNextLiveChannel)
-                        .accessibilityLabel(Text("livetv.player.nextChannel"))
                     }
 
-                    Button {
+                    PlayerIconButton(
+                        systemName: "gobackward.\(settingsManager.playback.seekBackwardSeconds)",
+                        accessibilityLabel: String(
+                            localized: "player.controls.rewindSeconds \(settingsManager.playback.seekBackwardSeconds)",
+                        ),
+                    ) {
                         playerController.seek(by: -seekBackwardInterval)
-                    } label: {
-                        Image(systemName: "gobackward.\(settingsManager.playback.seekBackwardSeconds)")
                     }
 
-                    Button {
+                    PlayPauseButton(isPaused: playerController.isPaused) {
                         playerController.togglePlayback()
-                    } label: {
-                        Image(systemName: playerController.isPaused ? "play.fill" : "pause.fill")
-                            .font(.title2)
                     }
-                    .buttonStyle(.borderedProminent)
 
-                    Button {
+                    PlayerIconButton(
+                        systemName: "goforward.\(settingsManager.playback.seekForwardSeconds)",
+                        accessibilityLabel: String(
+                            localized: "player.controls.skipForwardSeconds \(settingsManager.playback.seekForwardSeconds)",
+                        ),
+                    ) {
                         playerController.seek(by: seekForwardInterval)
-                    } label: {
-                        Image(systemName: "goforward.\(settingsManager.playback.seekForwardSeconds)")
                     }
 
                     Spacer()
@@ -661,17 +674,18 @@ struct PlayerView: View {
                     volumeControl
 
                     if playerController.showsPictureInPictureControl {
-                        Button {
+                        PlayerIconButton(
+                            systemName: "pip.enter",
+                            accessibilityLabel: String(localized: "player.controls.pictureInPicture"),
+                            size: .small,
+                        ) {
                             playerController.startPictureInPicture()
-                        } label: {
-                            Image(systemName: "pip.enter")
                         }
                         .disabled(
                             !playerController.isPictureInPictureAvailable
                                 || playerController.isPictureInPictureActive
                                 || playerController.isPictureInPictureTransitioning,
                         )
-                        .accessibilityLabel(String(localized: "player.controls.pictureInPicture"))
                     }
 
                     audioMenu
@@ -690,28 +704,31 @@ struct PlayerView: View {
                     }
 
                     if viewModel.hasNavigableQueue {
-                        Button {
+                        PlayerIconButton(
+                            systemName: "list.bullet.rectangle",
+                            accessibilityLabel: String(localized: "player.queue.open"),
+                            size: .small,
+                        ) {
                             showPlayQueue()
-                        } label: {
-                            Image(systemName: "list.bullet.rectangle")
                         }
-                        .accessibilityLabel(Text("player.queue.open"))
                     }
 
-                    Button {
+                    PlayerIconButton(
+                        systemName: fullscreenCoordinator.isFullScreen
+                            ? "arrow.down.right.and.arrow.up.left"
+                            : "arrow.up.left.and.arrow.down.right",
+                        accessibilityLabel: fullscreenAccessibilityLabel,
+                        size: .small,
+                    ) {
                         toggleFullScreen()
-                    } label: {
-                        Image(
-                            systemName: fullscreenCoordinator.isFullScreen
-                                ? "arrow.down.right.and.arrow.up.left"
-                                : "arrow.up.left.and.arrow.down.right",
-                        )
                     }
-                    .accessibilityLabel(fullscreenAccessibilityLabel)
                     .disabled(fullscreenCoordinator.isTransitioning)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                // Menus and the remaining buttons (volume, chapters) take the small round control look.
+                .menuStyle(.button)
+                .menuIndicator(.hidden)
+                .buttonStyle(.playerControl(diameter: PlayerIconButton.Size.small.diameter))
+                .font(PlayerIconButton.Size.small.font)
             }
         }
         .foregroundStyle(.white)
@@ -786,7 +803,7 @@ struct PlayerView: View {
                 Text("player.settings.audio.empty")
             } else {
                 ForEach(audioTracks) { track in
-                    Button {
+                    menuOption(isSelected: selectedAudioTrackID == track.id) {
                         selectedAudioTrackID = track.id
                         playerController.selectAudioTrack(id: track.id)
                         Task {
@@ -796,11 +813,7 @@ struct PlayerView: View {
                             }
                         }
                     } label: {
-                        if selectedAudioTrackID == track.id {
-                            Label(playerTrackTitle(track), systemImage: "checkmark")
-                        } else {
-                            Text(playerTrackTitle(track))
-                        }
+                        Text(playerTrackTitle(track))
                     }
                 }
             }
@@ -808,12 +821,13 @@ struct PlayerView: View {
             offsetMenuButton(.audio)
         } label: {
             Label("player.settings.audio", systemImage: "waveform")
+                .labelStyle(.iconOnly)
         }
     }
 
     private var subtitleMenu: some View {
         Menu {
-            Button {
+            menuOption(isSelected: selectedSubtitleTrackID == nil) {
                 if selectedSubtitleTrackID != nil {
                     playerController.setSubtitleDelay(milliseconds: 0)
                 }
@@ -829,14 +843,10 @@ struct PlayerView: View {
                     }
                 }
             } label: {
-                if selectedSubtitleTrackID == nil {
-                    Label("player.settings.subtitles.off", systemImage: "checkmark")
-                } else {
-                    Text("player.settings.subtitles.off")
-                }
+                Text("player.settings.subtitles.off")
             }
             ForEach(subtitleTracks) { track in
-                Button {
+                menuOption(isSelected: selectedSubtitleTrackID == track.id) {
                     if selectedSubtitleTrackID != track.id {
                         playerController.setSubtitleDelay(milliseconds: 0)
                     }
@@ -852,11 +862,7 @@ struct PlayerView: View {
                         }
                     }
                 } label: {
-                    if selectedSubtitleTrackID == track.id {
-                        Label(playerTrackTitle(track), systemImage: "checkmark")
-                    } else {
-                        Text(playerTrackTitle(track))
-                    }
+                    Text(playerTrackTitle(track))
                 }
             }
             if viewModel.canSearchSubtitles {
@@ -880,6 +886,7 @@ struct PlayerView: View {
             offsetMenuButton(.subtitles)
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
+                .labelStyle(.iconOnly)
         }
         .overlay(alignment: .topTrailing) {
             if playerController.subtitleDelayMilliseconds != 0 {
@@ -939,6 +946,15 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
+    /// Uses the menu's own checkmark, which the player's label, button and color styles cannot hide.
+    private func menuOption(
+        isSelected: Bool,
+        action: @escaping () -> Void,
+        @ViewBuilder label: () -> some View,
+    ) -> some View {
+        Toggle(isOn: Binding(get: { isSelected }, set: { _ in action() }), label: label)
+    }
+
     private func playerTrackTitle(_ track: PlayerTrack) -> String {
         PlaybackSettingsTrack(
             track: track,
@@ -949,33 +965,26 @@ struct PlayerView: View {
     private var speedMenu: some View {
         Menu {
             ForEach(PlaybackSpeedOptions.all) { option in
-                Button {
+                menuOption(isSelected: playbackRate == option.rate) {
                     playbackRate = option.rate
                     playerController.setPlaybackRate(option.rate)
                 } label: {
-                    if playbackRate == option.rate {
-                        Label("player.settings.speed.value \(option.valueText)", systemImage: "checkmark")
-                    } else {
-                        Text("player.settings.speed.value \(option.valueText)")
-                    }
+                    Text("player.settings.speed.value \(option.valueText)")
                 }
             }
         } label: {
             Label("player.settings.speed", systemImage: "speedometer")
+                .labelStyle(.iconOnly)
         }
     }
 
     private var sleepTimerMenu: some View {
         let mediaKind = viewModel.media?.type
         return Menu {
-            Button {
+            menuOption(isSelected: sleepTimer.mode == nil) {
                 selectSleepTimer(nil)
             } label: {
-                if sleepTimer.mode == nil {
-                    Label("player.sleepTimer.off", systemImage: "checkmark")
-                } else {
-                    Text("player.sleepTimer.off")
-                }
+                Text("player.sleepTimer.off")
             }
             ForEach(
                 SleepTimerMode.available(
@@ -984,14 +993,10 @@ struct PlayerView: View {
                 ),
                 id: \.self,
             ) { mode in
-                Button {
+                menuOption(isSelected: sleepTimer.mode == mode) {
                     selectSleepTimer(mode)
                 } label: {
-                    if sleepTimer.mode == mode {
-                        Label(mode.title(for: mediaKind), systemImage: "checkmark")
-                    } else {
-                        Text(mode.title(for: mediaKind))
-                    }
+                    Text(mode.title(for: mediaKind))
                 }
             }
             if sleepTimer.deadline != nil {
@@ -1007,6 +1012,7 @@ struct PlayerView: View {
             }
         } label: {
             Label("player.sleepTimer.title", systemImage: sleepTimer.isActive ? "moon.zzz.fill" : "moon.zzz")
+                .labelStyle(.iconOnly)
         }
         .disabled(isSharePlayPlayback)
         .help(isSharePlayPlayback ? Text("player.sleepTimer.unavailableSharePlay") : Text("player.sleepTimer.title"))
@@ -1053,40 +1059,32 @@ struct PlayerView: View {
     private var qualityMenu: some View {
         Menu {
             ForEach(TranscodeQualityPreset.displayOrder) { preset in
-                Button {
+                menuOption(isSelected: viewModel.selectedQuality == preset) {
                     selectQuality(preset)
                 } label: {
-                    if viewModel.selectedQuality == preset {
-                        Label(preset.title, systemImage: "checkmark")
-                    } else {
-                        Text(preset.title)
-                    }
+                    Text(preset.title)
                 }
             }
         } label: {
             Label("player.settings.quality", systemImage: "slider.horizontal.3")
+                .labelStyle(.iconOnly)
         }
     }
 
     private var versionMenu: some View {
         Menu {
             ForEach(viewModel.versionOptions) { version in
-                Button {
+                menuOption(isSelected: version.isSelected) {
                     selectVersion(version.id)
                 } label: {
-                    Label {
-                        Text(verbatim: version.title)
-                        Text(verbatim: version.subtitle)
-                    } icon: {
-                        if version.isSelected {
-                            Image(systemName: "checkmark")
-                        }
-                    }
+                    Text(verbatim: version.title)
+                    Text(verbatim: version.subtitle)
                 }
                 .disabled(!version.isAvailable)
             }
         } label: {
             Label("player.settings.version", systemImage: "film.stack")
+                .labelStyle(.iconOnly)
         }
     }
 
@@ -1179,6 +1177,7 @@ struct PlayerView: View {
             isShowingChapterPopover.toggle()
         } label: {
             Label("player.chapters.title", systemImage: "list.bullet.rectangle")
+                .labelStyle(.iconOnly)
         }
         .popover(isPresented: $isShowingChapterPopover, arrowEdge: .bottom) {
             PlayerChapterPopover(
@@ -1195,15 +1194,15 @@ struct PlayerView: View {
         } label: {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(media.primaryLabel).font(.title3.bold())
+                    Text(media.primaryLabel).font(.sectionTitle)
                     if canShowInfo {
                         Image(systemName: "chevron.down")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
                 if let secondary = media.tertiaryLabel ?? media.secondaryLabel {
-                    Text(secondary).font(.subheadline).foregroundStyle(.secondary)
+                    Text(secondary).font(.facts).foregroundStyle(.textSecondary)
                 }
             }
             .contentShape(Rectangle())
@@ -1308,11 +1307,11 @@ struct PlayerView: View {
         .opacity(0)
     }
 
-    private var fullscreenAccessibilityLabel: Text {
+    private var fullscreenAccessibilityLabel: String {
         if fullscreenCoordinator.isFullScreen {
-            Text("player.controls.exitFullscreen")
+            String(localized: "player.controls.exitFullscreen")
         } else {
-            Text("player.controls.enterFullscreen")
+            String(localized: "player.controls.enterFullscreen")
         }
     }
 

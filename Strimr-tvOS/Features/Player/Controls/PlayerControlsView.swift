@@ -131,7 +131,7 @@ struct PlayerControlsView: View {
                     }
                     Spacer()
                     Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: onGoLive)
-                        .buttonStyle(.borderedProminent)
+                        .actionButtonStyle(.primary)
                         .disabled(behindLiveSeconds < 2)
                 }
             } else {

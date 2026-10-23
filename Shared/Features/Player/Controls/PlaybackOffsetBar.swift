@@ -92,7 +92,7 @@ extension PlayerController {
 struct PlaybackOffsetIndicator: View {
     var body: some View {
         Circle()
-            .fill(Color.brandPrimary)
+            .fill(Color.selectionAccent)
             .frame(width: 9, height: 9)
             .overlay(Circle().stroke(Color.black.opacity(0.4), lineWidth: 1))
             .accessibilityHidden(true)
@@ -247,7 +247,7 @@ struct PlaybackOffsetBar: View {
         }
         .fontWeight(.semibold)
         #if !os(tvOS)
-            .buttonStyle(.borderedProminent)
+            .actionButtonStyle(.primary)
         #endif
     }
 

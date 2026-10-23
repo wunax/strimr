@@ -112,7 +112,7 @@ struct PlayerControlsView: View {
                                 systemImage: "dot.radiowaves.left.and.right",
                                 action: onGoLive,
                             )
-                            .buttonStyle(.borderedProminent)
+                            .actionButtonStyle(.primary)
                             .disabled(behindLiveSeconds < 2)
                         }
                         .foregroundStyle(.white)
