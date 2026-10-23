@@ -136,7 +136,7 @@ struct SelectServerView: View {
 
                 Image(systemName: viewModel.isSelected(server) ? "checkmark.circle.fill" : "circle")
                     .font(.title)
-                    .foregroundStyle(viewModel.isSelected(server) ? Color.brandPrimary : Color.secondary)
+                    .foregroundStyle(viewModel.isSelected(server) ? Color.selectionAccent : Color.secondary)
             }
             .padding(32)
             .frame(maxWidth: .infinity, alignment: .leading)

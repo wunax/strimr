@@ -126,7 +126,7 @@ struct ShowDownloadSelectionSheet: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .brandSecondary : .textTertiary)
+                    .foregroundStyle(isSelected ? .selectionAccent : .textTertiary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(episodeNumberTitle(for: episode))

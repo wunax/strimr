@@ -108,7 +108,7 @@ struct ShowDownloadSelectionSheet: View {
         } label: {
             HStack {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selected ? .brandSecondary : .textTertiary)
+                    .foregroundStyle(selected ? .selectionAccent : .textTertiary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \($0)") }
                         ?? String(localized: "downloads.sheet.episodeUnknown"))

@@ -185,7 +185,7 @@ struct ProfileRow: View {
             Spacer()
             if isActive {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(.brandPrimary)
+                    .foregroundStyle(.selectionAccent)
             }
         }
     }

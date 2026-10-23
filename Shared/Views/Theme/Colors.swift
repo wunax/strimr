@@ -13,6 +13,11 @@ extension ShapeStyle where Self == Color {
         .white.opacity(0.45)
     }
 
+    /// The one color of selected states: a checkmark, the current option, the active category.
+    static var selectionAccent: Color {
+        .brandPrimary
+    }
+
     static var surfaceSubtle: Color {
         .white.opacity(0.09)
     }

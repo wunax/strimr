@@ -234,7 +234,7 @@ private struct PlaybackOffsetMenuRow: View {
                 Text(item.value)
                     .monospacedDigit()
                     .fontWeight(item.isActive ? .semibold : .regular)
-                    .foregroundStyle(item.isActive ? Color.brandPrimary : .secondary)
+                    .foregroundStyle(item.isActive ? Color.selectionAccent : .secondary)
             }
         }
         .disabled(!item.availability.isAvailable)

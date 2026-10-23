@@ -16,7 +16,7 @@ struct ExternalPlayerOptionsView: View {
                         Spacer()
                         if isSelected {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(Color.brandPrimary)
+                                .foregroundStyle(Color.selectionAccent)
                         }
                     }
                 }

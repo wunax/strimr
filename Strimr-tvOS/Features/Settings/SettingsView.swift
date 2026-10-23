@@ -172,13 +172,13 @@ struct SettingsView: View {
                             RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
                                 .fill(
                                     focusedTarget == .category(category) ? Color.white :
-                                        navigation.category == category ? Color.brandPrimary.opacity(0.18) : .clear,
+                                        navigation.category == category ? Color.selectionAccent.opacity(0.18) : .clear,
                                 )
                         }
                         .overlay(alignment: .leading) {
                             if navigation.category == category {
                                 Capsule()
-                                    .fill(Color.brandPrimary)
+                                    .fill(Color.selectionAccent)
                                     .frame(width: 4, height: 28)
                             }
                         }

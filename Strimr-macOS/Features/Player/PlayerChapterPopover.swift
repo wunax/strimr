@@ -76,7 +76,7 @@ struct PlayerChapterPopover: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isCurrent ? Color.accentColor.opacity(0.15) : .clear),
+                .fill(isCurrent ? Color.selectionAccent.opacity(0.15) : .clear),
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(

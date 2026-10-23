@@ -61,7 +61,7 @@ struct PlayerSettingsOptionsView: View {
                                 HStack(spacing: 16) {
                                     Image(systemName: option
                                         .isSelected ? "checkmark.circle.fill" : (option.systemImage ?? "circle"))
-                                        .foregroundStyle(option.isSelected ? Color.brandPrimary : foreground
+                                        .foregroundStyle(option.isSelected ? Color.selectionAccent : foreground
                                             .opacity(option.opensSubmenu ? 1 : 0.5))
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(option.title).font(.bodyText.weight(.semibold))
@@ -70,7 +70,7 @@ struct PlayerSettingsOptionsView: View {
                                                 .font(.cardMetadata
                                                     .weight(option.highlightsSubtitle ? .semibold : .regular))
                                                 .foregroundStyle(option.highlightsSubtitle
-                                                    ? Color.brandPrimary
+                                                    ? Color.selectionAccent
                                                     : foreground.opacity(0.65))
                                         }
                                     }

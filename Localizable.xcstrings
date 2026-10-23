@@ -16707,23 +16707,6 @@
         }
       }
     },
-    "settings.interface.multiServerSearch" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search all servers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechercher sur tous les serveurs"
-          }
-        }
-      }
-    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {

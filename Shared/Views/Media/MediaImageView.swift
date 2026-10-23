@@ -63,19 +63,19 @@ struct MediaArtworkPlaceholder: View {
 
             ZStack {
                 ContainerRelativeShape()
-                    .fill(Color.brandSecondary.opacity(0.1))
+                    .fill(.surfaceSubtle)
 
                 VStack(spacing: 10) {
                     Image(systemName: systemImage)
                         .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundStyle(.brandSecondary)
+                        .foregroundStyle(.textTertiary)
                         .frame(width: iconSize * 2, height: iconSize * 2)
-                        .background(Color.brandSecondary.opacity(0.1), in: Circle())
+                        .background(.surfaceSubtle, in: Circle())
 
                     if showsLabel {
                         Text("media.placeholder.noArtwork")
                             .font(.cardMetadata.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textTertiary)
                             .multilineTextAlignment(.center)
                     }
                 }

@@ -295,7 +295,7 @@ private struct SettingsOptionsView<Value: Hashable>: View {
                         Spacer()
                         if selection == value {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(Color.brandPrimary)
+                                .foregroundStyle(Color.selectionAccent)
                         }
                     }
                 }
