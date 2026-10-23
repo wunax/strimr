@@ -16,6 +16,7 @@ struct MediaDetailView: View {
     @State private var isShowingSubtitleSearch = false
     @State private var fileInfoMedia: MediaItem?
     @State private var expandedSummaryMedia: MediaItem?
+    @FocusState private var isPlayButtonFocused: Bool
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -83,6 +84,7 @@ struct MediaDetailView: View {
                         RelatedHubsSection(viewModel: bindableViewModel, onSelectMedia: onSelectMedia)
                     }
                 }
+                .defaultFocus($isPlayButtonFocused, true)
             }
         }
         .task {
@@ -237,7 +239,8 @@ struct MediaDetailView: View {
             .padding(.horizontal, 12)
         }
         .actionButtonStyle(.primary)
-        .disabled(viewModel.primaryActionRatingKey == nil)
+        // Kept enabled while a series resolves its next episode, so the initial focus can land on it.
+        .focused($isPlayButtonFocused)
     }
 
     private var buttonsRow: some View {
