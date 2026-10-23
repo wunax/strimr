@@ -243,6 +243,13 @@ final class SettingsManager {
         persist()
     }
 
+    func setHomeRowStyle(_ style: HomeRowStyle, of row: HomeRow, profileID: String) {
+        var preferences = homeRowPreferences(profileID: profileID)
+        preferences.setStyle(style, of: row)
+        settings.interface.homeRowsByProfile[profileID] = preferences
+        persist()
+    }
+
     func resetHomeRows(profileID: String) {
         settings.interface.homeRowsByProfile.removeValue(forKey: profileID)
         persist()

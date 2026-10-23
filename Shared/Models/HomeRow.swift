@@ -6,7 +6,7 @@ enum HomeRowKind: Hashable {
     case hub
 }
 
-enum HomeRowStyle: String, Hashable {
+enum HomeRowStyle: String, Codable, Hashable {
     case landscape
     case portrait
 }
@@ -14,7 +14,7 @@ enum HomeRowStyle: String, Hashable {
 struct HomeRow: Identifiable, Hashable {
     let id: String
     let kind: HomeRowKind
-    let style: HomeRowStyle
+    var style: HomeRowStyle
     let hub: Hub
     /// Name of the row's server, shown when the profile has several servers.
     var serverName: String?
@@ -126,6 +126,8 @@ struct HomeRowPreferences: Codable, Equatable {
     var hiddenRowIDs: [String] = []
     /// Rows turned on although the server does not put them on its home.
     var shownRowIDs: [String] = []
+    /// Only the rows whose style differs from their default.
+    var rowStyles: [String: HomeRowStyle] = [:]
 
     init() {}
 
@@ -134,12 +136,14 @@ struct HomeRowPreferences: Codable, Equatable {
         orderedRowIDs = try container.decodeIfPresent([String].self, forKey: .orderedRowIDs) ?? []
         hiddenRowIDs = try container.decodeIfPresent([String].self, forKey: .hiddenRowIDs) ?? []
         shownRowIDs = try container.decodeIfPresent([String].self, forKey: .shownRowIDs) ?? []
+        rowStyles = try container.decodeIfPresent([String: HomeRowStyle].self, forKey: .rowStyles) ?? [:]
     }
 
     private enum CodingKeys: String, CodingKey {
         case orderedRowIDs
         case hiddenRowIDs
         case shownRowIDs
+        case rowStyles
     }
 
     func orderedRows(from rows: [HomeRow]) -> [HomeRow] {
@@ -170,6 +174,21 @@ struct HomeRowPreferences: Codable, Equatable {
         shownRowIDs = shownIDs.sorted()
     }
 
+    func style(of row: HomeRow) -> HomeRowStyle {
+        rowStyles[row.id] ?? row.style
+    }
+
+    func styled(_ row: HomeRow) -> HomeRow {
+        var row = row
+        row.style = style(of: row)
+        return row
+    }
+
+    /// `row` carries its default style, so choosing it again forgets the override.
+    mutating func setStyle(_ style: HomeRowStyle, of row: HomeRow) {
+        rowStyles[row.id] = style == row.style ? nil : style
+    }
+
     mutating func setOrder(_ availableRowIDs: [String]) {
         orderedRowIDs = PreferenceOrder.merged(stored: orderedRowIDs, available: availableRowIDs)
     }
@@ -180,9 +199,10 @@ struct HomeRowPreferences: Codable, Equatable {
         orderedRowIDs.removeAll(where: belongs)
         hiddenRowIDs.removeAll(where: belongs)
         shownRowIDs.removeAll(where: belongs)
+        rowStyles = rowStyles.filter { !belongs($0.key) }
     }
 
     var isEmpty: Bool {
-        orderedRowIDs.isEmpty && hiddenRowIDs.isEmpty && shownRowIDs.isEmpty
+        orderedRowIDs.isEmpty && hiddenRowIDs.isEmpty && shownRowIDs.isEmpty && rowStyles.isEmpty
     }
 }

@@ -86,6 +86,7 @@ final class HomeViewModel {
     var rows: [HomeRow] {
         let preferences = settingsManager.homeRowPreferences(profileID: profileID)
         return pinningOfflineDownloads(preferences.visibleRows(from: availableRows), preferences: preferences)
+            .map(preferences.styled)
     }
 
     var showsServerNames: Bool {
@@ -122,6 +123,14 @@ final class HomeViewModel {
             saveOrder(shown: shown + [rowID])
         }
         settingsManager.setHomeRowVisibility(rowID, visible: visible, profileID: profileID)
+    }
+
+    func rowStyle(of row: HomeRow) -> HomeRowStyle {
+        settingsManager.homeRowPreferences(profileID: profileID).style(of: row)
+    }
+
+    func setRowStyle(_ style: HomeRowStyle, of row: HomeRow) {
+        settingsManager.setHomeRowStyle(style, of: row, profileID: profileID)
     }
 
     func moveRow(at index: Int, by offset: Int) {

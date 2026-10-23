@@ -80,6 +80,29 @@ struct HomeRowTests {
         #expect(preferences.shownRowIDs == ["home:jellyfin:jf-b:hub:x::/y"])
     }
 
+    @Test func `a row style is stored only while it differs from the default`() {
+        var preferences = HomeRowPreferences()
+        let row = HomeRow.providerHub(server: plex, hub: hub("movie.recentlyadded.1"))
+
+        preferences.setStyle(.landscape, of: row)
+
+        #expect(preferences.styled(row).style == .landscape)
+
+        preferences.setStyle(.portrait, of: row)
+
+        #expect(preferences.rowStyles.isEmpty)
+        #expect(preferences.styled(row).style == .portrait)
+    }
+
+    @Test func `removing a server forgets its row styles`() {
+        var preferences = HomeRowPreferences()
+        preferences.setStyle(.landscape, of: HomeRow.providerHub(server: plex, hub: hub("movie.recentlyadded.1")))
+
+        preferences.removeRows(of: [plex])
+
+        #expect(preferences.isEmpty)
+    }
+
     private func hub(_ id: String, key: String = "", hubKey: String? = nil) -> Hub {
         Hub(id: id, key: key, hubKey: hubKey, title: id, size: 1, more: false, items: [], server: nil)
     }

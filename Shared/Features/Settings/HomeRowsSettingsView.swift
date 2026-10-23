@@ -99,6 +99,15 @@ struct HomeRowsSettingsView: View {
                     .settingsFocus("row-\(row.id)-visibility", isDefault: index == 0)
 
                     Button {
+                        viewModel.setRowStyle(otherStyle(than: viewModel.rowStyle(of: row)), of: row)
+                    } label: {
+                        viewModel.rowStyle(of: row).icon
+                            .accessibilityLabel(Text("settings.interface.homeRows.style"))
+                    }
+                    .buttonStyle(.bordered)
+                    .settingsFocus("row-\(row.id)-style", exitsLeft: false)
+
+                    Button {
                         viewModel.moveRow(at: index, by: -1)
                     } label: {
                         tvOSActionLabel("settings.interface.homeRows.moveUp", systemImage: "arrow.up")
@@ -128,6 +137,8 @@ struct HomeRowsSettingsView: View {
                 )) {
                     rowLabel(row)
                 }
+
+                styleMenu(for: row)
 
                 Button {
                     viewModel.moveRow(at: index, by: -1)
@@ -241,6 +252,38 @@ struct HomeRowsSettingsView: View {
         }
     #endif
 
+    // MARK: - Style
+
+    #if os(tvOS)
+        private func otherStyle(than style: HomeRowStyle) -> HomeRowStyle {
+            style == .portrait ? .landscape : .portrait
+        }
+    #else
+        private func styleMenu(for row: HomeRow) -> some View {
+            let style = viewModel.rowStyle(of: row)
+            return Menu {
+                Picker(
+                    "settings.interface.homeRows.style",
+                    selection: Binding(
+                        get: { style },
+                        set: { viewModel.setRowStyle($0, of: row) },
+                    ),
+                ) {
+                    ForEach([HomeRowStyle.portrait, .landscape], id: \.self) { option in
+                        Label(option.title, systemImage: option.systemImage).tag(option)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                style.icon
+            }
+            .menuIndicator(.hidden)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(Text("settings.interface.homeRows.style"))
+            .accessibilityValue(Text(style.title))
+        }
+    #endif
+
     // MARK: - Helpers
 
     private func rowLabel(_ row: HomeRow) -> some View {
@@ -275,6 +318,31 @@ struct HomeRowsSettingsView: View {
             .accessibilityLabel(Text(title))
         }
     #endif
+}
+
+private extension HomeRowStyle {
+    var title: LocalizedStringKey {
+        switch self {
+        case .portrait: "settings.interface.homeRows.style.posters"
+        case .landscape: "settings.interface.homeRows.style.thumbnails"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .portrait: "rectangle.portrait"
+        case .landscape: "rectangle"
+        }
+    }
+
+    /// Both symbols take the width of the wider one, so switching style does not shift the buttons beside it.
+    var icon: some View {
+        ZStack {
+            Image(systemName: HomeRowStyle.landscape.systemImage)
+                .hidden()
+            Image(systemName: systemImage)
+        }
+    }
 }
 
 #if !os(tvOS)
