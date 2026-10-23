@@ -115,18 +115,15 @@ struct MediaFileInfoView: View {
         LazyVStack(alignment: .leading, spacing: MediaFileInfoLayout.contentSpacing) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(targetMedia?.title ?? viewModel.media.title)
-                    .font(.title2.weight(.semibold))
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
                     .lineLimit(2)
 
                 if let summary = fileInfo.firstVersion?.summaryLabels, !summary.isEmpty {
                     MediaFileInfoFlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                         ForEach(Array(summary.enumerated()), id: \.offset) { _, label in
                             Text(label)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 5)
-                                .background(.secondary.opacity(0.14), in: Capsule())
+                                .fileInfoPill()
                         }
                     }
                 }
@@ -147,24 +144,25 @@ struct MediaFileInfoView: View {
         VStack(alignment: .center, spacing: 16) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 36))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textTertiary)
             Text(viewModel.fileInfoErrorMessage == nil
                 ? "media.fileInfo.unavailable"
                 : "media.fileInfo.error")
+                .font(.bodyText)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
             if let errorMessage = viewModel.fileInfoErrorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(.facts)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textTertiary)
             }
             Button {
                 Task { await viewModel.loadFileInfo(for: targetMedia, forceReload: true) }
             } label: {
                 Label("common.actions.retry", systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.bordered)
+            .actionButtonStyle(.secondary)
         }
         .frame(maxWidth: .infinity, minHeight: 220)
     }
@@ -179,7 +177,8 @@ private struct MediaFileInfoVersionView: View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.versionSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(verbatim: versionTitle)
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if isActive {
                     Image(systemName: "checkmark.circle.fill")
@@ -189,14 +188,14 @@ private struct MediaFileInfoVersionView: View {
 
                 if !version.isAvailable {
                     Text("media.versions.unavailable")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
 
                 if let title = version.title, !title.isEmpty {
                     Text(title)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(1)
                 }
             }
@@ -305,14 +304,18 @@ private struct MediaFileInfoVersionView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.cardContentSpacing) {
             Label(titleKey, systemImage: systemImage)
-                .font(.headline)
+                .font(.rowTitle)
+                .foregroundStyle(.textPrimary)
             content()
         }
         .padding(MediaFileInfoLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 14))
+        .background(
+            .surfaceSubtle,
+            in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+        )
         #if os(tvOS)
-            .modifier(TVModalReadingFocus())
+        .modifier(TVModalReadingFocus())
         #endif
     }
 
@@ -353,7 +356,8 @@ private struct MediaFileInfoPartView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.subsectionSpacing) {
             Text(verbatim: fileTitle)
-                .font(.subheadline.weight(.semibold))
+                .font(.facts.weight(.semibold))
+                .foregroundStyle(.textPrimary)
 
             infoGrid {
                 field("media.fileInfo.fileName", part.fileName)
@@ -433,6 +437,7 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
     let style: Style
     private let content: () -> Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isExpanded: Bool
 
     init(
@@ -453,7 +458,7 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             #if os(tvOS)
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                         isExpanded.toggle()
                     }
                 } label: {
@@ -478,8 +483,8 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             if style == .card {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.primary.opacity(0.055))
+                RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
+                    .fill(.surfaceSubtle)
             }
         }
     }
@@ -487,7 +492,7 @@ private struct MediaFileInfoDisclosureCard<Content: View>: View {
     private var disclosureLabel: some View {
         HStack(spacing: MediaFileInfoLayout.nestedLabelSpacing) {
             Label(titleKey, systemImage: systemImage)
-                .font(style == .card ? .headline : .subheadline.weight(.semibold))
+                .font(style == .card ? .rowTitle : .facts.weight(.semibold))
 
             Spacer(minLength: 8)
 
@@ -510,17 +515,15 @@ private struct MediaFileInfoStreamView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: MediaFileInfoLayout.streamSpacing) {
             Text(stream.headline)
-                .font(.callout.weight(.semibold))
+                .font(.facts.weight(.semibold))
+                .foregroundStyle(.textPrimary)
                 .lineLimit(2)
 
             if !flagKeys.isEmpty {
                 MediaFileInfoFlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
                     ForEach(flagKeys, id: \.self) { key in
                         Text(LocalizedStringKey(key))
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 4)
-                            .background(.secondary.opacity(0.14), in: Capsule())
+                            .fileInfoPill()
                     }
                 }
             }
@@ -555,9 +558,12 @@ private struct MediaFileInfoStreamView: View {
         }
         .padding(MediaFileInfoLayout.streamPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .background(
+            .surfaceSubtle,
+            in: RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous),
+        )
         #if os(tvOS)
-            .modifier(TVModalReadingFocus())
+        .modifier(TVModalReadingFocus())
         #endif
     }
 
@@ -588,6 +594,16 @@ private struct MediaFileInfoStreamView: View {
     }
 }
 
+private extension View {
+    func fileInfoPill() -> some View {
+        font(.badge)
+            .foregroundStyle(.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.surfaceRaised, in: Capsule())
+    }
+}
+
 private struct MediaFileInfoField: View {
     let label: LocalizedStringKey
     let value: String
@@ -596,24 +612,26 @@ private struct MediaFileInfoField: View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 8) {
                 Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textSecondary)
                 Text(value)
-                    .font(.callout)
+                    .font(.facts)
+                    .foregroundStyle(.textPrimary)
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         #else
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(2)
 
                 Spacer(minLength: 4)
 
                 Text(value)
-                    .font(.callout)
+                    .font(.facts)
+                    .foregroundStyle(.textPrimary)
                     .multilineTextAlignment(.trailing)
                     .lineLimit(3)
                     .frame(maxWidth: .infinity, alignment: .trailing)
