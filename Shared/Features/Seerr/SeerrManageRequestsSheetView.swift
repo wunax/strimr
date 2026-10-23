@@ -12,7 +12,7 @@ struct SeerrManageRequestsSheetView: View {
             List {
                 if viewModel.pendingRequests.isEmpty {
                     Text("seerr.manageRequests.empty")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 } else {
                     ForEach(viewModel.pendingRequests, id: \.id) { request in
                         Section {
@@ -25,17 +25,22 @@ struct SeerrManageRequestsSheetView: View {
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            .requestSheetListStyle()
             .navigationTitle("seerr.manageRequests.title")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("common.actions.done") {
-                        dismiss()
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("common.actions.done") {
+                            dismiss()
+                        }
                     }
                 }
-            }
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 360)
+        #endif
         .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
             Button("common.actions.done") {}
         } message: {
@@ -60,36 +65,34 @@ struct SeerrManageRequestsSheetView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                    case .empty:
-                        Color.gray.opacity(0.2)
-                    case .failure:
-                        Color.gray.opacity(0.2)
-                    @unknown default:
-                        Color.gray.opacity(0.2)
+                    default:
+                        Color.surfaceSubtle
                     }
                 }
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
             } else {
                 Circle()
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(.surfaceSubtle)
                     .frame(width: 40, height: 40)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.displayName(for: request))
-                    .font(.headline)
+                    .font(.cardTitle)
+                    .foregroundStyle(.textPrimary)
                 if let requestedAt = viewModel.requestedAtText(for: request) {
                     Text(requestedAt)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                 }
                 if viewModel.is4kRequest(request) {
                     Text("seerr.manageRequests.badge.4k")
-                        .font(.caption2.weight(.semibold))
+                        .font(.badge)
+                        .foregroundStyle(.textPrimary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.purple.opacity(0.2), in: Capsule())
+                        .background(.surfaceRaised, in: Capsule())
                 }
             }
 
@@ -132,7 +135,7 @@ struct SeerrManageRequestsSheetView: View {
                 : SeerrSeasonSummary.text(for: seasonNumbers, totalSeasons: viewModel.media.numberOfSeasons),
             systemImage: "rectangle.stack",
         )
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
+        .font(.facts)
+        .foregroundStyle(.textSecondary)
     }
 }

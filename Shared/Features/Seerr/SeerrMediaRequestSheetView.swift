@@ -11,7 +11,9 @@ struct SeerrMediaRequestSheetView: View {
         NavigationStack {
             content
                 .navigationTitle(LocalizedStringKey(viewModel.sheetTitleKey))
+            #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+            #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("common.actions.cancel") {
@@ -20,6 +22,9 @@ struct SeerrMediaRequestSheetView: View {
                     }
                 }
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 360)
+        #endif
         .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
             Button("common.actions.done") {}
         } message: {
@@ -53,10 +58,11 @@ struct SeerrMediaRequestSheetView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(LocalizedStringKey(option.titleKey))
-                                .font(.headline)
+                                .font(.cardTitle)
+                                .foregroundStyle(.textPrimary)
                             Text(LocalizedStringKey(option.subtitleKey))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.cardMetadata)
+                                .foregroundStyle(.textSecondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -64,7 +70,7 @@ struct SeerrMediaRequestSheetView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .requestSheetListStyle()
     }
 
     private var requestForm: some View {
@@ -83,7 +89,7 @@ struct SeerrMediaRequestSheetView: View {
             if viewModel.isMovie, !viewModel.requiresAdvancedConfiguration {
                 Section {
                     Text("seerr.request.movie.confirmation")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.textSecondary)
                 }
             }
 
@@ -103,7 +109,7 @@ struct SeerrMediaRequestSheetView: View {
                                 .progressViewStyle(.circular)
                         }
                         Text(LocalizedStringKey(viewModel.submitButtonKey))
-                            .font(.headline)
+                            .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -120,7 +126,7 @@ struct SeerrMediaRequestSheetView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .requestSheetListStyle()
     }
 
     private var requestServiceOptionsSection: some View {
@@ -152,7 +158,7 @@ struct SeerrMediaRequestSheetView: View {
                 } else if let rootFolder = viewModel.selectedRootFolder {
                     LabeledContent("seerr.request.options.rootFolder") {
                         Text(rootFolder)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
             }
@@ -167,7 +173,7 @@ struct SeerrMediaRequestSheetView: View {
                 } else if let profileName = selectedProfileName {
                     LabeledContent("seerr.request.options.profile") {
                         Text(profileName)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
             }
@@ -178,7 +184,7 @@ struct SeerrMediaRequestSheetView: View {
         Section("seerr.request.seasons.title") {
             if viewModel.seasons.isEmpty {
                 Text("seerr.request.seasons.empty")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             } else {
                 ForEach(viewModel.seasons, id: \.id) { season in
                     if let seasonNumber = season.seasonNumber {
@@ -186,10 +192,11 @@ struct SeerrMediaRequestSheetView: View {
                             HStack(alignment: .center, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(viewModel.seasonTitle(for: season))
-                                        .font(.headline)
+                                        .font(.cardTitle)
+                                        .foregroundStyle(.textPrimary)
                                     Text(seasonEpisodeCountText(season))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(.cardMetadata)
+                                        .foregroundStyle(.textSecondary)
                                 }
                                 Spacer()
                                 if let badge = viewModel.seasonAvailabilityBadge(for: season) {
@@ -208,8 +215,8 @@ struct SeerrMediaRequestSheetView: View {
 
             if let messageKey = viewModel.partialRequestsDisabledMessageKey {
                 Text(LocalizedStringKey(messageKey))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
             }
         }
     }
@@ -271,6 +278,16 @@ struct SeerrMediaRequestSheetView: View {
         Task {
             await viewModel.submitRequest()
         }
+    }
+}
+
+extension View {
+    func requestSheetListStyle() -> some View {
+        #if os(macOS)
+            listStyle(.inset)
+        #else
+            listStyle(.insetGrouped)
+        #endif
     }
 }
 

@@ -65,7 +65,6 @@ struct SeerrRequestsView: View {
                 }
                 #if os(iOS)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.ultraThinMaterial)
                 #endif
             }
         #endif

@@ -68,7 +68,6 @@ struct SeerrMediaDetailView: View {
                 }
             }
             .presentationDetents([.medium, .large])
-            .presentationBackground(.ultraThinMaterial)
         }
         .sheet(item: $manageRequestsSheet) { sheet in
             SeerrManageRequestsSheetView(viewModel: sheet.viewModel) {
@@ -78,7 +77,6 @@ struct SeerrMediaDetailView: View {
                 }
             }
             .presentationDetents([.medium, .large])
-            .presentationBackground(.ultraThinMaterial)
         }
     }
 
