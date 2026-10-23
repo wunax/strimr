@@ -270,7 +270,7 @@ struct SettingsPicker<Value: Hashable>: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.cardMetadata.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
         }

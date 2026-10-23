@@ -27,7 +27,8 @@ struct IntegrationsView: View {
                             isConnected: seerrStore.isLoggedIn,
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.roundedRectangle(radius: LayoutMetrics.cardCornerRadius))
                     .settingsFocus("seerr", isDefault: true)
 
                     Spacer(minLength: 0)
@@ -53,21 +54,22 @@ struct IntegrationsView: View {
     ) -> some View {
         HStack(spacing: 24) {
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(0.12))
+                // Hierarchical styles: the card is the label of a bordered button, which turns white when focused.
+                RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
+                    .fill(.secondary.opacity(0.2))
 
                 Image(systemName: systemImage)
                     .font(.title2)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
             .frame(width: 64, height: 64)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
                 Text(subtitle)
                     .foregroundStyle(.secondary)
-                    .font(.callout)
+                    .font(.facts)
                     .lineLimit(2)
                     .truncationMode(.middle)
             }
@@ -83,9 +85,7 @@ struct IntegrationsView: View {
             Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
         }
-        .padding(24)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

@@ -17,7 +17,8 @@ struct MoreView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("tabs.more")
-                        .font(.largeTitle.bold())
+                        .font(.heroTitle)
+                        .foregroundStyle(.textPrimary)
 
                     NavigationLink(value: MoreRoute.settings) {
                         Label("settings.title", systemImage: "gearshape.fill")

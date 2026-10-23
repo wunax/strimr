@@ -84,7 +84,7 @@ struct HomeRowsSettingsView: View {
             HStack(spacing: 24) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(row.title)
-                        .font(.headline)
+                        .font(.rowTitle)
                     rowSubtitle(for: row)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -206,7 +206,7 @@ struct HomeRowsSettingsView: View {
                         rowGroupCount(group)
                             .foregroundStyle(.secondary)
                         Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
+                            .font(.cardMetadata.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -229,7 +229,7 @@ struct HomeRowsSettingsView: View {
                 Text(HomeRowGroupTitle.key(for: group))
                 if let serverName = group.serverName {
                     Text("settings.homeRows.serverSubtitle \(serverName)")
-                        .font(.caption)
+                        .font(.cardMetadata)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -255,7 +255,7 @@ struct HomeRowsSettingsView: View {
     private func rowSubtitle(for row: HomeRow) -> some View {
         if let subtitle = subtitle(for: row) {
             subtitle
-                .font(.caption)
+                .font(.cardMetadata)
                 .foregroundStyle(.secondary)
         }
     }

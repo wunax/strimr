@@ -52,41 +52,37 @@ struct CustomExternalPlayerView: View {
         SettingsScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("settings.playback.externalPlayer.custom.name")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
 
                 TextField("settings.playback.externalPlayer.custom.name", text: $model.name)
                     .settingsFocus("name", isDefault: true)
                     .autocorrectionDisabled()
-                    .padding(14)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .settingsFieldStyle()
 
                 Text("settings.playback.externalPlayer.custom.template")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
 
                 TextField(
                     "settings.playback.externalPlayer.custom.template",
                     text: $model.template,
-                    prompt: Text(verbatim: "myplayer://play?url={url}").foregroundColor(.gray),
+                    prompt: Text(verbatim: "myplayer://play?url={url}").foregroundColor(.textTertiary),
                 )
                 .settingsFocus("template")
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .padding(14)
-                .background(Color.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .settingsFieldStyle()
 
                 if let error = model.templateError {
                     Text(error)
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.red)
                 }
 
                 Text("settings.playback.externalPlayer.custom.help")
-                    .font(.footnote)
+                    .font(.facts)
                     .foregroundStyle(.secondary)
 
                 Button {

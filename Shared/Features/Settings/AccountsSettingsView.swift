@@ -22,7 +22,7 @@ struct AccountsSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(account.displayName)
                         Text(account.provider == .plex ? "provider.plex" : "provider.jellyfin")
-                            .font(.caption)
+                            .font(.cardMetadata)
                     }
                 } footer: {
                     if sessionManager.isAccountUnused(account.id) {
@@ -146,7 +146,7 @@ struct ServerSessionRow: View {
                 session: session,
                 connectionKind: sessionManager.registry.plexConnectionKind(for: session.identity),
             )
-            .font(.caption)
+            .font(.cardMetadata)
         }
     }
 }

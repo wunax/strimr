@@ -15,7 +15,7 @@ struct SettingsAudioView: View {
                     Toggle("settings.playback.losslessAudio", isOn: viewModel.losslessAudioBinding)
                         .settingsFocus("settings.playback.losslessAudio", isDefault: true)
                     Text("settings.playback.losslessAudio.footer")
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.secondary)
                 }
 
@@ -24,7 +24,7 @@ struct SettingsAudioView: View {
                         Toggle("settings.playback.spatialAudio", isOn: viewModel.spatialAudioBinding)
                             .settingsFocus("settings.playback.spatialAudio")
                         Text("settings.playback.spatialAudio.footer")
-                            .font(.footnote)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -36,7 +36,7 @@ struct SettingsAudioView: View {
                     )
                     .settingsFocus("settings.playback.rememberTrackSelections")
                     Text("settings.playback.rememberTrackSelections.footer")
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.secondary)
                 }
             } header: {

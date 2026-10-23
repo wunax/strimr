@@ -58,7 +58,7 @@ struct LibrarySettingsLabel: View {
             Text(title)
             if let subtitle {
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.cardMetadata)
                     .foregroundStyle(.secondary)
             }
         }

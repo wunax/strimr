@@ -12,8 +12,8 @@ struct SettingsList<Content: View>: View {
                     VStack(alignment: .leading, spacing: 16) {
                         if !section.header.isEmpty {
                             section.header
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
+                                .font(.sectionTitle)
+                                .foregroundStyle(.textSecondary)
                         }
                         VStack(alignment: .leading, spacing: 20) {
                             ForEach(subviews: section.content) { row in
@@ -22,8 +22,8 @@ struct SettingsList<Content: View>: View {
                         }
                         if !section.footer.isEmpty {
                             section.footer
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .font(.facts)
+                                .foregroundStyle(.textSecondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,6 +32,17 @@ struct SettingsList<Content: View>: View {
             .padding(24)
         }
         .buttonStyle(.bordered)
+    }
+}
+
+extension View {
+    /// Text field of a settings page: the system field has no visible surface on the settings background.
+    func settingsFieldStyle() -> some View {
+        padding(14)
+            .background(
+                .surfaceSubtle,
+                in: RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous),
+            )
     }
 }
 

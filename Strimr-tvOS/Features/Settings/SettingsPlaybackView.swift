@@ -101,7 +101,7 @@ struct SettingsPlaybackView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("settings.playback.showInfoWhenPaused")
                         Text("settings.playback.showInfoWhenPaused.description")
-                            .font(.footnote)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -126,7 +126,7 @@ struct SettingsPlaybackView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
+                        .font(.cardMetadata.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -155,7 +155,7 @@ struct SettingsPlaybackView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("settings.playback.scrubThumbnails")
                     Text("settings.playback.scrubThumbnails.description")
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -165,7 +165,7 @@ struct SettingsPlaybackView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("settings.playback.generateMissingScrubThumbnails")
                     Text("settings.playback.generateMissingScrubThumbnails.description")
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.secondary)
                 }
             }

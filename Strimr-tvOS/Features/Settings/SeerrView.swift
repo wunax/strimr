@@ -154,15 +154,18 @@ private struct SeerrCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             if let title {
                 Text(title)
-                    .font(.headline)
+                    .font(.rowTitle)
+                    .foregroundStyle(.textPrimary)
             }
 
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(
+            .surfaceSubtle,
+            in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+        )
     }
 }
 
@@ -258,20 +261,18 @@ private struct SeerrServerStepView: View {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("integrations.seerr.server.url.title")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
 
                         TextField(
                             "integrations.seerr.server.url.title",
                             text: $viewModel.baseURLInput,
-                            prompt: Text("integrations.seerr.server.url.placeholder").foregroundColor(.gray),
+                            prompt: Text("integrations.seerr.server.url.placeholder").foregroundColor(.textTertiary),
                         )
                         .settingsFocus("input", isDefault: true)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .padding(14)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .settingsFieldStyle()
 
                         Button {
                             Task {
@@ -336,13 +337,13 @@ private struct SeerrAuthMethodStepView: View {
                         .disabled(!viewModel.isPlexAuthAvailable || viewModel.isAuthenticating)
 
                         Text("integrations.seerr.login.plex.connectedAccount")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
+                            .foregroundStyle(.textSecondary)
+                            .font(.facts)
 
                         if !viewModel.isPlexAuthAvailable {
                             Text("integrations.seerr.login.plex.unavailable")
-                                .foregroundStyle(.secondary)
-                                .font(.callout)
+                                .foregroundStyle(.textSecondary)
+                                .font(.facts)
                         }
 
                         if viewModel.isJellyfinAuthAvailable {
@@ -397,14 +398,10 @@ private struct SeerrJellyfinAuthStepView: View {
                             .settingsFocus("input", isDefault: true)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .padding(14)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .settingsFieldStyle()
                         SecureField("integrations.seerr.login.password", text: $viewModel.jellyfinPassword)
                             .settingsFocus("password")
-                            .padding(14)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .settingsFieldStyle()
                         Button {
                             Task { await viewModel.signInWithJellyfin() }
                         } label: {
@@ -438,26 +435,22 @@ private struct SeerrLocalAuthStepView: View {
                 SeerrCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("integrations.seerr.login.email")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
 
                         TextField("integrations.seerr.login.email", text: $viewModel.email)
                             .settingsFocus("input", isDefault: true)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .padding(14)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .settingsFieldStyle()
 
                         Text("integrations.seerr.login.password")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
 
                         SecureField("integrations.seerr.login.password", text: $viewModel.password)
                             .settingsFocus("password")
-                            .padding(14)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .settingsFieldStyle()
 
                         Button {
                             Task {

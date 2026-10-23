@@ -22,7 +22,7 @@ struct SettingsView: View {
                     .frame(width: (geometry.size.width - 73) * 0.32)
 
                 Rectangle()
-                    .fill(.white.opacity(0.1))
+                    .fill(.strokeSubtle)
                     .frame(width: 1)
                     .overlay {
                         switch focusedTarget {
@@ -148,7 +148,8 @@ struct SettingsView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 32) {
             Text("settings.title")
-                .font(.largeTitle.bold())
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
                 .padding(.leading, 20)
 
             VStack(spacing: 16) {
@@ -161,14 +162,14 @@ struct SettingsView: View {
                             Image(systemName: category.symbol)
                                 .frame(width: 32)
                             Text(category.title)
-                                .font(.headline)
+                                .font(.rowTitle)
                             Spacer(minLength: 0)
                         }
                         .foregroundStyle(focusedTarget == .category(category) ? Color.black : Color.primary)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 22)
                         .background {
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
                                 .fill(
                                     focusedTarget == .category(category) ? Color.white :
                                         navigation.category == category ? Color.brandPrimary.opacity(0.18) : .clear,
@@ -191,8 +192,8 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
         .focusSection()
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: navigation.category)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: focusedTarget)
+        .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: navigation.category)
+        .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: focusedTarget)
     }
 
     private var detail: some View {
@@ -218,16 +219,17 @@ struct SettingsView: View {
                             Text(navigation.category.title)
                             ForEach(navigation.currentPages.dropLast()) { page in
                                 Image(systemName: "chevron.right")
-                                    .font(.caption2)
+                                    .font(.cardMetadata)
                                 Text(page.title)
                             }
                         }
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(1)
                     }
                     Text(navigation.currentPages.last?.title ?? navigation.category.title)
-                        .font(.title2.bold())
+                        .font(.tileTitle)
+                        .foregroundStyle(.textPrimary)
                 }
                 Spacer(minLength: 0)
             }
