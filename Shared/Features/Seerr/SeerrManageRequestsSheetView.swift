@@ -25,7 +25,7 @@ struct SeerrManageRequestsSheetView: View {
                     }
                 }
             }
-            .requestSheetListStyle()
+            .insetListStyle()
             .navigationTitle("seerr.manageRequests.title")
             #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)

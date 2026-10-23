@@ -17,7 +17,7 @@ struct IntegrationsView: View {
                 )
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("settings.integrations.title")
     }
 }

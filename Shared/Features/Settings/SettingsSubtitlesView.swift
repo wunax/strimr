@@ -77,7 +77,7 @@ struct SettingsSubtitlesView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("settings.playback.subtitles.title")
     }
 }

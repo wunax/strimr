@@ -70,7 +70,7 @@ struct SeerrMediaRequestSheetView: View {
                 }
             }
         }
-        .requestSheetListStyle()
+        .insetListStyle()
     }
 
     private var requestForm: some View {
@@ -126,7 +126,7 @@ struct SeerrMediaRequestSheetView: View {
                 }
             }
         }
-        .requestSheetListStyle()
+        .insetListStyle()
     }
 
     private var requestServiceOptionsSection: some View {
@@ -278,16 +278,6 @@ struct SeerrMediaRequestSheetView: View {
         Task {
             await viewModel.submitRequest()
         }
-    }
-}
-
-extension View {
-    func requestSheetListStyle() -> some View {
-        #if os(macOS)
-            listStyle(.inset)
-        #else
-            listStyle(.insetGrouped)
-        #endif
     }
 }
 

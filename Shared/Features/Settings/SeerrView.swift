@@ -77,7 +77,7 @@ struct SeerrView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("integrations.seerr.title")
         .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
             Button("common.actions.done") {}
@@ -165,6 +165,9 @@ private struct SeerrSetupView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 360)
+        #endif
         .onChange(of: viewModel.isLoggedIn) { _, newValue in
             if newValue {
                 onClose()
@@ -186,9 +189,11 @@ private struct SeerrServerStepView: View {
                     text: $viewModel.baseURLInput,
                     prompt: Text("integrations.seerr.server.url.placeholder").foregroundColor(.gray),
                 )
+                #if os(iOS)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                #endif
 
                 Button {
                     Task {
@@ -208,7 +213,7 @@ private struct SeerrServerStepView: View {
                     .isEmpty || viewModel.isValidating)
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
     }
 }
 
@@ -274,7 +279,7 @@ private struct SeerrAuthMethodStepView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("integrations.seerr.login.title")
     }
 }
@@ -287,8 +292,10 @@ private struct SeerrJellyfinAuthStepView: View {
         List {
             Section("integrations.seerr.login.jellyfin") {
                 TextField("integrations.seerr.login.username", text: $viewModel.jellyfinUsername)
+                #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                #endif
                 SecureField("integrations.seerr.login.password", text: $viewModel.jellyfinPassword)
                 Button {
                     Task { await viewModel.signInWithJellyfin() }
@@ -306,7 +313,7 @@ private struct SeerrJellyfinAuthStepView: View {
                 )
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("integrations.seerr.login.jellyfin")
     }
 }
@@ -319,9 +326,11 @@ private struct SeerrLocalAuthStepView: View {
         List {
             Section("integrations.seerr.login.local.title") {
                 TextField("integrations.seerr.login.email", text: $viewModel.email)
+                #if os(iOS)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                #endif
 
                 SecureField("integrations.seerr.login.password", text: $viewModel.password)
 
@@ -340,7 +349,7 @@ private struct SeerrLocalAuthStepView: View {
                     .isEmpty || viewModel.password.isEmpty || viewModel.isAuthenticating)
             }
         }
-        .listStyle(.insetGrouped)
+        .insetListStyle()
         .navigationTitle("integrations.seerr.login.local.title")
     }
 }

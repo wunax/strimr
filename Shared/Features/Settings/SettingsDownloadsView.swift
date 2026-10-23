@@ -34,7 +34,9 @@ struct SettingsDownloadsView: View {
                 Text("settings.downloads.wifiOnly.footer")
             }
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
         .navigationTitle("settings.downloads.title")
     }
 }

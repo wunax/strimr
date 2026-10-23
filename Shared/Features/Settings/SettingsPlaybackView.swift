@@ -50,6 +50,15 @@ struct SettingsPlaybackView: View {
                         Text("settings.playback.seconds \(seconds)").tag(seconds)
                     }
                 }
+
+                #if os(iOS)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.doubleTapToSeek", isOn: viewModel.doubleTapToSeekBinding)
+                        Text("settings.playback.doubleTapToSeek.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                #endif
             }
 
             Section {
@@ -91,12 +100,22 @@ struct SettingsPlaybackView: View {
 
             scrubThumbnailSection
         }
-        .listStyle(.inset)
+        .insetListStyle()
         .navigationTitle("settings.playback.title")
-        .sheet(isPresented: $isEditingCustomPlayer) {
-            CustomExternalPlayerView(player: viewModel.customExternalPlayer) { player in
-                viewModel.saveCustomExternalPlayer(player)
+        #if os(macOS)
+            .sheet(isPresented: $isEditingCustomPlayer) {
+                customExternalPlayerEditor
             }
+        #else
+            .navigationDestination(isPresented: $isEditingCustomPlayer) {
+                customExternalPlayerEditor
+            }
+        #endif
+    }
+
+    private var customExternalPlayerEditor: some View {
+        CustomExternalPlayerView(player: viewModel.customExternalPlayer) { player in
+            viewModel.saveCustomExternalPlayer(player)
         }
     }
 

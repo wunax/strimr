@@ -35,6 +35,22 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                #if os(iOS)
+                    Toggle(
+                        "settings.interface.displayFavoritesTab",
+                        isOn: Binding(
+                            get: { settingsManager.interface.displayFavoritesTab },
+                            set: { settingsManager.setDisplayFavoritesTab($0) },
+                        ),
+                    )
+                    Toggle(
+                        "settings.interface.displayDownloadsTab",
+                        isOn: Binding(
+                            get: { settingsManager.interface.displayDownloadsTab },
+                            set: { settingsManager.setDisplayDownloadsTab($0) },
+                        ),
+                    )
+                #endif
                 Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(
@@ -150,7 +166,7 @@ struct SettingsInterfaceView: View {
                 libraryStore: libraryStore,
             )
         }
-        .listStyle(.inset)
+        .insetListStyle()
         .navigationTitle("settings.interface.title")
     }
 }

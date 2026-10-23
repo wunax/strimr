@@ -46,7 +46,7 @@ struct SettingsAudioView: View {
                 Text("settings.playback.audioDelay.footer")
             }
         }
-        .listStyle(.inset)
+        .insetListStyle()
         .navigationTitle("settings.playback.audio.title")
     }
 }

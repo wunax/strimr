@@ -38,25 +38,41 @@ struct SettingsView: View {
                         libraryStore: libraryStore,
                     )
                 }
+
+                #if os(macOS)
+                    NavigationLink("settings.downloads.title") {
+                        SettingsDownloadsView()
+                    }
+                    NavigationLink("settings.storage.title") {
+                        SettingsStorageView()
+                    }
+                    NavigationLink("settings.integrations.title") {
+                        IntegrationsView()
+                    }
+                #endif
             }
 
-            Section("settings.downloads.title") {
-                NavigationLink("settings.downloads.manage") {
-                    SettingsDownloadsView()
+            #if os(iOS)
+                Section("settings.downloads.title") {
+                    NavigationLink("settings.downloads.manage") {
+                        SettingsDownloadsView()
+                    }
+
+                    NavigationLink("settings.storage.title") {
+                        SettingsStorageView()
+                    }
                 }
 
-                NavigationLink("settings.storage.title") {
-                    SettingsStorageView()
+                Section("settings.integrations.title") {
+                    NavigationLink("settings.integrations.manage") {
+                        IntegrationsView()
+                    }
                 }
-            }
-
-            Section("settings.integrations.title") {
-                NavigationLink("settings.integrations.manage") {
-                    IntegrationsView()
-                }
-            }
+            #endif
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
         .navigationTitle("settings.title")
     }
 }
