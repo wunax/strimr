@@ -460,6 +460,7 @@ struct PlayerView: View {
                     settingsControl: settingsControl,
                     showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
                     settingsFocusGeneration: settingsFocusGeneration,
+                    isShowingPanel: sheetPresentation.item != nil || activeOffsetBar != nil,
                 )
                 .transition(.opacity)
             }

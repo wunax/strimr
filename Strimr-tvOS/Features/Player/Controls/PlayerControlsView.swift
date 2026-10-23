@@ -43,7 +43,11 @@ struct PlayerControlsView: View {
     var settingsControl: PlayerSettingsControl?
     var showsSubtitleOffsetIndicator = false
     var settingsFocusGeneration: Int
+    var isShowingPanel: Bool
     @FocusState private var focusedControl: FocusTarget?
+    /// Focus leaving a side panel falls on the nearest control, the full-width timeline, where a stray left or right
+    /// press seeks. It stays out of reach until a button has taken the focus back.
+    @State private var isTimelineFocusSuspended = false
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -143,6 +147,7 @@ struct PlayerControlsView: View {
                     scrubPreview: scrubPreview,
                     onEditingChanged: onScrubbingChanged,
                 )
+                .disabled(isTimelineFocusSuspended)
             }
 
             ZStack {
@@ -241,14 +246,23 @@ struct PlayerControlsView: View {
         .onAppear {
             focusedControl = .playPause
         }
+        .onChange(of: isShowingPanel, initial: true) { _, isShowing in
+            if isShowing {
+                isTimelineFocusSuspended = true
+            }
+        }
+        .onChange(of: focusedControl) { _, control in
+            guard let control, !isShowingPanel, isTimelineFocusSuspended else { return }
+            isTimelineFocusSuspended = false
+            // The system picks its own control once the panel is gone, after the restore below has already run.
+            if let returningTarget, control != returningTarget {
+                focusedControl = returningTarget
+            }
+        }
         .onChange(of: settingsFocusGeneration) { _, _ in
             DispatchQueue.main.async {
-                switch settingsControl {
-                case .audio: focusedControl = .audio
-                case .subtitle: focusedControl = .subtitle
-                case .speed: focusedControl = .speed
-                case .settings: focusedControl = .settings
-                case nil: break
+                if let returningTarget {
+                    focusedControl = returningTarget
                 }
             }
         }
@@ -258,6 +272,16 @@ struct PlayerControlsView: View {
             } else {
                 onUserInteraction()
             }
+        }
+    }
+
+    private var returningTarget: FocusTarget? {
+        switch settingsControl {
+        case .audio: .audio
+        case .subtitle: .subtitle
+        case .speed: .speed
+        case .settings: .settings
+        case nil: nil
         }
     }
 
