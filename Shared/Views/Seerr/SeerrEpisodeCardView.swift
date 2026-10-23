@@ -6,8 +6,16 @@ struct SeerrEpisodeCardView: View {
     let imageURL: URL?
     let label: String?
     let airDateText: String?
-    #if os(iOS)
+    #if !os(macOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+        private var isRegularWidth: Bool {
+            #if os(tvOS)
+                false
+            #else
+                horizontalSizeClass == .regular
+            #endif
+        }
     #endif
 
     var body: some View {
@@ -24,7 +32,7 @@ struct SeerrEpisodeCardView: View {
             )
         #else
             Group {
-                if horizontalSizeClass == .regular {
+                if isRegularWidth {
                     HStack(alignment: .top, spacing: 16) {
                         SeerrEpisodeArtworkView(imageURL: imageURL, width: UIScreen.main.bounds.width / 3)
                         caption
