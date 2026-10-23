@@ -15,6 +15,11 @@ extension View {
     func videoOverlayGlass(in shape: some Shape = Capsule(style: .continuous)) -> some View {
         modifier(VideoOverlayGlassModifier(shape: shape))
     }
+
+    /// Keeps text drawn straight on playing video, without a surface behind it, readable over bright frames.
+    func videoTextShadow() -> some View {
+        shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+    }
 }
 
 private struct GlassSurfaceModifier<S: Shape>: ViewModifier {

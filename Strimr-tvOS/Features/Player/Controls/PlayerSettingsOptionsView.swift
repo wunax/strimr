@@ -30,17 +30,17 @@ struct PlayerSettingsOptionsView: View {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 if let parentTitle {
                     Text(parentTitle)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.textTertiary)
                         .accessibilityHidden(true)
                     Image(systemName: "chevron.right")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(.textTertiary)
                         .accessibilityHidden(true)
                 }
                 Text(title)
                     .layoutPriority(1)
             }
-            .font(.title2.bold())
+            .font(.sectionTitle)
+            .foregroundStyle(.textPrimary)
             .lineLimit(1)
             ScrollViewReader { proxy in
                 ScrollView {
@@ -48,8 +48,8 @@ struct PlayerSettingsOptionsView: View {
                         ForEach(options) { option in
                             if let sectionTitle = option.sectionTitle {
                                 Text(sectionTitle)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .eyebrowStyle()
+                                    .foregroundStyle(.textSecondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.top, 24)
                                     .padding(.horizontal, 20)
@@ -63,10 +63,11 @@ struct PlayerSettingsOptionsView: View {
                                         .foregroundStyle(option.isSelected ? Color.brandPrimary : foreground
                                             .opacity(option.opensSubmenu ? 1 : 0.5))
                                     VStack(alignment: .leading, spacing: 6) {
-                                        Text(option.title).font(.headline)
+                                        Text(option.title).font(.bodyText.weight(.semibold))
                                         if let subtitle = option.subtitle {
                                             Text(subtitle)
-                                                .font(.caption.weight(option.highlightsSubtitle ? .semibold : .regular))
+                                                .font(.cardMetadata
+                                                    .weight(option.highlightsSubtitle ? .semibold : .regular))
                                                 .foregroundStyle(option.highlightsSubtitle
                                                     ? Color.brandPrimary
                                                     : foreground.opacity(0.65))
@@ -75,7 +76,7 @@ struct PlayerSettingsOptionsView: View {
                                     Spacer(minLength: 0)
                                     if option.opensSubmenu {
                                         Image(systemName: "chevron.right")
-                                            .font(.headline)
+                                            .font(.bodyText.weight(.semibold))
                                             .foregroundStyle(foreground.opacity(0.5))
                                     }
                                 }
@@ -83,8 +84,11 @@ struct PlayerSettingsOptionsView: View {
                                 .padding(20)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
-                                    isFocused ? Color.white : Color.white.opacity(0.06),
-                                    in: RoundedRectangle(cornerRadius: 14),
+                                    isFocused ? Color.white : .surfaceSubtle,
+                                    in: RoundedRectangle(
+                                        cornerRadius: LayoutMetrics.cardCornerRadius,
+                                        style: .continuous,
+                                    ),
                                 )
                                 .scaleEffect(isFocused ? 1.02 : 1)
                                 .animation(.easeOut(duration: 0.15), value: isFocused)

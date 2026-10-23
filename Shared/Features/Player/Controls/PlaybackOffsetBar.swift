@@ -167,11 +167,7 @@ struct PlaybackOffsetBar: View {
         content
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
-            .background(.black.opacity(0.62), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1),
-            )
+            .videoOverlayGlass(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         #if !os(tvOS)
             // On tvOS the dark scheme already makes text white, and a forced white would stay white on
             // the light focused button background.

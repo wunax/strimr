@@ -21,7 +21,7 @@ struct PauseScreenOverlay: View {
                 .padding(.bottom, bottomPadding)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-        .foregroundStyle(.white)
+        .foregroundStyle(.textPrimary)
         .allowsHitTesting(false)
     }
 
@@ -44,32 +44,31 @@ struct PauseScreenOverlay: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: detailsSpacing) {
             Text("player.pauseScreen.watching")
-                .font(.headline)
-                .foregroundStyle(.white.opacity(0.7))
+                .eyebrowStyle()
+                .foregroundStyle(.textSecondary)
 
             if media.type == .episode, let seriesTitle = media.grandparentTitle {
                 Text(seriesTitle)
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
                     .lineLimit(1)
             }
 
             Text(media.title)
-                .font(titleFont)
+                .font(.heroTitle)
                 .lineLimit(2)
 
             if let metadataText = media.playerMetadataText {
                 Text(metadataText)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
             }
 
             if let summary = media.summary, !summary.isEmpty,
                !media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection)
             {
                 Text(summary)
-                    .font(.callout)
+                    .font(.bodyText)
                     .lineLimit(summaryLineLimit)
-                    .foregroundStyle(.white.opacity(0.9))
                     .padding(.top, 4)
             }
 
@@ -77,8 +76,8 @@ struct PauseScreenOverlay: View {
                 TimelineView(.everyMinute) { context in
                     if let timeText = timeText(now: context.date) {
                         Text(timeText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.7))
+                            .font(.facts.weight(.medium))
+                            .foregroundStyle(.textSecondary)
                             .padding(.top, 4)
                     }
                 }
@@ -101,14 +100,6 @@ struct PauseScreenOverlay: View {
             items.append(endsAtText)
         }
         return items.joined(separator: " · ")
-    }
-
-    private var titleFont: Font {
-        #if os(iOS)
-            .title2.weight(.bold)
-        #else
-            .title.weight(.bold)
-        #endif
     }
 
     private var summaryLineLimit: Int {

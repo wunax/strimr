@@ -47,19 +47,19 @@ struct PlayerMediaInfoView: View {
         VStack(alignment: .leading, spacing: 6) {
             if isEpisode, let seriesTitle = media.grandparentTitle {
                 Text(seriesTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.facts.weight(.semibold))
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
 
             Text(media.title)
-                .font(.title3.weight(.bold))
+                .font(.sectionTitle)
                 .lineLimit(2)
 
             if let metadataText {
                 Text(metadataText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
             }
 
             if !media.ratings.isEmpty {
@@ -68,7 +68,7 @@ struct PlayerMediaInfoView: View {
                         MediaRatingLabel(rating: rating, iconHeight: ratingIconHeight)
                     }
                 }
-                .font(.subheadline)
+                .font(.facts)
                 .padding(.top, 2)
             }
         }
@@ -78,25 +78,25 @@ struct PlayerMediaInfoView: View {
         VStack(alignment: .leading, spacing: 10) {
             if !isEpisode, let tagline = media.tagline, !tagline.isEmpty {
                 Text(tagline)
-                    .font(.callout.italic())
-                    .foregroundStyle(.secondary)
+                    .font(.bodyText.italic())
+                    .foregroundStyle(.textSecondary)
             }
 
             if media.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
                 Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
             } else if let summary = media.summary, !summary.isEmpty {
                 Text(summary)
-                    .font(.callout)
+                    .font(.bodyText)
                     .lineLimit(summaryLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if !media.genres.isEmpty {
                 Text(media.genres.joined(separator: ", "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
         }
@@ -113,7 +113,7 @@ struct PlayerMediaInfoView: View {
                 ),
             )
             .frame(width: artworkSize.width, height: artworkSize.height)
-            .mediaArtworkStyle(.compact, borderColor: .white.opacity(0.12))
+            .mediaArtworkStyle(.compact)
             .accessibilityHidden(true)
         }
     }

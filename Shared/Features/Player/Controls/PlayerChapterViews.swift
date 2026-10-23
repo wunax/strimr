@@ -78,10 +78,10 @@ struct PlayerChapterArtworkView: View {
 
     private var placeholder: some View {
         ZStack {
-            Color.white.opacity(0.08)
+            Color.surfaceSubtle
             Image(systemName: "film")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textTertiary)
         }
     }
 }
@@ -117,12 +117,12 @@ struct PlayerSegmentedTimelineRail: View {
 
             ForEach(Array(rects.enumerated()), id: \.offset) { _, rect in
                 ZStack(alignment: .leading) {
-                    Color.white.opacity(0.35)
+                    Color.progressTrack
 
-                    Color.white.opacity(0.65)
+                    Color.progressBuffered
                         .frame(width: fillWidth(endingAt: bufferedX, in: rect))
 
-                    Color.white
+                    Color.progressFill
                         .frame(width: fillWidth(endingAt: playedX, in: rect))
                 }
                 .frame(width: rect.width, height: trackHeight)

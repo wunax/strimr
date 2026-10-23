@@ -92,7 +92,7 @@ struct PlayerInfoPanelView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: Metrics.tabSpacing) {
+        HStack(spacing: LayoutMetrics.chipSpacing) {
             ForEach(tabs, id: \.self) { tab in
                 tabButton(tab)
             }
@@ -127,35 +127,20 @@ struct PlayerInfoPanelView: View {
     private func tabButton(_ tab: PlayerInfoTab) -> some View {
         let isSelected = selectedTab == tab
         #if os(tvOS)
-            let isFocused = focusedTab == tab
-            tabLabel(tab, isHighlighted: isFocused, isSelected: isSelected)
-                .scaleEffect(isFocused ? 1.05 : 1)
+            Text(tab.titleKey)
+                .chipAppearance(isSelected: isSelected, isFocused: focusedTab == tab)
                 .focusable()
                 .focused($focusedTab, equals: tab)
-                .animation(.easeOut(duration: 0.16), value: isFocused)
                 .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
         #else
             Button {
                 select(tab)
             } label: {
-                tabLabel(tab, isHighlighted: isSelected, isSelected: isSelected)
+                Text(tab.titleKey)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.chip(isSelected: isSelected))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         #endif
-    }
-
-    private func tabLabel(_ tab: PlayerInfoTab, isHighlighted: Bool, isSelected: Bool) -> some View {
-        Text(tab.titleKey)
-            .font(Metrics.tabFont)
-            .foregroundStyle(isHighlighted ? .black : .white.opacity(isSelected ? 1 : 0.6))
-            .padding(.horizontal, Metrics.tabHorizontalPadding)
-            .padding(.vertical, Metrics.tabVerticalPadding)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(isHighlighted ? .white : .white.opacity(isSelected ? 0.18 : 0)),
-            )
-            .contentShape(Capsule(style: .continuous))
     }
 
     private func select(_ tab: PlayerInfoTab) {
@@ -267,18 +252,10 @@ private enum Metrics {
         static let topPadding: CGFloat = 48
         static let bottomPadding: CGFloat = 56
         static let sectionSpacing: CGFloat = 24
-        static let tabSpacing: CGFloat = 16
-        static let tabFont = Font.callout.weight(.semibold)
-        static let tabHorizontalPadding: CGFloat = 28
-        static let tabVerticalPadding: CGFloat = 12
     #else
         static let horizontalPadding: CGFloat = 24
         static let topPadding: CGFloat = 28
         static let bottomPadding: CGFloat = 12
         static let sectionSpacing: CGFloat = 14
-        static let tabSpacing: CGFloat = 8
-        static let tabFont = Font.subheadline.weight(.semibold)
-        static let tabHorizontalPadding: CGFloat = 14
-        static let tabVerticalPadding: CGFloat = 7
     #endif
 }

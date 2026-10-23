@@ -34,14 +34,14 @@ struct PlayerQueueView: View {
             if showsCarouselHeader {
                 HStack(spacing: 10) {
                     Label("player.queue.title", systemImage: "list.bullet.rectangle")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .font(.sectionTitle)
+                        .foregroundStyle(.textPrimary)
 
                     Spacer()
 
                     Text(String(localized: "player.queue.count \(items.count)"))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                 }
             }
 
@@ -67,7 +67,6 @@ struct PlayerQueueView: View {
         .padding(.bottom, carouselBottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
-        .shadow(color: .black.opacity(0.45), radius: 18, x: 0, y: 8)
         #if os(tvOS)
             .onAppear {
                 guard focusesCurrentItemOnAppear else { return }
@@ -80,7 +79,7 @@ struct PlayerQueueView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Label("player.queue.title", systemImage: "list.bullet.rectangle")
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
 
                 Spacer()
 
@@ -100,11 +99,11 @@ struct PlayerQueueView: View {
         }
         .padding(22)
         .frame(minWidth: 360, idealWidth: 420, maxWidth: 480, maxHeight: .infinity, alignment: .top)
-        .foregroundStyle(.white)
-        .background(.ultraThinMaterial)
+        .foregroundStyle(.textPrimary)
+        .videoOverlayGlass(in: Rectangle())
         .overlay(alignment: .leading) {
             Rectangle()
-                .fill(.white.opacity(0.12))
+                .fill(.strokeSubtle)
                 .frame(width: 1)
         }
     }
@@ -115,22 +114,44 @@ struct PlayerQueueView: View {
         index: Int,
         layout: PlayerQueueLayout,
     ) -> some View {
-        Button {
-            onSelect(index)
-        } label: {
-            PlayerQueueItemView(
-                item: item,
-                position: index + 1,
-                totalCount: items.count,
-                isCurrent: index == currentIndex,
-                services: services,
-                layout: layout,
-            )
-        }
-        .buttonStyle(.plain)
         #if os(tvOS)
-            .focused($focusedItemID, equals: item.id)
+            itemView(item: item, index: index, layout: layout, isFocused: focusedItemID == item.id)
+                .focusable()
+                .focused($focusedItemID, equals: item.id)
+                .onTapGesture {
+                    onSelect(index)
+                }
+                .accessibilityAddTraits(.isButton)
+        #else
+            let button = Button {
+                onSelect(index)
+            } label: {
+                itemView(item: item, index: index, layout: layout, isFocused: false)
+            }
+            switch layout {
+            case .carousel:
+                button.buttonStyle(.cardLift)
+            case .drawer:
+                button.buttonStyle(.plain)
+            }
         #endif
+    }
+
+    private func itemView(
+        item: PlaybackQueueItem,
+        index: Int,
+        layout: PlayerQueueLayout,
+        isFocused: Bool,
+    ) -> some View {
+        PlayerQueueItemView(
+            item: item,
+            position: index + 1,
+            totalCount: items.count,
+            isCurrent: index == currentIndex,
+            isFocused: isFocused,
+            services: services,
+            layout: layout,
+        )
     }
 
     private var currentItem: PlaybackQueueItem? {
@@ -177,6 +198,7 @@ struct PlayerQueueItemView: View {
     let position: Int
     let totalCount: Int
     let isCurrent: Bool
+    let isFocused: Bool
     let services: MediaServices
     let layout: PlayerQueueLayout
 
@@ -200,20 +222,11 @@ struct PlayerQueueItemView: View {
     }
 
     private var artworkWidth: CGFloat {
-        layout == .carousel ? cardWidth - 18 : cardWidth
+        cardWidth
     }
 
     private var artworkHeight: CGFloat {
         artworkWidth * 9 / 16
-    }
-
-    private var cardBackgroundOpacity: Double {
-        switch layout {
-        case .carousel:
-            isCurrent ? 0.26 : 0.16
-        case .drawer:
-            isCurrent ? 0.18 : 0.08
-        }
     }
 
     private var accessibilityTitle: String {
@@ -235,73 +248,67 @@ struct PlayerQueueItemView: View {
 
     @ViewBuilder
     private var content: some View {
-        Group {
-            switch layout {
-            case .carousel:
-                VStack(alignment: .leading, spacing: 9) {
-                    artwork
-                    details
-                }
-            case .drawer:
-                HStack(alignment: .top, spacing: 12) {
-                    artwork
-                    details
-                }
+        switch layout {
+        case .carousel:
+            VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
+                artwork
+                    .cardFocusStyle(isFocused: isFocused)
+                details
             }
+            .frame(width: cardWidth, alignment: .leading)
+            .contentShape(Rectangle())
+        case .drawer:
+            HStack(alignment: .top, spacing: 12) {
+                artwork
+                details
+            }
+            .padding(9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                isCurrent ? Color.surfaceRaised : .surfaceSubtle,
+                in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+            )
         }
-        .padding(9)
-        .frame(width: layout == .carousel ? cardWidth : nil, alignment: .leading)
-        .frame(maxWidth: layout == .drawer ? .infinity : nil, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(cardBackgroundOpacity))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-        }
-        #if os(tvOS)
-        .scaleEffect(isCurrent ? 1.02 : 1)
-        #endif
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 3) {
             if media.type == .episode {
                 Text(media.primaryLabel)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .font(.cardMetadata)
+                    .foregroundStyle(.textSecondary)
                     .lineLimit(1)
 
                 Text(media.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.cardTitle)
                     .lineLimit(2)
 
                 if let episodeLabel = media.tertiaryLabel {
                     Text(episodeLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(1)
                 }
             } else {
                 Text(media.primaryLabel)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.cardTitle)
                     .lineLimit(2)
 
                 if let secondaryLabel = media.secondaryLabel {
                     Text(secondaryLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(1)
                 }
             }
 
             if let duration = media.duration {
                 Text(duration.mediaDurationText())
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.cardMetadata.monospacedDigit())
+                    .foregroundStyle(.textSecondary)
             }
         }
+        .foregroundStyle(.textPrimary)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -314,11 +321,11 @@ struct PlayerQueueItemView: View {
             ),
         )
         .frame(width: artworkWidth, height: artworkHeight)
-        .mediaArtworkStyle(.compact, borderColor: .white.opacity(0.12))
+        .mediaArtworkStyle(layout == .carousel ? .standard : .compact)
         .overlay(alignment: .topLeading) {
             if isCurrent {
                 Text("player.queue.current")
-                    .font(.caption2.weight(.bold))
+                    .font(.badge)
                     .foregroundStyle(.black)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)

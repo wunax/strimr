@@ -76,15 +76,15 @@ struct PlayerControlsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     if let title = media?.primaryLabel {
                         Text(title)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .font(.sectionTitle)
+                            .foregroundStyle(.textPrimary)
                             .lineLimit(2)
                     }
 
                     if let subtitle = media?.tertiaryLabel {
                         Text(subtitle)
-                            .font(.callout)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
                             .lineLimit(2)
                     }
 
@@ -100,9 +100,9 @@ struct PlayerControlsView: View {
                 if showsClock {
                     TimelineView(.periodic(from: .now, by: 30)) { context in
                         Text(context.date.formatted(date: .omitted, time: .shortened))
-                            .font(.title3.monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.9))
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                            .font(.facts.monospacedDigit())
+                            .foregroundStyle(.textPrimary)
+                            .videoTextShadow()
                     }
                 }
             }

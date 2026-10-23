@@ -58,9 +58,9 @@ struct PlayerTimelineView: View {
                let chapter = chapter(at: position)
             {
                 Text(chapter.displayTitle)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .font(.cardMetadata.weight(.semibold))
+                    .foregroundStyle(.textPrimary)
+                    .videoTextShadow()
                     .transition(.opacity)
             }
 
@@ -106,17 +106,17 @@ struct PlayerTimelineView: View {
                                 now: context.date,
                             ) {
                                 Text(endsAtText)
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.white.opacity(0.7))
+                                    .font(.cardMetadata.monospacedDigit())
+                                    .foregroundStyle(.textSecondary)
                             }
                         }
                     }
                 }
                 .fixedSize()
             }
-            .font(.footnote.monospacedDigit())
-            .foregroundStyle(.white.opacity(0.9))
-            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+            .font(.facts.monospacedDigit())
+            .foregroundStyle(.textPrimary)
+            .videoTextShadow()
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)

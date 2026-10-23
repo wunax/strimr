@@ -29,6 +29,11 @@ extension ShapeStyle where Self == Color {
         .white.opacity(0.25)
     }
 
+    /// Part of a playback timeline already loaded ahead of the playhead.
+    static var progressBuffered: Color {
+        .white.opacity(0.55)
+    }
+
     static var progressFill: Color {
         .white
     }
