@@ -19,9 +19,11 @@ struct SignInView: View {
 
             VStack(spacing: 8) {
                 Text("signIn.title")
-                    .font(.largeTitle.bold())
+                    .font(.heroTitle)
+                    .foregroundStyle(.textPrimary)
                 Text("signIn.subtitle")
-                    .foregroundStyle(.secondary)
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
             }
 
             Button {
@@ -45,11 +47,12 @@ struct SignInView: View {
                 Button("signIn.button.cancel") {
                     viewModel.cancelSignIn()
                 }
-                .buttonStyle(.link)
+                .actionButtonStyle(.secondary)
             }
 
             if let errorMessage = viewModel.errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.facts)
                     .foregroundStyle(.red)
             }
             Spacer()

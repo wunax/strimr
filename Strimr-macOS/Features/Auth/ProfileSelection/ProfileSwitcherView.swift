@@ -50,8 +50,8 @@ struct ProfileSwitcherView: View {
                 ScrollView {
                     VStack(spacing: 48) {
                         Text("auth.profile.header.title")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundStyle(.white)
+                            .font(.heroTitle)
+                            .foregroundStyle(.textPrimary)
 
                         if let error = viewModel.errorMessage {
                             errorBanner(error)
@@ -92,7 +92,7 @@ struct ProfileSwitcherView: View {
                 ProgressView("auth.profile.loading")
             } else {
                 Text("auth.profile.empty")
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.textSecondary)
             }
         } else {
             CenteredFlowLayout(spacing: ProfilePickerMetrics.itemSpacing, lineSpacing: 36) {
@@ -140,12 +140,12 @@ struct ProfileSwitcherView: View {
             )
             VStack(spacing: 8) {
                 Text(choice.name)
-                    .font(.title.bold())
+                    .font(.tileTitle)
                 Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(.textPrimary)
 
             PINDotsView(count: viewModel.pin.count)
                 .shake(viewModel.rejectedPINCount)
@@ -161,13 +161,13 @@ struct ProfileSwitcherView: View {
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: 16) {
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
             Button("common.actions.retry") {
                 Task { await viewModel.load() }
             }
         }
         .padding(16)
-        .glassSurface(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous))
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {

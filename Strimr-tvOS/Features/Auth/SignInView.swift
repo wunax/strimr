@@ -25,12 +25,13 @@ struct SignInView: View {
 
                 Text("signIn.title")
                     .multilineTextAlignment(.center)
-                    .font(.largeTitle.bold())
+                    .font(.heroTitle)
+                    .foregroundStyle(.textPrimary)
 
                 Text("signIn.tv.subtitle")
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                    .font(.title3)
+                    .foregroundStyle(.textSecondary)
+                    .font(.bodyText)
             }
 
             Group {
@@ -43,7 +44,10 @@ struct SignInView: View {
                                 .resizable()
                                 .interpolation(.none)
                                 .frame(width: 260, height: 260)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .clipShape(RoundedRectangle(
+                                    cornerRadius: LayoutMetrics.cardCornerRadius,
+                                    style: .continuous,
+                                ))
                         } else {
                             ProgressView("signIn.button.waiting")
                                 .progressViewStyle(.circular)
@@ -56,12 +60,10 @@ struct SignInView: View {
             }
 
             if let errorMessage = viewModel.errorMessage {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                }
-                .frame(maxWidth: 720, alignment: .leading)
-                .padding(.top, 16)
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.facts)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: 720)
             }
 
             Spacer()

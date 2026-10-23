@@ -24,9 +24,11 @@ struct SelectServerView: View {
     private var header: some View {
         VStack(spacing: 8) {
             Text("serverSelection.title")
-                .font(.largeTitle.bold())
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
             Text("serverSelection.multiple.subtitle")
-                .foregroundStyle(.secondary)
+                .font(.bodyText)
+                .foregroundStyle(.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -40,21 +42,19 @@ struct SelectServerView: View {
         } else if viewModel.servers.isEmpty {
             VStack(spacing: 12) {
                 Text("serverSelection.empty.title")
-                    .font(.headline)
+                    .font(.sectionTitle)
+                    .foregroundStyle(.textPrimary)
                 Text("serverSelection.empty.description")
-                    .foregroundStyle(.secondary)
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
                     .multilineTextAlignment(.center)
                 Button {
                     Task { await viewModel.load() }
                 } label: {
                     Text("serverSelection.retry")
-                        .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.brandPrimary)
-                        .foregroundStyle(.brandPrimaryForeground)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+                .actionButtonStyle(.primary)
                 .disabled(viewModel.isLoading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -72,9 +72,7 @@ struct SelectServerView: View {
                 viewModel.continueWithSelection()
             } label: {
                 Text("common.actions.continue")
-                    .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
             }
             .actionButtonStyle(.primary)
             .disabled(viewModel.selectedServerIDs.isEmpty)
@@ -88,8 +86,8 @@ struct SelectServerView: View {
                 Button("serverSelection.customAddress.suggest") {
                     viewModel.showCustomAddress(for: server)
                 }
-                .font(.footnote)
-                .tint(.brandPrimary)
+                .font(.facts.weight(.semibold))
+                .tint(.textSecondary)
             }
         }
     }
@@ -100,31 +98,33 @@ struct SelectServerView: View {
         } label: {
             HStack(spacing: 12) {
                 Circle()
-                    .fill(.brandPrimary.opacity(0.2))
+                    .fill(.surfaceRaised)
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "server.rack")
-                            .foregroundStyle(.brandPrimary),
+                            .foregroundStyle(.textSecondary),
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(server.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                        .font(.rowTitle)
+                        .foregroundStyle(.textPrimary)
                     ServerConnectionSummary(state: viewModel.probeState(of: server))
-                        .font(.subheadline)
+                        .font(.facts)
                 }
 
                 Spacer()
 
                 Image(systemName: viewModel.isSelected(server) ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(viewModel.isSelected(server) ? Color.brandPrimary : Color.secondary)
+                    .foregroundStyle(viewModel.isSelected(server) ? Color.brandPrimary : Color.textTertiary)
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(
+                .surfaceSubtle,
+                in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {

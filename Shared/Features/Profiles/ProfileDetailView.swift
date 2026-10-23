@@ -196,7 +196,7 @@ struct ProfileDetailView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title(of: link))
             Text(subtitle(of: link))
-                .font(.caption)
+                .font(.cardMetadata)
                 .foregroundStyle(.secondary)
         }
     }

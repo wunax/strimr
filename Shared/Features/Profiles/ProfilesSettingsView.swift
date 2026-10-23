@@ -178,11 +178,11 @@ struct ProfileRow: View {
         HStack(spacing: 12) {
             avatar
                 .frame(width: 40, height: 40)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(profile.name)
                 Text(profile.isLocal ? "profiles.kind.local" : "profiles.kind.plexHome")
-                    .font(.caption)
+                    .font(.cardMetadata)
                     .foregroundStyle(.secondary)
             }
             Spacer()

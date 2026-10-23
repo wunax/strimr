@@ -19,11 +19,13 @@ struct CustomServerAddressView: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("serverSelection.customAddress.title")
-                        .font(.title2.bold())
+                        .font(.tileTitle)
+                        .foregroundStyle(.textPrimary)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("serverSelection.customAddress.field")
-                            .font(.headline)
+                            .font(.rowTitle)
+                            .foregroundStyle(.textPrimary)
 
                         TextField(
                             "serverSelection.customAddress.placeholder",
@@ -37,14 +39,14 @@ struct CustomServerAddressView: View {
                         }
 
                         Text("serverSelection.customAddress.description")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
                     if let error = model.error {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
-                            .font(.callout)
+                            .font(.facts)
                             .foregroundStyle(.red)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -86,11 +88,14 @@ struct CustomServerAddressView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 32) {
                     Text("serverSelection.customAddress.description")
-                        .foregroundStyle(.secondary)
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("serverSelection.customAddress.field").font(.headline)
+                        Text("serverSelection.customAddress.field")
+                            .font(.rowTitle)
+                            .foregroundStyle(.textPrimary)
                         TextField(
                             "serverSelection.customAddress.placeholder",
                             text: $model.address,

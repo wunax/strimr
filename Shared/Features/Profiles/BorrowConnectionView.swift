@@ -129,7 +129,7 @@ struct BorrowConnectionView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(accountTitle(candidate))
             Text(userName(candidate))
-                .font(.caption)
+                .font(.cardMetadata)
                 .foregroundStyle(.secondary)
         }
     }

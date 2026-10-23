@@ -60,8 +60,8 @@ struct ProfileSwitcherView: View {
             ScrollView {
                 VStack(spacing: 40) {
                     Text("auth.profile.header.title")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(.white)
+                        .font(.heroTitle)
+                        .foregroundStyle(.textPrimary)
                         .multilineTextAlignment(.center)
 
                     if let error = viewModel.errorMessage {
@@ -85,10 +85,10 @@ struct ProfileSwitcherView: View {
         if viewModel.choices.isEmpty {
             if viewModel.isLoading {
                 ProgressView("auth.profile.loading")
-                    .tint(.white)
+                    .tint(.textPrimary)
             } else {
                 Text("auth.profile.empty")
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.textSecondary)
             }
         } else {
             CenteredFlowLayout(spacing: ProfilePickerMetrics.itemSpacing, lineSpacing: 32) {
@@ -129,12 +129,12 @@ struct ProfileSwitcherView: View {
                 )
                 VStack(spacing: 8) {
                     Text(choice.name)
-                        .font(.title2.bold())
+                        .font(.tileTitle)
                     Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.textSecondary)
                         .multilineTextAlignment(.center)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
 
                 PINDotsView(count: viewModel.pin.count)
                     .shake(viewModel.rejectedPINCount)
@@ -157,16 +157,16 @@ struct ProfileSwitcherView: View {
     private func errorBanner(_ message: String) -> some View {
         VStack(spacing: 12) {
             Text(message)
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
                 .multilineTextAlignment(.center)
             Button("common.actions.retry", systemImage: "arrow.clockwise") {
                 Task { await viewModel.load() }
             }
             .fontWeight(.semibold)
-            .foregroundStyle(.white)
+            .foregroundStyle(.textPrimary)
         }
         .padding(20)
         .frame(maxWidth: 420)
-        .glassSurface(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous))
     }
 }

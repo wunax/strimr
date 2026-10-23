@@ -79,8 +79,8 @@ struct ProfileAvatarView: View {
             .clipShape(Circle())
             .overlay {
                 if isSwitching {
-                    Circle().fill(.black.opacity(0.45))
-                    ProgressView().tint(.white)
+                    Circle().fill(.badgeBackground)
+                    ProgressView().tint(.textPrimary)
                 }
             }
             .matchedAvatar(choice.id, in: namespace)
@@ -128,7 +128,7 @@ struct ProfileAvatarView: View {
             Image(systemName: "person.fill")
                 .resizable()
                 .scaledToFit()
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.textPrimary)
                 .padding(size * 0.26)
         }
     }
@@ -136,7 +136,7 @@ struct ProfileAvatarView: View {
     private var lockBadge: some View {
         Image(systemName: "lock.fill")
             .font(.system(size: size * 0.11, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(.textPrimary)
             .frame(width: size * 0.26, height: size * 0.26)
             .glassSurface(in: Circle())
     }
@@ -148,8 +148,8 @@ struct ProfileNameLabel: View {
 
     var body: some View {
         Text(choice.name)
-            .font(.headline)
-            .foregroundStyle(.white.opacity(isHighlighted ? 1 : 0.75))
+            .font(.rowTitle)
+            .foregroundStyle(isHighlighted ? .textPrimary : .textSecondary)
             .lineLimit(1)
             .frame(maxWidth: ProfilePickerMetrics.avatarSize * 1.2)
     }
@@ -164,7 +164,7 @@ struct PINDotsView: View {
         HStack(spacing: size) {
             ForEach(0 ..< length, id: \.self) { index in
                 Circle()
-                    .fill(index < count ? Color.white : Color.white.opacity(0.2))
+                    .fill(index < count ? Color.textPrimary : Color.strokeSubtle)
                     .frame(width: size, height: size)
                     .scaleEffect(index < count ? 1 : 0.75)
             }
@@ -263,10 +263,10 @@ struct ProfileEntranceView: View {
                 namespace: namespace,
             )
             Text(choice.name)
-                .font(.title2.bold())
-                .foregroundStyle(.white)
+                .font(.tileTitle)
+                .foregroundStyle(.textPrimary)
             ProgressView()
-                .tint(.white)
+                .tint(.textPrimary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -367,7 +367,7 @@ extension View {
         private struct KeypadButtonStyle: ButtonStyle {
             func makeBody(configuration: Configuration) -> some View {
                 configuration.label
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.textPrimary)
                     .contentShape(Circle())
                     .glassSurface(in: Circle())
                     .scaleEffect(configuration.isPressed ? 0.92 : 1)

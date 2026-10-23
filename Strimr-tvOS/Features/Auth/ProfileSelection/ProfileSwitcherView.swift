@@ -59,8 +59,8 @@ struct ProfileSwitcherView: View {
             ScrollView {
                 VStack(spacing: 72) {
                     Text("auth.profile.header.title")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(.white)
+                        .font(.heroTitle)
+                        .foregroundStyle(.textPrimary)
 
                     if let error = viewModel.errorMessage {
                         errorBanner(error)
@@ -95,7 +95,7 @@ struct ProfileSwitcherView: View {
                 ProgressView("auth.profile.loading")
             } else {
                 Text("auth.profile.empty")
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.textSecondary)
             }
         } else {
             CenteredFlowLayout(spacing: ProfilePickerMetrics.itemSpacing, lineSpacing: 56) {
@@ -138,13 +138,13 @@ struct ProfileSwitcherView: View {
                 )
                 VStack(spacing: 12) {
                     Text(choice.name)
-                        .font(.title2.bold())
+                        .font(.tileTitle)
                     Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                        .font(.callout)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
                         .multilineTextAlignment(.center)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
                 .frame(maxWidth: 560)
 
                 PINDotsView(count: viewModel.pin.count)
@@ -167,13 +167,13 @@ struct ProfileSwitcherView: View {
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: 32) {
             Text(message)
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
             Button("common.actions.retry", systemImage: "arrow.clockwise") {
                 Task { await viewModel.load() }
             }
         }
         .padding(28)
-        .glassSurface(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous))
         .focusSection()
     }
 }

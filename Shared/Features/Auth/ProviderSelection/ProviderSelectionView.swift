@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProviderSelectionView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedProvider: MediaProvider?
     let onSelect: (MediaProvider) -> Void
 
@@ -29,11 +30,12 @@ struct ProviderSelectionView: View {
     private var header: some View {
         VStack(spacing: 10) {
             Text("provider.selection.title")
-                .font(.largeTitle.bold())
+                .font(.heroTitle)
+                .foregroundStyle(.textPrimary)
                 .multilineTextAlignment(.center)
             Text("provider.selection.subtitle")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                .font(.bodyText)
+                .foregroundStyle(.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: 620)
@@ -85,15 +87,15 @@ struct ProviderSelectionView: View {
                     .foregroundStyle(accent)
                     .accessibilityHidden(true)
                 Text(title)
-                    .font(.title.bold())
-                    .foregroundStyle(.primary)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
             }
             .frame(maxWidth: .infinity, minHeight: logoAreaHeight)
             .padding(cardPadding)
             .frame(maxWidth: .infinity, minHeight: cardMinimumHeight, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-                    .fill(Color.white.opacity(isFocused ? 0.13 : 0.07))
+                    .fill(isFocused ? Color.surfaceRaised : Color.surfaceSubtle)
                     .overlay {
                         accent.opacity(isFocused ? 0.16 : 0.08)
                             .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
@@ -102,13 +104,14 @@ struct ProviderSelectionView: View {
             .overlay {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .stroke(
-                        isFocused ? accent.opacity(0.9) : Color.white.opacity(0.12),
+                        isFocused ? accent.opacity(0.9) : Color.strokeSubtle,
                         lineWidth: isFocused ? 3 : 1,
                     )
             }
             .shadow(color: isFocused ? accent.opacity(0.22) : .clear, radius: 24, y: 8)
-            .scaleEffect(isFocused ? 1.035 : 1)
-            .animation(.easeOut(duration: 0.18), value: isFocused)
+            .animation(Motion.focus, value: isFocused)
+            .scaleEffect(isFocused && !reduceMotion ? 1.035 : 1)
+            .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
         }
         .buttonStyle(ProviderCardButtonStyle())
         .focused($focusedProvider, equals: provider)
@@ -197,11 +200,7 @@ struct ProviderSelectionView: View {
     }
 
     private var cardCornerRadius: CGFloat {
-        #if os(tvOS)
-            28
-        #else
-            20
-        #endif
+        LayoutMetrics.overlayCornerRadius
     }
 
     private var symbolSize: CGFloat {
@@ -233,6 +232,6 @@ private struct ProviderCardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(Motion.focus, value: configuration.isPressed)
     }
 }

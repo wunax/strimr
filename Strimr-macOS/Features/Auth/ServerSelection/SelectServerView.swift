@@ -10,8 +10,12 @@ struct SelectServerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("serverSelection.title").font(.largeTitle.bold())
-                Text("serverSelection.multiple.subtitle").foregroundStyle(.secondary)
+                Text("serverSelection.title")
+                    .font(.heroTitle)
+                    .foregroundStyle(.textPrimary)
+                Text("serverSelection.multiple.subtitle")
+                    .font(.bodyText)
+                    .foregroundStyle(.textSecondary)
             }
 
             if viewModel.isLoading, viewModel.servers.isEmpty {
@@ -36,11 +40,13 @@ struct SelectServerView: View {
                         HStack(spacing: 14) {
                             Image(systemName: "server.rack")
                                 .font(.title2)
-                                .foregroundStyle(.brandPrimary)
+                                .foregroundStyle(.textSecondary)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(server.name).font(.headline)
+                                Text(server.name)
+                                    .font(.rowTitle)
+                                    .foregroundStyle(.textPrimary)
                                 ServerConnectionSummary(state: viewModel.probeState(of: server))
-                                    .font(.caption)
+                                    .font(.cardMetadata)
                             }
                             if viewModel.suggestsCustomAddress(for: server) {
                                 Spacer()
@@ -48,7 +54,7 @@ struct SelectServerView: View {
                                     viewModel.showCustomAddress(for: server)
                                 }
                                 .buttonStyle(.link)
-                                .font(.caption)
+                                .font(.cardMetadata)
                             }
                         }
                     }
