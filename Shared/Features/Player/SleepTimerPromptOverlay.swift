@@ -64,11 +64,7 @@ struct SleepTimerBadge: View {
                     Text(mode.title(for: mediaKind))
                 }
             }
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.15), in: Capsule())
+            .playerBadgeStyle()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("player.sleepTimer.title"))
             .accessibilityValue(Text(mode.title(for: mediaKind)))

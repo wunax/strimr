@@ -89,15 +89,7 @@ struct PlayerControlsView: View {
                     }
 
                     if isSharePlay {
-                        Text("sharePlay.badge")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.15)),
-                            )
-                            .foregroundStyle(.white.opacity(0.9))
+                        PlayerBadge(String(localized: "sharePlay.badge"))
                     }
                 }
 

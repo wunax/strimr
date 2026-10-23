@@ -249,17 +249,17 @@ struct PlayerScrubPreviewCard: View {
         .clipped()
         .overlay(alignment: .bottomTrailing) {
             Text(playerTimestampText(position))
-                .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(.white)
+                .font(.badge.monospacedDigit())
+                .foregroundStyle(.textPrimary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
-                .background(.black.opacity(0.72), in: Capsule())
+                .videoOverlayGlass()
                 .padding(8)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(.white.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
+                .stroke(.strokeSubtle, lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 7)
         .animation(

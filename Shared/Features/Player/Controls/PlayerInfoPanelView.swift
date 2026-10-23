@@ -103,9 +103,9 @@ struct PlayerInfoPanelView: View {
                 Button(action: onClose) {
                     Image(systemName: "chevron.down")
                         .font(.footnote.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(.textPrimary)
                         .frame(width: 36, height: 30)
-                        .background(.white.opacity(0.12), in: Capsule())
+                        .background(.surfaceRaised, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("common.actions.close"))
@@ -241,9 +241,9 @@ struct PlayerInfoPanelDisclosureButton: View {
         Button(action: action) {
             Image(systemName: "chevron.up")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.textPrimary)
                 .frame(width: 32, height: 22)
-                .background(.white.opacity(0.12), in: Capsule())
+                .background(.surfaceRaised, in: Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "player.info.open"))
@@ -254,7 +254,7 @@ struct PlayerInfoPanelDisclosureIndicator: View {
     var body: some View {
         Image(systemName: "chevron.down")
             .font(.caption.weight(.bold))
-            .foregroundStyle(.white.opacity(0.65))
+            .foregroundStyle(.textSecondary)
             .frame(width: 32, height: 22)
             .accessibilityHidden(true)
             .allowsHitTesting(false)

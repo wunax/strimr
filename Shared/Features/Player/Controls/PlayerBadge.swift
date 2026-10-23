@@ -16,24 +16,17 @@ struct PlayerBadge: View {
             }
             Text(title)
         }
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            LinearGradient(
-                colors: [
-                    .white.opacity(0.24),
-                    .white.opacity(0.08),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing,
-            ),
-            in: Capsule(),
-        )
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.25), lineWidth: 1),
-        )
+        .playerBadgeStyle()
+    }
+}
+
+extension View {
+    /// Glass capsule of a small label shown over playing video, such as the video format or the sleep timer.
+    func playerBadgeStyle() -> some View {
+        font(.badge)
+            .foregroundStyle(.textPrimary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .videoOverlayGlass()
     }
 }

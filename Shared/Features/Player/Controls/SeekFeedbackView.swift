@@ -41,21 +41,16 @@ struct SeekFeedbackView: View {
     var body: some View {
         VStack(spacing: 4) {
             Label(feedback.deltaText, systemImage: feedback.systemImage)
-                .font(.title2.weight(.semibold).monospacedDigit())
+                .font(.tileTitle.monospacedDigit())
             Text(playerTimestampText(feedback.target))
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.facts.monospacedDigit())
+                .foregroundStyle(.textSecondary)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.textPrimary)
         .padding(.horizontal, 28)
         .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.black.opacity(0.72)),
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1),
+        .videoOverlayGlass(
+            in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(feedback.accessibilityText)
