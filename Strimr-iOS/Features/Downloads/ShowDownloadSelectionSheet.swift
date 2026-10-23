@@ -60,7 +60,7 @@ struct ShowDownloadSelectionSheet: View {
         } else if viewModel.seasons.isEmpty {
             Section {
                 Text("media.detail.noSeasons")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             }
         } else {
             Section("downloads.sheet.bySeason") {
@@ -98,8 +98,8 @@ struct ShowDownloadSelectionSheet: View {
             .disabled(selectedEpisodeIDs.isEmpty)
 
             Text("downloads.sheet.selectedCount \(effectiveSelectionCount)")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.facts)
+                .foregroundStyle(.textSecondary)
         }
     }
 
@@ -109,7 +109,7 @@ struct ShowDownloadSelectionSheet: View {
                 ProgressView("media.detail.loadingEpisodes")
             } else if viewModel.episodes.isEmpty {
                 Text("media.detail.noEpisodes")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             } else {
                 ForEach(viewModel.episodes, id: \.id) { episode in
                     episodeRow(episode)
@@ -126,15 +126,16 @@ struct ShowDownloadSelectionSheet: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .brandSecondary : .secondary)
+                    .foregroundStyle(isSelected ? .brandSecondary : .textTertiary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(episodeNumberTitle(for: episode))
-                        .font(.body.weight(.semibold))
+                        .font(.cardTitle)
+                        .foregroundStyle(.textPrimary)
 
                     Text(episode.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
                         .lineLimit(1)
                 }
 
@@ -159,7 +160,7 @@ struct ShowDownloadSelectionSheet: View {
                 .controlSize(.small)
         case .queued:
             Image(systemName: "clock.arrow.circlepath")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.textSecondary)
         case .failed:
             Image(systemName: "exclamationmark.circle")
                 .foregroundStyle(.orange)

@@ -76,7 +76,8 @@ struct ShowDownloadSelectionSheet: View {
                     .disabled(selectedEpisodeIDs.isEmpty)
                 Spacer()
                 Text("downloads.sheet.selectedCount \(effectiveSelectionCount)")
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
             }
         }
     }
@@ -86,7 +87,7 @@ struct ShowDownloadSelectionSheet: View {
             if viewModel.isLoadingEpisodes, viewModel.episodes.isEmpty {
                 ProgressView("media.detail.loadingEpisodes")
             } else if viewModel.episodes.isEmpty {
-                Text("media.detail.noEpisodes").foregroundStyle(.secondary)
+                Text("media.detail.noEpisodes").foregroundStyle(.textSecondary)
             } else {
                 ForEach(viewModel.episodes) { episode in
                     episodeRow(episode)
@@ -107,12 +108,16 @@ struct ShowDownloadSelectionSheet: View {
         } label: {
             HStack {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selected ? .brandSecondary : .secondary)
-                VStack(alignment: .leading) {
+                    .foregroundStyle(selected ? .brandSecondary : .textTertiary)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \($0)") }
                         ?? String(localized: "downloads.sheet.episodeUnknown"))
-                        .fontWeight(.semibold)
-                    Text(episode.title).foregroundStyle(.secondary)
+                        .font(.cardTitle)
+                        .foregroundStyle(.textPrimary)
+                    Text(episode.title)
+                        .font(.cardMetadata)
+                        .foregroundStyle(.textSecondary)
+                        .lineLimit(1)
                 }
                 Spacer()
                 if downloaded {

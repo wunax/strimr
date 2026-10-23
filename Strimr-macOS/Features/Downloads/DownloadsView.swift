@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 @MainActor
@@ -14,8 +13,7 @@ struct DownloadsView: View {
 
             if !offlineCoordinator.availability.hasNetworkPath {
                 Section {
-                    Label("offline.banner.offline", systemImage: "wifi.slash")
-                        .foregroundStyle(.orange)
+                    DownloadsOfflineBanner()
                 }
             }
 
@@ -26,16 +24,7 @@ struct DownloadsView: View {
 
     private var storageSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("downloads.storage.title").font(.headline)
-                Text("downloads.storage.downloads \(formattedBytes(downloadManager.storageSummary.downloadsBytes))")
-                    .foregroundStyle(.secondary)
-                Text(
-                    "downloads.storage.device \(formattedBytes(downloadManager.storageSummary.usedBytes)) \(formattedBytes(downloadManager.storageSummary.totalBytes))",
-                )
-                .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 6)
+            DownloadsStorageSummaryView(summary: downloadManager.storageSummary)
         }
     }
 
@@ -91,83 +80,11 @@ struct DownloadsView: View {
     }
 
     private func downloadRow(_ item: DownloadItem) -> some View {
-        HStack(spacing: 14) {
-            posterView(for: item)
-                .frame(width: 72, height: 108)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(alignment: .topLeading) {
-                    if isSpoilerProtected(item) {
-                        SpoilerProtectionIndicator()
-                            .padding(5)
-                    }
-                }
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(item.metadata.title).font(.headline).lineLimit(2)
-                if let subtitle = item.metadata.subtitle {
-                    Text(subtitle).foregroundStyle(.secondary).lineLimit(1)
-                }
-                qualityView(for: item)
-                statusView(for: item)
-            }
-
-            Spacer()
-            if item.isPlayable {
-                Image(systemName: "play.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 5)
-    }
-
-    private func qualityView(for item: DownloadItem) -> some View {
-        Text(verbatim: [item.metadata.versionLabel, item.metadata.effectiveQuality.title]
-            .compactMap(\.self)
-            .joined(separator: " · "))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-    }
-
-    @ViewBuilder
-    private func posterView(for item: DownloadItem) -> some View {
-        if isSpoilerProtected(item) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.quaternary)
-                .overlay { Image(systemName: "film").foregroundStyle(.secondary) }
-        } else if let url = downloadManager.localPosterURL(for: item), let image = NSImage(contentsOf: url) {
-            Image(nsImage: image).resizable().scaledToFill()
-        } else {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.quaternary)
-                .overlay { Image(systemName: "film").foregroundStyle(.secondary) }
-        }
-    }
-
-    @ViewBuilder
-    private func statusView(for item: DownloadItem) -> some View {
-        switch item.status {
-        case .queued:
-            Text("downloads.status.queued").foregroundStyle(.secondary)
-        case .preparing:
-            VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: item.progress).tint(.progressFill)
-                Text("downloads.status.preparing \(Int((item.progress * 100).rounded()))")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        case .downloading:
-            VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: item.progress).tint(.progressFill)
-                Text("downloads.status.downloading \(Int((item.progress * 100).rounded()))")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        case .completed:
-            Text("downloads.status.completed \(formattedBytes(item.metadata.fileSize ?? item.totalBytes))")
-                .foregroundStyle(.secondary)
-        case .failed:
-            Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
-                .foregroundStyle(.red)
-        }
+        DownloadRow(
+            item: item,
+            posterURL: downloadManager.localPosterURL(for: item),
+            isSpoilerProtected: isSpoilerProtected(item),
+        )
     }
 
     private func play(_ item: DownloadItem) {
@@ -178,10 +95,6 @@ struct DownloadsView: View {
             externalSubtitles: downloadManager.localExternalSubtitles(for: item),
             owner: downloadManager.owner(of: item),
         )
-    }
-
-    private func formattedBytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
     private func isSpoilerProtected(_ item: DownloadItem) -> Bool {
