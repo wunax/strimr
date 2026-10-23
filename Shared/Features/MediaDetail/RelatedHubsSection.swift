@@ -51,18 +51,18 @@ struct RelatedHubsSection: View {
         if let errorMessage = viewModel.relatedHubsErrorMessage {
             Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-                .font(.subheadline)
+                .font(.facts)
         } else if viewModel.isLoadingRelatedHubs, viewModel.relatedHubs.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
                 Text("media.detail.loadingRelated")
-                    .font(.subheadline)
+                    .font(.facts)
                     .foregroundStyle(.secondary)
             }
         } else if viewModel.relatedHubs.isEmpty {
             Text("media.detail.noRelated")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.secondary)
         } else {
             VStack(alignment: .leading, spacing: 20) {

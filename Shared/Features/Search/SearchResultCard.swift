@@ -26,7 +26,7 @@ struct SearchResultCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Text(media.primaryLabel)
-                            .font(.headline)
+                            .font(.rowTitle)
                             .lineLimit(2)
 
                         Spacer(minLength: 8)
@@ -49,12 +49,12 @@ struct SearchResultCard: View {
                         at: settingsManager.interface.spoilerProtection,
                     ) == true {
                         Label("media.spoilerProtection.summaryHidden", systemImage: "eye.slash")
-                            .font(.callout)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                             .lineLimit(3)
                     } else if let summary = media.summary, !summary.isEmpty {
                         Text(summary)
-                            .font(.callout)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                             .lineLimit(3)
                     }
@@ -83,7 +83,7 @@ struct SearchUnavailableServersNote: View {
                 String(localized: "search.serverUnavailable \(names.formatted(.list(type: .and)))"),
                 systemImage: "exclamationmark.icloud",
             )
-            .font(.footnote)
+            .font(.facts)
             .foregroundStyle(.textTertiary)
         }
     }

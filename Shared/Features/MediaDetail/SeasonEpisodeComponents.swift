@@ -10,18 +10,18 @@ struct SeasonPillsRow: View {
         if let error = viewModel.seasonsErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-                .font(.subheadline)
+                .font(.facts)
         } else if viewModel.isLoadingSeasons || viewModel.isLoading, viewModel.seasons.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
                 Text("media.detail.loadingSeasons")
-                    .font(.subheadline)
+                    .font(.facts)
                     .foregroundStyle(.textSecondary)
             }
         } else if viewModel.seasons.isEmpty {
             Text("media.detail.noSeasons")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -83,12 +83,12 @@ struct EpisodeCaption<Summary: View>: View {
             }
 
             Text(title)
-                .font(.headline)
+                .font(.rowTitle)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(1)
 
             summary
-                .font(.callout)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
                 .lineLimit(summaryLineLimit)
                 .padding(.top, 2)

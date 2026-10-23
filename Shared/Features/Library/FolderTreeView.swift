@@ -105,7 +105,7 @@ struct FolderTreeRow: View {
                     .foregroundStyle(.secondary)
 
                 Text(title)
-                    .font(.headline)
+                    .font(.rowTitle)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

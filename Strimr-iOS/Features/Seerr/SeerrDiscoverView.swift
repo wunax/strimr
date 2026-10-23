@@ -107,10 +107,10 @@ struct SeerrDiscoverView: View {
                     .foregroundStyle(.textSecondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("seerr.requests.title")
-                        .font(.headline)
+                        .font(.rowTitle)
                     if viewModel.requestsBadgeCount > 0 {
                         Text(String(localized: "seerr.requests.pendingCount \(viewModel.requestsBadgeCount)"))
-                            .font(.caption)
+                            .font(.cardMetadata)
                             .foregroundStyle(.textSecondary)
                     }
                 }

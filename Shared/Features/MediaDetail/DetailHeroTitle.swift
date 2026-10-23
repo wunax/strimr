@@ -22,7 +22,7 @@ struct DetailHeroTitle: View {
 
             if let subtitle {
                 Text(subtitle)
-                    .font(.headline)
+                    .font(.rowTitle)
                     .foregroundStyle(.textPrimary)
                     .multilineTextAlignment(alignment == .center ? .center : .leading)
                     .lineLimit(2)
@@ -34,7 +34,7 @@ struct DetailHeroTitle: View {
                 HStack(spacing: 12) {
                     ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
                         MediaRatingLabel(rating: rating, iconHeight: 16)
-                            .font(.footnote)
+                            .font(.facts)
                     }
                 }
                 .foregroundStyle(.textSecondary)

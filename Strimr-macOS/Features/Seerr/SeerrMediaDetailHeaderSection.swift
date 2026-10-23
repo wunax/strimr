@@ -85,7 +85,7 @@ struct SeerrMediaDetailHeaderSection: View {
 
             if !viewModel.isRequestButtonHidden, let reasonKey = viewModel.requestButtonDisabledReasonKey {
                 Text(LocalizedStringKey(reasonKey))
-                    .font(.footnote)
+                    .font(.facts)
                     .foregroundStyle(.textSecondary)
             }
         }

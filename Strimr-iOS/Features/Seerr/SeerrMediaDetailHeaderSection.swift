@@ -48,7 +48,7 @@ struct SeerrMediaDetailHeaderSection: View {
 
             if let reasonKey = viewModel.requestButtonDisabledReasonKey {
                 Text(LocalizedStringKey(reasonKey))
-                    .font(.footnote)
+                    .font(.facts)
                     .foregroundStyle(.textSecondary)
             }
         }
@@ -81,7 +81,7 @@ struct SeerrMediaDetailHeaderSection: View {
 
                 Button(action: { isSummaryExpanded.toggle() }) {
                     Text(isSummaryExpanded ? "common.actions.showLess" : "common.actions.readMore")
-                        .font(.subheadline)
+                        .font(.facts)
                         .fontWeight(.semibold)
                         .foregroundStyle(.textPrimary)
                 }

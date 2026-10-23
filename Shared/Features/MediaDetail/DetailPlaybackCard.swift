@@ -120,7 +120,7 @@ struct DetailPlaybackCard: View {
             HStack(spacing: 12) {
                 content
             }
-            .font(.subheadline)
+            .font(.facts)
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, minHeight: DetailPlaybackCard.rowHeight)
             .background(isHovered ? Color.surfaceSubtle : .clear)

@@ -24,7 +24,7 @@ struct DetailRoundActionLabel: View {
             .frame(width: 48, height: 48)
 
             Text(title)
-                .font(.caption)
+                .font(.cardMetadata)
                 .foregroundStyle(isActive ? .textPrimary : .textSecondary)
                 .lineLimit(1)
         }

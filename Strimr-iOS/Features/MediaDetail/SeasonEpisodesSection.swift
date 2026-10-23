@@ -43,7 +43,7 @@ struct SeasonEpisodesSection: View {
                 .padding(.vertical, 8)
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             episodeList

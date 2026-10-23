@@ -23,7 +23,7 @@ struct DetailActionsRow: View {
                 ReachableCopyPlayButton(viewModel: viewModel, presenter: coordinator)
             } else {
                 Label("offline.detail.notAvailable", systemImage: "wifi.slash")
-                    .font(.footnote)
+                    .font(.facts)
                     .foregroundStyle(.secondary)
             }
         }

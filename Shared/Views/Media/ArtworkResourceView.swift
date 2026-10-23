@@ -21,7 +21,7 @@ struct ArtworkResourceView: View {
     }
 
     private var placeholder: some View {
-        Color.gray.opacity(0.1)
+        Color.surfaceSubtle
     }
 
     /// Warms the image caches so a view created afterwards renders the artwork on its first frame.
@@ -70,7 +70,7 @@ private struct DataArtworkImage: View {
             if let image = currentImage {
                 platformImage(image).resizable().scaledToFill()
             } else if failed {
-                Color.gray.opacity(0.1)
+                Color.surfaceSubtle
             } else {
                 Color.clear
             }
@@ -147,7 +147,7 @@ private struct RemoteArtworkImage: View {
             if let image = currentImage {
                 platformImage(image).resizable().scaledToFill()
             } else if failedURL == url {
-                Color.gray.opacity(0.1)
+                Color.surfaceSubtle
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }

@@ -663,10 +663,10 @@ private struct EpisodeArtworkCard: View {
             Text(progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext")
                 .font(.badge)
                 .textCase(.uppercase)
-                .foregroundStyle(.white)
+                .foregroundStyle(.textPrimary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(Color.brandPrimary, in: Capsule(style: .continuous))
+                .background(.badgeBackground, in: Capsule(style: .continuous))
                 .padding(12)
         }
     }

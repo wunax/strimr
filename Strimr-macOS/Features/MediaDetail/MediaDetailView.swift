@@ -326,7 +326,7 @@ struct MediaDetailView: View {
                         ReachableCopyPlayButton(viewModel: viewModel, presenter: appModel)
                     } else {
                         Label("offline.detail.notAvailable", systemImage: "wifi.slash")
-                            .font(.footnote)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -635,7 +635,7 @@ struct MediaDetailView: View {
             ProgressView("media.detail.loadingEpisodes")
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             LazyVStack(spacing: 8) {

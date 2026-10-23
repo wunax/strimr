@@ -186,8 +186,8 @@ struct LibraryBrowseView: View {
             Text(character.title)
                 .font(.caption2)
                 .frame(width: 32, height: 32)
-                .background(isFocused ? Color.white.opacity(0.2) : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(isFocused ? Color.surfaceRaised : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .focused($focusedCharacterId, equals: character.id)

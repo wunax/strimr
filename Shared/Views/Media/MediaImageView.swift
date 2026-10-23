@@ -74,7 +74,7 @@ struct MediaArtworkPlaceholder: View {
 
                     if showsLabel {
                         Text("media.placeholder.noArtwork")
-                            .font(.caption.weight(.medium))
+                            .font(.cardMetadata.weight(.medium))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }

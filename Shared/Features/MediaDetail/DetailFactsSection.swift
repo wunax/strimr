@@ -51,7 +51,7 @@ struct DetailFactsList: View {
                                 .foregroundStyle(.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .font(.subheadline)
+                        .font(.facts)
                         .accessibilityElement(children: .combine)
                     }
                 }

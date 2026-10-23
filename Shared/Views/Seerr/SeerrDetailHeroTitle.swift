@@ -27,7 +27,7 @@ struct SeerrDetailHeroTitle: View {
                 HStack(spacing: 12) {
                     ForEach(Array(ratings.enumerated()), id: \.offset) { _, rating in
                         MediaRatingLabel(rating: rating, iconHeight: 16)
-                            .font(.footnote)
+                            .font(.facts)
                     }
                 }
                 .foregroundStyle(.textSecondary)

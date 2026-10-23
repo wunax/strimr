@@ -187,7 +187,7 @@ struct MediaDetailHeaderSection: View {
 
                 Button(action: { isSummaryExpanded.toggle() }) {
                     Text(isSummaryExpanded ? "common.actions.showLess" : "common.actions.readMore")
-                        .font(.subheadline)
+                        .font(.facts)
                         .fontWeight(.semibold)
                         .foregroundStyle(.textPrimary)
                 }

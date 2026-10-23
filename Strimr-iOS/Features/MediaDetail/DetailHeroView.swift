@@ -28,13 +28,13 @@ struct DetailHeroView: View {
                                 .overlay(Color.black.opacity(0.2))
                                 .mask(heroMask)
                         case .empty:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         case .failure:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         @unknown default:
-                            Color.gray.opacity(0.15)
+                            Color.surfaceSubtle
                                 .mask(heroMask)
                         }
                     }
@@ -47,7 +47,7 @@ struct DetailHeroView: View {
                         .overlay(Color.black.opacity(0.2))
                         .mask(heroMask)
                 } else {
-                    Color.gray.opacity(0.12)
+                    Color.surfaceSubtle
                         .frame(width: proxy.size.width, height: heroHeight)
                         .mask(heroMask)
                 }

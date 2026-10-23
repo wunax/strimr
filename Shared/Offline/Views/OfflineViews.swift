@@ -83,8 +83,8 @@ struct OfflineBanner: View {
                 banner == .offline ? "offline.banner.offline" : "offline.banner.serverUnreachable",
                 systemImage: banner == .offline ? "wifi.slash" : "exclamationmark.icloud",
             )
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.white)
+            .font(.facts.weight(.semibold))
+            .foregroundStyle(.textPrimary)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
@@ -105,8 +105,8 @@ struct OfflineStatusPill: View {
                 systemImage: banner == .offline ? "wifi.slash" : "exclamationmark.icloud",
             )
             .labelStyle(.titleAndIcon)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
+            .font(.cardMetadata.weight(.semibold))
+            .foregroundStyle(.textPrimary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(Color.orange.opacity(0.9), in: Capsule(style: .continuous))

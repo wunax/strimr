@@ -41,7 +41,7 @@ struct MediaHubSection<Content: View>: View {
                     HStack(spacing: 4) {
                         titleText
                         Image(systemName: "chevron.right")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.facts.weight(.semibold))
                             .foregroundStyle(.textTertiary)
                     }
                 }

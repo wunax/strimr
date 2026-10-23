@@ -84,7 +84,7 @@ struct LibraryBrowseControlsView: View {
 
             if let itemCount, itemCount > 0 {
                 Text(String(localized: "library.browse.count.items \(itemCount)"))
-                    .font(.footnote)
+                    .font(.facts)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, rowPadding.leading)
             }
@@ -424,7 +424,7 @@ private struct LibraryBrowseFilterSheetView: View {
             VStack(spacing: 12) {
                 ProgressView()
                 Text("library.browse.filters.loading")
-                    .font(.subheadline)
+                    .font(.facts)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
