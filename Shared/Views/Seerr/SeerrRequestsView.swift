@@ -53,7 +53,7 @@ struct SeerrRequestsView: View {
                 Text("seerr.requests.delete.message")
             }
         #if os(tvOS)
-            .navigationDestination(item: $editRequest) { state in
+            .taskPresentation(item: $editRequest) { state in
                 SeerrMediaRequestView(viewModel: state.viewModel) {
                     Task { await viewModel.reload() }
                 }

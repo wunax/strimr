@@ -4,6 +4,8 @@ import SwiftUI
 struct SeerrMediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @State var viewModel: SeerrMediaDetailViewModel
+    @State private var requestSheet: SeerrMediaRequestSheetState?
+    @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
 
     init(viewModel: SeerrMediaDetailViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -69,6 +71,22 @@ struct SeerrMediaDetailView: View {
             await viewModel.loadRelatedContent()
         }
         .toolbar(.hidden, for: .tabBar)
+        .taskPresentation(
+            item: $requestSheet,
+            style: viewModel.media.mediaType == .tv ? .modal : .compactModal,
+        ) { sheet in
+            SeerrMediaRequestView(viewModel: sheet.viewModel, onComplete: reloadAfterRequestChange)
+        }
+        .taskPresentation(item: $manageRequestsSheet) { sheet in
+            SeerrManageRequestsView(viewModel: sheet.viewModel, onComplete: reloadAfterRequestChange)
+        }
+    }
+
+    private func reloadAfterRequestChange() {
+        Task {
+            await viewModel.loadDetails()
+            await viewModel.loadRelatedContent()
+        }
     }
 
     private var actionButtons: some View {
@@ -76,13 +94,8 @@ struct SeerrMediaDetailView: View {
             if !viewModel.isRequestButtonHidden,
                let requestViewModel = viewModel.makeRequestViewModel()
             {
-                NavigationLink {
-                    SeerrMediaRequestView(viewModel: requestViewModel) {
-                        Task {
-                            await viewModel.loadDetails()
-                            await viewModel.loadRelatedContent()
-                        }
-                    }
+                Button {
+                    requestSheet = SeerrMediaRequestSheetState(viewModel: requestViewModel)
                 } label: {
                     Label(LocalizedStringKey(viewModel.requestButtonTitleKey), systemImage: requestButtonIcon)
                         .font(.facts.weight(.semibold))
@@ -94,13 +107,8 @@ struct SeerrMediaDetailView: View {
             if viewModel.shouldShowManageRequestsButton,
                let manageViewModel = viewModel.makeManageRequestsViewModel()
             {
-                NavigationLink {
-                    SeerrManageRequestsView(viewModel: manageViewModel) {
-                        Task {
-                            await viewModel.loadDetails()
-                            await viewModel.loadRelatedContent()
-                        }
-                    }
+                Button {
+                    manageRequestsSheet = SeerrManageRequestsSheetState(viewModel: manageViewModel)
                 } label: {
                     Label(
                         String(localized: "seerr.manageRequests.short \(viewModel.pendingManageRequestsCount)"),
@@ -268,4 +276,14 @@ private struct SeerrEpisodeRailCard: View {
         }
         return episode.episodeNumber.map { String(localized: "media.detail.episodeNumber \($0)") } ?? ""
     }
+}
+
+private struct SeerrMediaRequestSheetState: Identifiable {
+    let id = UUID()
+    let viewModel: SeerrMediaRequestViewModel
+}
+
+private struct SeerrManageRequestsSheetState: Identifiable {
+    let id = UUID()
+    let viewModel: SeerrManageRequestsViewModel
 }

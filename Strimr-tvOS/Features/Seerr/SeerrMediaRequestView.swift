@@ -9,7 +9,7 @@ struct SeerrMediaRequestView: View {
 
     var body: some View {
         content
-            .navigationTitle(LocalizedStringKey(viewModel.sheetTitleKey))
+            .taskModalTitle(LocalizedStringKey(viewModel.sheetTitleKey))
             .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
                 Button("common.actions.done") {}
             } message: {
@@ -31,6 +31,26 @@ struct SeerrMediaRequestView: View {
             requestTypeSelection
         } else {
             requestForm
+                .taskModalActions {
+                    Button(action: submitRequest) {
+                        HStack(spacing: 10) {
+                            if viewModel.isSubmitting {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                            }
+                            Text(LocalizedStringKey(viewModel.submitButtonKey))
+                        }
+                    }
+                    .disabled(!viewModel.canSubmit || viewModel.isSubmitting)
+                } actions: {
+                    if viewModel.isEditing {
+                        Button("seerr.request.action.cancel", role: .destructive) {
+                            Task {
+                                await viewModel.cancelRequest()
+                            }
+                        }
+                    }
+                }
         }
     }
 
@@ -84,31 +104,6 @@ struct SeerrMediaRequestView: View {
 
             if viewModel.isTV {
                 seasonSelectionSection
-            }
-
-            Section {
-                Button(action: submitRequest) {
-                    HStack(spacing: 10) {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                        }
-                        Text(LocalizedStringKey(viewModel.submitButtonKey))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .actionButtonStyle(.primary)
-                .disabled(!viewModel.canSubmit || viewModel.isSubmitting)
-            }
-
-            if viewModel.isEditing {
-                Section {
-                    Button("seerr.request.action.cancel", role: .destructive) {
-                        Task {
-                            await viewModel.cancelRequest()
-                        }
-                    }
-                }
             }
         }
         .listStyle(.automatic)

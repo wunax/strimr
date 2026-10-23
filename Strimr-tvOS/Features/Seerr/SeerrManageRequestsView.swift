@@ -7,27 +7,22 @@ struct SeerrManageRequestsView: View {
     let onComplete: () -> Void
 
     var body: some View {
-        ZStack {
-            Color("Background").ignoresSafeArea()
-
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 24) {
-                    if viewModel.pendingRequests.isEmpty {
-                        Text("seerr.manageRequests.empty")
-                            .font(.bodyText)
-                            .foregroundStyle(.textSecondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        ForEach(viewModel.pendingRequests, id: \.id) { request in
-                            requestCard(for: request)
-                        }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                if viewModel.pendingRequests.isEmpty {
+                    Text("seerr.manageRequests.empty")
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    ForEach(viewModel.pendingRequests, id: \.id) { request in
+                        requestCard(for: request)
                     }
                 }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 24)
             }
+            .padding(24)
         }
-        .navigationTitle("seerr.manageRequests.title")
+        .taskModalTitle("seerr.manageRequests.title")
         .alert("integrations.seerr.error.title", isPresented: $viewModel.isShowingError) {
             Button("common.actions.done") {}
         } message: {
