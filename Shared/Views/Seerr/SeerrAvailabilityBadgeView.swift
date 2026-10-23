@@ -13,19 +13,19 @@ struct SeerrAvailabilityBadgeView: View {
                     Image(systemName: configuration.systemName)
                         .foregroundStyle(configuration.color)
                     Text(configuration.labelKey)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.textPrimary)
                 }
                 .font(.badge)
                 .lineLimit(1)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(.black.opacity(0.65), in: Capsule(style: .continuous))
+                .background(.badgeBackground, in: Capsule(style: .continuous))
             } else {
                 Image(systemName: configuration.systemName)
                     .font(.badge)
                     .foregroundStyle(configuration.color)
                     .padding(6)
-                    .background(.black.opacity(0.65), in: Circle())
+                    .background(.badgeBackground, in: Circle())
                     .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
             }
         }

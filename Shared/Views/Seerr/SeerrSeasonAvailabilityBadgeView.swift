@@ -28,19 +28,19 @@ struct SeerrSeasonAvailabilityBadgeView: View {
                 Image(systemName: "paperplane.fill")
                     .foregroundStyle(.blue)
                 Text("seerr.media.availability.requested")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.textPrimary)
             }
             .font(.badge)
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(.black.opacity(0.65), in: Capsule(style: .continuous))
+            .background(.badgeBackground, in: Capsule(style: .continuous))
         } else {
             Image(systemName: "paperplane.fill")
                 .font(.badge)
                 .foregroundStyle(.blue)
                 .padding(6)
-                .background(.black.opacity(0.65), in: Circle())
+                .background(.badgeBackground, in: Circle())
         }
     }
 }

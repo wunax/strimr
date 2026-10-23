@@ -23,7 +23,7 @@ struct SeerrCollectionSection: View {
 
                 if let message = viewModel.collectionErrorMessage {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .font(.subheadline)
+                        .font(.facts)
                         .foregroundStyle(.red)
                 }
             }

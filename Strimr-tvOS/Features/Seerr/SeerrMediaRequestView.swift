@@ -43,9 +43,9 @@ struct SeerrMediaRequestView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(LocalizedStringKey(option.titleKey))
-                                .font(.headline)
+                                .font(.rowTitle)
                             Text(LocalizedStringKey(option.subtitleKey))
-                                .font(.subheadline)
+                                .font(.facts)
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,7 +73,8 @@ struct SeerrMediaRequestView: View {
             if viewModel.isMovie, !viewModel.requiresAdvancedConfiguration {
                 Section {
                     Text("seerr.request.movie.confirmation")
-                        .foregroundStyle(.secondary)
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
                 }
             }
 
@@ -93,7 +94,6 @@ struct SeerrMediaRequestView: View {
                                 .progressViewStyle(.circular)
                         }
                         Text(LocalizedStringKey(viewModel.submitButtonKey))
-                            .font(.headline)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -145,7 +145,7 @@ struct SeerrMediaRequestView: View {
                         Text("seerr.request.options.rootFolder")
                         Spacer()
                         Text(rootFolder)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
             }
@@ -162,7 +162,7 @@ struct SeerrMediaRequestView: View {
                         Text("seerr.request.options.profile")
                         Spacer()
                         Text(profileName)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.textSecondary)
                     }
                 }
             }
@@ -173,7 +173,7 @@ struct SeerrMediaRequestView: View {
         Section("seerr.request.seasons.title") {
             if viewModel.seasons.isEmpty {
                 Text("seerr.request.seasons.empty")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.textSecondary)
             } else {
                 ForEach(viewModel.seasons, id: \.id) { season in
                     if let seasonNumber = season.seasonNumber {
@@ -181,9 +181,9 @@ struct SeerrMediaRequestView: View {
                             HStack(alignment: .center, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(viewModel.seasonTitle(for: season))
-                                        .font(.headline)
+                                        .font(.rowTitle)
                                     Text(seasonEpisodeCountText(season))
-                                        .font(.caption)
+                                        .font(.cardMetadata)
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -203,8 +203,8 @@ struct SeerrMediaRequestView: View {
 
             if let messageKey = viewModel.partialRequestsDisabledMessageKey {
                 Text(LocalizedStringKey(messageKey))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
             }
         }
     }

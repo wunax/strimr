@@ -8,12 +8,12 @@ struct WatchStatusBadge: View {
             Text("\(remaining)")
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(.black.opacity(0.65), in: Capsule(style: .continuous))
+                .background(.badgeBackground, in: Capsule(style: .continuous))
                 .badgeStyle()
         } else if media.isFullyWatched {
             Image(systemName: "checkmark")
                 .padding(6)
-                .background(.black.opacity(0.65), in: Circle())
+                .background(.badgeBackground, in: Circle())
                 .badgeStyle()
         }
     }
@@ -22,7 +22,7 @@ struct WatchStatusBadge: View {
 private extension View {
     func badgeStyle() -> some View {
         font(.badge)
-            .foregroundStyle(.white)
+            .foregroundStyle(.textPrimary)
             .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
             .padding(8)
     }

@@ -14,6 +14,7 @@ struct SeerrManageRequestsView: View {
                 LazyVStack(alignment: .leading, spacing: 24) {
                     if viewModel.pendingRequests.isEmpty {
                         Text("seerr.manageRequests.empty")
+                            .font(.bodyText)
                             .foregroundStyle(.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
@@ -53,15 +54,12 @@ struct SeerrManageRequestsView: View {
             requestActions(for: request)
         }
         .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.surfaceSubtle),
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.strokeSubtle, lineWidth: 1),
-        )
-        .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 8)
+        .background(.surfaceSubtle, in: cardShape)
+        .overlay(cardShape.stroke(.strokeSubtle, lineWidth: 1))
+    }
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
     }
 
     private func requestHeader(for request: SeerrRequest) -> some View {
@@ -73,11 +71,7 @@ struct SeerrManageRequestsView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                    case .empty:
-                        Color.surfaceSubtle
-                    case .failure:
-                        Color.surfaceSubtle
-                    @unknown default:
+                    default:
                         Color.surfaceSubtle
                     }
                 }
@@ -91,20 +85,22 @@ struct SeerrManageRequestsView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(viewModel.displayName(for: request))
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
+                    .foregroundStyle(.textPrimary)
 
                 if let requestedAt = viewModel.requestedAtText(for: request) {
                     Text(requestedAt)
-                        .font(.footnote)
+                        .font(.facts)
                         .foregroundStyle(.textSecondary)
                 }
 
                 if viewModel.is4kRequest(request) {
                     Text("seerr.manageRequests.badge.4k")
-                        .font(.footnote.weight(.semibold))
+                        .font(.badge)
+                        .foregroundStyle(.textPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.purple.opacity(0.2), in: Capsule())
+                        .background(.surfaceRaised, in: Capsule())
                 }
             }
 
@@ -117,15 +113,17 @@ struct SeerrManageRequestsView: View {
         let seasonNumbers = viewModel.seasonNumbers(for: request)
         if seasonNumbers.isEmpty {
             Text("seerr.manageRequests.seasons.all")
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             HStack(spacing: 8) {
                 ForEach(seasonNumbers, id: \.self) { seasonNumber in
                     Text(String(localized: "seerr.manageRequests.season.badge \(seasonNumber)"))
-                        .font(.footnote.weight(.semibold))
+                        .font(.badge)
+                        .foregroundStyle(.textPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .glassSurface()
+                        .background(.surfaceRaised, in: Capsule())
                 }
             }
         }
@@ -142,6 +140,7 @@ struct SeerrManageRequestsView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
             .controlSize(.large)
             .tint(.green)
             .disabled(viewModel.isUpdating(request))
@@ -155,6 +154,7 @@ struct SeerrManageRequestsView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
             .controlSize(.large)
             .tint(.red)
             .disabled(viewModel.isUpdating(request))

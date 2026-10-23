@@ -88,7 +88,7 @@ struct SeerrRequestCardView: View {
             .lineLimit(1)
 
             Text(viewModel.mediaTitle(for: request))
-                .font(.headline)
+                .font(.cardTitle)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(2)
 
@@ -142,10 +142,10 @@ struct SeerrRequestCardView: View {
         }
         .font(.badge)
         .lineLimit(1)
-        .foregroundStyle(.white)
+        .foregroundStyle(.textPrimary)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(.black.opacity(0.65), in: Capsule(style: .continuous))
+        .background(.badgeBackground, in: Capsule(style: .continuous))
     }
 
     private func userLine(titleKey: LocalizedStringKey, user: SeerrUser?, date: String?) -> some View {
@@ -247,7 +247,7 @@ struct SeerrRequestCardView: View {
                 .accessibilityLabel(Text("seerr.requests.action.more"))
             }
         }
-        .font(.subheadline.weight(.semibold))
+        .font(.facts.weight(.semibold))
         .buttonBorderShape(.capsule)
         .disabled(viewModel.isBusy(request))
         .overlay {

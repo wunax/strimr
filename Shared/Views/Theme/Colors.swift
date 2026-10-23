@@ -25,6 +25,11 @@ extension ShapeStyle where Self == Color {
         .white.opacity(0.18)
     }
 
+    /// Dark pill behind status badges laid over artwork, so they stay legible on any image.
+    static var badgeBackground: Color {
+        .black.opacity(0.65)
+    }
+
     static var progressTrack: Color {
         .white.opacity(0.25)
     }

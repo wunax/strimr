@@ -65,12 +65,12 @@ struct SeerrRelatedSection: View {
         if let errorMessage {
             Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-                .font(.subheadline)
+                .font(.facts)
         } else if items.isEmpty, isLoading {
             CarouselSkeleton(layout: .portrait)
         } else if items.isEmpty {
             Text("media.detail.noRelated")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             SeerrMediaCarousel(

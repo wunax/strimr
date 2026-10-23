@@ -14,7 +14,7 @@ struct SeerrSearchCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Text(media.displayTitle)
-                            .font(.headline)
+                            .font(.rowTitle)
                             .lineLimit(2)
 
                         Spacer(minLength: 8)
@@ -32,7 +32,7 @@ struct SeerrSearchCard: View {
 
                     if let overview = media.overview, !overview.isEmpty {
                         Text(overview)
-                            .font(.callout)
+                            .font(.facts)
                             .foregroundStyle(.secondary)
                             .lineLimit(3)
                     }

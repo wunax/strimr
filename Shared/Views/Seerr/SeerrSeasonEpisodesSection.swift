@@ -41,18 +41,18 @@ struct SeerrSeasonEpisodesSection: View {
         if let error = viewModel.seasonsErrorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
-                .font(.subheadline)
+                .font(.facts)
         } else if viewModel.isLoadingSeasons, viewModel.seasons.isEmpty {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
                 Text("media.detail.loadingSeasons")
-                    .font(.subheadline)
+                    .font(.facts)
                     .foregroundStyle(.textSecondary)
             }
         } else if viewModel.seasons.isEmpty {
             Text("media.detail.noSeasons")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -87,7 +87,7 @@ struct SeerrSeasonEpisodesSection: View {
                 .padding(.vertical, 8)
         } else if viewModel.episodes.isEmpty {
             Text("media.detail.noEpisodes")
-                .font(.subheadline)
+                .font(.facts)
                 .foregroundStyle(.textSecondary)
         } else {
             LazyVStack(alignment: .leading, spacing: episodeSpacing) {
