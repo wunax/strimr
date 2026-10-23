@@ -27,7 +27,7 @@ struct SeasonPillsRow: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(viewModel.seasons) { season in
-                        SeasonPill(title: season.title, isSelected: season.id == viewModel.selectedSeasonId) {
+                        FilterChip(title: season.title, isSelected: season.id == viewModel.selectedSeasonId) {
                             if season.id == viewModel.selectedSeasonId {
                                 onSelectSeason(season)
                             } else {
@@ -40,31 +40,6 @@ struct SeasonPillsRow: View {
             }
             .mouseDragScrolling()
         }
-    }
-}
-
-/// White once selected, like the play button and the tvOS season chips.
-struct SeasonPill: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.facts.weight(.semibold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .foregroundStyle(isSelected ? Color.black : .textPrimary)
-                .background(isSelected ? Color.white : .surfaceRaised, in: Capsule(style: .continuous))
-                .contentShape(Capsule(style: .continuous))
-            #if os(macOS)
-                .hoverLift(scale: 1.04)
-            #endif
-                .animation(Motion.crossfade, value: isSelected)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

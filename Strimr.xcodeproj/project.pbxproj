@@ -381,6 +381,7 @@
 				Views/TaskPresentation.swift,
 				Views/Theme/ActionButtonStyle.swift,
 				Views/Theme/CardFocusStyle.swift,
+				Views/Theme/ChipButtonStyle.swift,
 				Views/Theme/Colors.swift,
 				Views/Theme/GlassSurface.swift,
 				Views/Theme/Metrics.swift,

@@ -58,7 +58,7 @@ struct SeerrSeasonEpisodesSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(viewModel.seasons) { season in
-                        SeasonPill(
+                        FilterChip(
                             title: viewModel.seasonTitle(for: season),
                             isSelected: season.seasonNumber == viewModel.selectedSeasonNumber,
                         ) {
