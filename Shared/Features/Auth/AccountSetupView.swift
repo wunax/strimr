@@ -106,9 +106,15 @@ struct AddAnotherAccountView: View {
             }
             .actionButtonStyle(.primary)
             .controlSize(.large)
-            Button("onboarding.addAnother.button", action: onAddAccount)
-                .actionButtonStyle(.secondary)
-                .controlSize(.large)
+            Button(action: onAddAccount) {
+                Text("onboarding.addAnother.button")
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+                    .padding(.vertical, 4)
+            }
+            .actionButtonStyle(.secondary)
+            .controlSize(.large)
             Spacer()
         }
         .padding(32)
