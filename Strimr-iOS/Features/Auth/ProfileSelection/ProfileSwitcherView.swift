@@ -119,38 +119,24 @@ struct ProfileSwitcherView: View {
     }
 
     private func pinStage(for choice: ProfileChoice) -> some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                ProfileAvatarView(
-                    choice: choice,
-                    isSwitching: viewModel.switchingID == choice.id,
-                    showsBadges: false,
-                    namespace: namespace,
-                )
-                VStack(spacing: 8) {
-                    Text(choice.name)
-                        .font(.tileTitle)
-                    Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                        .foregroundStyle(.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .foregroundStyle(.textPrimary)
-
-                PINDotsView(count: viewModel.pin.count)
-                    .shake(viewModel.rejectedPINCount)
-
-                ProfileKeypad(
-                    canDelete: !viewModel.pin.isEmpty,
-                    onDigit: viewModel.appendPINDigit,
-                    onDelete: viewModel.deletePINDigit,
-                )
-                .disabled(viewModel.switchingID != nil)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 24)
-            .frame(maxWidth: .infinity)
+        PINEntryPad(
+            title: choice.name,
+            message: viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"),
+            pinCount: viewModel.pin.count,
+            rejectedCount: viewModel.rejectedPINCount,
+            isDisabled: viewModel.switchingID != nil,
+            onDigit: viewModel.appendPINDigit,
+            onDelete: viewModel.deletePINDigit,
+        ) {
+            ProfileAvatarView(
+                choice: choice,
+                isSwitching: viewModel.switchingID == choice.id,
+                showsBadges: false,
+                namespace: namespace,
+            )
+        } footer: {
+            EmptyView()
         }
-        .scrollBounceBehavior(.basedOnSize)
         .transition(.opacity)
     }
 

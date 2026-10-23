@@ -130,7 +130,15 @@ struct ProfileSwitcherView: View {
     }
 
     private func pinStage(for choice: ProfileChoice) -> some View {
-        VStack(spacing: 28) {
+        PINEntryPad(
+            title: choice.name,
+            message: viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"),
+            pinCount: viewModel.pin.count,
+            rejectedCount: viewModel.rejectedPINCount,
+            isDisabled: viewModel.switchingID != nil,
+            onDigit: viewModel.appendPINDigit,
+            onDelete: viewModel.deletePINDigit,
+        ) {
             ProfileAvatarView(
                 choice: choice,
                 size: ProfilePickerMetrics.entranceAvatarSize,
@@ -138,23 +146,10 @@ struct ProfileSwitcherView: View {
                 showsBadges: false,
                 namespace: namespace,
             )
-            VStack(spacing: 8) {
-                Text(choice.name)
-                    .font(.tileTitle)
-                Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                    .foregroundStyle(.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.textPrimary)
-
-            PINDotsView(count: viewModel.pin.count)
-                .shake(viewModel.rejectedPINCount)
-
+        } footer: {
             Button("common.actions.cancel", action: viewModel.cancelPIN)
                 .disabled(viewModel.switchingID != nil)
         }
-        .padding(48)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .transition(.opacity)
     }
 

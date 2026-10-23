@@ -74,11 +74,11 @@ struct CreateLocalProfileView: View {
                 platformForm
             #endif
         }
-        #if os(tvOS)
         .taskPresentation(isPresented: $isEnteringPIN) {
-            TVPINPadView(
-                title: "profiles.pin.define",
-                onComplete: { entered in
+            PINPrompt(
+                title: String(localized: "profiles.pin.define"),
+                message: String(localized: "profiles.pin.set"),
+                purpose: .define { entered in
                     pin = entered
                     isEnteringPIN = false
                 },
@@ -89,24 +89,30 @@ struct CreateLocalProfileView: View {
                         pin = ""
                         isEnteringPIN = false
                     }
-                    .buttonStyle(.bordered)
+                    .actionButtonStyle(.secondary)
                 }
             }
         }
+    }
+
+    private var pinRow: some View {
+        Button { isEnteringPIN = true } label: {
+            HStack {
+                Text("profiles.pin.optional")
+                Spacer()
+                Text(pin.isEmpty ? "profiles.pin.disabled" : "profiles.pin.enabled")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        #if !os(tvOS)
+        .foregroundStyle(.primary)
         #endif
     }
 
     #if os(tvOS)
         private var tvOSForm: some View {
             Form {
-                Button { isEnteringPIN = true } label: {
-                    HStack {
-                        Text("profiles.pin.optional")
-                        Spacer()
-                        Text(pin.isEmpty ? "profiles.pin.disabled" : "profiles.pin.enabled")
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                pinRow
                 Button("common.actions.continue", action: create)
                     .disabled(isNameEmpty)
             }
@@ -115,12 +121,7 @@ struct CreateLocalProfileView: View {
         private var platformForm: some View {
             Form {
                 TextField("profiles.name", text: $name)
-                SecureField("profiles.pin.optional", text: $pin)
-                #if os(iOS)
-                    .keyboardType(.numberPad)
-                #elseif os(macOS)
-                    .pinDigits($pin)
-                #endif
+                pinRow
             }
             .navigationTitle("profiles.create")
             .toolbar {
@@ -129,13 +130,9 @@ struct CreateLocalProfileView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("common.actions.continue", action: create)
-                        .disabled(isNameEmpty || !isPINValid)
+                        .disabled(isNameEmpty)
                 }
             }
-        }
-
-        private var isPINValid: Bool {
-            pin.isEmpty || pin.count == 4 && pin.allSatisfy(\.isNumber)
         }
     #endif
 
@@ -144,7 +141,7 @@ struct CreateLocalProfileView: View {
     }
 
     private func create() {
-        onCreate(sessionManager.createLocalProfile(name: name, pin: String(pin.filter(\.isNumber).prefix(4))))
+        onCreate(sessionManager.createLocalProfile(name: name, pin: pin))
     }
 }
 

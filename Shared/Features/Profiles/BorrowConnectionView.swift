@@ -72,28 +72,28 @@ struct BorrowConnectionView: View {
             }
         }
         .taskPresentation(item: $unlockingProfile) { local in
-            ProfilePINPrompt(
-                title: "auth.profile.pin.title",
+            PINPrompt(
+                title: String(localized: "auth.profile.pin.title"),
                 message: String(localized: "auth.profile.pin.prompt \(local.name)"),
-                onSubmit: { pin in
-                    if local.pin?.verify(pin) == true {
-                        unlockedProfileIDs.insert(local.id)
-                        errorMessage = nil
-                    } else {
-                        errorMessage = String(localized: "profiles.pin.wrong")
-                    }
+                purpose: .verify { pin in
+                    guard local.pin?.verify(pin) == true else { return false }
+                    unlockedProfileIDs.insert(local.id)
+                    errorMessage = nil
                     unlockingProfile = nil
+                    return true
                 },
                 onCancel: { unlockingProfile = nil },
             )
         }
         .taskPresentation(item: $pendingPlexPIN) { candidate in
-            ProfilePINPrompt(
-                title: "auth.profile.pin.title",
+            // Plex checks the PIN itself; a wrong one comes back as an error on this screen.
+            PINPrompt(
+                title: String(localized: "auth.profile.pin.title"),
                 message: String(localized: "auth.profile.pin.prompt \(userName(candidate))"),
-                onSubmit: { pin in
+                purpose: .verify { pin in
                     pendingPlexPIN = nil
                     Task { await borrowPlex(candidate, pin: pin) }
+                    return true
                 },
                 onCancel: { pendingPlexPIN = nil },
             )

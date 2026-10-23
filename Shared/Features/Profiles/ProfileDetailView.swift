@@ -243,97 +243,34 @@ struct ProfilePINSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     let profileID: String
 
-    @State private var newPIN = ""
-    @FocusState private var isPINFocused: Bool
-
     private var profile: LocalProfile? {
         sessionManager.profileStore.profile(id: profileID, accounts: sessionManager.accounts)?.localProfile
     }
 
-    private var hasPIN: Bool {
-        profile?.pin != nil
-    }
-
-    private var digits: String {
-        newPIN.filter(\.isNumber)
-    }
-
-    private var canSave: Bool {
-        profile != nil && digits.count == 4
-    }
-
-    private var actionTitle: LocalizedStringKey {
-        hasPIN ? "profiles.pin.edit" : "profiles.pin.define"
-    }
-
     var body: some View {
-        #if os(tvOS)
-            TVPINPadView(title: actionTitle, onComplete: save, onCancel: { dismiss() }) {
-                if hasPIN {
-                    removeButton
-                        .buttonStyle(.bordered)
-                }
+        PINPrompt(
+            title: String(localized: profile?.pin == nil ? "profiles.pin.define" : "profiles.pin.edit"),
+            message: String(localized: "profiles.pin.set"),
+            purpose: .define(save),
+            onCancel: { dismiss() },
+        ) {
+            if profile?.pin != nil {
+                Button("profiles.pin.remove", role: .destructive, action: removePIN)
+                    .actionButtonStyle(.secondary)
             }
-        #else
-            NavigationStack {
-                Form {
-                    Section {
-                        pinField
-                        saveButton
-                    }
-                    if hasPIN {
-                        Section {
-                            removeButton
-                        }
-                    }
-                }
-                .navigationTitle(actionTitle)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("common.actions.cancel") { dismiss() }
-                    }
-                }
-            }
-        #endif
-    }
-
-    private var pinField: some View {
-        SecureField("profiles.pin.set", text: $newPIN)
-            .focused($isPINFocused)
-        #if os(iOS)
-            .keyboardType(.numberPad)
-        #elseif os(macOS)
-            .pinDigits($newPIN)
-        #endif
-            .onSubmit {
-                if canSave {
-                    savePIN()
-                }
-            }
-    }
-
-    private var saveButton: some View {
-        Button(actionTitle, action: savePIN)
-            .disabled(!canSave)
-    }
-
-    private var removeButton: some View {
-        Button("profiles.pin.remove", role: .destructive) {
-            guard var updated = profile else { return }
-            updated.pin = nil
-            sessionManager.profileStore.updateLocalProfile(updated)
-            dismiss()
         }
-    }
-
-    private func savePIN() {
-        guard canSave else { return }
-        save(digits)
     }
 
     private func save(_ pin: String) {
         guard var updated = profile else { return }
         updated.pin = LocalProfilePIN(pin: pin)
+        sessionManager.profileStore.updateLocalProfile(updated)
+        dismiss()
+    }
+
+    private func removePIN() {
+        guard var updated = profile else { return }
+        updated.pin = nil
         sessionManager.profileStore.updateLocalProfile(updated)
         dismiss()
     }

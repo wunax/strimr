@@ -127,39 +127,25 @@ struct ProfileSwitcherView: View {
     }
 
     private func pinStage(for choice: ProfileChoice) -> some View {
-        HStack(spacing: 160) {
-            VStack(spacing: 40) {
-                ProfileAvatarView(
-                    choice: choice,
-                    size: ProfilePickerMetrics.entranceAvatarSize,
-                    isSwitching: viewModel.switchingID == choice.id,
-                    showsBadges: false,
-                    namespace: namespace,
-                )
-                VStack(spacing: 12) {
-                    Text(choice.name)
-                        .font(.tileTitle)
-                    Text(viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"))
-                        .font(.bodyText)
-                        .foregroundStyle(.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .foregroundStyle(.textPrimary)
-                .frame(maxWidth: 560)
-
-                PINDotsView(count: viewModel.pin.count)
-                    .shake(viewModel.rejectedPINCount)
-            }
-
-            ProfileKeypad(
-                canDelete: !viewModel.pin.isEmpty,
-                onDigit: viewModel.appendPINDigit,
-                onDelete: viewModel.deletePINDigit,
+        PINEntryPad(
+            title: choice.name,
+            message: viewModel.errorMessage ?? String(localized: "auth.profile.pin.prompt \(choice.name)"),
+            pinCount: viewModel.pin.count,
+            rejectedCount: viewModel.rejectedPINCount,
+            isDisabled: viewModel.switchingID != nil,
+            onDigit: viewModel.appendPINDigit,
+            onDelete: viewModel.deletePINDigit,
+        ) {
+            ProfileAvatarView(
+                choice: choice,
+                size: ProfilePickerMetrics.entranceAvatarSize,
+                isSwitching: viewModel.switchingID == choice.id,
+                showsBadges: false,
+                namespace: namespace,
             )
-            .disabled(viewModel.switchingID != nil)
-            .focusSection()
+        } footer: {
+            EmptyView()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onExitCommand(perform: viewModel.cancelPIN)
         .transition(.opacity)
     }

@@ -119,6 +119,7 @@
 				Features/Auth/AccountSetupView.swift,
 				Features/Auth/MigrationFailedView.swift,
 				Features/Auth/PinPollingBackoff.swift,
+				Features/Auth/ProfileSelection/PINEntryView.swift,
 				Features/Auth/ProfileSelection/ProfilePickerComponents.swift,
 				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
 				Features/Auth/ProfileSelection/ProfileTint.swift,
@@ -389,7 +390,6 @@
 				Views/Theme/Metrics.swift,
 				Views/Theme/Motion.swift,
 				Views/Theme/Typography.swift,
-				Views/TVPINPadView.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
 		};
