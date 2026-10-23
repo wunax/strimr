@@ -6,6 +6,10 @@ struct SeerrMediaDetailView: View {
     let onSelectMedia: (SeerrMedia) -> Void
     @State private var requestSheet: SeerrMediaRequestSheetState?
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
+    #if os(iOS)
+        @State private var isSummaryExpanded = false
+        private let heroHeight: CGFloat = 320
+    #endif
 
     init(
         viewModel: SeerrMediaDetailViewModel,
@@ -19,12 +23,22 @@ struct SeerrMediaDetailView: View {
         @Bindable var bindableViewModel = viewModel
 
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
-                SeerrMediaDetailHeaderSection(
-                    viewModel: bindableViewModel,
-                    onRequestTap: presentRequestSheet,
-                    onManageRequestsTap: presentManageRequestsSheet,
-                )
+            LazyVStack(alignment: .leading, spacing: sectionSpacing) {
+                #if os(iOS)
+                    SeerrMediaDetailHeaderSection(
+                        viewModel: bindableViewModel,
+                        isSummaryExpanded: $isSummaryExpanded,
+                        heroHeight: heroHeight,
+                        onRequestTap: presentRequestSheet,
+                        onManageRequestsTap: presentManageRequestsSheet,
+                    )
+                #else
+                    SeerrMediaDetailHeaderSection(
+                        viewModel: bindableViewModel,
+                        onRequestTap: presentRequestSheet,
+                        onManageRequestsTap: presentManageRequestsSheet,
+                    )
+                #endif
 
                 if bindableViewModel.media.mediaType == .tv {
                     SeerrSeasonEpisodesSection(viewModel: bindableViewModel)
@@ -51,7 +65,12 @@ struct SeerrMediaDetailView: View {
                     .padding(.bottom, 32)
             }
         }
+        #if os(iOS)
+        .ignoresSafeArea(edges: .top)
+        .toolbar(.hidden, for: .tabBar)
+        #else
         .navigationTitle(bindableViewModel.media.displayTitle)
+        #endif
         .task {
             await bindableViewModel.loadDetails()
             async let ratings: Void = bindableViewModel.loadRatings()
@@ -93,6 +112,14 @@ struct SeerrMediaDetailView: View {
     private func presentManageRequestsSheet() {
         guard let viewModel = viewModel.makeManageRequestsViewModel() else { return }
         manageRequestsSheet = SeerrManageRequestsSheetState(viewModel: viewModel)
+    }
+
+    private var sectionSpacing: CGFloat {
+        #if os(iOS)
+            16
+        #else
+            24
+        #endif
     }
 }
 

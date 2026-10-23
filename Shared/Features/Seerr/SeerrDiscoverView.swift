@@ -71,30 +71,41 @@ struct SeerrDiscoverView: View {
             .padding(.vertical, 20)
         }
         .navigationTitle("tabs.discover")
-        .task {
-            await viewModel.load()
-        }
-        .onAppear {
-            Task { await viewModel.refreshIfNeeded() }
-        }
-        .onChange(of: scenePhase) { _, newValue in
-            guard newValue == .active else { return }
-            Task { await viewModel.refreshIfNeeded() }
-        }
-        .task(id: searchViewModel.searchQuery) {
-            await searchViewModel.search()
-        }
-        .refreshable {
-            if searchViewModel.isSearchActive {
-                await searchViewModel.search()
-            } else {
-                await viewModel.reload()
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
+            .task {
+                await viewModel.load()
             }
-        }
-        .searchable(
-            text: $searchViewModel.searchQuery,
-            prompt: Text("integrations.seerr.search.placeholder"),
-        )
+            .onAppear {
+                Task { await viewModel.refreshIfNeeded() }
+            }
+            .onChange(of: scenePhase) { _, newValue in
+                guard newValue == .active else { return }
+                Task { await viewModel.refreshIfNeeded() }
+            }
+            .task(id: searchViewModel.searchQuery) {
+                await searchViewModel.search()
+            }
+            .refreshable {
+                if searchViewModel.isSearchActive {
+                    await searchViewModel.search()
+                } else {
+                    await viewModel.reload()
+                }
+            }
+        #if os(iOS)
+            .searchable(
+                text: $searchViewModel.searchQuery,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: Text("integrations.seerr.search.placeholder"),
+            )
+        #else
+            .searchable(
+                text: $searchViewModel.searchQuery,
+                prompt: Text("integrations.seerr.search.placeholder"),
+            )
+        #endif
     }
 
     private var requestsEntry: some View {

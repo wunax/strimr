@@ -166,11 +166,13 @@ struct MainTabView: View {
                 viewModel: SeerrDiscoverViewModel(store: seerrStore),
                 searchViewModel: SeerrSearchViewModel(store: seerrStore),
                 onSelectMedia: coordinator.showSeerrMediaDetail,
+                onShowRequests: coordinator.showSeerrRequests,
             )
             .unavailableWhenOffline()
             .navigationDestination(for: SeerrMedia.self) { media in
                 SeerrMediaDetailView(
                     viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                    onSelectMedia: coordinator.showSeerrMediaDetail,
                 )
             }
             .navigationDestination(for: SeerrRequestsRoute.self) { _ in
