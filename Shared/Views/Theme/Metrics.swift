@@ -49,6 +49,17 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Corner radius of cards floating over playing video, such as the Up Next prompt.
+    static var overlayCornerRadius: CGFloat {
+        #if os(tvOS)
+            28
+        #elseif os(macOS)
+            18
+        #else
+            24
+        #endif
+    }
+
     /// Height of capsule action buttons drawn by `actionButtonStyle`; tvOS uses the system button height.
     static var actionButtonHeight: CGFloat {
         #if os(macOS)
