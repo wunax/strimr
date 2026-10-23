@@ -50,6 +50,8 @@ extension View {
         var maxWidth: CGFloat = 1560
         @ViewBuilder var content: () -> Content
 
+        private let shape = RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
+
         var body: some View {
             ZStack {
                 Color.black.opacity(0.8).ignoresSafeArea()
@@ -58,10 +60,8 @@ extension View {
                     .scrollClipDisabled()
                     .frame(maxWidth: maxWidth, maxHeight: .infinity)
                     .padding(40)
-                    .background(
-                        Color("Background"),
-                        in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
-                    )
+                    .background(Color("Background"), in: shape)
+                    .clipShape(shape)
                     .padding(48)
             }
             .focusSection()
@@ -167,6 +167,12 @@ extension View {
                 Divider()
                 self
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // Modal scroll views do not clip, so focused rows can grow sideways; content still must not
+                    // scroll over the title or past the bottom of the modal.
+                    .mask {
+                        Rectangle()
+                            .padding(.horizontal, -40)
+                    }
             }
         #else
             navigationTitle(title)
