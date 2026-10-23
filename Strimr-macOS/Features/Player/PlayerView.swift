@@ -614,115 +614,12 @@ struct PlayerView: View {
                 }
 
                 HStack(spacing: 14) {
-                    if viewModel.isLivePlayback {
-                        PlayerIconButton(
-                            systemName: "chevron.up",
-                            accessibilityLabel: String(localized: "livetv.player.previousChannel"),
-                            size: .small,
-                        ) {
-                            switchLiveChannel(by: -1)
-                        }
-                        .disabled(!viewModel.canSwitchToPreviousLiveChannel)
-
-                        Button {
-                            playerController.seekToLiveEdge()
-                        } label: {
-                            Label(
-                                playerController.behindLiveSeconds < 2
-                                    ? String(localized: "livetv.player.live")
-                                    : String(localized: "livetv.player.goLive"),
-                                systemImage: "dot.radiowaves.left.and.right",
-                            )
-                        }
-                        .actionButtonStyle(.primary)
-                        .disabled(playerController.behindLiveSeconds < 2)
-
-                        PlayerIconButton(
-                            systemName: "chevron.down",
-                            accessibilityLabel: String(localized: "livetv.player.nextChannel"),
-                            size: .small,
-                        ) {
-                            switchLiveChannel(by: 1)
-                        }
-                        .disabled(!viewModel.canSwitchToNextLiveChannel)
-                    }
-
-                    PlayerIconButton(
-                        systemName: "gobackward.\(settingsManager.playback.seekBackwardSeconds)",
-                        accessibilityLabel: String(
-                            localized: "player.controls.rewindSeconds \(settingsManager.playback.seekBackwardSeconds)",
-                        ),
-                    ) {
-                        playerController.seek(by: -seekBackwardInterval)
-                    }
-
-                    PlayPauseButton(isPaused: playerController.isPaused) {
-                        playerController.togglePlayback()
-                    }
-
-                    PlayerIconButton(
-                        systemName: "goforward.\(settingsManager.playback.seekForwardSeconds)",
-                        accessibilityLabel: String(
-                            localized: "player.controls.skipForwardSeconds \(settingsManager.playback.seekForwardSeconds)",
-                        ),
-                    ) {
-                        playerController.seek(by: seekForwardInterval)
-                    }
-
-                    Spacer()
-
-                    volumeControl
-
-                    if playerController.showsPictureInPictureControl {
-                        PlayerIconButton(
-                            systemName: "pip.enter",
-                            accessibilityLabel: String(localized: "player.controls.pictureInPicture"),
-                            size: .small,
-                        ) {
-                            playerController.startPictureInPicture()
-                        }
-                        .disabled(
-                            !playerController.isPictureInPictureAvailable
-                                || playerController.isPictureInPictureActive
-                                || playerController.isPictureInPictureTransitioning,
-                        )
-                    }
-
-                    audioMenu
-                    subtitleMenu
-                    speedMenu
-                    sleepTimerMenu
-                    if viewModel.showsVersionSelection {
-                        versionMenu
-                    }
-                    if !viewModel.isLocalPlayback, !viewModel.isLivePlayback {
-                        qualityMenu
-                    }
-
-                    if viewModel.hasNavigableChapters {
-                        chapterButton
-                    }
-
-                    if viewModel.hasNavigableQueue {
-                        PlayerIconButton(
-                            systemName: "list.bullet.rectangle",
-                            accessibilityLabel: String(localized: "player.queue.open"),
-                            size: .small,
-                        ) {
-                            showPlayQueue()
-                        }
-                    }
-
-                    PlayerIconButton(
-                        systemName: fullscreenCoordinator.isFullScreen
-                            ? "arrow.down.right.and.arrow.up.left"
-                            : "arrow.up.left.and.arrow.down.right",
-                        accessibilityLabel: fullscreenAccessibilityLabel,
-                        size: .small,
-                    ) {
-                        toggleFullScreen()
-                    }
-                    .disabled(fullscreenCoordinator.isTransitioning)
+                    // Equal flexible sides keep the transport centered in the window whatever each side holds.
+                    leadingControls
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    transportControls
+                    trailingControls
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 // Menus and the remaining buttons (volume, chapters) take the small round control look.
                 .menuStyle(.button)
@@ -735,6 +632,130 @@ struct PlayerView: View {
         .padding(24)
         .background {
             PlayerControlsBackground()
+        }
+    }
+
+    private var leadingControls: some View {
+        HStack(spacing: 14) {
+            volumeControl
+
+            if viewModel.isLivePlayback {
+                Button {
+                    playerController.seekToLiveEdge()
+                } label: {
+                    Label(
+                        playerController.behindLiveSeconds < 2
+                            ? String(localized: "livetv.player.live")
+                            : String(localized: "livetv.player.goLive"),
+                        systemImage: "dot.radiowaves.left.and.right",
+                    )
+                }
+                .actionButtonStyle(.primary)
+                .disabled(playerController.behindLiveSeconds < 2)
+            }
+
+            if viewModel.hasNavigableChapters {
+                chapterButton
+            }
+
+            if viewModel.hasNavigableQueue {
+                PlayerIconButton(
+                    systemName: "list.bullet.rectangle",
+                    accessibilityLabel: String(localized: "player.queue.open"),
+                    size: .small,
+                ) {
+                    showPlayQueue()
+                }
+            }
+        }
+    }
+
+    private var transportControls: some View {
+        HStack(spacing: 14) {
+            if viewModel.isLivePlayback {
+                PlayerIconButton(
+                    systemName: "chevron.up",
+                    accessibilityLabel: String(localized: "livetv.player.previousChannel"),
+                    size: .small,
+                ) {
+                    switchLiveChannel(by: -1)
+                }
+                .disabled(!viewModel.canSwitchToPreviousLiveChannel)
+            }
+
+            PlayerIconButton(
+                systemName: "gobackward.\(settingsManager.playback.seekBackwardSeconds)",
+                accessibilityLabel: String(
+                    localized: "player.controls.rewindSeconds \(settingsManager.playback.seekBackwardSeconds)",
+                ),
+            ) {
+                playerController.seek(by: -seekBackwardInterval)
+            }
+
+            PlayPauseButton(isPaused: playerController.isPaused) {
+                playerController.togglePlayback()
+            }
+
+            PlayerIconButton(
+                systemName: "goforward.\(settingsManager.playback.seekForwardSeconds)",
+                accessibilityLabel: String(
+                    localized: "player.controls.skipForwardSeconds \(settingsManager.playback.seekForwardSeconds)",
+                ),
+            ) {
+                playerController.seek(by: seekForwardInterval)
+            }
+
+            if viewModel.isLivePlayback {
+                PlayerIconButton(
+                    systemName: "chevron.down",
+                    accessibilityLabel: String(localized: "livetv.player.nextChannel"),
+                    size: .small,
+                ) {
+                    switchLiveChannel(by: 1)
+                }
+                .disabled(!viewModel.canSwitchToNextLiveChannel)
+            }
+        }
+    }
+
+    private var trailingControls: some View {
+        HStack(spacing: 14) {
+            audioMenu
+            subtitleMenu
+            speedMenu
+            sleepTimerMenu
+            if !viewModel.isLocalPlayback, !viewModel.isLivePlayback {
+                qualityMenu
+            }
+            if viewModel.showsVersionSelection {
+                versionMenu
+            }
+
+            if playerController.showsPictureInPictureControl {
+                PlayerIconButton(
+                    systemName: "pip.enter",
+                    accessibilityLabel: String(localized: "player.controls.pictureInPicture"),
+                    size: .small,
+                ) {
+                    playerController.startPictureInPicture()
+                }
+                .disabled(
+                    !playerController.isPictureInPictureAvailable
+                        || playerController.isPictureInPictureActive
+                        || playerController.isPictureInPictureTransitioning,
+                )
+            }
+
+            PlayerIconButton(
+                systemName: fullscreenCoordinator.isFullScreen
+                    ? "arrow.down.right.and.arrow.up.left"
+                    : "arrow.up.left.and.arrow.down.right",
+                accessibilityLabel: fullscreenAccessibilityLabel,
+                size: .small,
+            ) {
+                toggleFullScreen()
+            }
+            .disabled(fullscreenCoordinator.isTransitioning)
         }
     }
 
