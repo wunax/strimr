@@ -1197,7 +1197,7 @@ struct PlayerView: View {
         Button {
             isShowingChapterPopover.toggle()
         } label: {
-            Label("player.chapters.title", systemImage: "list.bullet.rectangle")
+            Label("player.chapters.title", systemImage: "list.number")
                 .labelStyle(.iconOnly)
         }
         .popover(isPresented: $isShowingChapterPopover, arrowEdge: .bottom) {
