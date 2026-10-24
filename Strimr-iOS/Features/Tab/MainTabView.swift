@@ -134,7 +134,7 @@ struct MainTabView: View {
                 }
             }
 
-            TabSection {
+            TabSection("tabs.libraries") {
                 ForEach(libraryStore.navigationLibraries, id: \.identity) { library in
                     Tab(
                         library.title,
@@ -146,6 +146,8 @@ struct MainTabView: View {
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
+        .prefersSidebarPlacement()
     }
 
     private var homeTabContent: some View {
@@ -375,6 +377,17 @@ struct MainTabView: View {
                 viewModel: PersonDetailViewModel(person: person, services: services),
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func prefersSidebarPlacement() -> some View {
+        if #available(iOS 27.0, *) {
+            defaultTabBarPlacement(.sidebar)
+        } else {
+            self
         }
     }
 }
