@@ -40,7 +40,7 @@ struct PlaylistDetailView: View {
                 } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
-                            PlaylistEntryRow(entry: entry, position: index + 1) {
+                            PlaylistEntryRow(entry: entry, position: index + 1, lastPosition: viewModel.entries.count) {
                                 onPlayEntry(entry)
                             }
                             .contextMenu { entryMenu(entry) }

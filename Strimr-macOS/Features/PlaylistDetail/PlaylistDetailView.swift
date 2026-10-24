@@ -91,7 +91,7 @@ struct PlaylistDetailView: View {
                         .listRowSeparator(.hidden)
                 } else {
                     ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
-                        PlaylistEntryRow(entry: entry, position: index + 1)
+                        PlaylistEntryRow(entry: entry, position: index + 1, lastPosition: viewModel.entries.count)
                             .tag(entry.id)
                     }
                     .onMove(perform: moveAction)

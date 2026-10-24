@@ -12,6 +12,8 @@ struct PlaylistEntryRow: View {
 
     let entry: PlaylistEntry
     let position: Int
+    /// The highest position in the list, which sets the width of the number column.
+    let lastPosition: Int
     /// Nil where the list handles clicks itself, as on macOS where a double click plays.
     var onTap: (() -> Void)?
 
@@ -33,11 +35,7 @@ struct PlaylistEntryRow: View {
 
     var body: some View {
         HStack(spacing: metrics.spacing) {
-            Text(position, format: .number)
-                .font(.facts)
-                .monospacedDigit()
-                .foregroundStyle(.textTertiary)
-                .frame(minWidth: positionWidth, alignment: .trailing)
+            positionLabel
             artwork
             details
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -60,13 +58,16 @@ struct PlaylistEntryRow: View {
             .accessibilityElement(children: .combine)
     }
 
-    /// Wide enough for three digits, so titles stay aligned in long playlists.
-    private var positionWidth: CGFloat {
-        #if os(tvOS)
-            56
-        #else
-            28
-        #endif
+    /// As wide as the highest number, so titles stay aligned without pushing short lists off the margin.
+    private var positionLabel: some View {
+        ZStack(alignment: .trailing) {
+            Text(lastPosition, format: .number)
+                .hidden()
+            Text(position, format: .number)
+        }
+        .font(.facts)
+        .monospacedDigit()
+        .foregroundStyle(.textTertiary)
     }
 
     private var artwork: some View {
