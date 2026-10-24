@@ -14,6 +14,14 @@ enum PlayerLayoutMode: Equatable {
     /// Frames are in the player's coordinate space.
     case tabletop(videoFrame: CGRect, controlsFrame: CGRect)
 
+    var isTabletop: Bool {
+        if case .tabletop = self {
+            true
+        } else {
+            false
+        }
+    }
+
     static let minimumFoldCoverage: CGFloat = 0.9
     static let minimumHalfHeight: CGFloat = 120
 

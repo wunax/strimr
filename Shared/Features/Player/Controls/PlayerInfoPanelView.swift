@@ -26,6 +26,9 @@ struct PlayerInfoPanelView: View {
     let onSelectQueueItem: (Int) -> Void
     let onSelectChapter: (MediaChapter) -> Void
     let onClose: () -> Void
+    /// Shown below the video on a foldable propped up like a laptop: always visible, so it has no backdrop and
+    /// cannot be closed.
+    var isEmbedded = false
 
     @FocusState private var focusedTab: PlayerInfoTab?
     #if os(iOS)
@@ -51,21 +54,23 @@ struct PlayerInfoPanelView: View {
 
             content
         }
-        .padding(.top, Metrics.topPadding)
+        .padding(.top, isEmbedded ? Metrics.embeddedTopPadding : Metrics.topPadding)
         .padding(.bottom, Metrics.bottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0),
-                    .init(color: .black.opacity(0.75), location: 0.25),
-                    .init(color: .black.opacity(0.9), location: 1),
-                ],
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+            if !isEmbedded {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black.opacity(0.75), location: 0.25),
+                        .init(color: .black.opacity(0.9), location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom,
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
         }
         .environment(\.colorScheme, .dark)
         #if os(tvOS)
@@ -87,6 +92,7 @@ struct PlayerInfoPanelView: View {
                         onClose()
                     }
                 },
+                including: isEmbedded ? .subviews : .all,
             )
         #endif
     }
@@ -100,15 +106,9 @@ struct PlayerInfoPanelView: View {
             #if !os(tvOS)
                 Spacer(minLength: 0)
 
-                Button(action: onClose) {
-                    Image(systemName: "chevron.down")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.textPrimary)
-                        .frame(width: 36, height: 30)
-                        .background(.surfaceRaised, in: Capsule())
+                if !isEmbedded {
+                    closeButton
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("common.actions.close"))
             #endif
         }
         // Full width so focus can move up into the tabs from anywhere below them.
@@ -122,6 +122,20 @@ struct PlayerInfoPanelView: View {
             }
         #endif
     }
+
+    #if !os(tvOS)
+        private var closeButton: some View {
+            Button(action: onClose) {
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.textPrimary)
+                    .frame(width: 36, height: 30)
+                    .background(.surfaceRaised, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("common.actions.close"))
+        }
+    #endif
 
     @ViewBuilder
     private func tabButton(_ tab: PlayerInfoTab) -> some View {
@@ -250,11 +264,13 @@ private enum Metrics {
     #if os(tvOS)
         static let horizontalPadding: CGFloat = 80
         static let topPadding: CGFloat = 48
+        static let embeddedTopPadding: CGFloat = 8
         static let bottomPadding: CGFloat = 56
         static let sectionSpacing: CGFloat = 24
     #else
         static let horizontalPadding: CGFloat = 24
         static let topPadding: CGFloat = 28
+        static let embeddedTopPadding: CGFloat = 8
         static let bottomPadding: CGFloat = 12
         static let sectionSpacing: CGFloat = 14
     #endif

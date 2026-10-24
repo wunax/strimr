@@ -43,6 +43,8 @@ struct PlayerControlsView: View {
     var onNextChannel: () -> Void
     var showsSettingsIndicator = false
     var sleepTimer: SleepTimer?
+    var layout = PlayerControlsLayout.overlay
+
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
 
@@ -70,101 +72,147 @@ struct PlayerControlsView: View {
     }
 
     var body: some View {
+        switch layout {
+        case .overlay:
+            overlayBody
+        case .tabletop:
+            tabletopBody
+        }
+    }
+
+    private var overlayBody: some View {
         ZStack {
             VStack(spacing: 0) {
-                PlayerControlsHeader(
-                    media: media,
-                    onDismiss: onDismiss,
-                    onShowSettings: onShowSettings,
-                    showsSettingsIndicator: showsSettingsIndicator,
-                    sleepTimer: sleepTimer,
-                    isSharePlay: isSharePlay,
-                    showsPictureInPicture: showsPictureInPicture,
-                    isPictureInPictureEnabled: isPictureInPictureEnabled,
-                    onStartPictureInPicture: onStartPictureInPicture,
-                )
+                header
 
                 Spacer(minLength: 0)
 
                 VStack(spacing: 18) {
-                    PlayerAuxiliaryControlsRow(
-                        isRotationLocked: isRotationLocked,
-                        onToggleRotationLock: onToggleRotationLock,
-                        skipMarkerTitle: skipMarkerTitle,
-                        onSkipMarker: onSkipMarker,
-                        badges: playbackBadges,
-                    )
-                    .padding(.horizontal, 24)
-                    .opacity(isScrubbing ? 0 : 1)
-                    .allowsHitTesting(!isScrubbing)
-
-                    if isLive {
-                        HStack {
-                            if behindLiveSeconds < 2 {
-                                Text("livetv.player.live").font(.headline.monospacedDigit())
-                            } else {
-                                Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
-                                    .font(.headline.monospacedDigit())
-                            }
-                            Spacer()
-                            Button(
-                                "livetv.player.goLive",
-                                systemImage: "dot.radiowaves.left.and.right",
-                                action: onGoLive,
-                            )
-                            .actionButtonStyle(.primary)
-                            .disabled(behindLiveSeconds < 2)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                    } else {
-                        ZStack(alignment: .bottom) {
-                            PlayerTimelineView(
-                                position: $position,
-                                duration: duration,
-                                bufferedAhead: bufferedAhead,
-                                playbackPosition: bufferBasePosition,
-                                playbackRate: playbackRate,
-                                showsEndsAtTime: showsEndsAtTime,
-                                chapters: chapters,
-                                showsChaptersOnTimeline: showsChaptersOnTimeline,
-                                scrubPreview: scrubPreview,
-                                onEditingChanged: onScrubbingChanged,
-                            )
-
-                            if hasInfoPanel {
-                                PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
-                                    .opacity(isScrubbing ? 0 : 1)
-                                    .allowsHitTesting(!isScrubbing)
-                                    .offset(y: 18)
-                            }
-                        }
-                    }
+                    auxiliaryRow
+                    progressControls(showsInfoPanelButton: true)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
 
-            PrimaryControls(
-                isPaused: isPaused,
-                onSeekBackward: onSeekBackward,
-                onPlayPause: onPlayPause,
-                onSeekForward: onSeekForward,
-                seekBackwardSeconds: seekBackwardSeconds,
-                seekForwardSeconds: seekForwardSeconds,
-                isLive: isLive,
-                canSwitchPreviousChannel: canSwitchPreviousChannel,
-                canSwitchNextChannel: canSwitchNextChannel,
-                onPreviousChannel: onPreviousChannel,
-                onNextChannel: onNextChannel,
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            primaryControls
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .background {
             PlayerControlsBackground()
         }
     }
+
+    /// The badges stay out of the way here, so the info panel below keeps room; only a skip marker earns a row.
+    private var tabletopBody: some View {
+        VStack(spacing: 8) {
+            header
+            progressControls(showsInfoPanelButton: false)
+                .padding(.horizontal, 20)
+            primaryControls
+            if skipMarkerTitle != nil, onSkipMarker != nil {
+                auxiliaryRow
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private var header: some View {
+        PlayerControlsHeader(
+            media: media,
+            onDismiss: onDismiss,
+            onShowSettings: onShowSettings,
+            showsSettingsIndicator: showsSettingsIndicator,
+            sleepTimer: sleepTimer,
+            isSharePlay: isSharePlay,
+            showsPictureInPicture: showsPictureInPicture,
+            isPictureInPictureEnabled: isPictureInPictureEnabled,
+            onStartPictureInPicture: onStartPictureInPicture,
+        )
+    }
+
+    private var auxiliaryRow: some View {
+        PlayerAuxiliaryControlsRow(
+            isRotationLocked: isRotationLocked,
+            onToggleRotationLock: onToggleRotationLock,
+            skipMarkerTitle: skipMarkerTitle,
+            onSkipMarker: onSkipMarker,
+            badges: playbackBadges,
+        )
+        .padding(.horizontal, 24)
+        .opacity(isScrubbing ? 0 : 1)
+        .allowsHitTesting(!isScrubbing)
+    }
+
+    @ViewBuilder
+    private func progressControls(showsInfoPanelButton: Bool) -> some View {
+        if isLive {
+            HStack {
+                if behindLiveSeconds < 2 {
+                    Text("livetv.player.live").font(.headline.monospacedDigit())
+                } else {
+                    Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
+                        .font(.headline.monospacedDigit())
+                }
+                Spacer()
+                Button(
+                    "livetv.player.goLive",
+                    systemImage: "dot.radiowaves.left.and.right",
+                    action: onGoLive,
+                )
+                .actionButtonStyle(.primary)
+                .disabled(behindLiveSeconds < 2)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+        } else {
+            ZStack(alignment: .bottom) {
+                PlayerTimelineView(
+                    position: $position,
+                    duration: duration,
+                    bufferedAhead: bufferedAhead,
+                    playbackPosition: bufferBasePosition,
+                    playbackRate: playbackRate,
+                    showsEndsAtTime: showsEndsAtTime,
+                    chapters: chapters,
+                    showsChaptersOnTimeline: showsChaptersOnTimeline,
+                    scrubPreview: scrubPreview,
+                    onEditingChanged: onScrubbingChanged,
+                )
+
+                if showsInfoPanelButton, hasInfoPanel {
+                    PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
+                        .opacity(isScrubbing ? 0 : 1)
+                        .allowsHitTesting(!isScrubbing)
+                        .offset(y: 18)
+                }
+            }
+        }
+    }
+
+    private var primaryControls: some View {
+        PrimaryControls(
+            isPaused: isPaused,
+            onSeekBackward: onSeekBackward,
+            onPlayPause: onPlayPause,
+            onSeekForward: onSeekForward,
+            seekBackwardSeconds: seekBackwardSeconds,
+            seekForwardSeconds: seekForwardSeconds,
+            isLive: isLive,
+            canSwitchPreviousChannel: canSwitchPreviousChannel,
+            canSwitchNextChannel: canSwitchNextChannel,
+            onPreviousChannel: onPreviousChannel,
+            onNextChannel: onNextChannel,
+        )
+    }
+}
+
+enum PlayerControlsLayout {
+    /// Drawn over the video, centered transport.
+    case overlay
+    /// Stacked under the video, on the half of a foldable lying flat.
+    case tabletop
 }
 
 private struct PlayerControlBadge: Identifiable {
