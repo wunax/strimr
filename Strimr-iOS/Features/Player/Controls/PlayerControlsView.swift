@@ -27,7 +27,7 @@ struct PlayerControlsView: View {
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
     var isRotationLocked: Bool
-    var onToggleRotationLock: () -> Void
+    var onToggleRotationLock: (() -> Void)?
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
@@ -175,14 +175,16 @@ private struct PlayerControlBadge: Identifiable {
 
 private struct PlayerAuxiliaryControlsRow: View {
     var isRotationLocked: Bool
-    var onToggleRotationLock: () -> Void
+    var onToggleRotationLock: (() -> Void)?
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
     var badges: [PlayerControlBadge]
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 16) {
-            RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
+            if let onToggleRotationLock {
+                RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
+            }
 
             Spacer(minLength: 12)
 

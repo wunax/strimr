@@ -3,13 +3,11 @@ import SwiftUI
 final class AppDelegate: NSObject, UIApplicationDelegate {
     static var orientationLock = UIInterfaceOrientationMask.all {
         didSet {
-            for scene in UIApplication.shared.connectedScenes {
-                if let windowScene = scene as? UIWindowScene {
-                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientationLock))
+            for case let windowScene as UIWindowScene in UIApplication.shared.connectedScenes {
+                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientationLock))
+                for window in windowScene.windows {
+                    window.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
                 }
-            }
-            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                scene.windows.first?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
             }
         }
     }
@@ -19,7 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             orientationLock = .all
             return
         }
-        switch scene.interfaceOrientation {
+        switch scene.effectiveGeometry.interfaceOrientation {
         case .portrait:
             orientationLock = .portrait
         case .portraitUpsideDown:

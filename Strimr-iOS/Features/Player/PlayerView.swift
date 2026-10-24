@@ -40,6 +40,7 @@ struct PlayerView: View {
     @State private var subtitleSearchErrorMessage = ""
     @State private var showingSubtitleSearchError = false
     @State private var isRotationLocked = false
+    @State private var isRotationLockAvailable = true
     @State private var isShowingSharePlayExitPrompt = false
     @State private var activePlaybackURL: URL?
     @State private var needsPlaybackReloadAfterBackground = false
@@ -84,6 +85,7 @@ struct PlayerView: View {
         let base = AnyView(
             playerScene
                 .statusBarHidden()
+                .onRotationLockAvailabilityChange { isRotationLockAvailable = $0 }
                 .overlay {
                     playerOverlay
                 }
@@ -449,7 +451,7 @@ struct PlayerView: View {
                         { skipMarker(to: marker) }
                     },
                     isRotationLocked: isRotationLocked,
-                    onToggleRotationLock: toggleRotationLock,
+                    onToggleRotationLock: rotationLockAction,
                     isSharePlay: sharePlayCoordinator.isInSession,
                     showsPictureInPicture: playerController.showsPictureInPictureControl,
                     isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
@@ -719,6 +721,11 @@ struct PlayerView: View {
         viewModel.position = chapter.startTime
         timelinePosition = chapter.startTime
         hideInfoPanel()
+    }
+
+    private var rotationLockAction: (() -> Void)? {
+        guard isRotationLockAvailable else { return nil }
+        return { toggleRotationLock() }
     }
 
     private func toggleRotationLock() {
@@ -1515,5 +1522,20 @@ private enum PlayerSheet: String, Identifiable {
 
     var id: String {
         rawValue
+    }
+}
+
+private extension View {
+    /// The inner display of a foldable ignores the supported interface orientations, so locking only works while the
+    /// hinge is closed.
+    @ViewBuilder
+    func onRotationLockAvailabilityChange(_ action: @escaping (Bool) -> Void) -> some View {
+        if #available(iOS 27.1, *) {
+            onHingeChange { _, context in
+                action(context.hinge.map { $0.status == .closed } ?? true)
+            }
+        } else {
+            self
+        }
     }
 }
