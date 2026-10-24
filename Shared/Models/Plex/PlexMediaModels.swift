@@ -877,6 +877,8 @@ nonisolated struct PlexItem: Codable, Equatable {
     let composite: String?
     let playlistType: String?
     let smart: PlexLenient<Bool>?
+    /// Position of the item in the playlist it was listed from.
+    let playlistItemID: Int?
 
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, summary, thumb, art, theme,
@@ -902,7 +904,7 @@ nonisolated struct PlexItem: Codable, Equatable {
         case chapters = "Chapter"
         case onDeck = "OnDeck"
         case playQueueItemID
-        case subtype, minYear, maxYear, composite, playlistType, smart
+        case subtype, minYear, maxYear, composite, playlistType, smart, playlistItemID
     }
 }
 

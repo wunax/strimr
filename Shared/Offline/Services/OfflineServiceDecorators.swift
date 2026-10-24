@@ -9,6 +9,7 @@ struct OfflineServiceDecorators {
     let artwork: any MediaArtworkService
     let detail: any MediaDetailService
     let favorites: any MediaFavoritesService
+    let playlists: any MediaPlaylistService
 
     init(
         owner: MediaOwner,
@@ -18,6 +19,7 @@ struct OfflineServiceDecorators {
         artwork: any MediaArtworkService,
         detail: any MediaDetailService,
         favorites: any MediaFavoritesService,
+        playlists: any MediaPlaylistService,
     ) {
         guard let store = OfflineCoordinator.shared.store else {
             self.home = home
@@ -26,6 +28,7 @@ struct OfflineServiceDecorators {
             self.artwork = artwork
             self.detail = detail
             self.favorites = favorites
+            self.playlists = playlists
             return
         }
         let policy = OfflineCachePolicy(owner: owner, store: store, coordinator: .shared)
@@ -41,5 +44,6 @@ struct OfflineServiceDecorators {
         self.artwork = CachedArtworkService(base: artwork, owner: owner, store: store, coordinator: .shared)
         self.detail = CachedDetailService(base: detail, policy: policy)
         self.favorites = CachedFavoritesService(base: favorites, policy: policy)
+        self.playlists = CachedPlaylistService(base: playlists, policy: policy)
     }
 }

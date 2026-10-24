@@ -170,10 +170,6 @@ final class CachedDetailService: MediaDetailService {
         try await cachedList(key: "collection:\(id)") { try await base.collectionItems(id: id) }
     }
 
-    func playlistItems(id: String) async throws -> [MediaDisplayItem] {
-        try await cachedList(key: "playlist:\(id)") { try await base.playlistItems(id: id) }
-    }
-
     func person(id: String) async throws -> Person {
         let key = "person:\(id)"
         return try await policy.read(

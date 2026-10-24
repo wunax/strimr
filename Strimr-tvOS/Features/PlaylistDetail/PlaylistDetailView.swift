@@ -2,24 +2,29 @@ import Observation
 import SwiftUI
 
 struct PlaylistDetailView: View {
-    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @State var viewModel: PlaylistDetailViewModel
+    @State private var isRenaming = false
+    @State private var isConfirmingDeletion = false
     let onSelectMedia: (MediaDisplayItem) -> Void
     let onPlay: (String) -> Void
     let onShuffle: (String) -> Void
+    let onPlayEntry: (PlaylistEntry) -> Void
 
     init(
         viewModel: PlaylistDetailViewModel,
         onSelectMedia: @escaping (MediaDisplayItem) -> Void = { _ in },
         onPlay: @escaping (String) -> Void = { _ in },
         onShuffle: @escaping (String) -> Void = { _ in },
+        onPlayEntry: @escaping (PlaylistEntry) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onSelectMedia = onSelectMedia
         self.onPlay = onPlay
         self.onShuffle = onShuffle
+        self.onPlayEntry = onPlayEntry
     }
 
     var body: some View {
@@ -29,51 +34,51 @@ struct PlaylistDetailView: View {
             VStack(alignment: .leading, spacing: 48) {
                 headerSection
 
-                PosterGrid(spacing: 32, rowSpacing: 32) { cardWidth in
-                    ForEach(bindableViewModel.items) { media in
-                        PortraitMediaCard(
-                            media: media,
-                            width: cardWidth,
-                            showsLabels: settingsManager.interface.showsCardLabels,
-                        ) {
-                            onSelectMedia(media)
+                if viewModel.entries.isEmpty {
+                    PlaylistEntriesPlaceholder(viewModel: viewModel)
+                        .focusSection()
+                } else {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
+                            PlaylistEntryRow(entry: entry, position: index + 1) {
+                                onPlayEntry(entry)
+                            }
+                            .contextMenu { entryMenu(entry) }
                         }
                     }
+                    .focusSection()
                 }
-                .focusSection()
             }
-            .padding(.horizontal, 48)
+            .padding(.trailing, LayoutMetrics.pageMargin)
             .padding(.top, 32)
             .padding(.bottom, 48)
         }
-        .overlay {
-            if bindableViewModel.isLoading, bindableViewModel.items.isEmpty {
-                ProgressView("library.browse.loading")
-            } else if let errorMessage = bindableViewModel.errorMessage, bindableViewModel.items.isEmpty {
-                ContentUnavailableView(
-                    errorMessage,
-                    systemImage: "exclamationmark.triangle.fill",
-                    description: Text("common.errors.tryAgainLater"),
-                )
-                .symbolRenderingMode(.multicolor)
-            } else if bindableViewModel.items.isEmpty {
-                ContentUnavailableView(
-                    "library.browse.empty.title",
-                    systemImage: "square.grid.2x2.fill",
-                    description: Text("library.browse.empty.description"),
-                )
+        .toolbar(.hidden, for: .tabBar)
+        .playlistNamePrompt(
+            isPresented: $isRenaming,
+            title: "playlist.rename.title",
+            confirmTitle: "playlist.rename.action",
+            initialName: viewModel.playlist.title,
+        ) { title in
+            Task { await viewModel.rename(to: title) }
+        }
+        .playlistDeleteConfirmation(isPresented: $isConfirmingDeletion, playlistTitle: viewModel.playlist.title) {
+            Task {
+                if await viewModel.delete() {
+                    dismiss()
+                }
             }
         }
-        .toolbar(.hidden, for: .tabBar)
+        .playlistActionFailureAlert($bindableViewModel.actionFailure)
         .task {
-            await bindableViewModel.load()
+            await viewModel.load()
         }
         .onAppear {
-            Task { await bindableViewModel.refreshIfNeeded() }
+            Task { await viewModel.refreshIfNeeded() }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
-            Task { await bindableViewModel.refreshIfNeeded() }
+            Task { await viewModel.refreshIfNeeded() }
         }
     }
 
@@ -89,28 +94,8 @@ struct PlaylistDetailView: View {
             .frame(width: 280, height: 420)
             .mediaArtworkStyle(.largeDetail, borderColor: .white.opacity(0.08))
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text(viewModel.playlist.title)
-                    .font(.tileTitle)
-                    .foregroundStyle(.textPrimary)
-
-                if let elementsCountText = viewModel.elementsCountText {
-                    Text(elementsCountText)
-                        .font(.facts)
-                        .foregroundStyle(.textSecondary)
-                }
-
-                if let durationText = viewModel.durationText {
-                    Text(durationText)
-                        .font(.facts)
-                        .foregroundStyle(.textSecondary)
-                }
-
-                if let summary = viewModel.playlist.summary, !summary.isEmpty {
-                    Text(summary)
-                        .font(.bodyText)
-                        .foregroundStyle(.textSecondary)
-                }
+            VStack(alignment: .leading, spacing: 32) {
+                PlaylistHeaderDetails(viewModel: viewModel)
 
                 playButtonsRow
             }
@@ -129,6 +114,7 @@ struct PlaylistDetailView: View {
                     .padding(.horizontal, 12)
             }
             .actionButtonStyle(.primary)
+            .disabled(viewModel.entries.isEmpty)
 
             Button {
                 onShuffle(viewModel.playlist.id)
@@ -138,6 +124,46 @@ struct PlaylistDetailView: View {
                     .padding(.horizontal, 12)
             }
             .actionButtonStyle(.secondary)
+            .disabled(viewModel.entries.isEmpty)
+
+            if viewModel.canEdit {
+                Menu {
+                    PlaylistManagementMenuItems(
+                        isDisabled: !viewModel.canMutate,
+                        onRename: { isRenaming = true },
+                        onDelete: { isConfirmingDeletion = true },
+                    )
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.facts.weight(.semibold))
+                }
+                .actionButtonStyle(.secondary)
+                .accessibilityLabel(Text("common.actions.more"))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func entryMenu(_ entry: PlaylistEntry) -> some View {
+        Button("playlist.actions.playFromHere", systemImage: "play.fill") {
+            onPlayEntry(entry)
+        }
+        Button("playlist.actions.showDetails", systemImage: "info.circle") {
+            onSelectMedia(entry.media)
+        }
+        if viewModel.canEdit {
+            Button("playlist.actions.moveUp", systemImage: "arrow.up") {
+                Task { await viewModel.move(entry, by: -1) }
+            }
+            .disabled(!viewModel.canMove(entry, by: -1))
+            Button("playlist.actions.moveDown", systemImage: "arrow.down") {
+                Task { await viewModel.move(entry, by: 1) }
+            }
+            .disabled(!viewModel.canMove(entry, by: 1))
+            Button("playlist.actions.remove", systemImage: "minus.circle", role: .destructive) {
+                Task { await viewModel.remove(entry) }
+            }
+            .disabled(!viewModel.canMutate)
         }
     }
 }

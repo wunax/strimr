@@ -44,6 +44,24 @@ final class PlayQueueRepository {
         )
     }
 
+    /// The playlist in its order, starting at the first occurrence of `startingRatingKey`.
+    func createPlaylistQueue(
+        playlistRatingKey: String,
+        startingRatingKey: String,
+    ) async throws -> PlexPlayQueueResponse {
+        try await network.request(
+            path: "/playQueues",
+            queryItems: [
+                URLQueryItem(name: "type", value: "video"),
+                URLQueryItem(name: "uri", value: metadataURI(for: playlistRatingKey, itemType: .playlist)),
+                URLQueryItem(name: "key", value: "/library/metadata/\(startingRatingKey)"),
+                URLQueryItem(name: "own", value: "1"),
+                URLQueryItem(name: "shuffle", value: "0"),
+            ],
+            method: "POST",
+        )
+    }
+
     func getQueue(id: Int) async throws -> PlexPlayQueueResponse {
         try await network.request(path: "/playQueues/\(id)")
     }

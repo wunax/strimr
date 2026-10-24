@@ -15,6 +15,7 @@ struct DetailActionsRow: View {
     let onShowShowDownloadSheet: () -> Void
     let onShowFileInfo: () -> Void
     let onStartSharePlay: () -> Void
+    @State private var mediaToAddToPlaylist: MediaItem?
 
     var body: some View {
         playButton
@@ -104,6 +105,14 @@ struct DetailActionsRow: View {
                     .disabled(isStartingSharePlay)
                 }
 
+                if AddToPlaylistViewModel.canAdd(viewModel.media.mediaItem) {
+                    Button {
+                        mediaToAddToPlaylist = viewModel.media.mediaItem
+                    } label: {
+                        Label("playlist.add.menuTitle", systemImage: "text.badge.plus")
+                    }
+                }
+
                 if viewModel.canShowFileInfo {
                     Divider()
                     Button(action: onShowFileInfo) {
@@ -125,6 +134,7 @@ struct DetailActionsRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("common.actions.more"))
+        .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: mediaServices)
     }
 
     private var canPlayFromStart: Bool {

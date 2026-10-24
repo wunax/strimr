@@ -8,6 +8,7 @@ enum MediaQuickAction: Hashable {
     case markUnwatched
     case addFavorite
     case removeFavorite
+    case addToPlaylist
     case goToSeries
     case goToSeason
     case download
@@ -21,6 +22,7 @@ enum MediaQuickAction: Hashable {
         case .markUnwatched: String(localized: "media.detail.watchAction.markUnwatched")
         case .addFavorite: String(localized: "media.detail.favorite.add")
         case .removeFavorite: String(localized: "media.detail.favorite.remove")
+        case .addToPlaylist: String(localized: "playlist.add.menuTitle")
         case .goToSeries: String(localized: "media.quickActions.goToSeries")
         case .goToSeason: String(localized: "media.quickActions.goToSeason")
         case .download: String(localized: "downloads.action")
@@ -35,6 +37,7 @@ enum MediaQuickAction: Hashable {
         case .markUnwatched: "checkmark.circle.fill"
         case .addFavorite: "star"
         case .removeFavorite: "star.fill"
+        case .addToPlaylist: "text.badge.plus"
         case .goToSeries: "tv"
         case .goToSeason: "rectangle.stack"
         case .download: "arrow.down.circle"
@@ -77,7 +80,11 @@ struct MediaQuickActions {
     }
 
     /// Series and seasons have no play entry: what to play first is only known once the detail page has loaded.
-    func menuActions(for item: MediaItem, canDownload: Bool) -> [MediaQuickAction] {
+    func menuActions(
+        for item: MediaItem,
+        canDownload: Bool,
+        canAddToPlaylist: Bool = false,
+    ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
         if [.movie, .episode, .clip].contains(item.type) {
             let hasProgress = (item.viewOffset ?? 0) > 0
@@ -91,6 +98,9 @@ struct MediaQuickActions {
         }
         if canFavorite(item) {
             actions.append(item.watchState.isFavorite ? .removeFavorite : .addFavorite)
+        }
+        if canAddToPlaylist, AddToPlaylistViewModel.canAdd(item) {
+            actions.append(.addToPlaylist)
         }
         if item.type == .episode, item.grandparentRatingKey != nil {
             actions.append(.goToSeries)

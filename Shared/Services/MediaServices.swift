@@ -37,6 +37,7 @@ final class MediaServices {
     let artwork: any MediaArtworkService
     let detail: any MediaDetailService
     let favorites: any MediaFavoritesService
+    let playlists: any MediaPlaylistService
     let playback: any MediaPlaybackService
     let liveTV: any MediaLiveTVService
     let liveTVStore: LiveTVStore
@@ -48,8 +49,15 @@ final class MediaServices {
     /// URL of an unauthenticated endpoint used to probe the server's reachability.
     @ObservationIgnored var availabilityProbeURL: (() -> URL?)?
 
+    /// Bumped after any playlist change, so screens listing playlists reload.
+    private(set) var playlistsRevision = 0
+
     var authorization: MediaAuthorization {
         authorizationService.authorization
+    }
+
+    func notePlaylistsChanged() {
+        playlistsRevision += 1
     }
 
     /// Scope of per-server preferences such as library browsing. A profile has one link per server, so the server and
@@ -73,6 +81,7 @@ final class MediaServices {
         artwork: any MediaArtworkService,
         detail: any MediaDetailService,
         favorites: any MediaFavoritesService,
+        playlists: any MediaPlaylistService,
         playback: any MediaPlaybackService,
         liveTV: any MediaLiveTVService,
         downloads: any MediaDownloadService,
@@ -91,6 +100,7 @@ final class MediaServices {
         self.artwork = artwork
         self.detail = detail
         self.favorites = favorites
+        self.playlists = playlists
         self.playback = playback
         self.liveTV = liveTV
         liveTVStore = LiveTVStore(service: liveTV)

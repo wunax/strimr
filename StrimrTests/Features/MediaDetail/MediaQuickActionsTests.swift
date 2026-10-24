@@ -80,6 +80,18 @@ struct MediaQuickActionsTests {
         #expect(actions == [.markWatched])
     }
 
+    @Test func `movies and episodes can be added to a playlist, seasons cannot`() {
+        let actions = makeActions()
+
+        #expect(actions.menuActions(for: makeMedia(type: .movie), canDownload: false, canAddToPlaylist: true)
+            == [.play, .markWatched, .addFavorite, .addToPlaylist])
+        #expect(actions.menuActions(for: makeMedia(type: .episode), canDownload: false, canAddToPlaylist: true)
+            .contains(.addToPlaylist))
+        #expect(!actions.menuActions(for: makeMedia(type: .season), canDownload: false, canAddToPlaylist: true)
+            .contains(.addToPlaylist))
+        #expect(!actions.menuActions(for: makeMedia(type: .movie), canDownload: false).contains(.addToPlaylist))
+    }
+
     @Test func `clips cannot be marked or favorited`() {
         #expect(makeActions().menuActions(for: makeMedia(type: .clip), canDownload: true) == [.play])
     }

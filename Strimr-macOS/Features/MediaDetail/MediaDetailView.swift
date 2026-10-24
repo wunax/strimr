@@ -17,6 +17,7 @@ struct MediaDetailView: View {
     @State private var isShowingSubtitleSearch = false
     @State private var isShowingFileInfo = false
     @State private var isMoreMenuHovered = false
+    @State private var mediaToAddToPlaylist: MediaItem?
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
@@ -134,6 +135,7 @@ struct MediaDetailView: View {
                 .frame(minWidth: 560, minHeight: 640)
             }
         }
+        .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: mediaServices)
         .sheet(isPresented: $isShowingFileInfo) {
             MediaFileInfoView(viewModel: viewModel)
                 .frame(minWidth: 820, idealWidth: 920, minHeight: 620, idealHeight: 700)
@@ -497,6 +499,12 @@ struct MediaDetailView: View {
                         }
                     }
                     .disabled(isStartingSharePlay)
+                }
+
+                if AddToPlaylistViewModel.canAdd(viewModel.media.mediaItem) {
+                    Button("playlist.add.menuTitle", systemImage: "text.badge.plus") {
+                        mediaToAddToPlaylist = viewModel.media.mediaItem
+                    }
                 }
 
                 if viewModel.canShowFileInfo {

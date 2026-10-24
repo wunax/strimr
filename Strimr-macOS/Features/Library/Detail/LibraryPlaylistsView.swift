@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryPlaylistsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(MediaServices.self) private var mediaServices: MediaServices?
     @State var viewModel: LibraryPlaylistsViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -59,6 +60,9 @@ struct LibraryPlaylistsView: View {
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
             Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: mediaServices?.playlistsRevision) {
+            Task { await viewModel.refresh() }
         }
     }
 }

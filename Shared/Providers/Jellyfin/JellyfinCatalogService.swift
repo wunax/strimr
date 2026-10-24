@@ -391,6 +391,23 @@ struct JellyfinCatalogService {
         )
     }
 
+    /// Every playlist the user can see, audio ones included.
+    func playlists() async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        return try await paginatedItems(
+            path: ["Items"],
+            query: [
+                URLQueryItem(name: "UserId", value: userID),
+                URLQueryItem(name: "IncludeItemTypes", value: "Playlist"),
+                URLQueryItem(name: "Recursive", value: "true"),
+                URLQueryItem(name: "Fields", value: Self.cardFields),
+                URLQueryItem(name: "EnableImages", value: "true"),
+            ],
+        )
+    }
+
     func playbackQueue(startingWith item: JellyfinItem) async throws -> [JellyfinItem] {
         switch item.kind {
         case .movie:

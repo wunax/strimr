@@ -11,6 +11,8 @@ struct PlaylistMediaItem: Identifiable, Hashable, Codable {
     let duration: Int?
     let leafCount: Int?
     let playlistType: String?
+    /// Plex smart playlists follow server-side rules and cannot be edited.
+    let isSmart: Bool
     private(set) var server: ServerIdentity = .unassigned
 
     init(
@@ -24,6 +26,7 @@ struct PlaylistMediaItem: Identifiable, Hashable, Codable {
         duration: Int?,
         leafCount: Int?,
         playlistType: String?,
+        isSmart: Bool = false,
         server: ServerIdentity,
     ) {
         self.id = id
@@ -36,6 +39,7 @@ struct PlaylistMediaItem: Identifiable, Hashable, Codable {
         self.duration = duration
         self.leafCount = leafCount
         self.playlistType = playlistType
+        self.isSmart = isSmart
         self.server = server
     }
 
@@ -51,6 +55,7 @@ struct PlaylistMediaItem: Identifiable, Hashable, Codable {
         duration = try container.decodeIfPresent(Int.self, forKey: .duration)
         leafCount = try container.decodeIfPresent(Int.self, forKey: .leafCount)
         playlistType = try container.decodeIfPresent(String.self, forKey: .playlistType)
+        isSmart = try container.decodeIfPresent(Bool.self, forKey: .isSmart) ?? false
         server = try container.decodeIfPresent(ServerIdentity.self, forKey: .server) ?? .unassigned
     }
 
@@ -74,6 +79,26 @@ extension PlaylistMediaItem {
             duration: plexItem.duration,
             leafCount: plexItem.leafCount,
             playlistType: plexItem.playlistType,
+            isSmart: plexItem.smart?.value ?? false,
+            server: server,
+        )
+    }
+}
+
+extension PlaylistMediaItem {
+    func renamed(_ title: String) -> PlaylistMediaItem {
+        PlaylistMediaItem(
+            id: id,
+            key: key,
+            guid: guid,
+            type: type,
+            title: title,
+            summary: summary,
+            compositePath: compositePath,
+            duration: duration,
+            leafCount: leafCount,
+            playlistType: playlistType,
+            isSmart: isSmart,
             server: server,
         )
     }

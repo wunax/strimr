@@ -44,25 +44,55 @@ struct PlaybackLauncher {
                 kind: type,
                 shuffle: shuffle,
             )
-            guard !queue.items.isEmpty else { return }
-            if allowsExternalPlayer,
-               let player = coordinator.externalPlayer,
-               player.isSupported(on: .current)
-            {
-                await playExternally(queue: queue, player: player, shouldResumeFromOffset: shouldResumeFromOffset)
-                return
-            }
-            coordinator.showPlayer(
-                for: queue,
-                services: services,
+            await present(
+                queue,
                 shouldResumeFromOffset: shouldResumeFromOffset,
-                notice: nil,
+                allowsExternalPlayer: allowsExternalPlayer,
             )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             debugPrint("Failed to create play queue:", error)
             ErrorReporter.capture(error)
         }
+    }
+
+    /// Plays the playlist in its order from `entry`, the entries before it staying in the queue.
+    func playPlaylist(id: String, startingWith entry: PlaylistEntry) async {
+        ThemeMusicPlayer.shared.silence()
+        #if !os(tvOS)
+            if OfflineCoordinator.shared.isUnreachable(services.identity) {
+                playDownloaded(ratingKey: entry.media.id, type: entry.media.type)
+                return
+            }
+        #endif
+        do {
+            let queue = try await services.playback.queue(playlistID: id, startingWith: entry)
+            await present(queue, shouldResumeFromOffset: true, allowsExternalPlayer: true)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
+    }
+
+    private func present(
+        _ queue: PlaybackQueue,
+        shouldResumeFromOffset: Bool,
+        allowsExternalPlayer: Bool,
+    ) async {
+        guard !queue.items.isEmpty else { return }
+        if allowsExternalPlayer,
+           let player = coordinator.externalPlayer,
+           player.isSupported(on: .current)
+        {
+            await playExternally(queue: queue, player: player, shouldResumeFromOffset: shouldResumeFromOffset)
+            return
+        }
+        coordinator.showPlayer(
+            for: queue,
+            services: services,
+            shouldResumeFromOffset: shouldResumeFromOffset,
+            notice: nil,
+        )
     }
 
     /// Only the item the built-in player would start with is handed over; the rest of the queue is not played.

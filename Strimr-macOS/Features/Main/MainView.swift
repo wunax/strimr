@@ -260,6 +260,12 @@ struct MainView: View {
                 onSelectMedia: appModel.showMedia,
                 onPlay: { ratingKey in play(ratingKey, .playlist, false, true) },
                 onShuffle: { ratingKey in play(ratingKey, .playlist, true, true) },
+                onPlayEntry: { entry in
+                    Task {
+                        await PlaybackLauncher(services: services, coordinator: appModel)
+                            .playPlaylist(id: playlist.id, startingWith: entry)
+                    }
+                },
             )
         case let .hub(hub):
             HubDetailView(

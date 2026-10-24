@@ -11,6 +11,8 @@ extension EnvironmentValues {
     /// Reloads the rows or page holding the card once a menu action changed its item, which can move it out of
     /// Continue Watching or change its badge.
     @Entry var reloadAfterMediaCardAction: ((MediaItem) -> Void)?
+    /// Reloads the rows or page holding a playlist card once it was renamed or deleted from its menu.
+    @Entry var reloadAfterPlaylistChange: ((ServerIdentity) -> Void)?
 }
 
 extension View {
@@ -44,6 +46,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(\.mediaCardActions) private var actions
     @Environment(\.reloadAfterMediaCardAction) private var reload
+    @Environment(\.reloadAfterPlaylistChange) private var reloadAfterPlaylistChange
     #if !os(tvOS)
         @Environment(DownloadManager.self) private var downloadManager
     #endif
@@ -53,6 +56,9 @@ private struct MediaCardContextMenu: ViewModifier {
     @State private var isPerforming = false
     @State private var failure: Failure?
     @State private var successCount = 0
+    @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var isRenamingPlaylist = false
+    @State private var isConfirmingPlaylistDeletion = false
 
     private struct Failure: Identifiable {
         let id = UUID()
@@ -66,6 +72,44 @@ private struct MediaCardContextMenu: ViewModifier {
                 .contextMenu {
                     menu(for: item, services: services, actions: actions)
                 }
+                .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: services)
+                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+        } else if case let .playlist(playlist) = media, !playlist.isSmart, let services, isOnline(services) {
+            content
+                .contextMenu {
+                    PlaylistManagementMenuItems(
+                        isDisabled: isPerforming,
+                        onRename: { isRenamingPlaylist = true },
+                        onDelete: { isConfirmingPlaylistDeletion = true },
+                    )
+                }
+                .playlistNamePrompt(
+                    isPresented: $isRenamingPlaylist,
+                    title: "playlist.rename.title",
+                    confirmTitle: "playlist.rename.action",
+                    initialName: playlist.title,
+                ) { title in
+                    changePlaylist(failureTitle: "playlist.error.rename", services: services) {
+                        try await services.playlists.rename(playlistID: playlist.id, to: title)
+                    }
+                }
+                .playlistDeleteConfirmation(isPresented: $isConfirmingPlaylistDeletion, playlistTitle: playlist.title) {
+                    changePlaylist(failureTitle: "playlist.error.delete", services: services) {
+                        try await services.playlists.delete(playlistID: playlist.id)
+                    }
+                }
+                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+        } else {
+            content
+        }
+    }
+
+    private struct FailureAlert: ViewModifier {
+        @Binding var failure: Failure?
+        let successCount: Int
+
+        func body(content: Content) -> some View {
+            content
                 .alert(item: $failure) { failure in
                     Alert(
                         title: Text(failure.title),
@@ -76,8 +120,36 @@ private struct MediaCardContextMenu: ViewModifier {
             #if os(iOS)
                 .sensoryFeedback(.success, trigger: successCount)
             #endif
-        } else {
-            content
+        }
+    }
+
+    private func isOnline(_ services: MediaServices) -> Bool {
+        #if os(tvOS)
+            true
+        #else
+            !OfflineCoordinator.shared.isUnreachable(services.identity)
+        #endif
+    }
+
+    private func changePlaylist(
+        failureTitle: LocalizedStringKey,
+        services: MediaServices,
+        _ operation: @escaping () async throws -> Void,
+    ) {
+        guard !isPerforming else { return }
+        isPerforming = true
+        Task {
+            defer { isPerforming = false }
+            do {
+                try await operation()
+                services.notePlaylistsChanged()
+                reloadAfterPlaylistChange?(services.identity)
+                successCount += 1
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                failure = Failure(title: failureTitle, message: error.localizedDescription)
+            }
         }
     }
 
@@ -88,8 +160,14 @@ private struct MediaCardContextMenu: ViewModifier {
     @ViewBuilder
     private func menu(for item: MediaItem, services: MediaServices, actions: MediaCardActions) -> some View {
         let quickActions = MediaQuickActions(services: services)
-        ForEach(quickActions.menuActions(for: item, canDownload: canDownload(item, services: services)), id: \.self) {
-            action in
+        ForEach(
+            quickActions.menuActions(
+                for: item,
+                canDownload: canDownload(item, services: services),
+                canAddToPlaylist: isOnline(services),
+            ),
+            id: \.self,
+        ) { action in
             Button {
                 perform(action, on: item, quickActions: quickActions, services: services, actions: actions)
             } label: {
@@ -131,6 +209,8 @@ private struct MediaCardContextMenu: ViewModifier {
             show(id: item.type == .season ? item.parentRatingKey : item.grandparentRatingKey, services, actions)
         case .goToSeason:
             show(id: item.parentRatingKey, services, actions)
+        case .addToPlaylist:
+            mediaToAddToPlaylist = item
         case .download:
             download(item, services: services)
         }

@@ -1,0 +1,33 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "totalSize": 2,
+    "Metadata": [
+      {
+        "ratingKey": "500",
+        "key": "/playlists/500/items",
+        "guid": "com.plexapp.agents.none://00000000-0000-0000-0000-000000000500",
+        "type": "playlist",
+        "title": "Example Playlist",
+        "summary": "",
+        "smart": false,
+        "playlistType": "video",
+        "composite": "/playlists/500/composite/1700000000",
+        "duration": 9000000,
+        "leafCount": 2
+      },
+      {
+        "ratingKey": "501",
+        "key": "/playlists/501/items",
+        "guid": "com.plexapp.agents.none://00000000-0000-0000-0000-000000000501",
+        "type": "playlist",
+        "title": "Unwatched Movies",
+        "smart": "1",
+        "playlistType": "video",
+        "composite": "/playlists/501/composite/1700000000",
+        "duration": 36000000,
+        "leafCount": 5
+      }
+    ]
+  }
+}

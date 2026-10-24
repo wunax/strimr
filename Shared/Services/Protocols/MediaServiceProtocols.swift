@@ -257,7 +257,6 @@ protocol MediaDetailService: AnyObject {
     func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws
     func selectSubtitleTrack(id: Int?, itemID: String, versionID: String?) async throws
     func collectionItems(id: String) async throws -> [MediaDisplayItem]
-    func playlistItems(id: String) async throws -> [MediaDisplayItem]
     func person(id: String) async throws -> Person
     func personMedia(id: String) async throws -> [MediaDisplayItem]
 }
@@ -271,10 +270,28 @@ protocol MediaFavoritesService: AnyObject {
 }
 
 @MainActor
+protocol MediaPlaylistService: AnyObject {
+    func playlistEntries(id: String) async throws -> [PlaylistEntry]
+    /// False for Plex smart playlists and for Jellyfin playlists another user owns.
+    func canEdit(_ playlist: PlaylistMediaItem) async throws -> Bool
+    /// Video playlists the current user can add to.
+    func editablePlaylists() async throws -> [PlaylistMediaItem]
+    func createPlaylist(title: String, itemID: String) async throws
+    /// Adding a media the playlist already holds succeeds without adding it twice.
+    func add(itemID: String, toPlaylist playlistID: String) async throws
+    func remove(_ entry: PlaylistEntry, fromPlaylist playlistID: String) async throws
+    func move(_ move: PlaylistEntryMove, inPlaylist playlistID: String) async throws
+    func rename(playlistID: String, to title: String) async throws
+    func delete(playlistID: String) async throws
+}
+
+@MainActor
 protocol MediaPlaybackService: AnyObject {
     var serverAccessGeneration: Int { get }
     func queue(startingWith itemID: String, kind: MediaKind, shuffle: Bool) async throws -> PlaybackQueue
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue
+    /// The whole playlist in its order, starting at `entry`.
+    func queue(playlistID: String, startingWith entry: PlaylistEntry) async throws -> PlaybackQueue
     func prepare(
         media: MediaItem,
         resume: Bool,

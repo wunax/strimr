@@ -277,6 +277,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let name: String
     let type: String?
     let collectionType: String?
+    let mediaType: String?
     let overview: String?
     let runTimeTicks: Int64?
     let productionYear: Int?
@@ -310,12 +311,17 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let chapters: [JellyfinChapter]?
     let trickplay: [String: [String: JellyfinTrickplayInfo]]?
     let canDownload: Bool?
+    /// Reliable on a single item only: playlist lists report it true for playlists of other users.
+    let canDelete: Bool?
+    /// Position of the item in the playlist it was listed from.
+    let playlistItemID: String?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
         case type = "Type"
         case collectionType = "CollectionType"
+        case mediaType = "MediaType"
         case overview = "Overview"
         case runTimeTicks = "RunTimeTicks"
         case productionYear = "ProductionYear"
@@ -349,6 +355,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case chapters = "Chapters"
         case trickplay = "Trickplay"
         case canDownload = "CanDownload"
+        case canDelete = "CanDelete"
+        case playlistItemID = "PlaylistItemId"
     }
 
     static func == (lhs: JellyfinItem, rhs: JellyfinItem) -> Bool {

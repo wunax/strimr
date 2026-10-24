@@ -1,0 +1,11 @@
+{
+  "Items": [
+    { "Id": "movie-1", "Name": "Example Movie", "Type": "Movie", "MediaType": "Video", "RunTimeTicks": 72000000000, "ProductionYear": 2021, "PlaylistItemId": "entry-1" },
+    { "Id": "episode-1", "Name": "Pilot", "Type": "Episode", "MediaType": "Video", "SeriesName": "Example Show", "ParentIndexNumber": 1, "IndexNumber": 1, "PlaylistItemId": "entry-2" },
+    { "Id": "movie-2", "Name": "Repeated Movie", "Type": "Movie", "MediaType": "Video", "PlaylistItemId": "movie-2" },
+    { "Id": "movie-2", "Name": "Repeated Movie", "Type": "Movie", "MediaType": "Video", "PlaylistItemId": "movie-2" },
+    { "Id": "movie-3", "Name": "Movie Without Entry", "Type": "Movie", "MediaType": "Video" }
+  ],
+  "StartIndex": 0,
+  "TotalRecordCount": 5
+}

@@ -293,8 +293,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func playlists(in library: Library) async throws -> [PlaylistMediaItem] {
         guard let sectionID = library.sectionId else { return [] }
-        let response = try await PlaylistRepository(context: context).getPlaylists(sectionId: sectionID)
-        return (response.mediaContainer.metadata ?? []).map { PlaylistMediaItem(plexItem: $0, server: server) }
+        return try await PlaylistRepository(context: context).getAllPlaylists(sectionId: sectionID)
+            .map { PlaylistMediaItem(plexItem: $0, server: server) }
     }
 
     func advancedBrowse(
@@ -556,11 +556,6 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return (response.mediaContainer.metadata ?? []).compactMap(mapDisplayItem)
     }
 
-    func playlistItems(id: String) async throws -> [MediaDisplayItem] {
-        let response = try await PlaylistRepository(context: context).getPlaylistItems(ratingKey: id)
-        return (response.mediaContainer.metadata ?? []).compactMap(mapDisplayItem)
-    }
-
     func person(id: String) async throws -> Person {
         let response = try await PersonRepository(context: context).getPerson(id: id)
         guard let value = response.mediaContainer.directory?.first else {
@@ -596,10 +591,24 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             shuffle: shuffle,
             continuous: media.kind == .episode || media.kind == .series || media.kind == .season,
         )
+        return playbackQueue(from: response, shuffle: shuffle)
+    }
+
+    func queue(playlistID: String, startingWith entry: PlaylistEntry) async throws -> PlaybackQueue {
+        let response = try await PlayQueueRepository(context: context).createPlaylistQueue(
+            playlistRatingKey: playlistID,
+            startingRatingKey: entry.media.id,
+        )
+        return playbackQueue(from: response, shuffle: false)
+    }
+
+    private func playbackQueue(from response: PlexPlayQueueResponse, shuffle: Bool) -> PlaybackQueue {
         let queueItems = response.mediaContainer.metadata ?? []
-        queueItemIDs = Dictionary(uniqueKeysWithValues: queueItems.compactMap { item in
-            item.playQueueItemID.map { (item.ratingKey, $0) }
-        })
+        // A playlist can list the same item twice; progress reports go to its first occurrence.
+        queueItemIDs = Dictionary(
+            queueItems.compactMap { item in item.playQueueItemID.map { (item.ratingKey, $0) } },
+            uniquingKeysWith: { first, _ in first },
+        )
         let items = queueItems.map {
             PlaybackQueueItem(
                 id: UUID(),
@@ -1418,6 +1427,7 @@ enum PlexMediaServicesFactory {
             scope: .plex(serverID: identity.id, profileID: favoritesProfileID),
         )
         let liveTV = PlexLiveTVService(context: context)
+        let playlists = PlexPlaylistService(context: context, server: identity)
         #if os(tvOS)
             let decorated = (
                 home: adapter as any MediaHomeService,
@@ -1426,6 +1436,7 @@ enum PlexMediaServicesFactory {
                 artwork: adapter as any MediaArtworkService,
                 detail: adapter as any MediaDetailService,
                 favorites: favorites as any MediaFavoritesService,
+                playlists: playlists as any MediaPlaylistService,
             )
         #else
             let decorated = OfflineServiceDecorators(
@@ -1436,6 +1447,7 @@ enum PlexMediaServicesFactory {
                 artwork: adapter,
                 detail: adapter,
                 favorites: favorites,
+                playlists: playlists,
             )
         #endif
         let services = MediaServices(
@@ -1449,6 +1461,7 @@ enum PlexMediaServicesFactory {
             artwork: decorated.artwork,
             detail: decorated.detail,
             favorites: decorated.favorites,
+            playlists: decorated.playlists,
             playback: adapter,
             liveTV: liveTV,
             downloads: adapter,

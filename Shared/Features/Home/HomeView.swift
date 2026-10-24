@@ -48,6 +48,9 @@ struct HomeView: View {
         .environment(\.reloadAfterMediaCardAction) { item in
             Task { await viewModel.refresh(server: item.identity.server) }
         }
+        .environment(\.reloadAfterPlaylistChange) { server in
+            Task { await viewModel.refresh(server: server) }
+        }
         .task {
             await viewModel.load()
         }

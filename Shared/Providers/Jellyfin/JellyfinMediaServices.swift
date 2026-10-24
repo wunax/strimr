@@ -382,7 +382,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func playlists(in _: Library) async throws -> [PlaylistMediaItem] {
-        try await catalog.items(includeTypes: "Playlist", limit: 100).items.compactMap {
+        try await catalog.playlists().compactMap {
             guard case let .playlist(item) = MediaDisplayItem(jellyfinItem: $0, server: server) else { return nil }
             return item
         }
@@ -628,11 +628,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await childItems(id: id)
     }
 
-    func playlistItems(id: String) async throws -> [MediaDisplayItem] {
-        try await catalog.playlistItems(id: id)
-            .compactMap { MediaDisplayItem(jellyfinItem: $0, server: server) }
-    }
-
     func person(id: String) async throws -> Person {
         let value: JellyfinPerson = try await context.get(path: ["Persons", id])
         return Person(jellyfinPerson: value)
@@ -661,6 +656,25 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             items: queueItems,
             currentIndex: queueItems.firstIndex(where: { $0.media.id == media.id }) ?? 0,
             isShuffled: shuffle,
+        )
+    }
+
+    func queue(playlistID: String, startingWith entry: PlaylistEntry) async throws -> PlaybackQueue {
+        let values = try await catalog.playlistItems(id: playlistID, fields: "Chapters,Trickplay")
+            .filter(\.isPlayable)
+        let entries = JellyfinPlaylistService.entries(from: values, server: server)
+        let queueItems = values.map {
+            PlaybackQueueItem(
+                id: UUID(),
+                media: MediaItem(jellyfinItem: $0, server: server),
+                providerQueueItemID: nil,
+            )
+        }
+        return PlaybackQueue(
+            id: UUID(),
+            items: queueItems,
+            currentIndex: entries.firstIndex(where: { $0.id == entry.id }) ?? 0,
+            isShuffled: false,
         )
     }
 
@@ -1575,6 +1589,7 @@ enum JellyfinMediaServicesFactory {
             server: connection.serverIdentity,
         )
         let liveTV = JellyfinLiveTVService(context: context, server: connection.serverIdentity)
+        let playlists = JellyfinPlaylistService(context: context, server: connection.serverIdentity)
         #if os(tvOS)
             let decorated = (
                 home: adapter as any MediaHomeService,
@@ -1583,6 +1598,7 @@ enum JellyfinMediaServicesFactory {
                 artwork: adapter as any MediaArtworkService,
                 detail: adapter as any MediaDetailService,
                 favorites: favorites as any MediaFavoritesService,
+                playlists: playlists as any MediaPlaylistService,
             )
         #else
             let decorated = OfflineServiceDecorators(
@@ -1593,6 +1609,7 @@ enum JellyfinMediaServicesFactory {
                 artwork: adapter,
                 detail: adapter,
                 favorites: favorites,
+                playlists: playlists,
             )
         #endif
         let services = MediaServices(
@@ -1606,6 +1623,7 @@ enum JellyfinMediaServicesFactory {
             artwork: decorated.artwork,
             detail: decorated.detail,
             favorites: decorated.favorites,
+            playlists: decorated.playlists,
             playback: adapter,
             liveTV: liveTV,
             downloads: adapter,

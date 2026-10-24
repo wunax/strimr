@@ -342,6 +342,11 @@ struct MainTabView: View {
                         )
                     }
                 },
+                onPlayEntry: { entry in
+                    Task {
+                        await playbackLauncher.playPlaylist(id: playlist.id, startingWith: entry)
+                    }
+                },
             )
         case let .hubDetail(hub):
             HubDetailView(

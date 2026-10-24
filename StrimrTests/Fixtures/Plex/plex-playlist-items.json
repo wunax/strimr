@@ -1,0 +1,48 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "totalSize": 3,
+    "composite": "/playlists/500/composite/1700000000",
+    "duration": 9000,
+    "leafCount": 3,
+    "playlistType": "video",
+    "ratingKey": "500",
+    "smart": false,
+    "title": "Example Playlist",
+    "Metadata": [
+      {
+        "ratingKey": "101",
+        "key": "/library/metadata/101",
+        "guid": "plex://movie/5d7768000000000000000001",
+        "librarySectionID": 1,
+        "type": "movie",
+        "title": "Example Movie",
+        "year": 2021,
+        "duration": 7200000,
+        "playlistItemID": 11
+      },
+      {
+        "ratingKey": "102",
+        "key": "/library/metadata/102",
+        "guid": "plex://episode/5d7768000000000000000002",
+        "librarySectionID": 2,
+        "type": "episode",
+        "title": "Pilot",
+        "grandparentTitle": "Example Show",
+        "parentIndex": 1,
+        "index": 1,
+        "duration": 1800000,
+        "playlistItemID": 12
+      },
+      {
+        "ratingKey": "103",
+        "key": "/library/metadata/103",
+        "guid": "plex://movie/5d7768000000000000000004",
+        "librarySectionID": 1,
+        "type": "movie",
+        "title": "Unlisted Movie",
+        "duration": 5400000
+      }
+    ]
+  }
+}

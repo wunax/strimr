@@ -16,6 +16,7 @@ struct MediaDetailView: View {
     @State private var isShowingSubtitleSearch = false
     @State private var fileInfoMedia: MediaItem?
     @State private var expandedSummaryMedia: MediaItem?
+    @State private var mediaToAddToPlaylist: MediaItem?
     @FocusState private var isPlayButtonFocused: Bool
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
@@ -105,6 +106,7 @@ struct MediaDetailView: View {
         .taskPresentation(item: $expandedSummaryMedia, style: .fullScreen) { media in
             DetailSummaryView(media: media, logoPath: media.preferredLogoPath ?? seriesLogoPath)
         }
+        .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: mediaServices)
         .taskPresentation(item: $fileInfoMedia) { media in
             MediaFileInfoView(viewModel: bindableViewModel, targetMedia: media)
                 .frame(minWidth: 900, idealWidth: 1080, minHeight: 640, idealHeight: 760)
@@ -371,6 +373,14 @@ struct MediaDetailView: View {
                         || viewModel.isLoadingWatchlistStatus
                         || viewModel.isUpdatingWatchlistStatus,
                 )
+            }
+
+            if AddToPlaylistViewModel.canAdd(viewModel.media.mediaItem) {
+                Button {
+                    mediaToAddToPlaylist = viewModel.media.mediaItem
+                } label: {
+                    Label("playlist.add.menuTitle", systemImage: "text.badge.plus")
+                }
             }
 
             if viewModel.canShowFileInfo {

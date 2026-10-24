@@ -33,6 +33,11 @@ final class LibraryPlaylistsViewModel {
         await fetch(reset: true, preservingExistingContent: true)
     }
 
+    /// Reloads after a playlist changed, keeping the current cards on screen until the new list arrives.
+    func refresh() async {
+        await fetch(reset: true, preservingExistingContent: true)
+    }
+
     func loadMore() async {
         guard !isLoading, !isLoadingMore, !reachedEnd else { return }
         await fetch(reset: false, preservingExistingContent: false)
