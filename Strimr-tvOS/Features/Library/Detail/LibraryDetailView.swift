@@ -48,7 +48,8 @@ struct LibraryDetailView: View {
                     }
             }
             .focusScope(focusNamespace)
-            .ignoresSafeArea(edges: [.leading])
+            // The sidebar supplies the leading margin; without it, the safe area does.
+            .ignoresSafeArea(edges: availableTabs.count > 1 ? [.leading] : [])
             .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
         }
         .onAppear {
