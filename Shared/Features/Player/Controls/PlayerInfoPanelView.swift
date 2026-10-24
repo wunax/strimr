@@ -26,8 +26,7 @@ struct PlayerInfoPanelView: View {
     let onSelectQueueItem: (Int) -> Void
     let onSelectChapter: (MediaChapter) -> Void
     let onClose: () -> Void
-    /// Shown below the video on a foldable propped up like a laptop: always visible, so it has no backdrop and
-    /// cannot be closed.
+    /// Shown below the video on a foldable propped up like a laptop, on its own black half: no backdrop.
     var isEmbedded = false
 
     @FocusState private var focusedTab: PlayerInfoTab?
@@ -92,7 +91,6 @@ struct PlayerInfoPanelView: View {
                         onClose()
                     }
                 },
-                including: isEmbedded ? .subviews : .all,
             )
         #endif
     }
@@ -106,9 +104,15 @@ struct PlayerInfoPanelView: View {
             #if !os(tvOS)
                 Spacer(minLength: 0)
 
-                if !isEmbedded {
-                    closeButton
+                Button(action: onClose) {
+                    Image(systemName: "chevron.down")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.textPrimary)
+                        .frame(width: 36, height: 30)
+                        .background(.surfaceRaised, in: Capsule())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("common.actions.close"))
             #endif
         }
         // Full width so focus can move up into the tabs from anywhere below them.
@@ -122,20 +126,6 @@ struct PlayerInfoPanelView: View {
             }
         #endif
     }
-
-    #if !os(tvOS)
-        private var closeButton: some View {
-            Button(action: onClose) {
-                Image(systemName: "chevron.down")
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(.textPrimary)
-                    .frame(width: 36, height: 30)
-                    .background(.surfaceRaised, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("common.actions.close"))
-        }
-    #endif
 
     @ViewBuilder
     private func tabButton(_ tab: PlayerInfoTab) -> some View {

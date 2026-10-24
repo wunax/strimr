@@ -60,6 +60,8 @@ enum LayoutMetrics {
         #endif
     }
 
+    static let tileCornerRadius: CGFloat = 18
+
     /// Height of capsule action buttons drawn by `actionButtonStyle`; tvOS uses the system button height.
     static var actionButtonHeight: CGFloat {
         #if os(macOS)

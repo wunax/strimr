@@ -42,6 +42,7 @@ struct PlayerView: View {
     @State private var isRotationLocked = false
     @State private var layoutMode = PlayerLayoutMode.fullScreen
     @State private var hinge = PlayerHingeState.unavailable
+    @State private var isTabletopLocked = false
     @State private var isShowingSharePlayExitPrompt = false
     @State private var activePlaybackURL: URL?
     @State private var needsPlaybackReloadAfterBackground = false
@@ -160,6 +161,9 @@ struct PlayerView: View {
                 .onChange(of: playerController.isPaused) { _, isPaused in
                     syncPlaybackState()
                     sleepTimer.handlePlaybackStateChange(isPaused: isPaused)
+                    if layoutMode.isTabletop, !isTabletopLocked {
+                        showControls(temporarily: true)
+                    }
                 }
                 .onChange(of: playerController.isBuffering) { _, _ in
                     syncPlaybackState()
@@ -353,12 +357,10 @@ struct PlayerView: View {
                 }
             }
             .onChange(of: layoutMode.isTabletop) { _, isTabletop in
-                if isTabletop {
-                    hideControlsWorkItem?.cancel()
-                    isShowingInfoPanel = false
-                } else {
-                    showControls(temporarily: true)
+                if !isTabletop {
+                    isTabletopLocked = false
                 }
+                showControls(temporarily: true)
             }
     }
 
@@ -446,7 +448,7 @@ struct PlayerView: View {
             }
 
             if controlsVisible, !isShowingInfoPanel {
-                playerControls(layout: .overlay)
+                playerControls
                     .transition(.opacity)
             }
 
@@ -488,7 +490,7 @@ struct PlayerView: View {
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
 
-    private func playerControls(layout: PlayerControlsLayout) -> some View {
+    private var playerControls: some View {
         let activeMarker = viewModel.activeSkipMarker
         let skipTitle = activeMarker?.skipTitle
 
@@ -528,7 +530,7 @@ struct PlayerView: View {
                 && !playerController.isPictureInPictureActive
                 && !playerController.isPictureInPictureTransitioning,
             onStartPictureInPicture: playerController.startPictureInPicture,
-            hasInfoPanel: layout == .overlay && canShowInfoPanel,
+            hasInfoPanel: canShowInfoPanel,
             onShowInfoPanel: showInfoPanel,
             isLive: viewModel.isLivePlayback,
             behindLiveSeconds: playerController.behindLiveSeconds,
@@ -539,7 +541,6 @@ struct PlayerView: View {
             onNextChannel: { switchLiveChannel(by: 1) },
             showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
             sleepTimer: sleepTimer,
-            layout: layout,
         )
     }
 
@@ -585,14 +586,18 @@ struct PlayerView: View {
         }
     }
 
-    /// Over the upright half of a foldable: only feedback and double taps, since the controls sit below the fold.
+    /// Over the upright half of a foldable: only feedback, since the controls sit below the fold.
     private var tabletopVideoOverlay: some View {
         ZStack {
             Color.clear
                 .contentShape(Rectangle())
                 .onGeometryChange(for: Double.self) { $0.size.width } action: { tapAreaWidth = $0 }
                 .onTapGesture { location in
-                    _ = handleDoubleTapSeek(at: location)
+                    if isTabletopLocked {
+                        showControls(temporarily: true)
+                    } else if !handleDoubleTapSeek(at: location) {
+                        toggleTabletopControls()
+                    }
                 }
 
             if viewModel.isBuffering || isRecoveringServerAccess {
@@ -605,13 +610,10 @@ struct PlayerView: View {
         }
     }
 
-    /// The half of a foldable lying flat: controls, then the info panel, always visible.
+    /// The half of a foldable lying flat: black until touched, then tiles, the info panel or the offset bar.
     private var tabletopControls: some View {
-        VStack(spacing: 0) {
-            playerControls(layout: .tabletop)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if canShowInfoPanel, let media = viewModel.media {
+        ZStack {
+            if isShowingInfoPanel, let media = viewModel.media {
                 PlayerInfoPanelView(
                     media: media,
                     services: viewModel.artworkServices,
@@ -623,17 +625,14 @@ struct PlayerView: View {
                     selectedTab: $infoPanelTab,
                     onSelectQueueItem: selectQueueItem(at:),
                     onSelectChapter: selectChapter(_:),
-                    onClose: {},
+                    onClose: hideInfoPanel,
                     isEmbedded: true,
                 )
-            } else {
-                Spacer(minLength: 0)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.black)
-        .overlay(alignment: .bottom) {
-            if let activeOffsetBar {
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background(Color.black)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let activeOffsetBar {
+                Color.black
                 PlayerOffsetBar(
                     controller: playerController,
                     kind: activeOffsetBar,
@@ -642,10 +641,93 @@ struct PlayerView: View {
                 )
                 .padding(16)
                 .transition(.opacity)
+            } else {
+                tabletopTiles
             }
-        }
-        .overlay {
+
             promptOverlays
+        }
+    }
+
+    private var tabletopTiles: some View {
+        let activeMarker = viewModel.activeSkipMarker
+
+        return PlayerTabletopControlsView(
+            media: viewModel.media,
+            isVisible: controlsVisible,
+            isLocked: isTabletopLocked,
+            isPaused: viewModel.isPaused,
+            position: timelineBinding,
+            duration: viewModel.duration,
+            bufferedAhead: viewModel.bufferedAhead,
+            bufferBasePosition: viewModel.position,
+            playbackRate: playbackRate,
+            showsEndsAtTime: settingsManager.playback.showEndsAtTime,
+            chapters: viewModel.chapters,
+            showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+            scrubPreview: playerController.scrubPreview,
+            seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+            seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+            skipMarkerTitle: activeMarker?.skipTitle,
+            isSharePlay: sharePlayCoordinator.isInSession,
+            sleepTimer: sleepTimer,
+            showsPictureInPicture: playerController.showsPictureInPictureControl,
+            isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
+                && !playerController.isPictureInPictureActive
+                && !playerController.isPictureInPictureTransitioning,
+            showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
+            canShowInfo: canShowInfoPanel,
+            canPlayNext: nextQueueIndex != nil,
+            isLive: viewModel.isLivePlayback,
+            behindLiveSeconds: playerController.behindLiveSeconds,
+            canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+            canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+            actions: PlayerTabletopActions(
+                onTapBackground: toggleTabletopControls,
+                onInteraction: { showControls(temporarily: true) },
+                onDismiss: { dismissPlayer() },
+                onShowInfo: showInfoPanel,
+                onShowSettings: showSettings,
+                onStartPictureInPicture: playerController.startPictureInPicture,
+                onToggleLock: toggleTabletopLock,
+                onPlayNext: {
+                    if let nextQueueIndex {
+                        selectQueueItem(at: nextQueueIndex)
+                    }
+                },
+                onSeekBackward: { jump(by: -seekBackwardInterval) },
+                onPlayPause: togglePlayPause,
+                onSeekForward: { jump(by: seekForwardInterval) },
+                onScrubbingChanged: handleScrubbing(editing:),
+                onSkipMarker: {
+                    if let activeMarker {
+                        skipMarker(to: activeMarker)
+                    }
+                },
+                onGoLive: playerController.seekToLiveEdge,
+                onPreviousChannel: { switchLiveChannel(by: -1) },
+                onNextChannel: { switchLiveChannel(by: 1) },
+            ),
+        )
+        .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: isTabletopLocked)
+    }
+
+    private var nextQueueIndex: Int? {
+        guard viewModel.hasNavigableQueue,
+              let currentIndex = viewModel.queueCurrentIndex,
+              viewModel.queueItems.indices.contains(currentIndex + 1)
+        else { return nil }
+        return currentIndex + 1
+    }
+
+    private func toggleTabletopControls() {
+        controlsVisible ? hideControls() : showControls(temporarily: true)
+    }
+
+    private func toggleTabletopLock() {
+        isTabletopLocked.toggle()
+        if isTabletopLocked {
+            hideControls()
         }
     }
 
@@ -1314,9 +1396,11 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard activeOffsetBar == nil, !layoutMode.isTabletop else { return }
+        guard activeOffsetBar == nil else { return }
 
         let workItem = DispatchWorkItem {
+            // Paused, the tiles stand in for the pause screen, which the tabletop layout does not show.
+            guard !layoutMode.isTabletop || isTabletopLocked || !playerController.isPaused else { return }
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
                 controlsVisible = false
             }

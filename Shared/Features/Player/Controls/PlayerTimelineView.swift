@@ -17,6 +17,9 @@ struct PlayerTimelineView: View {
     var showsChaptersOnTimeline: Bool
     var scrubPreview: PlayerScrubPreview?
     var onEditingChanged: (Bool) -> Void
+    /// Draws the scrub preview and chapter title above the timeline instead of inserting them, so a timeline laid out
+    /// among other controls keeps its height while scrubbing.
+    var floatsScrubDetails = false
     @State private var isEditing = false
 
     private var sliderUpperBound: Double {
@@ -42,26 +45,8 @@ struct PlayerTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if isEditing,
-               let scrubPreview,
-               scrubPreview.image != nil
-            {
-                PlayerScrubPreviewRail(
-                    preview: scrubPreview,
-                    duration: sliderUpperBound,
-                )
-                .transition(.opacity)
-            }
-
-            if showsChaptersOnTimeline,
-               isEditing,
-               let chapter = chapter(at: position)
-            {
-                Text(chapter.displayTitle)
-                    .font(.cardMetadata.weight(.semibold))
-                    .foregroundStyle(.textPrimary)
-                    .videoTextShadow()
-                    .transition(.opacity)
+            if !floatsScrubDetails {
+                scrubDetails
             }
 
             #if os(tvOS)
@@ -118,8 +103,49 @@ struct PlayerTimelineView: View {
             .foregroundStyle(.textPrimary)
             .videoTextShadow()
         }
+        .overlay(alignment: .top) {
+            if floatsScrubDetails {
+                // A zero-height frame anchored at the bottom grows the details upward from the top of the timeline.
+                VStack(alignment: .leading, spacing: 10) {
+                    scrubDetails
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 0, alignment: .bottom)
+                .offset(y: -Self.floatingDetailsGap)
+                .allowsHitTesting(false)
+            }
+        }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
+    }
+
+    /// Clears the vertical padding of the timeline and a tile drawn around it.
+    private static let floatingDetailsGap: CGFloat = 24
+
+    @ViewBuilder
+    private var scrubDetails: some View {
+        if isEditing,
+           let scrubPreview,
+           scrubPreview.image != nil
+        {
+            PlayerScrubPreviewRail(
+                preview: scrubPreview,
+                duration: sliderUpperBound,
+            )
+            .transition(.opacity)
+        }
+
+        if showsChaptersOnTimeline,
+           isEditing,
+           let chapter = chapter(at: position)
+        {
+            Text(chapter.displayTitle)
+                .font(.cardMetadata.weight(.semibold))
+                .foregroundStyle(.textPrimary)
+                .videoTextShadow()
+                .transition(.opacity)
+        }
     }
 
     private var elapsedText: String {
