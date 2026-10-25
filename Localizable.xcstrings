@@ -19955,6 +19955,50 @@
         }
       }
     },
+    "settings.playback.subtitles.showOnSkipBack" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show subtitles on skip back"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les sous-titres après un retour"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后退时显示字幕"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.showOnSkipBack.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When subtitles are off or forced only, skipping back shows full subtitles until playback catches up."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quand les sous-titres sont désactivés ou en forcés uniquement, un retour en arrière affiche les sous-titres complets jusqu'à revenir au point de départ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕关闭或仅显示强制字幕时，后退会显示完整字幕，直到播放回到原来的位置。"
+          }
+        }
+      }
+    },
     "settings.playback.subtitles.styledASS" : {
       "localizations" : {
         "en" : {

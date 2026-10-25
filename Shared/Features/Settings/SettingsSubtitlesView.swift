@@ -19,6 +19,15 @@ struct SettingsSubtitlesView: View {
                 Text("settings.playback.subtitles.styledASS.description")
             }
 
+            Section {
+                Toggle(
+                    "settings.playback.subtitles.showOnSkipBack",
+                    isOn: viewModel.showSubtitlesOnSkipBackBinding,
+                )
+            } footer: {
+                Text("settings.playback.subtitles.showOnSkipBack.description")
+            }
+
             Section("settings.playback.subtitles.preview.title") {
                 SubtitleAppearancePreview(appearance: settingsManager.playback.subtitleAppearance)
                     .frame(height: 180)

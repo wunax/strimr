@@ -108,6 +108,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowSubtitlesOnSkipBack(_ enabled: Bool) {
+        settings.playback.showSubtitlesOnSkipBack = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()

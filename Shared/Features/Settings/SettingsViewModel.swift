@@ -168,6 +168,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showSubtitlesOnSkipBackBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showSubtitlesOnSkipBack },
+            set: { self.settingsManager.setShowSubtitlesOnSkipBack($0) },
+        )
+    }
+
     var subtitleTextColorBinding: Binding<SubtitleTextColor> {
         Binding(
             get: { self.settingsManager.playback.subtitleTextColor },

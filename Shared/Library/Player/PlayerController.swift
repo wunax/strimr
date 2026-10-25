@@ -116,6 +116,8 @@ final class PlayerController {
     @ObservationIgnored private var isScrubPreviewing = false
     @ObservationIgnored private var showsScrubThumbnailPreviews = true
     @ObservationIgnored private var generatesMissingScrubThumbnailPreviews = true
+    @ObservationIgnored private var showsSubtitlesOnSkipBack = false
+    @ObservationIgnored private var skipBackSubtitles = SkipBackSubtitles()
     #if os(iOS) || os(macOS)
         @ObservationIgnored private lazy var pictureInPictureCoordinator = PictureInPictureCoordinator(engine: engine)
     #endif
@@ -155,6 +157,7 @@ final class PlayerController {
         scrubThumbnailSource: ScrubThumbnailSource? = nil,
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
+        showsSubtitlesOnSkipBack: Bool = false,
         isLive: Bool = false,
         nativeRemoteHLS: Bool = false,
         dvrWindowSeconds: TimeInterval? = nil,
@@ -165,6 +168,8 @@ final class PlayerController {
         resetScrubPreviewSession()
         self.showsScrubThumbnailPreviews = showsScrubThumbnailPreviews
         self.generatesMissingScrubThumbnailPreviews = generatesMissingScrubThumbnailPreviews
+        self.showsSubtitlesOnSkipBack = showsSubtitlesOnSkipBack
+        skipBackSubtitles.cancel()
         if showsScrubThumbnailPreviews {
             scrubThumbnailProvider = scrubThumbnailSource.map { source in
                 switch source {
@@ -296,6 +301,24 @@ final class PlayerController {
     }
 
     func seek(to time: Double) {
+        if let restore = skipBackSubtitles.end() {
+            applySubtitleTrack(id: restore.trackID)
+        }
+        performSeek(to: time)
+    }
+
+    func seek(by delta: Double) {
+        var target = max(0, seekOrigin + delta)
+        if !isLive, let duration {
+            target = min(target, duration)
+        }
+        if delta < 0 {
+            showSubtitlesForSkipBack(from: seekOrigin, to: target)
+        }
+        performSeek(to: target)
+    }
+
+    private func performSeek(to time: Double) {
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateSeek(
                 to: CMTime(seconds: time, preferredTimescale: 600),
@@ -309,13 +332,26 @@ final class PlayerController {
         }
     }
 
-    func seek(by delta: Double) {
-        let target = max(0, seekOrigin + delta)
-        guard !isLive, let duration else {
-            seek(to: target)
-            return
+    private func showSubtitlesForSkipBack(from origin: Double, to target: Double) {
+        guard showsSubtitlesOnSkipBack else { return }
+        let activeAudio = engine.audioTracks.first { $0.id == engine.activeAudioTrackIndex }
+        let trackID = skipBackSubtitles.skipBack(
+            from: origin,
+            to: target,
+            selectedTrackID: selectedSubtitleTrackID,
+            tracks: engine.subtitleTracks.map {
+                SkipBackSubtitles.Track(
+                    id: $0.id,
+                    language: $0.language,
+                    isForced: $0.isForced,
+                    isCommentary: $0.isCommentary,
+                )
+            },
+            audioLanguage: activeAudio?.language,
+        )
+        if let trackID {
+            applySubtitleTrack(id: trackID)
         }
-        seek(to: min(target, duration))
     }
 
     func beginScrubPreviewing(at position: Double) {
@@ -514,10 +550,15 @@ final class PlayerController {
     }
 
     func selectSubtitleTrack(id: Int?, styledASSSubtitles: Bool? = nil) {
-        deactivateASSRendering()
+        skipBackSubtitles.cancel()
         if let styledASSSubtitles {
             self.styledASSSubtitles = styledASSSubtitles
         }
+        applySubtitleTrack(id: id)
+    }
+
+    private func applySubtitleTrack(id: Int?) {
+        deactivateASSRendering()
         selectedSubtitleTrackID = id
         guard let id else {
             engine.clearSubtitle()
@@ -531,7 +572,7 @@ final class PlayerController {
         engine.selectSubtitleTrack(index: id)
         subtitleCues = engine.subtitleCues
 
-        guard self.styledASSSubtitles,
+        guard styledASSSubtitles,
               activeSubtitleCodec == "ass" || activeSubtitleCodec == "ssa"
         else {
             return
@@ -611,7 +652,7 @@ final class PlayerController {
                 isHearingImpaired: track.isHearingImpaired,
                 isCommentary: track.isCommentary,
                 isExternal: track.isExternal,
-                isSelected: selectedSubtitleTrackID == track.id,
+                isSelected: skipBackSubtitles.userTrackID(displayedTrackID: selectedSubtitleTrackID) == track.id,
             )
         }
 
@@ -632,6 +673,7 @@ final class PlayerController {
         activeSubtitleCodec = nil
         selectedSubtitleTrackID = nil
         cancelPendingAudioDelay()
+        skipBackSubtitles.cancel()
         engine.stop()
     }
 
@@ -949,7 +991,11 @@ final class PlayerController {
         engine.clock.$currentTime
             .receive(on: DispatchQueue.main)
             .sink { [weak self] time in
-                self?.position = time
+                guard let self else { return }
+                position = time
+                if let restore = skipBackSubtitles.observe(position: time) {
+                    applySubtitleTrack(id: restore.trackID)
+                }
             }
             .store(in: &cancellables)
 

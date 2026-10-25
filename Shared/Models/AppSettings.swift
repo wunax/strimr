@@ -197,6 +197,7 @@ struct PlaybackSettings: Codable, Equatable {
     var showScrubThumbnailPreviews = true
     var generateMissingScrubThumbnailPreviews = true
     var styledASSSubtitles = true
+    var showSubtitlesOnSkipBack = true
     var seekBackwardSeconds = 10
     var seekForwardSeconds = 10
     var doubleTapToSeek = true
@@ -256,6 +257,10 @@ struct PlaybackSettings: Codable, Equatable {
             forKey: .generateMissingScrubThumbnailPreviews,
         ) ?? true
         styledASSSubtitles = try container.decodeIfPresent(Bool.self, forKey: .styledASSSubtitles) ?? true
+        showSubtitlesOnSkipBack = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showSubtitlesOnSkipBack,
+        ) ?? true
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
         doubleTapToSeek = try container.decodeIfPresent(Bool.self, forKey: .doubleTapToSeek) ?? true

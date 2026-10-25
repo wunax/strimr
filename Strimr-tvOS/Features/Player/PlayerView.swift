@@ -1156,6 +1156,8 @@ struct PlayerView: View {
             showsScrubThumbnailPreviews: settingsManager.playback.showScrubThumbnailPreviews,
             generatesMissingScrubThumbnailPreviews:
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
+            showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
+                && !viewModel.isTranscoding,
             isLive: viewModel.isLivePlayback,
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
