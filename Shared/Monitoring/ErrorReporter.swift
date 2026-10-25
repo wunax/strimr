@@ -1,9 +1,26 @@
 import Foundation
 
 enum ErrorReporter {
+    private static let enabledKey = "strimr.diagnostics.errorReporting"
+
+    static var isEnabled: Bool {
+        UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
+    }
+
+    static func setEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: enabledKey)
+        if enabled {
+            start()
+        } else {
+            #if canImport(Sentry)
+                SentrySDK.close()
+            #endif
+        }
+    }
+
     static func start() {
         // Unit tests run hosted in the app; keep test-induced errors out of production Sentry.
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil, isEnabled else { return }
 
         #if canImport(Sentry)
             let dsn: String?
@@ -23,6 +40,10 @@ enum ErrorReporter {
                 options.enableLogs = true
                 // Automatic capture reports 5xx from self-hosted servers and third-party proxies we can't act on.
                 options.enableCaptureFailedRequests = false
+                options.beforeBreadcrumb = { breadcrumb in
+                    breadcrumb.data = removingSensitiveData(from: breadcrumb.data)
+                    return breadcrumb
+                }
             }
         #endif
     }
@@ -36,6 +57,11 @@ enum ErrorReporter {
         #if canImport(Sentry)
             SentrySDK.capture(error: error)
         #endif
+    }
+
+    /// Plex and Jellyfin pass access tokens in query strings, which network breadcrumbs record.
+    static func removingSensitiveData(from data: [String: Any]?) -> [String: Any]? {
+        data?.filter { key, _ in key != "http.query" && key != "http.fragment" }
     }
 }
 

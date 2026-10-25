@@ -69,6 +69,18 @@ struct SettingsView: View {
                     }
                 }
             #endif
+
+            Section {
+                NavigationLink("settings.privacy.title") {
+                    SettingsPrivacyView()
+                }
+            }
+
+            Section {
+                NavigationLink("settings.about.title") {
+                    SettingsAboutView()
+                }
+            }
         }
         #if os(iOS)
         .listStyle(.insetGrouped)

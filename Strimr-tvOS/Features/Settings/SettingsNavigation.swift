@@ -81,7 +81,7 @@ final class SettingsNavigation {
 }
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case accounts, profiles, playback, audio, subtitles, interface, integrations
+    case accounts, profiles, playback, audio, subtitles, interface, integrations, privacy, about
 
     /// Restricted Plex profiles cannot manage accounts nor profiles.
     static func visible(canManageAccounts: Bool) -> [SettingsCategory] {
@@ -101,6 +101,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .subtitles: "settings.playback.subtitles.title"
         case .interface: "settings.interface.title"
         case .integrations: "settings.integrations.title"
+        case .privacy: "settings.privacy.title"
+        case .about: "settings.about.title"
         }
     }
 
@@ -113,6 +115,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .subtitles: "captions.bubble"
         case .interface: "rectangle.grid.2x2"
         case .integrations: "square.stack.3d.up"
+        case .privacy: "hand.raised"
+        case .about: "info.circle"
         }
     }
 }
