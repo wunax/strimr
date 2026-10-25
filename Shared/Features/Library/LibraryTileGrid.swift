@@ -5,6 +5,9 @@ struct LibraryTileGrid: View {
     let viewModel: LibraryViewModel
     @State private var isHiddenExpanded = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    #if os(tvOS)
+        @FocusState private var focusedLibrary: LibraryIdentity?
+    #endif
 
     var body: some View {
         ScrollView {
@@ -71,9 +74,14 @@ struct LibraryTileGrid: View {
                 }
                 .buttonStyle(.cardLift)
                 .contextMenu { contextMenu(for: library) }
-                .task {
-                    await viewModel.ensurePreview(for: library)
-                }
+                #if os(tvOS)
+                    .focused($focusedLibrary, equals: library.identity)
+                #endif
+                    // Pinning rebuilds the tvOS tab bar, which leaves the focused tile stuck pressed.
+                    .id("\(library.identity.stableKey):\(viewModel.isPinned(library))")
+                    .task {
+                        await viewModel.ensurePreview(for: library)
+                    }
             }
         }
     }
@@ -82,11 +90,11 @@ struct LibraryTileGrid: View {
     private func contextMenu(for library: Library) -> some View {
         if viewModel.isPinned(library) {
             Button("library.menu.unpin", systemImage: "pin.slash") {
-                viewModel.setPinned(library, pinned: false)
+                setPinned(library, pinned: false)
             }
         } else {
             Button("library.menu.pin", systemImage: "pin") {
-                viewModel.setPinned(library, pinned: true)
+                setPinned(library, pinned: true)
             }
         }
 
@@ -99,6 +107,14 @@ struct LibraryTileGrid: View {
                 viewModel.setHidden(library, hidden: true)
             }
         }
+    }
+
+    private func setPinned(_ library: Library, pinned: Bool) {
+        viewModel.setPinned(library, pinned: pinned)
+        #if os(tvOS)
+            // The rebuilt tile does not inherit the focus of the one it replaces.
+            Task { focusedLibrary = library.identity }
+        #endif
     }
 
     private var hiddenHeader: some View {
