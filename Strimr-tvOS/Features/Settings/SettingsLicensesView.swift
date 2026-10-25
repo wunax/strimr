@@ -63,6 +63,7 @@ private struct SettingsLicenseDetailView: View {
 
 private struct LicenseParagraph: View {
     @Environment(\.isFocused) private var isFocused
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let text: String
 
     var body: some View {
@@ -75,5 +76,6 @@ private struct LicenseParagraph: View {
                 isFocused ? Color.surfaceSubtle : .clear,
                 in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
             )
+            .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
     }
 }

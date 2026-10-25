@@ -15,6 +15,7 @@ struct SettingsPrivacyView: View {
                 Link(destination: AppInfo.privacyPolicyURL) {
                     Label("settings.privacy.policy", systemImage: "doc.text")
                 }
+                .foregroundStyle(.secondary)
             }
         }
         .insetListStyle()

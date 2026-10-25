@@ -62,7 +62,10 @@ private struct QRCodeView: View {
                 .resizable()
                 .scaledToFit()
                 .padding(12)
-                .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(
+                    .white,
+                    in: RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous),
+                )
         }
     }
 

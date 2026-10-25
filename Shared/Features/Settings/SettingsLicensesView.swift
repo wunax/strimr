@@ -41,13 +41,14 @@ private struct SettingsLicenseDetailView: View {
                 Link(destination: license.url) {
                     Label("settings.licenses.source", systemImage: "arrow.up.right.square")
                 }
+                .foregroundStyle(.secondary)
                 Text(verbatim: text)
                     .font(.system(.footnote, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+            .padding(LayoutMetrics.pageMargin)
         }
         .navigationTitle(Text(verbatim: license.name))
         .task {

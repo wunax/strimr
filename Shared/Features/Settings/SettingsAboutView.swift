@@ -24,6 +24,7 @@ struct SettingsAboutView: View {
                     Label("settings.about.rate", systemImage: "star")
                 }
             }
+            .foregroundStyle(.secondary)
 
             Section {
                 NavigationLink("settings.licenses.title") {
