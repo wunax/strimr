@@ -40,6 +40,26 @@ final class LibraryViewModel {
         libraryStore.isLoading
     }
 
+    func isHidden(_ library: Library) -> Bool {
+        settingsManager.libraryPreferences(profileID: profileID).isHidden(library.identity)
+    }
+
+    func isPinned(_ library: Library) -> Bool {
+        settingsManager.libraryPreferences(profileID: profileID).isPinned(library.identity)
+    }
+
+    func setHidden(_ library: Library, hidden: Bool) {
+        settingsManager.updateLibraryPreferences(profileID: profileID) {
+            $0.setHidden(library.identity, hidden: hidden)
+        }
+    }
+
+    func setPinned(_ library: Library, pinned: Bool) {
+        settingsManager.updateLibraryPreferences(profileID: profileID) {
+            $0.setPinned(library.identity, pinned: pinned)
+        }
+    }
+
     /// The server name is only shown when the list covers several servers.
     func subtitle(for library: Library) -> String? {
         guard libraryStore.showsServerNames else { return nil }

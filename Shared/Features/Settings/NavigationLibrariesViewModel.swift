@@ -44,7 +44,11 @@ final class NavigationLibrariesViewModel {
     func navigationBinding(for library: Library) -> Binding<Bool> {
         Binding(
             get: { self.isSelected(library) },
-            set: { self.setNavigationEnabled(library.identity, enabled: $0) },
+            set: { pinned in
+                self.settingsManager.updateLibraryPreferences(profileID: self.libraryStore.profileID) {
+                    $0.setPinned(library.identity, pinned: pinned)
+                }
+            },
         )
     }
 
@@ -64,15 +68,6 @@ final class NavigationLibrariesViewModel {
         visible.insert(visible.remove(at: index), at: destination)
         let absent = navigationLibraries.filter { !visible.contains($0) }
         update(visible + absent)
-    }
-
-    private func setNavigationEnabled(_ library: LibraryIdentity, enabled: Bool) {
-        var stored = navigationLibraries
-        stored.removeAll { $0 == library }
-        if enabled {
-            stored.append(library)
-        }
-        update(stored)
     }
 
     private func update(_ libraries: [LibraryIdentity]) {

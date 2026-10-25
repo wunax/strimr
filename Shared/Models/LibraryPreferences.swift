@@ -24,6 +24,10 @@ struct LibraryPreferences: Codable, Equatable {
         hiddenLibraries.contains(library)
     }
 
+    func isPinned(_ library: LibraryIdentity) -> Bool {
+        navigationLibraries.contains(library)
+    }
+
     func ordered(_ libraries: [Library]) -> [Library] {
         PreferenceOrder.sorted(libraries, id: \.identity, order: libraryOrder)
     }
@@ -32,6 +36,15 @@ struct LibraryPreferences: Codable, Equatable {
         hiddenLibraries.removeAll { $0 == library }
         if hidden {
             hiddenLibraries.append(library)
+        }
+    }
+
+    /// Pinning an already pinned library keeps its place in the navigation.
+    mutating func setPinned(_ library: LibraryIdentity, pinned: Bool) {
+        guard pinned != isPinned(library) else { return }
+        navigationLibraries.removeAll { $0 == library }
+        if pinned {
+            navigationLibraries.append(library)
         }
     }
 

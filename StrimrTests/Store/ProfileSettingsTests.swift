@@ -42,6 +42,21 @@ struct ProfileSettingsTests {
         #expect(preferences.libraryOrder == [a2, b1, a1])
     }
 
+    @Test func `pinning a pinned library keeps its place in the navigation`() {
+        var preferences = LibraryPreferences()
+        let a1 = LibraryIdentity(server: serverA, libraryID: "1")
+        let b1 = LibraryIdentity(server: serverB, libraryID: "1")
+        preferences.setPinned(a1, pinned: true)
+        preferences.setPinned(b1, pinned: true)
+
+        preferences.setPinned(a1, pinned: true)
+        #expect(preferences.navigationLibraries == [a1, b1])
+
+        preferences.setPinned(a1, pinned: false)
+        #expect(preferences.navigationLibraries == [b1])
+        #expect(!preferences.isPinned(a1))
+    }
+
     @Test func `new libraries go after the ordered ones`() {
         var preferences = LibraryPreferences()
         preferences.setOrder([LibraryIdentity(server: serverB, libraryID: "1")])

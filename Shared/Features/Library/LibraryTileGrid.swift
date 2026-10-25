@@ -70,9 +70,33 @@ struct LibraryTileGrid: View {
                     )
                 }
                 .buttonStyle(.cardLift)
+                .contextMenu { contextMenu(for: library) }
                 .task {
                     await viewModel.ensurePreview(for: library)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contextMenu(for library: Library) -> some View {
+        if viewModel.isPinned(library) {
+            Button("library.menu.unpin", systemImage: "pin.slash") {
+                viewModel.setPinned(library, pinned: false)
+            }
+        } else {
+            Button("library.menu.pin", systemImage: "pin") {
+                viewModel.setPinned(library, pinned: true)
+            }
+        }
+
+        if viewModel.isHidden(library) {
+            Button("library.menu.show", systemImage: "eye") {
+                viewModel.setHidden(library, hidden: false)
+            }
+        } else {
+            Button("library.menu.hide", systemImage: "eye.slash") {
+                viewModel.setHidden(library, hidden: true)
             }
         }
     }
