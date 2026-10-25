@@ -258,27 +258,29 @@ private struct SettingsSidebar: View {
                 .foregroundStyle(.textPrimary)
                 .padding(.leading, 20)
 
-            VStack(spacing: 16) {
-                ForEach(categories) { category in
-                    Button {
-                        navigation.category = category
-                        navigation.enterDetailFromSidebar()
-                    } label: {
-                        HStack(spacing: 18) {
-                            Image(systemName: category.symbol)
-                                .frame(width: 32)
-                            Text(category.title)
-                                .font(.rowTitle)
-                            Spacer(minLength: 0)
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(categories) { category in
+                        Button {
+                            navigation.category = category
+                            navigation.enterDetailFromSidebar()
+                        } label: {
+                            HStack(spacing: 18) {
+                                Image(systemName: category.symbol)
+                                    .frame(width: 32)
+                                Text(category.title)
+                                    .font(.rowTitle)
+                                Spacer(minLength: 0)
+                            }
                         }
+                        .buttonStyle(SettingsCategoryButtonStyle(isSelected: selectedCategory == category))
+                        .focusEffectDisabled()
+                        .focused(focusedTarget, equals: .category(category))
+                        .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
                     }
-                    .buttonStyle(SettingsCategoryButtonStyle(isSelected: selectedCategory == category))
-                    .focusEffectDisabled()
-                    .focused(focusedTarget, equals: .category(category))
-                    .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
                 }
             }
-            Spacer(minLength: 0)
+            .scrollIndicators(.hidden)
         }
         .focusSection()
         .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: selectedCategory)
