@@ -103,6 +103,29 @@ struct SkipBackSubtitlesTests {
         #expect(subtitles.window == nil)
     }
 
+    @Test func `previous state comes back when playback stops on the skip point`() {
+        var subtitles = SkipBackSubtitles()
+        _ = subtitles.skipBack(from: 100, to: 90, selectedTrackID: nil, tracks: tracks, audioLanguage: "eng")
+        _ = subtitles.observe(position: 90)
+
+        #expect(subtitles.observe(position: 100) == .init(trackID: nil))
+    }
+
+    @Test func `skipping forward to the skip point restores the previous state`() {
+        var subtitles = SkipBackSubtitles()
+        _ = subtitles.skipBack(
+            from: 100,
+            to: 90,
+            selectedTrackID: frenchForced.id,
+            tracks: tracks,
+            audioLanguage: "eng",
+        )
+
+        #expect(subtitles.skipForward(to: 95) == nil)
+        #expect(subtitles.skipForward(to: 100) == .init(trackID: frenchForced.id))
+        #expect(subtitles.window == nil)
+    }
+
     @Test func `skipping back again extends the window`() {
         var subtitles = SkipBackSubtitles()
         _ = subtitles.skipBack(from: 100, to: 90, selectedTrackID: nil, tracks: tracks, audioLanguage: "eng")

@@ -70,9 +70,16 @@ struct SkipBackSubtitles: Equatable {
             window.isArmed = true
             self.window = window
         }
-        guard position > window.returnPosition else { return nil }
+        guard position >= window.returnPosition else { return nil }
         self.window = nil
         return Restore(trackID: window.previousTrackID)
+    }
+
+    /// Returns the track to restore when a skip forward reaches the return position, since playback then
+    /// never passes below it to arm the window.
+    mutating func skipForward(to target: Double) -> Restore? {
+        guard let window, target >= window.returnPosition else { return nil }
+        return end()
     }
 
     /// Ends the window and returns the track to restore, if one was open.

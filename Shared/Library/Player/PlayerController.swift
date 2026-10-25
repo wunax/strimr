@@ -314,6 +314,8 @@ final class PlayerController {
         }
         if delta < 0 {
             showSubtitlesForSkipBack(from: seekOrigin, to: target)
+        } else if let restore = skipBackSubtitles.skipForward(to: target) {
+            applySubtitleTrack(id: restore.trackID)
         }
         performSeek(to: target)
     }
