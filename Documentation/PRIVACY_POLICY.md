@@ -47,6 +47,7 @@ You control all data stored by Strimr. You can:
 
 - Sign out of the App to remove your authentication token
 - Reset or change settings at any time
+- Turn off error reports in Settings > Privacy to stop sending diagnostics to Sentry
 - Uninstall the App to delete all locally stored data
 
 ## Changes to This Policy
