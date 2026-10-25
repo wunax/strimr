@@ -346,7 +346,6 @@
 				Resources/Licenses/License-LGPL-2.1.txt,
 				Resources/Licenses/License-libass.txt,
 				Resources/Licenses/License-LibDovi.txt,
-				Resources/Licenses/License-LibDTSX-NOTICE.txt,
 				Resources/Licenses/License-libpng.txt,
 				Resources/Licenses/License-LibTrueHD-NOTICE.txt,
 				Resources/Licenses/License-LibTrueHD.txt,

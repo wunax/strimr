@@ -97,12 +97,6 @@ extension OpenSourceLicense {
             textFiles: ["LibDovi"],
         ),
         OpenSourceLicense(
-            name: "LibDTSX",
-            license: "Apache-2.0, LGPL-2.1",
-            url: URL(string: "https://github.com/superuser404notfound/LibDTSX")!,
-            textFiles: ["LibDTSX-NOTICE", "Apache-2.0", "LGPL-2.1"],
-        ),
-        OpenSourceLicense(
             name: "libpng",
             license: "libpng-2.0",
             url: URL(string: "https://github.com/pnggroup/libpng")!,
