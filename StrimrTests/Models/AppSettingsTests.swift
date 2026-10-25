@@ -125,6 +125,29 @@ struct AppSettingsTests {
         #expect(settings.playback.seekForwardSeconds == 30)
     }
 
+    @Test func `subtitle brightness is full unless chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.subtitleBrightness == .full)
+        #expect(try decode(#"{"playback":{"subtitleBrightness":"medium"}}"#).playback.subtitleBrightness == .medium)
+    }
+
+    @Test func `unknown subtitle brightness keeps other subtitle settings`() throws {
+        let settings = try decode(#"{"playback":{"subtitleBrightness":"dim","subtitleTextColor":"cream"}}"#)
+
+        #expect(settings.playback.subtitleBrightness == .full)
+        #expect(settings.playback.subtitleTextColor == .cream)
+    }
+
+    @Test func `resetting subtitle appearance restores full brightness`() {
+        var playback = PlaybackSettings()
+        playback.subtitleBrightness = .low
+        playback.subtitleTextColor = .lightGray
+
+        playback.resetSubtitleAppearance()
+
+        #expect(playback.subtitleBrightness == .full)
+        #expect(playback.subtitleTextColor == .white)
+    }
+
     @MainActor
     @Test func `saved audio delay survives a reload`() throws {
         let defaults = try #require(UserDefaults(suiteName: #function))

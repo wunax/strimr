@@ -83,8 +83,18 @@ enum ThemeMusicVolume: String, Codable, CaseIterable, Hashable {
 
 enum SubtitleTextColor: String, Codable, CaseIterable, Hashable {
     case white
+    case lightGray
+    case cream
     case yellow
     case cyan
+    case green
+}
+
+enum SubtitleBrightness: String, Codable, CaseIterable, Hashable {
+    case full
+    case high
+    case medium
+    case low
 }
 
 enum SubtitleFontWeight: String, Codable, CaseIterable, Hashable {
@@ -163,6 +173,7 @@ enum NextEpisodeAutoplay: String, Codable, CaseIterable, Hashable {
 struct SubtitleAppearance: Equatable {
     let fontSize: Int
     let textColor: SubtitleTextColor
+    let brightness: SubtitleBrightness
     let fontWeight: SubtitleFontWeight
     let backgroundStrength: SubtitleBackgroundStrength
     let edgeStyle: SubtitleEdgeStyle
@@ -192,6 +203,7 @@ struct PlaybackSettings: Codable, Equatable {
     var audioDelayMilliseconds = 0
     var subtitleFontSize = defaultSubtitleFontSize
     var subtitleTextColor = SubtitleTextColor.white
+    var subtitleBrightness = SubtitleBrightness.full
     var subtitleFontWeight = SubtitleFontWeight.semibold
     var subtitleBackgroundStrength = SubtitleBackgroundStrength.standard
     var subtitleEdgeStyle = SubtitleEdgeStyle.shadow
@@ -254,6 +266,8 @@ struct PlaybackSettings: Codable, Equatable {
             ?? Self.defaultSubtitleFontSize
         subtitleTextColor = (try? container.decode(SubtitleTextColor.self, forKey: .subtitleTextColor))
             ?? .white
+        subtitleBrightness = (try? container.decode(SubtitleBrightness.self, forKey: .subtitleBrightness))
+            ?? .full
         subtitleFontWeight = (try? container.decode(SubtitleFontWeight.self, forKey: .subtitleFontWeight))
             ?? .semibold
         subtitleBackgroundStrength = (
@@ -281,6 +295,7 @@ struct PlaybackSettings: Codable, Equatable {
         SubtitleAppearance(
             fontSize: subtitleFontSize,
             textColor: subtitleTextColor,
+            brightness: subtitleBrightness,
             fontWeight: subtitleFontWeight,
             backgroundStrength: subtitleBackgroundStrength,
             edgeStyle: subtitleEdgeStyle,
@@ -291,6 +306,7 @@ struct PlaybackSettings: Codable, Equatable {
     mutating func resetSubtitleAppearance() {
         subtitleFontSize = Self.defaultSubtitleFontSize
         subtitleTextColor = .white
+        subtitleBrightness = .full
         subtitleFontWeight = .semibold
         subtitleBackgroundStrength = .standard
         subtitleEdgeStyle = .shadow

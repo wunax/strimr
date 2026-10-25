@@ -14,6 +14,7 @@ final class SettingsViewModel {
         let subtitleFontSizeOptions = Array(stride(from: 12, through: 40, by: 2))
     #endif
     let subtitleTextColorOptions = SubtitleTextColor.allCases
+    let subtitleBrightnessOptions = SubtitleBrightness.allCases
     let subtitleFontWeightOptions = SubtitleFontWeight.allCases
     let subtitleBackgroundStrengthOptions = SubtitleBackgroundStrength.allCases
     let subtitleEdgeStyleOptions = SubtitleEdgeStyle.allCases
@@ -171,6 +172,13 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.subtitleTextColor },
             set: { self.settingsManager.setSubtitleTextColor($0) },
+        )
+    }
+
+    var subtitleBrightnessBinding: Binding<SubtitleBrightness> {
+        Binding(
+            get: { self.settingsManager.playback.subtitleBrightness },
+            set: { self.settingsManager.setSubtitleBrightness($0) },
         )
     }
 

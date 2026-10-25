@@ -138,6 +138,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setSubtitleBrightness(_ brightness: SubtitleBrightness) {
+        settings.playback.subtitleBrightness = brightness
+        persist()
+    }
+
     func setSubtitleFontWeight(_ weight: SubtitleFontWeight) {
         settings.playback.subtitleFontWeight = weight
         persist()

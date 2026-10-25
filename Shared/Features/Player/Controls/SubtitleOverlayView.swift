@@ -181,6 +181,7 @@ struct SubtitleOverlayView: View {
                 width: frame.width,
                 height: frame.height,
             )
+            .colorMultiply(appearance.brightness.multiplier)
             .offset(
                 x: frame.minX,
                 y: frame.minY,
@@ -436,6 +437,7 @@ struct SubtitleTextView: View {
 
     var body: some View {
         edgedText
+            .colorMultiply(appearance.brightness.multiplier)
             .padding(.horizontal, 16)
             .padding(.vertical, 5)
             .background(
@@ -524,10 +526,16 @@ extension SubtitleTextColor {
         switch self {
         case .white:
             "settings.playback.subtitles.color.white"
+        case .lightGray:
+            "settings.playback.subtitles.color.lightGray"
+        case .cream:
+            "settings.playback.subtitles.color.cream"
         case .yellow:
             "settings.playback.subtitles.color.yellow"
         case .cyan:
             "settings.playback.subtitles.color.cyan"
+        case .green:
+            "settings.playback.subtitles.color.green"
         }
     }
 
@@ -535,11 +543,41 @@ extension SubtitleTextColor {
         switch self {
         case .white:
             .white
+        case .lightGray:
+            Color(red: 200 / 255, green: 200 / 255, blue: 200 / 255)
+        case .cream:
+            Color(red: 240 / 255, green: 230 / 255, blue: 200 / 255)
         case .yellow:
             .yellow
         case .cyan:
             .cyan
+        case .green:
+            Color(red: 155 / 255, green: 227 / 255, blue: 155 / 255)
         }
+    }
+}
+
+extension SubtitleBrightness {
+    var localizedName: LocalizedStringKey {
+        "settings.playback.subtitles.brightness.percent \(Int((factor * 100).rounded()))"
+    }
+
+    var factor: Double {
+        switch self {
+        case .full:
+            1
+        case .high:
+            0.85
+        case .medium:
+            0.7
+        case .low:
+            0.55
+        }
+    }
+
+    /// Scales RGB rather than alpha, so dimmed text stays opaque over the video and its edge.
+    var multiplier: Color {
+        Color(white: factor)
     }
 }
 

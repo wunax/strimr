@@ -84,6 +84,19 @@ struct SettingsSubtitlesView: View {
             }
 
             Section {
+                SettingsPicker(
+                    "settings.playback.subtitles.brightness",
+                    selection: viewModel.subtitleBrightnessBinding,
+                    options: Array(viewModel.subtitleBrightnessOptions),
+                ) { brightness in
+                    Text(brightness.localizedName)
+                }
+                .settingsFocus("settings.playback.subtitles.brightness")
+            } footer: {
+                Text("settings.playback.subtitles.brightness.description")
+            }
+
+            Section {
                 Button("settings.playback.subtitles.reset") {
                     viewModel.resetSubtitleAppearance()
                 }
