@@ -9,38 +9,74 @@ struct SeerrRequestCardView: View {
     let onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button(action: onOpen) {
-                HStack(alignment: .top, spacing: 12) {
-                    poster
-                    details
-                    Spacer(minLength: 0)
+        #if os(tvOS)
+            // The focusable card cannot hold other buttons, so the actions sit in a column beside it.
+            HStack(alignment: .center, spacing: 32) {
+                openButton
+                if hasActions {
+                    actions
+                        .frame(width: 320)
                 }
-                .contentShape(Rectangle())
             }
-            #if os(tvOS)
-            .buttonStyle(.card)
-            #else
-            .buttonStyle(.plain)
-            #endif
-            .disabled(viewModel.openableMedia(for: request) == nil)
+            .focusSection()
+        #else
+            VStack(alignment: .leading, spacing: 12) {
+                openButton
+                if hasPrimaryActions {
+                    actions
+                }
+            }
+            .padding(cardPadding)
+            .background { backdrop }
+            .clipShape(cardShape)
+            .overlay(alignment: .topTrailing) {
+                if hasMenu {
+                    moreMenu
+                        .padding(8)
+                }
+            }
+        #endif
+    }
 
-            if hasActions {
-                actions
-            }
+    private var openButton: some View {
+        Button(action: onOpen) {
+            summary
+            #if os(tvOS)
+                .padding(cardPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background { backdrop }
+                .clipShape(cardShape)
+            #endif
+                .contentShape(Rectangle())
         }
-        .padding(cardPadding)
-        .background(
-            .surfaceSubtle,
-            in: RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous),
-        )
+        #if os(tvOS)
+        .buttonStyle(.card)
+        #else
+        .buttonStyle(.plain)
+        #endif
+        .disabled(viewModel.openableMedia(for: request) == nil)
+    }
+
+    private var summary: some View {
+        HStack(alignment: .top, spacing: cardPadding) {
+            poster
+            details
+            #if !os(tvOS)
+                .padding(.trailing, hasMenu ? 36 : 0)
+            #endif
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
     }
 
     private var posterSize: CGSize {
         #if os(tvOS)
             CGSize(width: 140, height: 210)
         #else
-            CGSize(width: 100, height: 150)
+            CGSize(width: 80, height: 120)
         #endif
     }
 
@@ -50,6 +86,38 @@ struct SeerrRequestCardView: View {
         #else
             12
         #endif
+    }
+
+    private var detailSpacing: CGFloat {
+        #if os(tvOS)
+            10
+        #else
+            6
+        #endif
+    }
+
+    private var backdrop: some View {
+        let media = viewModel.mediaDetail(for: request)
+        return ZStack {
+            Color.surfaceSubtle
+            AsyncImage(url: TMDBImageService.backdropURL(path: media?.backdropPath, width: 1280)) { phase in
+                if case let .success(image) = phase {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .overlay {
+                            // Darkest behind the text, lighter on the trailing side so the artwork shows through.
+                            LinearGradient(
+                                colors: [.black.opacity(0.9), .black.opacity(0.7), .black.opacity(0.45)],
+                                startPoint: .leading,
+                                endPoint: .trailing,
+                            )
+                        }
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var poster: some View {
@@ -72,60 +140,65 @@ struct SeerrRequestCardView: View {
     }
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: detailSpacing) {
             HStack(spacing: 6) {
                 if let year = viewModel.mediaYear(for: request) {
                     Text(year)
+                    Text(verbatim: "·")
                 }
                 Text(typeKey)
-                    .textCase(.uppercase)
-                if request.is4k == true {
-                    Text("seerr.manageRequests.badge.4k")
-                }
             }
             .eyebrowStyle()
-            .foregroundStyle(.textTertiary)
+            .foregroundStyle(.textSecondary)
             .lineLimit(1)
 
             Text(viewModel.mediaTitle(for: request))
-                .font(.cardTitle)
+                .font(.rowTitle)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
-            statusBadge
+            HStack(spacing: 8) {
+                statusBadge
+                if request.is4k == true {
+                    Text("seerr.manageRequests.badge.4k")
+                        .font(.badge)
+                        .foregroundStyle(.textPrimary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(.badgeBackground, in: Capsule(style: .continuous))
+                }
+            }
 
-            if let seasons = viewModel.seasonSummary(for: request) {
-                Label(seasons, systemImage: "rectangle.stack")
+            if let facts = factsText {
+                Text(facts)
                     .font(.cardMetadata)
                     .foregroundStyle(.textSecondary)
                     .lineLimit(1)
             }
 
-            userLine(
-                titleKey: "seerr.requests.requestedBy",
-                user: request.requestedBy,
-                date: request.createdAt,
-            )
+            requesterLine
+                .padding(.top, detailSpacing / 2)
 
             if viewModel.showsModified(request) {
-                userLine(
-                    titleKey: "seerr.requests.modifiedBy",
-                    user: request.modifiedBy,
-                    date: request.updatedAt,
-                )
-            }
-
-            if let profile = request.profileName, !profile.isEmpty {
-                Text(String(localized: "seerr.manageRequests.profile \(profile)"))
-                    .font(.cardMetadata)
-                    .foregroundStyle(.textSecondary)
-                    .lineLimit(1)
+                modifiedLine
             }
         }
     }
 
     private var typeKey: LocalizedStringKey {
         viewModel.isTV(request) ? "seerr.media.badge.tv" : "seerr.media.badge.movie"
+    }
+
+    private var factsText: String? {
+        var parts: [String] = []
+        if let seasons = viewModel.seasonSummary(for: request) {
+            parts.append(seasons)
+        }
+        if let profile = request.profileName, !profile.isEmpty {
+            parts.append(String(localized: "seerr.manageRequests.profile \(profile)"))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var statusBadge: some View {
@@ -148,25 +221,47 @@ struct SeerrRequestCardView: View {
         .background(.badgeBackground, in: Capsule(style: .continuous))
     }
 
-    private func userLine(titleKey: LocalizedStringKey, user: SeerrUser?, date: String?) -> some View {
-        HStack(spacing: 6) {
-            avatar(for: user)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(viewModel.displayName(for: user))
-                    .font(.cardMetadata.weight(.semibold))
-                    .foregroundStyle(.textPrimary)
-                    .lineLimit(1)
-                HStack(spacing: 4) {
-                    Text(titleKey)
-                    if let relative = viewModel.relativeDateText(from: date) {
-                        Text(relative)
-                    }
-                }
-                .font(.cardMetadata)
+    private var requesterLine: some View {
+        HStack(spacing: 8) {
+            avatar(for: request.requestedBy)
+            Text(viewModel.displayName(for: request.requestedBy))
+                .fontWeight(.semibold)
+                .foregroundStyle(.textPrimary)
+                .layoutPriority(1)
+            activityText(titleKey: "seerr.requests.requestedBy", date: request.createdAt)
+        }
+        .font(.cardMetadata)
+        .lineLimit(1)
+    }
+
+    private var modifiedLine: some View {
+        HStack(spacing: 4) {
+            activityText(titleKey: "seerr.requests.modifiedBy", date: request.updatedAt)
+            Text(verbatim: "·")
                 .foregroundStyle(.textTertiary)
-                .lineLimit(1)
+            Text(viewModel.displayName(for: request.modifiedBy))
+                .foregroundStyle(.textSecondary)
+        }
+        .font(.cardMetadata)
+        .lineLimit(1)
+    }
+
+    private func activityText(titleKey: LocalizedStringKey, date: String?) -> some View {
+        HStack(spacing: 4) {
+            Text(titleKey)
+            if let relative = viewModel.relativeDateText(from: date) {
+                Text(relative)
             }
         }
+        .foregroundStyle(.textTertiary)
+    }
+
+    private var avatarSize: CGFloat {
+        #if os(tvOS)
+            32
+        #else
+            20
+        #endif
     }
 
     private func avatar(for user: SeerrUser?) -> some View {
@@ -177,20 +272,29 @@ struct SeerrRequestCardView: View {
                     .resizable()
                     .scaledToFill()
             default:
-                Color.surfaceSubtle
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .foregroundStyle(.textTertiary)
             }
         }
-        .frame(width: 22, height: 22)
+        .frame(width: avatarSize, height: avatarSize)
         .clipShape(Circle())
     }
 
-    private var hasActions: Bool {
+    private var hasPrimaryActions: Bool {
         viewModel.canModerate(request) || viewModel.canRetry(request)
-            || viewModel.canEdit(request) || viewModel.canDelete(request)
+    }
+
+    private var hasMenu: Bool {
+        viewModel.canEdit(request) || viewModel.canDelete(request)
+    }
+
+    private var hasActions: Bool {
+        hasPrimaryActions || hasMenu
     }
 
     private var actions: some View {
-        HStack(spacing: 8) {
+        actionsLayout {
             if viewModel.canModerate(request) {
                 Button {
                     Task { await viewModel.approve(request) }
@@ -222,30 +326,11 @@ struct SeerrRequestCardView: View {
                 .tint(.orange)
             }
 
-            if viewModel.canEdit(request) || viewModel.canDelete(request) {
-                Menu {
-                    if viewModel.canEdit(request) {
-                        Button("seerr.requests.action.edit", systemImage: "square.and.pencil", action: onEdit)
-                    }
-                    if viewModel.canDelete(request) {
-                        Button(role: .destructive, action: onDelete) {
-                            Label {
-                                Text("seerr.requests.action.delete")
-                            } icon: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(.red)
-                            }
-                        }
-                        .tint(.red)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 32, height: 32)
+            #if os(tvOS)
+                if hasMenu {
+                    moreMenu
                 }
-                .buttonStyle(.bordered)
-                .tint(.secondary)
-                .accessibilityLabel(Text("seerr.requests.action.more"))
-            }
+            #endif
         }
         .font(.facts.weight(.semibold))
         .buttonBorderShape(.capsule)
@@ -255,6 +340,59 @@ struct SeerrRequestCardView: View {
                 ProgressView()
             }
         }
+    }
+
+    private func actionsLayout(@ViewBuilder content: () -> some View) -> some View {
+        #if os(tvOS)
+            VStack(spacing: 16) {
+                content()
+            }
+        #else
+            HStack(spacing: 8) {
+                content()
+            }
+        #endif
+    }
+
+    private var moreMenu: some View {
+        Menu {
+            if viewModel.canEdit(request) {
+                Button("seerr.requests.action.edit", systemImage: "square.and.pencil", action: onEdit)
+            }
+            if viewModel.canDelete(request) {
+                Button(role: .destructive, action: onDelete) {
+                    Label {
+                        Text("seerr.requests.action.delete")
+                    } icon: {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
+                }
+                .tint(.red)
+            }
+        } label: {
+            #if os(tvOS)
+                Label("seerr.requests.action.more", systemImage: "ellipsis")
+                    .font(.facts.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            #else
+                Image(systemName: "ellipsis")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.textPrimary)
+                    .frame(width: 32, height: 32)
+                    .background(.badgeBackground, in: Circle())
+                    .contentShape(Circle())
+            #endif
+        }
+        #if os(tvOS)
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        #else
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        #endif
+        .disabled(viewModel.isBusy(request))
+        .accessibilityLabel(Text("seerr.requests.action.more"))
     }
 
     private struct StatusStyle {
