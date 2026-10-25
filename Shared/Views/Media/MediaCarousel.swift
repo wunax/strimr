@@ -8,6 +8,8 @@ struct MediaCarousel: View {
     @Environment(\.railPageMargin) private var pageMargin
     #if os(tvOS)
         @FocusState private var isViewAllFocused: Bool
+        @FocusState private var focusedItemID: String?
+        @State private var lastFocusedItemID: String?
     #elseif os(macOS)
         @State private var isViewAllFocused = false
     #endif
@@ -37,6 +39,9 @@ struct MediaCarousel: View {
             LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: layout)) {
                 ForEach(items, id: \.id) { item in
                     card(for: item)
+                    #if os(tvOS)
+                        .focused($focusedItemID, equals: item.id)
+                    #endif
                 }
                 if let onViewAll {
                     viewAllCard(action: onViewAll)
@@ -53,8 +58,32 @@ struct MediaCarousel: View {
         #if os(tvOS)
             .scrollClipDisabled()
             .focusSection()
+            .onChange(of: focusedItemID) { oldID, newID in
+                guard let newID else { return }
+                // `defaultFocus` is ignored when entering a focus section with the remote, so redirect by hand.
+                if oldID == nil, let target = entryItemID, target != newID {
+                    focusedItemID = target
+                    return
+                }
+                lastFocusedItemID = newID
+            }
+            .onChange(of: isViewAllFocused) { _, isFocused in
+                // Moving back from "View all" lands on the last card, which must not be redirected.
+                if isFocused {
+                    lastFocusedItemID = items.last?.id
+                }
+            }
         #endif
     }
+
+    #if os(tvOS)
+        private var entryItemID: String? {
+            if let lastFocusedItemID, items.contains(where: { $0.id == lastFocusedItemID }) {
+                return lastFocusedItemID
+            }
+            return items.first?.id
+        }
+    #endif
 
     @ViewBuilder
     private func card(for media: MediaDisplayItem) -> some View {
