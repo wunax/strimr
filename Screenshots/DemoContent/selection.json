@@ -53,7 +53,7 @@
       "id": "continue",
       "kind": "continueWatching",
       "title": { "en": "Continue Watching", "fr": "Reprendre" },
-      "items": ["dune-part-two", "the-last-of-us", "f1"]
+      "items": ["superman", "dune-part-two", "the-last-of-us", "f1"]
     },
     {
       "id": "next-up",
@@ -81,7 +81,7 @@
     { "id": "oppenheimer", "title": "Oppenheimer", "year": 2023, "type": "movie", "library": "movies" },
     { "id": "sinners", "title": "Sinners", "year": 2025, "type": "movie", "library": "movies" },
     { "id": "f1", "title": "F1", "year": 2025, "type": "movie", "library": "movies", "progress": 0.71 },
-    { "id": "superman", "title": "Superman", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "superman", "title": "Superman", "year": 2025, "type": "movie", "library": "movies", "progress": 0.35 },
     { "id": "mission-impossible-the-final-reckoning", "title": "Mission: Impossible - The Final Reckoning", "year": 2025, "type": "movie", "library": "movies" },
     { "id": "avatar-fire-and-ash", "title": "Avatar: Fire and Ash", "year": 2025, "type": "movie", "library": "movies" },
     { "id": "one-battle-after-another", "title": "One Battle After Another", "year": 2025, "type": "movie", "library": "movies" },
