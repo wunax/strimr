@@ -37,20 +37,20 @@ fi
 IOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:dune-part-two"
-    "details_2=detail:severance"
+    "details_1=detail:oppenheimer"
+    "details_2=detail:slow-horses"
     "player=player"
 )
 IPAD_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:dune-part-two"
+    "details_1=detail:oppenheimer"
     "player=player"
 )
 TVOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details=detail:dune-part-two"
+    "details=detail:oppenheimer"
     "player=player"
 )
 
@@ -101,7 +101,7 @@ capture() {
     xcrun simctl install "$udid" "$app"
     if [[ "$device_dir" != "appletv" ]]; then
         xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
-            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+            --cellularMode active --cellularBars 4 --batteryState discharging --batteryLevel 100
     fi
 
     IFS=',' read -ra languages <<< "$LANGUAGES"

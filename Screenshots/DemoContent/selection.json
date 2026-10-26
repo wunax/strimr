@@ -17,6 +17,16 @@
           "id": "movies-recently-released",
           "title": { "en": "Recently Released", "fr": "Sorties récentes" },
           "items": ["project-hail-mary", "avatar-fire-and-ash", "superman", "mission-impossible-the-final-reckoning", "wicked", "gladiator-ii"]
+        },
+        {
+          "id": "movies-top-drama",
+          "title": { "en": "Top Movies in Drama", "fr": "Meilleurs films : Drame" },
+          "items": ["oppenheimer", "f1", "wicked", "gladiator-ii"]
+        },
+        {
+          "id": "movies-top-unwatched",
+          "title": { "en": "Top Unwatched Movies", "fr": "Meilleurs films non vus" },
+          "items": ["project-hail-mary", "oppenheimer", "avatar-fire-and-ash", "sinners", "inside-out-2", "superman"]
         }
       ]
     },
@@ -88,7 +98,7 @@
     { "id": "arcane", "title": "Arcane", "year": 2021, "type": "series", "library": "shows" },
     { "id": "stranger-things", "title": "Stranger Things", "year": 2016, "type": "series", "library": "shows" },
     { "id": "house-of-the-dragon", "title": "House of the Dragon", "year": 2022, "type": "series", "library": "shows" },
-    { "id": "slow-horses", "title": "Slow Horses", "year": 2022, "type": "series", "library": "shows" }
+    { "id": "slow-horses", "title": "Slow Horses", "year": 2022, "type": "series", "library": "shows", "seasons": [3], "nextUp": "S03E04" }
   ],
   "player": {
     "item": "dune-part-two",

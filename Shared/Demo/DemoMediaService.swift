@@ -22,6 +22,8 @@
 
         private let catalog: DemoCatalog
         private let contentDirectory: URL
+        private var selectedAudioTrackIDs: [String: Int] = [:]
+        private var selectedSubtitleTrackIDs: [String: Int?] = [:]
 
         init(catalog: DemoCatalog, contentDirectory: URL) {
             self.catalog = catalog
@@ -235,19 +237,57 @@
             MediaTrackSelection(
                 itemID: itemID,
                 filePath: nil,
-                audioTracks: [],
-                subtitleTracks: [],
-                selectedAudioTrackID: nil,
-                selectedSubtitleTrackID: nil,
+                audioTracks: Self.audioTracks,
+                subtitleTracks: Self.subtitleTracks,
+                selectedAudioTrackID: selectedAudioTrackIDs[itemID] ?? Self.audioTracks.first?.id,
+                selectedSubtitleTrackID: selectedSubtitleTrackIDs[itemID] ?? nil,
                 versions: [],
                 versionID: nil,
                 defaultVersionID: nil,
             )
         }
 
-        func selectAudioTrack(id _: Int, itemID _: String, versionID _: String?) async throws {}
+        func selectAudioTrack(id: Int, itemID: String, versionID _: String?) async throws {
+            selectedAudioTrackIDs[itemID] = id
+        }
 
-        func selectSubtitleTrack(id _: Int?, itemID _: String, versionID _: String?) async throws {}
+        func selectSubtitleTrack(id: Int?, itemID: String, versionID _: String?) async throws {
+            selectedSubtitleTrackIDs[itemID] = id
+        }
+
+        private static let audioTracks = [
+            track(id: 1, codec: "truehd", language: "en", detail: "Dolby Atmos 7.1", isDefault: true),
+            track(id: 2, codec: "eac3", language: "fr", detail: "Dolby Digital+ 5.1"),
+        ]
+
+        private static let subtitleTracks = [
+            track(id: 3, codec: "srt", language: "en"),
+            track(id: 4, codec: "srt", language: "en", detail: "SDH", isHearingImpaired: true),
+            track(id: 5, codec: "srt", language: "fr"),
+            track(id: 6, codec: "srt", language: "es"),
+        ]
+
+        private static func track(
+            id: Int,
+            codec: String,
+            language: String,
+            detail: String? = nil,
+            isDefault: Bool = false,
+            isHearingImpaired: Bool = false,
+        ) -> MediaTrackMetadata {
+            let name = Locale.current.localizedString(forLanguageCode: language)?.localizedCapitalized ?? language
+            return MediaTrackMetadata(
+                id: id,
+                sourceIndex: id,
+                codec: codec,
+                title: detail,
+                displayTitle: [name, detail].compactMap(\.self).joined(separator: " · "),
+                language: language,
+                isDefault: isDefault,
+                isForced: false,
+                isHearingImpaired: isHearingImpaired,
+            )
+        }
 
         func collectionItems(id _: String) async throws -> [MediaDisplayItem] {
             []
@@ -513,7 +553,7 @@
             remoteSubtitleSearch: false,
             trickplay: false,
             skipSegments: false,
-            downloads: false,
+            downloads: true,
             sharePlay: false,
             topShelf: false,
             syncPlay: false,
