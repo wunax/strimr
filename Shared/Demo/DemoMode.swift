@@ -13,6 +13,9 @@
             UserDefaults.standard.string(forKey: "ScreenshotRoute")
         }
 
+        /// The film position the player timeline shows at the start of the demo clip.
+        @MainActor static let playerOffset: TimeInterval = (try? DemoCatalog.load(server: server))?.player?.pauseAt ?? 0
+
         static var contentDirectory: URL? {
             guard let path = ProcessInfo.processInfo.environment["STRIMR_DEMO_CONTENT"], !path.isEmpty else {
                 return nil
