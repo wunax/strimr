@@ -73,3 +73,6 @@ Screenshots/DemoContent/*
 !Screenshots/DemoContent/selection.json
 !Screenshots/DemoContent/tmdb-ids.json
 !Screenshots/DemoContent/ATTRIBUTION.md
+
+# Python
+__pycache__/

@@ -37,20 +37,20 @@ fi
 IOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:top-gun-maverick"
+    "details_1=detail:blade-runner-2049"
     "details_2=detail:slow-horses"
     "player=player"
 )
 IPAD_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:top-gun-maverick"
+    "details_1=detail:blade-runner-2049"
     "player=player"
 )
 TVOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details=detail:top-gun-maverick"
+    "details=detail:blade-runner-2049"
     "player=player"
 )
 
