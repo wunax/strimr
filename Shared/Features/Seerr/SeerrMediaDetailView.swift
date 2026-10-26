@@ -8,7 +8,7 @@ struct SeerrMediaDetailView: View {
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
     #if os(iOS)
         @State private var isSummaryExpanded = false
-        private let heroHeight: CGFloat = 320
+        @State private var containerSize: CGSize = .zero
     #endif
 
     init(
@@ -28,7 +28,7 @@ struct SeerrMediaDetailView: View {
                     SeerrMediaDetailHeaderSection(
                         viewModel: bindableViewModel,
                         isSummaryExpanded: $isSummaryExpanded,
-                        heroHeight: heroHeight,
+                        heroHeight: LayoutMetrics.detailHeroHeight(for: containerSize),
                         onRequestTap: presentRequestSheet,
                         onManageRequestsTap: presentManageRequestsSheet,
                     )
@@ -67,6 +67,7 @@ struct SeerrMediaDetailView: View {
         }
         #if os(iOS)
         .ignoresSafeArea(edges: .top)
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
         .toolbar(.hidden, for: .tabBar)
         #else
         .navigationTitle(bindableViewModel.media.displayTitle)

@@ -8,7 +8,7 @@ struct MediaDetailView: View {
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false
     @State private var isShowingSubtitleSearch = false
-    private let heroHeight: CGFloat = 320
+    @State private var containerSize: CGSize = .zero
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
     private let onShuffle: (String, MediaKind) -> Void
@@ -42,7 +42,7 @@ struct MediaDetailView: View {
                 MediaDetailHeaderSection(
                     viewModel: bindableViewModel,
                     isSummaryExpanded: $isSummaryExpanded,
-                    heroHeight: heroHeight,
+                    heroHeight: LayoutMetrics.detailHeroHeight(for: containerSize),
                     onPlay: onPlay,
                     onPlayFromStart: onPlayFromStart,
                     onShuffle: onShuffle,
@@ -81,6 +81,7 @@ struct MediaDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
         .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = bindableViewModel.trackRatingKey {

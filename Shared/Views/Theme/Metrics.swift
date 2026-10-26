@@ -49,6 +49,12 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Backdrop height of an iOS detail page: 16:9 of the width so a wide iPad does not crop a 16:9 backdrop, capped so
+    /// the title still shows on the first screen.
+    static func detailHeroHeight(for containerSize: CGSize) -> CGFloat {
+        max(320, min(containerSize.width * 9 / 16, containerSize.height * 0.55))
+    }
+
     /// Corner radius of cards floating over playing video, such as the Up Next prompt.
     static var overlayCornerRadius: CGFloat {
         #if os(tvOS)
