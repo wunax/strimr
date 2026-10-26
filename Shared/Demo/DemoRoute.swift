@@ -80,6 +80,9 @@
             #if os(tvOS)
                 // Launch focus can land on the Home tab after the route switched tabs, which selects Home again.
                 try? await Task.sleep(for: .seconds(1))
+            #elseif os(macOS)
+                // The detail column's navigation stack can still reset its path while the window first lays out.
+                try? await Task.sleep(for: .seconds(1))
             #endif
             let route = DemoMode.route ?? "home"
             let name = route.prefix { $0 != ":" }
