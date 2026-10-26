@@ -12,6 +12,10 @@
                   registry.readyServers.contains(DemoMode.server)
             else { return }
             isApplied = true
+            #if os(tvOS)
+                // Launch focus can land on the Home tab after the route switched tabs, which selects Home again.
+                try? await Task.sleep(for: .seconds(1))
+            #endif
             let route = DemoMode.route ?? "home"
             let name = route.prefix { $0 != ":" }
             let argument = route.contains(":") ? String(route.drop { $0 != ":" }.dropFirst()) : nil
