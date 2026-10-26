@@ -234,12 +234,13 @@ struct PlayerControlsView: View {
             .overlay(alignment: .bottom) {
                 if hasInfoPanel {
                     PlayerInfoPanelDisclosureIndicator()
-                        .offset(y: 26)
+                        .offset(y: 42)
                 }
             }
         }
         .padding(.horizontal, 40)
-        .padding(.vertical, 28)
+        .padding(.top, 28)
+        .padding(.bottom, hasInfoPanel ? 44 : 28)
         .background {
             PlayerControlsBackground()
         }
