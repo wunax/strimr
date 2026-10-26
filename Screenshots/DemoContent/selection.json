@@ -1,0 +1,97 @@
+{
+  "server": {
+    "name": "Strimr Demo"
+  },
+  "libraries": [
+    {
+      "id": "movies",
+      "title": { "en": "Movies", "fr": "Films" },
+      "type": "movie",
+      "recommended": [
+        {
+          "id": "movies-top-rated",
+          "title": { "en": "Top Rated", "fr": "Les mieux notés" },
+          "items": ["oppenheimer", "dune-part-two", "sinners", "inside-out-2", "one-battle-after-another", "f1"]
+        },
+        {
+          "id": "movies-recently-released",
+          "title": { "en": "Recently Released", "fr": "Sorties récentes" },
+          "items": ["project-hail-mary", "avatar-fire-and-ash", "superman", "mission-impossible-the-final-reckoning", "wicked", "gladiator-ii"]
+        }
+      ]
+    },
+    {
+      "id": "shows",
+      "title": { "en": "TV Shows", "fr": "Séries" },
+      "type": "series",
+      "recommended": [
+        {
+          "id": "shows-top-rated",
+          "title": { "en": "Top Rated", "fr": "Les mieux notées" },
+          "items": ["arcane", "shogun", "severance", "the-last-of-us", "andor", "the-bear"]
+        },
+        {
+          "id": "shows-recently-added",
+          "title": { "en": "Recently Added", "fr": "Ajouts récents" },
+          "items": ["fallout", "slow-horses", "house-of-the-dragon", "stranger-things"]
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "id": "continue",
+      "kind": "continueWatching",
+      "title": { "en": "Continue Watching", "fr": "Reprendre" },
+      "items": ["dune-part-two", "the-last-of-us", "f1"]
+    },
+    {
+      "id": "next-up",
+      "kind": "nextUp",
+      "title": { "en": "Next Up", "fr": "À suivre" },
+      "items": ["severance", "shogun", "andor"]
+    },
+    {
+      "id": "recent-movies",
+      "kind": "recentlyAdded",
+      "library": "movies",
+      "title": { "en": "Recently Added in Movies", "fr": "Ajouts récents dans Films" },
+      "items": ["project-hail-mary", "sinners", "f1", "superman", "one-battle-after-another", "avatar-fire-and-ash"]
+    },
+    {
+      "id": "recent-shows",
+      "kind": "recentlyAdded",
+      "library": "shows",
+      "title": { "en": "Recently Added in TV Shows", "fr": "Ajouts récents dans Séries" },
+      "items": ["shogun", "fallout", "severance", "the-bear", "slow-horses", "andor"]
+    }
+  ],
+  "items": [
+    { "id": "dune-part-two", "title": "Dune: Part Two", "year": 2024, "type": "movie", "library": "movies", "progress": 0.42 },
+    { "id": "oppenheimer", "title": "Oppenheimer", "year": 2023, "type": "movie", "library": "movies" },
+    { "id": "sinners", "title": "Sinners", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "f1", "title": "F1", "year": 2025, "type": "movie", "library": "movies", "progress": 0.71 },
+    { "id": "superman", "title": "Superman", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "mission-impossible-the-final-reckoning", "title": "Mission: Impossible - The Final Reckoning", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "avatar-fire-and-ash", "title": "Avatar: Fire and Ash", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "one-battle-after-another", "title": "One Battle After Another", "year": 2025, "type": "movie", "library": "movies" },
+    { "id": "wicked", "title": "Wicked", "year": 2024, "type": "movie", "library": "movies" },
+    { "id": "inside-out-2", "title": "Inside Out 2", "year": 2024, "type": "movie", "library": "movies" },
+    { "id": "gladiator-ii", "title": "Gladiator II", "year": 2024, "type": "movie", "library": "movies" },
+    { "id": "project-hail-mary", "title": "Project Hail Mary", "year": 2026, "type": "movie", "library": "movies" },
+    { "id": "severance", "title": "Severance", "year": 2022, "type": "series", "library": "shows", "seasons": [1, 2], "nextUp": "S02E04" },
+    { "id": "the-last-of-us", "title": "The Last of Us", "year": 2023, "type": "series", "library": "shows", "seasons": [1], "continue": { "episode": "S01E03", "progress": 0.63 } },
+    { "id": "shogun", "title": "Shōgun", "year": 2024, "type": "series", "library": "shows", "seasons": [1], "nextUp": "S01E05" },
+    { "id": "andor", "title": "Andor", "year": 2022, "type": "series", "library": "shows", "seasons": [2], "nextUp": "S02E01" },
+    { "id": "fallout", "title": "Fallout", "year": 2024, "type": "series", "library": "shows" },
+    { "id": "the-bear", "title": "The Bear", "year": 2022, "type": "series", "library": "shows" },
+    { "id": "arcane", "title": "Arcane", "year": 2021, "type": "series", "library": "shows" },
+    { "id": "stranger-things", "title": "Stranger Things", "year": 2016, "type": "series", "library": "shows" },
+    { "id": "house-of-the-dragon", "title": "House of the Dragon", "year": 2022, "type": "series", "library": "shows" },
+    { "id": "slow-horses", "title": "Slow Horses", "year": 2022, "type": "series", "library": "shows" }
+  ],
+  "player": {
+    "item": "dune-part-two",
+    "pauseAt": 4920
+  }
+}
