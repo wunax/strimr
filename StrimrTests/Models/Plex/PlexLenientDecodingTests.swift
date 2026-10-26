@@ -47,4 +47,18 @@ struct PlexLenientDecodingTests {
 
         #expect(container.mediaContainer.metadata == nil)
     }
+
+    @Test func `decodes section hidden sent as a number, a string or missing`() throws {
+        let json = #"""
+        {"MediaContainer": {"size": 3, "Directory": [
+            {"agent": "tv.plex.agents.movie", "key": "1", "type": "movie", "title": "Movies", "hidden": 0},
+            {"agent": "tv.plex.agents.series", "key": "2", "type": "show", "title": "Shows", "hidden": "1"},
+            {"agent": "tv.plex.agents.movie", "key": "3", "type": "movie", "title": "Kids"}
+        ]}}
+        """#
+        let container = try JSONDecoder().decode(PlexSectionMediaContainer.self, from: Data(json.utf8))
+
+        let sections = try #require(container.mediaContainer.directory)
+        #expect(sections.map(\.hidden) == [0, 1, nil])
+    }
 }

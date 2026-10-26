@@ -230,6 +230,19 @@ nonisolated struct PlexSection: Codable, Equatable {
     let title: String
     /// 0 when the library is on the home screen, 1 when excluded from it, 2 when also excluded from search.
     let hidden: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case agent, key, type, title, hidden
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        agent = try container.decode(String.self, forKey: .agent)
+        key = try container.decode(String.self, forKey: .key)
+        type = try container.decode(PlexItemType.self, forKey: .type)
+        title = try container.decode(String.self, forKey: .title)
+        hidden = container.decodePlexIntIfPresent(forKey: .hidden)
+    }
 }
 
 nonisolated struct PlexSectionItemMeta: Codable, Equatable {
