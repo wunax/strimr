@@ -558,6 +558,12 @@ final class ServerRegistry {
     }
 
     private func connectJellyfin(_ server: ServerIdentity) async {
+        #if DEBUG
+            if DemoMode.isEnabled {
+                markDemoReady(server)
+                return
+            }
+        #endif
         guard let entry = entries[server],
               case let .jellyfin(account)? = accountStore.account(id: entry.link.accountID)
         else { return }
@@ -636,6 +642,24 @@ final class ServerRegistry {
         publishServices()
         resumeReadyWaiters()
     }
+
+    #if DEBUG
+        /// No availability probe and no offline activation: the demo server has no address, and its content must not
+        /// reach the offline store.
+        private func markDemoReady(_ server: ServerIdentity) {
+            guard var entry = entries[server] else { return }
+            do {
+                entry.session.services = try DemoMediaServices.make(server: server)
+            } catch {
+                print("Demo catalog failed to load: \(error)")
+                markUnreachable(server)
+                return
+            }
+            entry.session.status = .ready
+            entries[server] = entry
+            resumeReadyWaiters()
+        }
+    #endif
 
     private func markUnreachable(_ server: ServerIdentity) {
         guard var entry = entries[server] else { return }

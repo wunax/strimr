@@ -1203,6 +1203,11 @@ struct PlayerView: View {
             shouldResumeAfterMediaLoad = false
             playerController.resume()
         }
+        #if DEBUG
+            if DemoMode.isEnabled {
+                showControls(temporarily: false)
+            }
+        #endif
     }
 
     private func dismissPlayer(force: Bool = false) {

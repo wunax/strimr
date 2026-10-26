@@ -103,6 +103,11 @@
 		E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Demo/DemoCatalog.swift,
+				Demo/DemoMediaService.swift,
+				Demo/DemoMode.swift,
+				Demo/DemoRoute.swift,
+				Demo/DemoStores.swift,
 				Domain/Aggregated.swift,
 				Domain/CatalogModels.swift,
 				Domain/LiveTVModels.swift,

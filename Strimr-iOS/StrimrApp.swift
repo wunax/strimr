@@ -14,17 +14,33 @@ struct StrimrApp: App {
 
     init() {
         let favoritesStore = FavoritesStore()
-        let settingsManager = SettingsManager()
+        #if DEBUG
+            let demoStores = DemoStores.makeIfEnabled()
+            let settingsManager = demoStores.map { SettingsManager(userDefaults: $0.defaults) } ?? SettingsManager()
+        #else
+            let settingsManager = SettingsManager()
+        #endif
         let trackSelectionCoordinator = TrackSelectionCoordinator(
             store: TrackSelectionStore(),
             settingsManager: settingsManager,
         )
-        let sessionManager = SessionManager(
-            settingsManager: settingsManager,
-            favoritesStore: favoritesStore,
-            trackSelectionCoordinator: trackSelectionCoordinator,
-            versionSelectionStore: MediaVersionSelectionStore(),
-        )
+        #if DEBUG
+            let sessionManager = SessionManager(
+                settingsManager: settingsManager,
+                favoritesStore: favoritesStore,
+                trackSelectionCoordinator: trackSelectionCoordinator,
+                versionSelectionStore: MediaVersionSelectionStore(),
+                accountStore: demoStores?.accountStore,
+                profileStore: demoStores?.profileStore,
+            )
+        #else
+            let sessionManager = SessionManager(
+                settingsManager: settingsManager,
+                favoritesStore: favoritesStore,
+                trackSelectionCoordinator: trackSelectionCoordinator,
+                versionSelectionStore: MediaVersionSelectionStore(),
+            )
+        #endif
         let downloadManager = DownloadManager(settingsManager: settingsManager)
         _sessionManager = State(initialValue: sessionManager)
         _settingsManager = State(initialValue: settingsManager)
@@ -33,7 +49,11 @@ struct StrimrApp: App {
             sessionManager: sessionManager,
             settingsManager: settingsManager,
         ))
-        _seerrStore = State(initialValue: SeerrStore())
+        #if DEBUG
+            _seerrStore = State(initialValue: SeerrStore(userDefaults: demoStores?.defaults ?? .standard))
+        #else
+            _seerrStore = State(initialValue: SeerrStore())
+        #endif
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
         ))

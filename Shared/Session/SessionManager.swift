@@ -152,6 +152,13 @@ final class SessionManager {
     func hydrate() async {
         status = .hydrating
         loadingPhase = .preparing
+        #if DEBUG
+            // Unsigned simulator builds cannot read the Keychain, and the demo stores must stay apart from real data.
+            if DemoMode.isEnabled {
+                await resumeProfile()
+                return
+            }
+        #endif
         let outcome = await makeMigration().run()
         guard outcome != .failed else {
             status = .migrationFailed

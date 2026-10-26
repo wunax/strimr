@@ -175,6 +175,9 @@ struct MainTabView: View {
             await homeViewModel.syncServers()
             await libraryViewModel.syncServers()
             await refreshLiveTVAvailability()
+            #if DEBUG
+                await DemoRoute.apply(coordinator: coordinator, registry: registry)
+            #endif
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
