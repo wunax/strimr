@@ -301,10 +301,10 @@ struct PlayerView: View {
                     viewModel.handlePlaybackState(isPaused: playerController.isPaused, isBuffering: isBuffering)
                 }
                 .onChange(of: playerController.position) { _, position in
-                    if !isScrubbing {
-                        scrubPosition = position
-                    }
                     viewModel.handlePlaybackPosition(position, isScrubbing: isScrubbing)
+                    if !isScrubbing {
+                        scrubPosition = viewModel.position
+                    }
                     handleAutomaticMarkerSkipIfNeeded()
                     sleepTimer.handlePosition(
                         position,
@@ -1401,7 +1401,11 @@ struct PlayerView: View {
                 shouldResumeAfterMediaLoad = false
                 playerController.resume()
             }
-            showControls(temporarily: true)
+            #if DEBUG
+                showControls(temporarily: !DemoMode.isEnabled)
+            #else
+                showControls(temporarily: true)
+            #endif
         }
         playerController.onPlaybackEnded = {
             Task { await handlePlaybackEnded() }

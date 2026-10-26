@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Captures App Store screenshots from the demo catalog (see doc_agents/mode-demo-screenshots-spec.md).
 #
-# Usage: scripts/screenshots.sh [--platform iphone|ipad|duo|ios|tvos|all] [--languages en,fr] [--delay 6] [--skip-build]
+# Usage: scripts/screenshots.sh [--platform iphone|ipad|duo|ios|tvos|mac|all] [--languages en,fr] [--delay 6]
+#                               [--skip-build]
 # `ios` covers the iPhone, the iPad and the iPhone Duo. Screenshots land in Screenshots/<device>/<language>/.
-# This boots the simulators listed in AGENTS.md.
+# This boots the simulators listed in AGENTS.md. `mac` runs the app on this Mac, which must stay unused meanwhile.
 
 set -euo pipefail
 
@@ -45,6 +46,12 @@ IPAD_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
     "details_1=detail:blade-runner-2049"
+    "player=player"
+)
+MAC_SHOTS=(
+    "home=home"
+    "library_recommended=library:movies"
+    "details=detail:blade-runner-2049"
     "player=player"
 )
 TVOS_SHOTS=(
@@ -129,7 +136,7 @@ capture() {
 }
 
 wants() {
-    [[ "$PLATFORM" == "$1" || "$PLATFORM" == "all" || ("$PLATFORM" == "ios" && "$1" != "tvos") ]]
+    [[ "$PLATFORM" == "$1" || "$PLATFORM" == "all" || ("$PLATFORM" == "ios" && "$1" =~ ^(iphone|ipad|duo)$) ]]
 }
 
 IOS_APP="$DERIVED/Build/Products/Debug-iphonesimulator/Strimr-iOS.app"
@@ -151,6 +158,79 @@ if wants tvos; then
     build Strimr-tvOS "generic/platform=tvOS Simulator" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
     capture appletv appletv "$(simulator_udid "Apple TV 4K (3rd generation)" "tvOS-27-0")" \
         "$DERIVED/Build/Products/Debug-appletvsimulator/Strimr-tvOS.app" "${TVOS_SHOTS[@]}"
+fi
+
+if wants mac; then
+    MAC_APP="$DERIVED/Build/Products/Debug/Strimr.app"
+    MAC_TOOLS="$REPO/build/screenshots"
+    mkdir -p "$MAC_TOOLS"
+    if [[ $SKIP_BUILD == 0 ]]; then
+        # The sandboxed app may only read the demo catalog through this read-only exception, kept out of the project.
+        python3 -I - "$REPO/Strimr-macOS/Strimr-macOS.entitlements" "$MAC_TOOLS/Strimr-macOS-demo.entitlements" \
+            "$CONTENT/" <<'PYTHON'
+import plistlib, sys
+with open(sys.argv[1], "rb") as source:
+    entitlements = plistlib.load(source)
+entitlements["com.apple.security.temporary-exception.files.absolute-path.read-only"] = [sys.argv[3]]
+with open(sys.argv[2], "wb") as target:
+    plistlib.dump(entitlements, target)
+PYTHON
+        echo "Building Strimr-macOS"
+        xcodebuild -project "$REPO/Strimr.xcodeproj" -scheme Strimr-macOS -configuration Debug \
+            -derivedDataPath "$DERIVED" -clonedSourcePackagesDirPath "$PACKAGES" -destination "platform=macOS" \
+            CODE_SIGN_ENTITLEMENTS="$MAC_TOOLS/Strimr-macOS-demo.entitlements" build -quiet
+        cat > "$MAC_TOOLS/window-bounds.swift" <<'SWIFT'
+import CoreGraphics
+import Foundation
+
+// Prints "x,y,width,height" of the frontmost window of the process, for screencapture -R.
+let pid = Int32(CommandLine.arguments[1])!
+let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+    as? [[String: Any]] ?? []
+for window in windows where (window[kCGWindowOwnerPID as String] as? Int32) == pid
+    && (window[kCGWindowLayer as String] as? Int) == 0
+{
+    let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] ?? [:]
+    guard let height = bounds["Height"], height > 100 else { continue }
+    print([bounds["X"], bounds["Y"], bounds["Width"], height].map { "\(Int($0 ?? 0))" }.joined(separator: ","))
+    exit(0)
+}
+exit(1)
+SWIFT
+        swiftc -O "$MAC_TOOLS/window-bounds.swift" -o "$MAC_TOOLS/window-bounds"
+    fi
+
+    mac_binary="$MAC_APP/Contents/MacOS/Strimr"
+    IFS=',' read -ra languages <<< "$LANGUAGES"
+    for language in "${languages[@]}"; do
+        output="$REPO/Screenshots/macos/$language"
+        mkdir -p "$output"
+        for shot in "${MAC_SHOTS[@]}"; do
+            name="${shot%%=*}" route="${shot#*=}"
+            echo "  macos $language $name ($route)"
+            pkill -f "$mac_binary" 2>/dev/null || true
+            sleep 1
+            open -n --env STRIMR_DEMO_CONTENT="$CONTENT" "$MAC_APP" --args \
+                -ScreenshotMode -ScreenshotRoute "$route" \
+                -AppleLanguages "($language)" -AppleLocale "$(locale_for "$language")" \
+                -ApplePersistenceIgnoreState YES -AppleShowScrollBars WhenScrolling \
+                -strimr.diagnostics.errorReporting NO
+            pid=""
+            for _ in {1..20}; do
+                pid="$(pgrep -n -f "$mac_binary" || true)"
+                [[ -n "$pid" ]] && break
+                sleep 0.5
+            done
+            sleep 2
+            # Launched in the background, the app opens its window only once activated. Opening it again before it
+            # runs would start a second instance without the arguments.
+            open "$MAC_APP"
+            sleep "$DELAY"
+            bounds="$("$MAC_TOOLS/window-bounds" "$pid")"
+            screencapture -x -R"$bounds" "$output/macos_$name.png"
+        done
+    done
+    pkill -f "$mac_binary" 2>/dev/null || true
 fi
 
 echo "Done"
