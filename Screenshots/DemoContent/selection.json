@@ -89,6 +89,7 @@
     { "id": "inside-out-2", "title": "Inside Out 2", "year": 2024, "type": "movie", "library": "movies" },
     { "id": "gladiator-ii", "title": "Gladiator II", "year": 2024, "type": "movie", "library": "movies" },
     { "id": "project-hail-mary", "title": "Project Hail Mary", "year": 2026, "type": "movie", "library": "movies" },
+    { "id": "top-gun-maverick", "title": "Top Gun: Maverick", "year": 2022, "type": "movie", "library": "movies" },
     { "id": "severance", "title": "Severance", "year": 2022, "type": "series", "library": "shows", "seasons": [1, 2], "nextUp": "S02E04" },
     { "id": "the-last-of-us", "title": "The Last of Us", "year": 2023, "type": "series", "library": "shows", "seasons": [1], "continue": { "episode": "S01E03", "progress": 0.63 } },
     { "id": "shogun", "title": "Shōgun", "year": 2024, "type": "series", "library": "shows", "seasons": [1], "nextUp": "S01E05" },

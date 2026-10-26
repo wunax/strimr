@@ -37,20 +37,20 @@ fi
 IOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:oppenheimer"
+    "details_1=detail:top-gun-maverick"
     "details_2=detail:slow-horses"
     "player=player"
 )
 IPAD_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details_1=detail:oppenheimer"
+    "details_1=detail:top-gun-maverick"
     "player=player"
 )
 TVOS_SHOTS=(
     "home=home"
     "library_recommended=library:movies"
-    "details=detail:oppenheimer"
+    "details=detail:top-gun-maverick"
     "player=player"
 )
 
@@ -111,6 +111,11 @@ capture() {
         for shot in "${shots[@]}"; do
             local name="${shot%%=*}" route="${shot#*=}"
             echo "  $prefix $language $name ($route)"
+            # tvOS sends an app relaunched right after a forced quit back to the home screen.
+            if [[ "$device_dir" == "appletv" ]]; then
+                xcrun simctl terminate "$udid" "$bundle_id" 2>/dev/null || true
+                sleep 2
+            fi
             SIMCTL_CHILD_STRIMR_DEMO_CONTENT="$CONTENT" xcrun simctl launch --terminate-running-process \
                 "$udid" "$bundle_id" \
                 -ScreenshotMode -ScreenshotRoute "$route" \
