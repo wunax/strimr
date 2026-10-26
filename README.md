@@ -114,10 +114,8 @@ Beta versions are available through [TestFlight](https://testflight.apple.com/jo
   <summary>macOS</summary>
   <p>
     <img src="Screenshots/macos/macos_home.jpg" alt="macOS Home" width="360" />
-    <img src="Screenshots/macos/macos_library_explore.jpg" alt="macOS Library Explore" width="360" />
     <img src="Screenshots/macos/macos_library_recommended.jpg" alt="macOS Library Recommended" width="360" />
     <img src="Screenshots/macos/macos_details.jpg" alt="macOS Details" width="360" />
     <img src="Screenshots/macos/macos_player.jpg" alt="macOS Player" width="360" />
-    <img src="Screenshots/macos/macos_search.jpg" alt="macOS Search" width="360" />
   </p>
 </details>
