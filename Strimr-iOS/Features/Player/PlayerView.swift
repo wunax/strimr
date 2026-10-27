@@ -408,7 +408,6 @@ struct PlayerView: View {
                 bottomPadding: controlsVisible && !layoutMode.isTabletop ? 120 : 48,
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
-                assReloadSignal: playerController.assReloadSignal,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()

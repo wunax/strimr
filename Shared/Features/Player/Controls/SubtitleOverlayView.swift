@@ -17,7 +17,6 @@ struct SubtitleOverlayView: View {
     let bottomPadding: CGFloat
     let videoSize: CGSize?
     let assRenderer: AssSubtitlesRenderer?
-    let assReloadSignal: PassthroughSubject<Void, Never>
     let activeSubtitleCodec: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,13 +25,9 @@ struct SubtitleOverlayView: View {
         if let assRenderer {
             GeometryReader { geometry in
                 let rect = videoRect(in: geometry.size)
-                ASSRenderedSubtitles(
-                    renderer: assRenderer,
-                    reloadSignal: assReloadSignal,
-                    currentOffset: currentTime,
-                )
-                .frame(width: rect.width, height: rect.height)
-                .position(x: rect.midX, y: rect.midY)
+                ASSRenderedSubtitles(renderer: assRenderer)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
             }
             .allowsHitTesting(false)
         } else {
@@ -237,41 +232,29 @@ struct SubtitleOverlayView: View {
 
 private struct ASSRenderedSubtitles: PlatformViewRepresentable {
     let renderer: AssSubtitlesRenderer
-    let reloadSignal: PassthroughSubject<Void, Never>
-    let currentOffset: Double
 
     #if canImport(UIKit)
         func makeUIView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer, reloadSignal: reloadSignal)
+            ASSFrameHostView(renderer: renderer)
         }
 
-        func updateUIView(_ view: ASSFrameHostView, context _: Context) {
-            view.currentOffset = currentOffset
-        }
+        func updateUIView(_: ASSFrameHostView, context _: Context) {}
     #elseif canImport(AppKit)
         func makeNSView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer, reloadSignal: reloadSignal)
+            ASSFrameHostView(renderer: renderer)
         }
 
-        func updateNSView(_ view: ASSFrameHostView, context _: Context) {
-            view.currentOffset = currentOffset
-        }
+        func updateNSView(_: ASSFrameHostView, context _: Context) {}
     #endif
 }
 
 private final class ASSFrameHostView: PlatformView {
-    var currentOffset = 0.0
-
     private let renderer: AssSubtitlesRenderer
     private let imageView = PlatformImageView()
     private var lastRenderBounds = CGRect.zero
     private var cancellables: Set<AnyCancellable> = []
-    private var suppressNilDeadline = Date.distantPast
-    private var hideWorkItem: DispatchWorkItem?
 
-    private static let reloadSuppressWindow: TimeInterval = 0.5
-
-    init(renderer: AssSubtitlesRenderer, reloadSignal: PassthroughSubject<Void, Never>) {
+    init(renderer: AssSubtitlesRenderer) {
         self.renderer = renderer
         super.init(frame: .zero)
 
@@ -284,11 +267,6 @@ private final class ASSFrameHostView: PlatformView {
         #endif
 
         addSubview(imageView)
-        reloadSignal
-            .sink { [weak self] in
-                self?.suppressNilDeadline = Date().addingTimeInterval(Self.reloadSuppressWindow)
-            }
-            .store(in: &cancellables)
         renderer.framesPublisher()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] image in
@@ -344,28 +322,19 @@ private final class ASSFrameHostView: PlatformView {
     }
 
     private func handleFrameChanged(_ image: ProcessedImage?) {
-        if let image {
-            hideWorkItem?.cancel()
-            hideWorkItem = nil
-            suppressNilDeadline = .distantPast
-            lastRenderBounds = bounds
-            imageView.frame = imageFrame(image.imageRect)
-            #if canImport(UIKit)
-                imageView.image = PlatformImage(cgImage: image.image)
-            #elseif canImport(AppKit)
-                imageView.image = PlatformImage(cgImage: image.image, size: image.imageRect.size)
-            #endif
-            imageView.isHidden = false
+        guard let image else {
+            imageView.isHidden = true
+            imageView.image = nil
             return
         }
-
-        let remaining = suppressNilDeadline.timeIntervalSinceNow
-        guard remaining > 0 else {
-            hideNow()
-            return
-        }
-        guard hideWorkItem == nil else { return }
-        scheduleSafetyHide(after: remaining)
+        lastRenderBounds = bounds
+        imageView.frame = imageFrame(image.imageRect)
+        #if canImport(UIKit)
+            imageView.image = PlatformImage(cgImage: image.image)
+        #elseif canImport(AppKit)
+            imageView.image = PlatformImage(cgImage: image.image, size: image.imageRect.size)
+        #endif
+        imageView.isHidden = false
     }
 
     private func imageFrame(_ rect: CGRect) -> CGRect {
@@ -379,46 +348,6 @@ private final class ASSFrameHostView: PlatformView {
                 height: rect.height,
             )
         #endif
-    }
-
-    private func scheduleSafetyHide(after delay: TimeInterval) {
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            hideWorkItem = nil
-            let remaining = suppressNilDeadline.timeIntervalSinceNow
-            if remaining > 0 {
-                scheduleSafetyHide(after: remaining)
-            } else if !renderer.dialogues(at: currentOffset).isEmpty {
-                suppressNilDeadline = .distantPast
-                scheduleEndWatch()
-            } else {
-                hideNow()
-            }
-        }
-        hideWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-    }
-
-    private func scheduleEndWatch() {
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            hideWorkItem = nil
-            if renderer.dialogues(at: currentOffset).isEmpty {
-                hideNow()
-            } else {
-                scheduleEndWatch()
-            }
-        }
-        hideWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
-    }
-
-    private func hideNow() {
-        hideWorkItem?.cancel()
-        hideWorkItem = nil
-        imageView.isHidden = true
-        imageView.image = nil
-        suppressNilDeadline = .distantPast
     }
 }
 

@@ -6,7 +6,6 @@ import SwiftAssRenderer
 @MainActor
 final class ASSRenderCoordinator {
     private(set) var renderer: AssSubtitlesRenderer?
-    let reloadSignal = PassthroughSubject<Void, Never>()
 
     var onRendererChanged: ((AssSubtitlesRenderer?) -> Void)?
 
@@ -122,7 +121,6 @@ final class ASSRenderCoordinator {
         lastReloadAt = now
         pendingEvents = false
         earliestPendingStart = .infinity
-        reloadSignal.send()
         renderer.reloadTrack(content: builder.script())
     }
 }

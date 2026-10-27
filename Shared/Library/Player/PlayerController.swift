@@ -76,10 +76,6 @@ final class PlayerController {
         )
     }
 
-    var assReloadSignal: PassthroughSubject<Void, Never> {
-        assCoordinator.reloadSignal
-    }
-
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
 

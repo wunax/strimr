@@ -378,7 +378,6 @@ struct PlayerView: View {
                 bottomPadding: subtitleBottomPadding,
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
-                assReloadSignal: playerController.assReloadSignal,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
             )
             .ignoresSafeArea()
