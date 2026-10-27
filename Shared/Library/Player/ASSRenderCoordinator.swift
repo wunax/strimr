@@ -19,7 +19,6 @@ final class ASSRenderCoordinator {
     private var lastOffset = 0.0
     private var lastSourceTime = 0.0
     private var subtitleDelaySeconds = 0.0
-    private var activationGeneration = 0
 
     private let reloadInterval: TimeInterval = 5
     private let imminentLeadSeconds = 10.0
@@ -29,14 +28,10 @@ final class ASSRenderCoordinator {
         self.engine = engine
     }
 
-    func activate(header: String?, mediaIdentifier: String) {
+    func activate(header: String?) {
         deactivate()
         guard let header, !header.isEmpty else { return }
 
-        activationGeneration += 1
-        let generation = activationGeneration
-        let fontsDirectory = Self.fontsDirectory(mediaIdentifier: mediaIdentifier)
-        let fonts = engine.fontAttachments
         builder = ASSScriptBuilder(header: header)
 
         engine.$subtitleCues
@@ -55,22 +50,7 @@ final class ASSRenderCoordinator {
             }
             .store(in: &cancellables)
 
-        let fontsReady = FileManager.default.fileExists(atPath: fontsDirectory.path)
-            && Self.allFontsPresent(fonts, in: fontsDirectory)
-        if fontsReady {
-            installRenderer(fontsDirectory: fontsDirectory)
-        } else {
-            Task { [weak self] in
-                let preparationError = await Task.detached(priority: .userInitiated) {
-                    Self.prepareFontDirectory(fonts, at: fontsDirectory)
-                }.value
-                guard let self, activationGeneration == generation else { return }
-                if let preparationError {
-                    ErrorReporter.capture(preparationError)
-                }
-                installRenderer(fontsDirectory: fontsDirectory)
-            }
-        }
+        installRenderer(fonts: engine.fontAttachments)
     }
 
     /// Positive shows subtitles later. Pushed right away so a paused picture follows the change.
@@ -82,7 +62,6 @@ final class ASSRenderCoordinator {
     }
 
     func deactivate() {
-        activationGeneration += 1
         cancellables.removeAll()
         renderer?.freeTrack()
         renderer = nil
@@ -99,8 +78,13 @@ final class ASSRenderCoordinator {
         flushPendingEventsIfDue()
     }
 
-    private func installRenderer(fontsDirectory: URL) {
-        let fontConfig = FontConfig(fontsPath: fontsDirectory, fontProvider: .coreText)
+    private func installRenderer(fonts: [FontAttachment]) {
+        // With CoreText, `fontsPath` is never scanned: attached fonts only reach libass from memory.
+        let fontConfig = FontConfig(
+            fontsPath: FileManager.default.temporaryDirectory,
+            fontProvider: .coreText,
+            embeddedFonts: fonts.map { EmbeddedFont(name: $0.filename, data: $0.data) },
+        )
         let renderer = AssSubtitlesRenderer(fontConfig: fontConfig)
         renderer.setTimeOffset(lastOffset)
         self.renderer = renderer
@@ -140,59 +124,5 @@ final class ASSRenderCoordinator {
         earliestPendingStart = .infinity
         reloadSignal.send()
         renderer.reloadTrack(content: builder.script())
-    }
-
-    private static func fontsDirectory(mediaIdentifier: String) -> URL {
-        let safeIdentifier = (mediaIdentifier as NSString).lastPathComponent
-        let directoryName = safeIdentifier.isEmpty || safeIdentifier == ".." ? "media" : safeIdentifier
-        return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("ass-fonts", isDirectory: true)
-            .appendingPathComponent(directoryName, isDirectory: true)
-    }
-
-    private nonisolated static func allFontsPresent(_ fonts: [FontAttachment], in directory: URL) -> Bool {
-        fonts.allSatisfy { font in
-            let safeName = (font.filename as NSString).lastPathComponent
-            guard !safeName.isEmpty else { return true }
-            return FileManager.default.fileExists(atPath: directory.appendingPathComponent(safeName).path)
-        }
-    }
-
-    private nonisolated static func prepareFontDirectory(
-        _ fonts: [FontAttachment],
-        at directory: URL,
-    ) -> ASSFontCacheError? {
-        do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        } catch {
-            return .createDirectoryFailed
-        }
-
-        for font in fonts {
-            let safeName = (font.filename as NSString).lastPathComponent
-            guard !safeName.isEmpty else { continue }
-            let url = directory.appendingPathComponent(safeName)
-            guard !FileManager.default.fileExists(atPath: url.path) else { continue }
-            do {
-                try font.data.write(to: url, options: .atomic)
-            } catch {
-                return .writeAttachmentFailed
-            }
-        }
-        return nil
-    }
-}
-
-enum ASSFontCacheError: LocalizedError, Sendable {
-    case createDirectoryFailed
-    case writeAttachmentFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .createDirectoryFailed:
-            "Unable to create the ASS subtitle font cache."
-        case .writeAttachmentFailed:
-            "Unable to write an embedded ASS subtitle font."
-        }
     }
 }
