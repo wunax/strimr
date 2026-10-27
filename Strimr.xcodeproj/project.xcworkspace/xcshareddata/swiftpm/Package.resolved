@@ -7,7 +7,7 @@
       "location" : "https://github.com/wunax/AetherEngine",
       "state" : {
         "branch" : "main",
-        "revision" : "11d32d04fc903b5040f2a8388cee9414e56b8803"
+        "revision" : "b7503ded6352dde37b5080e2de9c737a81aa9a3c"
       }
     },
     {
@@ -79,7 +79,7 @@
       "location" : "https://github.com/wunax/swift-ass-renderer",
       "state" : {
         "branch" : "main",
-        "revision" : "763346cf1f6c01c72f0d8bd3ebc4ba9ab5d9621b"
+        "revision" : "15edc6c434e9b6dd757661a3b108c6638b9add90"
       }
     },
     {

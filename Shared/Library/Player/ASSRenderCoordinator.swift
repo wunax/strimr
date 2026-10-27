@@ -1,7 +1,14 @@
 import AetherEngine
 import Combine
 import Foundation
+import QuartzCore
 import SwiftAssRenderer
+
+#if canImport(UIKit)
+    import UIKit
+#elseif canImport(AppKit)
+    import AppKit
+#endif
 
 @MainActor
 final class ASSRenderCoordinator {
@@ -15,8 +22,8 @@ final class ASSRenderCoordinator {
     private var lastReloadAt = Date.distantPast
     private var pendingEvents = false
     private var earliestPendingStart = Double.infinity
+    private var frameTicker: ASSFrameTicker?
     private var lastOffset = 0.0
-    private var lastSourceTime = 0.0
     private var subtitleDelaySeconds = 0.0
 
     private let reloadInterval: TimeInterval = 5
@@ -40,16 +47,20 @@ final class ASSRenderCoordinator {
             }
             .store(in: &cancellables)
 
+        // Fallback for when no display link ticks (no screen on macOS).
         engine.clock.$sourceTime
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] time in
-                guard let self else { return }
-                lastSourceTime = time
-                applyTimeOffset()
+            .sink { [weak self] _ in
+                self?.applyTimeOffset()
             }
             .store(in: &cancellables)
 
         installRenderer(fonts: engine.fontAttachments)
+        frameTicker = ASSFrameTicker { [weak self] in
+            guard let self else { return false }
+            applyTimeOffset()
+            return true
+        }
     }
 
     /// Positive shows subtitles later. Pushed right away so a paused picture follows the change.
@@ -61,6 +72,8 @@ final class ASSRenderCoordinator {
     }
 
     func deactivate() {
+        frameTicker?.invalidate()
+        frameTicker = nil
         cancellables.removeAll()
         renderer?.freeTrack()
         renderer = nil
@@ -72,8 +85,16 @@ final class ASSRenderCoordinator {
     }
 
     private func applyTimeOffset() {
-        lastOffset = lastSourceTime - subtitleDelaySeconds
-        renderer?.setTimeOffset(lastOffset)
+        let sourceTime = ASSPresentationClock.sourceSeconds(
+            presented: engine.presentedSourceTime,
+            published: engine.clock.sourceTime,
+            followsPicture: engine.clock.sourceTimeFollowsPicture,
+        )
+        let offset = sourceTime - subtitleDelaySeconds
+        if offset != lastOffset {
+            lastOffset = offset
+            renderer?.setTimeOffset(offset)
+        }
         flushPendingEventsIfDue()
     }
 
@@ -122,5 +143,51 @@ final class ASSRenderCoordinator {
         pendingEvents = false
         earliestPendingStart = .infinity
         renderer.reloadTrack(content: builder.script())
+    }
+}
+
+/// Picks the time libass renders at: the presenting clock read now, or the published clock, which
+/// only ticks at 4 to 10 Hz and would let a line outlive a scene cut by several frames.
+enum ASSPresentationClock {
+    /// Further apart than this, the presenting clock is mid-seek or not armed yet rather than ahead of a coarse tick.
+    static let maxDriftSeconds = 1.0
+
+    static func sourceSeconds(presented: Double?, published: Double, followsPicture: Bool) -> Double {
+        guard followsPicture, let presented, abs(presented - published) <= maxDriftSeconds else {
+            return published
+        }
+        return presented
+    }
+}
+
+/// Ticks on display refresh, capped near film frame rates since a subtitle frame never needs more.
+@MainActor
+private final class ASSFrameTicker: NSObject {
+    private var displayLink: CADisplayLink?
+    /// Returns false once its owner is gone, which stops the link.
+    private let onTick: () -> Bool
+
+    init?(onTick: @escaping () -> Bool) {
+        self.onTick = onTick
+        super.init()
+        #if canImport(UIKit)
+            let link = CADisplayLink(target: self, selector: #selector(tick))
+        #elseif canImport(AppKit)
+            guard let link = NSScreen.main?.displayLink(target: self, selector: #selector(tick)) else { return nil }
+        #endif
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 20, maximum: 30, preferred: 30)
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+    }
+
+    func invalidate() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+
+    @objc private func tick() {
+        if !onTick() {
+            invalidate()
+        }
     }
 }
