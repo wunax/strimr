@@ -87,6 +87,7 @@ struct PlayerViewModelTrackPreferenceTests {
             kind: kind,
             isExternal: false,
             title: title,
+            name: nil,
             language: language,
             codec: codec,
             isDefault: false,

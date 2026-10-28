@@ -191,13 +191,13 @@ struct DownloadOptionsSections: View {
                 } else {
                     Picker("downloads.options.audio", selection: $model.selectedAudioID) {
                         ForEach(model.audioTracks) { track in
-                            Text(track.displayTitle).tag(track.id)
+                            Text(track.summaryTitle).tag(track.id)
                         }
                     }
                     Picker("downloads.options.subtitles", selection: $model.selectedSubtitleID) {
                         Text("downloads.options.subtitles.off").tag(Int?.none)
                         ForEach(model.subtitleTracks) { track in
-                            Text(track.displayTitle).tag(track.id)
+                            Text(track.summaryTitle).tag(track.id)
                         }
                     }
                 }

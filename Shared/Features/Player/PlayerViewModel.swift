@@ -286,7 +286,7 @@ final class PlayerViewModel {
             id: Int(track.id) ?? track.sourceIndex,
             sourceIndex: track.sourceIndex,
             codec: track.codec ?? "",
-            title: nil,
+            title: track.name,
             displayTitle: track.title,
             language: track.language,
             isDefault: track.isDefault,

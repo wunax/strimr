@@ -1183,7 +1183,8 @@ final class MediaDetailViewModel {
 
     private func selectedTrackTitle(in tracks: [MediaTrackMetadata], id: Int?) -> String? {
         guard let id, let stream = tracks.first(where: { $0.id == id }) else { return nil }
-        return stream.displayTitle.isEmpty ? stream.language ?? stream.codec.uppercased() : stream.displayTitle
+        return stream.displayTitle.isEmpty ? stream.title ?? stream.language ?? stream.codec.uppercased() : stream
+            .summaryTitle
     }
 
     private func playbackFallback(

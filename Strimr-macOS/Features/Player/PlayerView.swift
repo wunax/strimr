@@ -834,7 +834,7 @@ struct PlayerView: View {
                             }
                         }
                     } label: {
-                        Text(playerTrackTitle(track))
+                        playerTrackLabel(track)
                     }
                 }
             }
@@ -883,7 +883,7 @@ struct PlayerView: View {
                         }
                     }
                 } label: {
-                    Text(playerTrackTitle(track))
+                    playerTrackLabel(track)
                 }
             }
             if viewModel.canSearchSubtitles {
@@ -976,11 +976,16 @@ struct PlayerView: View {
         Toggle(isOn: Binding(get: { isSelected }, set: { _ in action() }), label: label)
     }
 
-    private func playerTrackTitle(_ track: PlayerTrack) -> String {
-        PlaybackSettingsTrack(
+    @ViewBuilder
+    private func playerTrackLabel(_ track: PlayerTrack) -> some View {
+        let settingsTrack = PlaybackSettingsTrack(
             track: track,
             metadata: viewModel.trackMetadata(forID: track.providerStreamID),
-        ).title
+        )
+        Text(settingsTrack.title)
+        if let subtitle = settingsTrack.subtitle {
+            Text(subtitle)
+        }
     }
 
     private var speedMenu: some View {

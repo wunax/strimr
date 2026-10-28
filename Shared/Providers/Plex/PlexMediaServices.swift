@@ -720,6 +720,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 kind: kind,
                 isExternal: stream.key != nil,
                 title: stream.displayTitle,
+                name: stream.title,
                 language: stream.language,
                 codec: stream.codec,
                 isDefault: stream.selected == true,
