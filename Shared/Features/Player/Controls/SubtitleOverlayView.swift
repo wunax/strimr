@@ -25,7 +25,10 @@ struct SubtitleOverlayView: View {
         if let assRenderer {
             GeometryReader { geometry in
                 let rect = videoRect(in: geometry.size)
+                // A track switch swaps renderers within one update, so the host view must be rebuilt
+                // rather than kept subscribed to the freed one.
                 ASSRenderedSubtitles(renderer: assRenderer)
+                    .id(ObjectIdentifier(assRenderer))
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: rect.midY)
             }
