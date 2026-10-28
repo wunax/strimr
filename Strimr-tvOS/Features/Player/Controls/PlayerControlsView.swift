@@ -85,7 +85,7 @@ struct PlayerControlsView: View {
                             .lineLimit(2)
                     }
 
-                    if let subtitle = media?.tertiaryLabel {
+                    if let subtitle = media?.episodeTitleLabel {
                         Text(subtitle)
                             .font(.facts)
                             .foregroundStyle(.textSecondary)

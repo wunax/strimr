@@ -291,6 +291,18 @@ struct MediaItem: Identifiable, Hashable, Codable {
         return String(localized: "media.labels.seasonEpisode \(parentIndex) \(index)")
     }
 
+    var episodeTitleLabel: String? {
+        guard case .episode = type else { return nil }
+
+        let episodeTitle = title.trimmingCharacters(in: .whitespaces)
+        guard let tertiaryLabel else {
+            return episodeTitle.isEmpty ? nil : episodeTitle
+        }
+        guard !episodeTitle.isEmpty else { return tertiaryLabel }
+
+        return String(localized: "media.labels.episodeWithTitle \(tertiaryLabel) \(episodeTitle)")
+    }
+
     var metadataRatingKey: String {
         switch type {
         case .episode:

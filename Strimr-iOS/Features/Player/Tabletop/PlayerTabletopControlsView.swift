@@ -130,7 +130,7 @@ struct PlayerTabletopControlsView: View {
                             .font(.rowTitle)
                             .lineLimit(1)
                     }
-                    if let subtitle = media?.tertiaryLabel {
+                    if let subtitle = media?.episodeTitleLabel {
                         Text(subtitle)
                             .font(.cardMetadata)
                             .foregroundStyle(.textSecondary)
