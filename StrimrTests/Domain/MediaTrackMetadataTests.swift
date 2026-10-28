@@ -6,7 +6,7 @@ struct MediaTrackMetadataTests {
         let track = Self.track(title: "VFQ", displayTitle: "Français (EAC3 5.1)")
 
         #expect(track.secondaryTitle == "VFQ")
-        #expect(track.summaryTitle == "VFQ (Français (EAC3 5.1))")
+        #expect(track.summaryTitle == "VFQ · Français (EAC3 5.1)")
     }
 
     @Test func `hides a stream name already in the display title`() {

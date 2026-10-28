@@ -148,7 +148,7 @@ struct MediaTrackMetadata: Sendable, Hashable, Identifiable {
     var summaryTitle: String {
         guard !displayTitle.isEmpty else { return title ?? "" }
         guard let secondaryTitle else { return displayTitle }
-        return "\(secondaryTitle) (\(displayTitle))"
+        return "\(secondaryTitle) · \(displayTitle)"
     }
 }
 
