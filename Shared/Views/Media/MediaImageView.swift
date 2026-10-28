@@ -33,6 +33,8 @@ private struct MediaArtworkStyleModifier: ViewModifier {
         content
             .containerShape(shape)
             .clipShape(shape)
+            // Clipping does not limit hit testing: a scaled-to-fill image would take taps meant for its neighbors.
+            .contentShape(shape)
             .overlay {
                 shape.strokeBorder(borderColor, lineWidth: 1)
             }
