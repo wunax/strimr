@@ -26,6 +26,7 @@ struct LibraryDetailView: View {
                 LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
+                    .padding(.bottom, 8)
             }
 
             Group {
