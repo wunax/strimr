@@ -15,6 +15,7 @@ extension MediaItem {
         seriesTitle: String? = nil,
         librarySectionID: String? = nil,
         lastViewedAt: Date? = nil,
+        viewOffset: TimeInterval? = nil,
         viewCount: Int? = nil,
     ) -> MediaItem {
         MediaItem(
@@ -38,7 +39,7 @@ extension MediaItem {
             thumbPath: nil,
             artPath: nil,
             artworkCornerColors: nil,
-            viewOffset: nil,
+            viewOffset: viewOffset,
             viewCount: viewCount,
             childCount: nil,
             leafCount: nil,

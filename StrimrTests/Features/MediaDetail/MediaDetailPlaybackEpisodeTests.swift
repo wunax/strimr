@@ -19,6 +19,13 @@ struct MediaDetailPlaybackEpisodeTests {
         #expect(MediaDetailViewModel.playbackEpisode(requested: requested, onDeck: onDeck)?.id == "s3e4")
     }
 
+    @Test func `offers a rewatched episode while it is in progress`() {
+        let requested = MediaItem.make(id: "s1e2", server: server, type: .episode, viewOffset: 600, viewCount: 1)
+        let onDeck = MediaItem.make(id: "s3e4", server: server, type: .episode)
+
+        #expect(MediaDetailViewModel.playbackEpisode(requested: requested, onDeck: onDeck)?.id == "s1e2")
+    }
+
     @Test func `keeps next up without a requested episode`() {
         let onDeck = MediaItem.make(id: "s1e1", server: server, type: .episode)
 

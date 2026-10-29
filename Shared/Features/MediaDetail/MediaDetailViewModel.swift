@@ -1299,9 +1299,10 @@ final class MediaDetailViewModel {
     }
 
     /// A series opened from an episode card offers that episode until it is watched, so the page
-    /// matches the card rather than the server's own next episode.
+    /// matches the card rather than the server's own next episode. A rewatched episode stays marked
+    /// as watched while in progress, so its resume position keeps it offered.
     static func playbackEpisode(requested: MediaItem?, onDeck: MediaItem?) -> MediaItem? {
-        guard let requested, !requested.isFullyWatched else { return onDeck }
+        guard let requested, !requested.isFullyWatched || (requested.viewOffset ?? 0) > 0 else { return onDeck }
         return requested
     }
 
