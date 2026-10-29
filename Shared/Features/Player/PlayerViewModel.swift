@@ -567,7 +567,7 @@ final class PlayerViewModel {
             .track(
                 streamIndex: nil,
                 language: subtitle.language,
-                title: subtitle.title,
+                title: subtitle.name ?? subtitle.title,
                 codec: subtitle.codec ?? "",
                 isForced: subtitle.isForced,
                 isHearingImpaired: subtitle.isHearingImpaired,
@@ -581,7 +581,7 @@ final class PlayerViewModel {
         return MediaTrackPreference(
             audioStreamIndex: nil,
             audioLanguage: audio?.language,
-            audioTitle: audio?.title,
+            audioTitle: audio?.name ?? audio?.title,
             audioCodec: audio?.codec,
             audioIsHearingImpaired: audio?.isHearingImpaired,
             audioIsCommentary: nil,
