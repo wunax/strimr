@@ -24,6 +24,7 @@ final class MediaDetailViewModel {
     /// Copies of the title on the profile's servers, shown in the Version menu.
     private(set) var copies: [MediaCopy] = []
     @ObservationIgnored private var backdropSourcePath: String?
+    @ObservationIgnored private let requestedEpisodeID: String?
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -101,6 +102,8 @@ final class MediaDetailViewModel {
         self.resolutionMode = resolutionMode
         self.copyFinder = copyFinder
         self.onSelectCopy = onSelectCopy
+        requestedEpisodeID = resolutionMode == .seriesRoot && media.type == .episode
+            && media.metadataRatingKey != media.id ? media.id : nil
         _ = resolveArtwork()
     }
 
@@ -1250,13 +1253,15 @@ final class MediaDetailViewModel {
             let target = detailTargetID == media.id
                 ? media.mediaItem
                 : try await services.detail.mediaItem(id: detailTargetID)
+            async let requestedEpisode = loadRequestedEpisode()
             let content = try await services.detail.details(for: target)
+            let onDeck = await Self.playbackEpisode(requested: requestedEpisode, onDeck: content.onDeck)
             guard !Task.isCancelled else { return }
             if let mapped = PlayableMediaItem(mediaItem: content.media) {
                 media = mapped
             }
             parentSeries = content.parentSeries.flatMap(PlayableMediaItem.init)
-            onDeckItem = content.onDeck
+            onDeckItem = onDeck
             seasons = content.seasons
             episodes = content.episodes
             cast = content.cast
@@ -1289,6 +1294,24 @@ final class MediaDetailViewModel {
             if !preservingExistingContent {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    /// A series opened from an episode card offers that episode until it is watched, so the page
+    /// matches the card rather than the server's own next episode.
+    static func playbackEpisode(requested: MediaItem?, onDeck: MediaItem?) -> MediaItem? {
+        guard let requested, !requested.isFullyWatched else { return onDeck }
+        return requested
+    }
+
+    private func loadRequestedEpisode() async -> MediaItem? {
+        guard let requestedEpisodeID else { return nil }
+        do {
+            return try await services.detail.mediaItem(id: requestedEpisodeID)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return nil }
+            ErrorReporter.capture(error)
+            return nil
         }
     }
 

@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "episode-s1e1",
+    "Name": "Pilot",
+    "Type": "Episode",
+    "SeriesId": "series-1",
+    "ParentIndexNumber": 1,
+    "IndexNumber": 1,
+    "UserData": { "Played": false, "PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false }
+  },
+  {
+    "Id": "episode-s1e2",
+    "Name": "Abandoned",
+    "Type": "Episode",
+    "SeriesId": "series-1",
+    "ParentIndexNumber": 1,
+    "IndexNumber": 2,
+    "UserData": { "Played": false, "PlaybackPositionTicks": 6000000000, "PlayCount": 0, "IsFavorite": false }
+  },
+  {
+    "Id": "episode-s3e3",
+    "Name": "In Progress",
+    "Type": "Episode",
+    "SeriesId": "series-1",
+    "ParentIndexNumber": 3,
+    "IndexNumber": 3,
+    "UserData": { "Played": false, "PlaybackPositionTicks": 6000000000, "PlayCount": 0, "IsFavorite": false }
+  },
+  {
+    "Id": "episode-s3e4",
+    "Name": "Next",
+    "Type": "Episode",
+    "SeriesId": "series-1",
+    "ParentIndexNumber": 3,
+    "IndexNumber": 4,
+    "UserData": { "Played": false, "PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false }
+  }
+]

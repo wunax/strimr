@@ -467,12 +467,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             title: String(localized: "jellyfin.detail.similar"),
             items: related,
         )]
+        let onDeck = item.kind == .series
+            ? try await catalog.continueEpisode(seriesID: item.id)
+            : nil
         return try await MediaDetailContent(
             media: mapped,
             parentSeries: parentSeries(for: item),
-            onDeck: item.kind == .series ? catalog.nextUp(seriesID: item.id, limit: 1).first.map {
-                MediaItem(jellyfinItem: $0, server: server)
-            } : nil,
+            onDeck: onDeck.map { MediaItem(jellyfinItem: $0, server: server) },
             seasons: seasons,
             episodes: episodes,
             cast: (item.people ?? []).map {

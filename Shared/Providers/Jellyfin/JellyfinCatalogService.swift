@@ -68,11 +68,12 @@ struct JellyfinCatalogService {
         seriesID: String? = nil,
         parentID: String? = nil,
         limit: Int = 20,
+        includesResumable: Bool = false,
     ) async throws -> [JellyfinItem] {
         var query = commonUserQuery + [
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: Self.cardFields),
-            URLQueryItem(name: "EnableResumable", value: "false"),
+            URLQueryItem(name: "EnableResumable", value: String(includesResumable)),
         ]
         if let seriesID {
             query.append(URLQueryItem(name: "SeriesId", value: seriesID))
@@ -85,6 +86,31 @@ struct JellyfinCatalogService {
             query: query,
         )
         return response.items
+    }
+
+    func continueEpisode(seriesID: String) async throws -> JellyfinItem? {
+        async let nextUpItems = nextUp(seriesID: seriesID, limit: 1, includesResumable: true)
+        async let resumableItems = resumable(parentID: seriesID, includeTypes: "Episode", limit: 1)
+        let nextUp = try await nextUpItems.first
+        do {
+            return try await Self.continueEpisode(nextUp: nextUp, resumable: resumableItems.first)
+        } catch {
+            guard !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            return nextUp
+        }
+    }
+
+    /// Next Up only follows the last fully played episode, so it offers the first episode of a show
+    /// started mid-way even though a later episode is in progress.
+    static func continueEpisode(nextUp: JellyfinItem?, resumable: JellyfinItem?) -> JellyfinItem? {
+        guard let resumable else { return nextUp }
+        guard let nextUp else { return resumable }
+        return episodeOrder(resumable) >= episodeOrder(nextUp) ? resumable : nextUp
+    }
+
+    private static func episodeOrder(_ item: JellyfinItem) -> (Int, Int) {
+        (item.parentIndexNumber ?? 0, item.indexNumber ?? 0)
     }
 
     func latest(
@@ -420,7 +446,7 @@ struct JellyfinCatalogService {
             guard let seriesID = item.seriesID ?? item.parentID else { return [] }
             return try await episodes(seriesID: seriesID, seasonID: item.id)
         case .series:
-            if let next = try await nextUp(seriesID: item.id, limit: 1).first {
+            if let next = try await continueEpisode(seriesID: item.id) {
                 return try await episodes(seriesID: item.id, startItemID: next.id)
             }
             return try await episodes(seriesID: item.id)
