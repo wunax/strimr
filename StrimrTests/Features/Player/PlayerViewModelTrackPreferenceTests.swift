@@ -120,6 +120,33 @@ struct PlayerViewModelTrackPreferenceTests {
         #expect(match?.id == "12")
     }
 
+    @Test func `transcoded tracks carry the stream name like direct play`() {
+        let tracks = [
+            Self.track(
+                id: "11",
+                sourceIndex: 1,
+                kind: .audio,
+                title: "Français (EAC3 5.1)",
+                name: "VFQ",
+                language: "fra",
+                codec: "eac3",
+            ),
+            Self.track(
+                id: "12",
+                sourceIndex: 2,
+                kind: .audio,
+                title: "English (EAC3 5.1)",
+                language: "eng",
+                codec: "eac3",
+            ),
+        ]
+
+        let playerTracks = PlayerViewModel.sourcePlayerTracks(tracks, selectedAudioIndex: 1, selectedSubtitleIndex: nil)
+
+        #expect(playerTracks.map(\.title) == ["VFQ", "English (EAC3 5.1)"])
+        #expect(playerTracks.first?.isSelected == true)
+    }
+
     private static func track(
         id: String,
         sourceIndex: Int,
