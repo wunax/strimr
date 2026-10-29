@@ -1264,7 +1264,12 @@ final class MediaDetailViewModel {
             parentSeries = content.parentSeries.flatMap(PlayableMediaItem.init)
             onDeckItem = onDeck
             seasons = content.seasons
-            episodes = content.episodes
+            episodes = Self.episodesAfterLoading(
+                content.episodes,
+                current: episodes,
+                mediaType: media.type,
+                preservingExistingContent: preservingExistingContent,
+            )
             cast = content.cast
             relatedHubs = content.relatedHubs
             relatedHubsErrorMessage = nil
@@ -1303,6 +1308,18 @@ final class MediaDetailViewModel {
     static func playbackEpisode(requested: MediaItem?, onDeck: MediaItem?) -> MediaItem? {
         guard let requested, !requested.isFullyWatched else { return onDeck }
         return requested
+    }
+
+    /// A series' details carry no episodes: they come from `fetchEpisodes`. Clearing them on a refresh
+    /// would rebuild the episode rail and lose its focus and the episode the page shows.
+    static func episodesAfterLoading(
+        _ loaded: [MediaItem],
+        current: [MediaItem],
+        mediaType: PlayableItemType,
+        preservingExistingContent: Bool,
+    ) -> [MediaItem] {
+        guard preservingExistingContent, mediaType == .show else { return loaded }
+        return current
     }
 
     private func loadRequestedEpisode() async -> MediaItem? {
