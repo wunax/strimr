@@ -532,8 +532,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     }
 
     func allEpisodes(for series: MediaItem) async throws -> [MediaItem] {
-        let item = try await catalog.item(id: series.id)
-        return try await catalog.playbackQueue(startingWith: item)
+        try await catalog.episodes(seriesID: series.id)
             .filter { $0.kind == .episode }
             .map { MediaItem(jellyfinItem: $0, server: server) }
     }
@@ -1383,7 +1382,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         if kind == .movie || kind == .episode {
             return [MediaItem(jellyfinItem: item, server: server)]
         }
-        return try await catalog.playbackQueue(startingWith: item)
+        let items = if item.kind == .series {
+            try await catalog.episodes(seriesID: item.id)
+        } else {
+            try await catalog.playbackQueue(startingWith: item)
+        }
+        return items
             .filter(\.isPlayable)
             .map { MediaItem(jellyfinItem: $0, server: server) }
     }
