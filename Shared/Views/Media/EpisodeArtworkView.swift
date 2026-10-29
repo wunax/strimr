@@ -32,8 +32,7 @@ struct EpisodeArtworkView: View {
                     )
                 }
             }
-            .frame(width: width)
-            .aspectRatio(aspectRatio, contentMode: .fit)
+            .frame(width: width, height: width / aspectRatio)
             .background(Color.black)
 
             if let runtime {
