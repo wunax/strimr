@@ -441,7 +441,7 @@
             currentSelection _: PlaybackStreamSelection?,
         ) async throws {}
 
-        func externalSubtitles(media _: MediaItem) async throws -> [ExternalSubtitleTrack] {
+        func externalSubtitles(media _: MediaItem) async throws -> [PlayerExternalSubtitle] {
             []
         }
 

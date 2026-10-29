@@ -337,7 +337,7 @@ protocol MediaPlaybackService: AnyObject {
         position: TimeInterval,
         currentSelection: PlaybackStreamSelection?,
     ) async throws
-    func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack]
+    func externalSubtitles(media: MediaItem) async throws -> [PlayerExternalSubtitle]
     /// Live progress report without a playback plan, used when playing a downloaded file.
     func reportItemPlayback(
         itemID: String,

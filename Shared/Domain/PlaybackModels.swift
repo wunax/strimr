@@ -235,7 +235,7 @@ struct PlaybackPlan: Sendable {
     let selectedSubtitleIndex: Int?
     let subtitleSelectionIsOff: Bool
     let tracks: [PlaybackTrack]
-    let externalSubtitles: [ExternalSubtitleTrack]
+    let externalSubtitles: [PlayerExternalSubtitle]
     let chapters: [MediaChapter]
     let skipSegments: [SkipSegment]
     let scrubThumbnailSource: ScrubThumbnailSource?

@@ -1,6 +1,6 @@
 import AetherEngine
 
-struct PlayerExternalSubtitle {
+struct PlayerExternalSubtitle: Sendable {
     let track: ExternalSubtitleTrack
     let providerStreamID: Int
 }

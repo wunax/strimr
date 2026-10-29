@@ -323,16 +323,7 @@ final class PlayerViewModel {
                 PlayerExternalSubtitle(track: track, providerStreamID: -(index + 1))
             }
         }
-        guard let playbackPlan else { return [] }
-        let subtitleTracks = playbackPlan.tracks.filter {
-            $0.kind == .subtitle && $0.isExternal
-        }
-        return playbackPlan.externalSubtitles.enumerated().map { index, track in
-            let streamID = subtitleTracks.indices.contains(index)
-                ? providerStreamID(for: subtitleTracks[index])
-                : -(index + 1)
-            return PlayerExternalSubtitle(track: track, providerStreamID: streamID)
-        }
+        return playbackPlan?.externalSubtitles ?? []
     }
 
     func sourcePlayerTracks() -> [PlayerTrack] {
@@ -642,13 +633,14 @@ final class PlayerViewModel {
               let media
         else { throw PlayerPlaybackError.missingExternalSubtitle }
 
-        let previousURLs = Set(playbackPlan?.externalSubtitles.map(\.url) ?? [])
+        let previousURLs = Set(playbackPlan?.externalSubtitles.map(\.track.url) ?? [])
         do {
             let refreshed = try await mediaServices.playback.externalSubtitles(media: media)
-            guard let track = refreshed.first(where: { !previousURLs.contains($0.url) }) ?? refreshed.first else {
+            guard let subtitle = refreshed.first(where: { !previousURLs.contains($0.track.url) }) ?? refreshed.first
+            else {
                 throw PlayerPlaybackError.missingExternalSubtitle
             }
-            return PlayerExternalSubtitle(track: track, providerStreamID: -(refreshed.count + 1))
+            return subtitle
         } catch {
             throw translatedServerAccessError(error, using: mediaServices.playback)
         }

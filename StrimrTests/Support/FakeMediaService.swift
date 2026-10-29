@@ -309,7 +309,7 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         throw NotStubbed(function: #function)
     }
 
-    func externalSubtitles(media _: MediaItem) async throws -> [ExternalSubtitleTrack] {
+    func externalSubtitles(media _: MediaItem) async throws -> [PlayerExternalSubtitle] {
         throw NotStubbed(function: #function)
     }
 

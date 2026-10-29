@@ -750,19 +750,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 isHearingImpaired: stream.hearingImpaired == true,
             )
         }
-        let subtitles = streams.compactMap { stream -> ExternalSubtitleTrack? in
-            guard stream.streamType == .subtitle,
-                  stream.key != nil,
-                  let url = stream.key.flatMap({ try? MediaRepository(context: context).mediaURL(path: $0) })
-            else { return nil }
-            return ExternalSubtitleTrack(
-                url: url,
-                name: stream.title ?? stream.displayTitle,
-                language: stream.language,
-                isForced: stream.forced == true,
-                isHearingImpaired: stream.hearingImpaired == true,
-                formatHint: stream.codec,
-            )
+        let subtitles = Self.externalSubtitles(in: streams) {
+            try? MediaRepository(context: context).mediaURL(path: $0)
         }
         let initialPosition = resume ? item.viewOffset.map { TimeInterval($0) / 1000 } : nil
         let selectedAudioIndex = selectedAudioStream?.index
@@ -891,7 +880,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         try await report(plan: plan, position: position, state: .stopped)
     }
 
-    func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
+    func externalSubtitles(media: MediaItem) async throws -> [PlayerExternalSubtitle] {
         try await prepare(
             media: media,
             resume: false,
@@ -938,6 +927,30 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
               selected.part.isAvailable
         else { return nil }
         return MediaRepository.mediaURL(path: selected.part.key, baseURL: baseURL, token: token)
+    }
+
+    /// Plex gives sidecar streams no `index`, so they are tied to the player by their stream id.
+    static func externalSubtitles(
+        in streams: [PlexPartStream],
+        url: (String) -> URL?,
+    ) -> [PlayerExternalSubtitle] {
+        streams.compactMap { stream in
+            guard stream.streamType == .subtitle,
+                  let id = stream.id,
+                  let url = stream.key.flatMap(url)
+            else { return nil }
+            return PlayerExternalSubtitle(
+                track: ExternalSubtitleTrack(
+                    url: url,
+                    name: stream.title ?? stream.displayTitle,
+                    language: stream.language,
+                    isForced: stream.forced == true,
+                    isHearingImpaired: stream.hearingImpaired == true,
+                    formatHint: stream.codec,
+                ),
+                providerStreamID: id,
+            )
+        }
     }
 
     /// SRT sidecar files only: the player reads the embedded tracks from the file itself. The server selection

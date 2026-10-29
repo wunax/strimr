@@ -1174,7 +1174,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
-    func externalSubtitles(media: MediaItem) async throws -> [ExternalSubtitleTrack] {
+    func externalSubtitles(media: MediaItem) async throws -> [PlayerExternalSubtitle] {
         try await playbackService.externalSubtitles(item: catalog.item(id: media.id))
     }
 
