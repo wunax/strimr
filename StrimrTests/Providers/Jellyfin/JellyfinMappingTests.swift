@@ -133,13 +133,10 @@ struct JellyfinMappingTests {
         #expect(parsed.tag == "chapter-tag")
     }
 
-    @Test func `theme song maps to the item theme path`() throws {
+    @Test func `decodes theme songs`() throws {
         let themes = try Fixtures.decode(JellyfinQueryResult<JellyfinItem>.self, from: "jellyfin-theme-songs")
-        let item = try Fixtures.decode(JellyfinItem.self, from: "jellyfin-movie")
-        let media = MediaItem(jellyfinItem: item, server: server, themePath: themes.items.first?.id)
 
-        #expect(media.themePath == "theme-1")
-        #expect(MediaItem(jellyfinItem: item, server: server).themePath == nil)
+        #expect(themes.items.map(\.id) == ["theme-1"])
     }
 
     @Test func `artwork path requires tag`() {

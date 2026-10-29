@@ -21,7 +21,7 @@ extension MediaTrackMetadata {
 }
 
 extension MediaItem {
-    init(jellyfinItem: JellyfinItem, server: ServerIdentity, themePath: String? = nil) {
+    init(jellyfinItem: JellyfinItem, server: ServerIdentity) {
         let type = jellyfinItem.kind
         let primaryPath = JellyfinArtworkPath.make(
             ownerID: jellyfinItem.id,
@@ -89,7 +89,6 @@ extension MediaItem {
             parentThumbPath: nil,
             lastViewedAt: jellyfinItem.userData?.lastPlayedDate,
             externalIDs: ExternalIDs(providerIDs: jellyfinItem.providerIDs ?? [:]),
-            themePath: themePath,
             logoPath: JellyfinArtworkPath.make(
                 ownerID: jellyfinItem.id,
                 type: "Logo",

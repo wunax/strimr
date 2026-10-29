@@ -451,10 +451,20 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
     }
 
+    func themePath(for media: MediaItem) async -> String? {
+        do {
+            return try await catalog.themeSongs(itemID: media.id).first?.id
+        } catch {
+            if !Task.isCancelled, !error.isCancellation {
+                ErrorReporter.capture(error)
+            }
+            return nil
+        }
+    }
+
     func details(for media: MediaItem) async throws -> MediaDetailContent {
-        async let themeSongID = themeSongID(for: media.id)
         let item = try await catalog.item(id: media.id)
-        let mapped = await MediaItem(jellyfinItem: item, server: server, themePath: themeSongID)
+        let mapped = MediaItem(jellyfinItem: item, server: server)
         let seasons: [MediaItem]
         let episodes: [MediaItem]
         switch item.kind {
@@ -510,18 +520,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let item = try await catalog.item(id: media.id)
         guard let sources = item.mediaSources, !sources.isEmpty else { return nil }
         return MediaFileInfo(versions: sources.map(Self.mapFileInfoVersion))
-    }
-
-    /// The theme is optional, so failing to load it must not fail the detail page.
-    private func themeSongID(for itemID: String) async -> String? {
-        do {
-            return try await catalog.themeSongs(itemID: itemID).first?.id
-        } catch {
-            if !Task.isCancelled, !error.isCancellation {
-                ErrorReporter.capture(error)
-            }
-            return nil
-        }
     }
 
     private func parentSeries(for item: JellyfinItem) async throws -> MediaItem? {

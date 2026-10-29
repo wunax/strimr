@@ -94,7 +94,7 @@ struct MediaDetailView: View {
         .task {
             await bindableViewModel.loadDetails()
         }
-        .themeMusic(path: bindableViewModel.media.mediaItem.themePath)
+        .themeMusic(for: bindableViewModel.media.mediaItem)
         .taskPresentation(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = bindableViewModel.trackRatingKey {
                 SubtitleSearchView(

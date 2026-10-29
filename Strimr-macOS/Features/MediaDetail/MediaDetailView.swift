@@ -74,7 +74,7 @@ struct MediaDetailView: View {
         }
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
-        .themeMusic(path: viewModel.media.mediaItem.themePath)
+        .themeMusic(for: viewModel.media.mediaItem)
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             ShowDownloadSelectionSheet(
                 viewModel: viewModel,

@@ -218,11 +218,18 @@ protocol MediaArtworkService: AnyObject {
         height: Int?,
     ) async throws -> ArtworkResource?
 
+    /// Theme path of an item, for providers that do not include it in their items.
+    func themePath(for media: MediaItem) async -> String?
+
     /// Streamable audio of a theme path, nil when the provider has no theme music.
     func themeMusicURL(path: String) -> URL?
 }
 
 extension MediaArtworkService {
+    func themePath(for media: MediaItem) async -> String? {
+        media.themePath
+    }
+
     func themeMusicURL(path _: String) -> URL? {
         nil
     }
