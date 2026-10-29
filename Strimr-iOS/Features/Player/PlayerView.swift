@@ -1415,12 +1415,13 @@ struct PlayerView: View {
         }
     }
 
+    /// On-demand playback stays loaded in the background so it keeps its Now Playing card: the engine keeps playing
+    /// the audio, and releases the video of a paused session itself. Live TV still stops and reloads on return.
     private func preparePlaybackForBackground() {
-        if viewModel.isLivePlayback {
-            Task {
-                if await viewModel.enterLiveBackground() {
-                    dismissPlayer()
-                }
+        guard viewModel.isLivePlayback else { return }
+        Task {
+            if await viewModel.enterLiveBackground() {
+                dismissPlayer()
             }
         }
         guard activePlaybackURL != nil, !needsPlaybackReloadAfterBackground, !playerController.isPictureInPictureActive,
@@ -1437,6 +1438,7 @@ struct PlayerView: View {
 
     private func reloadPlaybackAfterBackgroundIfNeeded() {
         viewModel.leaveLiveBackground()
+        playerController.restoreAfterBackground()
         guard needsPlaybackReloadAfterBackground, let url = activePlaybackURL else { return }
 
         needsPlaybackReloadAfterBackground = false

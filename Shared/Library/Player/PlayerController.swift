@@ -109,6 +109,10 @@ final class PlayerController {
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var nowPlayingController: NowPlayingController?
+    #if os(iOS)
+        @ObservationIgnored private var backgroundRestoreTask: Task<Void, Never>?
+        @ObservationIgnored private var backgroundRestoreResumesPlayback = false
+    #endif
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
     @ObservationIgnored private var volumeAttenuation: Float = 1.0
     @ObservationIgnored private var pendingSeekTarget: Double?
@@ -288,6 +292,12 @@ final class PlayerController {
     }
 
     func togglePlayback() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                restoreAfterBackground(resumesPlayback: !backgroundRestoreResumesPlayback)
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(
                 to: isPaused ? playbackRate : 0,
@@ -303,6 +313,12 @@ final class PlayerController {
     }
 
     func pause() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                backgroundRestoreResumesPlayback = false
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: 0, options: [])
         } else {
@@ -311,12 +327,54 @@ final class PlayerController {
     }
 
     func resume() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                restoreAfterBackground(resumesPlayback: true)
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: playbackRate, options: [])
         } else {
             engine.play()
         }
     }
+
+    #if os(iOS)
+        private var needsBackgroundRestore: Bool {
+            engine.needsForegroundVideoRestore || backgroundRestoreTask != nil
+        }
+
+        /// The engine releases the video of a session left paused in the background; it has to be rebuilt where it
+        /// stopped before it can play again.
+        /// `nil` keeps the intent of a restore already running, such as a play from the lock screen.
+        func restoreAfterBackground(resumesPlayback: Bool? = nil) {
+            if let resumesPlayback {
+                backgroundRestoreResumesPlayback = resumesPlayback
+            }
+            guard backgroundRestoreTask == nil, engine.needsForegroundVideoRestore else { return }
+            if resumesPlayback == nil {
+                backgroundRestoreResumesPlayback = false
+            }
+            backgroundRestoreTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    try await engine.reloadAtCurrentPosition { $0.autoplay = false }
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { return }
+                    backgroundRestoreTask = nil
+                    ErrorReporter.capture(error)
+                    errorMessage = error.localizedDescription
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                backgroundRestoreTask = nil
+                if backgroundRestoreResumesPlayback {
+                    resume()
+                }
+            }
+        }
+    #endif
 
     /// Where relative seeks start from. `position` only catches up once the engine has taken the seek,
     /// so rapid presses would otherwise restart from the same stale value.
@@ -702,6 +760,10 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         cancelPendingAudioDelay()
         skipBackSubtitles.cancel()
+        #if os(iOS)
+            backgroundRestoreTask?.cancel()
+            backgroundRestoreTask = nil
+        #endif
         nowPlayingController?.stop()
         engine.stop()
     }
@@ -981,6 +1043,14 @@ final class PlayerController {
     }
 
     private func observeEngine() {
+        #if os(iOS)
+            // Without this the system pauses a player showing video as soon as the app leaves the foreground.
+            engine.$currentAVPlayer
+                .receive(on: DispatchQueue.main)
+                .sink { $0?.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible }
+                .store(in: &cancellables)
+        #endif
+
         engine.$currentAVPlayerItem
             .map { item -> AnyPublisher<CGSize, Never> in
                 guard let item else { return Just(.zero).eraseToAnyPublisher() }
