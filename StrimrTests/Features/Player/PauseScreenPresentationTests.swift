@@ -5,86 +5,87 @@ import Testing
 @MainActor
 struct PauseScreenPresentationTests {
     private let delay = Duration.milliseconds(100)
+    private let clock = TestClock()
 
     private func makePresentation() -> PauseScreenPresentation {
-        PauseScreenPresentation(delay: delay)
+        PauseScreenPresentation(delay: delay, clock: clock)
     }
 
-    private func waitPastDelay() async throws {
-        try await Task.sleep(for: delay * 3)
+    private func waitPastDelay() async {
+        await clock.advance(by: delay * 3)
     }
 
-    @Test func `staying eligible for the delay presents the pause screen`() async throws {
+    @Test func `staying eligible for the delay presents the pause screen`() async {
         let presentation = makePresentation()
 
         presentation.update(isEligible: true)
         #expect(!presentation.isPresented)
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(presentation.isPresented)
     }
 
-    @Test func `losing eligibility before the delay never presents`() async throws {
+    @Test func `losing eligibility before the delay never presents`() async {
         let presentation = makePresentation()
 
         presentation.update(isEligible: true)
         presentation.update(isEligible: false)
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(!presentation.isPresented)
     }
 
-    @Test func `losing eligibility while presented dismisses`() async throws {
+    @Test func `losing eligibility while presented dismisses`() async {
         let presentation = makePresentation()
         presentation.update(isEligible: true)
-        try await waitPastDelay()
+        await waitPastDelay()
 
         presentation.update(isEligible: false)
 
         #expect(!presentation.isPresented)
     }
 
-    @Test func `an interaction dismisses and presents again after another delay`() async throws {
+    @Test func `an interaction dismisses and presents again after another delay`() async {
         let presentation = makePresentation()
         presentation.update(isEligible: true)
-        try await waitPastDelay()
+        await waitPastDelay()
 
         #expect(presentation.registerInteraction())
         #expect(!presentation.isPresented)
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(presentation.isPresented)
     }
 
-    @Test func `an interaction before the delay restarts the countdown`() async throws {
+    @Test func `an interaction before the delay restarts the countdown`() async {
         let presentation = makePresentation()
         presentation.update(isEligible: true)
 
-        try await Task.sleep(for: delay / 2)
+        await clock.advance(by: delay / 2)
         #expect(!presentation.registerInteraction())
-        try await Task.sleep(for: delay / 2)
+        await clock.advance(by: delay / 2)
         #expect(!presentation.isPresented)
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(presentation.isPresented)
     }
 
-    @Test func `an interaction while ineligible starts nothing`() async throws {
+    @Test func `an interaction while ineligible starts nothing`() async {
         let presentation = makePresentation()
 
         #expect(!presentation.registerInteraction())
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(!presentation.isPresented)
     }
 
-    @Test func `cancelling dismisses and stops the countdown`() async throws {
+    @Test func `cancelling dismisses and stops the countdown`() async {
         let presentation = makePresentation()
         presentation.update(isEligible: true)
 
         presentation.cancel()
 
-        try await waitPastDelay()
+        await waitPastDelay()
         #expect(!presentation.isPresented)
     }
 }

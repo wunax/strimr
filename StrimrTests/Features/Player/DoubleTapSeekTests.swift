@@ -6,9 +6,10 @@ import Testing
 struct DoubleTapSeekTests {
     private let commitDelay = Duration.milliseconds(100)
     private let start = ContinuousClock.now
+    private let clock = TestClock()
 
     private func makeSeek() -> (DoubleTapSeek, () -> [DoubleTapSeek.Pending]) {
-        let seek = DoubleTapSeek(doubleTapWindow: .milliseconds(300), commitDelay: commitDelay)
+        let seek = DoubleTapSeek(doubleTapWindow: .milliseconds(300), commitDelay: commitDelay, clock: clock)
         var commits: [DoubleTapSeek.Pending] = []
         seek.onCommit = { commits.append($0) }
         return (seek, { commits })
@@ -85,24 +86,24 @@ struct DoubleTapSeekTests {
         #expect(seek.pending == .init(forward: true, steps: 3))
     }
 
-    @Test func `the seek is applied once after tapping stops`() async throws {
+    @Test func `the seek is applied once after tapping stops`() async {
         let (seek, commits) = makeSeek()
         _ = seek.registerTap(in: .forward, at: at(0))
         _ = seek.registerTap(in: .forward, at: at(100))
         _ = seek.registerTap(in: .forward, at: at(200))
 
-        try await Task.sleep(for: commitDelay * 3)
+        await clock.advance(by: commitDelay * 3)
 
         #expect(commits() == [.init(forward: true, steps: 2)])
         #expect(seek.pending == nil)
     }
 
-    @Test func `a single tap after the seek is applied is left to the caller`() async throws {
+    @Test func `a single tap after the seek is applied is left to the caller`() async {
         let (seek, _) = makeSeek()
         _ = seek.registerTap(in: .forward, at: at(0))
         _ = seek.registerTap(in: .forward, at: at(100))
 
-        try await Task.sleep(for: commitDelay * 3)
+        await clock.advance(by: commitDelay * 3)
 
         #expect(!seek.registerTap(in: .forward, at: at(150)))
     }
@@ -128,13 +129,13 @@ struct DoubleTapSeekTests {
         #expect(seek.pending == nil)
     }
 
-    @Test func `cancelling drops the pending seek`() async throws {
+    @Test func `cancelling drops the pending seek`() async {
         let (seek, commits) = makeSeek()
         _ = seek.registerTap(in: .forward, at: at(0))
         _ = seek.registerTap(in: .forward, at: at(100))
 
         seek.cancel()
-        try await Task.sleep(for: commitDelay * 3)
+        await clock.advance(by: commitDelay * 3)
 
         #expect(commits().isEmpty)
         #expect(seek.pending == nil)

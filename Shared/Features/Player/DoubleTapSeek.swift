@@ -34,12 +34,18 @@ final class DoubleTapSeek {
     @ObservationIgnored var onCommit: ((Pending) -> Void)?
     @ObservationIgnored private let doubleTapWindow: Duration
     @ObservationIgnored private let commitDelay: Duration
+    @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored private var lastTap: (zone: DoubleTapSeekZone, instant: ContinuousClock.Instant)?
     @ObservationIgnored private var commitTask: Task<Void, Never>?
 
-    init(doubleTapWindow: Duration = .milliseconds(300), commitDelay: Duration = .milliseconds(700)) {
+    init(
+        doubleTapWindow: Duration = .milliseconds(300),
+        commitDelay: Duration = .milliseconds(700),
+        clock: any Clock<Duration> = ContinuousClock(),
+    ) {
         self.doubleTapWindow = doubleTapWindow
         self.commitDelay = commitDelay
+        self.clock = clock
     }
 
     /// Returns whether the tap was consumed by a seek, in which case the caller skips its single-tap action.
@@ -97,9 +103,9 @@ final class DoubleTapSeek {
 
     private func scheduleCommit() {
         commitTask?.cancel()
-        commitTask = Task { [weak self, commitDelay] in
+        commitTask = Task { [weak self, commitDelay, clock] in
             do {
-                try await Task.sleep(for: commitDelay)
+                try await clock.sleep(for: commitDelay)
             } catch {
                 return
             }
