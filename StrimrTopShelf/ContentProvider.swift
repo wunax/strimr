@@ -308,6 +308,7 @@ private struct TopShelfDisplayItem {
     let id: String
     let type: String
     let title: String
+    let editionTitle: String?
     let parentTitle: String?
     let grandparentTitle: String?
     let artworkPath: String?
@@ -322,6 +323,7 @@ private struct TopShelfDisplayItem {
         id = item.ratingKey
         type = item.type
         title = item.title
+        editionTitle = item.editionTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         parentTitle = item.parentTitle
         grandparentTitle = item.grandparentTitle
         artworkPath = item.art ?? item.thumb
@@ -347,6 +349,7 @@ private struct TopShelfDisplayItem {
         default: item.type.lowercased()
         }
         title = item.name
+        editionTitle = nil
         parentTitle = item.seasonName
         grandparentTitle = item.seriesName
         artworkPath = nil
@@ -364,14 +367,17 @@ private struct TopShelfDisplayItem {
         addedAt = item.dateCreated.flatMap(Self.date)
     }
 
+    /// Editions share the title's artwork, so the edition tells them apart.
     var displayTitle: String {
-        if type == "episode", let grandparentTitle {
-            return "\(grandparentTitle) — \(title)"
+        let base = if type == "episode", let grandparentTitle {
+            "\(grandparentTitle) — \(title)"
+        } else if type == "season", let parentTitle {
+            "\(parentTitle) — \(title)"
+        } else {
+            title
         }
-        if type == "season", let parentTitle {
-            return "\(parentTitle) — \(title)"
-        }
-        return title
+        guard let editionTitle, !editionTitle.isEmpty else { return base }
+        return "\(base) · \(editionTitle)"
     }
 
     private static func matchKind(_ type: String) -> MediaMatchDescriptor.Kind {

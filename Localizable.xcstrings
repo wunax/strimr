@@ -7352,28 +7352,6 @@
         }
       }
     },
-    "media.editions.other %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Also in the %@ edition"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aussi en édition %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "另有%@版本"
-          }
-        }
-      }
-    },
     "media.editions.otherCount %lld" : {
       "localizations" : {
         "en" : {
@@ -7422,6 +7400,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "media.editions.otherOne %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other edition: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autre édition : %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他版本：%@"
           }
         }
       }

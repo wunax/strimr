@@ -11,7 +11,10 @@ struct OtherEditionsButton: View {
             Button {
                 viewModel.selectEdition(edition)
             } label: {
-                label(String(localized: "media.editions.other \(edition.editionLabel)"), systemImage: "chevron.right")
+                label(
+                    String(localized: "media.editions.otherOne \(edition.editionLabel)"),
+                    systemImage: "chevron.right",
+                )
             }
             .modifier(OtherEditionsButtonStyle())
         } else if !editions.isEmpty {
