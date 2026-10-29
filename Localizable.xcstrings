@@ -18172,19 +18172,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plays the theme music of movies and shows on their detail page, when the server provides one. Plex only."
+            "value" : "Plays the theme music of movies and shows on their detail page, when the server provides one."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Joue la musique du thème des films et séries sur leur page de détail, quand le serveur en fournit une. Plex uniquement."
+            "value" : "Joue la musique du thème des films et séries sur leur page de détail, quand le serveur en fournit une."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在电影和剧集的详情页播放主题音乐（如果服务器提供）。仅限 Plex。"
+            "value" : "在电影和剧集的详情页播放主题音乐（如果服务器提供）。"
           }
         }
       }

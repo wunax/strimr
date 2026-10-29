@@ -1,0 +1,8 @@
+{
+  "Items": [
+    { "Id": "theme-1", "Name": "theme", "Type": "Audio", "MediaType": "Audio", "RunTimeTicks": 600000000 }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0,
+  "OwnerId": "series-1"
+}

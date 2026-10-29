@@ -385,6 +385,15 @@ struct JellyfinCatalogService {
         return response.items
     }
 
+    /// Seasons and episodes without their own theme inherit the series one.
+    func themeSongs(itemID: String) async throws -> [JellyfinItem] {
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Items", itemID, "ThemeSongs"],
+            query: commonUserQuery + [URLQueryItem(name: "inheritFromParent", value: "true")],
+        )
+        return response.items
+    }
+
     func markPlayed(itemID: String, played: Bool) async throws {
         guard let userID = context.connection?.userID else {
             throw JellyfinAPIError.authenticationRequired
