@@ -808,7 +808,7 @@ struct PlayerView: View {
                     onClose: hideInfoPanel,
                 )
                 // Keeps at least the upper part of the video visible.
-                .frame(maxHeight: proxy.size.height * 0.6)
+                .frame(maxHeight: proxy.size.height * 0.6, alignment: .bottom)
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
