@@ -17,6 +17,26 @@ struct MediaFactsFormatterTests {
         ))
     }
 
+    @Test func `edition follows the year`() {
+        let media = makeMedia(editionTitle: "Black and White", year: 2026, duration: 2820)
+
+        #expect(MediaFactsFormatter.facts(for: media).tokens == [
+            "2026",
+            "Black and White",
+            TimeInterval(2820).mediaDurationText(),
+        ])
+    }
+
+    @Test func `regular cut is named standard only when asked`() {
+        let media = makeMedia(year: 2026)
+
+        #expect(MediaFactsFormatter.facts(for: media).tokens == ["2026"])
+        #expect(MediaFactsFormatter.facts(for: media, namesStandardEdition: true).tokens == [
+            "2026",
+            String(localized: "media.editions.standard"),
+        ])
+    }
+
     @Test func `series with one season`() {
         let media = makeMedia(type: .series, year: 2019, childCount: 1, genres: ["Comedy"])
 
@@ -68,6 +88,7 @@ struct MediaFactsFormatterTests {
 
     private func makeMedia(
         type: MediaKind = .movie,
+        editionTitle: String? = nil,
         provider: MediaProvider = .plex,
         year: Int? = nil,
         duration: TimeInterval? = nil,
@@ -83,6 +104,7 @@ struct MediaFactsFormatterTests {
             guid: "guid://item",
             summary: nil,
             title: "Title",
+            editionTitle: editionTitle,
             type: type,
             parentRatingKey: nil,
             grandparentRatingKey: nil,

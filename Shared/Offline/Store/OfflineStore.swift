@@ -1067,6 +1067,7 @@ extension MediaItem {
             guid: guid,
             summary: summary,
             title: title,
+            editionTitle: editionTitle,
             type: type,
             parentRatingKey: parentRatingKey,
             grandparentRatingKey: grandparentRatingKey,

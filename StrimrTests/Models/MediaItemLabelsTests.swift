@@ -37,6 +37,27 @@ struct MediaItemLabelsTests {
         #expect(episode.episodeTitleLabel == "Special")
     }
 
+    @Test func `cards show the edition after the year`() {
+        let movie = MediaItem.make(id: "1", server: server, editionTitle: "Director's Cut", year: 1982)
+        let undated = MediaItem.make(id: "2", server: server, editionTitle: "Director's Cut")
+
+        #expect(movie.secondaryLabel == "1982 · Director's Cut")
+        #expect(undated.secondaryLabel == "Director's Cut")
+        #expect(MediaItem.make(id: "3", server: server, editionTitle: "  ", year: 1982).secondaryLabel == "1982")
+    }
+
+    @Test func `the regular cut sorts before named editions`() {
+        let editions = [
+            MediaItem.make(id: "1", server: server, editionTitle: "Final Cut"),
+            MediaItem.make(id: "2", server: server, editionTitle: "Director's Cut"),
+            MediaItem.make(id: "3", server: server),
+        ].sorted(by: MediaItem.editionOrder)
+
+        #expect(editions.map(\.id) == ["3", "2", "1"])
+        #expect(editions[0].editionLabel == String(localized: "media.editions.standard"))
+        #expect(editions[1].editionLabel == "Director's Cut")
+    }
+
     @Test func `movies have no episode label`() {
         let movie = MediaItem.make(id: "1", server: server, title: "Movie")
 

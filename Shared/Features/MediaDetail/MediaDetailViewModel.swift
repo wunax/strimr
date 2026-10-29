@@ -23,6 +23,9 @@ final class MediaDetailViewModel {
     @ObservationIgnored private var copiesTask: Task<Void, Never>?
     /// Copies of the title on the profile's servers, shown in the Version menu.
     private(set) var copies: [MediaCopy] = []
+    @ObservationIgnored private var editionsTask: Task<Void, Never>?
+    /// Other editions of the title in its library, each its own item with its own progress.
+    private(set) var otherEditions: [MediaItem] = []
     @ObservationIgnored private var backdropSourcePath: String?
     @ObservationIgnored private let requestedEpisodeID: String?
 
@@ -88,6 +91,7 @@ final class MediaDetailViewModel {
     deinit {
         extrasTask?.cancel()
         copiesTask?.cancel()
+        editionsTask?.cancel()
     }
 
     init(
@@ -709,6 +713,25 @@ final class MediaDetailViewModel {
         onSelectCopy?(copy.media)
     }
 
+    /// Opens the edition's own page.
+    func selectEdition(_ edition: MediaItem) {
+        onSelectCopy?(edition)
+    }
+
+    private func loadOtherEditions(of item: MediaItem) {
+        editionsTask?.cancel()
+        editionsTask = Task { [weak self, services] in
+            do {
+                let editions = try await services.detail.otherEditions(of: item)
+                guard !Task.isCancelled else { return }
+                self?.otherEditions = editions
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+    }
+
     private func loadCopies(of item: MediaItem) {
         guard let copyFinder, [.movie, .show, .episode].contains(media.type) else { return }
         copiesTask?.cancel()
@@ -1275,6 +1298,7 @@ final class MediaDetailViewModel {
             relatedHubsErrorMessage = nil
             loadExtras(for: media.mediaItem)
             loadCopies(of: media.mediaItem)
+            loadOtherEditions(of: media.mediaItem)
 
             switch media.type {
             case .show:

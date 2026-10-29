@@ -334,6 +334,7 @@ private struct TopShelfDisplayItem {
             externalIDs: ExternalIDs(plexGuids: item.guids?.map(\.id) ?? []),
             seasonNumber: item.parentIndex,
             episodeNumber: item.index,
+            edition: item.editionTitle,
         )
         lastViewedAt = item.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
         addedAt = item.addedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
@@ -423,6 +424,7 @@ private struct PlexTopShelfItem: Decodable {
     let ratingKey: String
     let type: String
     let title: String
+    let editionTitle: String?
     let guid: String?
     let parentTitle: String?
     let grandparentTitle: String?
@@ -435,7 +437,7 @@ private struct PlexTopShelfItem: Decodable {
     let guids: [Guid]?
 
     private enum CodingKeys: String, CodingKey {
-        case ratingKey, type, title, guid, parentTitle, grandparentTitle, parentIndex, index, thumb, art
+        case ratingKey, type, title, editionTitle, guid, parentTitle, grandparentTitle, parentIndex, index, thumb, art
         case lastViewedAt, addedAt
         case guids = "Guid"
     }

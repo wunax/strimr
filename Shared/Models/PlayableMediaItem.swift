@@ -70,6 +70,10 @@ struct PlayableMediaItem: Identifiable, Hashable {
         item.summary
     }
 
+    var editionTitle: String? {
+        item.editionTitle
+    }
+
     var contentRating: String? {
         item.contentRating
     }

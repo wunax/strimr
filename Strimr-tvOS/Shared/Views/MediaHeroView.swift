@@ -66,6 +66,8 @@ struct MediaHeroContentView: View {
     /// Lines that keep their room when the item shown has nothing for them. Where the hero sits in the page flow
     /// rather than over it, this keeps the page below still as the hero moves between items.
     var reservedLines: HeroLines = []
+    /// Names the regular cut "Standard" when the title is known to have other editions.
+    var namesStandardEdition = false
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
@@ -75,6 +77,7 @@ struct MediaHeroContentView: View {
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
                 onExpandSummary: onExpandSummary,
                 reservedLines: reservedLines,
+                namesStandardEdition: namesStandardEdition,
             )
         }
     }
@@ -95,6 +98,7 @@ private struct MediaHeroDetailsView: View {
     let badges: [String]
     let onExpandSummary: ((MediaItem) -> Void)?
     let reservedLines: HeroLines
+    let namesStandardEdition: Bool
     private let summaryLineLimit = 3
 
     var body: some View {
@@ -118,7 +122,10 @@ private struct MediaHeroDetailsView: View {
                     TechBadge(text: "4K").hidden()
                 }
                 HStack(spacing: 24) {
-                    MediaFactsLine(facts: MediaFactsFormatter.facts(for: media), badges: badges)
+                    MediaFactsLine(
+                        facts: MediaFactsFormatter.facts(for: media, namesStandardEdition: namesStandardEdition),
+                        badges: badges,
+                    )
                     ratingsLine
                 }
             }

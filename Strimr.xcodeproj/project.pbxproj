@@ -168,6 +168,7 @@
 				Features/MediaDetail/MediaDetailViewModel.swift,
 				Features/MediaDetail/MediaFileInfoView.swift,
 				Features/MediaDetail/MediaQuickActions.swift,
+				Features/MediaDetail/OtherEditionsButton.swift,
 				Features/MediaDetail/PlayProgressIcon.swift,
 				Features/MediaDetail/RelatedHubsSection.swift,
 				Features/MediaDetail/ThemeMusicPlayer.swift,

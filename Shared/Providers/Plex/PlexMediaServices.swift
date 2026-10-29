@@ -106,6 +106,28 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             .map { MediaItem(plexItem: $0, server: server) }
     }
 
+    func otherEditions(of media: MediaItem) async throws -> [MediaItem] {
+        let type: String? = switch media.type {
+        case .movie: "1"
+        case .series: "2"
+        case .season: "3"
+        case .episode: "4"
+        case .clip, .collection, .playlist, .folder, .unknown: nil
+        }
+        // Local guids are unique to each item, so no other edition can share them.
+        guard let type, !media.guid.hasPrefix("local://"),
+              let sectionID = media.librarySectionID.flatMap(Int.init)
+        else { return [] }
+        let response = try await SectionRepository(context: context).getSectionsItems(
+            sectionId: sectionID,
+            params: .init(type: type, guid: media.guid),
+        )
+        return (response.mediaContainer.metadata ?? [])
+            .map(mapMediaItem)
+            .filter { $0.id != media.id }
+            .sorted(by: MediaItem.editionOrder)
+    }
+
     func searchSubtitles(
         itemID: String,
         language: String,

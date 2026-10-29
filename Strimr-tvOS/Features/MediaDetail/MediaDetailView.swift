@@ -56,6 +56,9 @@ struct MediaDetailView: View {
                             onExpandSummary: { expandedSummaryMedia = $0 },
                             // A series previews its seasons and episodes, which fill different lines.
                             reservedLines: showsEpisodes ? [.secondaryLabel, .facts, .summary] : [],
+                            // The editions found belong to the page's title, not to a focused episode.
+                            namesStandardEdition: !viewModel.otherEditions.isEmpty
+                                && heroMedia.id == viewModel.media.id,
                         )
                         .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 

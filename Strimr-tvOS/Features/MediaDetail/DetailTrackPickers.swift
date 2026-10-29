@@ -1,13 +1,13 @@
 import SwiftUI
 
 /// Version, audio and subtitle choices under the detail actions. Each pill shows what will play and opens its own
-/// list; a pill only appears when there is something to choose.
+/// list; a pill only appears when there is something to choose. Other editions follow, as they open another page.
 struct DetailTrackPickers: View {
     @Bindable var viewModel: MediaDetailViewModel
     let onSearchSubtitles: () -> Void
 
     var body: some View {
-        if showsVersion || showsAudio || showsSubtitles {
+        if showsVersion || showsAudio || showsSubtitles || showsEditions {
             HStack(spacing: 16) {
                 if showsVersion {
                     pill(title: versionTitle, systemImage: "film.stack", accessibilityLabel: "media.versions.title") {
@@ -32,6 +32,7 @@ struct DetailTrackPickers: View {
                         MediaDetailSubtitleMenuItems(viewModel: viewModel, onSearchSubtitles: onSearchSubtitles)
                     }
                 }
+                OtherEditionsButton(viewModel: viewModel)
             }
             .disabled(viewModel.isUpdatingTracks)
             // Full width so moving up from the right side of a rail below still lands on a pill.
@@ -42,6 +43,10 @@ struct DetailTrackPickers: View {
 
     private var showsVersion: Bool {
         viewModel.showsVersionSelection
+    }
+
+    private var showsEditions: Bool {
+        !viewModel.otherEditions.isEmpty
     }
 
     private var showsAudio: Bool {

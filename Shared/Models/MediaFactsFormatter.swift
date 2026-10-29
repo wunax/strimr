@@ -9,10 +9,16 @@ struct MediaFacts: Equatable {
     }
 }
 
-/// Facts that fit on one line under a title: episode number, year, seasons or runtime, then the first two genres.
+/// Facts that fit on one line under a title: episode number, year, edition, seasons or runtime, then the first two
+/// genres.
 /// The content rating is kept apart because it is drawn as a badge.
 enum MediaFactsFormatter {
-    static func facts(for media: MediaItem, seasonCount: Int? = nil) -> MediaFacts {
+    /// - Parameter namesStandardEdition: names the regular cut "Standard", for titles known to have other editions.
+    static func facts(
+        for media: MediaItem,
+        seasonCount: Int? = nil,
+        namesStandardEdition: Bool = false,
+    ) -> MediaFacts {
         var tokens: [String] = []
 
         if media.type == .episode, let episodeLabel = media.tertiaryLabel {
@@ -20,6 +26,9 @@ enum MediaFactsFormatter {
         }
         if let year = media.year {
             tokens.append(String(year))
+        }
+        if media.editionTitle != nil || namesStandardEdition {
+            tokens.append(media.editionLabel)
         }
         switch media.type {
         case .series:

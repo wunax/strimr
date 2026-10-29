@@ -93,13 +93,41 @@ struct MediaMatchingTests {
         #expect(groups == [["plex-a", "plex-b", "jellyfin"], ["other"]])
     }
 
+    @Test func `plex editions of a title do not match each other`() {
+        let ids = ExternalIDs(imdb: "tt1")
+        let standard = descriptor(.series, guid: "plex://show/abc", ids: ids)
+        let edition = descriptor(.series, guid: "plex://show/abc", ids: ids, edition: "Black and White")
+
+        #expect(!MediaMatching.matches(standard, edition))
+        #expect(MediaMatching.matches(
+            edition,
+            descriptor(.series, guid: "plex://show/abc", ids: ids, edition: " black and white "),
+        ))
+        #expect(MediaMatching.matches(standard, descriptor(.series, guid: "plex://show/abc", ids: ids, edition: " ")))
+    }
+
+    @Test func `plex editions stay apart when grouping`() throws {
+        let items = try (Fixtures.decode(PlexItemMediaContainer.self, from: "plex-section-editions")
+            .mediaContainer.metadata ?? []).map { MediaItem(plexItem: $0, server: plexA) }
+
+        #expect(MediaMatching.group(items) { $0.matchDescriptor }.count == 2)
+    }
+
     private func descriptor(
         _ kind: MediaMatchDescriptor.Kind,
         guid: String? = nil,
         ids: ExternalIDs = ExternalIDs(),
         season: Int? = nil,
         episode: Int? = nil,
+        edition: String? = nil,
     ) -> MediaMatchDescriptor {
-        MediaMatchDescriptor(kind: kind, guid: guid, externalIDs: ids, seasonNumber: season, episodeNumber: episode)
+        MediaMatchDescriptor(
+            kind: kind,
+            guid: guid,
+            externalIDs: ids,
+            seasonNumber: season,
+            episodeNumber: episode,
+            edition: edition,
+        )
     }
 }

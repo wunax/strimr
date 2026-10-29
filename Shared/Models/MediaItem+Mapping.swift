@@ -39,6 +39,7 @@ extension MediaItem {
             guid: plexItem.guid,
             summary: plexItem.summary,
             title: plexItem.title,
+            editionTitle: plexItem.editionTitle,
             type: type,
             parentRatingKey: plexItem.parentRatingKey,
             grandparentRatingKey: plexItem.grandparentRatingKey,

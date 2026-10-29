@@ -84,6 +84,8 @@ nonisolated struct MediaMatchDescriptor: Hashable, Sendable {
     let externalIDs: ExternalIDs
     let seasonNumber: Int?
     let episodeNumber: Int?
+    /// Plex editions share the title's guid and ids but are separate items, so each edition only matches itself.
+    let edition: String?
 
     init(
         kind: Kind,
@@ -91,12 +93,15 @@ nonisolated struct MediaMatchDescriptor: Hashable, Sendable {
         externalIDs: ExternalIDs,
         seasonNumber: Int? = nil,
         episodeNumber: Int? = nil,
+        edition: String? = nil,
     ) {
         self.kind = kind
         self.guid = guid
         self.externalIDs = externalIDs
         self.seasonNumber = seasonNumber
         self.episodeNumber = episodeNumber
+        let edition = edition?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        self.edition = edition?.isEmpty == false ? edition : nil
     }
 
     /// Only agent guids are shared between Plex servers; `local://`, `agents.none://` and Jellyfin's own ids are not.
@@ -108,6 +113,11 @@ nonisolated struct MediaMatchDescriptor: Hashable, Sendable {
     /// Keys that identify the title across servers. Two descriptors sharing a key are the same title. The kind is part
     /// of every key because tmdb ids of movies and shows live in different namespaces.
     var matchKeys: Set<String> {
+        guard let edition else { return baseMatchKeys }
+        return Set(baseMatchKeys.map { "\($0)|edition:\(edition)" })
+    }
+
+    private var baseMatchKeys: Set<String> {
         guard kind != .other, kind != .season else { return [] }
         var keys = Set<String>()
         let scope = switch kind {

@@ -246,6 +246,8 @@ protocol MediaDetailService: AnyObject {
     func details(for media: MediaItem) async throws -> MediaDetailContent
     func fileInfo(for media: MediaItem) async throws -> MediaFileInfo?
     func fetchExtras(for media: MediaItem) async throws -> [MediaItem]
+    /// The title's other editions in the same library, excluding `media` itself.
+    func otherEditions(of media: MediaItem) async throws -> [MediaItem]
     func seasons(for series: MediaItem) async throws -> [MediaItem]
     func episodes(for season: MediaItem, seriesID: String?) async throws -> [MediaItem]
     func allEpisodes(for series: MediaItem) async throws -> [MediaItem]
@@ -259,6 +261,12 @@ protocol MediaDetailService: AnyObject {
     func collectionItems(id: String) async throws -> [MediaDisplayItem]
     func person(id: String) async throws -> Person
     func personMedia(id: String) async throws -> [MediaDisplayItem]
+}
+
+extension MediaDetailService {
+    func otherEditions(of _: MediaItem) async throws -> [MediaItem] {
+        []
+    }
 }
 
 @MainActor

@@ -110,12 +110,11 @@ struct MediaCard: View {
     }
 
     private var secondaryLabel: String? {
-        remainingTimeLine == .secondary ? remainingTimeText : media.secondaryLabel
+        media.cardSecondaryLabel(remainingTime: remainingTimeLine == .secondary ? remainingTimeText : nil)
     }
 
     private var tertiaryLabel: String? {
-        guard remainingTimeLine == .tertiary else { return media.tertiaryLabel }
-        return [media.tertiaryLabel, remainingTimeText].compactMap(\.self).joined(separator: " · ")
+        media.cardTertiaryLabel(remainingTime: remainingTimeLine == .tertiary ? remainingTimeText : nil)
     }
 
     private var titleOpacity: Double {

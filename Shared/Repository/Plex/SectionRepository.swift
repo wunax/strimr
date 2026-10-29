@@ -10,11 +10,13 @@ final class SectionRepository {
         var includeMeta: Bool?
         var includeCollections: Bool?
         var type: String? = "1,2"
+        var guid: String?
 
         var queryItems: [URLQueryItem] {
             [
                 // "1,2" maps to movie and show.
                 URLQueryItem.make("type", type),
+                URLQueryItem.make("guid", guid),
                 URLQueryItem.make("sort", sort),
                 URLQueryItem.make("limit", limit),
                 URLQueryItem.makeBoolFlag("includeMeta", includeMeta),

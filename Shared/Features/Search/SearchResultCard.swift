@@ -173,13 +173,13 @@ private extension SearchResultCard {
     var subtitle: String {
         switch media.type {
         case .movie:
-            media.playableItem?.year.map(String.init) ?? String(localized: "search.fallback.movie")
+            media.secondaryLabel ?? String(localized: "search.fallback.movie")
         case .series:
             media.secondaryLabel ?? String(localized: "search.fallback.show")
         case .season:
-            media.secondaryLabel ?? media.title
+            media.cardSecondaryLabel(remainingTime: nil) ?? media.title
         case .episode:
-            media.tertiaryLabel
+            media.cardTertiaryLabel(remainingTime: nil)
                 ?? media.secondaryLabel
                 ?? media.playableItem?.parentTitle
                 ?? String(localized: "search.fallback.episode")

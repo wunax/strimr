@@ -6,6 +6,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let guid: String
     let summary: String?
     let title: String
+    /// Plex edition, e.g. `Director's Cut`. Each edition is its own item.
+    let editionTitle: String?
     let type: MediaKind
     let parentRatingKey: String?
     let grandparentRatingKey: String?
@@ -64,6 +66,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         guid: String,
         summary: String?,
         title: String,
+        editionTitle: String? = nil,
         type: MediaKind,
         parentRatingKey: String?,
         grandparentRatingKey: String?,
@@ -105,6 +108,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.guid = guid
         self.summary = summary
         self.title = title
+        let editionTitle = editionTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.editionTitle = editionTitle?.isEmpty == false ? editionTitle : nil
         self.type = type
         self.parentRatingKey = parentRatingKey
         self.grandparentRatingKey = grandparentRatingKey
@@ -171,6 +176,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
             externalIDs: externalIDs,
             seasonNumber: type == .episode ? parentIndex : nil,
             episodeNumber: type == .episode ? index : nil,
+            edition: editionTitle,
         )
     }
 
@@ -260,15 +266,14 @@ struct MediaItem: Identifiable, Hashable, Codable {
     var secondaryLabel: String? {
         switch type {
         case .movie:
-            return year.map(String.init)
+            return withEdition(year.map(String.init))
 
         case .series:
             switch provider {
             case .jellyfin:
                 return year.map(String.init)
             case .plex:
-                guard let childCount else { return nil }
-                return String(localized: "media.labels.seasonsCount \(childCount)")
+                return withEdition(childCount.map { String(localized: "media.labels.seasonsCount \($0)") })
             }
 
         case .season, .episode:
@@ -281,6 +286,27 @@ struct MediaItem: Identifiable, Hashable, Codable {
         case .clip, .playlist, .folder, .unknown:
             return nil
         }
+    }
+
+    /// Plex leaves the edition empty on the regular cut.
+    var editionLabel: String {
+        editionTitle ?? String(localized: "media.editions.standard")
+    }
+
+    /// The regular cut first, then editions by name.
+    static func editionOrder(_ lhs: MediaItem, _ rhs: MediaItem) -> Bool {
+        switch (lhs.editionTitle, rhs.editionTitle) {
+        case (nil, nil): lhs.id < rhs.id
+        case (nil, _): true
+        case (_, nil): false
+        case let (lhs?, rhs?): lhs.localizedStandardCompare(rhs) == .orderedAscending
+        }
+    }
+
+    /// Editions of a title share its poster and name, so cards tell them apart by the edition.
+    private func withEdition(_ label: String?) -> String? {
+        let parts = [label, editionTitle].compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     var tertiaryLabel: String? {
