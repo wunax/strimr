@@ -1,7 +1,7 @@
 import Foundation
 
 final class PlexCloudNetworkClient {
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let baseURL: URL
     private let apiURL = URL(string: "https://plex.tv/api/v2")!
     private let discoverBaseURL = URL(string: "https://discover.provider.plex.tv")!
@@ -18,8 +18,14 @@ final class PlexCloudNetworkClient {
         #endif
     }()
 
-    init(authToken: String?, clientIdentifier: String, useDiscoverBaseURL: Bool = false) {
+    init(
+        authToken: String?,
+        clientIdentifier: String,
+        useDiscoverBaseURL: Bool = false,
+        session: URLSession = .shared,
+    ) {
         self.authToken = authToken
+        self.session = session
         self.clientIdentifier = clientIdentifier
         baseURL = useDiscoverBaseURL ? discoverBaseURL : apiURL
     }

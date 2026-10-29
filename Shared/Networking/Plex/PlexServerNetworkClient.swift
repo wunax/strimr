@@ -6,7 +6,7 @@ struct PlexBinaryDownload: @unchecked Sendable {
 }
 
 final class PlexServerNetworkClient {
-    private let session: URLSession = .shared
+    private let session: URLSession
     private weak var context: PlexAPIContext?
     private var language: String
     private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -22,6 +22,7 @@ final class PlexServerNetworkClient {
 
     init(context: PlexAPIContext, language: String = "en") {
         self.context = context
+        session = context.session
         self.language = Locale.preferredLanguages.first ?? language
     }
 

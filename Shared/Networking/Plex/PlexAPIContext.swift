@@ -48,12 +48,14 @@ final class PlexAPIContext {
     @ObservationIgnored private var recoveryTask: Task<Void, Error>?
     @ObservationIgnored private var recoveryHandler: ((Bool) async throws -> Void)?
 
+    @ObservationIgnored let session: URLSession
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     @ObservationIgnored private let clientIdKey = "strimr.plex.clientId"
     @ObservationIgnored private let connectionKeyPrefix = "strimr.plex.connection"
     @ObservationIgnored private let customConnectionKeyPrefix = "strimr.plex.customConnection"
 
-    init() {
+    init(session: URLSession = .shared) {
+        self.session = session
         bootstrapTask = Task { [weak self] in
             await self?.bootstrap()
         }
@@ -185,6 +187,7 @@ final class PlexAPIContext {
         switch try await Self.connectionStatus(
             snapshot.baseURL,
             accessToken: snapshot.authToken,
+            session: session,
         ) {
         case .reachable:
             return false
@@ -284,7 +287,7 @@ final class PlexAPIContext {
         guard let accessToken = resource.accessToken else {
             throw PlexServerAccessRecoveryError.serverUnavailable
         }
-        switch try await Self.connectionStatus(url, accessToken: accessToken) {
+        switch try await Self.connectionStatus(url, accessToken: accessToken, session: session) {
         case .reachable:
             return
         case .unauthorized:
@@ -299,7 +302,7 @@ final class PlexAPIContext {
         using resource: PlexCloudResource,
     ) async throws -> Bool {
         guard let accessToken = resource.accessToken else { return false }
-        return try await Self.connectionStatus(url, accessToken: accessToken) == .reachable
+        return try await Self.connectionStatus(url, accessToken: accessToken, session: session) == .reachable
     }
 
     private func resolveConnection(
@@ -322,6 +325,7 @@ final class PlexAPIContext {
             connections.insert(savedCandidate, at: 0)
         }
 
+        let session = session
         return try await withThrowingTaskGroup(of: ConnectionResolutionEvent.self) { group in
             defer { group.cancelAll() }
 
@@ -332,7 +336,7 @@ final class PlexAPIContext {
                     if isRelay {
                         try await Task.sleep(for: Self.relayProbeDelay)
                     }
-                    let status = try await Self.connectionStatus(uri, accessToken: accessToken)
+                    let status = try await Self.connectionStatus(uri, accessToken: accessToken, session: session)
                     return .probeFinished(index: index, status: status)
                 }
             }
@@ -443,13 +447,14 @@ final class PlexAPIContext {
     private static func connectionStatus(
         _ url: URL,
         accessToken: String,
+        session: URLSession,
     ) async throws -> ConnectionStatus {
         var request = URLRequest(url: url)
         request.setValue(accessToken, forHTTPHeaderField: "X-Plex-Token")
         request.timeoutInterval = 6
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 return .unavailable
             }

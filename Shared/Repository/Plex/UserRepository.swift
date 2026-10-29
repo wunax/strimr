@@ -6,7 +6,11 @@ final class UserRepository {
 
     init(context: PlexAPIContext) {
         self.context = context
-        network = PlexCloudNetworkClient(authToken: context.authTokenCloud, clientIdentifier: context.clientIdentifier)
+        network = PlexCloudNetworkClient(
+            authToken: context.authTokenCloud,
+            clientIdentifier: context.clientIdentifier,
+            session: context.session,
+        )
     }
 
     func getUser() async throws -> PlexCloudUser {

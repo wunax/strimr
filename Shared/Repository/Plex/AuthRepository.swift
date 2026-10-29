@@ -6,7 +6,11 @@ final class AuthRepository {
 
     init(context: PlexAPIContext) {
         self.context = context
-        network = PlexCloudNetworkClient(authToken: context.authTokenCloud, clientIdentifier: context.clientIdentifier)
+        network = PlexCloudNetworkClient(
+            authToken: context.authTokenCloud,
+            clientIdentifier: context.clientIdentifier,
+            session: context.session,
+        )
     }
 
     func requestPin() async throws -> PlexCloudPin {

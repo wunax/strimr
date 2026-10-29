@@ -12,6 +12,7 @@ final class DiscoverWatchlistRepository {
             authToken: authToken,
             clientIdentifier: context.clientIdentifier,
             useDiscoverBaseURL: true,
+            session: context.session,
         )
     }
 

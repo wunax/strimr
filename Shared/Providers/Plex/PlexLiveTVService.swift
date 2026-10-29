@@ -461,7 +461,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         request.setValue(context.authTokenCloud ?? snapshot.authToken, forHTTPHeaderField: "X-Plex-Token")
         request.setValue(snapshot.clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
         request.setValue("5.1", forHTTPHeaderField: "X-Plex-Provider-Version")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await context.session.data(for: request)
         guard let response = response as? HTTPURLResponse, 200 ..< 300 ~= response.statusCode else {
             throw PlexAPIError.requestFailed(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
         }
@@ -500,7 +500,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 "vcn": $0.number ?? "",
             ] },
         ])
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await context.session.data(for: request)
         guard let response = response as? HTTPURLResponse, 200 ..< 300 ~= response.statusCode else {
             throw PlexAPIError.requestFailed(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
         }
