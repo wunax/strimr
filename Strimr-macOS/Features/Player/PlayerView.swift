@@ -1174,6 +1174,7 @@ struct PlayerView: View {
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !wasPaused,
+            nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
         playerController.setPlaybackRate(playbackRate)
     }
@@ -1446,6 +1447,7 @@ struct PlayerView: View {
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !isSharePlayPlayback,
+            nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
         playerController.setPlaybackRate(playbackRate)
     }
@@ -1664,6 +1666,7 @@ struct PlayerView: View {
                 dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
                 audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
                 autoplay: !isSharePlay,
+                nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
             )
             playerController.setPlaybackRate(playbackRate)
             shouldResumeAfterMediaLoad = !isSharePlay && !wasPaused

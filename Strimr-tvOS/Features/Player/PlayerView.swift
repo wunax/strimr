@@ -1168,6 +1168,7 @@ struct PlayerView: View {
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             autoplay: !sharePlayCoordinator.isInSession,
+            nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
         playerController.setPlaybackRate(playbackRate)
         shouldResumeAfterMediaLoad = shouldResumeAfterLoad

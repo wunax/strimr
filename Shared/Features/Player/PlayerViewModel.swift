@@ -93,6 +93,15 @@ final class PlayerViewModel {
         mediaServices?.identity
     }
 
+    func nowPlayingItem(settings: PlaybackSettings) -> NowPlayingItem? {
+        NowPlayingItem(
+            media: media,
+            artworkService: artworkServices?.artwork,
+            skipBackwardSeconds: settings.seekBackwardSeconds,
+            skipForwardSeconds: settings.seekForwardSeconds,
+        )
+    }
+
     var subtitleSearchTitlePlaceholder: String {
         media?.title ?? ""
     }

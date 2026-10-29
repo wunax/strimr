@@ -108,6 +108,7 @@ final class PlayerController {
     @ObservationIgnored private var externalSubtitleProviderStreamIDs: [Int: Int] = [:]
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
+    @ObservationIgnored private var nowPlayingController: NowPlayingController?
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
     @ObservationIgnored private var volumeAttenuation: Float = 1.0
     @ObservationIgnored private var pendingSeekTarget: Double?
@@ -145,6 +146,16 @@ final class PlayerController {
         } catch {
             fatalError("Failed to initialize player engine: \(error)")
         }
+        nowPlayingController = NowPlayingController(
+            engine: engine,
+            commands: NowPlayingController.Commands(
+                play: { [weak self] in self?.resume() },
+                pause: { [weak self] in self?.pause() },
+                togglePlayPause: { [weak self] in self?.togglePlayback() },
+                skip: { [weak self] seconds in self?.seek(by: seconds) },
+                seek: { [weak self] position in self?.seek(to: position) },
+            ),
+        )
 
         observeEngine()
         #if os(iOS) || os(macOS)
@@ -172,6 +183,7 @@ final class PlayerController {
         dvrWindowSeconds: TimeInterval? = nil,
         audioDelayMilliseconds: Int = 0,
         autoplay: Bool = true,
+        nowPlaying: NowPlayingItem? = nil,
     ) {
         deactivateASSRendering()
         resetScrubPreviewSession()
@@ -209,6 +221,7 @@ final class PlayerController {
         self.providerStreamIDsByFFIndex = providerStreamIDsByFFIndex
         externalSubtitleProviderStreamIDs = [:]
         errorMessage = nil
+        nowPlayingController?.begin(nowPlaying, isLive: isLive)
 
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -259,6 +272,7 @@ final class PlayerController {
                         await scrubThumbnailProvider.prepare()
                     }
                 }
+                nowPlayingController?.playbackDidLoad()
                 onMediaLoaded?()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
@@ -422,6 +436,7 @@ final class PlayerController {
 
     func setPlaybackRate(_ rate: Float) {
         playbackRate = rate
+        nowPlayingController?.setPlaybackRate(rate)
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: rate, options: [])
         } else {
@@ -687,6 +702,7 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         cancelPendingAudioDelay()
         skipBackSubtitles.cancel()
+        nowPlayingController?.stop()
         engine.stop()
     }
 

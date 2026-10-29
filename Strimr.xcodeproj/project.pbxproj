@@ -236,6 +236,8 @@
 				Features/SubtitleSearch/SubtitleSearchView.swift,
 				Library/Player/ASSRenderCoordinator.swift,
 				Library/Player/JellyfinTrickplayThumbnailProvider.swift,
+				Library/Player/NowPlayingController.swift,
+				Library/Player/NowPlayingItem.swift,
 				Library/Player/PlayerController.swift,
 				Library/Player/PlayerExternalSubtitle.swift,
 				Library/Player/PlayerTrack.swift,
