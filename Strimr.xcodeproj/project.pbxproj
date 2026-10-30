@@ -388,6 +388,7 @@
 				Store/SettingsManager.swift,
 				Store/TrackSelectionMatcher.swift,
 				Store/TrackSelectionStore.swift,
+				Views/CachedProfileAvatar.swift,
 				Views/FilterChip.swift,
 				Views/FolderCard.swift,
 				Views/FolderListRow.swift,

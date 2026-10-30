@@ -20,21 +20,11 @@ struct UserMenuToolbarButton: View {
 
     private var avatarView: some View {
         ZStack {
-            if let url = avatarURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .empty:
-                        placeholderAvatar
-                    case .failure:
-                        placeholderAvatar
-                    @unknown default:
-                        placeholderAvatar
-                    }
+            if let profile = sessionManager.activeProfile {
+                CachedProfileAvatar(profileID: profile.id, url: avatarURL) {
+                    placeholderAvatar
                 }
+                .id(profile.id)
             } else {
                 placeholderAvatar
             }

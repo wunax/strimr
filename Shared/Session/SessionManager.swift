@@ -433,6 +433,7 @@ final class SessionManager {
         for profileID in profileIDs {
             settingsManager.removeSettings(profileID: profileID)
             favoritesStore.removeProfile(profileID)
+            ProfileAvatarCache.shared.remove(profileID: profileID)
         }
     }
 
