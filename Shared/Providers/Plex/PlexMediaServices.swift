@@ -174,6 +174,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let repository = try HubRepository(context: context)
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
         let visibleSections = sections.filter { !hiddenLibraryIDs.contains($0.key) }
+        guard !hidesEveryLibrary(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections) else {
+            return HomeContent(rows: [])
+        }
         let params = hubParams(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections)
         async let continueRows = continueWatchingRows(params: params)
         async let promotedResponse = repository.getPromotedHub(
@@ -201,6 +204,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         guard !hiddenLibraryIDs.isEmpty else { return try await continueWatchingRows(params: nil) }
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
         let visibleSections = sections.filter { !hiddenLibraryIDs.contains($0.key) }
+        guard !hidesEveryLibrary(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections) else {
+            return []
+        }
         return try await continueWatchingRows(
             params: hubParams(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections),
         )
@@ -208,6 +214,11 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     private func hubParams(hiddenLibraryIDs: Set<String>, visibleSections: [PlexSection]) -> HubRepository.HubParams? {
         hiddenLibraryIDs.isEmpty ? nil : HubRepository.HubParams(sectionIds: visibleSections.compactMap { Int($0.key) })
+    }
+
+    /// Plex drops an empty section filter, so with every library hidden the hubs would show them all.
+    private func hidesEveryLibrary(hiddenLibraryIDs: Set<String>, visibleSections: [PlexSection]) -> Bool {
+        !hiddenLibraryIDs.isEmpty && !visibleSections.contains { Int($0.key) != nil }
     }
 
     private func continueWatchingRows(params: HubRepository.HubParams?) async throws -> [HomeRow] {

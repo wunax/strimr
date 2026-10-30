@@ -25,13 +25,21 @@ final class HomeViewModel {
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate(debounceInterval: 15 * 60)
     @ObservationIgnored private var lastFailedServersRetry: Date?
     @ObservationIgnored private var watchingRowsTask: Task<Void, Never>?
+    /// Bumped by each full load, so watching rows requested before it do not overwrite its newer rows.
+    @ObservationIgnored private var rowsLoadGeneration = 0
     @ObservationIgnored private var loadedWatchStateRevisions: [ServerIdentity: Int] = [:]
     @ObservationIgnored private var watchStateRefreshTask: Task<Void, Never>?
     @ObservationIgnored private var loadedConfigurations: [ServerIdentity: LoadConfiguration] = [:]
     @ObservationIgnored private var builtLibraryOrder: [LibraryIdentity] = []
     /// The player is drawn over the home, which stays alive: automatic refreshes wait, as closing the player reloads
     /// the played server anyway.
-    @ObservationIgnored var isPlaybackActive = false
+    @ObservationIgnored var isPlaybackActive = false {
+        didSet {
+            // Closing the player reloads only the played server; changes skipped meanwhile on others are caught up.
+            guard oldValue, !isPlaybackActive else { return }
+            refreshAfterWatchStateChanges()
+        }
+    }
 
     /// Settings a server's home is loaded with: a change needs that server reloaded.
     private struct LoadConfiguration: Equatable {
@@ -239,6 +247,7 @@ final class HomeViewModel {
     }
 
     private func fetchWatchingRows(servers: Set<ServerIdentity>) async {
+        let generation = rowsLoadGeneration
         let sessions = registry.sessions.filter { servers.contains($0.identity) }
         let hiddenLibraryIDs = Dictionary(
             sessions.map { ($0.identity, loadConfiguration(for: $0.identity).hiddenLibraryIDs) },
@@ -247,7 +256,7 @@ final class HomeViewModel {
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
             try await services.home.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs[services.identity] ?? [])
         }
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, generation == rowsLoadGeneration else { return }
         for (server, watchingRows) in result.value {
             // A server removed from the home meanwhile stays out of it.
             guard let rows = rowsByServer[server], !cachedOnlyServers.contains(server) else { continue }
@@ -354,6 +363,7 @@ final class HomeViewModel {
     }
 
     private func fetch(servers: Set<ServerIdentity>?, preservingExistingContent: Bool) async {
+        rowsLoadGeneration += 1
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
