@@ -282,6 +282,7 @@ struct PlayerView: View {
                         selectedAudioTrackID: selectedAudioTrackID,
                         selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
+                        videoZoom: playerController.videoZoom,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
                     ),
                     onDismiss: { showControls(temporarily: true) },
@@ -1859,6 +1860,7 @@ private struct PlayerSheetRefreshID: Hashable {
     let selectedAudioTrackID: Int?
     let selectedSubtitleTrackID: Int?
     let playbackRate: Float
+    let videoZoom: VideoZoom
     let syncItems: [PlaybackOffsetMenuItem]
 }
 
