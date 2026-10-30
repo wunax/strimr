@@ -353,6 +353,28 @@ struct JellyfinCatalogService {
         seasonID: String? = nil,
         startItemID: String? = nil,
     ) async throws -> [JellyfinItem] {
+        let response = try await episodePage(seriesID: seriesID, seasonID: seasonID, startItemID: startItemID)
+        guard let startItemID, let index = response.items.firstIndex(where: { $0.id == startItemID }) else {
+            return response.items
+        }
+        return Array(response.items[index...])
+    }
+
+    /// The whole series, or only from `startItemID` on when the series does not fit in one page.
+    private func episodes(seriesID: String, around startItemID: String) async throws -> [JellyfinItem] {
+        let response = try await episodePage(seriesID: seriesID)
+        let isComplete = response.items.count >= (response.totalRecordCount ?? response.items.count)
+        if isComplete, response.items.contains(where: { $0.id == startItemID }) {
+            return response.items
+        }
+        return try await episodes(seriesID: seriesID, startItemID: startItemID)
+    }
+
+    private func episodePage(
+        seriesID: String,
+        seasonID: String? = nil,
+        startItemID: String? = nil,
+    ) async throws -> JellyfinQueryResult<JellyfinItem> {
         var query = commonUserQuery + [
             URLQueryItem(name: "Fields", value: Self.playbackFields),
             URLQueryItem(name: "EnableUserData", value: "true"),
@@ -364,14 +386,10 @@ struct JellyfinCatalogService {
         if let startItemID {
             query.append(URLQueryItem(name: "StartItemId", value: startItemID))
         }
-        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+        return try await context.get(
             path: ["Shows", seriesID, "Episodes"],
             query: query,
         )
-        guard let startItemID, let index = response.items.firstIndex(where: { $0.id == startItemID }) else {
-            return response.items
-        }
-        return Array(response.items[index...])
     }
 
     func similar(itemID: String, limit: Int = 20) async throws -> [JellyfinItem] {
@@ -443,32 +461,31 @@ struct JellyfinCatalogService {
         )
     }
 
-    func playbackQueue(startingWith item: JellyfinItem) async throws -> [JellyfinItem] {
+    /// The items to queue, and the one to start with when it is not the first.
+    func playbackQueue(
+        startingWith item: JellyfinItem,
+    ) async throws -> (items: [JellyfinItem], startItemID: String?) {
         switch item.kind {
-        case .movie:
-            return [item]
+        case .movie, .clip:
+            return ([item], nil)
         case .episode:
-            guard let seriesID = item.seriesID else { return [item] }
-            let queue = try await episodes(seriesID: seriesID, startItemID: item.id)
-            return queue.isEmpty ? [item] : queue
+            guard let seriesID = item.seriesID else { return ([item], nil) }
+            let queue = try await episodes(seriesID: seriesID, around: item.id)
+            return (queue.isEmpty ? [item] : queue, item.id)
         case .season:
-            guard let seriesID = item.seriesID ?? item.parentID else { return [] }
-            return try await episodes(seriesID: seriesID, seasonID: item.id)
+            guard let seriesID = item.seriesID ?? item.parentID else { return ([], nil) }
+            return try await (episodes(seriesID: seriesID, seasonID: item.id), nil)
         case .series:
             if let next = try await continueEpisode(seriesID: item.id) {
-                return try await episodes(seriesID: item.id, startItemID: next.id)
+                return try await (episodes(seriesID: item.id, around: next.id), next.id)
             }
-            return try await episodes(seriesID: item.id)
+            return try await (episodes(seriesID: item.id), nil)
         case .collection:
-            return try await collectionPlaybackItems(id: item.id)
-                .filter(\.isPlayable)
+            return try await (collectionPlaybackItems(id: item.id).filter(\.isPlayable), nil)
         case .playlist:
-            return try await playlistItems(id: item.id, fields: "Chapters,Trickplay")
-                .filter(\.isPlayable)
-        case .clip:
-            return [item]
+            return try await (playlistItems(id: item.id, fields: "Chapters,Trickplay").filter(\.isPlayable), nil)
         case .folder, .unknown:
-            return []
+            return ([], nil)
         }
     }
 

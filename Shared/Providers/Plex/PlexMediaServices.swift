@@ -607,7 +607,17 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             )
         }
 
-        let response = try await PlayQueueRepository(context: context).createQueue(
+        let repository = try PlayQueueRepository(context: context)
+        // Queuing the whole show keeps the episodes before this one; shuffled, they would be played too.
+        if media.type == .episode, !shuffle, let showRatingKey = media.grandparentRatingKey {
+            let response = try await repository.createQueue(
+                for: showRatingKey,
+                itemType: .show,
+                startingRatingKey: media.id,
+            )
+            return playbackQueue(from: response, shuffle: false)
+        }
+        let response = try await repository.createQueue(
             for: media.id,
             itemType: media.type.plexType,
             shuffle: shuffle,

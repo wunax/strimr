@@ -258,3 +258,26 @@ struct PlaybackQueue: Sendable, Equatable {
     var currentIndex: Int
     var isShuffled: Bool
 }
+
+extension PlaybackQueue {
+    /// Starts at `startID` and keeps what precedes it. Shuffled, `startID` plays first and only what follows
+    /// it is shuffled, so nothing unplayed shows up as already played.
+    init(media: [MediaItem], startingAt startID: String?, shuffle: Bool) {
+        var media = media
+        var currentIndex = media.firstIndex { $0.id == startID }
+        if shuffle {
+            if let index = currentIndex {
+                media = [media[index]] + media[(index + 1)...].shuffled()
+            } else {
+                media.shuffle()
+            }
+            currentIndex = 0
+        }
+        self.init(
+            id: UUID(),
+            items: media.map { PlaybackQueueItem(id: UUID(), media: $0, providerQueueItemID: nil) },
+            currentIndex: currentIndex ?? 0,
+            isShuffled: shuffle,
+        )
+    }
+}

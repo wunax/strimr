@@ -28,20 +28,21 @@ final class PlayQueueRepository {
         shuffle: Bool = false,
         repeatMode: Int = 0,
         continuous: Bool = false,
+        startingRatingKey: String? = nil,
     ) async throws -> PlexPlayQueueResponse {
         let uri = metadataURI(for: ratingKey, itemType: itemType)
-        return try await network.request(
-            path: "/playQueues",
-            queryItems: [
-                URLQueryItem(name: "type", value: type),
-                URLQueryItem(name: "uri", value: uri),
-                URLQueryItem(name: "own", value: "1"),
-                URLQueryItem(name: "shuffle", value: shuffle ? "1" : "0"),
-                URLQueryItem(name: "repeat", value: String(repeatMode)),
-                URLQueryItem(name: "continuous", value: continuous ? "1" : "0"),
-            ],
-            method: "POST",
-        )
+        var queryItems = [
+            URLQueryItem(name: "type", value: type),
+            URLQueryItem(name: "uri", value: uri),
+            URLQueryItem(name: "own", value: "1"),
+            URLQueryItem(name: "shuffle", value: shuffle ? "1" : "0"),
+            URLQueryItem(name: "repeat", value: String(repeatMode)),
+            URLQueryItem(name: "continuous", value: continuous ? "1" : "0"),
+        ]
+        if let startingRatingKey {
+            queryItems.append(URLQueryItem(name: "key", value: "/library/metadata/\(startingRatingKey)"))
+        }
+        return try await network.request(path: "/playQueues", queryItems: queryItems, method: "POST")
     }
 
     /// The playlist in its order, starting at the first occurrence of `startingRatingKey`.

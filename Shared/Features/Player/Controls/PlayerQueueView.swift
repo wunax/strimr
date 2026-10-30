@@ -45,14 +45,19 @@ struct PlayerQueueView: View {
                 }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: carouselItemSpacing) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        queueItemButton(item: item, index: index, layout: .carousel)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: carouselItemSpacing) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            queueItemButton(item: item, index: index, layout: .carousel)
+                        }
                     }
+                    .padding(.horizontal, carouselContentHorizontalPadding)
+                    .padding(.vertical, carouselContentVerticalPadding)
                 }
-                .padding(.horizontal, carouselContentHorizontalPadding)
-                .padding(.vertical, carouselContentVerticalPadding)
+                .onAppear {
+                    scrollToCurrentItem(with: proxy, anchor: .leading)
+                }
             }
             #if os(iOS) || os(tvOS)
             .scrollClipDisabled()
@@ -89,11 +94,16 @@ struct PlayerQueueView: View {
                     .accessibilityLabel(String(localized: "player.queue.close"))
             }
 
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        queueItemButton(item: item, index: index, layout: .drawer)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            queueItemButton(item: item, index: index, layout: .drawer)
+                        }
                     }
+                }
+                .onAppear {
+                    scrollToCurrentItem(with: proxy, anchor: .top)
                 }
             }
         }
@@ -148,10 +158,16 @@ struct PlayerQueueView: View {
             position: index + 1,
             totalCount: items.count,
             isCurrent: index == currentIndex,
+            isPlayed: index < currentIndex,
             isFocused: isFocused,
             services: services,
             layout: layout,
         )
+    }
+
+    private func scrollToCurrentItem(with proxy: ScrollViewProxy, anchor: UnitPoint) {
+        guard let currentItem else { return }
+        proxy.scrollTo(currentItem.id, anchor: anchor)
     }
 
     private var currentItem: PlaybackQueueItem? {
@@ -198,6 +214,7 @@ struct PlayerQueueItemView: View {
     let position: Int
     let totalCount: Int
     let isCurrent: Bool
+    let isPlayed: Bool
     let isFocused: Bool
     let services: MediaServices
     let layout: PlayerQueueLayout
@@ -238,6 +255,7 @@ struct PlayerQueueItemView: View {
 
     var body: some View {
         content
+            .opacity(isPlayed && !isFocused ? 0.5 : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(
                 String(

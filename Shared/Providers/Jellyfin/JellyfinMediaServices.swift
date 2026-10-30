@@ -663,22 +663,13 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     func queue(startingWith media: MediaItem, shuffle: Bool) async throws -> PlaybackQueue {
         let item = try await catalog.item(id: media.id)
-        var values = try await catalog.playbackQueue(startingWith: item)
-        if shuffle {
-            values.shuffle()
-        }
-        let queueItems = values.map {
-            PlaybackQueueItem(
-                id: UUID(),
-                media: MediaItem(jellyfinItem: $0, server: server),
-                providerQueueItemID: nil,
-            )
-        }
+        let queue = try await catalog.playbackQueue(startingWith: item)
+        // A shuffled series starts anywhere, not at its next episode.
+        let startID = shuffle ? media.id : queue.startItemID ?? media.id
         return PlaybackQueue(
-            id: UUID(),
-            items: queueItems,
-            currentIndex: queueItems.firstIndex(where: { $0.media.id == media.id }) ?? 0,
-            isShuffled: shuffle,
+            media: queue.items.map { MediaItem(jellyfinItem: $0, server: server) },
+            startingAt: startID,
+            shuffle: shuffle,
         )
     }
 
@@ -1408,7 +1399,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let items = if item.kind == .series {
             try await catalog.episodes(seriesID: item.id)
         } else {
-            try await catalog.playbackQueue(startingWith: item)
+            try await catalog.playbackQueue(startingWith: item).items
         }
         return items
             .filter(\.isPlayable)
