@@ -6,6 +6,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     MediaArtworkService, MediaDetailService, MediaPlaybackService, MediaDownloadService,
     PlexAdvancedLibraryService, MediaAuthorizationService
 {
+    private static let defaultArtworkSide = 1080
+
     private let context: PlexAPIContext
     private let server: ServerIdentity
     private let playbackSessionID = UUID().uuidString
@@ -415,10 +417,13 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
 
     func artworkURL(path: String?, width: Int?, height: Int?) -> URL? {
         guard let path, let repository = try? ImageRepository(context: context) else { return nil }
+        // Unsized artwork fits a square box, so posters and landscape art both stay sharp on a 4K tvOS card.
+        let isUnsized = width == nil && height == nil
         return repository.transcodeImageURL(
             path: path,
-            width: width ?? 240,
-            height: height ?? 360,
+            width: isUnsized ? Self.defaultArtworkSide : width ?? 240,
+            height: isUnsized ? Self.defaultArtworkSide : height ?? 360,
+            minSize: isUnsized ? 0 : 1,
             // The transcoder outputs JPEG by default, which would lose the logo's transparency.
             format: path.contains("/clearLogo") ? "png" : nil,
         )

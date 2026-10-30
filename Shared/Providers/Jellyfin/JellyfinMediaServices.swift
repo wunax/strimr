@@ -13,6 +13,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return cache
     }()
 
+    /// Bounds artwork requested without a size: sharp on a 4K tvOS card, small enough to decode quickly.
+    private static let defaultArtworkSide = 1080
+
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
     private let playbackService: JellyfinPlaybackService
@@ -417,11 +420,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         if let descriptorTag = descriptor.tag {
             query.append(URLQueryItem(name: "tag", value: descriptorTag))
         }
-        if let width {
-            query.append(URLQueryItem(name: "maxWidth", value: String(width)))
+        // Without a size Jellyfin serves the original (often 2000×3000 posters), which made card rails decode
+        // tens of megabytes per item and stutter on focus moves; Plex likewise transcodes to a default size.
+        let isUnsized = width == nil && height == nil
+        if let maxWidth = isUnsized ? Self.defaultArtworkSide : width {
+            query.append(URLQueryItem(name: "maxWidth", value: String(maxWidth)))
         }
-        if let height {
-            query.append(URLQueryItem(name: "maxHeight", value: String(height)))
+        if let maxHeight = isUnsized ? Self.defaultArtworkSide : height {
+            query.append(URLQueryItem(name: "maxHeight", value: String(maxHeight)))
         }
         var imagePath = ["Items", descriptor.ownerID, "Images", descriptor.type]
         if let imageIndex = descriptor.index {
