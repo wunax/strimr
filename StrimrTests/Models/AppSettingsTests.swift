@@ -106,6 +106,11 @@ struct AppSettingsTests {
         #expect(manager.interface.libraryBrowseByKey["b"] == nil)
     }
 
+    @Test func `skip segments are hidden on the timeline unless turned on`() throws {
+        #expect(try !decode(#"{"playback":{"showClock":true}}"#).playback.showSkipSegmentsOnTimeline)
+        #expect(try decode(#"{"playback":{"showSkipSegmentsOnTimeline":true}}"#).playback.showSkipSegmentsOnTimeline)
+    }
+
     @Test func `missing audio delay decodes as zero`() throws {
         let settings = try decode(#"{"playback":{"losslessAudio":true}}"#)
 

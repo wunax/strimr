@@ -91,6 +91,10 @@ struct SettingsPlaybackView: View {
                     isOn: viewModel.showChaptersOnTimelineBinding,
                 )
                 Toggle(
+                    "settings.playback.showSkipSegmentsOnTimeline",
+                    isOn: viewModel.showSkipSegmentsOnTimelineBinding,
+                )
+                Toggle(
                     "settings.playback.showEndsAtTime",
                     isOn: viewModel.showEndsAtTimeBinding,
                 )

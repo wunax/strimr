@@ -15,6 +15,7 @@ struct PlayerTabletopControlsView: View {
     var showsEndsAtTime: Bool
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
+    var skipSegments: [SkipSegment]
     var scrubPreview: PlayerScrubPreview?
     var seekBackwardSeconds: Int
     var seekForwardSeconds: Int
@@ -242,6 +243,7 @@ struct PlayerTabletopControlsView: View {
                 showsEndsAtTime: showsEndsAtTime,
                 chapters: chapters,
                 showsChaptersOnTimeline: showsChaptersOnTimeline,
+                skipSegments: skipSegments,
                 scrubPreview: scrubPreview,
                 onEditingChanged: actions.onScrubbingChanged,
                 floatsScrubDetails: true,

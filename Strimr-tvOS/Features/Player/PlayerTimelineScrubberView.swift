@@ -6,6 +6,7 @@ struct PlayerTimelineScrubberView: View {
     var duration: Double?
     var bufferedEnd: Double
     var chapters: [MediaChapter]
+    var skipSegments: [SkipSegment]
     var onEditingChanged: (Bool) -> Void
 
     @State private var consecutiveMoves = 0
@@ -37,6 +38,7 @@ struct PlayerTimelineScrubberView: View {
             ZStack(alignment: .leading) {
                 PlayerSegmentedTimelineRail(
                     chapters: chapters,
+                    skipSegments: skipSegments,
                     duration: duration,
                     position: position,
                     bufferedEnd: bufferedEnd,

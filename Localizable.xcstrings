@@ -19537,6 +19537,28 @@
         }
       }
     },
+    "settings.playback.showSkipSegmentsOnTimeline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show intro and credits on timeline"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’intro et le générique sur la barre de progression"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在时间线上显示片头和片尾"
+          }
+        }
+      }
+    },
     "settings.playback.skipping.title" : {
       "localizations" : {
         "en" : {

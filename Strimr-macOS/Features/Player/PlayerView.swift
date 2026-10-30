@@ -563,6 +563,9 @@ struct PlayerView: View {
                             chapters: settingsManager.playback.showChaptersOnTimeline
                                 ? viewModel.chapters
                                 : [],
+                            skipSegments: settingsManager.playback.showSkipSegmentsOnTimeline
+                                ? viewModel.markers
+                                : [],
                             duration: viewModel.duration,
                             position: scrubPosition,
                             bufferedEnd: viewModel.position + viewModel.bufferedAhead,

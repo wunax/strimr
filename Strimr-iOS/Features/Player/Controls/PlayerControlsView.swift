@@ -17,6 +17,7 @@ struct PlayerControlsView: View {
     var onShowSettings: () -> Void
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
+    var skipSegments: [SkipSegment]
     var scrubPreview: PlayerScrubPreview?
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
@@ -128,6 +129,7 @@ struct PlayerControlsView: View {
                                 showsEndsAtTime: showsEndsAtTime,
                                 chapters: chapters,
                                 showsChaptersOnTimeline: showsChaptersOnTimeline,
+                                skipSegments: skipSegments,
                                 scrubPreview: scrubPreview,
                                 onEditingChanged: onScrubbingChanged,
                             )

@@ -15,6 +15,7 @@ struct PlayerTimelineView: View {
     var showsEndsAtTime: Bool
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
+    var skipSegments: [SkipSegment]
     var scrubPreview: PlayerScrubPreview?
     var onEditingChanged: (Bool) -> Void
     /// Draws the scrub preview and chapter title above the timeline instead of inserting them, so a timeline laid out
@@ -56,12 +57,14 @@ struct PlayerTimelineView: View {
                     duration: duration,
                     bufferedEnd: bufferedEnd,
                     chapters: timelineChapters,
+                    skipSegments: skipSegments,
                     onEditingChanged: handleEditingChanged(_:),
                 )
             #else
                 ZStack {
                     PlayerSegmentedTimelineRail(
                         chapters: timelineChapters,
+                        skipSegments: skipSegments,
                         duration: duration,
                         position: position,
                         bufferedEnd: bufferedEnd,
