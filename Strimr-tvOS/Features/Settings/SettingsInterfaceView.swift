@@ -16,6 +16,17 @@ struct SettingsInterfaceView: View {
                     )
                 }
                 .settingsFocus("homeRows", isDefault: true)
+                SettingsPicker(
+                    "settings.interface.continueWatchingAction",
+                    selection: Binding(
+                        get: { settingsManager.interface.continueWatchingAction },
+                        set: { settingsManager.setContinueWatchingAction($0) },
+                    ),
+                    options: Array(ContinueWatchingAction.allCases),
+                ) { action in
+                    Text(action.title)
+                }
+                .settingsFocus("continueWatchingAction")
             }
 
             Section {

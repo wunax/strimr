@@ -18,6 +18,20 @@ enum SpoilerProtectionLevel: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum ContinueWatchingAction: String, Codable, CaseIterable, Hashable {
+    case openDetails
+    case play
+
+    var title: String {
+        switch self {
+        case .openDetails:
+            String(localized: "settings.interface.continueWatchingAction.openDetails")
+        case .play:
+            String(localized: "settings.interface.continueWatchingAction.play")
+        }
+    }
+}
+
 enum PosterSize: String, Codable, CaseIterable, Hashable {
     case small
     case medium
@@ -357,6 +371,7 @@ struct InterfaceSettings: Codable, Equatable {
     var themeMusicVolume = ThemeMusicVolume.off
     var showsTitleLogo = true
     var showsCardLabels = true
+    var continueWatchingAction = ContinueWatchingAction.openDetails
 
     init() {}
 
@@ -396,6 +411,10 @@ struct InterfaceSettings: Codable, Equatable {
         themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
         showsTitleLogo = try container.decodeIfPresent(Bool.self, forKey: .showsTitleLogo) ?? true
         showsCardLabels = try container.decodeIfPresent(Bool.self, forKey: .showsCardLabels) ?? true
+        continueWatchingAction = (try? container.decode(
+            ContinueWatchingAction.self,
+            forKey: .continueWatchingAction,
+        )) ?? .openDetails
     }
 }
 
