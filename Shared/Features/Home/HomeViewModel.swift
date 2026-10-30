@@ -21,8 +21,10 @@ final class HomeViewModel {
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var loadTask: Task<Void, Never>?
-    /// Short, as the home must show progress made on another device as soon as the app comes back.
-    @ObservationIgnored private var refreshGate = AutomaticRefreshGate(debounceInterval: 30)
+    /// Full reloads are spaced out: in between, only the watching rows are refreshed.
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate(debounceInterval: 15 * 60)
+    @ObservationIgnored private var lastFailedServersRetry: Date?
+    @ObservationIgnored private var watchingRowsTask: Task<Void, Never>?
     @ObservationIgnored private var loadedWatchStateRevisions: [ServerIdentity: Int] = [:]
     @ObservationIgnored private var watchStateRefreshTask: Task<Void, Never>?
     @ObservationIgnored private var loadedConfigurations: [ServerIdentity: LoadConfiguration] = [:]
@@ -38,6 +40,7 @@ final class HomeViewModel {
     }
 
     private static let periodicRefreshInterval: Duration = .seconds(300)
+    private static let failedServersRetryInterval: TimeInterval = 90
 
     init(sessionManager: SessionManager, settingsManager: SettingsManager) {
         self.sessionManager = sessionManager
@@ -184,32 +187,73 @@ final class HomeViewModel {
         await reload(servers: nil, preservingExistingContent: false)
     }
 
-    /// Automatic refresh reloads the servers changed from the app or whose settings changed, the rows turned on in the
-    /// settings since the last load, and every server once the last refresh is old enough, as progress can move on
-    /// another device.
+    /// Automatic refresh fully reloads the servers changed from the app or whose settings changed, and every server
+    /// once the last full reload is old enough. Otherwise only the watching rows are refreshed, as progress can move
+    /// on another device.
     func refreshIfNeeded(now: Date = Date()) async {
-        guard !isPlaybackActive else { return }
-        if refreshGate.hasStartedInitialLoad, libraryOrder != builtLibraryOrder {
+        guard !isPlaybackActive, refreshGate.hasStartedInitialLoad else { return }
+        if libraryOrder != builtLibraryOrder {
             rebuild()
         }
-        let changedServers = serversWithWatchStateChanges.union(serversWithConfigurationChanges)
-        if !changedServers.isEmpty {
-            await reload(servers: changedServers, preservingExistingContent: true)
-        }
+        var reloaded = serversWithWatchStateChanges.union(serversWithConfigurationChanges)
         let shownRowIDs = shownRowIDs
-        if refreshGate.hasStartedInitialLoad, shownRowIDs != loadedShownRowIDs {
+        if shownRowIDs != loadedShownRowIDs {
             let changed = shownRowIDs.symmetricDifference(loadedShownRowIDs)
-            let servers = Set(changed.compactMap(HomeRow.server(fromRowID:)))
+            reloaded.formUnion(changed.compactMap(HomeRow.server(fromRowID:)))
             loadedShownRowIDs = shownRowIDs
-            if !servers.isEmpty {
-                await reload(servers: servers, preservingExistingContent: true)
-                return
-            }
         }
-        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
-        let servers = Set(registry.enabledSessions.map(\.identity)).subtracting(changedServers)
+        let failed = registry.readyServers.subtracting(loadedServers)
+        if !failed.isEmpty,
+           lastFailedServersRetry.map({ now.timeIntervalSince($0) >= Self.failedServersRetryInterval }) ?? true
+        {
+            lastFailedServersRetry = now
+            reloaded.formUnion(failed)
+        }
+        if !reloaded.isEmpty {
+            await reload(servers: reloaded, preservingExistingContent: true)
+        }
+
+        let others = Set(registry.enabledSessions.map(\.identity)).subtracting(reloaded)
+        guard !others.isEmpty else { return }
+        if refreshGate.shouldRefresh(now: now, isLoading: isLoading) {
+            await reload(servers: others, preservingExistingContent: true)
+        } else {
+            await refreshWatchingRows(servers: others.intersection(loadedServers))
+        }
+    }
+
+    /// Requests made while a refresh runs join it.
+    private func refreshWatchingRows(servers: Set<ServerIdentity>) async {
         guard !servers.isEmpty else { return }
-        await reload(servers: servers, preservingExistingContent: true)
+        if let watchingRowsTask {
+            await watchingRowsTask.value
+            return
+        }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await fetchWatchingRows(servers: servers)
+        }
+        watchingRowsTask = task
+        await task.value
+        watchingRowsTask = nil
+    }
+
+    private func fetchWatchingRows(servers: Set<ServerIdentity>) async {
+        let sessions = registry.sessions.filter { servers.contains($0.identity) }
+        let hiddenLibraryIDs = Dictionary(
+            sessions.map { ($0.identity, loadConfiguration(for: $0.identity).hiddenLibraryIDs) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
+            try await services.home.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs[services.identity] ?? [])
+        }
+        guard !Task.isCancelled else { return }
+        for (server, watchingRows) in result.value {
+            // A server removed from the home meanwhile stays out of it.
+            guard let rows = rowsByServer[server], !cachedOnlyServers.contains(server) else { continue }
+            rowsByServer[server] = watchingRows + rows.filter { !$0.isWatchingRow }
+        }
+        rebuild()
     }
 
     /// Runs while the home is on screen, for progress made on another device while the app stays in front.

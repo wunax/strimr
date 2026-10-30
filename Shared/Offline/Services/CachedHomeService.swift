@@ -42,16 +42,23 @@ final class CachedHomeService: MediaHomeService {
             fallback: offlineHome,
         )
         guard !policy.isUnreachable else { return content }
-        return HomeContent(rows: content.rows.map { row in
-            HomeRow(
-                id: row.id,
-                kind: row.kind,
-                style: row.style,
-                hub: hub(row.hub, items: policy.overlayLocalProgress(row.hub.items)),
-                libraryName: row.libraryName,
-                isExcludedFromServerHome: row.isExcludedFromServerHome,
-            )
-        })
+        return HomeContent(rows: content.rows.map(overlayingLocalProgress))
+    }
+
+    /// Not cached: the next full load saves the home.
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+        try await base.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs).map(overlayingLocalProgress)
+    }
+
+    private func overlayingLocalProgress(_ row: HomeRow) -> HomeRow {
+        HomeRow(
+            id: row.id,
+            kind: row.kind,
+            style: row.style,
+            hub: hub(row.hub, items: policy.overlayLocalProgress(row.hub.items)),
+            libraryName: row.libraryName,
+            isExcludedFromServerHome: row.isExcludedFromServerHome,
+        )
     }
 
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {

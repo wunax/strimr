@@ -174,20 +174,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let repository = try HubRepository(context: context)
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
         let visibleSections = sections.filter { !hiddenLibraryIDs.contains($0.key) }
-        let params = hiddenLibraryIDs.isEmpty
-            ? nil
-            : HubRepository.HubParams(sectionIds: visibleSections.compactMap { Int($0.key) })
-        async let continueResponse = repository.getContinueWatchingHub(params: params)
+        let params = hubParams(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections)
+        async let continueRows = continueWatchingRows(params: params)
         async let promotedResponse = repository.getPromotedHub(
             params: params,
             includeLibraryPlaylists: includesPlaylists,
         )
-        let continueHub = try await continueResponse.mediaContainer.hub?.first.map { Hub(plexHub: $0, server: server) }
+        var rows = try await continueRows
         let promoted = try await promotedResponse.mediaContainer.hub ?? []
-        var rows: [HomeRow] = []
-        if let continueHub, continueHub.hasItems {
-            rows.append(.continueWatching(server: server, hub: continueHub))
-        }
         var rowIDs = Set<String>()
         rows.append(contentsOf: homeRows(from: promoted, sections: visibleSections)
             .filter { rowIDs.insert($0.id).inserted })
@@ -200,6 +194,28 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let shownRows = try await sectionHubRows(in: visibleSections.filter { missingSectionIDs.contains($0.key) })
         rows.append(contentsOf: shownRows.filter { missingRowIDs.contains($0.id) && rowIDs.insert($0.id).inserted })
         return HomeContent(rows: rows)
+    }
+
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+        // The sections are only needed to scope the hub to the visible libraries.
+        guard !hiddenLibraryIDs.isEmpty else { return try await continueWatchingRows(params: nil) }
+        let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
+        let visibleSections = sections.filter { !hiddenLibraryIDs.contains($0.key) }
+        return try await continueWatchingRows(
+            params: hubParams(hiddenLibraryIDs: hiddenLibraryIDs, visibleSections: visibleSections),
+        )
+    }
+
+    private func hubParams(hiddenLibraryIDs: Set<String>, visibleSections: [PlexSection]) -> HubRepository.HubParams? {
+        hiddenLibraryIDs.isEmpty ? nil : HubRepository.HubParams(sectionIds: visibleSections.compactMap { Int($0.key) })
+    }
+
+    private func continueWatchingRows(params: HubRepository.HubParams?) async throws -> [HomeRow] {
+        let response = try await HubRepository(context: context).getContinueWatchingHub(params: params)
+        guard let continueHub = response.mediaContainer.hub?.first.map({ Hub(plexHub: $0, server: server) }),
+              continueHub.hasItems
+        else { return [] }
+        return [.continueWatching(server: server, hub: continueHub)]
     }
 
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
