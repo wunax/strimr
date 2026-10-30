@@ -16,6 +16,9 @@ struct PlaybackSettingsView: View {
     var onResetTrackSelections: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
     var onSelectQuality: (TranscodeQualityPreset) -> Void
+    var videoZoom = VideoZoom.fit
+    var videoFillScale = 1.0
+    var onSelectVideoScaleMode: (PlayerVideoScaleMode) -> Void = { _ in }
     var syncItems: [PlaybackOffsetMenuItem] = []
     var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
     var sleepTimer: SleepTimer?
@@ -125,6 +128,27 @@ struct PlaybackSettingsView: View {
                         ForEach(PlaybackSpeedOptions.all) { option in
                             Text("player.settings.speed.value \(option.valueText)")
                                 .tag(option.rate)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Picker(
+                        "player.settings.display",
+                        selection: Binding(
+                            get: { videoZoom.persistedMode },
+                            set: { mode in
+                                if let mode {
+                                    onSelectVideoScaleMode(mode)
+                                }
+                            },
+                        ),
+                    ) {
+                        ForEach(PlayerVideoScaleMode.allCases) { mode in
+                            Text(mode.feedbackTitle).tag(Optional(mode))
+                        }
+                        if case .custom = videoZoom {
+                            Text(videoZoom.feedbackTitle(fillScale: videoFillScale))
+                                .tag(PlayerVideoScaleMode?.none)
                         }
                     }
                     .pickerStyle(.menu)

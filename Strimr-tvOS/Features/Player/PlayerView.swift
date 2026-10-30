@@ -38,6 +38,7 @@ struct PlayerView: View {
     @State private var isSearchingSubtitles = false
     @State private var settingsControl: PlayerSettingsControl?
     @State private var settingsMenuFocusID: String?
+    @State private var videoAreaSize = CGSize.zero
     @State private var settingsFocusGeneration = 0
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
@@ -371,9 +372,10 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerSurfaceView(controller: playerController)
+            PlayerSurfaceView(controller: playerController, zoomScale: videoZoomScale)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { videoAreaSize = $0 }
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
@@ -384,9 +386,33 @@ struct PlayerView: View {
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
+                videoZoomScale: videoZoomScale,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+        }
+        .onChange(of: viewModel.media?.metadataRatingKey, initial: true) { _, context in
+            playerController.prepareVideoZoom(for: context, persistedMode: settingsManager.playback.videoScaleMode)
+        }
+    }
+
+    private var videoFillScale: Double {
+        VideoZoom.fillScale(
+            video: playerController.displayVideoSize ?? playerController.sourceVideoSize,
+            container: videoAreaSize,
+        )
+    }
+
+    private var videoZoomScale: Double {
+        playerController.videoZoom.scale(fillScale: videoFillScale)
+    }
+
+    private func selectVideoZoom(_ zoom: VideoZoom) {
+        withAnimation(Motion.animation(Motion.focus, reduceMotion: reduceMotion)) {
+            playerController.setVideoZoom(zoom)
+        }
+        if let mode = zoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
         }
     }
 
@@ -608,11 +634,13 @@ struct PlayerView: View {
                 versionTitle: viewModel.showsVersionSelection
                     ? viewModel.versionOptions.first(where: \.isSelected)?.title ?? ""
                     : nil,
+                displayTitle: playerController.videoZoom.feedbackTitle(fillScale: videoFillScale),
                 sleepTimer: sleepTimer,
                 mediaKind: viewModel.media?.type,
                 initialOptionID: settingsMenuFocusID,
                 onShowQuality: { sheetPresentation.item = .quality },
                 onShowVersions: { sheetPresentation.item = .version },
+                onShowDisplay: { sheetPresentation.item = .display },
                 onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
             )
         case .quality:
@@ -624,6 +652,12 @@ struct PlayerView: View {
             PlayerVersionSelectionView(
                 versions: viewModel.versionOptions,
                 onSelect: selectVersion(_:),
+            )
+        case .display:
+            PlayerDisplaySelectionView(
+                zoom: playerController.videoZoom,
+                fillScale: videoFillScale,
+                onSelect: selectVideoZoom(_:),
             )
         case .sleepTimer:
             PlayerSleepTimerSelectionView(
@@ -1679,6 +1713,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case settings
     case quality
     case version
+    case display
     case sleepTimer
     case subtitleSearch
 
@@ -1688,7 +1723,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
 
     var parent: PlayerSettingsSheet? {
         switch self {
-        case .quality, .version, .sleepTimer:
+        case .quality, .version, .display, .sleepTimer:
             .settings
         case .audio, .subtitle, .speed, .settings, .subtitleSearch:
             nil
@@ -1709,6 +1744,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.quality"
         case .version:
             "player.settings.version"
+        case .display:
+            "player.settings.display"
         case .sleepTimer:
             "player.sleepTimer.title"
         case .subtitleSearch:
