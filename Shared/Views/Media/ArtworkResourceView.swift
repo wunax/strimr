@@ -51,8 +51,6 @@ private extension Image {
     }
 }
 
-/// `UIImage(data:)` in `body` decoded the image lazily on the main actor at every render, which stalled tvOS focus
-/// moves on Jellyfin rows (raw artwork data, unlike Plex URLs). Decoding now happens once, off the main actor.
 private struct DataArtworkImage: View {
     /// `NSData` hashes only its first bytes and compares contents on collision, so lookups stay cheap.
     private static let cache: NSCache<NSData, PlatformImage> = {
@@ -102,23 +100,9 @@ private struct DataArtworkImage: View {
         if let cached = cache.object(forKey: data as NSData) {
             return cached
         }
-        guard let (image, cost) = await decode(data) else { return nil }
+        guard let (image, cost) = await ArtworkDecoder.decode(data) else { return nil }
         cache.setObject(image, forKey: data as NSData, cost: cost)
         return image
-    }
-
-    @concurrent
-    private nonisolated static func decode(_ data: Data) async -> (PlatformImage, cost: Int)? {
-        let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options)
-        else { return nil }
-        let cost = cgImage.bytesPerRow * cgImage.height
-        #if os(macOS)
-            return (NSImage(cgImage: cgImage, size: .zero), cost)
-        #else
-            return (UIImage(cgImage: cgImage), cost)
-        #endif
     }
 
     private func platformImage(_ image: PlatformImage) -> Image {
@@ -135,7 +119,7 @@ private struct DataArtworkImage: View {
 private struct RemoteArtworkImage: View {
     private static let cache: NSCache<NSURL, PlatformImage> = {
         let cache = NSCache<NSURL, PlatformImage>()
-        cache.countLimit = 300
+        cache.totalCostLimit = 256 * 1024 * 1024
         return cache
     }()
 
@@ -185,8 +169,8 @@ private struct RemoteArtworkImage: View {
         if let status = (response as? HTTPURLResponse)?.statusCode, !(200 ..< 300).contains(status) {
             throw URLError(.badServerResponse)
         }
-        guard let image = PlatformImage(data: data) else { throw URLError(.cannotDecodeContentData) }
-        cache.setObject(image, forKey: url as NSURL)
+        guard let (image, cost) = await ArtworkDecoder.decode(data) else { throw URLError(.cannotDecodeContentData) }
+        cache.setObject(image, forKey: url as NSURL, cost: cost)
         return image
     }
 
@@ -204,6 +188,24 @@ private struct RemoteArtworkImage: View {
 #else
     private typealias PlatformImage = UIImage
 #endif
+
+/// `UIImage(data:)` decodes lazily on the main actor at first render, which stalls tvOS focus moves once artwork
+/// is larger than a thumbnail. Decoding happens here instead, once and off the main actor.
+private enum ArtworkDecoder {
+    @concurrent
+    nonisolated static func decode(_ data: Data) async -> (PlatformImage, cost: Int)? {
+        let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options)
+        else { return nil }
+        let cost = cgImage.bytesPerRow * cgImage.height
+        #if os(macOS)
+            return (NSImage(cgImage: cgImage, size: .zero), cost)
+        #else
+            return (UIImage(cgImage: cgImage), cost)
+        #endif
+    }
+}
 
 struct ArtworkPathView: View {
     @Environment(MediaServices.self) private var services
