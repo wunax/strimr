@@ -735,6 +735,11 @@ struct PlayerView: View {
             return
         }
         playerController.togglePlayback()
+        // The zoom bar keeps the picture clear, and its open bar would keep the controls from hiding again.
+        if activeAdjustmentBar == .zoom {
+            pauseScreen.registerInteraction()
+            return
+        }
         showControls(temporarily: true)
     }
 
