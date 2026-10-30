@@ -8,8 +8,7 @@ enum VideoZoom: Hashable, Sendable {
     case custom(Double)
 
     static let snapTolerance = 0.06
-    static let removeBarsScale = 4.0 / 3.0
-    static let presetScales = [1.1, 1.2, removeBarsScale, 1.5, 1.75, 2.0]
+    static let stepScale = 0.05
     private static let maximumScaleFloor = 2.0
 
     init(_ mode: PlayerVideoScaleMode) {
@@ -57,6 +56,30 @@ enum VideoZoom: Hashable, Sendable {
             return .fill
         }
         return .custom(scale)
+    }
+
+    /// The zoom one step away, on a 5% grid that also stops on fill so it is never stepped over.
+    func stepped(by direction: Int, fillScale: Double) -> VideoZoom {
+        let current = scale(fillScale: fillScale)
+        let position = current / Self.stepScale
+        let tolerance = 0.001
+        let gridIndex = direction > 0
+            ? (position + tolerance).rounded(.down) + 1
+            : (position - tolerance).rounded(.up) - 1
+        var next = gridIndex * Self.stepScale
+        let isFillBetween = min(current, next) + tolerance < fillScale && fillScale < max(current, next) - tolerance
+        if fillScale > 1 + tolerance, isFillBetween {
+            next = fillScale
+        }
+        next = min(max(next, 1), Self.maximumScale(fillScale: fillScale))
+
+        if abs(next - 1) < tolerance {
+            return .fit
+        }
+        if abs(next - fillScale) < tolerance {
+            return .fill
+        }
+        return .custom(next)
     }
 
     /// A custom zoom frames one show's picture (such as bars burned into a whole season), so it carries over

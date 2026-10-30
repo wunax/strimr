@@ -62,7 +62,7 @@ struct PlayerView: View {
     @State private var sleepTimer = SleepTimer()
     @State private var pauseScreen = PauseScreenPresentation()
     @State private var qualityNoticeMessage: String?
-    @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var activeAdjustmentBar: PlayerAdjustmentBar?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -97,7 +97,7 @@ struct PlayerView: View {
             playerScene
                 .overlay {
                     playerOverlay
-                        .disabled(sheetPresentation.item != nil || activeOffsetBar != nil)
+                        .disabled(sheetPresentation.item != nil || activeAdjustmentBar != nil)
                         .accessibilityHidden(sheetPresentation.item != nil)
                         .opacity(sheetPresentation.item != nil ? 0 : 1)
                 }
@@ -217,8 +217,8 @@ struct PlayerView: View {
                 }
                 .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
                     if isPresented {
-                        if activeOffsetBar != nil {
-                            closeOffsetBar()
+                        if activeAdjustmentBar != nil {
+                            closeAdjustmentBar()
                         }
                         sheetPresentation.item = nil
                         hideInfoPanel()
@@ -307,8 +307,13 @@ struct PlayerView: View {
                 .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: sheetPresentation.item)
             }
             .overlay {
-                if let activeOffsetBar {
-                    offsetBar(activeOffsetBar)
+                switch activeAdjustmentBar {
+                case let .offset(kind):
+                    offsetBar(kind)
+                case .zoom:
+                    zoomBar
+                case nil:
+                    EmptyView()
                 }
             }
             .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
@@ -491,7 +496,7 @@ struct PlayerView: View {
                     settingsControl: settingsControl,
                     showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
                     settingsFocusGeneration: settingsFocusGeneration,
-                    isShowingPanel: sheetPresentation.item != nil || activeOffsetBar != nil,
+                    isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
                 )
                 .transition(.opacity)
             }
@@ -658,6 +663,7 @@ struct PlayerView: View {
                 zoom: playerController.videoZoom,
                 fillScale: videoFillScale,
                 onSelect: selectVideoZoom(_:),
+                onShowZoom: openZoomBar,
             )
         case .sleepTimer:
             PlayerSleepTimerSelectionView(
@@ -690,13 +696,29 @@ struct PlayerView: View {
             controller: playerController,
             kind: kind,
             burnsSubtitles: viewModel.burnsSubtitles,
-            onDone: closeOffsetBar,
+            onDone: closeAdjustmentBar,
         )
         .focusSection()
         .padding(edge, inset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         .transition(.opacity)
-        .onExitCommand { closeOffsetBar() }
+        .onExitCommand { closeAdjustmentBar() }
+        .onPlayPauseCommand { togglePlayPause() }
+    }
+
+    private var zoomBar: some View {
+        let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
+        return PlayerZoomBar(
+            controller: playerController,
+            fillScale: videoFillScale,
+            resetZoom: VideoZoom(settingsManager.playback.videoScaleMode),
+            onDone: closeAdjustmentBar,
+        )
+        .focusSection()
+        .padding(alignment == .top ? .top : .bottom, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .transition(.opacity)
+        .onExitCommand { closeAdjustmentBar() }
         .onPlayPauseCommand { togglePlayPause() }
     }
 
@@ -841,15 +863,29 @@ struct PlayerView: View {
         sheetPresentation.item = nil
         hideControlsWorkItem?.cancel()
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
-            activeOffsetBar = kind
+            activeAdjustmentBar = .offset(kind)
             controlsVisible = true
         }
     }
 
-    private func closeOffsetBar() {
-        playerController.commitAudioDelay()
+    /// Hides the controls so the whole picture shows while the zoom changes.
+    private func openZoomBar() {
+        sheetPresentation.item = nil
+        hideControlsWorkItem?.cancel()
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
-            activeOffsetBar = nil
+            activeAdjustmentBar = .zoom
+            controlsVisible = false
+        }
+    }
+
+    private func closeAdjustmentBar() {
+        if case .offset = activeAdjustmentBar {
+            playerController.commitAudioDelay()
+        } else if let mode = playerController.videoZoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
+        }
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            activeAdjustmentBar = nil
         }
         settingsFocusGeneration += 1
         showControls(temporarily: true)
@@ -869,8 +905,8 @@ struct PlayerView: View {
             sleepTimer.continueAfterPrompt()
             return
         }
-        if activeOffsetBar != nil {
-            closeOffsetBar()
+        if activeAdjustmentBar != nil {
+            closeAdjustmentBar()
             return
         }
         if sheetPresentation.item != nil {
@@ -1317,7 +1353,7 @@ struct PlayerView: View {
             && !isSearchingSubtitles
             && sheetPresentation.item == nil
             && !isShowingInfoPanel
-            && activeOffsetBar == nil
+            && activeAdjustmentBar == nil
             && viewModel.activeSkipMarker == nil
             && !nextEpisodePresentation.isPresented
             && !sleepTimer.isPromptPresented
@@ -1338,7 +1374,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard sheetPresentation.item == nil, activeOffsetBar == nil else { return }
+        guard sheetPresentation.item == nil, activeAdjustmentBar == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
@@ -1704,6 +1740,11 @@ struct PlayerView: View {
         showingTerminationAlert = true
         playerController.pause()
     }
+}
+
+private enum PlayerAdjustmentBar: Hashable {
+    case offset(PlaybackOffsetKind)
+    case zoom
 }
 
 private enum PlayerSettingsSheet: String, Identifiable {

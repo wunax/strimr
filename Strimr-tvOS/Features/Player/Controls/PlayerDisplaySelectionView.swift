@@ -4,6 +4,7 @@ struct PlayerDisplaySelectionView: View {
     var zoom: VideoZoom
     var fillScale: Double
     var onSelect: (VideoZoom) -> Void
+    var onShowZoom: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
@@ -18,20 +19,14 @@ struct PlayerDisplaySelectionView: View {
         if showsFill {
             options.append(option(for: .fill))
         }
-
-        let maximumScale = VideoZoom.maximumScale(fillScale: fillScale)
-        let presets = VideoZoom.presetScales.filter { $0 <= maximumScale + 0.001 }
-        for (index, scale) in presets.enumerated() {
-            let isRemoveBars = scale == VideoZoom.removeBarsScale
-            options.append(PlayerSettingsOption(
-                id: "zoom-\(scale)",
-                title: VideoZoom.percentText(scale: scale),
-                subtitle: isRemoveBars ? String(localized: "player.settings.display.removeBars") : nil,
-                isSelected: isSelected(scale),
-                sectionTitle: index == 0 ? String(localized: "player.settings.display.zoom") : nil,
-                action: { onSelect(.custom(scale)) },
-            ))
-        }
+        options.append(PlayerSettingsOption(
+            id: "zoom",
+            title: String(localized: "player.settings.display.zoom"),
+            subtitle: zoom.persistedMode == nil ? zoom.feedbackTitle(fillScale: fillScale) : nil,
+            highlightsSubtitle: true,
+            isSelected: zoom.persistedMode == nil,
+            action: onShowZoom,
+        ))
         return options
     }
 
@@ -48,10 +43,5 @@ struct PlayerDisplaySelectionView: View {
     /// Fill only differs from the fitted picture when the video and screen shapes differ.
     private var showsFill: Bool {
         fillScale > 1.01
-    }
-
-    private func isSelected(_ scale: Double) -> Bool {
-        guard case let .custom(current) = zoom else { return false }
-        return abs(current - scale) < 0.001
     }
 }
