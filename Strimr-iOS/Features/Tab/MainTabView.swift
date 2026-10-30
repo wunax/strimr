@@ -46,6 +46,9 @@ struct MainTabView: View {
                     coordinator.resetLiveTVNavigation()
                 }
             }
+            .onChange(of: coordinator.isPresentingPlayer, initial: true) { _, isPresenting in
+                homeViewModel.isPlaybackActive = isPresenting
+            }
             .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: playerDidClose) {
                 if let queue = coordinator.selectedMediaQueue,
                    let services = coordinator.selectedMediaServices

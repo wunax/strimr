@@ -191,6 +191,9 @@ struct MainTabView: View {
         .handlesExternalPlaybackCallbacks { server in
             Task { await homeViewModel.refresh(server: server) }
         }
+        .onChange(of: coordinator.isPresentingPlayer, initial: true) { _, isPresenting in
+            homeViewModel.isPlaybackActive = isPresenting
+        }
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }
             defer { topShelfDeepLinkRouter.clear(action) }

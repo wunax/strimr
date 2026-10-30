@@ -26,6 +26,7 @@ final class ProgressSynchronizer {
             let synced = await synchronize(itemID: itemID, entries: entries, owner: owner, services: services)
             allSynced = allSynced && synced
         }
+        services.noteWatchStateChanged()
         return allSynced
     }
 

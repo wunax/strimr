@@ -13,6 +13,7 @@ struct MediaQuickActionsTests {
     private final class Calls {
         var played: [(Bool, String)] = []
         var favorites: [(Bool, String)] = []
+        var changes = 0
     }
 
     private func makeActions(
@@ -34,6 +35,7 @@ struct MediaQuickActionsTests {
                     throw error
                 }
             },
+            didChange: { calls.changes += 1 },
         )
     }
 
@@ -132,6 +134,25 @@ struct MediaQuickActionsTests {
         let outcome = await makeActions(error: CancellationError()).setPlayed(true, for: makeMedia(type: .movie))
 
         #expect(outcome == .cancelled)
+    }
+
+    @Test func `successful watched and favorite actions report a change`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls)
+
+        _ = await actions.setPlayed(true, for: makeMedia(type: .episode))
+        _ = await actions.setFavorite(true, for: makeMedia(type: .episode))
+
+        #expect(calls.changes == 2)
+    }
+
+    @Test func `failed or skipped actions report no change`() async {
+        let calls = Calls()
+
+        _ = await makeActions(calls: calls, error: Failure()).setPlayed(true, for: makeMedia(type: .movie))
+        _ = await makeActions(supportsFavorites: false, calls: calls).setFavorite(true, for: makeMedia(type: .movie))
+
+        #expect(calls.changes == 0)
     }
 
     private func makeMedia(
