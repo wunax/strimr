@@ -170,6 +170,9 @@ protocol MediaHomeService: AnyObject {
         includesPlaylists: Bool,
         shownRowIDs: Set<String>,
     ) async throws -> HomeContent
+    /// Only the Continue Watching and Next Up rows, the ones that change as the user watches: much cheaper than the
+    /// whole home, so they can be refreshed each time the home comes back.
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
     /// Every row the user can add to the home, including the ones the server does not put there.
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
     func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem>
@@ -178,6 +181,11 @@ protocol MediaHomeService: AnyObject {
 extension MediaHomeService {
     func homeRowCatalog(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
         []
+    }
+
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+        try await loadHome(hiddenLibraryIDs: hiddenLibraryIDs, includesPlaylists: false, shownRowIDs: [])
+            .rows.filter(\.isWatchingRow)
     }
 }
 

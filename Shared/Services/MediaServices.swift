@@ -51,6 +51,8 @@ final class MediaServices {
 
     /// Bumped after any playlist change, so screens listing playlists reload.
     private(set) var playlistsRevision = 0
+    /// Bumped after a watched, progress or favorite change made from the app, so the home reloads this server.
+    private(set) var watchStateRevision = 0
 
     var authorization: MediaAuthorization {
         authorizationService.authorization
@@ -58,6 +60,10 @@ final class MediaServices {
 
     func notePlaylistsChanged() {
         playlistsRevision += 1
+    }
+
+    func noteWatchStateChanged() {
+        watchStateRevision += 1
     }
 
     /// Scope of per-server preferences such as library browsing. A profile has one link per server, so the server and

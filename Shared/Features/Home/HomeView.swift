@@ -45,14 +45,15 @@ struct HomeView: View {
         }
         .navigationTitle("tabs.home")
         .tabRootChrome()
-        .environment(\.reloadAfterMediaCardAction) { item in
-            Task { await viewModel.refresh(server: item.identity.server) }
-        }
         .environment(\.reloadAfterPlaylistChange) { server in
             Task { await viewModel.refresh(server: server) }
         }
         .task {
             await viewModel.load()
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await viewModel.refreshPeriodically()
         }
         .onAppear {
             Task { await viewModel.refreshIfNeeded() }
@@ -79,6 +80,9 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+        .onChange(of: viewModel.watchStateRevisions) {
+            viewModel.refreshAfterWatchStateChanges()
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }

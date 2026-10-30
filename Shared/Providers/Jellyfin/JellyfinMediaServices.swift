@@ -136,36 +136,12 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         includesPlaylists _: Bool,
         shownRowIDs _: Set<String>,
     ) async throws -> HomeContent {
+        async let watchingRows = loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs)
         let visibleLibraries = try await catalog.libraries().filter {
             !hiddenLibraryIDs.contains($0.id)
                 && ($0.collectionType?.lowercased() == "movies" || $0.collectionType?.lowercased() == "tvshows")
         }
-        async let resumeItems = catalog.resume()
-        async let nextUpItems = catalog.nextUp()
-        let resume = try await resumeItems
-        let nextUp = try await nextUpItems
-
-        var rows: [HomeRow] = []
-        if !resume.isEmpty {
-            let resumeHub = hub(
-                id: "jellyfin.resume",
-                title: String(localized: "jellyfin.home.resume"),
-                items: resume,
-            )
-            if resumeHub.hasItems {
-                rows.append(.continueWatching(server: server, hub: resumeHub))
-            }
-        }
-        if !nextUp.isEmpty {
-            let nextUpHub = hub(
-                id: "jellyfin.nextUp",
-                title: String(localized: "jellyfin.home.nextUp"),
-                items: nextUp,
-            )
-            if nextUpHub.hasItems {
-                rows.append(.nextUp(server: server, hub: nextUpHub))
-            }
-        }
+        var rows = try await watchingRows
         let latest = try await withThrowingTaskGroup(of: (Int, JellyfinItem, [JellyfinItem]).self) { group in
             for (index, library) in visibleLibraries.enumerated() {
                 group.addTask { [catalog] in
@@ -196,6 +172,29 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         })
 
         return HomeContent(rows: rows)
+    }
+
+    func loadWatchingRows(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
+        async let resumeItems = catalog.resume()
+        async let nextUpItems = catalog.nextUp()
+        let resumeHub = try await hub(
+            id: "jellyfin.resume",
+            title: String(localized: "jellyfin.home.resume"),
+            items: resumeItems,
+        )
+        let nextUpHub = try await hub(
+            id: "jellyfin.nextUp",
+            title: String(localized: "jellyfin.home.nextUp"),
+            items: nextUpItems,
+        )
+        var rows: [HomeRow] = []
+        if resumeHub.hasItems {
+            rows.append(.continueWatching(server: server, hub: resumeHub))
+        }
+        if nextUpHub.hasItems {
+            rows.append(.nextUp(server: server, hub: nextUpHub))
+        }
+        return rows
     }
 
     func libraries() async throws -> [Library] {

@@ -40,14 +40,15 @@ struct HomeView: View {
                 emptyState
             }
         }
-        .environment(\.reloadAfterMediaCardAction) { item in
-            Task { await viewModel.refresh(server: item.identity.server) }
-        }
         .environment(\.reloadAfterPlaylistChange) { server in
             Task { await viewModel.refresh(server: server) }
         }
         .task {
             await viewModel.load()
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await viewModel.refreshPeriodically()
         }
         .onChange(of: visibleHeroMediaIDs) { _, _ in
             updateInitialFocus()
@@ -55,6 +56,9 @@ struct HomeView: View {
         .onAppear {
             updateInitialFocus()
             Task { await viewModel.refreshIfNeeded() }
+        }
+        .onChange(of: viewModel.watchStateRevisions) {
+            viewModel.refreshAfterWatchStateChanges()
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }

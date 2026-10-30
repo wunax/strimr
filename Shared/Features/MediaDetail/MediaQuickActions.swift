@@ -58,21 +58,25 @@ struct MediaQuickActions {
     private let supportsFavorites: Bool
     private let setPlayedHandler: (Bool, String) async throws -> Void
     private let setFavoriteHandler: (Bool, MediaItem) async throws -> Void
+    private let didChange: () -> Void
 
     init(services: MediaServices) {
         supportsFavorites = services.capabilities.favorites
         setPlayedHandler = { played, itemID in try await services.detail.setPlayed(played, itemID: itemID) }
         setFavoriteHandler = { favorite, media in try await services.favorites.setFavorite(favorite, media: media) }
+        didChange = { services.noteWatchStateChanged() }
     }
 
     init(
         supportsFavorites: Bool,
         setPlayed: @escaping (Bool, String) async throws -> Void,
         setFavorite: @escaping (Bool, MediaItem) async throws -> Void,
+        didChange: @escaping () -> Void = {},
     ) {
         self.supportsFavorites = supportsFavorites
         setPlayedHandler = setPlayed
         setFavoriteHandler = setFavorite
+        self.didChange = didChange
     }
 
     func canFavorite(_ item: MediaItem) -> Bool {
@@ -134,6 +138,8 @@ struct MediaQuickActions {
     private func perform(_ operation: () async throws -> Void) async -> Outcome {
         do {
             try await operation()
+            // The server applied the change even if the task was cancelled meanwhile.
+            didChange()
             return Task.isCancelled ? .cancelled : .succeeded
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return .cancelled }

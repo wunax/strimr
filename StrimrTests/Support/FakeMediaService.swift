@@ -26,6 +26,10 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         throw NotStubbed(function: #function)
     }
 
+    func loadWatchingRows(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
+        throw NotStubbed(function: #function)
+    }
+
     func homeRowCatalog(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
         throw NotStubbed(function: #function)
     }

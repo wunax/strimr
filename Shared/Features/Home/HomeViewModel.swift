@@ -21,7 +21,34 @@ final class HomeViewModel {
     @ObservationIgnored private let sessionManager: SessionManager
     @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var loadTask: Task<Void, Never>?
-    @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    /// Full reloads are spaced out: in between, only the watching rows are refreshed.
+    @ObservationIgnored private var refreshGate = AutomaticRefreshGate(debounceInterval: 15 * 60)
+    @ObservationIgnored private var lastFailedServersRetry: Date?
+    @ObservationIgnored private var watchingRowsTask: Task<Void, Never>?
+    /// Bumped by each full load, so watching rows requested before it do not overwrite its newer rows.
+    @ObservationIgnored private var rowsLoadGeneration = 0
+    @ObservationIgnored private var loadedWatchStateRevisions: [ServerIdentity: Int] = [:]
+    @ObservationIgnored private var watchStateRefreshTask: Task<Void, Never>?
+    @ObservationIgnored private var loadedConfigurations: [ServerIdentity: LoadConfiguration] = [:]
+    @ObservationIgnored private var builtLibraryOrder: [LibraryIdentity] = []
+    /// The player is drawn over the home, which stays alive: automatic refreshes wait, as closing the player reloads
+    /// the played server anyway.
+    @ObservationIgnored var isPlaybackActive = false {
+        didSet {
+            // Closing the player reloads only the played server; changes skipped meanwhile on others are caught up.
+            guard oldValue, !isPlaybackActive else { return }
+            refreshAfterWatchStateChanges()
+        }
+    }
+
+    /// Settings a server's home is loaded with: a change needs that server reloaded.
+    private struct LoadConfiguration: Equatable {
+        let hiddenLibraryIDs: Set<String>
+        let includesPlaylists: Bool
+    }
+
+    private static let periodicRefreshInterval: Duration = .seconds(300)
+    private static let failedServersRetryInterval: TimeInterval = 90
 
     init(sessionManager: SessionManager, settingsManager: SettingsManager) {
         self.sessionManager = sessionManager
@@ -168,23 +195,131 @@ final class HomeViewModel {
         await reload(servers: nil, preservingExistingContent: false)
     }
 
-    /// Automatic refresh only retries the servers that have not answered yet, and loads the rows turned on in the
-    /// settings since the last load.
+    /// Automatic refresh fully reloads the servers changed from the app or whose settings changed, and every server
+    /// once the last full reload is old enough. Otherwise only the watching rows are refreshed, as progress can move
+    /// on another device.
     func refreshIfNeeded(now: Date = Date()) async {
+        guard !isPlaybackActive, refreshGate.hasStartedInitialLoad else { return }
+        if libraryOrder != builtLibraryOrder {
+            rebuild()
+        }
+        var reloaded = serversWithWatchStateChanges.union(serversWithConfigurationChanges)
         let shownRowIDs = shownRowIDs
-        if refreshGate.hasStartedInitialLoad, shownRowIDs != loadedShownRowIDs {
+        if shownRowIDs != loadedShownRowIDs {
             let changed = shownRowIDs.symmetricDifference(loadedShownRowIDs)
-            let servers = Set(changed.compactMap(HomeRow.server(fromRowID:)))
+            reloaded.formUnion(changed.compactMap(HomeRow.server(fromRowID:)))
             loadedShownRowIDs = shownRowIDs
-            if !servers.isEmpty {
-                await reload(servers: servers, preservingExistingContent: true)
+        }
+        let failed = registry.readyServers.subtracting(loadedServers)
+        if !failed.isEmpty,
+           lastFailedServersRetry.map({ now.timeIntervalSince($0) >= Self.failedServersRetryInterval }) ?? true
+        {
+            lastFailedServersRetry = now
+            reloaded.formUnion(failed)
+        }
+        if !reloaded.isEmpty {
+            await reload(servers: reloaded, preservingExistingContent: true)
+        }
+
+        let others = Set(registry.enabledSessions.map(\.identity)).subtracting(reloaded)
+        guard !others.isEmpty else { return }
+        if refreshGate.shouldRefresh(now: now, isLoading: isLoading) {
+            await reload(servers: others, preservingExistingContent: true)
+        } else {
+            await refreshWatchingRows(servers: others.intersection(loadedServers))
+        }
+    }
+
+    /// Requests made while a refresh runs join it.
+    private func refreshWatchingRows(servers: Set<ServerIdentity>) async {
+        guard !servers.isEmpty else { return }
+        if let watchingRowsTask {
+            await watchingRowsTask.value
+            return
+        }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await fetchWatchingRows(servers: servers)
+        }
+        watchingRowsTask = task
+        await task.value
+        watchingRowsTask = nil
+    }
+
+    private func fetchWatchingRows(servers: Set<ServerIdentity>) async {
+        let generation = rowsLoadGeneration
+        let sessions = registry.sessions.filter { servers.contains($0.identity) }
+        let hiddenLibraryIDs = Dictionary(
+            sessions.map { ($0.identity, loadConfiguration(for: $0.identity).hiddenLibraryIDs) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
+            try await services.home.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs[services.identity] ?? [])
+        }
+        guard !Task.isCancelled, generation == rowsLoadGeneration else { return }
+        for (server, watchingRows) in result.value {
+            // A server removed from the home meanwhile stays out of it.
+            guard let rows = rowsByServer[server], !cachedOnlyServers.contains(server) else { continue }
+            rowsByServer[server] = watchingRows + rows.filter { !$0.isWatchingRow }
+        }
+        rebuild()
+    }
+
+    /// Runs while the home is on screen, for progress made on another device while the app stays in front.
+    func refreshPeriodically() async {
+        while true {
+            do {
+                try await Task.sleep(for: Self.periodicRefreshInterval)
+            } catch {
                 return
             }
+            await refreshIfNeeded()
         }
-        guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
-        let pending = Set(registry.enabledSessions.map(\.identity)).subtracting(loadedServers)
-        guard !pending.isEmpty else { return }
-        await reload(servers: pending, preservingExistingContent: true)
+    }
+
+    /// Revision of each server's watch state, to observe changes made anywhere in the app.
+    var watchStateRevisions: [ServerIdentity: Int] {
+        Dictionary(
+            registry.connectedServices.map { ($0.identity, $0.watchStateRevision) },
+            uniquingKeysWith: { first, _ in first },
+        )
+    }
+
+    /// Reloads the servers whose watch state changed since their last load. Grouped, so marking several episodes in a
+    /// row reloads once.
+    func refreshAfterWatchStateChanges() {
+        watchStateRefreshTask?.cancel()
+        watchStateRefreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let self, !Task.isCancelled, !isPlaybackActive else { return }
+            let changed = serversWithWatchStateChanges
+            guard !changed.isEmpty else { return }
+            await reload(servers: changed, preservingExistingContent: true)
+        }
+    }
+
+    private var serversWithWatchStateChanges: Set<ServerIdentity> {
+        guard refreshGate.hasStartedInitialLoad else { return [] }
+        return Set(watchStateRevisions.compactMap { server, revision in
+            loadedServers.contains(server) && loadedWatchStateRevisions[server] != revision ? server : nil
+        })
+    }
+
+    private var serversWithConfigurationChanges: Set<ServerIdentity> {
+        guard refreshGate.hasStartedInitialLoad else { return [] }
+        return loadedServers.filter { loadedConfigurations[$0] != loadConfiguration(for: $0) }
+    }
+
+    private func loadConfiguration(for server: ServerIdentity) -> LoadConfiguration {
+        let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
+        return LoadConfiguration(
+            hiddenLibraryIDs: Set(hidden.filter { $0.server == server }.map(\.libraryID)),
+            includesPlaylists: settingsManager.interface.displayPlaylists,
+        )
+    }
+
+    private var libraryOrder: [LibraryIdentity] {
+        settingsManager.libraryPreferences(profileID: profileID).libraryOrder
     }
 
     /// After playback, only the item's server is reloaded to update Reprendre and Next Up.
@@ -228,6 +363,7 @@ final class HomeViewModel {
     }
 
     private func fetch(servers: Set<ServerIdentity>?, preservingExistingContent: Bool) async {
+        rowsLoadGeneration += 1
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -239,15 +375,22 @@ final class HomeViewModel {
         #endif
 
         let sessions = registry.sessions.filter { servers?.contains($0.identity) ?? true }
-        let includesPlaylists = settingsManager.interface.displayPlaylists
-        let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
+        let configurations = Dictionary(
+            sessions.map { ($0.identity, loadConfiguration(for: $0.identity)) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        // Taken before the request, so a change made while it runs triggers another reload.
+        for session in sessions {
+            loadedWatchStateRevisions[session.identity] = registry.services(for: session.identity)?.watchStateRevision
+            loadedConfigurations[session.identity] = configurations[session.identity]
+        }
         let shownRowIDs = shownRowIDs
         loadedShownRowIDs = shownRowIDs
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
-            let hiddenIDs = Set(hidden.filter { $0.server == services.identity }.map(\.libraryID))
+            let configuration = configurations[services.identity]
             return try await services.home.loadHome(
-                hiddenLibraryIDs: hiddenIDs,
-                includesPlaylists: includesPlaylists,
+                hiddenLibraryIDs: configuration?.hiddenLibraryIDs ?? [],
+                includesPlaylists: configuration?.includesPlaylists ?? false,
                 shownRowIDs: shownRowIDs,
             )
         }
@@ -289,13 +432,18 @@ final class HomeViewModel {
             guard let rows = rowsByServer[server] else { return nil }
             return HomeAggregation.ServerHome(server: server, serverName: names[server] ?? server.id, rows: rows)
         }
-        let libraryOrder = settingsManager.libraryPreferences(profileID: profileID).libraryOrder
-        availableRows = HomeAggregation.merge(
+        let libraryOrder = libraryOrder
+        builtLibraryOrder = libraryOrder
+        let rows = HomeAggregation.merge(
             homes,
             libraryOrder: libraryOrder,
             showsServerNames: showsServerNames,
             localPlaybackDate: localPlaybackDate(for: homes),
         )
+        // An unchanged home is left as is, so a periodic refresh does not move the tvOS focus.
+        if rows != availableRows {
+            availableRows = rows
+        }
         let catalogHomes = order.compactMap { server -> HomeAggregation.ServerHome? in
             let loaded = Set(rowsByServer[server]?.map(\.id) ?? [])
             let extra = (catalogByServer[server] ?? []).filter { !loaded.contains($0.id) }
@@ -307,7 +455,10 @@ final class HomeViewModel {
             libraryOrder: libraryOrder,
             showsServerNames: showsServerNames,
         )
-        editableRows = availableRows + catalogRows
+        let editable = availableRows + catalogRows
+        if editable != editableRows {
+            editableRows = editable
+        }
         let allCatalogRows = HomeAggregation.merge(
             order.compactMap { server in
                 catalogByServer[server].map { HomeAggregation.ServerHome(server: server, serverName: "", rows: $0) }
