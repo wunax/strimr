@@ -45,6 +45,9 @@ struct PlayerView: View {
     @State private var lastPinchInteraction: ContinuousClock.Instant?
     @State private var isLandscape = false
     @GestureState private var isPinching = false
+    @State private var pinchStartZoomScale: Double?
+    @State private var videoZoomFillCrossings = 0
+    @State private var videoAreaSize = CGSize.zero
     @State private var layoutMode = PlayerLayoutMode.fullScreen
     @State private var hinge = PlayerHingeState.unavailable
     @State private var isTabletopLocked = false
@@ -109,7 +112,6 @@ struct PlayerView: View {
             .statusBarHidden()
             .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape in
                 self.isLandscape = isLandscape
-                applyVideoScaleMode()
             }
             .overlay {
                 if !layoutMode.isTabletop {
@@ -134,7 +136,6 @@ struct PlayerView: View {
                         preparePlaybackForBackground()
                     }
                     didConsiderAutomaticRotation = false
-                    applyVideoScaleMode()
                     rotateAutomaticallyIfNeeded()
                     configureSleepTimer()
                     showControls(temporarily: true)
@@ -281,6 +282,7 @@ struct PlayerView: View {
                         selectedAudioTrackID: selectedAudioTrackID,
                         selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
+                        videoZoom: playerController.videoZoom,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
                     ),
                     onDismiss: { showControls(temporarily: true) },
@@ -417,11 +419,12 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerSurfaceView(controller: playerController)
+            PlayerSurfaceView(controller: playerController, zoomScale: videoZoomScale)
                 .onAppear {
                     showControls(temporarily: true)
                 }
                 .ignoresSafeArea()
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { videoAreaSize = $0 }
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
@@ -432,10 +435,13 @@ struct PlayerView: View {
                 videoSize: playerController.displayVideoSize ?? playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
-                videoScaleMode: playerController.videoScaleMode,
+                videoZoomScale: videoZoomScale,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+        }
+        .onChange(of: viewModel.media?.metadataRatingKey, initial: true) { _, context in
+            playerController.prepareVideoZoom(for: context, persistedMode: settingsManager.playback.videoScaleMode)
         }
     }
 
@@ -471,20 +477,23 @@ struct PlayerView: View {
                         .updating($isPinching) { _, isPinching, _ in
                             isPinching = true
                         }
-                        .onEnded { value in
+                        .onChanged { value in
+                            updateVideoZoom(magnification: value.magnification)
+                        }
+                        .onEnded { _ in
                             lastPinchInteraction = .now
-                            if value.magnification > 1.12 {
-                                selectVideoScaleMode(.fill)
-                            } else if value.magnification < 0.88 {
-                                selectVideoScaleMode(.fit)
-                            }
+                            finishVideoZoom()
                         },
                 )
+                .sensoryFeedback(.impact(weight: .light), trigger: videoZoomFillCrossings)
                 .onChange(of: isPinching) { _, isPinching in
                     lastPinchInteraction = .now
                     if isPinching {
                         doubleTapSeek.cancel()
                         pauseScreen.registerInteraction()
+                    } else {
+                        // A cancelled pinch never reaches onEnded.
+                        finishVideoZoom()
                     }
                 }
 
@@ -856,6 +865,9 @@ struct PlayerView: View {
                 : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onSelectQuality: { selectQuality($0) },
+            videoZoom: playerController.videoZoom,
+            videoFillScale: videoFillScale,
+            onSelectVideoScaleMode: selectVideoScaleMode(_:),
             syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
             onSelectSync: openOffsetBar(_:),
             sleepTimer: sleepTimer,
@@ -972,16 +984,50 @@ struct PlayerView: View {
         return ContinuousClock.now - lastPinchInteraction < .milliseconds(250)
     }
 
-    private func applyVideoScaleMode() {
-        playerController.setVideoScaleMode(isLandscape ? settingsManager.playback.videoScaleMode : .fit)
+    private var videoFillScale: Double {
+        VideoZoom.fillScale(
+            video: playerController.displayVideoSize ?? playerController.sourceVideoSize,
+            container: videoAreaSize,
+        )
+    }
+
+    /// The zoom only applies in landscape, where the picture can fill the screen.
+    private var videoZoomScale: Double {
+        isLandscape ? playerController.videoZoom.scale(fillScale: videoFillScale) : 1
+    }
+
+    private func updateVideoZoom(magnification: CGFloat) {
+        guard isLandscape else { return }
+        let fillScale = videoFillScale
+        let previousScale = videoZoomScale
+        let startScale = pinchStartZoomScale ?? previousScale
+        pinchStartZoomScale = startScale
+        let scale = min(max(startScale * magnification, 1), VideoZoom.maximumScale(fillScale: fillScale))
+        if fillScale > 1.01, (previousScale < fillScale) != (scale < fillScale) {
+            videoZoomFillCrossings += 1
+        }
+        playerController.setVideoZoom(.custom(scale))
+        let zoom = VideoZoom.snapped(scale: scale, fillScale: fillScale)
+        showFeedbackMessage(zoom.feedbackTitle(fillScale: fillScale), systemImage: zoom.feedbackSystemImage)
+    }
+
+    private func finishVideoZoom() {
+        guard pinchStartZoomScale != nil else { return }
+        pinchStartZoomScale = nil
+        let fillScale = videoFillScale
+        let zoom = VideoZoom.snapped(scale: videoZoomScale, fillScale: fillScale)
+        withAnimation(Motion.animation(Motion.focus, reduceMotion: reduceMotion)) {
+            playerController.setVideoZoom(zoom)
+        }
+        if let mode = zoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
+        }
+        showFeedbackMessage(zoom.feedbackTitle(fillScale: fillScale), systemImage: zoom.feedbackSystemImage)
     }
 
     private func selectVideoScaleMode(_ mode: PlayerVideoScaleMode) {
-        guard isLandscape,
-              playerController.videoScaleMode != mode || settingsManager.playback.videoScaleMode != mode else { return }
         settingsManager.setVideoScaleMode(mode)
-        applyVideoScaleMode()
-        showFeedbackMessage(mode.feedbackTitle, systemImage: mode.feedbackSystemImage)
+        playerController.setVideoZoom(VideoZoom(mode))
     }
 
     /// The inner display of a foldable ignores the supported interface orientations, so locking only works while the
@@ -1814,6 +1860,7 @@ private struct PlayerSheetRefreshID: Hashable {
     let selectedAudioTrackID: Int?
     let selectedSubtitleTrackID: Int?
     let playbackRate: Float
+    let videoZoom: VideoZoom
     let syncItems: [PlaybackOffsetMenuItem]
 }
 

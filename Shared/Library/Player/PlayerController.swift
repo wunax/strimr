@@ -7,12 +7,6 @@ import Observation
 import SwiftAssRenderer
 import SwiftUI
 
-extension PlayerVideoScaleMode {
-    var videoGravity: AVLayerVideoGravity {
-        self == .fit ? .resizeAspect : .resizeAspectFill
-    }
-}
-
 struct PlayerScrubPreview {
     var position: Double
     var image: CGImage?
@@ -35,7 +29,8 @@ final class PlayerController {
     var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
     private(set) var displayVideoSize: CGSize?
-    private(set) var videoScaleMode = PlayerVideoScaleMode.fit
+    private(set) var videoZoom = VideoZoom.fit
+    @ObservationIgnored private var videoZoomContext: String?
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
@@ -59,9 +54,18 @@ final class PlayerController {
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
 
-    func setVideoScaleMode(_ mode: PlayerVideoScaleMode) {
-        videoScaleMode = mode
-        engine.videoGravity = mode.videoGravity
+    func setVideoZoom(_ zoom: VideoZoom) {
+        videoZoom = zoom
+    }
+
+    func prepareVideoZoom(for context: String?, persistedMode: PlayerVideoScaleMode) {
+        videoZoom = VideoZoom.carriedOver(
+            videoZoom,
+            from: videoZoomContext,
+            to: context,
+            persistedMode: persistedMode,
+        )
+        videoZoomContext = context
     }
 
     var isMuted: Bool {
@@ -1258,8 +1262,11 @@ struct ExternalSubtitleRegistrationError: LocalizedError {
 
 struct PlayerSurfaceView: View {
     let controller: PlayerController
+    var zoomScale = 1.0
 
     var body: some View {
         AetherPlayerSurface(engine: controller.engine)
+            .scaleEffect(zoomScale)
+            .clipped()
     }
 }

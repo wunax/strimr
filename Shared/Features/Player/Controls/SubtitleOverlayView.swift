@@ -18,20 +18,27 @@ struct SubtitleOverlayView: View {
     let videoSize: CGSize?
     let assRenderer: AssSubtitlesRenderer?
     let activeSubtitleCodec: String?
-    var videoScaleMode: PlayerVideoScaleMode = .fit
+    var videoZoomScale = 1.0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if let assRenderer {
             GeometryReader { geometry in
-                let rect = videoRect(in: geometry.size)
+                // libass lays the picture out from these margins, so dialogue stays on screen when a zoom
+                // crops the picture while signs keep following it.
+                let margins = SubtitleGeometry.frameMargins(
+                    picture: videoRect(in: geometry.size),
+                    in: geometry.size,
+                )
                 // A track switch swaps renderers within one update, so the host view must be rebuilt
                 // rather than kept subscribed to the freed one.
-                ASSRenderedSubtitles(renderer: assRenderer)
-                    .id(ObjectIdentifier(assRenderer))
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
+                ASSRenderedSubtitles(
+                    renderer: assRenderer,
+                    margins: margins,
+                    useMargins: SubtitleGeometry.cropsPicture(margins),
+                )
+                .id(ObjectIdentifier(assRenderer))
             }
             .clipped()
             .allowsHitTesting(false)
@@ -45,10 +52,13 @@ struct SubtitleOverlayView: View {
             GeometryReader { geometry in
                 Color.clear
                     .overlay(alignment: .topLeading) {
-                        ForEach(activeCues, id: \.id) { cue in
-                            if case let .image(image) = cue.body {
-                                imageView(image, frame: imageFrame(image, in: geometry.size))
-                            }
+                        let images = activeImages
+                        let frames = SubtitleGeometry.keptVisible(
+                            images.map { imageFrame($0.image, in: geometry.size) },
+                            in: CGRect(origin: .zero, size: geometry.size),
+                        )
+                        ForEach(Array(zip(images, frames)), id: \.0.id) { item, frame in
+                            imageView(item.image, frame: frame)
                         }
                     }
             }
@@ -121,6 +131,15 @@ struct SubtitleOverlayView: View {
             result += part
         }
         return result
+    }
+
+    private var activeImages: [(id: SubtitleCue.ID, image: SubtitleImage)] {
+        activeCues.compactMap { cue in
+            if case let .image(image) = cue.body {
+                return (cue.id, image)
+            }
+            return nil
+        }
     }
 
     private var isASSTrackActive: Bool {
@@ -219,22 +238,8 @@ struct SubtitleOverlayView: View {
         )
     }
 
-    /// Apply the video's fit-to-fill transform to the existing subtitle layout.
     private func zoomedRect(_ rect: CGRect, in overlaySize: CGSize) -> CGRect {
-        guard videoScaleMode == .fill, let videoSize,
-              videoSize.width > 0, videoSize.height > 0,
-              overlaySize.width > 0, overlaySize.height > 0
-        else { return rect }
-
-        let widthScale = overlaySize.width / videoSize.width
-        let heightScale = overlaySize.height / videoSize.height
-        let zoom = max(widthScale, heightScale) / min(widthScale, heightScale)
-        return CGRect(
-            x: overlaySize.width / 2 + (rect.minX - overlaySize.width / 2) * zoom,
-            y: overlaySize.height / 2 + (rect.minY - overlaySize.height / 2) * zoom,
-            width: rect.width * zoom,
-            height: rect.height * zoom,
-        )
+        SubtitleGeometry.zoomed(rect, by: videoZoomScale, in: overlaySize)
     }
 
     private func imageFrame(_ image: SubtitleImage, in overlaySize: CGSize) -> CGRect {
@@ -266,19 +271,27 @@ struct SubtitleOverlayView: View {
 
 private struct ASSRenderedSubtitles: PlatformViewRepresentable {
     let renderer: AssSubtitlesRenderer
+    let margins: FrameMargins
+    let useMargins: Bool
 
     #if canImport(UIKit)
         func makeUIView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer)
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+            return ASSFrameHostView(renderer: renderer)
         }
 
-        func updateUIView(_: ASSFrameHostView, context _: Context) {}
+        func updateUIView(_: ASSFrameHostView, context _: Context) {
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+        }
     #elseif canImport(AppKit)
         func makeNSView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer)
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+            return ASSFrameHostView(renderer: renderer)
         }
 
-        func updateNSView(_: ASSFrameHostView, context _: Context) {}
+        func updateNSView(_: ASSFrameHostView, context _: Context) {
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+        }
     #endif
 }
 

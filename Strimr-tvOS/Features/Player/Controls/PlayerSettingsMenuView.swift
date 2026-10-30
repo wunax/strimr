@@ -3,11 +3,13 @@ import SwiftUI
 struct PlayerSettingsMenuView: View {
     var qualityTitle: String?
     var versionTitle: String?
+    var displayTitle: String
     let sleepTimer: SleepTimer
     var mediaKind: MediaKind?
     var initialOptionID: String?
     var onShowQuality: () -> Void
     var onShowVersions: () -> Void
+    var onShowDisplay: () -> Void
     var onShowSleepTimer: () -> Void
 
     var body: some View {
@@ -42,6 +44,15 @@ struct PlayerSettingsMenuView: View {
                 action: onShowVersions,
             ))
         }
+
+        options.append(PlayerSettingsOption(
+            id: "display",
+            title: String(localized: "player.settings.display"),
+            subtitle: displayTitle,
+            systemImage: "arrow.up.left.and.arrow.down.right",
+            opensSubmenu: true,
+            action: onShowDisplay,
+        ))
 
         options.append(PlayerSettingsOption(
             id: "sleepTimer",
