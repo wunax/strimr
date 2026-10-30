@@ -43,10 +43,10 @@ struct MediaQuickActionsTests {
         #expect(actions == [.play, .markWatched, .addFavorite, .download])
     }
 
-    @Test func `movie in progress offers resume and play from start`() {
+    @Test func `movie in progress offers resume, play from start and both watch actions`() {
         let actions = makeActions().menuActions(for: makeMedia(type: .movie, viewOffset: 600), canDownload: false)
 
-        #expect(actions == [.resume, .playFromStart, .markWatched, .addFavorite])
+        #expect(actions == [.resume, .playFromStart, .markWatched, .markUnwatched, .addFavorite])
     }
 
     @Test func `watched favorite episode offers the reverse actions and its series and season`() {

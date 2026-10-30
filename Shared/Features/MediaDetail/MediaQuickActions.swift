@@ -86,15 +86,20 @@ struct MediaQuickActions {
         canAddToPlaylist: Bool = false,
     ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
+        let hasProgress = (item.viewOffset ?? 0) > 0
         if [.movie, .episode, .clip].contains(item.type) {
-            let hasProgress = (item.viewOffset ?? 0) > 0
             actions.append(hasProgress ? .resume : .play)
             if hasProgress {
                 actions.append(.playFromStart)
             }
         }
         if [.movie, .series, .season, .episode].contains(item.type) {
-            actions.append(item.isFullyWatched ? .markUnwatched : .markWatched)
+            // Like the detail page, an item in progress offers both: marking it unwatched clears its progress.
+            if hasProgress, !item.isFullyWatched {
+                actions.append(contentsOf: [.markWatched, .markUnwatched])
+            } else {
+                actions.append(item.isFullyWatched ? .markUnwatched : .markWatched)
+            }
         }
         if canFavorite(item) {
             actions.append(item.watchState.isFavorite ? .removeFavorite : .addFavorite)
