@@ -71,4 +71,37 @@ struct VideoZoomTests {
         #expect(VideoZoom.fill.persistedMode == .fill)
         #expect(VideoZoom.custom(1.5).persistedMode == nil)
     }
+
+    @Test func `steps move by 5 percent from fit`() {
+        #expect(scale(of: VideoZoom.fit.stepped(by: 1, fillScale: 1.33)) == 1.05)
+        #expect(VideoZoom.custom(1.05).stepped(by: -1, fillScale: 1.33) == .fit)
+        #expect(VideoZoom.fit.stepped(by: -1, fillScale: 1.33) == .fit)
+    }
+
+    @Test func `steps stop on fill instead of stepping over it`() {
+        #expect(VideoZoom.custom(1.3).stepped(by: 1, fillScale: 1.33) == .fill)
+        #expect(VideoZoom.custom(1.35).stepped(by: -1, fillScale: 1.33) == .fill)
+    }
+
+    @Test func `steps leave fill back onto the grid`() {
+        #expect(scale(of: VideoZoom.fill.stepped(by: 1, fillScale: 1.33)) == 1.35)
+        #expect(scale(of: VideoZoom.fill.stepped(by: -1, fillScale: 1.33)) == 1.3)
+    }
+
+    @Test func `steps land on fill when it sits on the grid`() {
+        #expect(VideoZoom.custom(1.15).stepped(by: 1, fillScale: 1.2) == .fill)
+    }
+
+    @Test func `steps stop at the maximum`() {
+        #expect(VideoZoom.custom(2).stepped(by: 1, fillScale: 1.2) == .custom(2))
+        #expect(scale(of: VideoZoom.custom(1.98).stepped(by: 1, fillScale: 1.2)) == 2)
+    }
+
+    @Test func `steps skip fill when it matches the fitted picture`() {
+        #expect(scale(of: VideoZoom.fit.stepped(by: 1, fillScale: 1)) == 1.05)
+    }
+
+    private func scale(of zoom: VideoZoom) -> Double {
+        (zoom.scale(fillScale: 1.33) * 1000).rounded() / 1000
+    }
 }

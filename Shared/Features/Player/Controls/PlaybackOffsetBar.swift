@@ -509,7 +509,7 @@ enum PlaybackOffsetControl: String, Hashable {
     }
 
     /// Steps once on press, then repeats while the remote's select button is held, faster and faster.
-    private struct PlaybackOffsetStepButton: View {
+    struct PlaybackOffsetStepButton: View {
         let title: String
         let accessibilityLabel: String
         let accessibilityValue: String
