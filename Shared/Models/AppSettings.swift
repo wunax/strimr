@@ -193,6 +193,7 @@ struct PlaybackSettings: Codable, Equatable {
     var spatialAudioLayout: SpatialSpeakerLayout?
     var rememberTrackSelections = true
     var showChaptersOnTimeline = true
+    var showSkipSegmentsOnTimeline = false
     var showEndsAtTime = true
     var showClock = false
     var showInfoWhenPaused = true
@@ -246,6 +247,10 @@ struct PlaybackSettings: Codable, Equatable {
             Bool.self,
             forKey: .showChaptersOnTimeline,
         ) ?? true
+        showSkipSegmentsOnTimeline = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showSkipSegmentsOnTimeline,
+        ) ?? false
         showEndsAtTime = try container.decodeIfPresent(
             Bool.self,
             forKey: .showEndsAtTime,

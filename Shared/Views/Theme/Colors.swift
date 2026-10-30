@@ -52,4 +52,9 @@ extension ShapeStyle where Self == Color {
     static var progressFill: Color {
         .white
     }
+
+    /// Intro, credits and commercial spans on a playback timeline, translucent so the played fill still shows through.
+    static var progressSegment: Color {
+        Color(red: 1, green: 0.76, blue: 0.28).opacity(0.7)
+    }
 }

@@ -101,6 +101,13 @@ final class SettingsViewModel {
         )
     }
 
+    var showSkipSegmentsOnTimelineBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showSkipSegmentsOnTimeline },
+            set: { self.settingsManager.setShowSkipSegmentsOnTimeline($0) },
+        )
+    }
+
     var showEndsAtTimeBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showEndsAtTime },

@@ -88,6 +88,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowSkipSegmentsOnTimeline(_ enabled: Bool) {
+        settings.playback.showSkipSegmentsOnTimeline = enabled
+        persist()
+    }
+
     func setShowEndsAtTime(_ enabled: Bool) {
         settings.playback.showEndsAtTime = enabled
         persist()

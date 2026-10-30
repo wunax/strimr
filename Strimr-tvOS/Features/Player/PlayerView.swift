@@ -71,6 +71,10 @@ struct PlayerView: View {
         Double(settingsManager.playback.seekBackwardSeconds)
     }
 
+    private var timelineSkipSegments: [SkipSegment] {
+        settingsManager.playback.showSkipSegmentsOnTimeline ? viewModel.markers : []
+    }
+
     private var seekForwardInterval: Double {
         Double(settingsManager.playback.seekForwardSeconds)
     }
@@ -435,6 +439,7 @@ struct PlayerView: View {
                     sleepTimer: sleepTimer,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+                    skipSegments: timelineSkipSegments,
                     scrubPreview: playerController.scrubPreview,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
