@@ -422,7 +422,6 @@ nonisolated struct PlexMarker: Codable, Equatable {
 
 nonisolated struct PlexChapter: Codable, Equatable, Hashable {
     let id: Int
-    let filter: String
     let index: Int
     let startTimeOffset: Int
     let endTimeOffset: Int

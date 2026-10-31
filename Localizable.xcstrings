@@ -4708,6 +4708,28 @@
         }
       }
     },
+    "library.shared.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared with Me"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partagés avec moi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与我共享"
+          }
+        }
+      }
+    },
     "livetv.channel" : {
       "localizations" : {
         "en" : {

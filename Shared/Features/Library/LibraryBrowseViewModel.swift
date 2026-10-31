@@ -177,10 +177,12 @@ final class LibraryBrowseViewModel {
     }
 
     private func reloadFolderTree() async {
-        guard let advancedService, let sectionId = library.sectionId else { return }
+        guard let advancedService, let browsePath = library.plexBrowsePath else { return }
         let includeCollections = settingsManager.interface.displayCollections ? true : nil
         let tree =
-            FolderTreeModel(rootEndpoint: resolvedEndpoint(sectionId: sectionId)) { [controls] endpoint, start, limit in
+            FolderTreeModel(rootEndpoint: resolvedEndpoint(
+                browsePath: browsePath,
+            )) { [controls] endpoint, start, limit in
                 try await advancedService.advancedBrowse(
                     path: endpoint.path,
                     queryItems: controls.buildQueryItems(
@@ -263,7 +265,7 @@ final class LibraryBrowseViewModel {
             await fetchUsingCommonService(reset: reset)
             return
         }
-        guard let sectionId = library.sectionId else {
+        guard let browsePath = library.plexBrowsePath else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
@@ -280,7 +282,7 @@ final class LibraryBrowseViewModel {
 
         do {
             let start = reset ? 0 : browseItems.count
-            let endpoint = resolvedEndpoint(sectionId: sectionId)
+            let endpoint = resolvedEndpoint(browsePath: browsePath)
             let includeCollections = settingsManager.interface.displayCollections ? true : nil
             let includeMeta = !hasLoadedMeta
             let queryItems = controls.buildQueryItems(
@@ -375,7 +377,7 @@ final class LibraryBrowseViewModel {
         }
     }
 
-    private func resolvedEndpoint(sectionId: Int) -> PlexEndpoint {
+    private func resolvedEndpoint(browsePath: String) -> PlexEndpoint {
         if let currentFolderEndpoint {
             return currentFolderEndpoint
         }
@@ -385,10 +387,8 @@ final class LibraryBrowseViewModel {
             return endpoint
         }
 
-        let path = "/library/sections/\(sectionId)/all"
-        let typeValue = defaultTypeQueryValue
-        let queryItems = [URLQueryItem.make("type", typeValue)].compactMap(\.self)
-        return PlexEndpoint(path: path, queryItems: queryItems)
+        let queryItems = [URLQueryItem.make("type", defaultTypeQueryValue)].compactMap(\.self)
+        return PlexEndpoint(path: browsePath, queryItems: queryItems)
     }
 
     private var currentFolderEndpoint: PlexEndpoint? {
@@ -396,7 +396,10 @@ final class LibraryBrowseViewModel {
     }
 
     private var defaultTypeQueryValue: String? {
-        switch library.type {
+        if library.isShared {
+            return PlexSharedLibrary.videoTypes
+        }
+        return switch library.type {
         case .movie:
             "1"
         case .series:
