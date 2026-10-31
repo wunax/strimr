@@ -128,6 +128,7 @@ struct DownloadsView: View {
             isSpoilerProtected: isSpoilerProtected(item),
             isWaitingForWiFi: isWaitingForWiFi(item),
             onUseCellular: { downloadUsingCellular = item },
+            onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,
         )
     }
 

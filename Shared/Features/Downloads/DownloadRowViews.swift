@@ -59,6 +59,7 @@ struct DownloadRow: View {
     let isSpoilerProtected: Bool
     var isWaitingForWiFi = false
     var onUseCellular: (() -> Void)?
+    var onRetry: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -151,10 +152,26 @@ struct DownloadRow: View {
         case .completed:
             statusText("downloads.status.completed \(formattedBytes(item.metadata.fileSize ?? item.totalBytes))")
         case .failed:
-            Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
-                .font(.cardMetadata)
-                .foregroundStyle(.red)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
+                    .font(.cardMetadata)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+
+                if let onRetry {
+                    Button(action: onRetry) {
+                        Label("common.actions.retry", systemImage: "arrow.clockwise")
+                            .font(.cardMetadata.weight(.semibold))
+                        #if os(iOS)
+                            .frame(minHeight: 44)
+                        #endif
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(.textPrimary)
+                    .accessibilityHint(Text(verbatim: item.metadata.title))
+                }
+            }
         }
     }
 

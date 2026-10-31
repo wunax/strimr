@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             return
         }
 
-        Task { @MainActor in
+        // Registered synchronously so the handler always exists before the session delivers its events.
+        MainActor.assumeIsolated {
             DownloadManager.shared?.setBackgroundEventsCompletionHandler(completionHandler)
         }
     }
