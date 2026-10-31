@@ -15,6 +15,17 @@ struct SettingsInterfaceView: View {
                         settingsManager: settingsManager,
                     )
                 }
+                Picker(
+                    "settings.interface.continueWatchingAction",
+                    selection: Binding(
+                        get: { settingsManager.interface.continueWatchingAction },
+                        set: { settingsManager.setContinueWatchingAction($0) },
+                    ),
+                ) {
+                    ForEach(ContinueWatchingAction.allCases, id: \.self) { action in
+                        Text(action.title).tag(action)
+                    }
+                }
             }
 
             Section {

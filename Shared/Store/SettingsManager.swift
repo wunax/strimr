@@ -388,6 +388,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setContinueWatchingAction(_ action: ContinueWatchingAction) {
+        settings.interface.continueWatchingAction = action
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

@@ -8880,6 +8880,28 @@
         }
       }
     },
+    "media.quickActions.showDetails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les détails"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示详情"
+          }
+        }
+      }
+    },
     "media.rating.imdb" : {
       "localizations" : {
         "en" : {
@@ -17443,6 +17465,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在行和资料库网格中的海报下方显示标题和详情。剧集、花絮和文件夹始终显示。"
+          }
+        }
+      }
+    },
+    "settings.interface.continueWatchingAction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue Watching action"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action de Reprendre"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续观看操作"
+          }
+        }
+      }
+    },
+    "settings.interface.continueWatchingAction.openDetails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la fiche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开详情"
+          }
+        }
+      }
+    },
+    "settings.interface.continueWatchingAction.play" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer la lecture"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
           }
         }
       }

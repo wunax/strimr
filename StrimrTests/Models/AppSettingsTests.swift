@@ -26,6 +26,14 @@ struct AppSettingsTests {
         #expect(try !decode(#"{"interface":{"showsCardLabels":false}}"#).interface.showsCardLabels)
     }
 
+    @Test func `continue watching opens details unless chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.continueWatchingAction == .openDetails)
+        #expect(try decode(#"{"interface":{"continueWatchingAction":"x"}}"#).interface
+            .continueWatchingAction == .openDetails)
+        #expect(try decode(#"{"interface":{"continueWatchingAction":"play"}}"#).interface
+            .continueWatchingAction == .play)
+    }
+
     @Test func `corrupt library browse preferences keep other settings`() throws {
         let settings = try decode(#"""
         {"interface":{"displayPlaylists":false,"libraryBrowseByKey":{"plex|server|account|1":{"plex":{"filters":42}}}}}
