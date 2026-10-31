@@ -1086,6 +1086,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 items[index].progress = 0
                 items[index].totalBytes = 0
                 items[index].bytesWritten = totalBytesWritten
+                persistState()
                 return
             }
             let previousProgress = progressByTaskIdentifier[downloadTask.taskIdentifier] ?? -1
