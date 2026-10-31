@@ -143,6 +143,22 @@ final class ServerRegistry {
         entries[server]?.plexResource
     }
 
+    /// Only the active profile's own owner connection may expose server-wide activity.
+    var administeredPlexServers: [ServerSession] {
+        sessions.filter { session in
+            guard session.isEnabled, let entry = entries[session.identity],
+                  entry.plexResource?.owned == true, profile?.isRestricted != true,
+                  let account = accountStore.account(id: entry.link.accountID)?.plexAccount
+            else { return false }
+            return entry.userID == account.id
+        }
+    }
+
+    func plexAdministrationContext(for server: ServerIdentity) -> PlexAPIContext? {
+        guard administeredPlexServers.contains(where: { $0.identity == server }) else { return nil }
+        return entries[server]?.plexContext
+    }
+
     // MARK: - Activation
 
     /// Resolves the links of `profile` and starts connecting its enabled servers in parallel.
