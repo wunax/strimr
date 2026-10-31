@@ -21,6 +21,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private var backgroundEventsCompletionHandler: (() -> Void)?
     @ObservationIgnored private var progressByTaskIdentifier: [Int: Double] = [:]
     @ObservationIgnored private var freshTaskIdentifiers: Set<Int> = []
+    @ObservationIgnored private var unknownLengthReportTimes: [Int: ContinuousClock.Instant] = [:]
     @ObservationIgnored private var isLoadingPersistedState = false
     @ObservationIgnored private var ignoredCompletionIDs: Set<String> = []
     @ObservationIgnored private var servicesByServer: [ServerIdentity: MediaServices] = [:]
@@ -162,6 +163,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         let replacementTask = backgroundSession.downloadTask(with: request)
         replacementTask.taskDescription = item.id
         freshTaskIdentifiers.remove(currentTaskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: currentTaskIdentifier)
         freshTaskIdentifiers.insert(replacementTask.taskIdentifier)
         items[index].allowsCellularAccess = true
         items[index].progress = 0
@@ -514,6 +516,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         offlineStore?.deleteDownload(id: item.id)
         progressByTaskIdentifier.removeValue(forKey: item.taskIdentifier ?? -1)
         freshTaskIdentifiers.remove(item.taskIdentifier ?? -1)
+        unknownLengthReportTimes.removeValue(forKey: item.taskIdentifier ?? -1)
         sidecarsByItemID[item.id] = nil
         pendingRequestsByItemID[item.id] = nil
         persistState()
@@ -682,7 +685,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private static let insufficientStorageCode = 1001
     private static let storageHeadroomBytes: Int64 = 256 * 1024 * 1024
-    private static let unknownLengthReportStep: Int64 = 1024 * 1024
+    private static let unknownLengthReportInterval: Duration = .seconds(1)
 
     /// Only checkable once the server reports a length; a transcode of unknown size relies on the OS write error.
     private func hasEnoughSpace(forRemainingBytes bytes: Int64) -> Bool {
@@ -914,6 +917,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func completeDownload(task: URLSessionDownloadTask, stagedLocation: URL) async {
         freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else {
             try? FileManager.default.removeItem(at: stagedLocation)
             return
@@ -1037,6 +1041,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func failDownload(task: URLSessionTask, error: Error) {
         freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else { return }
         let itemID = items[index].id
         guard !ignoredCompletionIDs.contains(itemID) else {
@@ -1067,18 +1072,20 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     ) {
         Task { @MainActor in
             guard let index = itemIndex(for: downloadTask) else { return }
-            // Live transcodes send no length: report downloaded bytes only, without persisting every update.
+            // Live transcodes send no length: publish the first bytes, then update at most once per second.
             guard totalBytesExpectedToWrite > 0 else {
-                if items[index].bytesWritten == 0
-                    || items[index].totalBytes != 0
-                    || totalBytesWritten < items[index].bytesWritten
-                    || totalBytesWritten - items[index].bytesWritten >= Self.unknownLengthReportStep
+                guard totalBytesWritten > 0 else { return }
+                let now = ContinuousClock().now
+                if let lastReport = unknownLengthReportTimes[downloadTask.taskIdentifier],
+                   lastReport.duration(to: now) < Self.unknownLengthReportInterval
                 {
-                    items[index].status = .downloading
-                    items[index].progress = 0
-                    items[index].totalBytes = 0
-                    items[index].bytesWritten = totalBytesWritten
+                    return
                 }
+                unknownLengthReportTimes[downloadTask.taskIdentifier] = now
+                items[index].status = .downloading
+                items[index].progress = 0
+                items[index].totalBytes = 0
+                items[index].bytesWritten = totalBytesWritten
                 return
             }
             let previousProgress = progressByTaskIdentifier[downloadTask.taskIdentifier] ?? -1

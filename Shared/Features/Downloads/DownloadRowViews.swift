@@ -150,7 +150,9 @@ struct DownloadRow: View {
                     ProgressView()
                         .progressViewStyle(.linear)
                         .tint(.progressFill)
-                    statusText("downloads.status.downloadingBytes \(formattedBytes(item.bytesWritten))")
+                    if item.bytesWritten > 0 {
+                        statusText("downloads.status.downloadingBytes \(formattedBytes(item.bytesWritten))")
+                    }
                 }
                 .accessibilityElement(children: .combine)
             } else {
