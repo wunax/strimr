@@ -1,10 +1,13 @@
 import SwiftUI
 
 struct WatchStatusBadge: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let media: MediaDisplayItem
 
     var body: some View {
-        if let remaining = media.remainingUnwatchedLeaves {
+        if !settingsManager.interface.showsWatchStatusBadges {
+            EmptyView()
+        } else if let remaining = media.remainingUnwatchedLeaves {
             Text("\(remaining)")
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)

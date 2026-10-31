@@ -388,6 +388,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setShowsWatchStatusBadges(_ enabled: Bool) {
+        settings.interface.showsWatchStatusBadges = enabled
+        persist()
+    }
+
     func setContinueWatchingAction(_ action: ContinueWatchingAction) {
         settings.interface.continueWatchingAction = action
         persist()

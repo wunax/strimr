@@ -18805,6 +18805,50 @@
         }
       }
     },
+    "settings.interface.watchStatusBadges" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watched Badges"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Badges de visionnage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已观看标记"
+          }
+        }
+      }
+    },
+    "settings.interface.watchStatusBadges.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows a checkmark on watched items and the number of unwatched episodes on series and seasons."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche une coche sur les éléments vus et le nombre d’épisodes non vus sur les séries et les saisons."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在已观看的项目上显示勾号，并在剧集和季上显示未观看的集数。"
+          }
+        }
+      }
+    },
     "settings.licenses.dependencies" : {
       "localizations" : {
         "en" : {
