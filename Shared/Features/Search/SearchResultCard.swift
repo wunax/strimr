@@ -4,8 +4,10 @@ import SwiftUI
 struct SearchResultCard: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(ServerRegistry.self) private var registry
+    @Environment(LibraryStore.self) private var libraryStore
     let result: MergedSearchResult
     let onTap: () -> Void
+    @State private var loadedLibraryTitle: String?
 
     private var media: MediaDisplayItem {
         result.media
@@ -70,6 +72,18 @@ struct SearchResultCard: View {
         }
         .buttonStyle(.plain)
         .offlineAvailability(of: media)
+        .task(id: result.id) { await loadLibraryTitle() }
+    }
+
+    /// Jellyfin results do not carry their library; it is only fetched for copies whose label needs it.
+    private func loadLibraryTitle() async {
+        guard result.hasSeparateCopies, result.sources.count == 1,
+              let item = media.playableItem, item.librarySectionTitle == nil,
+              let detail = registry.services(for: item.identity.server)?.detail,
+              let libraryID = try? await detail.libraryID(for: item)
+        else { return }
+        loadedLibraryTitle = libraryStore.library(LibraryIdentity(server: item.identity.server, libraryID: libraryID))?
+            .title
     }
 }
 
@@ -258,9 +272,13 @@ private extension SearchResultCard {
         }
         guard result.hasSeparateCopies else { return nil }
         let item = media.playableItem
-        return [result.primarySource.serverName, item?.librarySectionTitle, item?.playbackResolutionLabel]
-            .compactMap(\.self)
-            .joined(separator: " · ")
+        return [
+            result.primarySource.serverName,
+            item?.librarySectionTitle ?? loadedLibraryTitle,
+            item?.playbackResolutionLabel,
+        ]
+        .compactMap(\.self)
+        .joined(separator: " · ")
     }
 
     var subtitle: String {
