@@ -193,7 +193,7 @@ struct MainTabView: View {
     private var searchTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .search)) {
             SearchView(
-                viewModel: SearchViewModel(sessionManager: sessionManager),
+                viewModel: SearchViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
                 onSelectMedia: { coordinator.showMediaDetail($0.media) },
             )
             .navigationDestination(for: MainCoordinator.Route.self) {

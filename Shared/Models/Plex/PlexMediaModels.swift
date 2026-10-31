@@ -828,7 +828,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let tagline: String?
     let ultraBlurColors: ArtworkCornerColors?
     let images: [PlexImage]?
-    let guids: [PlexGuid]?
+    var guids: [PlexGuid]?
     let genres: [PlexTag]?
     let countries: [PlexTag]?
     let directors: [PlexTagPerson]?

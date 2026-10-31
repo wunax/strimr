@@ -392,6 +392,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayLiveTVTab = true
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled: Bool?
+    var groupsSearchResults = true
     var spoilerProtection = SpoilerProtectionLevel.off
     var landscapeEpisodeArtwork = LandscapeEpisodeArtwork.episode
     var portraitEpisodeArtwork = PortraitEpisodeArtwork.series
@@ -428,6 +429,7 @@ struct InterfaceSettings: Codable, Equatable {
         displayLiveTVTab = try container.decodeIfPresent(Bool.self, forKey: .displayLiveTVTab) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)
+        groupsSearchResults = try container.decodeIfPresent(Bool.self, forKey: .groupsSearchResults) ?? true
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
         landscapeEpisodeArtwork = (try? container.decode(
             LandscapeEpisodeArtwork.self,

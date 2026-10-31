@@ -17,14 +17,7 @@ struct MediaCopy: Identifiable, Hashable {
     }
 
     var resolutionRank: Int {
-        guard let value = media.videoResolution?.lowercased() else { return 0 }
-        if value == "4k" || value == "uhd" {
-            return 2160
-        }
-        if value == "sd" {
-            return 480
-        }
-        return Int(value.filter(\.isNumber)) ?? 0
+        media.resolutionRank
     }
 
     /// Resolution first, then library, then server.

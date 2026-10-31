@@ -150,6 +150,20 @@ struct JellyfinMappingTests {
         #expect(themes.items.map(\.id) == ["theme-1"])
     }
 
+    @Test func `maps the first source's resolution`() throws {
+        let item = try Fixtures.decode(JellyfinItem.self, from: "jellyfin-movie-versions")
+
+        #expect(MediaItem(jellyfinItem: item, server: server).videoResolution == "1080p")
+    }
+
+    @Test func `a 4K film cropped to scope is 4K`() throws {
+        let source = try JSONDecoder().decode(JellyfinMediaSource.self, from: Data("""
+        { "Id": "s", "MediaStreams": [{ "Type": "Video", "Index": 0, "Width": 3840, "Height": 1600 }] }
+        """.utf8))
+
+        #expect(source.videoResolution == "4K")
+    }
+
     @Test func `artwork path requires tag`() {
         #expect(JellyfinArtworkPath.make(ownerID: "movie-1", type: "Primary", tag: nil) == nil)
         #expect(JellyfinArtworkPath.parse("https://example.com/image") == nil)

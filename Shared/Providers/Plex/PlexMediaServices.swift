@@ -424,9 +424,29 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         let response = try await SearchRepository(context: context).search(
             params: .init(query: query, searchTypes: types, limit: 100),
         )
-        return (response.mediaContainer.searchResult ?? []).compactMap(\.metadata)
+        let items = await withGuids((response.mediaContainer.searchResult ?? []).compactMap(\.metadata))
+        return items
             .compactMap(mapDisplayItem)
             .filter { kinds.isEmpty || kinds.contains($0.playableItem?.kind ?? .unknown) }
+    }
+
+    /// `/library/search` ignores `includeGuids`, and without external ids its results never match other providers'
+    /// copies. Best effort: on failure the results stay as they are.
+    private func withGuids(_ items: [PlexItem]) async -> [PlexItem] {
+        let missing = items.filter { $0.guids?.isEmpty ?? true }.map(\.ratingKey)
+        guard !missing.isEmpty,
+              let response = try? await MetadataRepository(context: context).getGuids(ratingKeys: missing)
+        else { return items }
+        let guidsByKey = Dictionary(
+            (response.mediaContainer.metadata ?? []).map { ($0.ratingKey, $0.guids) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        return items.map { item in
+            guard let guids = guidsByKey[item.ratingKey] ?? nil else { return item }
+            var item = item
+            item.guids = guids
+            return item
+        }
     }
 
     func artwork(

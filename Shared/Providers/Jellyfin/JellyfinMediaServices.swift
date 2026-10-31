@@ -955,7 +955,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             width: video?.width,
             height: video?.height,
             aspectRatio: video?.aspectRatio,
-            videoResolution: Self.videoResolution(width: video?.width, height: video?.height),
+            videoResolution: source.videoResolution,
             videoCodec: video?.codec,
             videoProfile: video?.profile,
             videoFrameRate: frameRate.map(Self.formatFrameRate),
@@ -1051,23 +1051,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     private static func kilobitsPerSecond(_ bitsPerSecond: Int) -> Int {
         max(1, Int((Double(bitsPerSecond) / 1000).rounded()))
-    }
-
-    private static func videoResolution(width: Int?, height: Int?) -> String? {
-        guard let height else { return nil }
-        if height >= 2160 {
-            return "4K"
-        }
-        if height >= 1440 {
-            return "1440p"
-        }
-        if height >= 1080 {
-            return "1080p"
-        }
-        if height >= 720 {
-            return "720p"
-        }
-        return width.map { "\($0) × \(height)" } ?? "\(height)p"
     }
 
     private static func formatFrameRate(_ frameRate: Double) -> String {

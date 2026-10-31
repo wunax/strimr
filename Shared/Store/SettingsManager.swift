@@ -428,6 +428,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setGroupsSearchResults(_ enabled: Bool) {
+        settings.interface.groupsSearchResults = enabled
+        persist()
+    }
+
     func setSpoilerProtection(_ level: SpoilerProtectionLevel) {
         settings.interface.spoilerProtection = level
         persist()
