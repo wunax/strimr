@@ -38,6 +38,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
     let librarySectionID: String?
+    /// Only Plex reports it alongside the item.
+    let librarySectionTitle: String?
     let lastViewedAt: Date?
     /// Theme music of the item or of its series.
     let themePath: String?
@@ -97,6 +99,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         grandparentArtPath: String?,
         parentThumbPath: String?,
         librarySectionID: String? = nil,
+        librarySectionTitle: String? = nil,
         lastViewedAt: Date? = nil,
         externalIDs: ExternalIDs = ExternalIDs(),
         themePath: String? = nil,
@@ -140,6 +143,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.grandparentArtPath = grandparentArtPath
         self.parentThumbPath = parentThumbPath
         self.librarySectionID = librarySectionID
+        self.librarySectionTitle = librarySectionTitle
         self.lastViewedAt = lastViewedAt
         self.themePath = themePath
         self.logoPath = logoPath

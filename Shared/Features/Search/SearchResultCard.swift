@@ -93,6 +93,9 @@ struct SearchServerSelectionView: View {
     let result: MergedSearchResult
     let onSelect: (SearchResultSource) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(LibraryStore.self) private var libraryStore
+    @State private var libraryIDs: [String: String] = [:]
 
     var body: some View {
         NavigationStack {
@@ -101,19 +104,84 @@ struct SearchServerSelectionView: View {
                     dismiss()
                     onSelect(source)
                 } label: {
-                    HStack {
-                        Label(source.serverName, systemImage: "server.rack")
-                        Spacer(minLength: 8)
-                        if let resolution = source.media.playableItem?.playbackResolutionLabel {
-                            Text(resolution)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    row(for: source)
                 }
             }
+            // Buttons in a list draw their label in the accent color.
+            .tint(Color.primary)
             .navigationTitle("search.serverSelection.title")
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+        .task { await loadLibraryIDs() }
+    }
+
+    private func row(for source: SearchResultSource) -> some View {
+        HStack(spacing: Self.spacing) {
+            Image(systemName: "server.rack")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color.primary)
+                .frame(width: Self.iconSize, height: Self.iconSize)
+                .background(Circle().fill(.quaternary))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(source.serverName)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+                if let library = libraryTitle(for: source) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "books.vertical")
+                        Text(library)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondary)
+                    .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: Self.spacing)
+
+            if let resolution = source.media.playableItem?.playbackResolutionLabel {
+                Text(resolution)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Color.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().strokeBorder(Color.primary, lineWidth: 1.5))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    #if os(tvOS)
+        private static let iconSize: CGFloat = 64
+        private static let spacing: CGFloat = 24
+    #else
+        private static let iconSize: CGFloat = 36
+        private static let spacing: CGFloat = 12
+    #endif
+
+    private func libraryTitle(for source: SearchResultSource) -> String? {
+        if let title = source.media.playableItem?.librarySectionTitle {
+            return title
+        }
+        guard let libraryID = source.media.playableItem?.librarySectionID ?? libraryIDs[source.id] else { return nil }
+        return libraryStore.library(LibraryIdentity(server: source.server, libraryID: libraryID))?.title
+    }
+
+    /// Jellyfin search results do not carry their library; it takes one request per copy.
+    private func loadLibraryIDs() async {
+        await withTaskGroup(of: (String, String?).self) { group in
+            for source in result.sources {
+                guard let item = source.media.playableItem, item.librarySectionID == nil,
+                      let detail = registry.services(for: source.server)?.detail
+                else { continue }
+                group.addTask { (source.id, try? await detail.libraryID(for: item)) }
+            }
+            for await (id, libraryID) in group {
+                libraryIDs[id] = libraryID
+            }
+        }
     }
 }
 
