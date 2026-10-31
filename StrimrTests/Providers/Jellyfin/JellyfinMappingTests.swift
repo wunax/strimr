@@ -60,6 +60,15 @@ struct JellyfinMappingTests {
         #expect(media.watchState.isPlayed)
     }
 
+    @Test func `episode backdrop is never used as series artwork`() throws {
+        let json = #"{"Id":"episode-1","Name":"Pilot","Type":"Episode","BackdropImageTags":["episode-backdrop-tag"]}"#
+        let item = try JSONDecoder().decode(JellyfinItem.self, from: Data(json.utf8))
+        let media = MediaItem(jellyfinItem: item, server: server)
+
+        #expect(media.grandparentArtPath == nil)
+        #expect(media.artPath == "jellyfin-artwork://episode-1/Backdrop?tag=episode-backdrop-tag")
+    }
+
     @Test func `maps display items by kind`() throws {
         let result = try Fixtures.decode(JellyfinQueryResult<JellyfinItem>.self, from: "jellyfin-items")
         let items = result.items.map { MediaDisplayItem(jellyfinItem: $0, server: server) }

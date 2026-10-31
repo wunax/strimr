@@ -41,7 +41,7 @@ final class MediaImageViewModel {
         }
     }
 
-    /// Only the episode's own image can reveal anything, so a series or season poster is never hidden.
+    /// Only the episode's own images can reveal anything, so a series or season poster is never hidden.
     func hidesSpoiler(
         at level: SpoilerProtectionLevel,
         landscape: LandscapeEpisodeArtwork,
@@ -51,7 +51,7 @@ final class MediaImageViewModel {
               item.isSpoilerProtected(at: level),
               !followsSeriesArtworkPreference(landscape: landscape, portrait: portrait)
         else { return false }
-        return defaultArtworkPath == item.thumbPath
+        return [item.thumbPath, item.artPath].contains(defaultArtworkPath)
     }
 
     private var defaultArtworkPath: String? {

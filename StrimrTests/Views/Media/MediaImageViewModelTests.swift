@@ -44,6 +44,12 @@ struct MediaImageViewModelTests {
         #expect(fallback.hidesSpoiler(at: .thumbnails, landscape: .episode, portrait: .series))
     }
 
+    @Test func `spoiler protection hides an episode backdrop shown for lack of a still`() {
+        let item = MediaItem.make(id: "e", server: server, type: .episode, artPath: "episode-backdrop")
+
+        #expect(viewModel(item, kind: .cardArt).hidesSpoiler(at: .thumbnails, landscape: .episode, portrait: .series))
+    }
+
     @Test func `season poster preference applies to episode and season portrait cards only`() {
         let season = MediaItem.make(id: "season-1", server: server, type: .season)
         let movie = MediaItem.make(id: "movie-1", server: server, type: .movie)
