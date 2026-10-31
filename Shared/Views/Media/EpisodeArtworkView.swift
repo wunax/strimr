@@ -20,6 +20,7 @@ struct EpisodeArtworkView: View {
                 width: Int(width),
                 height: Int(width / aspectRatio),
             )
+            .id(artworkPath)
             .frame(width: width, height: width / aspectRatio)
             .background(Color.black)
 
