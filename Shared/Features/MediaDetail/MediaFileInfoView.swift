@@ -296,7 +296,6 @@ private struct MediaFileInfoVersionView: View {
         ].contains { $0?.isEmpty == false }
     }
 
-    @ViewBuilder
     private func infoCard(
         _ titleKey: LocalizedStringKey,
         systemImage: String,

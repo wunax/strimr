@@ -176,7 +176,6 @@ struct PlaybackOffsetBar: View {
             .environment(\.colorScheme, .dark)
     }
 
-    @ViewBuilder
     private var content: some View {
         #if os(tvOS)
             stackedRows

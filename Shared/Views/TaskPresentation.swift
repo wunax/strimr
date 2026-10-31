@@ -12,7 +12,6 @@ enum TaskPresentationStyle {
 }
 
 extension View {
-    @ViewBuilder
     func taskPresentation<Item: Identifiable>(
         item: Binding<Item?>,
         style: TaskPresentationStyle = .modal,
@@ -28,7 +27,6 @@ extension View {
         #endif
     }
 
-    @ViewBuilder
     func taskPresentation(
         isPresented: Binding<Bool>,
         style: TaskPresentationStyle = .modal,
@@ -153,7 +151,6 @@ extension View {
         taskModalTitle(Text(verbatim: title))
     }
 
-    @ViewBuilder
     private func taskModalTitle(_ title: Text) -> some View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 24) {

@@ -405,7 +405,6 @@ private struct LibraryBrowseFilterSheetView: View {
         #endif
     }
 
-    @ViewBuilder
     private var content: some View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 16) {

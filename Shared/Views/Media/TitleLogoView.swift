@@ -117,11 +117,11 @@ struct TitleLogoView: View {
     ) async -> Image? {
         // Requested at twice the displayed size for Retina and 4K screens.
         guard let resource = try? await services.artwork.artwork(
-            path: path,
-            width: Int(maxSize.width * 2),
-            height: Int(maxSize.height * 2),
-        ),
-            let image = await ArtworkResourceView.image(for: resource)
+                  path: path,
+                  width: Int(maxSize.width * 2),
+                  height: Int(maxSize.height * 2),
+              ),
+              let image = await ArtworkResourceView.image(for: resource)
         else { return nil }
         if cache.count >= cacheLimit {
             cache.removeAll()

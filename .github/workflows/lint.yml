@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install SwiftFormat
         run: |
-          curl -sSL -o "$RUNNER_TEMP/swiftformat.zip" https://github.com/nicklockwood/SwiftFormat/releases/download/0.64.0/swiftformat.zip
+          curl -sSL -o "$RUNNER_TEMP/swiftformat.zip" https://github.com/nicklockwood/SwiftFormat/releases/download/0.64.5/swiftformat.zip
           unzip -o -q "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat"
           echo "$RUNNER_TEMP/swiftformat" >> "$GITHUB_PATH"
       - name: SwiftFormat

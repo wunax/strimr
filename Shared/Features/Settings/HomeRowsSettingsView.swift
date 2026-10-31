@@ -26,7 +26,6 @@ struct HomeRowsSettingsView: View {
             }
     }
 
-    @ViewBuilder
     private var settingsContainer: some View {
         #if os(tvOS)
             SettingsList { sections }
@@ -78,7 +77,6 @@ struct HomeRowsSettingsView: View {
 
     // MARK: - Shown rows
 
-    @ViewBuilder
     private func shownRowControls(at index: Int, row: HomeRow, count: Int) -> some View {
         #if os(tvOS)
             HStack(spacing: 24) {
@@ -203,7 +201,6 @@ struct HomeRowsSettingsView: View {
     }
 
     #if !os(macOS)
-        @ViewBuilder
         private func rowGroupLink(_ group: HomeRowGroup) -> some View {
             #if os(tvOS)
                 Button {
