@@ -1080,6 +1080,7 @@ struct PlayerView: View {
     }
 
     private func lockControls() {
+        doubleTapSeek.commit()
         didConsiderAutomaticRotation = true
         activeOffsetBar = nil
         isControlsLocked = true
