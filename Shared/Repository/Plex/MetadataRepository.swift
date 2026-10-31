@@ -43,6 +43,17 @@ final class MetadataRepository {
         return try await network.request(path: "/library/metadata/\(ratingKey)", queryItems: resolved.queryItems)
     }
 
+    /// The external ids of several items in one request, without their heavy elements.
+    func getGuids(ratingKeys: [String]) async throws -> PlexItemMediaContainer {
+        try await network.request(
+            path: "/library/metadata/\(ratingKeys.joined(separator: ","))",
+            queryItems: [
+                HubRepository.includeGuids,
+                URLQueryItem(name: "excludeElements", value: "Media,Role,Genre,Director,Writer,Country,Producer"),
+            ],
+        )
+    }
+
     func getMetadataChildren(ratingKey: String) async throws -> PlexItemMediaContainer {
         try await network.request(path: "/library/metadata/\(ratingKey)/children")
     }

@@ -350,6 +350,17 @@ struct MediaItem: Identifiable, Hashable, Codable {
         return min(100, (viewOffset / duration) * 100)
     }
 
+    var resolutionRank: Int {
+        guard let value = videoResolution?.lowercased() else { return 0 }
+        if value == "4k" || value == "uhd" {
+            return 2160
+        }
+        if value == "sd" {
+            return 480
+        }
+        return Int(value.filter(\.isNumber)) ?? 0
+    }
+
     var playbackResolutionLabel: String? {
         guard var value = videoResolution?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
             return nil

@@ -68,6 +68,15 @@ struct MergedSearchResult: Identifiable {
     var serverNames: [String] {
         sources.map(\.serverName)
     }
+
+    /// Highest resolution first; equal resolutions keep the servers' order.
+    var sourcesByQuality: [SearchResultSource] {
+        sources.enumerated().sorted { lhs, rhs in
+            let left = lhs.element.media.playableItem?.resolutionRank ?? 0
+            let right = rhs.element.media.playableItem?.resolutionRank ?? 0
+            return left == right ? lhs.offset < rhs.offset : left > right
+        }.map(\.element)
+    }
 }
 
 enum SearchRanking {

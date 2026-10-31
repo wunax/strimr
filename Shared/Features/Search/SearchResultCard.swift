@@ -96,12 +96,19 @@ struct SearchServerSelectionView: View {
 
     var body: some View {
         NavigationStack {
-            List(result.sources) { source in
+            List(result.sourcesByQuality) { source in
                 Button {
                     dismiss()
                     onSelect(source)
                 } label: {
-                    Label(source.serverName, systemImage: "server.rack")
+                    HStack {
+                        Label(source.serverName, systemImage: "server.rack")
+                        Spacer(minLength: 8)
+                        if let resolution = source.media.playableItem?.playbackResolutionLabel {
+                            Text(resolution)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
             .navigationTitle("search.serverSelection.title")

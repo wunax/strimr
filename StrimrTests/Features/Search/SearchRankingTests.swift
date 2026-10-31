@@ -34,6 +34,19 @@ struct SearchRankingTests {
         #expect(results[0].serverNames == ["A", "B", "C", "B"])
     }
 
+    @Test func `copies are offered highest resolution first`() {
+        let sources = [
+            source(MediaItem.make(id: "1", server: plexA, guid: "plex://movie/x", videoResolution: "720"), "A"),
+            source(MediaItem.make(id: "2", server: plexB, guid: "plex://movie/x", videoResolution: "4k"), "B"),
+            source(MediaItem.make(id: "3", server: plexA, guid: "plex://movie/x"), "C"),
+            source(MediaItem.make(id: "4", server: plexB, guid: "plex://movie/x", videoResolution: "1080"), "D"),
+        ]
+
+        let result = SearchRanking.merge(sources, query: "title")[0]
+
+        #expect(result.sourcesByQuality.map(\.serverName) == ["B", "D", "A", "C"])
+    }
+
     @Test func `the same title without ids is not merged`() {
         let sources = [
             source(MediaItem.make(id: "1", server: plexA, title: "Home Video"), "A"),
