@@ -82,7 +82,11 @@ struct MergedSearchResult: Identifiable {
 enum SearchRanking {
     /// Copies of the same title on several servers become one result (§5.6); results are then ordered by relevance
     /// (exact match, prefix, contains), then by year, newest first, the title only breaking ties.
-    static func merge(_ sources: [SearchResultSource], query: String, groupsCopies: Bool = true) -> [MergedSearchResult] {
+    static func merge(
+        _ sources: [SearchResultSource],
+        query: String,
+        groupsCopies: Bool = true,
+    ) -> [MergedSearchResult] {
         let groups = groupsCopies
             ? MediaMatching.group(sources) { source in
                 source.media.playableItem?.matchDescriptor

@@ -181,7 +181,7 @@ struct SearchServerSelectionView: View {
                 guard let item = source.media.playableItem, item.librarySectionID == nil,
                       let detail = registry.services(for: source.server)?.detail
                 else { continue }
-                group.addTask { (source.id, try? await detail.libraryID(for: item)) }
+                group.addTask { await (source.id, try? detail.libraryID(for: item)) }
             }
             for await (id, libraryID) in group {
                 libraryIDs[id] = libraryID
