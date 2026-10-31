@@ -47,6 +47,17 @@ struct SearchRankingTests {
         #expect(result.sourcesByQuality.map(\.serverName) == ["B", "D", "A", "C"])
     }
 
+    @Test func `copies stay separate when grouping is off`() {
+        let sources = [
+            source(MediaItem.make(id: "1", server: plexA, title: "Alien", guid: "plex://movie/x"), "A"),
+            source(MediaItem.make(id: "2", server: plexB, title: "Alien", guid: "plex://movie/x"), "B"),
+        ]
+
+        let results = SearchRanking.merge(sources, query: "alien", groupsCopies: false)
+
+        #expect(results.map(\.serverNames) == [["A"], ["B"]])
+    }
+
     @Test func `the same title without ids is not merged`() {
         let sources = [
             source(MediaItem.make(id: "1", server: plexA, title: "Home Video"), "A"),

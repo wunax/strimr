@@ -61,7 +61,7 @@ struct MainTabView: View {
             Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchView(
-                        viewModel: SearchViewModel(sessionManager: sessionManager),
+                        viewModel: SearchViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
                         onSelectMedia: { coordinator.showMediaDetail($0.media) },
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in

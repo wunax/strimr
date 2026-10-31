@@ -80,6 +80,18 @@ struct SettingsInterfaceView: View {
 
             Section {
                 Toggle(
+                    "settings.interface.groupSearchResults",
+                    isOn: Binding(
+                        get: { settingsManager.interface.groupsSearchResults },
+                        set: { settingsManager.setGroupsSearchResults($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.groupSearchResults.footer")
+            }
+
+            Section {
+                Toggle(
                     "settings.interface.titleLogo",
                     isOn: Binding(
                         get: { settingsManager.interface.showsTitleLogo },

@@ -17595,6 +17595,50 @@
         }
       }
     },
+    "settings.interface.groupSearchResults" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group Search Results"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regrouper les résultats de recherche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合并搜索结果"
+          }
+        }
+      }
+    },
+    "settings.interface.groupSearchResults.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows a title found on several servers once, and lets you pick the server when you open it. When off, each copy is listed with its server, library and quality."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche une seule fois un titre présent sur plusieurs serveurs, et permet de choisir le serveur à l'ouverture. Désactivé, chaque copie est listée avec son serveur, sa bibliothèque et sa qualité."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在多个服务器上找到的同一作品只显示一次，打开时可选择服务器。关闭后，每个副本都会单独列出，并显示其服务器、媒体库和画质。"
+          }
+        }
+      }
+    },
     "settings.interface.homeRows.addRows" : {
       "localizations" : {
         "en" : {

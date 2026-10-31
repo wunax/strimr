@@ -38,8 +38,8 @@ struct SearchResultCard: View {
                         .font(.facts)
                         .foregroundStyle(.secondary)
 
-                    if result.sources.count > 1 {
-                        Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
+                    if let sourceLabel {
+                        Label(sourceLabel, systemImage: "server.rack")
                             .font(.cardMetadata)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -250,6 +250,18 @@ struct MediaTypeBadge: View {
 }
 
 private extension SearchResultCard {
+    /// Grouped copies name their servers; with grouping off, each copy says where it is and in which quality.
+    private var sourceLabel: String? {
+        if result.sources.count > 1 {
+            return result.serverNames.joined(separator: ", ")
+        }
+        guard !settingsManager.interface.groupsSearchResults, registry.enabledSessions.count > 1 else { return nil }
+        let item = media.playableItem
+        return [result.primarySource.serverName, item?.librarySectionTitle, item?.playbackResolutionLabel]
+            .compactMap(\.self)
+            .joined(separator: " · ")
+    }
+
     var subtitle: String {
         switch media.type {
         case .movie:

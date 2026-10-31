@@ -82,11 +82,13 @@ struct MergedSearchResult: Identifiable {
 enum SearchRanking {
     /// Copies of the same title on several servers become one result (§5.6); results are then ordered by relevance
     /// (exact match, prefix, contains), then by year, newest first, the title only breaking ties.
-    static func merge(_ sources: [SearchResultSource], query: String) -> [MergedSearchResult] {
-        let groups = MediaMatching.group(sources) { source in
-            source.media.playableItem?.matchDescriptor
-                ?? MediaMatchDescriptor(kind: .other, guid: nil, externalIDs: ExternalIDs())
-        }
+    static func merge(_ sources: [SearchResultSource], query: String, groupsCopies: Bool = true) -> [MergedSearchResult] {
+        let groups = groupsCopies
+            ? MediaMatching.group(sources) { source in
+                source.media.playableItem?.matchDescriptor
+                    ?? MediaMatchDescriptor(kind: .other, guid: nil, externalIDs: ExternalIDs())
+            }
+            : sources.map { [$0] }
         let results = groups.map { group in
             var seen = Set<String>()
             let unique = group.filter { seen.insert($0.id).inserted }
@@ -139,17 +141,29 @@ enum SearchRanking {
 @Observable
 final class SearchViewModel {
     var query = ""
-    var items: [MergedSearchResult] = []
+    private var sources: [SearchResultSource] = []
+    private var rankedQuery = ""
     var isLoading = false
     var errorMessage: String?
     var unavailableServerNames: [String] = []
     var activeFilters: Set<SearchFilter> = []
 
     @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
-    init(sessionManager: SessionManager) {
+    init(sessionManager: SessionManager, settingsManager: SettingsManager) {
         self.sessionManager = sessionManager
+        self.settingsManager = settingsManager
+    }
+
+    /// Ranked on read so that toggling the grouping setting applies to the results already shown.
+    var items: [MergedSearchResult] {
+        SearchRanking.merge(
+            sources,
+            query: rankedQuery,
+            groupsCopies: settingsManager.interface.groupsSearchResults,
+        )
     }
 
     deinit { searchTask?.cancel() }
@@ -232,9 +246,10 @@ final class SearchViewModel {
                 SearchResultSource(server: server, serverName: names[server] ?? server.id, media: $0)
             }
         }
-        items = SearchRanking.merge(sources, query: query)
+        self.sources = sources
+        rankedQuery = query
         unavailableServerNames = result.failed.compactMap { names[$0] }.sorted()
-        if items.isEmpty, result.succeeded.isEmpty, !result.failed.isEmpty {
+        if sources.isEmpty, result.succeeded.isEmpty, !result.failed.isEmpty {
             errorMessage = String(localized: "search.error.unavailable")
         }
     }
@@ -246,7 +261,7 @@ final class SearchViewModel {
     }
 
     private func resetState() {
-        items = []
+        sources = []
         errorMessage = nil
         unavailableServerNames = []
         isLoading = false

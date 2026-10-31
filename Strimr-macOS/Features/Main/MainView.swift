@@ -160,7 +160,7 @@ struct MainView: View {
             .unavailableWhenOffline()
         case .search:
             SearchView(
-                viewModel: SearchViewModel(sessionManager: sessionManager),
+                viewModel: SearchViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
                 onSelectMedia: { appModel.showMedia($0.media) },
             )
         case .downloads:
