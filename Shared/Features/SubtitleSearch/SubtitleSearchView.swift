@@ -123,7 +123,6 @@ struct SubtitleSearchView: View {
         }
     }
 
-    @ViewBuilder
     private var subtitleSearchContent: some View {
         #if os(tvOS)
             HStack(alignment: .top, spacing: 40) {
@@ -322,7 +321,6 @@ struct SubtitleSearchView: View {
 #endif
 
 private extension View {
-    @ViewBuilder
     func centeredSubtitleSearchAction() -> some View {
         #if os(tvOS)
             frame(maxWidth: .infinity, alignment: .center)

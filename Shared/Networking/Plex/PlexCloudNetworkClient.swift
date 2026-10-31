@@ -10,11 +10,11 @@ final class PlexCloudNetworkClient {
     private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     private let platform: String = {
         #if os(tvOS)
-            return "tvOS"
+            "tvOS"
         #elseif os(iOS)
-            return "iOS"
+            "iOS"
         #else
-            return "Unknown"
+            "Unknown"
         #endif
     }()
 

@@ -344,7 +344,6 @@ private extension View {
         RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
     }
 
-    @ViewBuilder
     func jellyfinAuthenticationFieldStyle() -> some View {
         #if os(tvOS)
             textFieldStyle(.automatic)

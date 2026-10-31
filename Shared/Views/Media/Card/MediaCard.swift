@@ -137,7 +137,6 @@ struct MediaCard: View {
 
 extension View {
     /// Download badge on artwork; tvOS has no downloads.
-    @ViewBuilder
     func downloadStatusOverlay(_ media: MediaDisplayItem) -> some View {
         #if os(tvOS)
             self
@@ -149,7 +148,6 @@ extension View {
     }
 
     /// Greys out items that cannot be played while their server is unreachable; tvOS has no offline mode.
-    @ViewBuilder
     func offlineAvailability(of media: MediaDisplayItem) -> some View {
         #if os(tvOS)
             self
