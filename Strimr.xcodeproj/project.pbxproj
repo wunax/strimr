@@ -320,6 +320,7 @@
 				Providers/Plex/PlexLiveTVService.swift,
 				Providers/Plex/PlexMediaServices.swift,
 				Providers/Plex/PlexPlaylistService.swift,
+				Providers/Plex/PlexSharedLibrary.swift,
 				Repository/Plex/AuthRepository.swift,
 				Repository/Plex/CollectionRepository.swift,
 				Repository/Plex/DiscoverWatchlistRepository.swift,

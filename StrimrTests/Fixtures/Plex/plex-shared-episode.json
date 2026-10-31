@@ -1,0 +1,93 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "identifier": "com.plexapp.plugins.library",
+    "librarySectionID": 4,
+    "librarySectionTitle": "Anime",
+    "Metadata": [
+      {
+        "ratingKey": "1001",
+        "key": "/library/metadata/1001",
+        "guid": "plex://episode/0000000000000000000000a1",
+        "parentRatingKey": "1000",
+        "grandparentRatingKey": "999",
+        "type": "episode",
+        "title": "Episode 1",
+        "index": 1,
+        "parentIndex": 1,
+        "duration": 1448468,
+        "addedAt": 1700000000,
+        "Media": [
+          {
+            "id": 2001,
+            "duration": 1448468,
+            "bitrate": 3573,
+            "width": 1920,
+            "height": 1080,
+            "container": "mkv",
+            "videoCodec": "hevc",
+            "audioCodec": "aac",
+            "audioChannels": 2,
+            "videoResolution": "1080",
+            "Part": [
+              {
+                "id": 3001,
+                "key": "/library/parts/3001/1700000000/file.mkv",
+                "duration": 1448468,
+                "container": "mkv",
+                "size": 1000000,
+                "accessible": true,
+                "exists": true
+              }
+            ]
+          }
+        ],
+        "Chapter": [
+          {
+            "id": 4000,
+            "index": 1,
+            "startTimeOffset": 0,
+            "endTimeOffset": 102143,
+            "tag": "Chapter 1"
+          },
+          {
+            "id": 4001,
+            "index": 2,
+            "startTimeOffset": 102143,
+            "endTimeOffset": 192192,
+            "tag": "Chapter 2"
+          },
+          {
+            "id": 4002,
+            "index": 3,
+            "startTimeOffset": 192192,
+            "endTimeOffset": 791832,
+            "tag": "Chapter 3"
+          },
+          {
+            "id": 4003,
+            "index": 4,
+            "startTimeOffset": 791832,
+            "endTimeOffset": 1357400,
+            "tag": "Chapter 4"
+          },
+          {
+            "id": 4004,
+            "index": 5,
+            "startTimeOffset": 1357400,
+            "endTimeOffset": 1448470,
+            "tag": "Chapter 5"
+          }
+        ],
+        "Role": [
+          {
+            "id": 5001,
+            "tag": "Actor Name",
+            "tagKey": "abc123",
+            "role": "Character"
+          }
+        ]
+      }
+    ]
+  }
+}

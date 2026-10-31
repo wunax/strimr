@@ -16,7 +16,8 @@ struct LibraryDetailView: View {
         self.library = library
         self.onSelectMedia = onSelectMedia
         _selectedTab = State(
-            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended,
+            initialValue: library.isShared || library.type == .collection || library.type == .playlist
+                ? .browse : .recommended,
         )
     }
 
@@ -88,6 +89,9 @@ struct LibraryDetailView: View {
             return library.type == .collection || library.type == .playlist
                 ? [.browse]
                 : [.recommended, .browse]
+        }
+        if library.isShared {
+            return [.browse]
         }
         return LibraryDetailTab.allCases.filter { tab in
             switch tab {

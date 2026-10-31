@@ -95,7 +95,8 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         if let librarySectionID = media.librarySectionID {
             return librarySectionID
         }
-        return try await mediaItem(id: media.id).librarySectionID
+        // Items shared one by one carry no section; they are browsed in the shared library.
+        return try await mediaItem(id: media.id).librarySectionID ?? PlexSharedLibrary.id
     }
 
     func fetchExtras(for media: MediaItem) async throws -> [MediaItem] {
@@ -286,16 +287,36 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 
     func libraries() async throws -> [Library] {
-        let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
-        return sections.filter(\.type.isSupported).map { Library(plexSection: $0, server: server) }
+        let repository = try SectionRepository(context: context)
+        async let hasSharedItems = hasSharedItems(repository: repository)
+        let sections = try await repository.getSections().mediaContainer.directory ?? []
+        let libraries = sections.filter(\.type.isSupported).map { Library(plexSection: $0, server: server) }
+        guard await hasSharedItems else { return libraries }
+        return libraries + [Library(
+            id: PlexSharedLibrary.id,
+            title: String(localized: "library.shared.title"),
+            type: .unknown,
+            isShared: true,
+            server: server,
+        )]
+    }
+
+    /// Best effort: servers without the shared view answer with an error, and simply show no shared library.
+    private func hasSharedItems(repository: SectionRepository) async -> Bool {
+        let response = try? await repository.getItems(
+            path: PlexSharedLibrary.browsePath,
+            params: .init(type: PlexSharedLibrary.videoTypes),
+            pagination: PlexPagination(start: 0, size: 1),
+        )
+        return response?.mediaContainer.metadata?.isEmpty == false
     }
 
     func preview(for library: Library) async throws -> LibraryPreview? {
-        guard let sectionID = library.sectionId else { return nil }
-        let response = try await SectionRepository(context: context).getSectionsItems(
-            sectionId: sectionID,
+        guard let path = library.plexBrowsePath else { return nil }
+        let response = try await SectionRepository(context: context).getItems(
+            path: path,
             // Paginated rather than limited: `limit` also caps `totalSize`, which the tile shows as the count.
-            params: .init(sort: "random"),
+            params: .init(sort: "random", type: library.isShared ? PlexSharedLibrary.videoTypes : "1,2"),
             pagination: PlexPagination(start: 0, size: LibraryPreview.artworkCount),
         )
         var artworks: [ArtworkResource] = []
@@ -320,12 +341,17 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         startIndex: Int,
         limit: Int,
     ) async throws -> MediaPage<MediaDisplayItem> {
-        guard let sectionID = library.sectionId else {
+        guard let path = library.plexBrowsePath else {
             throw PlexAPIError.missingConnection
         }
-        let response = try await SectionRepository(context: context).getSectionsItems(
-            sectionId: sectionID,
-            params: .init(type: library.type == .series ? "2" : "1"),
+        let type = if library.isShared {
+            PlexSharedLibrary.videoTypes
+        } else {
+            library.type == .series ? "2" : "1"
+        }
+        let response = try await SectionRepository(context: context).getItems(
+            path: path,
+            params: .init(type: type),
             pagination: PlexPagination(start: startIndex, size: limit),
         )
         let items = (response.mediaContainer.metadata ?? []).compactMap(mapDisplayItem)
@@ -360,10 +386,11 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             pagination: PlexPagination(start: startIndex, size: limit),
         )
         let items = (response.mediaContainer.metadata ?? []).compactMap(mapBrowseItem)
+        let meta = response.mediaContainer.meta
         return PlexAdvancedBrowsePage(
             items: items,
             totalCount: response.mediaContainer.totalSize ?? (startIndex + items.count),
-            meta: response.mediaContainer.meta,
+            meta: PlexSharedLibrary.isSharedPath(path) ? meta.map(PlexSharedLibrary.videoMeta) : meta,
         )
     }
 
