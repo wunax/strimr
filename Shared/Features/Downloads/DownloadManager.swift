@@ -188,18 +188,19 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     func localExternalSubtitles(for item: DownloadItem) -> [ExternalSubtitleTrack] {
-        guard let fileName = item.metadata.subtitleFileName else { return [] }
-        let url = downloadsDirectory
-            .appendingPathComponent(item.id, isDirectory: true)
-            .appendingPathComponent(fileName, isDirectory: false)
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        return [ExternalSubtitleTrack(
-            url: url,
-            name: item.metadata.subtitleTitle,
-            language: item.metadata.subtitleLanguage,
-            isForced: item.metadata.subtitleIsForced,
-            formatHint: item.metadata.subtitleCodec,
-        )]
+        let folderURL = downloadsDirectory.appendingPathComponent(item.id, isDirectory: true)
+        return item.metadata.subtitleFiles.compactMap { file in
+            let url = folderURL.appendingPathComponent(file.fileName, isDirectory: false)
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return ExternalSubtitleTrack(
+                url: url,
+                name: file.title,
+                language: file.language,
+                isForced: file.isForced,
+                isHearingImpaired: file.isHearingImpaired,
+                formatHint: file.codec,
+            )
+        }
     }
 
     func localMediaItem(for item: DownloadItem) -> MediaItem {
@@ -964,41 +965,47 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                     itemID: items[index].itemID,
                     tracks: items[index].trackPreference ?? .serverDefault,
                     versionID: items[index].metadata.versionID,
+                    isTranscoded: items[index].remoteReference != nil,
                 )
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
             }
         }
-        guard let sidecar = sidecarsByItemID[itemID]?.first else { return }
-        do {
-            var request = sidecar.request
-            let allowsCellularAccess = items[index].allowsCellularAccess
-                ?? !settingsManager.downloads.wifiOnly
-            request.allowsCellularAccess = allowsCellularAccess
-            request.allowsConstrainedNetworkAccess = allowsCellularAccess
-            request.allowsExpensiveNetworkAccess = allowsCellularAccess
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  200 ..< 300 ~= httpResponse.statusCode,
-                  !data.isEmpty
-            else { return }
-            let fileName = "subtitle.\(sanitizeFileName(sidecar.fileExtension))"
-            let url = folderURL.appendingPathComponent(fileName, isDirectory: false)
-            try data.write(to: url, options: .atomic)
-            try setExcludedFromBackup(at: url)
-            items[index].metadata.subtitleFileName = fileName
-            items[index].metadata.subtitleTitle = sidecar.title
-            items[index].metadata.subtitleLanguage = sidecar.language
-            items[index].metadata.subtitleCodec = sidecar.codec
-            items[index].metadata.subtitleIsForced = sidecar.isForced
-            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?
-                .int64Value ?? 0
-            items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + size
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            ErrorReporter.capture(error)
+        let allowsCellularAccess = items[index].allowsCellularAccess ?? !settingsManager.downloads.wifiOnly
+        var files: [DownloadedSubtitleFile] = []
+        var totalSize: Int64 = 0
+        for (offset, sidecar) in (sidecarsByItemID[itemID] ?? []).enumerated() {
+            do {
+                var request = sidecar.request
+                request.allowsCellularAccess = allowsCellularAccess
+                request.allowsConstrainedNetworkAccess = allowsCellularAccess
+                request.allowsExpensiveNetworkAccess = allowsCellularAccess
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse,
+                      200 ..< 300 ~= httpResponse.statusCode,
+                      !data.isEmpty
+                else { continue }
+                let fileName = "subtitle-\(offset).\(sanitizeFileName(sidecar.fileExtension))"
+                let url = folderURL.appendingPathComponent(fileName, isDirectory: false)
+                try data.write(to: url, options: .atomic)
+                try setExcludedFromBackup(at: url)
+                files.append(DownloadedSubtitleFile(
+                    fileName: fileName,
+                    title: sidecar.title,
+                    language: sidecar.language,
+                    codec: sidecar.codec,
+                    isForced: sidecar.isForced,
+                    isHearingImpaired: sidecar.isHearingImpaired,
+                ))
+                totalSize += Int64(data.count)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
         }
+        items[index].metadata.subtitleFiles = files
+        items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + totalSize
         sidecarsByItemID[itemID] = nil
     }
 

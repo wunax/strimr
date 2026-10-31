@@ -121,6 +121,7 @@ struct MediaDownloadSidecar {
     let language: String?
     let codec: String
     let isForced: Bool
+    var isHearingImpaired = false
 }
 
 enum MediaDownloadRemoteReference: Codable, Hashable, Sendable {
@@ -415,10 +416,13 @@ protocol MediaDownloadService: AnyObject {
     func refreshDownloadPreparation(
         _ reference: MediaDownloadRemoteReference,
     ) async throws -> MediaDownloadPreparationUpdate
+    /// Original files only get the external subtitle files; their embedded tracks are already in the video.
+    /// Transcodes get the selected track, since the transcoded video carries none.
     func downloadSidecars(
         itemID: String,
         tracks: MediaTrackPreference,
         versionID: String?,
+        isTranscoded: Bool,
     ) async throws -> [MediaDownloadSidecar]
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]

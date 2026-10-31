@@ -410,6 +410,7 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         itemID _: String,
         tracks _: MediaTrackPreference,
         versionID _: String?,
+        isTranscoded _: Bool,
     ) async throws -> [MediaDownloadSidecar] {
         throw NotStubbed(function: #function)
     }

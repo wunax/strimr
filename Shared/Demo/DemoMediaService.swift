@@ -527,6 +527,7 @@
             itemID _: String,
             tracks _: MediaTrackPreference,
             versionID _: String?,
+            isTranscoded _: Bool,
         ) async throws -> [MediaDownloadSidecar] {
             []
         }
