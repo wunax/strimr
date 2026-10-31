@@ -131,7 +131,7 @@ enum MediaDownloadRemoteReference: Codable, Hashable, Sendable {
 
 enum MediaDownloadPreparationUpdate {
     case preparing(progress: Double?)
-    case ready(request: URLRequest, sidecars: [MediaDownloadSidecar])
+    case ready(request: URLRequest)
     case failed(message: String)
 }
 
@@ -416,8 +416,7 @@ protocol MediaDownloadService: AnyObject {
     func refreshDownloadPreparation(
         _ reference: MediaDownloadRemoteReference,
     ) async throws -> MediaDownloadPreparationUpdate
-    /// Original files only get the external subtitle files; their embedded tracks are already in the video.
-    /// Transcodes get the selected track, since the transcoded video carries none.
+    /// The external subtitle files, plus the selected track for a transcode that does not carry it.
     func downloadSidecars(
         itemID: String,
         tracks: MediaTrackPreference,

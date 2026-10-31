@@ -793,8 +793,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                             items[index].progress = progress
                         }
                         persistState()
-                    case let .ready(request, sidecars):
-                        sidecarsByItemID[itemID] = sidecars
+                    case let .ready(request):
                         startTransfer(itemID: itemID, request: request)
                         return
                     case let .failed(message):

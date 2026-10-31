@@ -1266,7 +1266,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 effectiveQuality: quality.isOriginal ? .original : quality,
                 request: context.mediaRequest(url: url),
                 remoteReference: nil,
-                sidecars: selectedSource.map { try externalDownloadSidecars(itemID: item.id, source: $0) } ?? [],
+                sidecars: selectedSource.map {
+                    try downloadSidecars(itemID: item.id, source: $0, selectedSubtitle: nil)
+                } ?? [],
                 audioTitle: nil,
                 subtitleTitle: nil,
                 versionID: selectedSource?.id,
@@ -1302,9 +1304,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
 
         let url = try context.url(path: ["Videos", item.id, "stream.mp4"], query: query)
-        let sidecars = try subtitle.map {
-            try [makeDownloadSidecar(itemID: item.id, source: source, subtitle: $0)]
-        } ?? []
+        let sidecars = try downloadSidecars(itemID: item.id, source: source, selectedSubtitle: subtitle)
 
         return try MediaDownloadPreparation(
             media: media,
@@ -1347,9 +1347,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         versionID: String?,
         isTranscoded: Bool,
     ) async throws -> [MediaDownloadSidecar] {
-        if isTranscoded {
-            guard case .track = tracks.subtitle else { return [] }
-        }
         let item = try await catalog.item(id: itemID)
         let sources = item.mediaSources ?? []
         guard let source = Self.source(
@@ -1357,18 +1354,25 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             versions: sources.map(Self.mapFileInfoVersion),
             request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
         ) else { return [] }
-        guard isTranscoded else { return try externalDownloadSidecars(itemID: item.id, source: source) }
-        guard let stream = source.resolveSubtitleStream(preference: tracks.subtitle) else { return [] }
-        return try [makeDownloadSidecar(itemID: item.id, source: source, subtitle: stream)]
+        let selectedSubtitle: JellyfinMediaStream? = if isTranscoded, case .track = tracks.subtitle {
+            source.resolveSubtitleStream(preference: tracks.subtitle)
+        } else {
+            nil
+        }
+        return try downloadSidecars(itemID: item.id, source: source, selectedSubtitle: selectedSubtitle)
     }
 
-    private func externalDownloadSidecars(
+    /// The transcoded video carries no subtitles, so a selected embedded track is fetched as a file too.
+    private func downloadSidecars(
         itemID: String,
         source: JellyfinMediaSource,
+        selectedSubtitle: JellyfinMediaStream?,
     ) throws -> [MediaDownloadSidecar] {
-        try (source.mediaStreams ?? [])
-            .filter { $0.isExternal == true && $0.isDownloadableTextSubtitle }
-            .map { try makeDownloadSidecar(itemID: itemID, source: source, subtitle: $0) }
+        var streams = (source.mediaStreams ?? []).filter { $0.isExternal == true && $0.isDownloadableTextSubtitle }
+        if let selectedSubtitle, !streams.contains(where: { $0.index == selectedSubtitle.index }) {
+            streams.insert(selectedSubtitle, at: 0)
+        }
+        return try streams.map { try makeDownloadSidecar(itemID: itemID, source: source, subtitle: $0) }
     }
 
     private func makeDownloadSidecar(

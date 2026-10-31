@@ -1091,10 +1091,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
         switch status.status {
         case "available":
-            return try .ready(
-                request: repository.mediaRequest(queueID: queueID, itemID: itemID),
-                sidecars: [],
-            )
+            return try .ready(request: repository.mediaRequest(queueID: queueID, itemID: itemID))
         case "failed", "error", "cancelled":
             return .failed(message: String(localized: "downloads.status.failed"))
         default:
@@ -1108,6 +1105,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         versionID: String?,
         isTranscoded: Bool,
     ) async throws -> [MediaDownloadSidecar] {
+        // The transcoder muxes every subtitle, external ones included, into the file.
         guard !isTranscoded else { return [] }
         let response = try await MetadataRepository(context: context).getMetadata(ratingKey: itemID)
         let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
