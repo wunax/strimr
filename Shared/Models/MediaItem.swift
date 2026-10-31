@@ -362,7 +362,9 @@ struct MediaItem: Identifiable, Hashable, Codable {
         if value == "sd" {
             return 480
         }
-        return Int(value.filter(\.isNumber)) ?? 0
+        // Jellyfin labels unusual sizes as "640 × 480": the height ranks them.
+        let height = value.split(separator: "×").last.map(String.init) ?? value
+        return Int(height.filter(\.isNumber)) ?? 0
     }
 
     var playbackResolutionLabel: String? {

@@ -56,6 +56,8 @@ struct SearchResultSource: Identifiable {
 struct MergedSearchResult: Identifiable {
     let id: String
     var sources: [SearchResultSource]
+    /// With grouping off, other results are copies of the same title.
+    var hasSeparateCopies = false
 
     var primarySource: SearchResultSource {
         sources[0]
@@ -87,16 +89,19 @@ enum SearchRanking {
         query: String,
         groupsCopies: Bool = true,
     ) -> [MergedSearchResult] {
-        let groups = groupsCopies
-            ? MediaMatching.group(sources) { source in
-                source.media.playableItem?.matchDescriptor
-                    ?? MediaMatchDescriptor(kind: .other, guid: nil, externalIDs: ExternalIDs())
-            }
-            : sources.map { [$0] }
-        let results = groups.map { group in
+        let groups = MediaMatching.group(sources) { source in
+            source.media.playableItem?.matchDescriptor
+                ?? MediaMatchDescriptor(kind: .other, guid: nil, externalIDs: ExternalIDs())
+        }
+        let results = groups.flatMap { group in
             var seen = Set<String>()
             let unique = group.filter { seen.insert($0.id).inserted }
-            return MergedSearchResult(id: unique[0].id, sources: unique)
+            guard groupsCopies else {
+                return unique.map {
+                    MergedSearchResult(id: $0.id, sources: [$0], hasSeparateCopies: unique.count > 1)
+                }
+            }
+            return [MergedSearchResult(id: unique[0].id, sources: unique)]
         }
         let normalizedQuery = normalize(query)
         return results.enumerated().sorted { lhs, rhs in

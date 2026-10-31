@@ -250,12 +250,13 @@ struct MediaTypeBadge: View {
 }
 
 private extension SearchResultCard {
-    /// Grouped copies name their servers; with grouping off, each copy says where it is and in which quality.
+    /// Grouped copies name their servers; with grouping off, copies of one title say where they are and in which
+    /// quality, so they can be told apart.
     private var sourceLabel: String? {
         if result.sources.count > 1 {
             return result.serverNames.joined(separator: ", ")
         }
-        guard !settingsManager.interface.groupsSearchResults, registry.enabledSessions.count > 1 else { return nil }
+        guard result.hasSeparateCopies else { return nil }
         let item = media.playableItem
         return [result.primarySource.serverName, item?.librarySectionTitle, item?.playbackResolutionLabel]
             .compactMap(\.self)

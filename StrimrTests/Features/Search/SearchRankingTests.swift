@@ -56,6 +56,21 @@ struct SearchRankingTests {
         let results = SearchRanking.merge(sources, query: "alien", groupsCopies: false)
 
         #expect(results.map(\.serverNames) == [["A"], ["B"]])
+        #expect(results.map(\.hasSeparateCopies) == [true, true])
+    }
+
+    @Test func `a title found once has no separate copies`() {
+        let sources = [source(MediaItem.make(id: "1", server: plexA, title: "Alien", guid: "plex://movie/x"), "A")]
+
+        #expect(SearchRanking.merge(sources, query: "alien", groupsCopies: false)[0].hasSeparateCopies == false)
+    }
+
+    @Test func `odd sizes rank by their height`() {
+        let small = MediaItem.make(id: "1", server: plexA, videoResolution: "640 × 480")
+        let uhd = MediaItem.make(id: "2", server: plexA, videoResolution: "4K")
+
+        #expect(small.resolutionRank == 480)
+        #expect(uhd.resolutionRank > small.resolutionRank)
     }
 
     @Test func `the same title without ids is not merged`() {
