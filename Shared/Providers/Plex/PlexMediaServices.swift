@@ -1027,8 +1027,9 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         guard let item = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidURL }
         let plexMedia = item.media ?? []
         let versions = plexMedia.map(Self.mapFileInfoVersion)
+        let mediaRepository = try MediaRepository(context: context)
         guard let selected = Self.selection(in: plexMedia, versions: versions, request: version),
-              let url = try MediaRepository(context: context).mediaURL(path: selected.part.key)
+              let url = mediaRepository.mediaURL(path: selected.part.key)
         else { throw PlexAPIError.invalidURL }
         let selectedMedia = selected.media
         let media = MediaItem(plexItem: item, server: server)
@@ -1041,7 +1042,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 effectiveQuality: quality.isOriginal ? .original : quality,
                 request: URLRequest(url: url),
                 remoteReference: nil,
-                sidecars: [],
+                sidecars: Self.downloadSidecars(in: selected.part.stream ?? [], url: mediaRepository.mediaURL),
                 audioTitle: nil,
                 subtitleTitle: nil,
                 versionID: selectedVersion.id,
@@ -1090,10 +1091,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         }
         switch status.status {
         case "available":
-            return try .ready(
-                request: repository.mediaRequest(queueID: queueID, itemID: itemID),
-                sidecars: [],
-            )
+            return try .ready(request: repository.mediaRequest(queueID: queueID, itemID: itemID))
         case "failed", "error", "cancelled":
             return .failed(message: String(localized: "downloads.status.failed"))
         default:
@@ -1102,11 +1100,47 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 
     func downloadSidecars(
-        itemID _: String,
+        itemID: String,
         tracks _: MediaTrackPreference,
-        versionID _: String?,
+        versionID: String?,
+        isTranscoded: Bool,
     ) async throws -> [MediaDownloadSidecar] {
-        []
+        // The transcoder muxes every subtitle, external ones included, into the file.
+        guard !isTranscoded else { return [] }
+        let response = try await MetadataRepository(context: context).getMetadata(ratingKey: itemID)
+        let plexMedia = response.mediaContainer.metadata?.first?.media ?? []
+        guard let selected = Self.selection(
+            in: plexMedia,
+            versions: plexMedia.map(Self.mapFileInfoVersion),
+            request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
+        ) else { return [] }
+        let mediaRepository = try MediaRepository(context: context)
+        return Self.downloadSidecars(in: selected.part.stream ?? [], url: mediaRepository.mediaURL)
+    }
+
+    /// Streams with a `key` are the external subtitle files sitting next to the video on the server.
+    static func downloadSidecars(
+        in streams: [PlexPartStream],
+        url: (String) -> URL?,
+    ) -> [MediaDownloadSidecar] {
+        streams.compactMap { stream in
+            guard stream.streamType == .subtitle, let url = stream.key.flatMap(url) else { return nil }
+            let codec = stream.codec.lowercased()
+            let fileExtension = switch codec {
+            case "subrip": "srt"
+            case "webvtt": "vtt"
+            default: codec
+            }
+            return MediaDownloadSidecar(
+                request: URLRequest(url: url),
+                fileExtension: fileExtension,
+                title: stream.title ?? stream.displayTitle,
+                language: stream.language,
+                codec: codec,
+                isForced: stream.forced == true,
+                isHearingImpaired: stream.hearingImpaired == true,
+            )
+        }
     }
 
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async {

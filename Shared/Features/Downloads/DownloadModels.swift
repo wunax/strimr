@@ -17,6 +17,15 @@ enum DownloadStatus: String, Codable, Hashable {
     }
 }
 
+struct DownloadedSubtitleFile: Codable, Hashable {
+    var fileName: String
+    var title: String?
+    var language: String?
+    var codec: String?
+    var isForced: Bool
+    var isHearingImpaired: Bool
+}
+
 struct DownloadedMediaMetadata: Codable, Hashable {
     var identity: MediaIdentity?
     var itemID: String
@@ -44,10 +53,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
     var effectiveQuality: TranscodeQualityPreset
     var audioTitle: String?
     var subtitleTitle: String?
-    var subtitleFileName: String?
-    var subtitleLanguage: String?
-    var subtitleCodec: String?
-    var subtitleIsForced: Bool
+    var subtitleFiles: [DownloadedSubtitleFile]
     var versionID: String?
     /// Only set when the item had several versions, so a mismatched episode stays visible in the list.
     var versionLabel: String?
@@ -109,10 +115,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         self.effectiveQuality = effectiveQuality
         self.audioTitle = audioTitle
         self.subtitleTitle = subtitleTitle
-        subtitleFileName = nil
-        subtitleLanguage = nil
-        subtitleCodec = nil
-        subtitleIsForced = false
+        subtitleFiles = []
         self.versionID = versionID
         self.versionLabel = versionLabel
         self.createdAt = createdAt
@@ -148,6 +151,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         case effectiveQuality
         case audioTitle
         case subtitleTitle
+        case subtitleFiles
         case subtitleFileName
         case subtitleLanguage
         case subtitleCodec
@@ -207,10 +211,20 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         ) ?? requestedQuality
         audioTitle = try container.decodeIfPresent(String.self, forKey: .audioTitle)
         subtitleTitle = try container.decodeIfPresent(String.self, forKey: .subtitleTitle)
-        subtitleFileName = try container.decodeIfPresent(String.self, forKey: .subtitleFileName)
-        subtitleLanguage = try container.decodeIfPresent(String.self, forKey: .subtitleLanguage)
-        subtitleCodec = try container.decodeIfPresent(String.self, forKey: .subtitleCodec)
-        subtitleIsForced = try container.decodeIfPresent(Bool.self, forKey: .subtitleIsForced) ?? false
+        if let files = try container.decodeIfPresent([DownloadedSubtitleFile].self, forKey: .subtitleFiles) {
+            subtitleFiles = files
+        } else if let legacyFileName = try container.decodeIfPresent(String.self, forKey: .subtitleFileName) {
+            subtitleFiles = try [DownloadedSubtitleFile(
+                fileName: legacyFileName,
+                title: subtitleTitle,
+                language: container.decodeIfPresent(String.self, forKey: .subtitleLanguage),
+                codec: container.decodeIfPresent(String.self, forKey: .subtitleCodec),
+                isForced: container.decodeIfPresent(Bool.self, forKey: .subtitleIsForced) ?? false,
+                isHearingImpaired: false,
+            )]
+        } else {
+            subtitleFiles = []
+        }
         versionID = try container.decodeIfPresent(String.self, forKey: .versionID)
         versionLabel = try container.decodeIfPresent(String.self, forKey: .versionLabel)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
@@ -244,10 +258,7 @@ struct DownloadedMediaMetadata: Codable, Hashable {
         try container.encode(effectiveQuality, forKey: .effectiveQuality)
         try container.encodeIfPresent(audioTitle, forKey: .audioTitle)
         try container.encodeIfPresent(subtitleTitle, forKey: .subtitleTitle)
-        try container.encodeIfPresent(subtitleFileName, forKey: .subtitleFileName)
-        try container.encodeIfPresent(subtitleLanguage, forKey: .subtitleLanguage)
-        try container.encodeIfPresent(subtitleCodec, forKey: .subtitleCodec)
-        try container.encode(subtitleIsForced, forKey: .subtitleIsForced)
+        try container.encode(subtitleFiles, forKey: .subtitleFiles)
         try container.encodeIfPresent(versionID, forKey: .versionID)
         try container.encodeIfPresent(versionLabel, forKey: .versionLabel)
         try container.encode(createdAt, forKey: .createdAt)
