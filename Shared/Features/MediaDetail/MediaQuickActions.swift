@@ -95,7 +95,7 @@ struct MediaQuickActions {
     ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
         let hasProgress = (item.viewOffset ?? 0) > 0
-        if offersDetails, [.movie, .episode].contains(item.type) {
+        if offersDetails, [.movie, .episode, .clip].contains(item.type) {
             actions.append(.showDetails)
         }
         if [.movie, .episode, .clip].contains(item.type) {
