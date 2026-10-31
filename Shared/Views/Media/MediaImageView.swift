@@ -120,8 +120,20 @@ struct MediaImageView: View {
         settingsManager.interface.spoilerProtection
     }
 
+    private var landscapeEpisodeArtwork: LandscapeEpisodeArtwork {
+        settingsManager.interface.landscapeEpisodeArtwork
+    }
+
+    private var portraitEpisodeArtwork: PortraitEpisodeArtwork {
+        settingsManager.interface.portraitEpisodeArtwork
+    }
+
     private var isSpoilerProtected: Bool {
-        viewModel.media.playableItem?.isSpoilerProtected(at: spoilerProtection) == true
+        viewModel.hidesSpoiler(
+            at: spoilerProtection,
+            landscape: landscapeEpisodeArtwork,
+            portrait: portraitEpisodeArtwork,
+        )
     }
 
     var body: some View {
@@ -138,10 +150,22 @@ struct MediaImageView: View {
                     .padding(8)
             }
         }
-        .task(id: "\(viewModel.media.id)-\(viewModel.artworkKind.rawValue)-\(spoilerProtection.rawValue)") {
+        .task(id: taskID) {
             viewModel.spoilerProtection = spoilerProtection
+            viewModel.landscapeEpisodeArtwork = landscapeEpisodeArtwork
+            viewModel.portraitEpisodeArtwork = portraitEpisodeArtwork
             await viewModel.load()
         }
+    }
+
+    private var taskID: String {
+        [
+            viewModel.media.id,
+            viewModel.artworkKind.rawValue,
+            spoilerProtection.rawValue,
+            landscapeEpisodeArtwork.rawValue,
+            portraitEpisodeArtwork.rawValue,
+        ].joined(separator: "-")
     }
 
     private var placeholder: some View {

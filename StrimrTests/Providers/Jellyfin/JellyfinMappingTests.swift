@@ -52,6 +52,8 @@ struct JellyfinMappingTests {
         #expect(media.thumbPath == nil)
         #expect(media.artPath == nil)
         #expect(media.grandparentThumbPath == "jellyfin-artwork://series-1/Primary?tag=series-tag")
+        #expect(media.parentThumbPath == "jellyfin-artwork://season-1/Primary?tag=season-tag")
+        #expect(media.grandparentArtPath == "jellyfin-artwork://series-1/Backdrop?tag=series-backdrop-tag")
         #expect(media.viewOffset == nil)
         // Jellyfin can report Played with a PlayCount of 0; the mapping still counts one view.
         #expect(media.viewCount == 1)

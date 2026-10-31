@@ -13,6 +13,10 @@
   "ImageTags": {},
   "BackdropImageTags": [],
   "SeriesPrimaryImageTag": "series-tag",
+  "ParentPrimaryImageItemId": "season-1",
+  "ParentPrimaryImageTag": "season-tag",
+  "ParentBackdropItemId": "series-1",
+  "ParentBackdropImageTags": ["series-backdrop-tag"],
   "ParentLogoItemId": "series-1",
   "ParentLogoImageTag": "series-logo-tag",
   "UserData": {

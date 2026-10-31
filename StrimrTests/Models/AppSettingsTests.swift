@@ -16,6 +16,21 @@ struct AppSettingsTests {
         #expect(try decode(#"{"interface":{"themeMusicVolume":"medium"}}"#).interface.themeMusicVolume == .medium)
     }
 
+    @Test func `episode artwork keeps the episode image and series poster unless chosen`() throws {
+        let defaults = try decode(#"{"interface":{}}"#).interface
+        #expect(defaults.landscapeEpisodeArtwork == .episode)
+        #expect(defaults.portraitEpisodeArtwork == .series)
+
+        let unknown = try decode(#"{"interface":{"landscapeEpisodeArtwork":"x","portraitEpisodeArtwork":"x"}}"#)
+        #expect(unknown.interface.landscapeEpisodeArtwork == .episode)
+        #expect(unknown.interface.portraitEpisodeArtwork == .series)
+
+        let chosen =
+            try decode(#"{"interface":{"landscapeEpisodeArtwork":"series","portraitEpisodeArtwork":"season"}}"#)
+        #expect(chosen.interface.landscapeEpisodeArtwork == .series)
+        #expect(chosen.interface.portraitEpisodeArtwork == .season)
+    }
+
     @Test func `title logo is shown unless turned off`() throws {
         #expect(try decode(#"{"interface":{"displayPlaylists":false}}"#).interface.showsTitleLogo)
         #expect(try !decode(#"{"interface":{"showsTitleLogo":false}}"#).interface.showsTitleLogo)
