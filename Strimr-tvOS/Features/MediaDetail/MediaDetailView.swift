@@ -483,10 +483,8 @@ struct MediaDetailView: View {
                         ForEach(viewModel.episodes) { episode in
                             EpisodeArtworkCard(
                                 episode: episode,
-                                imageURL: viewModel.imageURL(
+                                artworkPath: viewModel.artworkPath(
                                     for: episode,
-                                    width: 640,
-                                    height: 360,
                                     spoilerProtection: settingsManager.interface.spoilerProtection,
                                 ),
                                 runtime: viewModel.runtimeText(for: episode),
@@ -619,7 +617,7 @@ struct MediaDetailView: View {
 
 private struct EpisodeArtworkCard: View {
     let episode: MediaItem
-    let imageURL: URL?
+    let artworkPath: String?
     let runtime: String?
     let progress: Double?
     let width: CGFloat
@@ -690,7 +688,7 @@ private struct EpisodeArtworkCard: View {
     private var artwork: some View {
         EpisodeArtworkView(
             episode: episode,
-            imageURL: imageURL,
+            artworkPath: artworkPath,
             width: width,
             runtime: nil,
             progress: progress,

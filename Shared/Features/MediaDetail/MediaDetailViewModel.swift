@@ -241,18 +241,11 @@ final class MediaDetailViewModel {
         }
     }
 
-    func imageURL(
-        for media: MediaItem,
-        width: Int = 320,
-        height: Int = 180,
-        spoilerProtection: SpoilerProtectionLevel = .off,
-    ) -> URL? {
-        let path = if media.isSpoilerProtected(at: spoilerProtection) {
-            media.spoilerProtectedArtworkPath(at: spoilerProtection)
-        } else {
-            media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
+    func artworkPath(for media: MediaItem, spoilerProtection: SpoilerProtectionLevel = .off) -> String? {
+        if media.isSpoilerProtected(at: spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: spoilerProtection)
         }
-        return services.artwork.artworkURL(path: path, width: width, height: height)
+        return media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
     }
 
     func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {

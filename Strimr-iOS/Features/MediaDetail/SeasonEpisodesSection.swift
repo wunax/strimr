@@ -55,10 +55,8 @@ struct SeasonEpisodesSection: View {
             ForEach(Array(viewModel.episodes.enumerated()), id: \.element.id) { index, episode in
                 EpisodeCardView(
                     episode: episode,
-                    imageURL: viewModel.imageURL(
+                    artworkPath: viewModel.artworkPath(
                         for: episode,
-                        width: 640,
-                        height: 360,
                         spoilerProtection: settingsManager.interface.spoilerProtection,
                     ),
                     runtime: viewModel.runtimeText(for: episode),
