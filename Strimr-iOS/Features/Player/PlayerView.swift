@@ -381,11 +381,17 @@ struct PlayerView: View {
                     hideControls()
                 }
             }
+            .onChange(of: isControlsLocked && canLockOrientation) { _, locksOrientation in
+                if locksOrientation {
+                    AppDelegate.lockToCurrentOrientation()
+                } else {
+                    AppDelegate.orientationLock = .all
+                }
+            }
             .onChange(of: layoutMode.isTabletop) { _, isTabletop in
                 if isTabletop {
                     isTabletopLocked = isControlsLocked
                     isControlsLocked = false
-                    AppDelegate.orientationLock = .all
                 } else {
                     isControlsLocked = isTabletopLocked
                     isTabletopLocked = false
@@ -1075,9 +1081,6 @@ struct PlayerView: View {
 
     private func lockControls() {
         didConsiderAutomaticRotation = true
-        if canLockOrientation {
-            AppDelegate.lockToCurrentOrientation()
-        }
         activeOffsetBar = nil
         isControlsLocked = true
         hideControls()
@@ -1085,7 +1088,6 @@ struct PlayerView: View {
     }
 
     private func unlockControls() {
-        AppDelegate.orientationLock = .all
         isControlsLocked = false
         showControls(temporarily: true)
     }
