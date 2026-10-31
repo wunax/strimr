@@ -98,7 +98,7 @@ struct SearchServerSelectionView: View {
     @State private var libraryIDs: [String: String] = [:]
 
     var body: some View {
-        NavigationStack {
+        TaskModalNavigationView {
             List(result.sourcesByQuality) { source in
                 Button {
                     dismiss()
@@ -109,7 +109,12 @@ struct SearchServerSelectionView: View {
             }
             // Buttons in a list draw their label in the accent color.
             .tint(Color.primary)
-            .navigationTitle("search.serverSelection.title")
+            #if os(tvOS)
+                .scrollClipDisabled()
+                // Room for the focused row to grow below the title's divider.
+                .contentMargins(.top, 24, for: .scrollContent)
+            #endif
+                .taskModalTitle("search.serverSelection.title")
         }
         .presentationDetents([.medium, .large])
         .task { await loadLibraryIDs() }
