@@ -926,13 +926,17 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             items[index].metadata.videoFileName = destination.lastPathComponent
             items[index].metadata.fileSize = fileSize
 
-            await persistSidecars(forItemAt: index, folderURL: destination.deletingLastPathComponent())
+            await persistSidecars(forItemID: item.id, folderURL: destination.deletingLastPathComponent())
 
+            // The download can be deleted while its sidecars or the server cleanup are awaited.
+            guard var index = items.firstIndex(where: { $0.id == item.id }) else { return }
             if let reference = items[index].remoteReference,
                let server = items[index].identity?.server,
                let services = servicesByServer[server]
             {
                 await services.downloads.cancelDownloadPreparation(reference)
+                guard let refreshedIndex = items.firstIndex(where: { $0.id == item.id }) else { return }
+                index = refreshedIndex
                 items[index].remoteReference = nil
             }
 
@@ -953,25 +957,26 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    private func persistSidecars(forItemAt index: Int, folderURL: URL) async {
-        let itemID = items[index].id
+    private func persistSidecars(forItemID itemID: String, folderURL: URL) async {
+        defer { sidecarsByItemID[itemID] = nil }
+        guard let item = items.first(where: { $0.id == itemID }) else { return }
         if sidecarsByItemID[itemID] == nil,
-           let server = items[index].identity?.server,
+           let server = item.identity?.server,
            let services = servicesByServer[server]
         {
             do {
                 sidecarsByItemID[itemID] = try await services.downloads.downloadSidecars(
-                    itemID: items[index].itemID,
-                    tracks: items[index].trackPreference ?? .serverDefault,
-                    versionID: items[index].metadata.versionID,
-                    isTranscoded: items[index].remoteReference != nil,
+                    itemID: item.itemID,
+                    tracks: item.trackPreference ?? .serverDefault,
+                    versionID: item.metadata.versionID,
+                    isTranscoded: item.remoteReference != nil,
                 )
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
             }
         }
-        let allowsCellularAccess = items[index].allowsCellularAccess ?? !settingsManager.downloads.wifiOnly
+        let allowsCellularAccess = item.allowsCellularAccess ?? !settingsManager.downloads.wifiOnly
         var files: [DownloadedSubtitleFile] = []
         var totalSize: Int64 = 0
         for (offset, sidecar) in (sidecarsByItemID[itemID] ?? []).enumerated() {
@@ -981,6 +986,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 request.allowsConstrainedNetworkAccess = allowsCellularAccess
                 request.allowsExpensiveNetworkAccess = allowsCellularAccess
                 let (data, response) = try await URLSession.shared.data(for: request)
+                // A download deleted meanwhile has lost its folder.
+                guard items.contains(where: { $0.id == itemID }) else { return }
                 guard let httpResponse = response as? HTTPURLResponse,
                       200 ..< 300 ~= httpResponse.statusCode,
                       !data.isEmpty
@@ -1003,9 +1010,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 ErrorReporter.capture(error)
             }
         }
+        guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
         items[index].metadata.subtitleFiles = files
         items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + totalSize
-        sidecarsByItemID[itemID] = nil
     }
 
     private nonisolated static func stageDownloadFile(at location: URL) throws -> URL {
