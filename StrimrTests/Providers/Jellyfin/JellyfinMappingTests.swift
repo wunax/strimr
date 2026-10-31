@@ -52,10 +52,21 @@ struct JellyfinMappingTests {
         #expect(media.thumbPath == nil)
         #expect(media.artPath == nil)
         #expect(media.grandparentThumbPath == "jellyfin-artwork://series-1/Primary?tag=series-tag")
+        #expect(media.parentThumbPath == "jellyfin-artwork://season-1/Primary?tag=season-tag")
+        #expect(media.grandparentArtPath == "jellyfin-artwork://series-1/Backdrop?tag=series-backdrop-tag")
         #expect(media.viewOffset == nil)
         // Jellyfin can report Played with a PlayCount of 0; the mapping still counts one view.
         #expect(media.viewCount == 1)
         #expect(media.watchState.isPlayed)
+    }
+
+    @Test func `episode backdrop is never used as series artwork`() throws {
+        let json = #"{"Id":"episode-1","Name":"Pilot","Type":"Episode","BackdropImageTags":["episode-backdrop-tag"]}"#
+        let item = try JSONDecoder().decode(JellyfinItem.self, from: Data(json.utf8))
+        let media = MediaItem(jellyfinItem: item, server: server)
+
+        #expect(media.grandparentArtPath == nil)
+        #expect(media.artPath == "jellyfin-artwork://episode-1/Backdrop?tag=episode-backdrop-tag")
     }
 
     @Test func `maps display items by kind`() throws {

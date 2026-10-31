@@ -40,7 +40,7 @@ struct LandscapeMediaCard: View {
         MediaCard(
             size: CGSize(width: resolvedWidth, height: resolvedHeight),
             media: media,
-            artworkKind: .art,
+            artworkKind: .cardArt,
             showsLabels: showsLabels,
             onTap: onTap,
         )

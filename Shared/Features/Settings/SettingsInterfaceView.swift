@@ -90,6 +90,35 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Picker(
+                    "settings.interface.seriesArtwork.landscape",
+                    selection: Binding(
+                        get: { settingsManager.interface.landscapeEpisodeArtwork },
+                        set: { settingsManager.setLandscapeEpisodeArtwork($0) },
+                    ),
+                ) {
+                    ForEach(LandscapeEpisodeArtwork.allCases, id: \.self) { artwork in
+                        Text(artwork.title).tag(artwork)
+                    }
+                }
+                Picker(
+                    "settings.interface.seriesArtwork.portrait",
+                    selection: Binding(
+                        get: { settingsManager.interface.portraitEpisodeArtwork },
+                        set: { settingsManager.setPortraitEpisodeArtwork($0) },
+                    ),
+                ) {
+                    ForEach(PortraitEpisodeArtwork.allCases, id: \.self) { artwork in
+                        Text(artwork.title).tag(artwork)
+                    }
+                }
+            } header: {
+                Text("settings.interface.seriesArtwork.title")
+            } footer: {
+                Text("settings.interface.seriesArtwork.description")
+            }
+
+            Section {
                 Toggle(
                     "settings.interface.titleLogo",
                     isOn: Binding(

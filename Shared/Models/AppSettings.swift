@@ -32,6 +32,34 @@ enum ContinueWatchingAction: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum LandscapeEpisodeArtwork: String, Codable, CaseIterable, Hashable {
+    case episode
+    case series
+
+    var title: String {
+        switch self {
+        case .episode:
+            String(localized: "settings.interface.seriesArtwork.landscape.episode")
+        case .series:
+            String(localized: "settings.interface.seriesArtwork.landscape.series")
+        }
+    }
+}
+
+enum PortraitEpisodeArtwork: String, Codable, CaseIterable, Hashable {
+    case series
+    case season
+
+    var title: String {
+        switch self {
+        case .series:
+            String(localized: "settings.interface.seriesArtwork.portrait.series")
+        case .season:
+            String(localized: "settings.interface.seriesArtwork.portrait.season")
+        }
+    }
+}
+
 enum PosterSize: String, Codable, CaseIterable, Hashable {
     case small
     case medium
@@ -365,6 +393,8 @@ struct InterfaceSettings: Codable, Equatable {
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled: Bool?
     var spoilerProtection = SpoilerProtectionLevel.off
+    var landscapeEpisodeArtwork = LandscapeEpisodeArtwork.episode
+    var portraitEpisodeArtwork = PortraitEpisodeArtwork.series
     var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
     var libraryDefaultLayout = LibraryDefaultLayout.automatic
     var posterSize = PosterSize.medium
@@ -399,6 +429,14 @@ struct InterfaceSettings: Codable, Equatable {
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
+        landscapeEpisodeArtwork = (try? container.decode(
+            LandscapeEpisodeArtwork.self,
+            forKey: .landscapeEpisodeArtwork,
+        )) ?? .episode
+        portraitEpisodeArtwork = (try? container.decode(
+            PortraitEpisodeArtwork.self,
+            forKey: .portraitEpisodeArtwork,
+        )) ?? .series
         libraryBrowseByKey = (try? container.decode(
             [String: LibraryBrowsePreferences].self,
             forKey: .libraryBrowseByKey,

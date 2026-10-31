@@ -38,6 +38,18 @@ extension MediaItem {
             type: "Primary",
             tag: jellyfinItem.seriesPrimaryImageTag,
         )
+        // An episode or season backdrop would show its own content, so only the inherited series one is used.
+        let grandparentArtPath: String? = if type == .episode || type == .season {
+            jellyfinItem.parentBackdropItemID.flatMap {
+                JellyfinArtworkPath.make(
+                    ownerID: $0,
+                    type: "Backdrop",
+                    tag: jellyfinItem.parentBackdropImageTags?.first,
+                )
+            }
+        } else {
+            backdropPath
+        }
 
         self.init(
             id: jellyfinItem.id,
@@ -85,8 +97,11 @@ extension MediaItem {
             parentIndex: jellyfinItem.parentIndexNumber,
             index: jellyfinItem.indexNumber,
             grandparentThumbPath: seriesPath,
-            grandparentArtPath: backdropPath,
-            parentThumbPath: nil,
+            grandparentArtPath: grandparentArtPath,
+            // Jellyfin points this at the season, or at the series when the season has no poster.
+            parentThumbPath: type == .episode ? jellyfinItem.parentPrimaryImageItemID.flatMap {
+                JellyfinArtworkPath.make(ownerID: $0, type: "Primary", tag: jellyfinItem.parentPrimaryImageTag)
+            } : nil,
             lastViewedAt: jellyfinItem.userData?.lastPlayedDate,
             externalIDs: ExternalIDs(providerIDs: jellyfinItem.providerIDs ?? [:]),
             logoPath: JellyfinArtworkPath.make(

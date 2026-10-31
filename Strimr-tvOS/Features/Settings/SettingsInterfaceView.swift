@@ -86,6 +86,35 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                SettingsPicker(
+                    "settings.interface.seriesArtwork.landscape",
+                    selection: Binding(
+                        get: { settingsManager.interface.landscapeEpisodeArtwork },
+                        set: { settingsManager.setLandscapeEpisodeArtwork($0) },
+                    ),
+                    options: Array(LandscapeEpisodeArtwork.allCases),
+                ) { artwork in
+                    Text(artwork.title)
+                }
+                .settingsFocus("landscapeEpisodeArtwork")
+                SettingsPicker(
+                    "settings.interface.seriesArtwork.portrait",
+                    selection: Binding(
+                        get: { settingsManager.interface.portraitEpisodeArtwork },
+                        set: { settingsManager.setPortraitEpisodeArtwork($0) },
+                    ),
+                    options: Array(PortraitEpisodeArtwork.allCases),
+                ) { artwork in
+                    Text(artwork.title)
+                }
+                .settingsFocus("portraitEpisodeArtwork")
+            } header: {
+                Text("settings.interface.seriesArtwork.title")
+            } footer: {
+                Text("settings.interface.seriesArtwork.description")
+            }
+
+            Section {
                 Toggle(
                     "settings.interface.titleLogo",
                     isOn: Binding(

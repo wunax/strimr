@@ -433,6 +433,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setLandscapeEpisodeArtwork(_ artwork: LandscapeEpisodeArtwork) {
+        settings.interface.landscapeEpisodeArtwork = artwork
+        persist()
+    }
+
+    func setPortraitEpisodeArtwork(_ artwork: PortraitEpisodeArtwork) {
+        settings.interface.portraitEpisodeArtwork = artwork
+        persist()
+    }
+
     func setDownloadWiFiOnly(_ enabled: Bool) {
         settings.downloads.wifiOnly = enabled
         persist()
