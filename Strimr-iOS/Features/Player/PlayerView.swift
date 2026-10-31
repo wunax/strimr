@@ -40,7 +40,7 @@ struct PlayerView: View {
     @State private var terminationAlertMessage = ""
     @State private var subtitleSearchErrorMessage = ""
     @State private var showingSubtitleSearchError = false
-    @State private var isRotationLocked = false
+    @State private var isControlsLocked = false
     @State private var didConsiderAutomaticRotation = false
     @State private var lastPinchInteraction: ContinuousClock.Instant?
     @State private var isLandscape = false
@@ -159,7 +159,7 @@ struct PlayerView: View {
                     doubleTapSeek.cancel()
                     playerController.stop()
                     AppDelegate.orientationLock = .all
-                    isRotationLocked = false
+                    isControlsLocked = false
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
@@ -382,7 +382,12 @@ struct PlayerView: View {
                 }
             }
             .onChange(of: layoutMode.isTabletop) { _, isTabletop in
-                if !isTabletop {
+                if isTabletop {
+                    isTabletopLocked = isControlsLocked
+                    isControlsLocked = false
+                    AppDelegate.orientationLock = .all
+                } else {
+                    isControlsLocked = isTabletopLocked
                     isTabletopLocked = false
                 }
                 showControls(temporarily: true)
@@ -431,7 +436,7 @@ struct PlayerView: View {
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: controlsVisible && !layoutMode.isTabletop ? 120 : 48,
+                bottomPadding: areControlsShown && !layoutMode.isTabletop ? 120 : 48,
                 videoSize: playerController.displayVideoSize ?? playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
@@ -457,7 +462,9 @@ struct PlayerView: View {
                 .onTapGesture { location in
                     guard !isPinchInteractionRecent else { return }
                     pauseScreen.registerInteraction()
-                    if isShowingInfoPanel {
+                    if isControlsLocked {
+                        controlsVisible ? hideControls() : showControls(temporarily: true)
+                    } else if isShowingInfoPanel {
                         hideInfoPanel()
                     } else if !handleDoubleTapSeek(at: location) {
                         controlsVisible ? hideControls() : showControls(temporarily: true)
@@ -471,6 +478,7 @@ struct PlayerView: View {
                             showInfoPanel()
                         }
                     },
+                    isEnabled: !isControlsLocked,
                 )
                 .simultaneousGesture(
                     MagnifyGesture(minimumScaleDelta: 0.03)
@@ -484,6 +492,7 @@ struct PlayerView: View {
                             lastPinchInteraction = .now
                             finishVideoZoom()
                         },
+                    isEnabled: !isControlsLocked,
                 )
                 .sensoryFeedback(.impact(weight: .light), trigger: videoZoomFillCrossings)
                 .onChange(of: isPinching) { _, isPinching in
@@ -502,7 +511,7 @@ struct PlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
-            if controlsVisible, !isShowingInfoPanel {
+            if controlsVisible || (isControlsLocked && isVoiceOverEnabled), !isShowingInfoPanel {
                 playerControls
                     .transition(.opacity)
             }
@@ -511,14 +520,14 @@ struct PlayerView: View {
                 offsetBar(activeOffsetBar)
             }
 
-            if !controlsVisible, let activeMarker, let skipTitle {
+            if !controlsVisible, !isControlsLocked, let activeMarker, let skipTitle {
                 skipOverlay(marker: activeMarker, title: skipTitle)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
 
             seekFeedbackOverlay
 
-            playerFeedbackOverlay(bottomPadding: controlsVisible ? 150 : 32)
+            playerFeedbackOverlay(bottomPadding: areControlsShown ? 150 : 32)
 
             if pauseScreen.isPresented, let media = viewModel.media {
                 PauseScreenOverlay(
@@ -578,8 +587,8 @@ struct PlayerView: View {
             onSkipMarker: activeMarker.map { marker in
                 { skipMarker(to: marker) }
             },
-            isRotationLocked: isRotationLocked,
-            onToggleRotationLock: rotationLockAction,
+            isLocked: isControlsLocked,
+            onToggleLock: toggleControlsLock,
             isSharePlay: sharePlayCoordinator.isInSession,
             showsPictureInPicture: playerController.showsPictureInPictureControl,
             isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
@@ -598,6 +607,10 @@ struct PlayerView: View {
             showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
             sleepTimer: sleepTimer,
         )
+    }
+
+    private var areControlsShown: Bool {
+        controlsVisible && !isControlsLocked
     }
 
     @ViewBuilder
@@ -1030,11 +1043,10 @@ struct PlayerView: View {
         playerController.setVideoZoom(VideoZoom(mode))
     }
 
-    /// The inner display of a foldable ignores the supported interface orientations, so locking only works while the
-    /// hinge is closed.
-    private var rotationLockAction: (() -> Void)? {
-        guard hinge == .closed || hinge == .unavailable else { return nil }
-        return { toggleRotationLock() }
+    /// The inner display of a foldable ignores the supported interface orientations, so the orientation only locks
+    /// while the hinge is closed.
+    private var canLockOrientation: Bool {
+        hinge == .closed || hinge == .unavailable
     }
 
     private func rotateAutomaticallyIfNeeded() {
@@ -1047,7 +1059,7 @@ struct PlayerView: View {
         else { return }
 
         didConsiderAutomaticRotation = true
-        guard settingsManager.playback.autoRotateVideo, !isRotationLocked,
+        guard settingsManager.playback.autoRotateVideo, !isControlsLocked,
               AppDelegate.orientationLock == .all,
               size.width > size.height, scene.effectiveGeometry.interfaceOrientation.isPortrait
         else { return }
@@ -1057,15 +1069,25 @@ struct PlayerView: View {
         }
     }
 
-    private func toggleRotationLock() {
+    private func toggleControlsLock() {
+        isControlsLocked ? unlockControls() : lockControls()
+    }
+
+    private func lockControls() {
         didConsiderAutomaticRotation = true
-        if isRotationLocked {
-            AppDelegate.orientationLock = .all
-            isRotationLocked = false
-        } else {
+        if canLockOrientation {
             AppDelegate.lockToCurrentOrientation()
-            isRotationLocked = true
         }
+        activeOffsetBar = nil
+        isControlsLocked = true
+        hideControls()
+        showFeedbackMessage(String(localized: "player.controls.touchLock.lockedFeedback"), systemImage: "lock.fill")
+    }
+
+    private func unlockControls() {
+        AppDelegate.orientationLock = .all
+        isControlsLocked = false
+        showControls(temporarily: true)
     }
 
     private func refreshTracks() {
@@ -1525,7 +1547,7 @@ struct PlayerView: View {
             controlsVisible = true
         }
 
-        if temporarily, !isScrubbing {
+        if temporarily || isControlsLocked, !isScrubbing {
             scheduleControlsHide()
         } else {
             hideControlsWorkItem?.cancel()
