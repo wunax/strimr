@@ -94,6 +94,18 @@ struct MediaQuickActionsTests {
         #expect(!actions.menuActions(for: makeMedia(type: .movie), canDownload: false).contains(.addToPlaylist))
     }
 
+    @Test func `details lead the menu of movies and episodes only when offered`() {
+        let actions = makeActions()
+
+        #expect(actions.menuActions(for: makeMedia(type: .movie), canDownload: false, offersDetails: true)
+            == [.showDetails, .play, .markWatched, .addFavorite])
+        #expect(actions.menuActions(for: makeMedia(type: .episode), canDownload: false, offersDetails: true)
+            .first == .showDetails)
+        #expect(!actions.menuActions(for: makeMedia(type: .season), canDownload: false, offersDetails: true)
+            .contains(.showDetails))
+        #expect(!actions.menuActions(for: makeMedia(type: .movie), canDownload: false).contains(.showDetails))
+    }
+
     @Test func `clips cannot be marked or favorited`() {
         #expect(makeActions().menuActions(for: makeMedia(type: .clip), canDownload: true) == [.play])
     }

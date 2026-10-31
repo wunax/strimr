@@ -1,6 +1,7 @@
 import Foundation
 
 enum MediaQuickAction: Hashable {
+    case showDetails
     case play
     case resume
     case playFromStart
@@ -15,6 +16,7 @@ enum MediaQuickAction: Hashable {
 
     var title: String {
         switch self {
+        case .showDetails: String(localized: "media.quickActions.showDetails")
         case .play: String(localized: "common.actions.play")
         case .resume: String(localized: "common.actions.resume")
         case .playFromStart: String(localized: "common.actions.playFromStart")
@@ -31,6 +33,7 @@ enum MediaQuickAction: Hashable {
 
     var systemImage: String {
         switch self {
+        case .showDetails: "info.circle"
         case .play, .resume: "play.fill"
         case .playFromStart: "arrow.counterclockwise"
         case .markWatched: "checkmark.circle"
@@ -88,9 +91,13 @@ struct MediaQuickActions {
         for item: MediaItem,
         canDownload: Bool,
         canAddToPlaylist: Bool = false,
+        offersDetails: Bool = false,
     ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
         let hasProgress = (item.viewOffset ?? 0) > 0
+        if offersDetails, [.movie, .episode].contains(item.type) {
+            actions.append(.showDetails)
+        }
         if [.movie, .episode, .clip].contains(item.type) {
             actions.append(hasProgress ? .resume : .play)
             if hasProgress {

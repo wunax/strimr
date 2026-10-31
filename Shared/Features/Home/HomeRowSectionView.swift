@@ -21,12 +21,16 @@ struct HomeRowSectionView: View {
                 onViewAll: carouselViewAllAction,
                 onSelectMedia: select,
             )
+            .environment(\.mediaCardOffersDetails, playsOnSelect)
         }
     }
 
+    private var playsOnSelect: Bool {
+        row.kind == .continueWatching && settingsManager.interface.continueWatchingAction == .play
+    }
+
     private func select(_ media: MediaDisplayItem) {
-        if row.kind == .continueWatching,
-           settingsManager.interface.continueWatchingAction == .play,
+        if playsOnSelect,
            let item = media.playableItem,
            let mediaCardActions
         {

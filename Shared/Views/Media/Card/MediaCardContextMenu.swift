@@ -8,6 +8,8 @@ struct MediaCardActions {
 
 extension EnvironmentValues {
     @Entry var mediaCardActions: MediaCardActions?
+    /// Set where selecting a card plays it instead of opening its details, so the menu offers the details instead.
+    @Entry var mediaCardOffersDetails = false
     /// Reloads the rows or page holding the card once a menu action changed its item, which can move it out of
     /// Continue Watching or change its badge.
     @Entry var reloadAfterMediaCardAction: ((MediaItem) -> Void)?
@@ -45,6 +47,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @Environment(ServerRegistry.self) private var registry
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(\.mediaCardActions) private var actions
+    @Environment(\.mediaCardOffersDetails) private var offersDetails
     @Environment(\.reloadAfterMediaCardAction) private var reload
     @Environment(\.reloadAfterPlaylistChange) private var reloadAfterPlaylistChange
     #if !os(tvOS)
@@ -165,6 +168,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 for: item,
                 canDownload: canDownload(item, services: services),
                 canAddToPlaylist: isOnline(services),
+                offersDetails: offersDetails,
             ),
             id: \.self,
         ) { action in
@@ -193,6 +197,8 @@ private struct MediaCardContextMenu: ViewModifier {
         actions: MediaCardActions,
     ) {
         switch action {
+        case .showDetails:
+            actions.showMedia(item)
         case .play, .resume:
             actions.play(item, false)
         case .playFromStart:
