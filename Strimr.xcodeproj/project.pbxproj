@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E93C255A30669FDC00661242 /* Shared/Models/MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* Shared/Models/MediaFileInfo.swift */; };
-		E93C255B30669FDC00661242 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */; };
-		E93C255C30669FDC00661242 /* Shared/Models/MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* Shared/Models/MediaFileInfo.swift */; };
-		E93C255D30669FDC00661242 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */; };
 		E95F585F300A964500D50438 /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E95F585E300A964500D50438 /* AetherEngine */; };
 		E95F5861300A964900D50438 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E95F5860300A964900D50438 /* Sentry */; };
 		E95F5862300A970000D50438 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
@@ -27,11 +23,6 @@
 		E9D0B0042FF0000100000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E9D0B0022FF0000100000001 /* GRDB */; };
 		E9D0B0052FF0000100000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E9D0B0032FF0000100000001 /* GRDB */; };
 		E9E4DB4F2EF4534E0035147A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E97F3FC22ED9E12000CA6E05 /* Localizable.xcstrings */; };
-		F000000000000011 /* Shared/Models/MediaFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000001 /* Shared/Models/MediaFileInfo.swift */; };
-		F000000000000012 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */; };
-		F10000000000000000000021 /* Shared/Models/HomeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* Shared/Models/HomeRow.swift */; };
-		F10000000000000000000022 /* Shared/Features/Home/HomeRowSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* Shared/Features/Home/HomeRowSectionView.swift */; };
-		F10000000000000000000023 /* Shared/Features/Settings/HomeRowsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* Shared/Features/Settings/HomeRowsSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,11 +62,6 @@
 		E98A13B92ED8CBAD002F98B2 /* Strimr-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9A7E5700000000000000001 /* StrimrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StrimrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9C448F32EF3034900D2895B /* Strimr-tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Strimr-tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F000000000000001 /* Shared/Models/MediaFileInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Models/MediaFileInfo.swift; sourceTree = "<group>"; };
-		F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Features/MediaDetail/MediaFileInfoView.swift; sourceTree = "<group>"; };
-		F10000000000000000000011 /* Shared/Models/HomeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Models/HomeRow.swift; sourceTree = "<group>"; };
-		F10000000000000000000012 /* Shared/Features/Home/HomeRowSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Features/Home/HomeRowSectionView.swift; sourceTree = "<group>"; };
-		F10000000000000000000013 /* Shared/Features/Settings/HomeRowsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Features/Settings/HomeRowsSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -103,338 +89,65 @@
 		E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Demo/DemoCatalog.swift,
-				Demo/DemoMediaService.swift,
-				Demo/DemoMode.swift,
-				Demo/DemoRoute.swift,
-				Demo/DemoStores.swift,
-				Domain/Aggregated.swift,
-				Domain/CatalogModels.swift,
-				Domain/LiveTVModels.swift,
-				Domain/MediaIdentity.swift,
-				Domain/MediaMatching.swift,
-				Domain/MediaVersionResolver.swift,
-				Domain/PlaybackModels.swift,
-				Domain/TopShelfModels.swift,
-				Domain/VideoZoom.swift,
-				"Extensions/Color+Hex.swift",
-				Extensions/ImageCornerColorSampler.swift,
-				"Extensions/TimeInterval+MediaFormat.swift",
-				"Extensions/View+MouseDragScrolling.swift",
-				Features/Auth/AccountSetupFlow.swift,
-				Features/Auth/AccountSetupView.swift,
-				Features/Auth/MigrationFailedView.swift,
-				Features/Auth/PinPollingBackoff.swift,
-				Features/Auth/ProfileSelection/PINEntryView.swift,
-				Features/Auth/ProfileSelection/ProfilePickerComponents.swift,
-				Features/Auth/ProfileSelection/ProfileSwitcherViewModel.swift,
-				Features/Auth/ProfileSelection/ProfileTint.swift,
-				Features/Auth/ProviderSelection/ProviderSelectionView.swift,
-				Features/Auth/ServerSelection/CustomServerAddressModel.swift,
-				Features/Auth/ServerSelection/CustomServerAddressView.swift,
-				Features/Auth/ServerSelection/ServerConnectionSummary.swift,
-				Features/Auth/ServerSelection/ServerSelectionViewModel.swift,
-				Features/AutomaticRefreshGate.swift,
-				Features/CollectionDetail/CollectionDetailViewModel.swift,
-				Features/Favorites/FavoritesView.swift,
-				Features/Favorites/FavoritesViewModel.swift,
-				Features/Home/HomeAggregation.swift,
-				Features/Home/HomeViewModel.swift,
-				Features/HubDetail/HubDetailView.swift,
-				Features/HubDetail/HubDetailViewModel.swift,
-				Features/Integrations/SeerrPermissionService.swift,
-				Features/Integrations/SeerrSessionService.swift,
-				Features/Integrations/SeerrViewModel.swift,
-				Features/Jellyfin/Auth/JellyfinAuthenticationView.swift,
-				Features/Jellyfin/Auth/JellyfinAuthenticationViewModel.swift,
-				Features/Jellyfin/Auth/JellyfinServerDiscoveryService.swift,
-				Features/Library/FolderTreeModel.swift,
-				Features/Library/FolderTreeView.swift,
-				Features/Library/LibraryBrowseControlsView.swift,
-				Features/Library/LibraryBrowseControlsViewModel.swift,
-				Features/Library/LibraryBrowseModels.swift,
-				Features/Library/LibraryDetailTabPicker.swift,
-				Features/Library/LibraryPlaylistsViewModel.swift,
-				Features/Library/LibraryRecommendedViewModel.swift,
-				Features/Library/LibraryTileGrid.swift,
-				Features/Library/LibraryViewModel.swift,
-				Features/LiveTV/LiveTVServersView.swift,
-				Features/LiveTV/LiveTVView.swift,
-				Features/MainCoordinator.swift,
-				Features/MediaDetail/CastMember.swift,
-				Features/MediaDetail/CastSection.swift,
-				Features/MediaDetail/ExtrasSection.swift,
-				Features/MediaDetail/MediaCopyFinder.swift,
-				Features/MediaDetail/MediaDetailTrackSelectionView.swift,
-				Features/MediaDetail/MediaDetailViewModel.swift,
-				Features/MediaDetail/MediaFileInfoView.swift,
-				Features/MediaDetail/MediaQuickActions.swift,
-				Features/MediaDetail/OtherEditionsButton.swift,
-				Features/MediaDetail/PlayProgressIcon.swift,
-				Features/MediaDetail/RelatedHubsSection.swift,
-				Features/MediaDetail/ThemeMusicPlayer.swift,
-				Features/PersonDetail/PersonDetailView.swift,
-				Features/PersonDetail/PersonDetailViewModel.swift,
-				Features/Player/Controls/PlaybackOffsetBar.swift,
-				Features/Player/Controls/PlayerBadge.swift,
-				Features/Player/Controls/PlayerChapterTrayView.swift,
-				Features/Player/Controls/PlayerChapterViews.swift,
-				Features/Player/Controls/PlayerControlsBackground.swift,
-				Features/Player/Controls/PlayerFeedbackView.swift,
-				Features/Player/Controls/PlayerInfoPanelView.swift,
-				Features/Player/Controls/PlayerMediaInfoView.swift,
-				Features/Player/Controls/PlayerQueueView.swift,
-				Features/Player/Controls/PlayerTimelineView.swift,
-				Features/Player/Controls/SeekFeedbackView.swift,
-				Features/Player/Controls/SubtitleOverlayView.swift,
-				Features/Player/ExternalPlaybackCallbackHandling.swift,
-				Features/Player/ExternalPlayerApps.swift,
-				Features/Player/NextEpisodeOverlay.swift,
-				Features/Player/NextEpisodePresentation.swift,
-				Features/Player/PauseScreenOverlay.swift,
-				Features/Player/PauseScreenPresentation.swift,
-				Features/Player/PlaybackLauncher.swift,
-				Features/Player/PlaybackOffset.swift,
-				Features/Player/PlaybackSettingsTrack.swift,
-				Features/Player/PlaybackSpeedOption.swift,
-				Features/Player/PlayerPromptCard.swift,
-				Features/Player/PlayerViewModel.swift,
-				Features/Player/SleepTimer.swift,
-				Features/Player/SleepTimerPromptOverlay.swift,
-				Features/PlaylistDetail/PlaylistDetailViewModel.swift,
-				Features/PlaylistDetail/PlaylistEntryRow.swift,
-				Features/PlaylistDetail/PlaylistHeaderDetails.swift,
-				Features/PlaylistDetail/PlaylistPrompts.swift,
-				Features/Playlists/AddToPlaylistView.swift,
-				Features/Playlists/AddToPlaylistViewModel.swift,
-				Features/Profiles/BorrowConnectionView.swift,
-				Features/Profiles/ProfileDetailView.swift,
-				Features/Profiles/ProfilesSettingsView.swift,
-				Features/Search/SearchResultCard.swift,
-				Features/Search/SearchViewModel.swift,
-				Features/Seerr/SeerrDiscoverViewModel.swift,
-				Features/Seerr/SeerrManageRequestsViewModel.swift,
-				Features/Seerr/SeerrMediaDetailViewModel.swift,
-				Features/Seerr/SeerrMediaRequestAvailability.swift,
-				Features/Seerr/SeerrMediaRequestType.swift,
-				Features/Seerr/SeerrMediaRequestViewModel.swift,
-				Features/Seerr/SeerrRequestDisplayStatus.swift,
-				Features/Seerr/SeerrRequestFilters.swift,
-				Features/Seerr/SeerrRequestFormatting.swift,
-				Features/Seerr/SeerrRequestsViewModel.swift,
-				Features/Seerr/SeerrSearchViewModel.swift,
-				Features/Settings/AccountsSettingsView.swift,
-				Features/Settings/AppInfo.swift,
-				Features/Settings/DisplayedLibrariesSectionView.swift,
-				Features/Settings/DisplayedLibrariesViewModel.swift,
-				Features/Settings/ExternalPlayerSettings.swift,
-				Features/Settings/NavigationLibrariesSectionView.swift,
-				Features/Settings/NavigationLibrariesViewModel.swift,
-				Features/Settings/OpenSourceLicense.swift,
-				Features/Settings/ServerDetailView.swift,
-				Features/Settings/SettingsViewModel.swift,
-				Features/SharePlay/SharePlayCoordinator.swift,
-				Features/SharePlay/StrimrWatchActivity.swift,
-				Features/SubtitleSearch/SubtitleSearchView.swift,
-				Library/Player/ASSRenderCoordinator.swift,
-				Library/Player/JellyfinTrickplayThumbnailProvider.swift,
-				Library/Player/NowPlayingController.swift,
-				Library/Player/NowPlayingItem.swift,
-				Library/Player/PlayerController.swift,
-				Library/Player/PlayerExternalSubtitle.swift,
-				Library/Player/PlayerTrack.swift,
-				Library/Player/PlayerVideoFormatBadge.swift,
-				Library/Player/PlexBIFArchive.swift,
-				Library/Player/PlexBIFCache.swift,
-				Library/Player/PlexBIFThumbnailProvider.swift,
-				Library/Player/ScrubThumbnailSource.swift,
-				Library/Player/SkipBackSubtitles.swift,
-				Library/Player/SubtitleGeometry.swift,
-				Models/AppSettings.swift,
-				Models/ArtworkCornerColors.swift,
-				Models/CollectionMediaItem.swift,
-				Models/ExternalPlaybackCallback.swift,
-				Models/ExternalPlayer.swift,
-				Models/ExternalPlayerTemplate.swift,
-				Models/FavoriteModels.swift,
-				Models/Hub.swift,
-				"Models/Hub+Mapping.swift",
-				Models/Library.swift,
-				Models/LibraryPreferences.swift,
-				Models/MediaDisplayItem.swift,
-				"Models/MediaDisplayItem+List.swift",
-				Models/MediaFactsFormatter.swift,
-				Models/MediaFileInfo.swift,
-				"Models/MediaFileVersion+Labels.swift",
-				Models/MediaItem.swift,
-				"Models/MediaItem+Mapping.swift",
-				"Models/MediaItem+WatchStatus.swift",
-				Models/MediaRating.swift,
-				Models/Person.swift,
-				Models/PlayableMediaItem.swift,
-				Models/PlaylistEntry.swift,
-				Models/PlaylistMediaItem.swift,
-				Models/Plex/PlexCloudModels.swift,
-				Models/Plex/PlexDiscoverModels.swift,
-				Models/Plex/PlexLenientDecoding.swift,
-				Models/Plex/PlexMediaModels.swift,
-				Models/Plex/PlexPlayQueueModels.swift,
-				Models/Plex/PlexTimelineModels.swift,
-				Models/PreferenceOrder.swift,
-				Models/Seerr/SeerrAuthRequests.swift,
-				Models/Seerr/SeerrCollection.swift,
-				Models/Seerr/SeerrMedia.swift,
-				Models/Seerr/SeerrMediaFacts.swift,
-				Models/Seerr/SeerrPaginatedResponse.swift,
-				Models/Seerr/SeerrQuota.swift,
-				Models/Seerr/SeerrRatings.swift,
-				Models/Seerr/SeerrRequest.swift,
-				Models/Seerr/SeerrRequestCount.swift,
-				Models/Seerr/SeerrRequestPageResponse.swift,
-				Models/Seerr/SeerrRequestPayloads.swift,
-				Models/Seerr/SeerrServiceModels.swift,
-				Models/Seerr/SeerrSettings.swift,
-				Models/Seerr/SeerrUser.swift,
-				Monitoring/ErrorReporter.swift,
-				Networking/Plex/PlexAPI.swift,
-				Networking/Plex/PlexAPIContext.swift,
-				Networking/Plex/PlexCloudNetworkClient.swift,
-				Networking/Plex/PlexServerNetworkClient.swift,
-				Networking/PlexEndpoint.swift,
-				Networking/Seerr/SeerrAPI.swift,
-				Networking/Seerr/SeerrNetworkClient.swift,
-				Networking/Seerr/TMDBImageService.swift,
-				Offline/Availability/ServerAvailabilityMonitor.swift,
-				Offline/OfflineModels.swift,
-				Providers/Jellyfin/JellyfinCatalogService.swift,
-				Providers/Jellyfin/JellyfinFavoritesService.swift,
-				Providers/Jellyfin/JellyfinLiveTVService.swift,
-				Providers/Jellyfin/JellyfinMediaServices.swift,
-				Providers/Jellyfin/JellyfinPlaybackService.swift,
-				Providers/Jellyfin/JellyfinPlaylistService.swift,
-				Providers/Jellyfin/Mapping/JellyfinMapping.swift,
-				Providers/Jellyfin/Models/JellyfinModels.swift,
-				Providers/Jellyfin/Networking/JellyfinAPIContext.swift,
-				Providers/Plex/PlexAdvancedLibraryService.swift,
-				Providers/Plex/PlexFavoritesService.swift,
-				Providers/Plex/PlexLiveTVService.swift,
-				Providers/Plex/PlexMediaServices.swift,
-				Providers/Plex/PlexPlaylistService.swift,
-				Providers/Plex/PlexSharedLibrary.swift,
-				Repository/Plex/AuthRepository.swift,
-				Repository/Plex/CollectionRepository.swift,
-				Repository/Plex/DiscoverWatchlistRepository.swift,
-				Repository/Plex/DownloadQueueRepository.swift,
-				Repository/Plex/HubRepository.swift,
-				Repository/Plex/ImageRepository.swift,
-				Repository/Plex/MediaRepository.swift,
-				Repository/Plex/MetadataRepository.swift,
-				Repository/Plex/PersonRepository.swift,
-				Repository/Plex/PlaybackRepository.swift,
-				Repository/Plex/PlaylistRepository.swift,
-				Repository/Plex/PlayQueueRepository.swift,
-				Repository/Plex/PlexBIFRepository.swift,
-				Repository/Plex/ResourceRepository.swift,
-				Repository/Plex/ScrobbleRepository.swift,
-				Repository/Plex/SearchRepository.swift,
-				Repository/Plex/SectionRepository.swift,
-				Repository/Plex/SubtitleRepository.swift,
-				Repository/Plex/UserRepository.swift,
-				Repository/Seerr/SeerrAuthRepository.swift,
-				Repository/Seerr/SeerrDiscoverRepository.swift,
-				Repository/Seerr/SeerrMediaRepository.swift,
-				Repository/Seerr/SeerrRequestRepository.swift,
-				Repository/Seerr/SeerrServiceRepository.swift,
-				Repository/Seerr/SeerrSettingsRepository.swift,
-				"Resources/Licenses/License-AetherEngine.txt",
-				"Resources/Licenses/License-Apache-2.0.txt",
-				"Resources/Licenses/License-combine-schedulers.txt",
-				"Resources/Licenses/License-dav1d.txt",
-				"Resources/Licenses/License-fontconfig.txt",
-				"Resources/Licenses/License-freetype.txt",
-				"Resources/Licenses/License-GPL-3.0.txt",
-				"Resources/Licenses/License-GRDB.txt",
-				"Resources/Licenses/License-harfbuzz.txt",
-				"Resources/Licenses/License-LGPL-2.1.txt",
-				"Resources/Licenses/License-libass.txt",
-				"Resources/Licenses/License-LibDovi.txt",
-				"Resources/Licenses/License-libpng.txt",
-				"Resources/Licenses/License-LibTrueHD-NOTICE.txt",
-				"Resources/Licenses/License-LibTrueHD.txt",
-				"Resources/Licenses/License-libzvbi-ure.txt",
-				"Resources/Licenses/License-Sentry.txt",
-				"Resources/Licenses/License-SMBClient.txt",
-				"Resources/Licenses/License-swift-ass-renderer.txt",
-				"Resources/Licenses/License-swift-concurrency-extras.txt",
-				"Resources/Licenses/License-swift-libass.txt",
-				"Resources/Licenses/License-xctest-dynamic-overlay.txt",
-				"Resources/Licenses/License-zimg.txt",
-				Services/MediaServices.swift,
-				Services/Protocols/MediaServiceProtocols.swift,
-				Session/AccountStore.swift,
-				Session/AggregationService.swift,
-				Session/MediaAccount.swift,
-				Session/MultiServerMigration.swift,
-				Session/ProfileStore.swift,
-				Session/ServerRegistry.swift,
-				Session/ServerSession.swift,
-				Session/SessionManager.swift,
-				Session/StrimrProfile.swift,
-				Storage/Keychain.swift,
-				Storage/SecureStore.swift,
-				Storage/TopShelfSessionStore.swift,
-				Store/FavoritesStore.swift,
-				Store/LibraryStore.swift,
-				Store/LiveTVStore.swift,
-				Store/MediaVersionSelectionStore.swift,
-				Store/SeerrStore.swift,
-				Store/SettingsManager.swift,
-				Store/TrackSelectionMatcher.swift,
-				Store/TrackSelectionStore.swift,
-				Views/FilterChip.swift,
-				Views/FolderCard.swift,
-				Views/FolderListRow.swift,
-				Views/IsolatedSheetPresentationHost.swift,
-				Views/Media/ArtworkResourceView.swift,
-				Views/Media/Card/LandscapeMediaCard.swift,
-				Views/Media/Card/MediaCard.swift,
-				Views/Media/Card/MediaCardContextMenu.swift,
-				Views/Media/Card/MediaListRow.swift,
-				Views/Media/Card/PortraitMediaCard.swift,
-				Views/Media/EpisodeArtworkView.swift,
-				Views/Media/MediaBackdropGradient.swift,
-				Views/Media/MediaCarousel.swift,
-				Views/Media/MediaFactsLine.swift,
-				Views/Media/MediaHubSection.swift,
-				Views/Media/MediaImageView.swift,
-				Views/Media/MediaImageViewModel.swift,
-				Views/Media/MediaRatingLabel.swift,
-				Views/Media/PosterGrid.swift,
-				Views/Media/SkeletonViews.swift,
-				Views/Media/TitleLogoView.swift,
-				Views/Media/WatchStatusBadge.swift,
-				Views/ProfileInitialsAvatar.swift,
-				Views/Seerr/SeerrAvailabilityBadgeView.swift,
-				Views/Seerr/SeerrCastSection.swift,
-				Views/Seerr/SeerrCollectionSection.swift,
-				Views/Seerr/SeerrMediaArtworkView.swift,
-				Views/Seerr/SeerrMediaCard.swift,
-				Views/Seerr/SeerrMediaCarousel.swift,
-				Views/Seerr/SeerrRelatedSection.swift,
-				Views/Seerr/SeerrRequestCardView.swift,
-				Views/Seerr/SeerrRequestsView.swift,
-				Views/Seerr/SeerrSearchCard.swift,
-				Views/Seerr/SeerrSeasonAvailabilityBadgeView.swift,
-				Views/ServerScopedView.swift,
-				Views/TaskPresentation.swift,
-				Views/Theme/ActionButtonStyle.swift,
-				Views/Theme/CardFocusStyle.swift,
-				Views/Theme/ChipButtonStyle.swift,
-				Views/Theme/Colors.swift,
-				Views/Theme/GlassSurface.swift,
-				Views/Theme/Metrics.swift,
-				Views/Theme/Motion.swift,
-				Views/Theme/Typography.swift,
+				Features/Downloads/DownloadManager.swift,
+				Features/Downloads/DownloadModels.swift,
+				Features/Downloads/DownloadOptionsView.swift,
+				Features/Downloads/DownloadRowViews.swift,
+				Features/Home/HomeView.swift,
+				Features/Library/LibraryBrowseViewModel.swift,
+				Features/Library/LibraryCollectionsViewModel.swift,
+				Features/Library/LibraryView.swift,
+				Features/MediaDetail/DetailFactsSection.swift,
+				Features/MediaDetail/DetailHeroTitle.swift,
+				Features/MediaDetail/DetailPlaybackCard.swift,
+				Features/MediaDetail/DetailRoundActionLabel.swift,
+				Features/MediaDetail/SeasonEpisodeComponents.swift,
+				Features/Player/Controls/PlayerControlButtonStyle.swift,
+				Features/Player/DoubleTapSeek.swift,
+				Features/Player/PlayerLayoutMode.swift,
+				Features/Search/SearchView.swift,
+				Features/Seerr/SeerrDiscoverView.swift,
+				Features/Seerr/SeerrManageRequestsSheetView.swift,
+				Features/Seerr/SeerrMediaDetailView.swift,
+				Features/Seerr/SeerrMediaRequestSheetView.swift,
+				Features/Settings/IntegrationsView.swift,
+				Features/Settings/SeerrView.swift,
+				Features/Settings/SettingsAboutView.swift,
+				Features/Settings/SettingsAudioView.swift,
+				Features/Settings/SettingsDownloadsView.swift,
+				Features/Settings/SettingsInterfaceView.swift,
+				Features/Settings/SettingsLicensesView.swift,
+				Features/Settings/SettingsPlaybackView.swift,
+				Features/Settings/SettingsPrivacyView.swift,
+				Features/Settings/SettingsSubtitlesView.swift,
+				Features/Settings/SettingsView.swift,
+				Library/Player/PictureInPictureCoordinator.swift,
+				Offline/Artwork/CachedArtworkService.swift,
+				Offline/OfflineCoordinator.swift,
+				Offline/Pinning/OfflineEnrichmentService.swift,
+				Offline/Progress/PlaybackProgressRecorder.swift,
+				Offline/Progress/ProgressSynchronizer.swift,
+				Offline/Services/CachedDetailService.swift,
+				Offline/Services/CachedHomeService.swift,
+				Offline/Services/CachedLibraryService.swift,
+				Offline/Services/CachedPlaylistService.swift,
+				Offline/Services/CachedSearchService.swift,
+				Offline/Services/OfflineCachePolicy.swift,
+				Offline/Services/OfflineServiceDecorators.swift,
+				Offline/Session/AccountRemovalFlow.swift,
+				Offline/Session/OfflineSessionStore.swift,
+				Offline/Store/OfflineDatabase.swift,
+				Offline/Store/OfflineRecords.swift,
+				Offline/Store/OfflineStore.swift,
+				Offline/Views/OfflineMediaState.swift,
+				Offline/Views/OfflineViews.swift,
+				Offline/Views/SettingsStorageView.swift,
+				Views/InsetListStyle.swift,
+				Views/Seerr/SeerrDetailHeroTitle.swift,
+				Views/Seerr/SeerrEpisodeCardView.swift,
+				Views/Seerr/SeerrSeasonEpisodesSection.swift,
+				Views/TabRootChrome.swift,
+				Views/Theme/TileButtonStyle.swift,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
 		};
@@ -444,22 +157,6 @@
 				Info.plist,
 			);
 			target = E9C448F22EF3034900D2895B /* Strimr-tvOS */;
-		};
-		F000000000000101 /* Exceptions for "Shared" folder in "Strimr-macOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Features/MediaDetail/MediaFileInfoView.swift,
-				Models/MediaFileInfo.swift,
-			);
-			target = E95F5852300A95A000D50438 /* Strimr-macOS */;
-		};
-		F000000000000102 /* Exceptions for "Shared" folder in "Strimr-iOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Features/MediaDetail/MediaFileInfoView.swift,
-				Models/MediaFileInfo.swift,
-			);
-			target = E98A13B82ED8CBAD002F98B2 /* Strimr-iOS */;
 		};
 		F000000000000103 /* Exceptions for "Shared" folder in "StrimrTopShelf" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -512,9 +209,7 @@
 		E9C449012EF30A9500D2895B /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F000000000000102 /* Exceptions for "Shared" folder in "Strimr-iOS" target */,
 				E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */,
-				F000000000000101 /* Exceptions for "Shared" folder in "Strimr-macOS" target */,
 				F000000000000103 /* Exceptions for "Shared" folder in "StrimrTopShelf" target */,
 			);
 			path = Shared;
@@ -568,18 +263,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E93C255E30669FDC00661242 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				F000000000000001 /* Shared/Models/MediaFileInfo.swift */,
-				F000000000000002 /* Shared/Features/MediaDetail/MediaFileInfoView.swift */,
-				F10000000000000000000011 /* Shared/Models/HomeRow.swift */,
-				F10000000000000000000012 /* Shared/Features/Home/HomeRowSectionView.swift */,
-				F10000000000000000000013 /* Shared/Features/Settings/HomeRowsSettingsView.swift */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
 		E98A13B02ED8CBAD002F98B2 = {
 			isa = PBXGroup;
 			children = (
@@ -593,7 +276,6 @@
 				E9A7E5700000000000000002 /* StrimrTests */,
 				E9C448FE2EF3063500D2895B /* Frameworks */,
 				E98A13BA2ED8CBAD002F98B2 /* Products */,
-				E93C255E30669FDC00661242 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -727,6 +409,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E9C448F42EF3034900D2895B /* Strimr-tvOS */,
+				E9C449012EF30A9500D2895B /* Shared */,
 			);
 			name = "Strimr-tvOS";
 			packageProductDependencies = (
@@ -831,8 +514,6 @@
 		E95F584F300A95A000D50438 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				F000000000000011 /* Shared/Models/MediaFileInfo.swift in Sources */,
-				F000000000000012 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */,
 			);
 		};
 		E984D56730039AD10077A7EA /* Sources */ = {
@@ -843,8 +524,6 @@
 		E98A13B52ED8CBAD002F98B2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				E93C255A30669FDC00661242 /* Shared/Models/MediaFileInfo.swift in Sources */,
-				E93C255B30669FDC00661242 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */,
 			);
 		};
 		E9A7E5700000000000000004 /* Sources */ = {
@@ -855,11 +534,6 @@
 		E9C448EF2EF3034900D2895B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				E93C255C30669FDC00661242 /* Shared/Models/MediaFileInfo.swift in Sources */,
-				E93C255D30669FDC00661242 /* Shared/Features/MediaDetail/MediaFileInfoView.swift in Sources */,
-				F10000000000000000000021 /* Shared/Models/HomeRow.swift in Sources */,
-				F10000000000000000000022 /* Shared/Features/Home/HomeRowSectionView.swift in Sources */,
-				F10000000000000000000023 /* Shared/Features/Settings/HomeRowsSettingsView.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
