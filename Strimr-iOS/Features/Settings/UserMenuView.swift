@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct UserMenuView: View {
+    let onShowLibraries: () -> Void
     @Environment(SessionManager.self) private var sessionManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
@@ -15,6 +16,10 @@ struct UserMenuView: View {
                     SettingsView()
                 } label: {
                     Label("settings.title", systemImage: "gearshape.fill")
+                }
+
+                if !settingsManager.interface.displayLibrariesTab {
+                    Button("tabs.libraries", systemImage: "rectangle.stack.fill", action: onShowLibraries)
                 }
 
                 if !settingsManager.interface.displayDownloadsTab {

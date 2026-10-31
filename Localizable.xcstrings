@@ -17683,6 +17683,28 @@
         }
       }
     },
+    "settings.interface.displayLibrariesTab" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Libraries in navigation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les bibliothèques dans la navigation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在导航中显示媒体库"
+          }
+        }
+      }
+    },
     "settings.interface.displayLiveTVTab" : {
       "localizations" : {
         "en" : {

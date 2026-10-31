@@ -46,6 +46,7 @@ final class AppModel: PlaybackPresenting {
         case hub(Hub)
         case person(Person, ServerIdentity)
         case library(Library)
+        case libraryBrowser
         case seerr(SeerrMedia)
         case seerrRequests
 
@@ -57,7 +58,7 @@ final class AppModel: PlaybackPresenting {
             case let .hub(hub): hub.server
             case let .person(_, server): server
             case let .library(library): library.server
-            case .seerr, .seerrRequests: nil
+            case .seerr, .seerrRequests, .libraryBrowser: nil
             }
         }
     }
@@ -192,6 +193,20 @@ final class AppModel: PlaybackPresenting {
 
     func showPerson(_ person: Person, server: ServerIdentity) {
         append(.person(person, server))
+    }
+
+    func showLibraryBrowser() {
+        append(.libraryBrowser)
+    }
+
+    func reconcileLibraryNavigation(libraryStore: LibraryStore) {
+        if selection == .libraries, !settingsManager.interface.displayLibrariesTab {
+            selection = .home
+        } else if case let .library(identity) = selection,
+                  !libraryStore.isNavigationLibraryEnabled(identity)
+        {
+            selection = .home
+        }
     }
 
     func showLibrary(_ library: Library) {

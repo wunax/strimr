@@ -63,6 +63,13 @@ struct SettingsInterfaceView: View {
                     )
                 #endif
                 Toggle(
+                    "settings.interface.displayLibrariesTab",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayLibrariesTab },
+                        set: { settingsManager.setDisplayLibrariesTab($0) },
+                    ),
+                )
+                Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(
                         get: { settingsManager.interface.displayLiveTVTab },
