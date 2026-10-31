@@ -661,10 +661,8 @@ struct MediaDetailView: View {
             HStack(spacing: 16) {
                 EpisodeArtworkView(
                     episode: episode,
-                    imageURL: viewModel.imageURL(
+                    artworkPath: viewModel.artworkPath(
                         for: episode,
-                        width: 640,
-                        height: 360,
                         spoilerProtection: settingsManager.interface.spoilerProtection,
                     ),
                     width: 200,

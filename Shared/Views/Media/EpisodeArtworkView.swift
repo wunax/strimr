@@ -3,7 +3,7 @@ import SwiftUI
 struct EpisodeArtworkView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let episode: MediaItem
-    let imageURL: URL?
+    let artworkPath: String?
     let width: CGFloat
     let runtime: String?
     let progress: Double?
@@ -15,23 +15,11 @@ struct EpisodeArtworkView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Group {
-                if let imageURL {
-                    AsyncImage(url: imageURL) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFit()
-                        } else {
-                            Color.surfaceSubtle
-                        }
-                    }
-                } else {
-                    ArtworkPathView(
-                        path: episode.thumbPath ?? episode.parentThumbPath ?? episode.grandparentThumbPath,
-                        width: Int(width),
-                        height: Int(width / aspectRatio),
-                    )
-                }
-            }
+            ArtworkPathView(
+                path: artworkPath,
+                width: Int(width),
+                height: Int(width / aspectRatio),
+            )
             .frame(width: width, height: width / aspectRatio)
             .background(Color.black)
 

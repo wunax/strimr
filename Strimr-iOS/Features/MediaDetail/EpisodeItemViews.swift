@@ -2,7 +2,7 @@ import SwiftUI
 
 struct EpisodeCardView: View {
     let episode: MediaItem
-    let imageURL: URL?
+    let artworkPath: String?
     let runtime: String?
     let progress: Double?
     let onSelect: () -> Void
@@ -26,7 +26,7 @@ struct EpisodeCardView: View {
                         if rowWidth > 0 {
                             EpisodeArtworkView(
                                 episode: episode,
-                                imageURL: imageURL,
+                                artworkPath: artworkPath,
                                 width: regularImageWidth,
                                 runtime: nil,
                                 progress: progress,
@@ -39,7 +39,7 @@ struct EpisodeCardView: View {
                         GeometryReader { proxy in
                             EpisodeArtworkView(
                                 episode: episode,
-                                imageURL: imageURL,
+                                artworkPath: artworkPath,
                                 width: proxy.size.width,
                                 runtime: nil,
                                 progress: progress,
