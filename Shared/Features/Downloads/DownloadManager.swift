@@ -20,6 +20,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private let monitorQueue = DispatchQueue(label: "strimr.downloads.network-monitor")
     @ObservationIgnored private var backgroundEventsCompletionHandler: (() -> Void)?
     @ObservationIgnored private var progressByTaskIdentifier: [Int: Double] = [:]
+    @ObservationIgnored private var freshTaskIdentifiers: Set<Int> = []
+    @ObservationIgnored private var unknownLengthReportTimes: [Int: ContinuousClock.Instant] = [:]
     @ObservationIgnored private var isLoadingPersistedState = false
     @ObservationIgnored private var ignoredCompletionIDs: Set<String> = []
     @ObservationIgnored private var servicesByServer: [ServerIdentity: MediaServices] = [:]
@@ -160,6 +162,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
         let replacementTask = backgroundSession.downloadTask(with: request)
         replacementTask.taskDescription = item.id
+        freshTaskIdentifiers.remove(currentTaskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: currentTaskIdentifier)
+        freshTaskIdentifiers.insert(replacementTask.taskIdentifier)
         items[index].allowsCellularAccess = true
         items[index].progress = 0
         items[index].bytesWritten = 0
@@ -511,6 +516,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         items.removeAll { $0.id == item.id }
         offlineStore?.deleteDownload(id: item.id)
         progressByTaskIdentifier.removeValue(forKey: item.taskIdentifier ?? -1)
+        freshTaskIdentifiers.remove(item.taskIdentifier ?? -1)
+        unknownLengthReportTimes.removeValue(forKey: item.taskIdentifier ?? -1)
         sidecarsByItemID[item.id] = nil
         pendingRequestsByItemID[item.id] = nil
         persistState()
@@ -677,6 +684,17 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
+    private static let insufficientStorageCode = 1001
+    private static let storageHeadroomBytes: Int64 = 256 * 1024 * 1024
+    private static let unknownLengthReportInterval: Duration = .seconds(1)
+
+    /// Only checkable once the server reports a length; a transcode of unknown size relies on the OS write error.
+    private func hasEnoughSpace(forRemainingBytes bytes: Int64) -> Bool {
+        let values = try? downloadsDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        guard let available = values?.volumeAvailableCapacityForImportantUsage else { return true }
+        return available > Self.storageHeadroomBytes && bytes < available - Self.storageHeadroomBytes
+    }
+
     private func refreshStorageSummary() {
         let downloadsBytes = items.reduce(into: Int64(0)) { partialResult, item in
             if item.status == .completed {
@@ -767,6 +785,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         request.allowsExpensiveNetworkAccess = allowsCellularAccess
         let task = backgroundSession.downloadTask(with: request)
         task.taskDescription = itemID
+        freshTaskIdentifiers.insert(task.taskIdentifier)
         items[index].allowsCellularAccess = allowsCellularAccess
         items[index].status = .downloading
         items[index].progress = 0
@@ -897,6 +916,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func completeDownload(task: URLSessionDownloadTask, stagedLocation: URL) async {
+        freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else {
             try? FileManager.default.removeItem(at: stagedLocation)
             return
@@ -1032,6 +1053,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func failDownload(task: URLSessionTask, error: Error) {
+        freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else { return }
         let itemID = items[index].id
         guard !ignoredCompletionIDs.contains(itemID) else {
@@ -1061,9 +1084,40 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         totalBytesExpectedToWrite: Int64,
     ) {
         Task { @MainActor in
-            guard totalBytesExpectedToWrite > 0 else { return }
-            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+            guard let index = itemIndex(for: downloadTask) else { return }
+            // Live transcodes send no length: publish the first bytes, then update at most once per second.
+            guard totalBytesExpectedToWrite > 0 else {
+                guard totalBytesWritten > 0 else { return }
+                let now = ContinuousClock().now
+                if let lastReport = unknownLengthReportTimes[downloadTask.taskIdentifier],
+                   lastReport.duration(to: now) < Self.unknownLengthReportInterval
+                {
+                    return
+                }
+                unknownLengthReportTimes[downloadTask.taskIdentifier] = now
+                items[index].status = .downloading
+                items[index].progress = 0
+                items[index].totalBytes = 0
+                items[index].bytesWritten = totalBytesWritten
+                persistState()
+                return
+            }
             let previousProgress = progressByTaskIdentifier[downloadTask.taskIdentifier] ?? -1
+            let receivedBytes = max(totalBytesWritten, downloadTask.countOfBytesReceived)
+            let remainingBytes = max(0, totalBytesExpectedToWrite - receivedBytes)
+            // Only tasks created by this manager instance receive a capacity preflight.
+            if freshTaskIdentifiers.remove(downloadTask.taskIdentifier) != nil,
+               remainingBytes > 0, !hasEnoughSpace(forRemainingBytes: remainingBytes)
+            {
+                failDownload(task: downloadTask, error: NSError(
+                    domain: "Strimr.DownloadManager",
+                    code: Self.insufficientStorageCode,
+                    userInfo: [NSLocalizedDescriptionKey: String(localized: "downloads.status.insufficientStorage")],
+                ))
+                downloadTask.cancel()
+                return
+            }
+            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
             guard progress - previousProgress >= 0.01 || progress == 1 else { return }
             progressByTaskIdentifier[downloadTask.taskIdentifier] = progress
 
