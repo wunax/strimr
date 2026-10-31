@@ -925,3 +925,25 @@ nonisolated enum JellyfinTime {
         return scaled >= TimeInterval(Int64.max) ? Int64.max : Int64(scaled.rounded())
     }
 }
+
+nonisolated extension JellyfinMediaSource {
+    /// Width counts as much as height: a 4K film cropped to scope is 3840×1600.
+    var videoResolution: String? {
+        let video = mediaStreams?.first { $0.type.lowercased() == "video" }
+        guard let height = video?.height else { return nil }
+        let width = video?.width ?? 0
+        if width >= 3200 || height >= 2160 {
+            return "4K"
+        }
+        if width >= 2400 || height >= 1440 {
+            return "1440p"
+        }
+        if width >= 1700 || height >= 1080 {
+            return "1080p"
+        }
+        if width >= 1200 || height >= 720 {
+            return "720p"
+        }
+        return video?.width.map { "\($0) × \(height)" } ?? "\(height)p"
+    }
+}

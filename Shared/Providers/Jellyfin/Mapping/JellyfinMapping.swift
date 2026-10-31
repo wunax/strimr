@@ -52,7 +52,7 @@ extension MediaItem {
             year: jellyfinItem.productionYear,
             releaseDate: jellyfinItem.premiereDate.flatMap(JellyfinDate.date(from:)),
             duration: jellyfinItem.duration,
-            videoResolution: nil,
+            videoResolution: jellyfinItem.mediaSources?.first?.videoResolution,
             rating: jellyfinItem.communityRating,
             ratings: [
                 jellyfinItem.communityRating.map {
