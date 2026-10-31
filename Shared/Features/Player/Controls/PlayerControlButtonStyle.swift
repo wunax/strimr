@@ -56,7 +56,7 @@ import SwiftUI
 
     struct PlayerIconButton: View {
         enum Size {
-            /// Header and corner buttons, such as settings or rotation lock.
+            /// Header and corner buttons, such as settings or the controls lock.
             case small
             /// Seek buttons beside play.
             case regular

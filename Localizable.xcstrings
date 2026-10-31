@@ -10178,50 +10178,6 @@
         }
       }
     },
-    "player.controls.rotation.lock" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lock rotation"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verrouiller la rotation"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "锁定旋转"
-          }
-        }
-      }
-    },
-    "player.controls.rotation.unlock" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlock rotation"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Déverrouiller la rotation"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解锁旋转"
-          }
-        }
-      }
-    },
     "player.controls.skipForwardSeconds %lld" : {
       "localizations" : {
         "en" : {
@@ -10262,6 +10218,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "锁定控制"
+          }
+        }
+      }
+    },
+    "player.controls.touchLock.lockedFeedback" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls locked"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commandes verrouillées"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制已锁定"
           }
         }
       }

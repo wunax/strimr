@@ -50,7 +50,7 @@ struct PlayerPictureInPictureButton: View {
     }
 }
 
-struct RotationLockButton: View {
+struct ControlsLockButton: View {
     var isLocked: Bool
     let action: () -> Void
 
@@ -58,8 +58,8 @@ struct RotationLockButton: View {
         PlayerIconButton(
             systemName: isLocked ? "lock.fill" : "lock.open",
             accessibilityLabel: isLocked
-                ? String(localized: "player.controls.rotation.unlock")
-                : String(localized: "player.controls.rotation.lock"),
+                ? String(localized: "player.controls.touchLock.unlock")
+                : String(localized: "player.controls.touchLock.lock"),
             size: .small,
             isSelected: isLocked,
             action: action,
