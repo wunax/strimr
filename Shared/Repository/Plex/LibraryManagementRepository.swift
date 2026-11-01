@@ -58,6 +58,7 @@ final class LibraryManagementRepository {
             path: "/library/metadata/\(ratingKey)/\(element)",
             queryItems: [URLQueryItem(name: "url", value: url)],
             method: "PUT",
+            encodesPlusSign: true,
         )
     }
 

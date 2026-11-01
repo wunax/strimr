@@ -17,10 +17,10 @@
         "provider": "fanarttv"
       },
       {
-        "key": "/library/metadata/100/file?url=upload%3A%2F%2Fposters%2F0000000000000000000000000000000000000000",
-        "ratingKey": "upload://posters/0000000000000000000000000000000000000000",
+        "key": "/library/metadata/100/file?url=metadata%3A%2F%2Fposters%2Ftv.plex.agents.movie_0000000000000000000000000000000000000000",
+        "ratingKey": "metadata://posters/tv.plex.agents.movie_0000000000000000000000000000000000000000",
         "selected": 0,
-        "thumb": "/library/metadata/100/file?url=upload%3A%2F%2Fposters%2F0000000000000000000000000000000000000000"
+        "thumb": "/library/metadata/100/file?url=metadata%3A%2F%2Fposters%2Ftv.plex.agents.movie_0000000000000000000000000000000000000000"
       }
     ]
   }

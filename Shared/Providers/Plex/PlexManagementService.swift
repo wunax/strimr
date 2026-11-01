@@ -104,7 +104,7 @@ final class PlexManagementService: MediaManagementService {
             return ArtworkOption(
                 id: artwork.key,
                 previewURL: preview,
-                source: artwork.key,
+                source: artwork.ratingKey?.value ?? artwork.key,
                 provider: artwork.provider,
                 width: nil,
                 height: nil,

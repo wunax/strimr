@@ -608,6 +608,8 @@ final class JellyfinAPIContext {
             throw JellyfinAPIError.invalidServerURL
         }
         components.queryItems = query.isEmpty ? nil : query
+        // URLComponents leaves `+` as is, which Jellyfin reads as a space, breaking image URLs and search terms.
+        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         guard let result = components.url else { throw JellyfinAPIError.invalidServerURL }
         return result
     }

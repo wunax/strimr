@@ -6,16 +6,17 @@ import Testing
 struct PlexManagementServiceTests {
     private func options() throws -> [ArtworkOption] {
         let response = try Fixtures.decode(PlexArtworkResponse.self, from: "plex-posters")
-        return PlexManagementService.artworkOptions(from: response) { URL(string: "https://server.test/preview?url=\($0)") }
+        return PlexManagementService
+            .artworkOptions(from: response) { URL(string: "https://server.test/preview?url=\($0)") }
     }
 
-    @Test func `posters map to options that send their key back`() throws {
+    @Test func `posters stored on the server are selected by their reference, not their file path`() throws {
         let options = try options()
 
         #expect(options.map(\.source) == [
             "https://image.tmdb.org/t/p/original/poster-one.jpg",
             "https://assets.fanart.tv/fanart/movies/1/movieposter/poster-two.jpg",
-            "/library/metadata/100/file?url=upload%3A%2F%2Fposters%2F0000000000000000000000000000000000000000",
+            "metadata://posters/tv.plex.agents.movie_0000000000000000000000000000000000000000",
         ])
         #expect(options.map(\.provider) == ["tmdb", "fanarttv", nil])
     }

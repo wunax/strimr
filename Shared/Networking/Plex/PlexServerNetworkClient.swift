@@ -75,6 +75,7 @@ final class PlexServerNetworkClient {
         method: String = "GET",
         headers: [String: String] = [:],
         body: Data? = nil,
+        encodesPlusSign: Bool = false,
     ) async throws {
         let result = try await data(
             path: path,
@@ -82,6 +83,7 @@ final class PlexServerNetworkClient {
             method: method,
             headers: headers,
             body: body,
+            encodesPlusSign: encodesPlusSign,
         )
         let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -161,6 +163,7 @@ final class PlexServerNetworkClient {
         method: String,
         headers: [String: String],
         body: Data? = nil,
+        encodesPlusSign: Bool = false,
     ) async throws -> (data: Data, response: URLResponse) {
         let context = try requireContext()
         let snapshot = try context.serverAccessSnapshot()
@@ -171,6 +174,7 @@ final class PlexServerNetworkClient {
             method: method,
             headers: headers,
             body: body,
+            encodesPlusSign: encodesPlusSign,
         )
         let result = try await session.data(for: request)
         guard (result.1 as? HTTPURLResponse)?.statusCode == 401 else {
@@ -186,6 +190,7 @@ final class PlexServerNetworkClient {
             method: method,
             headers: headers,
             body: body,
+            encodesPlusSign: encodesPlusSign,
         )
         return try await session.data(for: retryRequest)
     }
@@ -236,6 +241,7 @@ final class PlexServerNetworkClient {
         method: String = "GET",
         headers: [String: String] = [:],
         body: Data? = nil,
+        encodesPlusSign: Bool = false,
     ) throws -> URLRequest {
         guard var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent(path),
@@ -246,6 +252,12 @@ final class PlexServerNetworkClient {
         }
         if let queryItems {
             components.queryItems = queryItems
+        }
+        // URLComponents leaves `+` as is, which Plex reads as a space. Off by default so the other requests, such as
+        // the client profiles joined with `+`, keep the encoding they were tested with.
+        if encodesPlusSign {
+            components.percentEncodedQuery = components.percentEncodedQuery?
+                .replacingOccurrences(of: "+", with: "%2B")
         }
         guard let url = components.url else {
             throw PlexAPIError.invalidURL

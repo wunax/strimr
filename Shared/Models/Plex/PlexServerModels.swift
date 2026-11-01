@@ -49,6 +49,9 @@ nonisolated struct PlexArtworkResponse: Codable, Equatable {
 nonisolated struct PlexArtwork: Codable, Equatable {
     /// URL of the full-size image, or a path on the server for a local or uploaded one.
     let key: String
+    /// What Plex expects to select the image: the URL of a remote one, or the `metadata://`, `media://` or
+    /// `upload://` reference of one stored on the server, whose `key` only serves the file.
+    let ratingKey: PlexLenient<String>?
     let thumb: String?
     /// Absent for a local or uploaded image.
     let provider: String?
