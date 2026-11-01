@@ -313,13 +313,7 @@ final class JellyfinAPIContext {
     }
 
     var authorization: MediaAuthorization {
-        guard let policy = currentUser?.policy else { return .denied }
-        let isAdministrator = policy.isAdministrator == true
-        return MediaAuthorization(
-            isAdministrator: isAdministrator,
-            canManageSubtitles: isAdministrator || policy.enableSubtitleManagement == true,
-            canManageServer: isAdministrator,
-        )
+        currentUser?.policy.map(MediaAuthorization.jellyfin) ?? .denied
     }
 
     func get<Response: Decodable & Sendable>(

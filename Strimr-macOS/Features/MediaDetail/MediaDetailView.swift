@@ -18,6 +18,7 @@ struct MediaDetailView: View {
     @State private var isShowingFileInfo = false
     @State private var isMoreMenuHovered = false
     @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var manageController = MediaManageController()
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
@@ -74,6 +75,10 @@ struct MediaDetailView: View {
         }
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
+        .onChange(of: mediaServices.mediaRevision) {
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await viewModel.refreshAfterMediaChange(itemID: changedMediaID) }
+        }
         .themeMusic(for: viewModel.media.mediaItem)
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             ShowDownloadSelectionSheet(
@@ -507,11 +512,22 @@ struct MediaDetailView: View {
                     }
                 }
 
-                if viewModel.canShowFileInfo {
+                if viewModel.canShowFileInfo || viewModel.canManageMedia {
                     Divider()
+                }
+
+                if viewModel.canShowFileInfo {
                     Button("media.fileInfo.title", systemImage: "doc.text.magnifyingglass") {
                         isShowingFileInfo = true
                     }
+                }
+
+                if viewModel.canManageMedia {
+                    MediaManageMenu(
+                        item: viewModel.media.mediaItem,
+                        quickActions: viewModel.quickActions,
+                        controller: manageController,
+                    )
                 }
             }
 
@@ -533,6 +549,7 @@ struct MediaDetailView: View {
         .fixedSize()
         .help(Text("common.actions.more"))
         .accessibilityLabel(Text("common.actions.more"))
+        .mediaManagePresentation(manageController, quickActions: viewModel.quickActions)
     }
 
     private var isStartingSharePlay: Bool {

@@ -16,6 +16,7 @@ struct DetailActionsRow: View {
     let onShowFileInfo: () -> Void
     let onStartSharePlay: () -> Void
     @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var manageController = MediaManageController()
 
     var body: some View {
         playButton
@@ -113,11 +114,22 @@ struct DetailActionsRow: View {
                     }
                 }
 
-                if viewModel.canShowFileInfo {
+                if viewModel.canShowFileInfo || viewModel.canManageMedia {
                     Divider()
+                }
+
+                if viewModel.canShowFileInfo {
                     Button(action: onShowFileInfo) {
                         Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                     }
+                }
+
+                if viewModel.canManageMedia {
+                    MediaManageMenu(
+                        item: viewModel.media.mediaItem,
+                        quickActions: viewModel.quickActions,
+                        controller: manageController,
+                    )
                 }
             }
 
@@ -135,6 +147,7 @@ struct DetailActionsRow: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text("common.actions.more"))
         .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: mediaServices)
+        .mediaManagePresentation(manageController, quickActions: viewModel.quickActions)
     }
 
     private var canPlayFromStart: Bool {

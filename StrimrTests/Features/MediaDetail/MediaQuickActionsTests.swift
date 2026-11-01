@@ -15,6 +15,9 @@ struct MediaQuickActionsTests {
         var favorites: [(Bool, String)] = []
         var removedFromContinueWatching: [String] = []
         var changes = 0
+        var refreshed: [String] = []
+        var analyzed: [String] = []
+        var updatesStarted: [String] = []
     }
 
     private func makeActions(
@@ -22,6 +25,8 @@ struct MediaQuickActionsTests {
         supportsContinueWatchingRemoval: Bool = true,
         calls: Calls = Calls(),
         error: Error? = nil,
+        canManageLibrary: Bool = false,
+        supportsAnalyze: Bool = true,
     ) -> MediaQuickActions {
         MediaQuickActions(
             supportsFavorites: supportsFavorites,
@@ -44,7 +49,106 @@ struct MediaQuickActionsTests {
                 }
             } : nil,
             didChange: { calls.changes += 1 },
+            management: canManageLibrary
+                ? MediaQuickActions.Management(
+                    supportsAnalyze: supportsAnalyze,
+                    refreshMetadata: { id in
+                        calls.refreshed.append(id)
+                        if let error {
+                            throw error
+                        }
+                    },
+                    analyze: { id in
+                        calls.analyzed.append(id)
+                        if let error {
+                            throw error
+                        }
+                    },
+                    updateStarted: { calls.updatesStarted.append($0) },
+                )
+                : nil,
         )
+    }
+
+    @Test func `manage submenu ends the menu of library managers when the server is reachable`() {
+        let actions = makeActions(canManageLibrary: true)
+
+        #expect(actions.menuActions(for: makeMedia(type: .movie), canDownload: false, canManage: true)
+            == [.play, .markWatched, .addFavorite, .manage])
+        #expect(!actions.menuActions(for: makeMedia(type: .movie), canDownload: false, canManage: false)
+            .contains(.manage))
+        #expect(!makeActions().menuActions(for: makeMedia(type: .movie), canDownload: false, canManage: true)
+            .contains(.manage))
+    }
+
+    @Test func `manage submenu is absent for clips`() {
+        let actions = makeActions(canManageLibrary: true)
+
+        #expect(actions.manageActions(for: makeMedia(type: .clip)).isEmpty)
+        #expect(!actions.menuActions(for: makeMedia(type: .clip), canDownload: false, canManage: true)
+            .contains(.manage))
+    }
+
+    @Test func `manage entries follow the server support`() {
+        for type in [MediaKind.movie, .series, .season, .episode] {
+            #expect(makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: type))
+                == [.refreshMetadata, .analyze])
+            #expect(makeActions(canManageLibrary: true, supportsAnalyze: false)
+                .manageActions(for: makeMedia(type: type)) == [.refreshMetadata])
+        }
+        #expect(makeActions().manageActions(for: makeMedia(type: .movie)).isEmpty)
+    }
+
+    @Test func `refresh and analyze call the server and announce the background update`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls, canManageLibrary: true)
+
+        #expect(await actions.refreshMetadata(makeMedia(type: .series)) == .succeeded)
+        #expect(await actions.analyze(makeMedia(type: .movie)) == .succeeded)
+
+        #expect(calls.refreshed == ["item"])
+        #expect(calls.analyzed == ["item"])
+        #expect(calls.updatesStarted == ["item", "item"])
+        #expect(calls.changes == 0)
+    }
+
+    @Test func `analyze is skipped when the server does not support it`() async {
+        let calls = Calls()
+        let outcome = await makeActions(calls: calls, canManageLibrary: true, supportsAnalyze: false)
+            .analyze(makeMedia(type: .movie))
+
+        #expect(outcome == .cancelled)
+        #expect(calls.analyzed.isEmpty)
+    }
+
+    @Test func `refresh is skipped without the right to manage the library`() async {
+        let calls = Calls()
+        let outcome = await makeActions(calls: calls).refreshMetadata(makeMedia(type: .movie))
+
+        #expect(outcome == .cancelled)
+        #expect(calls.refreshed.isEmpty)
+    }
+
+    @Test func `server refusal explains the lost right and announces no update`() async {
+        let plexCalls = Calls()
+        let plex = await makeActions(
+            calls: plexCalls,
+            error: PlexAPIError.requestFailed(statusCode: 403),
+            canManageLibrary: true,
+        ).refreshMetadata(makeMedia(type: .movie))
+        let jellyfin = await makeActions(error: JellyfinAPIError.permissionDenied, canManageLibrary: true)
+            .refreshMetadata(makeMedia(type: .movie))
+
+        let message = String(localized: "media.manage.error.forbidden")
+        #expect(plex == .failed(message: message))
+        #expect(jellyfin == .failed(message: message))
+        #expect(plexCalls.updatesStarted.isEmpty)
+    }
+
+    @Test func `management failures carry the server message`() async {
+        let outcome = await makeActions(error: Failure(), canManageLibrary: true).analyze(makeMedia(type: .movie))
+
+        #expect(outcome == .failed(message: "Server said no"))
     }
 
     @Test func `unwatched movie offers play, watched and favorite`() {

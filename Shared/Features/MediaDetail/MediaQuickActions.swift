@@ -14,6 +14,10 @@ enum MediaQuickAction: Hashable {
     case goToSeason
     case download
     case removeFromContinueWatching
+    /// Opens the server administration actions of `MediaQuickActions.manageActions(for:)`.
+    case manage
+    case refreshMetadata
+    case analyze
 
     var title: String {
         switch self {
@@ -30,6 +34,9 @@ enum MediaQuickAction: Hashable {
         case .goToSeason: String(localized: "media.quickActions.goToSeason")
         case .download: String(localized: "downloads.action")
         case .removeFromContinueWatching: String(localized: "media.quickActions.removeFromContinueWatching")
+        case .manage: String(localized: "media.manage.title")
+        case .refreshMetadata: String(localized: "media.manage.refreshMetadata")
+        case .analyze: String(localized: "media.manage.analyze")
         }
     }
 
@@ -47,6 +54,9 @@ enum MediaQuickAction: Hashable {
         case .goToSeason: "rectangle.stack"
         case .download: "arrow.down.circle"
         case .removeFromContinueWatching: "minus.circle"
+        case .manage: "wrench.and.screwdriver"
+        case .refreshMetadata: "arrow.clockwise"
+        case .analyze: "waveform.badge.magnifyingglass"
         }
     }
 }
@@ -66,6 +76,16 @@ struct MediaQuickActions {
     private let setFavoriteHandler: (Bool, MediaItem) async throws -> Void
     private let removeFromContinueWatchingHandler: ((String) async throws -> Void)?
     private let didChange: () -> Void
+    private let management: Management?
+
+    /// Present only when the user manages the server's library.
+    struct Management {
+        var supportsAnalyze: Bool
+        var refreshMetadata: (String) async throws -> Void
+        var analyze: (String) async throws -> Void
+        /// The server applies the update in the background, after the call returns.
+        var updateStarted: (String) -> Void = { _ in }
+    }
 
     init(services: MediaServices) {
         supportsFavorites = services.capabilities.favorites
@@ -75,6 +95,15 @@ struct MediaQuickActions {
             ? { itemID in try await services.home.removeFromContinueWatching(itemID: itemID) }
             : nil
         didChange = { services.noteWatchStateChanged() }
+        let service = services.management
+        management = services.authorization.canManageLibrary
+            ? Management(
+                supportsAnalyze: service.supportsAnalyze,
+                refreshMetadata: { try await service.refreshMetadata(itemID: $0) },
+                analyze: { try await service.analyze(itemID: $0) },
+                updateStarted: { services.noteMediaChangeScheduled(itemID: $0) },
+            )
+            : nil
     }
 
     init(
@@ -83,12 +112,14 @@ struct MediaQuickActions {
         setFavorite: @escaping (Bool, MediaItem) async throws -> Void,
         removeFromContinueWatching: ((String) async throws -> Void)? = nil,
         didChange: @escaping () -> Void = {},
+        management: Management? = nil,
     ) {
         self.supportsFavorites = supportsFavorites
         setPlayedHandler = setPlayed
         setFavoriteHandler = setFavorite
         removeFromContinueWatchingHandler = removeFromContinueWatching
         self.didChange = didChange
+        self.management = management
     }
 
     func canFavorite(_ item: MediaItem) -> Bool {
@@ -97,12 +128,14 @@ struct MediaQuickActions {
 
     /// Series and seasons have no play entry: what to play first is only known once the detail page has loaded.
     /// `isInContinueWatching` is set only for the cards of the home's Continue Watching row.
+    /// `canManage` is false while the server is unreachable.
     func menuActions(
         for item: MediaItem,
         canDownload: Bool,
         canAddToPlaylist: Bool = false,
         offersDetails: Bool = false,
         isInContinueWatching: Bool = false,
+        canManage: Bool = false,
     ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
         let hasProgress = (item.viewOffset ?? 0) > 0
@@ -146,7 +179,16 @@ struct MediaQuickActions {
         {
             actions.append(.removeFromContinueWatching)
         }
+        if canManage, !manageActions(for: item).isEmpty {
+            actions.append(.manage)
+        }
         return actions
+    }
+
+    /// The entries of the Manage submenu; empty when the user does not manage the server.
+    func manageActions(for item: MediaItem) -> [MediaQuickAction] {
+        guard let management, [.movie, .series, .season, .episode].contains(item.type) else { return [] }
+        return management.supportsAnalyze ? [.refreshMetadata, .analyze] : [.refreshMetadata]
     }
 
     func setPlayed(_ played: Bool, for item: MediaItem) async -> Outcome {
@@ -163,6 +205,32 @@ struct MediaQuickActions {
         return await perform { try await removeFromContinueWatchingHandler(item.id) }
     }
 
+    func refreshMetadata(_ item: MediaItem) async -> Outcome {
+        guard let management else { return .cancelled }
+        return await performManagement(on: item) { try await management.refreshMetadata(item.id) }
+    }
+
+    func analyze(_ item: MediaItem) async -> Outcome {
+        guard let management, management.supportsAnalyze else { return .cancelled }
+        return await performManagement(on: item) { try await management.analyze(item.id) }
+    }
+
+    private func performManagement(on item: MediaItem, _ operation: () async throws -> Void) async -> Outcome {
+        do {
+            try await operation()
+            management?.updateStarted(item.id)
+            return Task.isCancelled ? .cancelled : .succeeded
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return .cancelled }
+            // A refusal is the server's answer to a right lost meanwhile, not a bug.
+            guard !error.isManagementRefusal else {
+                return .failed(message: String(localized: "media.manage.error.forbidden"))
+            }
+            ErrorReporter.capture(error)
+            return .failed(message: error.localizedDescription)
+        }
+    }
+
     private func perform(_ operation: () async throws -> Void) async -> Outcome {
         do {
             try await operation()
@@ -174,5 +242,14 @@ struct MediaQuickActions {
             ErrorReporter.capture(error)
             return .failed(message: error.localizedDescription)
         }
+    }
+}
+
+private extension Error {
+    var isManagementRefusal: Bool {
+        if case let .requestFailed(statusCode)? = self as? PlexAPIError {
+            return statusCode == 403
+        }
+        return (self as? JellyfinAPIError) == .permissionDenied
     }
 }

@@ -17,6 +17,7 @@ struct MediaDetailView: View {
     @State private var fileInfoMedia: MediaItem?
     @State private var expandedSummaryMedia: MediaItem?
     @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var manageController = MediaManageController()
     @FocusState private var isPlayButtonFocused: Bool
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
@@ -93,6 +94,10 @@ struct MediaDetailView: View {
         }
         .task {
             await bindableViewModel.loadDetails()
+        }
+        .onChange(of: mediaServices.mediaRevision) {
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await bindableViewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }
         .themeMusic(for: bindableViewModel.media.mediaItem)
         .taskPresentation(isPresented: $isShowingSubtitleSearch) {
@@ -322,6 +327,7 @@ struct MediaDetailView: View {
         sharePlayCoordinator.isActivating
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
+            || manageController.isPerforming
     }
 
     private var moreActionsMenu: some View {
@@ -386,13 +392,24 @@ struct MediaDetailView: View {
                 }
             }
 
-            if viewModel.canShowFileInfo {
+            if viewModel.canShowFileInfo || viewModel.canManageMedia {
                 Divider()
+            }
+
+            if viewModel.canShowFileInfo {
                 Button {
                     fileInfoMedia = viewModel.media.mediaItem
                 } label: {
                     Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                 }
+            }
+
+            if viewModel.canManageMedia {
+                MediaManageMenu(
+                    item: viewModel.media.mediaItem,
+                    quickActions: viewModel.quickActions,
+                    controller: manageController,
+                )
             }
 
             if !viewModel.listsCopiesWithVersions {
@@ -404,6 +421,7 @@ struct MediaDetailView: View {
         .detailRoundButtonStyle()
         .menuIndicator(.hidden)
         .accessibilityLabel(Text("common.actions.more"))
+        .mediaManagePresentation(manageController, quickActions: viewModel.quickActions)
     }
 
     private var seasonsSection: some View {

@@ -1,0 +1,15 @@
+{
+  "MediaContainer": {
+    "size": 25,
+    "allowCameraUpload": false,
+    "allowChannelAccess": true,
+    "allowMediaDeletion": true,
+    "allowSharing": true,
+    "allowSync": true,
+    "friendlyName": "Test Server",
+    "machineIdentifier": "0000000000000000000000000000000000000000",
+    "myPlex": true,
+    "platform": "Linux",
+    "version": "1.43.5.0000-000000000"
+  }
+}

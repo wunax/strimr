@@ -540,6 +540,12 @@ final class ServerRegistry {
                 context: context,
                 serverName: resource.name,
                 userID: entry.userID,
+                isServerAdministrator: PlexServerRights.isAdministrator(
+                    resourceOwned: resource.owned,
+                    homeUsers: profileStore.plexHomeUsers(accountID: entry.link.accountID),
+                    userUUID: userUUID,
+                    accountID: account.id,
+                ),
                 favoritesProfileID: entry.link.profileID,
                 favoritesStore: favoritesStore,
                 trackSelectionCoordinator: trackSelectionCoordinator,

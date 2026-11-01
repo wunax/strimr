@@ -435,3 +435,24 @@ protocol MediaDownloadService: AnyObject {
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async
     func downloadableItems(itemID: String, kind: MediaKind) async throws -> [MediaItem]
 }
+
+/// Server administration of the media. Callers check `MediaAuthorization` before offering any of it.
+@MainActor
+protocol MediaManagementService: AnyObject {
+    /// Keeps locked fields and chosen artwork; the server refreshes in the background.
+    func refreshMetadata(itemID: String) async throws
+    /// Only Plex analyzes media files on demand.
+    var supportsAnalyze: Bool { get }
+    func analyze(itemID: String) async throws
+}
+
+@MainActor
+final class UnsupportedMediaManagementService: MediaManagementService {
+    var supportsAnalyze: Bool {
+        false
+    }
+
+    func refreshMetadata(itemID _: String) async throws {}
+
+    func analyze(itemID _: String) async throws {}
+}
