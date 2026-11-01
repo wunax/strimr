@@ -155,6 +155,18 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Toggle(
+                    "settings.interface.watchStatusBadges",
+                    isOn: Binding(
+                        get: { settingsManager.interface.showsWatchStatusBadges },
+                        set: { settingsManager.setShowsWatchStatusBadges($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.watchStatusBadges.footer")
+            }
+
+            Section {
                 Picker(
                     "settings.interface.posterSize",
                     selection: Binding(

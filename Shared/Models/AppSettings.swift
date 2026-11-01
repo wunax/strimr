@@ -402,6 +402,7 @@ struct InterfaceSettings: Codable, Equatable {
     var themeMusicVolume = ThemeMusicVolume.off
     var showsTitleLogo = true
     var showsCardLabels = true
+    var showsWatchStatusBadges = true
     var continueWatchingAction = ContinueWatchingAction.openDetails
 
     init() {}
@@ -451,6 +452,7 @@ struct InterfaceSettings: Codable, Equatable {
         themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
         showsTitleLogo = try container.decodeIfPresent(Bool.self, forKey: .showsTitleLogo) ?? true
         showsCardLabels = try container.decodeIfPresent(Bool.self, forKey: .showsCardLabels) ?? true
+        showsWatchStatusBadges = try container.decodeIfPresent(Bool.self, forKey: .showsWatchStatusBadges) ?? true
         continueWatchingAction = (try? container.decode(
             ContinueWatchingAction.self,
             forKey: .continueWatchingAction,

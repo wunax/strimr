@@ -41,6 +41,11 @@ struct AppSettingsTests {
         #expect(try !decode(#"{"interface":{"showsCardLabels":false}}"#).interface.showsCardLabels)
     }
 
+    @Test func `watch status badges are shown unless turned off`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.showsWatchStatusBadges)
+        #expect(try !decode(#"{"interface":{"showsWatchStatusBadges":false}}"#).interface.showsWatchStatusBadges)
+    }
+
     @Test func `continue watching opens details unless chosen`() throws {
         #expect(try decode(#"{"interface":{}}"#).interface.continueWatchingAction == .openDetails)
         #expect(try decode(#"{"interface":{"continueWatchingAction":"x"}}"#).interface
