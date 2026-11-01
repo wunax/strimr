@@ -69,7 +69,7 @@ private struct MediaCardContextMenu: ViewModifier {
 
     private struct Failure: Identifiable {
         let id = UUID()
-        let title: LocalizedStringKey
+        let title: String
         let message: String
     }
 
@@ -121,10 +121,16 @@ private struct MediaCardContextMenu: ViewModifier {
     private struct FailureAlert: ViewModifier {
         @Binding var failure: Failure?
         let successCount: Int
+        @Environment(RootAlertPresenter.self) private var rootAlerts: RootAlertPresenter?
 
         func body(content: Content) -> some View {
             content
-                .alert(item: $failure) { failure in
+                .onChange(of: failure?.id) {
+                    guard let rootAlerts, let failure else { return }
+                    self.failure = nil
+                    rootAlerts.alert = RootAlert(title: failure.title, message: failure.message)
+                }
+                .alert(item: localFailure) { failure in
                     Alert(
                         title: Text(failure.title),
                         message: Text(failure.message),
@@ -134,6 +140,11 @@ private struct MediaCardContextMenu: ViewModifier {
             #if os(iOS)
                 .sensoryFeedback(.success, trigger: successCount)
             #endif
+        }
+
+        /// Only used where no root host is installed.
+        private var localFailure: Binding<Failure?> {
+            Binding(get: { rootAlerts == nil ? failure : nil }, set: { failure = $0 })
         }
     }
 
@@ -146,7 +157,7 @@ private struct MediaCardContextMenu: ViewModifier {
     }
 
     private func changePlaylist(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         services: MediaServices,
         _ operation: @escaping () async throws -> Void,
     ) {
@@ -162,7 +173,7 @@ private struct MediaCardContextMenu: ViewModifier {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
-                failure = Failure(title: failureTitle, message: error.localizedDescription)
+                failure = Failure(title: String(localized: failureTitle), message: error.localizedDescription)
             }
         }
     }
@@ -258,7 +269,7 @@ private struct MediaCardContextMenu: ViewModifier {
 
     /// One action at a time per card: a request made while another runs is ignored.
     private func run(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         for item: MediaItem,
         _ operation: @escaping () async -> MediaQuickActions.Outcome,
     ) {
@@ -272,7 +283,8 @@ private struct MediaCardContextMenu: ViewModifier {
                 successCount += 1
                 reload?(item)
             case let .failed(message):
-                failure = Failure(title: failureTitle, message: message)
+                await ContextMenuDismissal.wait()
+                failure = Failure(title: String(localized: failureTitle), message: message)
             case .cancelled:
                 break
             }

@@ -71,6 +71,7 @@ struct StrimrApp: App {
                 .environment(sharePlayCoordinator)
                 .environment(OfflineCoordinator.shared)
                 .environment(externalPlaybackCallbackRouter)
+                .rootAlertHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { externalPlaybackCallbackRouter.receive($0) }
         }

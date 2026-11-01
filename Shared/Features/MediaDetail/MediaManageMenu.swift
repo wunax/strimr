@@ -36,6 +36,7 @@ final class MediaManageController {
             case .analyze: await quickActions.analyze(item)
             default: .cancelled
             }
+            await ContextMenuDismissal.wait()
             isPerforming = false
             switch outcome {
             case .succeeded:
@@ -129,6 +130,7 @@ private struct MediaManagePresentation: ViewModifier {
     let quickActions: MediaQuickActions
     let onArtworkChanged: (() -> Void)?
     let onAccepted: (() -> Void)?
+    @Environment(RootAlertPresenter.self) private var rootAlerts: RootAlertPresenter?
     @State private var hasArtworkChanged = false
 
     func body(content: Content) -> some View {
@@ -161,12 +163,25 @@ private struct MediaManagePresentation: ViewModifier {
                 ArtworkPickerView(viewModel: picker)
                     .onChange(of: picker.changeCount) { hasArtworkChanged = true }
             }
-            .alert(item: $controller.notice) { notice in
+            .onChange(of: controller.notice?.id) {
+                guard let rootAlerts, let notice = controller.notice else { return }
+                controller.notice = nil
+                rootAlerts.alert = RootAlert(title: notice.title, message: notice.message)
+            }
+            .alert(item: localNotice) { notice in
                 Alert(
                     title: Text(notice.title),
                     message: Text(notice.message),
                     dismissButton: .default(Text("common.actions.done")),
                 )
             }
+    }
+
+    /// Only used where no root host is installed.
+    private var localNotice: Binding<MediaManageController.Notice?> {
+        Binding(
+            get: { rootAlerts == nil ? controller.notice : nil },
+            set: { controller.notice = $0 },
+        )
     }
 }
