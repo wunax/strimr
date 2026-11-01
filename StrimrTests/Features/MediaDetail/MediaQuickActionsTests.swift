@@ -27,6 +27,7 @@ struct MediaQuickActionsTests {
         error: Error? = nil,
         canManageLibrary: Bool = false,
         supportsAnalyze: Bool = true,
+        artworkKinds: [EditableArtworkKind] = [],
     ) -> MediaQuickActions {
         MediaQuickActions(
             supportsFavorites: supportsFavorites,
@@ -65,6 +66,14 @@ struct MediaQuickActionsTests {
                         }
                     },
                     updateStarted: { calls.updatesStarted.append($0) },
+                    artworkKinds: { _ in artworkKinds },
+                    artworkPicker: { item in
+                        ArtworkPickerViewModel(
+                            item: item,
+                            kinds: artworkKinds,
+                            service: UnsupportedMediaManagementService(),
+                        ) { _ in }
+                    },
                 )
                 : nil,
         )
@@ -97,6 +106,23 @@ struct MediaQuickActionsTests {
                 .manageActions(for: makeMedia(type: type)) == [.refreshMetadata])
         }
         #expect(makeActions().manageActions(for: makeMedia(type: .movie)).isEmpty)
+    }
+
+    @Test func `artwork entry follows the kinds the server can change`() {
+        let actions = makeActions(canManageLibrary: true, artworkKinds: [.poster, .background])
+
+        #expect(actions.manageActions(for: makeMedia(type: .movie)) == [.refreshMetadata, .analyze, .editArtwork])
+        #expect(actions.artworkPicker(for: makeMedia(type: .movie))?.kinds == [.poster, .background])
+        #expect(makeActions(canManageLibrary: true).artworkPicker(for: makeMedia(type: .movie)) == nil)
+        #expect(!makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: .movie))
+            .contains(.editArtwork))
+    }
+
+    @Test func `artwork cannot be edited without the right to manage the library`() {
+        let actions = makeActions(artworkKinds: [.poster])
+
+        #expect(actions.manageActions(for: makeMedia(type: .movie)).isEmpty)
+        #expect(actions.artworkPicker(for: makeMedia(type: .movie)) == nil)
     }
 
     @Test func `refresh and analyze call the server and announce the background update`() async {

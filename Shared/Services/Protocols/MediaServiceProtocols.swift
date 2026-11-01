@@ -453,6 +453,11 @@ protocol MediaManagementService: AnyObject {
     /// Only Plex keeps the items of missing files in a trash.
     var supportsLibraryTrash: Bool { get }
     func emptyLibraryTrash(id: String) async throws
+    /// Empty when the artwork of the item cannot be changed.
+    func artworkKinds(for item: MediaItem) -> [EditableArtworkKind]
+    func artworkOptions(for item: MediaItem, kind: EditableArtworkKind) async throws -> [ArtworkOption]
+    func selectArtwork(_ option: ArtworkOption, for item: MediaItem, kind: EditableArtworkKind) async throws
+    func uploadArtwork(_ upload: ArtworkUpload, for item: MediaItem, kind: EditableArtworkKind) async throws
 }
 
 @MainActor
@@ -476,4 +481,16 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     func analyzeLibrary(id _: String) async throws {}
 
     func emptyLibraryTrash(id _: String) async throws {}
+
+    func artworkKinds(for _: MediaItem) -> [EditableArtworkKind] {
+        []
+    }
+
+    func artworkOptions(for _: MediaItem, kind _: EditableArtworkKind) async throws -> [ArtworkOption] {
+        []
+    }
+
+    func selectArtwork(_: ArtworkOption, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
+
+    func uploadArtwork(_: ArtworkUpload, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
 }

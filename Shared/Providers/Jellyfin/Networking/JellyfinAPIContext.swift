@@ -332,17 +332,20 @@ final class JellyfinAPIContext {
         return try await request(path: path, method: "POST", query: query, body: encoded)
     }
 
+    /// `contentType` describes the body, JSON unless given.
     func send(
         path: [String],
         method: String,
         query: [URLQueryItem] = [],
         body: Data? = nil,
+        contentType: String? = nil,
     ) async throws {
         let (_, response) = try await authenticatedRequest(
             path: path,
             method: method,
             query: query,
             body: body,
+            contentType: contentType,
         )
         try validateStatus(response.statusCode)
     }
@@ -475,6 +478,7 @@ final class JellyfinAPIContext {
         method: String,
         query: [URLQueryItem],
         body: Data?,
+        contentType: String? = nil,
     ) async throws -> (Data, HTTPURLResponse) {
         guard let connection, let accessToken else {
             throw JellyfinAPIError.authenticationRequired
@@ -485,6 +489,7 @@ final class JellyfinAPIContext {
             method: method,
             query: query,
             body: body,
+            contentType: contentType,
             token: accessToken,
         )
     }
@@ -495,6 +500,7 @@ final class JellyfinAPIContext {
         method: String,
         query: [URLQueryItem],
         body: Data?,
+        contentType: String? = nil,
         token: String?,
     ) async throws -> (Data, HTTPURLResponse) {
         let url = try Self.makeURL(baseURL: baseURL, path: path, query: query)
@@ -504,7 +510,7 @@ final class JellyfinAPIContext {
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(contentType ?? "application/json", forHTTPHeaderField: "Content-Type")
         }
         for authorizationHeader in authorizationHeaders(token: token) {
             request.setValue(authorizationHeader.value, forHTTPHeaderField: authorizationHeader.key)
@@ -602,6 +608,8 @@ final class JellyfinAPIContext {
             throw JellyfinAPIError.invalidServerURL
         }
         components.queryItems = query.isEmpty ? nil : query
+        // URLComponents leaves `+` as is, which Jellyfin reads as a space, breaking image URLs and search terms.
+        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         guard let result = components.url else { throw JellyfinAPIError.invalidServerURL }
         return result
     }

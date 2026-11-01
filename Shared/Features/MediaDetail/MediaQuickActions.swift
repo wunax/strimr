@@ -18,6 +18,7 @@ enum MediaQuickAction: Hashable {
     case manage
     case refreshMetadata
     case analyze
+    case editArtwork
 
     var title: String {
         switch self {
@@ -37,6 +38,7 @@ enum MediaQuickAction: Hashable {
         case .manage: String(localized: "media.manage.title")
         case .refreshMetadata: String(localized: "media.manage.refreshMetadata")
         case .analyze: String(localized: "media.manage.analyze")
+        case .editArtwork: String(localized: "media.manage.editArtwork")
         }
     }
 
@@ -57,6 +59,7 @@ enum MediaQuickAction: Hashable {
         case .manage: "wrench.and.screwdriver"
         case .refreshMetadata: "arrow.clockwise"
         case .analyze: "waveform.badge.magnifyingglass"
+        case .editArtwork: "photo.on.rectangle"
         }
     }
 }
@@ -85,6 +88,8 @@ struct MediaQuickActions {
         var analyze: (String) async throws -> Void
         /// The server applies the update in the background, after the call returns.
         var updateStarted: (String) -> Void = { _ in }
+        var artworkKinds: (MediaItem) -> [EditableArtworkKind] = { _ in [] }
+        var artworkPicker: (MediaItem) -> ArtworkPickerViewModel? = { _ in nil }
     }
 
     init(services: MediaServices) {
@@ -102,6 +107,14 @@ struct MediaQuickActions {
                 refreshMetadata: { try await service.refreshMetadata(itemID: $0) },
                 analyze: { try await service.analyze(itemID: $0) },
                 updateStarted: { services.noteMediaChangeScheduled(itemID: $0) },
+                artworkKinds: { service.artworkKinds(for: $0) },
+                artworkPicker: { item in
+                    let kinds = service.artworkKinds(for: item)
+                    guard !kinds.isEmpty else { return nil }
+                    return ArtworkPickerViewModel(item: item, kinds: kinds, service: service) {
+                        services.noteMediaChanged(itemID: $0)
+                    }
+                },
             )
             : nil
     }
@@ -188,7 +201,16 @@ struct MediaQuickActions {
     /// The entries of the Manage submenu; empty when the user does not manage the server.
     func manageActions(for item: MediaItem) -> [MediaQuickAction] {
         guard let management, [.movie, .series, .season, .episode].contains(item.type) else { return [] }
-        return management.supportsAnalyze ? [.refreshMetadata, .analyze] : [.refreshMetadata]
+        var actions: [MediaQuickAction] = management.supportsAnalyze ? [.refreshMetadata, .analyze] : [.refreshMetadata]
+        if !management.artworkKinds(item).isEmpty {
+            actions.append(.editArtwork)
+        }
+        return actions
+    }
+
+    func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
+        guard manageActions(for: item).contains(.editArtwork) else { return nil }
+        return management?.artworkPicker(item)
     }
 
     func setPlayed(_ played: Bool, for item: MediaItem) async -> Outcome {

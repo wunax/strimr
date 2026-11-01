@@ -955,3 +955,44 @@ nonisolated extension JellyfinMediaSource {
         return video?.width.map { "\($0) × \(height)" } ?? "\(height)p"
     }
 }
+
+nonisolated struct JellyfinRemoteImageResult: Codable, Sendable {
+    let images: [JellyfinRemoteImage]?
+
+    private enum CodingKeys: String, CodingKey {
+        case images = "Images"
+    }
+}
+
+nonisolated struct JellyfinRemoteImage: Codable, Hashable, Sendable {
+    let providerName: String?
+    let url: String?
+    let thumbnailURL: String?
+    let width: Int?
+    let height: Int?
+    let language: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case providerName = "ProviderName"
+        case url = "Url"
+        case thumbnailURL = "ThumbnailUrl"
+        case width = "Width"
+        case height = "Height"
+        case language = "Language"
+    }
+}
+
+/// An image the item currently has, from `/Items/{id}/Images`.
+nonisolated struct JellyfinImageInfo: Codable, Hashable, Sendable {
+    let imageType: String
+    let imageIndex: Int?
+    let width: Int?
+    let height: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case imageType = "ImageType"
+        case imageIndex = "ImageIndex"
+        case width = "Width"
+        case height = "Height"
+    }
+}
