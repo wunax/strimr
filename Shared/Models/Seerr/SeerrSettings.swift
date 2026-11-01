@@ -5,4 +5,5 @@ struct SeerrSettings: Hashable, Decodable {
     let series4kEnabled: Bool
     let partialRequestsEnabled: Bool
     let enableSpecialEpisodes: Bool
+    let youtubeUrl: String?
 }

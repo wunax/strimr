@@ -37,6 +37,7 @@ struct SeerrMedia: Identifiable, Hashable, Decodable {
     let seasons: [SeerrSeason]?
     let createdBy: [SeerrCreatedBy]?
     let collection: SeerrCollectionSummary?
+    let relatedVideos: [SeerrVideo]?
 }
 
 extension SeerrMedia {
@@ -72,7 +73,33 @@ extension SeerrMedia {
             seasons: nil,
             createdBy: nil,
             collection: nil,
+            relatedVideos: nil,
         )
+    }
+}
+
+struct SeerrVideo: Hashable, Decodable {
+    let site: String?
+    let key: String?
+    let name: String?
+    let size: Int?
+    let type: String?
+    let url: String?
+}
+
+extension SeerrMedia {
+    /// Mirrors Seerr's web client: the largest trailer, routed through the
+    /// instance's `youtubeUrl` override when one is set.
+    func trailerURL(youtubeBaseURL: String?) -> URL? {
+        let trailer = (relatedVideos ?? [])
+            .filter { $0.type == "Trailer" }
+            .max { ($0.size ?? 0) < ($1.size ?? 0) }
+        guard let trailer else { return nil }
+
+        if trailer.site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key = trailer.key {
+            return URL(string: youtubeBaseURL + key)
+        }
+        return trailer.url.flatMap(URL.init(string:))
     }
 }
 

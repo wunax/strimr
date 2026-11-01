@@ -57,6 +57,10 @@ final class SeerrMediaDetailViewModel {
         TMDBImageService.backdropURL(path: media.backdropPath, width: 300)
     }
 
+    var trailerURL: URL? {
+        media.trailerURL(youtubeBaseURL: store.settings?.youtubeUrl)
+    }
+
     var genres: [String] {
         media.genreNames
     }
