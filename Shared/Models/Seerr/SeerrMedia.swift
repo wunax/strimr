@@ -37,6 +37,7 @@ struct SeerrMedia: Identifiable, Hashable, Decodable {
     let seasons: [SeerrSeason]?
     let createdBy: [SeerrCreatedBy]?
     let collection: SeerrCollectionSummary?
+    let relatedVideos: [SeerrVideo]?
 }
 
 extension SeerrMedia {
@@ -72,7 +73,45 @@ extension SeerrMedia {
             seasons: nil,
             createdBy: nil,
             collection: nil,
+            relatedVideos: nil,
         )
+    }
+}
+
+struct SeerrVideo: Hashable, Decodable {
+    let site: String?
+    let key: String?
+    let name: String?
+    let size: Int?
+    let type: String?
+    let url: String?
+}
+
+extension SeerrMedia {
+    /// Like Seerr's web client, the largest trailer wins and YouTube goes through the
+    /// instance's `youtubeUrl` override. Seerr only builds `url` for YouTube, so
+    /// trailers from other sites are skipped when they have none.
+    func trailerURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        (relatedVideos ?? [])
+            .filter { $0.type == "Trailer" }
+            .compactMap { video in
+                video.resolvedURL(youtubeBaseURL: youtubeBaseURL, serverURL: serverURL).map { (video, $0) }
+            }
+            .max { ($0.0.size ?? 0) < ($1.0.size ?? 0) }?
+            .1
+    }
+}
+
+private extension SeerrVideo {
+    func resolvedURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        if site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key,
+           // Seerr accepts protocol-relative overrides, which its web client resolves against the page.
+           let override = URL(string: youtubeBaseURL + key, relativeTo: serverURL)?.absoluteURL,
+           override.scheme != nil
+        {
+            return override
+        }
+        return url.flatMap(URL.init(string:))
     }
 }
 

@@ -15358,6 +15358,28 @@
         }
       }
     },
+    "seerr.detail.watchTrailer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch trailer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir la bande-annonce"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看预告片"
+          }
+        }
+      }
+    },
     "seerr.manageRequests.action %lld" : {
       "localizations" : {
         "en" : {
