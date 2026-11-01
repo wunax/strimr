@@ -91,19 +91,25 @@ extension SeerrMedia {
     /// Like Seerr's web client, the largest trailer wins and YouTube goes through the
     /// instance's `youtubeUrl` override. Seerr only builds `url` for YouTube, so
     /// trailers from other sites are skipped when they have none.
-    func trailerURL(youtubeBaseURL: String?) -> URL? {
+    func trailerURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
         (relatedVideos ?? [])
             .filter { $0.type == "Trailer" }
-            .compactMap { video in video.resolvedURL(youtubeBaseURL: youtubeBaseURL).map { (video, $0) } }
+            .compactMap { video in
+                video.resolvedURL(youtubeBaseURL: youtubeBaseURL, serverURL: serverURL).map { (video, $0) }
+            }
             .max { ($0.0.size ?? 0) < ($1.0.size ?? 0) }?
             .1
     }
 }
 
 private extension SeerrVideo {
-    func resolvedURL(youtubeBaseURL: String?) -> URL? {
-        if site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key {
-            return URL(string: youtubeBaseURL + key)
+    func resolvedURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        if site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key,
+           // Seerr accepts protocol-relative overrides, which its web client resolves against the page.
+           let override = URL(string: youtubeBaseURL + key, relativeTo: serverURL)?.absoluteURL,
+           override.scheme != nil
+        {
+            return override
         }
         return url.flatMap(URL.init(string:))
     }
