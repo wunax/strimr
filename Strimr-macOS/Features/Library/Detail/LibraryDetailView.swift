@@ -8,6 +8,7 @@ struct LibraryDetailView: View {
 
     @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
+    @State private var manageController = LibraryManageController()
 
     init(
         library: Library,
@@ -72,6 +73,25 @@ struct LibraryDetailView: View {
         }
         .navigationTitle(library.title)
         .toolbarTitleDisplayMode(.inline)
+        .toolbar {
+            if !manageActions.actions(for: library).isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Section(MediaQuickAction.manage.title) {
+                            LibraryManageMenuItems(
+                                library: library,
+                                actions: manageActions,
+                                controller: manageController,
+                            )
+                        }
+                    } label: {
+                        Label("common.actions.more", systemImage: "ellipsis")
+                    }
+                    .help(Text("common.actions.more"))
+                }
+            }
+        }
+        .libraryManagePresentation(manageController) { _ in manageActions }
         .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
             if !displayCollections, selectedTab == .collections {
                 selectedTab = .recommended
@@ -82,6 +102,13 @@ struct LibraryDetailView: View {
                 selectedTab = .recommended
             }
         }
+    }
+
+    private var manageActions: LibraryManageActions {
+        LibraryManageActions(
+            services: mediaServices,
+            isReachable: !OfflineCoordinator.shared.isUnreachable(mediaServices.identity),
+        )
     }
 
     private var availableTabs: [LibraryDetailTab] {

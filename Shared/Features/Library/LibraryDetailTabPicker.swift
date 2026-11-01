@@ -37,16 +37,20 @@ enum LibraryDetailTab: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
-struct LibraryDetailTabPicker: View {
+/// `accessory` ends the row, after the tabs.
+struct LibraryDetailTabPicker<Accessory: View>: View {
     @Binding private var selection: LibraryDetailTab
     let tabs: [LibraryDetailTab]
+    private let accessory: Accessory
 
     init(
         selection: Binding<LibraryDetailTab>,
         tabs: [LibraryDetailTab],
+        @ViewBuilder accessory: () -> Accessory,
     ) {
         _selection = selection
         self.tabs = tabs
+        self.accessory = accessory()
     }
 
     var body: some View {
@@ -57,6 +61,7 @@ struct LibraryDetailTabPicker: View {
                         tabButton(for: tab)
                             .id(tab)
                     }
+                    accessory
                 }
                 .padding(focusLiftInsets)
             }
@@ -85,5 +90,11 @@ struct LibraryDetailTabPicker: View {
                 selection = tab
             }
         }
+    }
+}
+
+extension LibraryDetailTabPicker where Accessory == EmptyView {
+    init(selection: Binding<LibraryDetailTab>, tabs: [LibraryDetailTab]) {
+        self.init(selection: selection, tabs: tabs) { EmptyView() }
     }
 }

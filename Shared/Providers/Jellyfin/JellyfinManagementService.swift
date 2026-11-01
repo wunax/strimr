@@ -27,4 +27,34 @@ final class JellyfinManagementService: MediaManagementService {
     }
 
     func analyze(itemID _: String) async throws {}
+
+    var supportsLibraryTrash: Bool {
+        false
+    }
+
+    func scanLibrary(id: String) async throws {
+        try await refreshLibrary(id: id, mode: "Default", replaceAllMetadata: false)
+    }
+
+    func refreshLibraryMetadata(id: String) async throws {
+        try await refreshLibrary(id: id, mode: "FullRefresh", replaceAllMetadata: true)
+    }
+
+    func analyzeLibrary(id _: String) async throws {}
+
+    func emptyLibraryTrash(id _: String) async throws {}
+
+    private func refreshLibrary(id: String, mode: String, replaceAllMetadata: Bool) async throws {
+        try await context.send(
+            path: ["Items", id, "Refresh"],
+            method: "POST",
+            query: [
+                URLQueryItem(name: "Recursive", value: "true"),
+                URLQueryItem(name: "MetadataRefreshMode", value: mode),
+                URLQueryItem(name: "ImageRefreshMode", value: mode),
+                URLQueryItem(name: "ReplaceAllMetadata", value: replaceAllMetadata ? "true" : "false"),
+                URLQueryItem(name: "ReplaceAllImages", value: "false"),
+            ],
+        )
+    }
 }

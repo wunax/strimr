@@ -19,4 +19,24 @@ final class PlexManagementService: MediaManagementService {
     func analyze(itemID: String) async throws {
         try await LibraryManagementRepository(context: context).analyze(ratingKey: itemID)
     }
+
+    var supportsLibraryTrash: Bool {
+        true
+    }
+
+    func scanLibrary(id: String) async throws {
+        try await LibraryManagementRepository(context: context).scanSection(sectionID: id, force: false)
+    }
+
+    func refreshLibraryMetadata(id: String) async throws {
+        try await LibraryManagementRepository(context: context).scanSection(sectionID: id, force: true)
+    }
+
+    func analyzeLibrary(id: String) async throws {
+        try await LibraryManagementRepository(context: context).analyzeSection(sectionID: id)
+    }
+
+    func emptyLibraryTrash(id: String) async throws {
+        try await LibraryManagementRepository(context: context).emptySectionTrash(sectionID: id)
+    }
 }

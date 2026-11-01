@@ -9,7 +9,9 @@ struct LibraryDetailView: View {
     @State private var viewModel = LibraryDetailViewModel()
     @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
+    @State private var manageController = LibraryManageController()
     @FocusState private var focusedSidebarItem: LibraryDetailTab?
+    @FocusState private var isManageButtonFocused: Bool
     @FocusState private var contentFocused: Bool
     @Namespace private var focusNamespace
 
@@ -43,6 +45,7 @@ struct LibraryDetailView: View {
         .onAppear {
             contentFocused = true
         }
+        .libraryManagePresentation(manageController) { _ in manageActions }
         .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
             if !displayCollections, selectedTab == .collections {
                 selectedTab = .recommended
@@ -59,8 +62,20 @@ struct LibraryDetailView: View {
     private var chipsLayout: some View {
         VStack(alignment: .leading, spacing: 24) {
             if availableTabs.count > 1 {
-                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
-                    .focusSection()
+                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs) {
+                    if canManage {
+                        Button {
+                            openManageDialog()
+                        } label: {
+                            // Inside a text so the chip takes the line height of the tab chips.
+                            Text(Image(systemName: "ellipsis"))
+                        }
+                        .buttonStyle(.chip(isSelected: false))
+                        .disabled(manageController.isPerforming)
+                        .accessibilityLabel(Text(MediaQuickAction.manage.title))
+                    }
+                }
+                .focusSection()
             }
             contentView
                 .focusSection()
@@ -153,6 +168,12 @@ struct LibraryDetailView: View {
         }
         .frame(width: sidebarWidth)
         .frame(maxHeight: .infinity)
+        .overlay(alignment: .bottom) {
+            if canManage {
+                sidebarManageButton
+                    .padding(.bottom, 48)
+            }
+        }
         .padding(.leading, 48)
         .padding(.trailing, 12)
         .background(alignment: .leading) {
@@ -165,6 +186,7 @@ struct LibraryDetailView: View {
         .onMoveCommand { direction in
             guard direction == .right else { return }
             focusedSidebarItem = nil
+            isManageButtonFocused = false
             contentFocused = true
         }
     }
@@ -173,28 +195,56 @@ struct LibraryDetailView: View {
         Button {
             selectedTab = tab
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: tab.systemImageName)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                if isSidebarFocused {
-                    Text(tab.title)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            // Hierarchical so the system focus, which turns the button white, inverts it.
-            .foregroundStyle(selectedTab == tab ? HierarchicalShapeStyle.primary : .secondary)
+            sidebarLabel(title: tab.title, systemImage: tab.systemImageName)
+                // Hierarchical so the system focus, which turns the button white, inverts it.
+                .foregroundStyle(selectedTab == tab ? HierarchicalShapeStyle.primary : .secondary)
         }
         .focused($focusedSidebarItem, equals: tab)
         .buttonStyle(.plain)
     }
 
+    private func sidebarLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .fontWeight(.semibold)
+            if isSidebarFocused {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private var sidebarManageButton: some View {
+        Button {
+            openManageDialog()
+        } label: {
+            sidebarLabel(title: MediaQuickAction.manage.title, systemImage: "ellipsis")
+                .foregroundStyle(.secondary)
+        }
+        .focused($isManageButtonFocused)
+        .buttonStyle(.plain)
+        .disabled(manageController.isPerforming)
+    }
+
+    private func openManageDialog() {
+        manageController.dialogLibrary = library
+    }
+
+    private var manageActions: LibraryManageActions {
+        LibraryManageActions(services: mediaServices, isReachable: true)
+    }
+
+    private var canManage: Bool {
+        !manageActions.actions(for: library).isEmpty
+    }
+
     private var isSidebarFocused: Bool {
-        focusedSidebarItem != nil
+        focusedSidebarItem != nil || isManageButtonFocused
     }
 
     private var sidebarWidth: CGFloat {

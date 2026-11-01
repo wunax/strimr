@@ -30,4 +30,21 @@ final class LibraryManagementRepository {
     func analyze(ratingKey: String) async throws {
         try await network.send(path: "/library/metadata/\(ratingKey)/analyze", method: "PUT")
     }
+
+    /// `force` also refreshes the metadata of every item, not only of new files.
+    func scanSection(sectionID: String, force: Bool) async throws {
+        try await network.send(
+            path: "/library/sections/\(sectionID)/refresh",
+            queryItems: force ? [URLQueryItem(name: "force", value: "1")] : nil,
+            method: "GET",
+        )
+    }
+
+    func analyzeSection(sectionID: String) async throws {
+        try await network.send(path: "/library/sections/\(sectionID)/analyze", method: "PUT")
+    }
+
+    func emptySectionTrash(sectionID: String) async throws {
+        try await network.send(path: "/library/sections/\(sectionID)/emptyTrash", method: "PUT")
+    }
 }

@@ -60,6 +60,19 @@ final class LibraryViewModel {
         }
     }
 
+    /// Nil while the library's server is not connected.
+    func manageActions(for library: Library) -> LibraryManageActions? {
+        guard let services = sessionManager.registry.services(for: library.server) else { return nil }
+        #if os(tvOS)
+            return LibraryManageActions(services: services, isReachable: true)
+        #else
+            return LibraryManageActions(
+                services: services,
+                isReachable: !OfflineCoordinator.shared.isUnreachable(library.server),
+            )
+        #endif
+    }
+
     /// The server name is only shown when the list covers several servers.
     func subtitle(for library: Library) -> String? {
         guard libraryStore.showsServerNames else { return nil }
