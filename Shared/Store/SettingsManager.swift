@@ -38,6 +38,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDefaultSleepTimer(_ mode: SleepTimerMode?) {
+        settings.playback.defaultSleepTimer = mode
+        persist()
+    }
+
     func setPlaybackQualityPreset(_ preset: TranscodeQualityPreset) {
         settings.playback.qualityPreset = preset
         persist()

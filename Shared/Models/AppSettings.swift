@@ -239,6 +239,8 @@ struct SubtitleAppearance: Equatable {
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
+    /// Armed when the player opens. Nil leaves the sleep timer off.
+    var defaultSleepTimer: SleepTimerMode?
     var videoScaleMode = PlayerVideoScaleMode.fit
     var autoRotateVideo = true
     var autoSkipIntros = false
@@ -286,6 +288,7 @@ struct PlaybackSettings: Codable, Equatable {
             NextEpisodeAutoplay.self,
             forKey: .nextEpisodeAutoplay,
         ) ?? .after15Seconds
+        defaultSleepTimer = try? container.decodeIfPresent(SleepTimerMode.self, forKey: .defaultSleepTimer)
         videoScaleMode = (try? container.decodeIfPresent(PlayerVideoScaleMode.self, forKey: .videoScaleMode)) ?? .fit
         autoRotateVideo = try container.decodeIfPresent(Bool.self, forKey: .autoRotateVideo) ?? true
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false

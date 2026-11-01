@@ -55,6 +55,12 @@ struct SettingsPlaybackView: View {
                     }
                 }
 
+                Picker("settings.playback.defaultSleepTimer", selection: viewModel.defaultSleepTimerBinding) {
+                    ForEach(viewModel.defaultSleepTimerOptions, id: \.self) { option in
+                        Text(viewModel.defaultSleepTimerTitle(option)).tag(option)
+                    }
+                }
+
                 Picker("settings.playback.rewind", selection: viewModel.rewindBinding) {
                     ForEach(viewModel.seekOptions, id: \.self) { seconds in
                         Text("settings.playback.seconds \(seconds)").tag(seconds)

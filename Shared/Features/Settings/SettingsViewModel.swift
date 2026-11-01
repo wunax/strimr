@@ -8,6 +8,7 @@ final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
     let nextEpisodeAutoplayOptions = NextEpisodeAutoplay.allCases
+    let defaultSleepTimerOptions = SleepTimerMode.defaultOptions
     #if os(tvOS)
         let subtitleFontSizeOptions = Array(stride(from: 12, through: 80, by: 2))
     #else
@@ -36,6 +37,17 @@ final class SettingsViewModel {
             get: { self.settingsManager.playback.nextEpisodeAutoplay },
             set: { self.settingsManager.setNextEpisodeAutoplay($0) },
         )
+    }
+
+    var defaultSleepTimerBinding: Binding<SleepTimerMode?> {
+        Binding(
+            get: { self.settingsManager.playback.defaultSleepTimer },
+            set: { self.settingsManager.setDefaultSleepTimer($0) },
+        )
+    }
+
+    func defaultSleepTimerTitle(_ mode: SleepTimerMode?) -> String {
+        mode?.title(for: nil) ?? String(localized: "player.sleepTimer.off")
     }
 
     var autoRotateVideoBinding: Binding<Bool> {

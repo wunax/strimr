@@ -1080,6 +1080,9 @@ struct PlayerView: View {
         sleepTimer.onBoundaryPause = {
             showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
         }
+        if !isSharePlayPlayback {
+            sleepTimer.applyDefault(settingsManager.playback.defaultSleepTimer, isLive: viewModel.isLivePlayback)
+        }
     }
 
     private func togglePlayPauseFromKeyboard() {
