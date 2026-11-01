@@ -458,6 +458,10 @@ protocol MediaManagementService: AnyObject {
     func artworkOptions(for item: MediaItem, kind: EditableArtworkKind) async throws -> [ArtworkOption]
     func selectArtwork(_ option: ArtworkOption, for item: MediaItem, kind: EditableArtworkKind) async throws
     func uploadArtwork(_ upload: ArtworkUpload, for item: MediaItem, kind: EditableArtworkKind) async throws
+    /// Throws a refusal (`isManagementRefusal`) when the server does not let the user delete this item.
+    func deletionImpact(of item: MediaItem) async throws -> MediaDeletionImpact
+    /// Removes the item and its files from the server's disk, with every episode of a series or a season.
+    func delete(_ item: MediaItem) async throws
 }
 
 @MainActor
@@ -493,4 +497,10 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     func selectArtwork(_: ArtworkOption, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
 
     func uploadArtwork(_: ArtworkUpload, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
+
+    func deletionImpact(of _: MediaItem) async throws -> MediaDeletionImpact {
+        .files(count: 0, totalSize: nil)
+    }
+
+    func delete(_: MediaItem) async throws {}
 }

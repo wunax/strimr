@@ -5,6 +5,7 @@ struct MediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.dismiss) private var dismiss
     @State var viewModel: MediaDetailViewModel
     @State private var isSummaryExpanded = false
     @State private var isShowingSubtitleSearch = false
@@ -98,6 +99,10 @@ struct MediaDetailView: View {
             await bindableViewModel.loadDetails()
         }
         .onChange(of: mediaServices.mediaRevision) {
+            guard !bindableViewModel.wasDeleted else {
+                dismiss()
+                return
+            }
             let changedMediaID = mediaServices.lastChangedMediaID
             Task { await bindableViewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }

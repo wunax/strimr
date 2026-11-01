@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibraryBrowseView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(MediaServices.self) private var mediaServices: MediaServices?
     @State var viewModel: LibraryBrowseViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
@@ -142,6 +143,9 @@ struct LibraryBrowseView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .onChange(of: mediaServices?.deletedMediaIDs) {
+                viewModel.removeDeletedItems(ids: mediaServices?.deletedMediaIDs ?? [])
             }
             .onChange(of: viewModel.scrollResetID) {
                 proxy.scrollTo("libraryBrowseTop", anchor: .top)

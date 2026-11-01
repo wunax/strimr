@@ -161,6 +161,20 @@ final class LibraryBrowseViewModel {
         Task { await refresh() }
     }
 
+    /// The server lists the following items one place earlier, so the next page still starts after the loaded ones.
+    func removeDeletedItems(ids: Set<String>) {
+        folderTree?.removeMedia(ids: ids)
+        let count = browseItems.count
+        browseItems.removeAll { item in
+            guard case let .media(media) = item else { return false }
+            return ids.contains(media.id)
+        }
+        let removed = count - browseItems.count
+        if removed > 0, let totalCount {
+            self.totalCount = max(totalCount - removed, 0)
+        }
+    }
+
     func refresh() async {
         scrollResetID &+= 1
         reachedEnd = false

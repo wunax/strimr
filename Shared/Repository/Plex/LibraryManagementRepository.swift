@@ -48,6 +48,11 @@ final class LibraryManagementRepository {
         try await network.send(path: "/library/sections/\(sectionID)/emptyTrash", method: "PUT")
     }
 
+    /// A series or a season deletes all its episodes.
+    func deleteMetadata(ratingKey: String) async throws {
+        try await network.send(path: "/library/metadata/\(ratingKey)", method: "DELETE")
+    }
+
     /// `element` is `poster`, `art` or `clearLogo`; its list lives at the plural path.
     func artwork(ratingKey: String, element: String) async throws -> PlexArtworkResponse {
         try await network.request(path: "/library/metadata/\(ratingKey)/\(element)s")

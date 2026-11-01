@@ -100,6 +100,40 @@ final class JellyfinManagementService: MediaManagementService {
         )
     }
 
+    /// `CanDelete` is only trustworthy on a single item, so it is read before each deletion.
+    func deletionImpact(of item: MediaItem) async throws -> MediaDeletionImpact {
+        let details = try await JellyfinCatalogService(context: context).item(id: item.id)
+        guard details.canDelete == true else { throw JellyfinAPIError.permissionDenied }
+        guard [.series, .season].contains(item.type) else { return Self.deletionImpact(of: details, episodeCount: nil) }
+        let episodes: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Items"],
+            query: [
+                URLQueryItem(name: "ParentId", value: item.id),
+                URLQueryItem(name: "Recursive", value: "true"),
+                URLQueryItem(name: "IncludeItemTypes", value: "Episode"),
+                URLQueryItem(name: "IsMissing", value: "false"),
+                URLQueryItem(name: "Limit", value: "0"),
+            ],
+        )
+        return Self.deletionImpact(of: details, episodeCount: episodes.totalRecordCount)
+    }
+
+    func delete(_ item: MediaItem) async throws {
+        try await context.send(path: ["Items", item.id], method: "DELETE")
+    }
+
+    /// The versions of a movie are its media sources, all deleted with it.
+    static func deletionImpact(of item: JellyfinItem, episodeCount: Int?) -> MediaDeletionImpact {
+        switch item.type?.lowercased() {
+        case "series", "season":
+            return .episodes(count: episodeCount ?? item.recursiveItemCount ?? 0)
+        default:
+            let sources = item.mediaSources ?? []
+            let sizes = sources.compactMap(\.size)
+            return .files(count: max(sources.count, 1), totalSize: sizes.isEmpty ? nil : sizes.reduce(0, +))
+        }
+    }
+
     static func artworkKinds(for type: MediaKind) -> [EditableArtworkKind] {
         switch type {
         case .movie, .series: [.poster, .background, .logo, .thumb, .banner]

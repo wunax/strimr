@@ -18,6 +18,8 @@ struct MediaQuickActionsTests {
         var refreshed: [String] = []
         var analyzed: [String] = []
         var updatesStarted: [String] = []
+        var deleted: [String] = []
+        var noted: [String] = []
     }
 
     private func makeActions(
@@ -28,6 +30,8 @@ struct MediaQuickActionsTests {
         canManageLibrary: Bool = false,
         supportsAnalyze: Bool = true,
         artworkKinds: [EditableArtworkKind] = [],
+        canDelete: Bool = false,
+        deletionError: Error? = nil,
     ) -> MediaQuickActions {
         MediaQuickActions(
             supportsFavorites: supportsFavorites,
@@ -50,8 +54,10 @@ struct MediaQuickActionsTests {
                 }
             } : nil,
             didChange: { calls.changes += 1 },
-            management: canManageLibrary
+            management: canManageLibrary || canDelete
                 ? MediaQuickActions.Management(
+                    canManageLibrary: canManageLibrary,
+                    canDelete: canDelete,
                     supportsAnalyze: supportsAnalyze,
                     refreshMetadata: { id in
                         calls.refreshed.append(id)
@@ -74,6 +80,19 @@ struct MediaQuickActionsTests {
                             service: UnsupportedMediaManagementService(),
                         ) { _ in }
                     },
+                    deletionImpact: { _ in
+                        if let deletionError {
+                            throw deletionError
+                        }
+                        return .episodes(count: 24)
+                    },
+                    delete: { item in
+                        if let deletionError {
+                            throw deletionError
+                        }
+                        calls.deleted.append(item.id)
+                    },
+                    deleted: { calls.noted.append($0) },
                 )
                 : nil,
         )
@@ -123,6 +142,70 @@ struct MediaQuickActionsTests {
 
         #expect(actions.manageActions(for: makeMedia(type: .movie)).isEmpty)
         #expect(actions.artworkPicker(for: makeMedia(type: .movie)) == nil)
+    }
+
+    @Test func `delete ends the manage entries of users allowed to delete`() {
+        #expect(makeActions(canManageLibrary: true, canDelete: true).manageActions(for: makeMedia(type: .movie))
+            == [.refreshMetadata, .analyze, .delete])
+        for type in [MediaKind.movie, .series, .season, .episode] {
+            #expect(makeActions(canDelete: true).manageActions(for: makeMedia(type: type)) == [.delete])
+        }
+        #expect(makeActions(canDelete: true).manageActions(for: makeMedia(type: .clip)).isEmpty)
+        #expect(!makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: .movie)).contains(.delete))
+    }
+
+    @Test func `deleting without managing the library offers no other administration`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls, canDelete: true)
+
+        #expect(actions.menuActions(for: makeMedia(type: .movie), canDownload: false, canManage: true).last == .manage)
+        #expect(await actions.refreshMetadata(makeMedia(type: .movie)) == .cancelled)
+        #expect(calls.refreshed.isEmpty)
+    }
+
+    @Test func `deletion announces its impact, then deletes and reports the item`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls, canDelete: true)
+
+        #expect(await actions.prepareDeletion(of: makeMedia(type: .series)) == .ready(.episodes(count: 24)))
+        #expect(await actions.delete(makeMedia(type: .series)) == .succeeded)
+        #expect(calls.deleted == ["item"])
+        #expect(calls.noted == ["item"])
+    }
+
+    @Test func `deletion is skipped without the right to delete`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls, canManageLibrary: true)
+
+        #expect(await actions.prepareDeletion(of: makeMedia(type: .movie)) == .cancelled)
+        #expect(await actions.delete(makeMedia(type: .movie)) == .cancelled)
+        #expect(calls.deleted.isEmpty)
+    }
+
+    @Test func `an item already deleted elsewhere counts as deleted`() async {
+        for error: Error in [PlexAPIError.requestFailed(statusCode: 404), JellyfinAPIError.itemUnavailable] {
+            let calls = Calls()
+            let actions = makeActions(calls: calls, canDelete: true, deletionError: error)
+
+            #expect(await actions.delete(makeMedia(type: .movie)) == .succeeded)
+            #expect(calls.noted == ["item"])
+        }
+    }
+
+    @Test func `deletion refusals explain the Plex setting or the item right`() async {
+        let plexCalls = Calls()
+        let plex = makeActions(
+            calls: plexCalls,
+            canDelete: true,
+            deletionError: PlexAPIError.requestFailed(statusCode: 403),
+        )
+        let jellyfin = makeActions(canDelete: true, deletionError: JellyfinAPIError.permissionDenied)
+
+        #expect(await plex.delete(makeMedia(type: .movie))
+            == .failed(message: String(localized: "media.manage.delete.error.plexDisabled")))
+        #expect(await jellyfin.prepareDeletion(of: makeMedia(type: .movie))
+            == .failed(message: String(localized: "media.manage.delete.error.forbidden")))
+        #expect(plexCalls.noted.isEmpty)
     }
 
     @Test func `refresh and analyze call the server and announce the background update`() async {

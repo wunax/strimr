@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailView: View {
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -96,6 +97,10 @@ struct MediaDetailView: View {
             await bindableViewModel.loadDetails()
         }
         .onChange(of: mediaServices.mediaRevision) {
+            guard !bindableViewModel.wasDeleted else {
+                dismiss()
+                return
+            }
             let changedMediaID = mediaServices.lastChangedMediaID
             Task { await bindableViewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }

@@ -46,4 +46,26 @@ struct PlexManagementServiceTests {
         #expect(PlexManagementService.artworkElement(for: .logo) == "clearLogo")
         #expect(PlexManagementService.artworkElement(for: .banner) == nil)
     }
+
+    private func deletionItems() throws -> [PlexItem] {
+        try Fixtures.decode(PlexItemMediaContainer.self, from: "plex-deletion-items").mediaContainer.metadata ?? []
+    }
+
+    @Test func `deleting a movie counts the files of every version`() throws {
+        let movie = try #require(deletionItems().first { $0.type == .movie })
+
+        #expect(PlexManagementService.deletionImpact(of: movie) == .files(count: 3, totalSize: 4_200_000_000))
+    }
+
+    @Test func `deleting a series counts its episodes`() throws {
+        let show = try #require(deletionItems().first { $0.type == .show })
+
+        #expect(PlexManagementService.deletionImpact(of: show) == .episodes(count: 24))
+    }
+
+    @Test func `file size is left out when the server does not report it`() throws {
+        let episode = try #require(deletionItems().first { $0.type == .episode })
+
+        #expect(PlexManagementService.deletionImpact(of: episode) == .files(count: 1, totalSize: nil))
+    }
 }

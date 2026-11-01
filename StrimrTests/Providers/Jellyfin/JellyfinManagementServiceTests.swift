@@ -84,4 +84,20 @@ struct JellyfinManagementServiceTests {
         #expect(JellyfinManagementService.artworkKinds(for: .movie) == [.poster, .background, .logo, .thumb, .banner])
         #expect(JellyfinManagementService.artworkKinds(for: .season) == [.poster, .background])
     }
+
+    @Test func `deleting a movie counts the files of every version`() throws {
+        let movie = try Fixtures.decode(JellyfinItem.self, from: "jellyfin-deletion-movie")
+
+        #expect(movie.canDelete == true)
+        #expect(JellyfinManagementService.deletionImpact(of: movie, episodeCount: nil)
+            == .files(count: 2, totalSize: 17_000_000_000))
+    }
+
+    @Test func `deleting a series counts its episodes, falling back to its descendants`() throws {
+        let series = try Fixtures.decode(JellyfinItem.self, from: "jellyfin-deletion-series")
+
+        #expect(series.canDelete == false)
+        #expect(JellyfinManagementService.deletionImpact(of: series, episodeCount: 24) == .episodes(count: 24))
+        #expect(JellyfinManagementService.deletionImpact(of: series, episodeCount: nil) == .episodes(count: 26))
+    }
 }

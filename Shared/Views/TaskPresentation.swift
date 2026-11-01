@@ -6,6 +6,8 @@ enum TaskPresentationStyle {
     case modal
     /// A narrower modal, for short forms and lists.
     case compactModal
+    /// As narrow as the compact modal but only as tall as its content, for confirmations.
+    case dialog
     case contextual
     /// Opaque and edge to edge, for flows that need full attention and keep their own navigation stack.
     case fullScreen
@@ -46,6 +48,7 @@ extension View {
 #if os(tvOS)
     struct TVModalView<Content: View>: View {
         var maxWidth: CGFloat = 1560
+        var fitsContent = false
         @ViewBuilder var content: () -> Content
 
         private let shape = RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
@@ -56,7 +59,8 @@ extension View {
                 content()
                     // Focused rows and fields grow past their scroll view's bounds.
                     .scrollClipDisabled()
-                    .frame(maxWidth: maxWidth, maxHeight: .infinity)
+                    .frame(maxWidth: maxWidth, maxHeight: fitsContent ? nil : .infinity)
+                    .fixedSize(horizontal: false, vertical: fitsContent)
                     .padding(40)
                     .clipShape(shape)
                     .overlayPanelSurface(in: shape)
@@ -113,6 +117,10 @@ extension View {
                     .onExitCommand { dismiss() }
             case .compactModal:
                 TVModalView(maxWidth: 1000, content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
+            case .dialog:
+                TVModalView(maxWidth: 1000, fitsContent: true, content: content)
                     .presentationBackground(.clear)
                     .onExitCommand { dismiss() }
             case .contextual:
