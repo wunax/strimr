@@ -165,6 +165,7 @@ struct MainTabView: View {
                 }
             }
         }
+        .modifier(TabBarPlacementStyle(placement: settingsManager.interface.tabBarPlacement))
         .environmentObject(coordinator)
         .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
         .task {
@@ -364,6 +365,20 @@ struct MainTabView: View {
                 viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        }
+    }
+}
+
+/// Tab view styles have distinct types, so switching between them needs two branches.
+private struct TabBarPlacementStyle: ViewModifier {
+    let placement: TabBarPlacement
+
+    func body(content: Content) -> some View {
+        switch placement {
+        case .top:
+            content.tabViewStyle(.automatic)
+        case .sidebar:
+            content.tabViewStyle(.sidebarAdaptable)
         }
     }
 }

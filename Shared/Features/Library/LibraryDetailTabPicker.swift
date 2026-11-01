@@ -52,13 +52,13 @@ struct LibraryDetailTabPicker: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(tabs) { tab in
                         tabButton(for: tab)
                             .id(tab)
                     }
                 }
-                .padding(.horizontal, 2)
+                .padding(focusLiftInsets)
             }
             .mouseDragScrolling()
             .accessibilityLabel(Text("library.detail.tabPicker"))
@@ -68,6 +68,15 @@ struct LibraryDetailTabPicker: View {
                 }
             }
         }
+    }
+
+    /// Room inside the scroll view so the focused chip is not clipped as it scales up.
+    private var focusLiftInsets: EdgeInsets {
+        #if os(tvOS)
+            EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+        #else
+            EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+        #endif
     }
 
     private func tabButton(for tab: LibraryDetailTab) -> some View {

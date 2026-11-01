@@ -60,6 +60,20 @@ enum PortraitEpisodeArtwork: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum TabBarPlacement: String, Codable, CaseIterable, Hashable {
+    case top
+    case sidebar
+
+    var title: String {
+        switch self {
+        case .top:
+            String(localized: "settings.interface.tabBarPlacement.top")
+        case .sidebar:
+            String(localized: "settings.interface.tabBarPlacement.sidebar")
+        }
+    }
+}
+
 enum PosterSize: String, Codable, CaseIterable, Hashable {
     case small
     case medium
@@ -407,6 +421,7 @@ struct InterfaceSettings: Codable, Equatable {
     var showsCardLabels = true
     var showsWatchStatusBadges = true
     var continueWatchingAction = ContinueWatchingAction.openDetails
+    var tabBarPlacement = TabBarPlacement.top
 
     init() {}
 
@@ -460,6 +475,7 @@ struct InterfaceSettings: Codable, Equatable {
             ContinueWatchingAction.self,
             forKey: .continueWatchingAction,
         )) ?? .openDetails
+        tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
     }
 }
 
