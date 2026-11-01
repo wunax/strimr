@@ -88,18 +88,24 @@ struct SeerrVideo: Hashable, Decodable {
 }
 
 extension SeerrMedia {
-    /// Mirrors Seerr's web client: the largest trailer, routed through the
-    /// instance's `youtubeUrl` override when one is set.
+    /// Like Seerr's web client, the largest trailer wins and YouTube goes through the
+    /// instance's `youtubeUrl` override. Seerr only builds `url` for YouTube, so
+    /// trailers from other sites are skipped when they have none.
     func trailerURL(youtubeBaseURL: String?) -> URL? {
-        let trailer = (relatedVideos ?? [])
+        (relatedVideos ?? [])
             .filter { $0.type == "Trailer" }
-            .max { ($0.size ?? 0) < ($1.size ?? 0) }
-        guard let trailer else { return nil }
+            .compactMap { video in video.resolvedURL(youtubeBaseURL: youtubeBaseURL).map { (video, $0) } }
+            .max { ($0.0.size ?? 0) < ($1.0.size ?? 0) }?
+            .1
+    }
+}
 
-        if trailer.site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key = trailer.key {
+private extension SeerrVideo {
+    func resolvedURL(youtubeBaseURL: String?) -> URL? {
+        if site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key {
             return URL(string: youtubeBaseURL + key)
         }
-        return trailer.url.flatMap(URL.init(string:))
+        return url.flatMap(URL.init(string:))
     }
 }
 

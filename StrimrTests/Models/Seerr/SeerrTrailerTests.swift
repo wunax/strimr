@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 struct SeerrTrailerTests {
-    @Test func `picks the largest trailer and ignores teasers`() throws {
+    @Test func `picks the largest openable trailer and ignores teasers`() throws {
         let media = try Fixtures.decode(SeerrMedia.self, from: "seerr-movie-videos")
 
         #expect(media.trailerURL(youtubeBaseURL: nil) == URL(string: "https://www.youtube.com/watch?v=largeKey"))
