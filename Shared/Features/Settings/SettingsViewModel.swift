@@ -161,6 +161,13 @@ final class SettingsViewModel {
         )
     }
 
+    var defaultPlaybackRateBinding: Binding<Float> {
+        Binding(
+            get: { self.settingsManager.playback.defaultPlaybackRate },
+            set: { self.settingsManager.setDefaultPlaybackRate($0) },
+        )
+    }
+
     var doubleTapToSeekBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.doubleTapToSeek },

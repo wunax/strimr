@@ -54,6 +54,12 @@ struct AppSettingsTests {
             .continueWatchingAction == .play)
     }
 
+    @Test func `default playback rate is normal speed unless a listed speed is chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.defaultPlaybackRate == 1.0)
+        #expect(try decode(#"{"playback":{"defaultPlaybackRate":1.3}}"#).playback.defaultPlaybackRate == 1.0)
+        #expect(try decode(#"{"playback":{"defaultPlaybackRate":1.5}}"#).playback.defaultPlaybackRate == 1.5)
+    }
+
     @Test func `corrupt library browse preferences keep other settings`() throws {
         let settings = try decode(#"""
         {"interface":{"displayPlaylists":false,"libraryBrowseByKey":{"plex|server|account|1":{"plex":{"filters":42}}}}}

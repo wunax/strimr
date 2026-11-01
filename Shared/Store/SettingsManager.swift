@@ -138,6 +138,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDefaultPlaybackRate(_ rate: Float) {
+        settings.playback.defaultPlaybackRate = rate
+        persist()
+    }
+
     func setDoubleTapToSeek(_ enabled: Bool) {
         settings.playback.doubleTapToSeek = enabled
         persist()

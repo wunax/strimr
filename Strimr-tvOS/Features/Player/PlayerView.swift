@@ -114,6 +114,10 @@ struct PlayerView: View {
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     configureSleepTimer()
                     showControls(temporarily: true)
+                    playbackRate = viewModel.initialPlaybackRate(
+                        settings: settingsManager.playback,
+                        isSharePlay: sharePlayCoordinator.isInSession,
+                    )
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.attachPlayer(
