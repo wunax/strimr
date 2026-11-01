@@ -97,6 +97,55 @@ final class PlexManagementService: MediaManagementService {
         }
     }
 
+    func searchMatches(for item: MediaItem, title: String, year: Int?) async throws -> [MatchCandidate] {
+        let response = try await LibraryManagementRepository(context: context)
+            .matches(ratingKey: item.id, title: title, year: year)
+        let images = try ImageRepository(context: context)
+        return Self.matchCandidates(from: response, currentGUID: item.guid) { path in
+            images.transcodeImageURL(path: path, width: 120, height: 180)
+        }
+    }
+
+    func applyMatch(_ candidate: MatchCandidate, to item: MediaItem) async throws {
+        guard case let .plex(guid) = candidate.payload else { return }
+        try await LibraryManagementRepository(context: context)
+            .applyMatch(ratingKey: item.id, guid: guid, name: candidate.title, year: candidate.year)
+    }
+
+    var supportsUnmatch: Bool {
+        true
+    }
+
+    func unmatch(itemID: String) async throws {
+        try await LibraryManagementRepository(context: context).unmatch(ratingKey: itemID)
+    }
+
+    static func matchCandidates(
+        from response: PlexMatchResponse,
+        currentGUID: String,
+        posterURL: (String) -> URL?,
+    ) -> [MatchCandidate] {
+        var seen = Set<String>()
+        return (response.mediaContainer.searchResult ?? []).compactMap { result in
+            guard !result.guid.isEmpty, seen.insert(result.guid).inserted else { return nil }
+            return MatchCandidate(
+                id: result.guid,
+                title: result.name,
+                year: result.year.flatMap { Int($0.value) },
+                posterURL: result.thumb.flatMap { $0.isEmpty ? nil : posterURL($0) },
+                provider: matchProvider(guid: result.guid),
+                isCurrent: result.guid == currentGUID,
+                payload: .plex(guid: result.guid),
+            )
+        }
+    }
+
+    /// The agent is the guid's scheme: `plex`, or `imdb` in `com.plexapp.agents.imdb://…`.
+    static func matchProvider(guid: String) -> String? {
+        guard let scheme = guid.components(separatedBy: "://").first, scheme != guid else { return nil }
+        return scheme.components(separatedBy: ".").last
+    }
+
     /// An episode has a single 16:9 image, which Plex stores as its poster.
     static func artworkKinds(for type: MediaKind) -> [EditableArtworkKind] {
         switch type {

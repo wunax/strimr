@@ -57,3 +57,29 @@ nonisolated struct PlexArtwork: Codable, Equatable {
     let provider: String?
     let selected: PlexLenient<Bool>?
 }
+
+/// Titles listed by `/library/metadata/{id}/matches`.
+nonisolated struct PlexMatchResponse: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let searchResult: [PlexMatchResult]?
+
+        private enum CodingKeys: String, CodingKey {
+            case searchResult = "SearchResult"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+nonisolated struct PlexMatchResult: Codable, Equatable {
+    /// `plex://movie/…` with the Plex agents, `com.plexapp.agents.…://…` with the legacy ones.
+    let guid: String
+    let name: String
+    let year: PlexLenient<String>?
+    /// Absent for some titles.
+    let thumb: String?
+}

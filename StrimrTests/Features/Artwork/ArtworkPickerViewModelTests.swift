@@ -56,6 +56,18 @@ struct ArtworkPickerViewModelTests {
         }
 
         func delete(_: MediaItem) async throws {}
+
+        func searchMatches(for _: MediaItem, title _: String, year _: Int?) async throws -> [MatchCandidate] {
+            []
+        }
+
+        func applyMatch(_: MatchCandidate, to _: MediaItem) async throws {}
+
+        var supportsUnmatch: Bool {
+            false
+        }
+
+        func unmatch(itemID _: String) async throws {}
     }
 
     @Test func `returning to a loaded kind clears the error of a failed one`() async {

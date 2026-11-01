@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Sample Movie",
+    "ProviderIds": { "Tmdb": "1001", "Imdb": "tt0000001" },
+    "ProductionYear": 2010,
+    "ImageUrl": "https://image.tmdb.org/t/p/original/sample-one.jpg",
+    "SearchProviderName": "TheMovieDb",
+    "Overview": "A sample overview.",
+    "Artists": []
+  },
+  {
+    "Name": "Sample Movie Returns",
+    "ProviderIds": { "Tmdb": "1002" },
+    "ProductionYear": 2014,
+    "SearchProviderName": "TheMovieDb",
+    "Artists": []
+  },
+  {
+    "Name": "Sample Movie",
+    "ProviderIds": { "Tmdb": "1001", "Imdb": "tt0000001" },
+    "ProductionYear": 2010,
+    "ImageUrl": "https://image.tmdb.org/t/p/original/sample-one.jpg",
+    "SearchProviderName": "TheMovieDb",
+    "Artists": []
+  },
+  {
+    "Name": "Sample Movie",
+    "ProviderIds": { "Imdb": "tt0000001" },
+    "ProductionYear": 2010,
+    "ImageUrl": "https://m.media-amazon.test/sample.jpg",
+    "SearchProviderName": "The Open Movie Database",
+    "Artists": []
+  },
+  {
+    "ProviderIds": {},
+    "SearchProviderName": "TheMovieDb"
+  }
+]

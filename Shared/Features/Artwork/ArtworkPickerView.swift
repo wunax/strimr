@@ -284,7 +284,8 @@ private struct ArtworkOptionTile: View {
 
     @ViewBuilder
     private var badges: some View {
-        let labels = [option.provider.map(Self.providerName), option.language?.uppercased()].compactMap(\.self)
+        let labels = [option.provider.map(MetadataProviderName.displayName), option.language?.uppercased()]
+            .compactMap(\.self)
         if !labels.isEmpty {
             HStack(spacing: 4) {
                 ForEach(labels, id: \.self) { label in
@@ -302,18 +303,6 @@ private struct ArtworkOptionTile: View {
 
     private var accessibilityLabel: Text {
         guard let provider = option.provider else { return Text(kind.title) }
-        return Text(verbatim: "\(kind.title), \(Self.providerName(provider))")
-    }
-
-    /// Plex sends lowercase identifiers; Jellyfin sends display names, kept as they are.
-    private nonisolated static func providerName(_ provider: String) -> String {
-        switch provider.lowercased() {
-        case "tmdb": "TMDB"
-        case "tvdb": "TVDB"
-        case "imdb": "IMDb"
-        case "fanarttv": "Fanart.tv"
-        case "gracenote": "Gracenote"
-        default: provider
-        }
+        return Text(verbatim: "\(kind.title), \(MetadataProviderName.displayName(provider))")
     }
 }

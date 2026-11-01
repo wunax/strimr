@@ -68,4 +68,33 @@ struct PlexManagementServiceTests {
 
         #expect(PlexManagementService.deletionImpact(of: episode) == .files(count: 1, totalSize: nil))
     }
+
+    private func candidates(currentGUID: String = "plex://movie/000000000000000000000002") throws -> [MatchCandidate] {
+        let response = try Fixtures.decode(PlexMatchResponse.self, from: "plex-matches")
+        return PlexManagementService.matchCandidates(from: response, currentGUID: currentGUID) {
+            URL(string: "https://server.test/preview?url=\($0)")
+        }
+    }
+
+    @Test func `match results map to candidates once per guid`() throws {
+        let candidates = try candidates()
+
+        #expect(candidates.map(\.title) == ["Sample Movie", "Sample Movie Returns", "Sample Movie Legacy"])
+        #expect(candidates.map(\.year) == [2010, 2014, nil])
+        #expect(candidates.map(\.provider) == ["plex", "plex", "imdb"])
+        #expect(candidates[0].payload == .plex(guid: "plex://movie/000000000000000000000001"))
+    }
+
+    @Test func `match results without a poster have no preview`() throws {
+        let candidates = try candidates()
+
+        #expect(candidates[0].posterURL?.absoluteString.contains("metadata-static.plex.tv") == true)
+        #expect(candidates[1].posterURL == nil)
+        #expect(candidates[2].posterURL == nil)
+    }
+
+    @Test func `the current match is the one with the item's guid`() throws {
+        #expect(try candidates().map(\.isCurrent) == [false, true, false])
+        #expect(try candidates(currentGUID: "local://12").allSatisfy { !$0.isCurrent })
+    }
 }

@@ -76,4 +76,33 @@ final class LibraryManagementRepository {
             body: data,
         )
     }
+
+    func matches(ratingKey: String, title: String, year: Int?) async throws -> PlexMatchResponse {
+        try await network.request(
+            path: "/library/metadata/\(ratingKey)/matches",
+            queryItems: [
+                URLQueryItem(name: "manual", value: "1"),
+                URLQueryItem(name: "title", value: title),
+                year.map { URLQueryItem(name: "year", value: String($0)) },
+            ].compactMap(\.self),
+            encodesPlusSign: true,
+        )
+    }
+
+    func applyMatch(ratingKey: String, guid: String, name: String, year: Int?) async throws {
+        try await network.send(
+            path: "/library/metadata/\(ratingKey)/match",
+            queryItems: [
+                URLQueryItem(name: "guid", value: guid),
+                URLQueryItem(name: "name", value: name),
+                year.map { URLQueryItem(name: "year", value: String($0)) },
+            ].compactMap(\.self),
+            method: "PUT",
+            encodesPlusSign: true,
+        )
+    }
+
+    func unmatch(ratingKey: String) async throws {
+        try await network.send(path: "/library/metadata/\(ratingKey)/unmatch", method: "PUT")
+    }
 }

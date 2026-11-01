@@ -47,6 +47,10 @@ nonisolated struct ExternalIDs: Codable, Hashable, Sendable {
         imdb == nil && tmdb == nil && tvdb == nil
     }
 
+    func sharesID(with other: ExternalIDs) -> Bool {
+        [(imdb, other.imdb), (tmdb, other.tmdb), (tvdb, other.tvdb)].contains { $0.0 != nil && $0.0 == $0.1 }
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         imdb = try container.decodeIfPresent(String.self, forKey: .imdb)
