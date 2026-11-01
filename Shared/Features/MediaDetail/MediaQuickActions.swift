@@ -281,7 +281,11 @@ struct MediaQuickActions {
     func delete(_ item: MediaItem) async -> Outcome {
         guard let management, manageActions(for: item).contains(.delete) else { return .cancelled }
         do {
-            try await management.delete(item)
+            do {
+                try await management.delete(item)
+            } catch where error.isNotFound {
+                // Already deleted elsewhere since the confirmation opened, which is the outcome asked for.
+            }
             // The item is gone even if the task was cancelled meanwhile.
             management.deleted(item.id)
             return .succeeded

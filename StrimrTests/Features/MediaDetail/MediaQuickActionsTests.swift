@@ -182,6 +182,16 @@ struct MediaQuickActionsTests {
         #expect(calls.deleted.isEmpty)
     }
 
+    @Test func `an item already deleted elsewhere counts as deleted`() async {
+        for error: Error in [PlexAPIError.requestFailed(statusCode: 404), JellyfinAPIError.itemUnavailable] {
+            let calls = Calls()
+            let actions = makeActions(calls: calls, canDelete: true, deletionError: error)
+
+            #expect(await actions.delete(makeMedia(type: .movie)) == .succeeded)
+            #expect(calls.noted == ["item"])
+        }
+    }
+
     @Test func `deletion refusals explain the Plex setting or the item right`() async {
         let plexCalls = Calls()
         let plex = makeActions(

@@ -163,6 +163,7 @@ final class LibraryBrowseViewModel {
 
     /// The server lists the following items one place earlier, so the next page still starts after the loaded ones.
     func removeDeletedItems(ids: Set<String>) {
+        folderTree?.removeMedia(ids: ids)
         let count = browseItems.count
         browseItems.removeAll { item in
             guard case let .media(media) = item else { return false }

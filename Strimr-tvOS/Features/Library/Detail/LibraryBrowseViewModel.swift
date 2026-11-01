@@ -166,6 +166,7 @@ final class LibraryBrowseViewModel {
     }
 
     func removeDeletedItems(ids: Set<String>) {
+        folderTree?.removeMedia(ids: ids)
         let removed = itemsByIndex.compactMap { index, item -> Int? in
             guard case let .media(media) = item, ids.contains(media.id) else { return nil }
             return index
@@ -177,8 +178,26 @@ final class LibraryBrowseViewModel {
         }
         itemsByIndex = shifted
         totalItemCount = max(totalItemCount - removed.count, 0)
+        sectionCharacters = Self.sections(sectionCharacters, removingIndexes: removed)
         // Every page past a removal now starts one item later on the server, so pages load again when shown.
         loadedPageStarts.removeAll()
+    }
+
+    /// Removed indexes are those before the shift; sections left empty are dropped.
+    static func sections(_ sections: [SectionCharacter], removingIndexes removed: [Int]) -> [SectionCharacter] {
+        var runningIndex = 0
+        return sections.compactMap { section in
+            let end = section.startIndex + section.size
+            let size = section.size - removed.count(where: { $0 >= section.startIndex && $0 < end })
+            guard size > 0 else { return nil }
+            defer { runningIndex += size }
+            return SectionCharacter(
+                id: "\(section.title)-\(runningIndex)",
+                title: section.title,
+                size: size,
+                startIndex: runningIndex,
+            )
+        }
     }
 
     func refresh() async {
