@@ -107,6 +107,7 @@ struct MatchSearchView: View {
             }
         }
         .disabled(!viewModel.canSearch)
+        .tint(.secondary)
     }
 
     @ViewBuilder
@@ -177,17 +178,21 @@ private struct MatchCandidateRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
                 Text(candidate.title)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(primaryStyle)
                     .multilineTextAlignment(.leading)
                 if let detail {
                     Text(verbatim: detail)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryStyle)
                 }
                 if candidate.isCurrent {
-                    Label("media.match.current", systemImage: "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(currentStyle)
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(accentStyle)
+                        Text("media.match.current")
+                            .foregroundStyle(secondaryStyle)
+                    }
+                    .font(.caption)
                 }
             }
             Spacer(minLength: 0)
@@ -198,8 +203,25 @@ private struct MatchCandidateRow: View {
         .contentShape(Rectangle())
     }
 
-    /// Focused tvOS buttons turn white, where only hierarchical styles stay legible.
-    private var currentStyle: AnyShapeStyle {
+    /// List buttons draw their label in the tint, and focused tvOS buttons turn white, where only hierarchical
+    /// styles stay legible.
+    private var primaryStyle: AnyShapeStyle {
+        #if os(tvOS)
+            AnyShapeStyle(.primary)
+        #else
+            AnyShapeStyle(Color.textPrimary)
+        #endif
+    }
+
+    private var secondaryStyle: AnyShapeStyle {
+        #if os(tvOS)
+            AnyShapeStyle(.secondary)
+        #else
+            AnyShapeStyle(Color.textSecondary)
+        #endif
+    }
+
+    private var accentStyle: AnyShapeStyle {
         #if os(tvOS)
             AnyShapeStyle(.secondary)
         #else
