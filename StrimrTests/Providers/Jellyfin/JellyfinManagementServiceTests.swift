@@ -108,9 +108,11 @@ struct JellyfinManagementServiceTests {
     @Test func `search results map to candidates once per provider and title`() throws {
         let candidates = try candidates()
 
-        #expect(candidates.map(\.title) == ["Sample Movie", "Sample Movie Returns", "Sample Movie"])
-        #expect(candidates.map(\.year) == [2010, 2014, 2010])
-        #expect(candidates.map(\.provider) == ["TheMovieDb", "TheMovieDb", "The Open Movie Database"])
+        #expect(candidates.map(\.title)
+            == ["Sample Movie", "Sample Movie Returns", "Sample Movie", "Sample Remake", "Sample Remake"])
+        #expect(candidates.map(\.year) == [2010, 2014, 2010, 1976, 2005])
+        #expect(candidates.map(\.provider)
+            == ["TheMovieDb", "TheMovieDb", "The Open Movie Database", "TheTVDB", "TheTVDB"])
         #expect(candidates[0].posterURL?.absoluteString == "https://image.tmdb.org/t/p/original/sample-one.jpg")
         #expect(candidates[1].posterURL == nil)
     }
@@ -118,7 +120,7 @@ struct JellyfinManagementServiceTests {
     @Test func `the current match shares a provider id with the item`() throws {
         let candidates = try candidates(current: ExternalIDs(imdb: "tt0000001", tmdb: "1001"))
 
-        #expect(candidates.map(\.isCurrent) == [true, false, true])
+        #expect(candidates.map(\.isCurrent) == [true, false, true, false, false])
         #expect(try self.candidates().allSatisfy { !$0.isCurrent })
     }
 

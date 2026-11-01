@@ -21,6 +21,7 @@ struct MatchSearchView: View {
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("common.actions.cancel") { dismiss() }
+                                    .disabled(isApplying)
                             }
                         }
                     #endif
@@ -38,10 +39,19 @@ struct MatchSearchView: View {
         #if os(macOS)
         .frame(minWidth: 560, minHeight: 560)
         #endif
-        .task {
-            guard !viewModel.hasSearched else { return }
-            await viewModel.search()
-        }
+        // The server would still apply the match after the screen closed.
+        .interactiveDismissDisabled(isApplying)
+        #if os(tvOS)
+            .onExitCommand(perform: isApplying ? {} : nil)
+        #endif
+            .task {
+                guard !viewModel.hasSearched else { return }
+                await viewModel.search()
+            }
+    }
+
+    private var isApplying: Bool {
+        viewModel.applyingCandidateID != nil
     }
 
     /// Offers a new poster, since the one of the previous match may not suit the new one.

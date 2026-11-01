@@ -143,13 +143,15 @@ final class JellyfinManagementService: MediaManagementService {
             let provider = result["SearchProviderName"] as? String
             let providerIDs = (result["ProviderIds"] as? [String: Any] ?? [:])
                 .compactMapValues { value in (value as? String) ?? (value as? NSNumber)?.stringValue }
+            let year = (result["ProductionYear"] as? NSNumber)?.intValue
             let ids = providerIDs.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
-            let id = ([provider ?? ""] + (ids.isEmpty ? [name] : ids)).joined(separator: "|")
+            let fallback = [name, year.map(String.init) ?? ""]
+            let id = ([provider ?? ""] + (ids.isEmpty ? fallback : ids)).joined(separator: "|")
             guard seen.insert(id).inserted else { return nil }
             return try MatchCandidate(
                 id: id,
                 title: name,
-                year: (result["ProductionYear"] as? NSNumber)?.intValue,
+                year: year,
                 posterURL: (result["ImageUrl"] as? String).flatMap(URL.init(string:)),
                 provider: provider,
                 isCurrent: ExternalIDs(providerIDs: providerIDs).sharesID(with: current),

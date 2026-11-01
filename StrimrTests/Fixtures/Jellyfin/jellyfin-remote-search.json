@@ -32,6 +32,18 @@
     "Artists": []
   },
   {
+    "Name": "Sample Remake",
+    "ProviderIds": {},
+    "ProductionYear": 1976,
+    "SearchProviderName": "TheTVDB"
+  },
+  {
+    "Name": "Sample Remake",
+    "ProviderIds": {},
+    "ProductionYear": 2005,
+    "SearchProviderName": "TheTVDB"
+  },
+  {
     "ProviderIds": {},
     "SearchProviderName": "TheMovieDb"
   }
