@@ -86,6 +86,8 @@ nonisolated struct ExternalPlayOptions: Equatable, Sendable {
     var offset: TimeInterval?
     /// false starts from the beginning. Like the Play button, links resume from the saved position by default.
     var resume = true
+    /// For a collection, show or season: queue its items in random order.
+    var shuffle = false
     var audio: String?
     var subs: ExternalSubtitleRequest?
 
@@ -95,6 +97,7 @@ nonisolated struct ExternalPlayOptions: Equatable, Sendable {
         case "0", "false": false
         default: true
         }
+        shuffle = query["shuffle"] == "1" || query["shuffle"] == "true"
         audio = ExternalControlCommand.languageCode(query["audio"])
         subs = query["subs"].flatMap(ExternalSubtitleRequest.init)
     }

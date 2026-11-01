@@ -91,4 +91,11 @@ struct ExternalControlTests {
         #expect(try options("strimr://play/1?audio=&subs=").subs == nil)
         #expect(try options("strimr://play/1").subs == nil)
     }
+
+    @Test func `reads shuffle, off unless asked for`() throws {
+        #expect(try options("strimr://play/9?type=collection&shuffle=1").shuffle)
+        #expect(try options("strimr://play/9?type=collection&shuffle=true").shuffle)
+        #expect(try !options("strimr://play/9?type=collection&shuffle=0").shuffle)
+        #expect(try !options("strimr://play/9?type=collection").shuffle)
+    }
 }

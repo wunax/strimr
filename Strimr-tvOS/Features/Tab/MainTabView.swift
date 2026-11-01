@@ -227,6 +227,7 @@ struct MainTabView: View {
                 await PlaybackLauncher(services: services, coordinator: coordinator).play(
                     ratingKey: action.ratingKey,
                     type: action.type,
+                    shuffle: action.options.shuffle,
                     shouldResumeFromOffset: action.options.resume,
                     launchOptions: action.options,
                 )
