@@ -52,6 +52,15 @@ struct SettingsPlaybackView: View {
                 .settingsFocus("settings.playback.defaultSpeed")
 
                 SettingsPicker(
+                    "settings.playback.defaultSleepTimer",
+                    selection: viewModel.defaultSleepTimerBinding,
+                    options: viewModel.defaultSleepTimerOptions,
+                ) { option in
+                    Text(viewModel.defaultSleepTimerTitle(option))
+                }
+                .settingsFocus("settings.playback.defaultSleepTimer")
+
+                SettingsPicker(
                     "settings.playback.rewind",
                     selection: viewModel.rewindBinding,
                     options: Array(viewModel.seekOptions),

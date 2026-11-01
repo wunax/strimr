@@ -19757,6 +19757,28 @@
         }
       }
     },
+    "settings.playback.defaultSleepTimer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep timer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minuteur de veille"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "睡眠定时器"
+          }
+        }
+      }
+    },
     "settings.playback.defaultSpeed" : {
       "localizations" : {
         "en" : {

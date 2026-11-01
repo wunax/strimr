@@ -1,12 +1,15 @@
 import Foundation
 import Observation
 
-enum SleepTimerMode: Hashable {
+enum SleepTimerMode: Codable, Hashable {
     case duration(minutes: Int)
     case endOfItem
     case endOfChapter
 
     static let durationMinutes = [15, 30, 45, 60, 90, 120]
+
+    /// Chapters vary from one item to the next, so only modes that fit any item can be a default.
+    static let defaultOptions: [SleepTimerMode?] = [nil, .endOfItem] + durationMinutes.map { .duration(minutes: $0) }
 
     static func available(isLive: Bool, hasChapters: Bool) -> [SleepTimerMode] {
         var modes: [SleepTimerMode] = []
@@ -75,6 +78,7 @@ final class SleepTimer {
     @ObservationIgnored private var lastPosition: Double?
     @ObservationIgnored private var attenuation: Float = 1
     @ObservationIgnored private var restoresVolumeOnResume = false
+    @ObservationIgnored private var hasAppliedDefault = false
 
     init(now: @escaping () -> Date = Date.init) {
         self.now = now
@@ -86,6 +90,16 @@ final class SleepTimer {
         if case let .duration(minutes) = mode {
             schedule(deadline: now().addingTimeInterval(TimeInterval(minutes * 60)))
         }
+    }
+
+    /// Applied once per player session: a timer turned off by hand stays off on the next queue item.
+    func applyDefault(_ mode: SleepTimerMode?, isLive: Bool) {
+        guard !hasAppliedDefault else { return }
+        hasAppliedDefault = true
+        guard let mode, !isActive, SleepTimerMode.available(isLive: isLive, hasChapters: false).contains(mode) else {
+            return
+        }
+        start(mode)
     }
 
     func extend() {
