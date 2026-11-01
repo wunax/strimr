@@ -20,6 +20,7 @@ struct MediaQuickActionsTests {
         var updatesStarted: [String] = []
         var deleted: [String] = []
         var noted: [String] = []
+        var unmatched: [String] = []
     }
 
     private func makeActions(
@@ -32,6 +33,7 @@ struct MediaQuickActionsTests {
         artworkKinds: [EditableArtworkKind] = [],
         canDelete: Bool = false,
         deletionError: Error? = nil,
+        supportsUnmatch: Bool = false,
     ) -> MediaQuickActions {
         MediaQuickActions(
             supportsFavorites: supportsFavorites,
@@ -93,6 +95,16 @@ struct MediaQuickActionsTests {
                         calls.deleted.append(item.id)
                     },
                     deleted: { calls.noted.append($0) },
+                    matchSearch: { item in
+                        MatchSearchViewModel(item: item, search: { _, _ in [] }, apply: { _ in }) { _ in }
+                    },
+                    supportsUnmatch: supportsUnmatch,
+                    unmatch: { id in
+                        calls.unmatched.append(id)
+                        if let error {
+                            throw error
+                        }
+                    },
                 )
                 : nil,
         )
@@ -118,7 +130,7 @@ struct MediaQuickActionsTests {
     }
 
     @Test func `manage entries follow the server support`() {
-        for type in [MediaKind.movie, .series, .season, .episode] {
+        for type in [MediaKind.season, .episode] {
             #expect(makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: type))
                 == [.refreshMetadata, .analyze])
             #expect(makeActions(canManageLibrary: true, supportsAnalyze: false)
@@ -127,10 +139,45 @@ struct MediaQuickActionsTests {
         #expect(makeActions().manageActions(for: makeMedia(type: .movie)).isEmpty)
     }
 
+    @Test func `movies and series can be matched again, in the wording of each server`() {
+        for type in [MediaKind.movie, .series] {
+            #expect(makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: type))
+                == [.refreshMetadata, .analyze, .identify])
+            #expect(makeActions(canManageLibrary: true, supportsUnmatch: true).manageActions(for: makeMedia(type: type))
+                == [.refreshMetadata, .analyze, .fixMatch, .unmatch])
+            #expect(makeActions(canManageLibrary: true).matchSearch(for: makeMedia(type: type)) != nil)
+        }
+        for type in [MediaKind.season, .episode, .clip] {
+            #expect(makeActions(canManageLibrary: true).matchSearch(for: makeMedia(type: type)) == nil)
+        }
+        #expect(makeActions().matchSearch(for: makeMedia(type: .movie)) == nil)
+        #expect(makeActions(canDelete: true, supportsUnmatch: true).matchSearch(for: makeMedia(type: .movie)) == nil)
+    }
+
+    @Test func `unmatched Plex items cannot be unmatched again`() {
+        let actions = makeActions(canManageLibrary: true, supportsUnmatch: true)
+
+        #expect(actions.manageActions(for: makeMedia(type: .movie, guid: "local://12"))
+            == [.refreshMetadata, .analyze, .fixMatch])
+    }
+
+    @Test func `unmatch calls the server and announces the background update`() async {
+        let calls = Calls()
+        let actions = makeActions(calls: calls, canManageLibrary: true, supportsUnmatch: true)
+
+        #expect(await actions.unmatch(makeMedia(type: .movie)) == .succeeded)
+        #expect(await actions.unmatch(makeMedia(type: .episode)) == .cancelled)
+        #expect(await makeActions(calls: calls, canManageLibrary: true).unmatch(makeMedia(type: .movie)) == .cancelled)
+
+        #expect(calls.unmatched == ["item"])
+        #expect(calls.updatesStarted == ["item"])
+    }
+
     @Test func `artwork entry follows the kinds the server can change`() {
         let actions = makeActions(canManageLibrary: true, artworkKinds: [.poster, .background])
 
-        #expect(actions.manageActions(for: makeMedia(type: .movie)) == [.refreshMetadata, .analyze, .editArtwork])
+        #expect(actions.manageActions(for: makeMedia(type: .movie))
+            == [.refreshMetadata, .analyze, .editArtwork, .identify])
         #expect(actions.artworkPicker(for: makeMedia(type: .movie))?.kinds == [.poster, .background])
         #expect(makeActions(canManageLibrary: true).artworkPicker(for: makeMedia(type: .movie)) == nil)
         #expect(!makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: .movie))
@@ -146,7 +193,7 @@ struct MediaQuickActionsTests {
 
     @Test func `delete ends the manage entries of users allowed to delete`() {
         #expect(makeActions(canManageLibrary: true, canDelete: true).manageActions(for: makeMedia(type: .movie))
-            == [.refreshMetadata, .analyze, .delete])
+            == [.refreshMetadata, .analyze, .identify, .delete])
         for type in [MediaKind.movie, .series, .season, .episode] {
             #expect(makeActions(canDelete: true).manageActions(for: makeMedia(type: type)) == [.delete])
         }
@@ -432,6 +479,7 @@ struct MediaQuickActionsTests {
 
     private func makeMedia(
         type: MediaKind,
+        guid: String = "plex://item",
         viewOffset: TimeInterval? = nil,
         isPlayed: Bool = false,
         isFavorite: Bool = false,
@@ -440,7 +488,7 @@ struct MediaQuickActionsTests {
     ) -> MediaItem {
         MediaItem(
             id: "item",
-            guid: "plex://item",
+            guid: guid,
             summary: nil,
             title: "Title",
             type: type,

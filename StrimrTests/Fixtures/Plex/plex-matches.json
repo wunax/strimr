@@ -1,0 +1,39 @@
+{
+  "MediaContainer": {
+    "size": 4,
+    "identifier": "com.plexapp.plugins.library",
+    "mediaTagPrefix": "/system/bundle/media/flags/",
+    "mediaTagVersion": 1700000000,
+    "SearchResult": [
+      {
+        "guid": "plex://movie/000000000000000000000001",
+        "name": "Sample Movie",
+        "year": 2010,
+        "thumb": "https://metadata-static.plex.tv/0/gracenote/poster-one.jpg",
+        "score": 100,
+        "type": "movie"
+      },
+      {
+        "guid": "plex://movie/000000000000000000000002",
+        "name": "Sample Movie Returns",
+        "year": "2014",
+        "thumb": "",
+        "score": 87,
+        "type": "movie"
+      },
+      {
+        "guid": "plex://movie/000000000000000000000001",
+        "name": "Sample Movie",
+        "year": 2010,
+        "score": 80,
+        "type": "movie"
+      },
+      {
+        "guid": "com.plexapp.agents.imdb://tt0000003?lang=en",
+        "name": "Sample Movie Legacy",
+        "score": 60,
+        "type": "movie"
+      }
+    ]
+  }
+}

@@ -100,4 +100,46 @@ struct JellyfinManagementServiceTests {
         #expect(JellyfinManagementService.deletionImpact(of: series, episodeCount: 24) == .episodes(count: 24))
         #expect(JellyfinManagementService.deletionImpact(of: series, episodeCount: nil) == .episodes(count: 26))
     }
+
+    private func candidates(current: ExternalIDs = ExternalIDs()) throws -> [MatchCandidate] {
+        try JellyfinManagementService.matchCandidates(from: Fixtures.data("jellyfin-remote-search"), current: current)
+    }
+
+    @Test func `search results map to candidates once per provider and title`() throws {
+        let candidates = try candidates()
+
+        #expect(candidates.map(\.title)
+            == ["Sample Movie", "Sample Movie Returns", "Sample Movie", "Sample Remake", "Sample Remake"])
+        #expect(candidates.map(\.year) == [2010, 2014, 2010, 1976, 2005])
+        #expect(candidates.map(\.provider)
+            == ["TheMovieDb", "TheMovieDb", "The Open Movie Database", "TheTVDB", "TheTVDB"])
+        #expect(candidates[0].posterURL?.absoluteString == "https://image.tmdb.org/t/p/original/sample-one.jpg")
+        #expect(candidates[1].posterURL == nil)
+    }
+
+    @Test func `the current match shares a provider id with the item`() throws {
+        let candidates = try candidates(current: ExternalIDs(imdb: "tt0000001", tmdb: "1001"))
+
+        #expect(candidates.map(\.isCurrent) == [true, false, true, false, false])
+        #expect(try self.candidates().allSatisfy { !$0.isCurrent })
+    }
+
+    @Test func `the search result is sent back with every field the server returned`() throws {
+        guard case let .jellyfin(payload) = try candidates()[0].payload else {
+            Issue.record("Expected a Jellyfin payload")
+            return
+        }
+        let result = try #require(try JSONSerialization.jsonObject(with: payload) as? [String: Any])
+
+        #expect(result["Overview"] as? String == "A sample overview.")
+        #expect(result["SearchProviderName"] as? String == "TheMovieDb")
+        #expect((result["ProviderIds"] as? [String: String])?["Tmdb"] == "1001")
+        #expect(result["Artists"] as? [Any] != nil)
+    }
+
+    @Test func `only movies and series can be identified`() {
+        #expect(JellyfinManagementService.remoteSearchType(for: .movie) == "Movie")
+        #expect(JellyfinManagementService.remoteSearchType(for: .series) == "Series")
+        #expect(JellyfinManagementService.remoteSearchType(for: .episode) == nil)
+    }
 }

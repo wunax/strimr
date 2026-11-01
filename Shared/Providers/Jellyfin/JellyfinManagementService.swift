@@ -87,6 +87,79 @@ final class JellyfinManagementService: MediaManagementService {
         try await promoteLatestBackdrop(itemID: item.id, imageType: type)
     }
 
+    /// Asks every provider, which can take longer than a usual request.
+    func searchMatches(for item: MediaItem, title: String, year: Int?) async throws -> [MatchCandidate] {
+        guard let searchType = Self.remoteSearchType(for: item.type) else { return [] }
+        var searchInfo: [String: Any] = ["Name": title]
+        if let year {
+            searchInfo["Year"] = year
+        }
+        let body = try JSONSerialization.data(withJSONObject: ["ItemId": item.id, "SearchInfo": searchInfo])
+        let data = try await context.rawData(
+            path: ["Items", "RemoteSearch", searchType],
+            method: "POST",
+            body: body,
+            timeout: Self.remoteSearchTimeout,
+        )
+        return try Self.matchCandidates(from: data, current: item.externalIDs)
+    }
+
+    /// The server answers once it has refreshed the item with the new match.
+    func applyMatch(_ candidate: MatchCandidate, to item: MediaItem) async throws {
+        guard case let .jellyfin(result) = candidate.payload else { return }
+        try await context.send(
+            path: ["Items", "RemoteSearch", "Apply", item.id],
+            method: "POST",
+            query: [URLQueryItem(name: "ReplaceAllImages", value: "true")],
+            body: result,
+            timeout: Self.remoteSearchTimeout,
+        )
+    }
+
+    var supportsUnmatch: Bool {
+        false
+    }
+
+    func unmatch(itemID _: String) async throws {}
+
+    static let remoteSearchTimeout: TimeInterval = 120
+
+    static func remoteSearchType(for type: MediaKind) -> String? {
+        switch type {
+        case .movie: "Movie"
+        case .series: "Series"
+        default: nil
+        }
+    }
+
+    /// Each provider answers separately, so a title can come back once per provider.
+    static func matchCandidates(from data: Data, current: ExternalIDs) throws -> [MatchCandidate] {
+        guard let results = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            throw JellyfinAPIError.invalidResponse
+        }
+        var seen = Set<String>()
+        return try results.compactMap { result in
+            guard let name = result["Name"] as? String, !name.isEmpty else { return nil }
+            let provider = result["SearchProviderName"] as? String
+            let providerIDs = (result["ProviderIds"] as? [String: Any] ?? [:])
+                .compactMapValues { value in (value as? String) ?? (value as? NSNumber)?.stringValue }
+            let year = (result["ProductionYear"] as? NSNumber)?.intValue
+            let ids = providerIDs.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
+            let fallback = [name, year.map(String.init) ?? ""]
+            let id = ([provider ?? ""] + (ids.isEmpty ? fallback : ids)).joined(separator: "|")
+            guard seen.insert(id).inserted else { return nil }
+            return try MatchCandidate(
+                id: id,
+                title: name,
+                year: year,
+                posterURL: (result["ImageUrl"] as? String).flatMap(URL.init(string:)),
+                provider: provider,
+                isCurrent: ExternalIDs(providerIDs: providerIDs).sharesID(with: current),
+                payload: .jellyfin(JSONSerialization.data(withJSONObject: result)),
+            )
+        }
+    }
+
     /// An item can have several backdrops and a new one is added last, while the app shows the first.
     private func promoteLatestBackdrop(itemID: String, imageType: String) async throws {
         guard imageType == "Backdrop" else { return }

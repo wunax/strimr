@@ -332,13 +332,15 @@ final class JellyfinAPIContext {
         return try await request(path: path, method: "POST", query: query, body: encoded)
     }
 
-    /// `contentType` describes the body, JSON unless given.
+    /// `contentType` describes the body, JSON unless given. `timeout` replaces the default one for calls the server
+    /// only answers once its work is done.
     func send(
         path: [String],
         method: String,
         query: [URLQueryItem] = [],
         body: Data? = nil,
         contentType: String? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws {
         let (_, response) = try await authenticatedRequest(
             path: path,
@@ -346,6 +348,7 @@ final class JellyfinAPIContext {
             query: query,
             body: body,
             contentType: contentType,
+            timeout: timeout,
         )
         try validateStatus(response.statusCode)
     }
@@ -355,12 +358,14 @@ final class JellyfinAPIContext {
         method: String = "GET",
         query: [URLQueryItem] = [],
         body: Data? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws -> Data {
         let (data, response) = try await authenticatedRequest(
             path: path,
             method: method,
             query: query,
             body: body,
+            timeout: timeout,
         )
         try validateStatus(response.statusCode)
         return data
@@ -479,6 +484,7 @@ final class JellyfinAPIContext {
         query: [URLQueryItem],
         body: Data?,
         contentType: String? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws -> (Data, HTTPURLResponse) {
         guard let connection, let accessToken else {
             throw JellyfinAPIError.authenticationRequired
@@ -490,6 +496,7 @@ final class JellyfinAPIContext {
             query: query,
             body: body,
             contentType: contentType,
+            timeout: timeout,
             token: accessToken,
         )
     }
@@ -501,13 +508,14 @@ final class JellyfinAPIContext {
         query: [URLQueryItem],
         body: Data?,
         contentType: String? = nil,
+        timeout: TimeInterval? = nil,
         token: String?,
     ) async throws -> (Data, HTTPURLResponse) {
         let url = try Self.makeURL(baseURL: baseURL, path: path, query: query)
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
-        request.timeoutInterval = 15
+        request.timeoutInterval = timeout ?? 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil {
             request.setValue(contentType ?? "application/json", forHTTPHeaderField: "Content-Type")

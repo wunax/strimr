@@ -462,6 +462,12 @@ protocol MediaManagementService: AnyObject {
     func deletionImpact(of item: MediaItem) async throws -> MediaDeletionImpact
     /// Removes the item and its files from the server's disk, with every episode of a series or a season.
     func delete(_ item: MediaItem) async throws
+    /// Movies and series only.
+    func searchMatches(for item: MediaItem, title: String, year: Int?) async throws -> [MatchCandidate]
+    func applyMatch(_ candidate: MatchCandidate, to item: MediaItem) async throws
+    /// Only Plex can detach an item from its match.
+    var supportsUnmatch: Bool { get }
+    func unmatch(itemID: String) async throws
 }
 
 @MainActor
@@ -503,4 +509,16 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     }
 
     func delete(_: MediaItem) async throws {}
+
+    func searchMatches(for _: MediaItem, title _: String, year _: Int?) async throws -> [MatchCandidate] {
+        []
+    }
+
+    func applyMatch(_: MatchCandidate, to _: MediaItem) async throws {}
+
+    var supportsUnmatch: Bool {
+        false
+    }
+
+    func unmatch(itemID _: String) async throws {}
 }

@@ -31,12 +31,14 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        encodesPlusSign: Bool = false,
     ) async throws -> Response {
         let result = try await data(
             path: path,
             queryItems: queryItems,
             method: method,
             headers: headers,
+            encodesPlusSign: encodesPlusSign,
         )
         let data = result.data
         let response = result.response

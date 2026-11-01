@@ -20,6 +20,11 @@ enum MediaQuickAction: Hashable {
     case analyze
     case editArtwork
     case delete
+    /// Plex wording of the match search.
+    case fixMatch
+    /// Jellyfin wording of the match search.
+    case identify
+    case unmatch
 
     var title: String {
         switch self {
@@ -41,6 +46,9 @@ enum MediaQuickAction: Hashable {
         case .analyze: String(localized: "media.manage.analyze")
         case .editArtwork: String(localized: "media.manage.editArtwork")
         case .delete: String(localized: "media.manage.delete")
+        case .fixMatch: String(localized: "media.manage.fixMatch")
+        case .identify: String(localized: "media.manage.identify")
+        case .unmatch: String(localized: "media.manage.unmatch")
         }
     }
 
@@ -63,6 +71,8 @@ enum MediaQuickAction: Hashable {
         case .analyze: "waveform.badge.magnifyingglass"
         case .editArtwork: "photo.on.rectangle"
         case .delete: "trash"
+        case .fixMatch, .identify: "magnifyingglass"
+        case .unmatch: "link.badge.minus"
         }
     }
 }
@@ -104,6 +114,10 @@ struct MediaQuickActions {
         var deletionImpact: (MediaItem) async throws -> MediaDeletionImpact = { _ in .files(count: 0, totalSize: nil) }
         var delete: (MediaItem) async throws -> Void = { _ in }
         var deleted: (String) -> Void = { _ in }
+        var matchSearch: (MediaItem) -> MatchSearchViewModel? = { _ in nil }
+        /// Plex can also detach an item from its match; it names the search "fix match", Jellyfin "identify".
+        var supportsUnmatch = false
+        var unmatch: (String) async throws -> Void = { _ in }
     }
 
     init(services: MediaServices) {
@@ -135,6 +149,15 @@ struct MediaQuickActions {
                 deletionImpact: { try await service.deletionImpact(of: $0) },
                 delete: { try await service.delete($0) },
                 deleted: { services.noteMediaDeleted(itemID: $0) },
+                matchSearch: { item in
+                    MatchSearchViewModel(
+                        item: item,
+                        search: { try await service.searchMatches(for: item, title: $0, year: $1) },
+                        apply: { try await service.applyMatch($0, to: item) },
+                    ) { services.noteMediaChangeScheduled(itemID: $0) }
+                },
+                supportsUnmatch: service.supportsUnmatch,
+                unmatch: { try await service.unmatch(itemID: $0) },
             )
             : nil
     }
@@ -230,6 +253,13 @@ struct MediaQuickActions {
             if !management.artworkKinds(item).isEmpty {
                 actions.append(.editArtwork)
             }
+            if Self.canMatch(item) {
+                actions.append(management.supportsUnmatch ? .fixMatch : .identify)
+                // Plex gives unmatched items a `local://` guid.
+                if management.supportsUnmatch, !item.guid.hasPrefix("local://") {
+                    actions.append(.unmatch)
+                }
+            }
         }
         if management.canDelete {
             actions.append(.delete)
@@ -237,9 +267,24 @@ struct MediaQuickActions {
         return actions
     }
 
+    static func canMatch(_ item: MediaItem) -> Bool {
+        [.movie, .series].contains(item.type)
+    }
+
     func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
         guard manageActions(for: item).contains(.editArtwork) else { return nil }
         return management?.artworkPicker(item)
+    }
+
+    func matchSearch(for item: MediaItem) -> MatchSearchViewModel? {
+        guard let management, management.canManageLibrary, Self.canMatch(item) else { return nil }
+        return management.matchSearch(item)
+    }
+
+    func unmatch(_ item: MediaItem) async -> Outcome {
+        guard let management, management.canManageLibrary, management.supportsUnmatch, Self.canMatch(item)
+        else { return .cancelled }
+        return await performManagement(on: item) { try await management.unmatch(item.id) }
     }
 
     func setPlayed(_ played: Bool, for item: MediaItem) async -> Outcome {
