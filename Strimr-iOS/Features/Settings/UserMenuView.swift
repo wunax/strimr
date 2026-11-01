@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct UserMenuView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(ServerRegistry.self) private var registry
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @EnvironmentObject private var coordinator: MainCoordinator
@@ -15,6 +16,17 @@ struct UserMenuView: View {
                     SettingsView()
                 } label: {
                     Label("settings.title", systemImage: "gearshape.fill")
+                }
+
+                if !registry.administeredPlexServers.isEmpty {
+                    NavigationLink {
+                        PlexServerView { media in
+                            dismiss()
+                            coordinator.showMediaDetail(media)
+                        }
+                    } label: {
+                        Label { Text("plex.dashboard.title") } icon: { PlexServerIcon() }
+                    }
                 }
 
                 if !settingsManager.interface.displayDownloadsTab {
