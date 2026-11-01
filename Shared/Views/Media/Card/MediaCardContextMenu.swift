@@ -65,6 +65,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @State private var mediaToAddToPlaylist: MediaItem?
     @State private var isRenamingPlaylist = false
     @State private var isConfirmingPlaylistDeletion = false
+    @State private var manageController = MediaManageController()
 
     private struct Failure: Identifiable {
         let id = UUID()
@@ -79,6 +80,9 @@ private struct MediaCardContextMenu: ViewModifier {
                     menu(for: item, services: services, actions: actions)
                 }
                 .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: services)
+                .mediaManagePresentation(manageController, quickActions: MediaQuickActions(services: services)) {
+                    reloadAfterServerUpdate(item)
+                }
                 .modifier(FailureAlert(failure: $failure, successCount: successCount))
         } else if case let .playlist(playlist) = media, !playlist.isSmart, let services, isOnline(services) {
             content
@@ -173,15 +177,31 @@ private struct MediaCardContextMenu: ViewModifier {
                 canAddToPlaylist: isOnline(services),
                 offersDetails: offersDetails,
                 isInContinueWatching: isInContinueWatching && isOnline(services),
+                canManage: isOnline(services),
             ),
             id: \.self,
         ) { action in
-            Button {
-                perform(action, on: item, quickActions: quickActions, services: services, actions: actions)
-            } label: {
-                Label(action.title, systemImage: action.systemImage)
+            if action == .manage {
+                MediaManageMenu(item: item, quickActions: quickActions, controller: manageController) {
+                    reloadAfterServerUpdate(item)
+                }
+            } else {
+                Button {
+                    perform(action, on: item, quickActions: quickActions, services: services, actions: actions)
+                } label: {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+                .disabled(isPerforming)
             }
-            .disabled(isPerforming)
+        }
+    }
+
+    /// The server applies the update after answering, so the page holding the card reloads once it had time to.
+    private func reloadAfterServerUpdate(_ item: MediaItem) {
+        guard let reload else { return }
+        Task {
+            try? await Task.sleep(for: MediaServices.serverUpdateDelay)
+            reload(item)
         }
     }
 
@@ -227,6 +247,8 @@ private struct MediaCardContextMenu: ViewModifier {
             run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
                 await quickActions.removeFromContinueWatching(item)
             }
+        case .manage, .refreshMetadata, .analyze:
+            break
         }
     }
 

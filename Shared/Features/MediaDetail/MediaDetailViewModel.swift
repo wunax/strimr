@@ -115,8 +115,21 @@ final class MediaDetailViewModel {
         services.identity
     }
 
-    private var quickActions: MediaQuickActions {
+    var quickActions: MediaQuickActions {
         MediaQuickActions(services: services)
+    }
+
+    var canManageMedia: Bool {
+        !quickActions.manageActions(for: media.mediaItem).isEmpty
+    }
+
+    /// Reloads when a media this page shows was changed on the server from the app.
+    func refreshAfterMediaChange(itemID: String?) async {
+        guard let itemID else { return }
+        let shownIDs = [media.id, media.metadataRatingKey, parentSeries?.id].compactMap(\.self)
+            + seasons.map(\.id) + episodes.map(\.id)
+        guard shownIDs.contains(itemID) else { return }
+        await loadDetails(preservingExistingContent: true)
     }
 
     private var detailTargetID: String {

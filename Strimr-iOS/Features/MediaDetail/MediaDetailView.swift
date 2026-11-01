@@ -97,6 +97,9 @@ struct MediaDetailView: View {
         .task {
             await bindableViewModel.loadDetails()
         }
+        .onChange(of: mediaServices.mediaRevision) {
+            Task { await bindableViewModel.refreshAfterMediaChange(itemID: mediaServices.lastChangedMediaID) }
+        }
         .onAppear {
             Task { await bindableViewModel.refreshIfNeeded() }
         }

@@ -57,8 +57,8 @@ struct HomeView: View {
             updateInitialFocus()
             Task { await viewModel.refreshIfNeeded() }
         }
-        .onChange(of: viewModel.watchStateRevisions) {
-            viewModel.refreshAfterWatchStateChanges()
+        .onChange(of: viewModel.contentRevisions) {
+            viewModel.refreshAfterContentChanges()
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }

@@ -1653,6 +1653,7 @@ enum JellyfinMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
+            management: JellyfinManagementService(context: context),
             trackSelectionCoordinator: trackSelectionCoordinator,
             trackSelectionAccountIdentifier: connection.userID,
             versionSelectionStore: versionSelectionStore,

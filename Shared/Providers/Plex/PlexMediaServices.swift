@@ -14,11 +14,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     private var queueItemIDs: [String: Int] = [:]
     private var subtitleResults: [String: PlexSubtitleSearchResult] = [:]
     private var downloadQueueID: Int?
+    private let isServerAdministrator: Bool
+    private var allowsMediaDeletion = false
     weak var services: MediaServices?
 
-    init(context: PlexAPIContext, server: ServerIdentity) {
+    init(context: PlexAPIContext, server: ServerIdentity, isServerAdministrator: Bool = false) {
         self.context = context
         self.server = server
+        self.isServerAdministrator = isServerAdministrator
     }
 
     var supportsWatchlist: Bool {
@@ -38,7 +41,19 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
     }
 
     var authorization: MediaAuthorization {
-        .plex
+        .plex(isAdministrator: isServerAdministrator, allowsMediaDeletion: allowsMediaDeletion)
+    }
+
+    /// The deletion setting is only exposed by the server's root, so it is read once after connecting.
+    func loadDeletionSetting() async {
+        guard isServerAdministrator else { return }
+        do {
+            let root = try await LibraryManagementRepository(context: context).getServerRoot()
+            allowsMediaDeletion = root.mediaContainer.allowMediaDeletion == true
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            ErrorReporter.capture(error)
+        }
     }
 
     func serverAccessRecoveryError(from error: Error) -> MediaServerAccessRecoveryError? {
@@ -1576,10 +1591,12 @@ enum PlexMediaServicesFactory {
     /// - Parameters:
     ///   - userID: Plex user of the token, which owns the offline data and track preferences of this server.
     ///   - favoritesProfileID: Strimr profile the local favorites belong to.
+    ///   - isServerAdministrator: The user administers this server, see `PlexServerRights`.
     static func make(
         context: PlexAPIContext,
         serverName: String,
         userID: String,
+        isServerAdministrator: Bool,
         favoritesProfileID: String,
         favoritesStore: FavoritesStore,
         trackSelectionCoordinator: TrackSelectionCoordinator?,
@@ -1587,7 +1604,11 @@ enum PlexMediaServicesFactory {
     ) -> MediaServices? {
         guard let snapshot = try? context.serverAccessSnapshot() else { return nil }
         let identity = ServerIdentity(provider: .plex, id: snapshot.serverIdentifier)
-        let adapter = PlexMediaServiceAdapter(context: context, server: identity)
+        let adapter = PlexMediaServiceAdapter(
+            context: context,
+            server: identity,
+            isServerAdministrator: isServerAdministrator,
+        )
         let favorites = PlexFavoritesService(
             context: context,
             store: favoritesStore,
@@ -1633,6 +1654,7 @@ enum PlexMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
+            management: PlexManagementService(context: context),
             trackSelectionCoordinator: trackSelectionCoordinator,
             trackSelectionAccountIdentifier: userID,
             versionSelectionStore: versionSelectionStore,
@@ -1641,6 +1663,7 @@ enum PlexMediaServicesFactory {
         services.availabilityProbeURL = { [weak context] in
             context?.baseURLServer?.appendingPathComponent("identity")
         }
+        Task { await adapter.loadDeletionSetting() }
         return services
     }
 }

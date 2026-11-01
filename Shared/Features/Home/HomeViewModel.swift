@@ -27,8 +27,8 @@ final class HomeViewModel {
     @ObservationIgnored private var watchingRowsTask: Task<Void, Never>?
     /// Bumped by each full load, so watching rows requested before it do not overwrite its newer rows.
     @ObservationIgnored private var rowsLoadGeneration = 0
-    @ObservationIgnored private var loadedWatchStateRevisions: [ServerIdentity: Int] = [:]
-    @ObservationIgnored private var watchStateRefreshTask: Task<Void, Never>?
+    @ObservationIgnored private var loadedContentRevisions: [ServerIdentity: Int] = [:]
+    @ObservationIgnored private var contentRefreshTask: Task<Void, Never>?
     @ObservationIgnored private var loadedConfigurations: [ServerIdentity: LoadConfiguration] = [:]
     @ObservationIgnored private var builtLibraryOrder: [LibraryIdentity] = []
     /// The player is drawn over the home, which stays alive: automatic refreshes wait, as closing the player reloads
@@ -37,7 +37,7 @@ final class HomeViewModel {
         didSet {
             // Closing the player reloads only the played server; changes skipped meanwhile on others are caught up.
             guard oldValue, !isPlaybackActive else { return }
-            refreshAfterWatchStateChanges()
+            refreshAfterContentChanges()
         }
     }
 
@@ -203,7 +203,7 @@ final class HomeViewModel {
         if libraryOrder != builtLibraryOrder {
             rebuild()
         }
-        var reloaded = serversWithWatchStateChanges.union(serversWithConfigurationChanges)
+        var reloaded = serversWithContentChanges.union(serversWithConfigurationChanges)
         let shownRowIDs = shownRowIDs
         if shownRowIDs != loadedShownRowIDs {
             let changed = shownRowIDs.symmetricDifference(loadedShownRowIDs)
@@ -277,31 +277,31 @@ final class HomeViewModel {
         }
     }
 
-    /// Revision of each server's watch state, to observe changes made anywhere in the app.
-    var watchStateRevisions: [ServerIdentity: Int] {
+    /// Revision of what each server's home shows, to observe changes made anywhere in the app.
+    var contentRevisions: [ServerIdentity: Int] {
         Dictionary(
-            registry.connectedServices.map { ($0.identity, $0.watchStateRevision) },
+            registry.connectedServices.map { ($0.identity, $0.homeContentRevision) },
             uniquingKeysWith: { first, _ in first },
         )
     }
 
-    /// Reloads the servers whose watch state changed since their last load. Grouped, so marking several episodes in a
+    /// Reloads the servers whose content changed since their last load. Grouped, so marking several episodes in a
     /// row reloads once.
-    func refreshAfterWatchStateChanges() {
-        watchStateRefreshTask?.cancel()
-        watchStateRefreshTask = Task { [weak self] in
+    func refreshAfterContentChanges() {
+        contentRefreshTask?.cancel()
+        contentRefreshTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
             guard let self, !Task.isCancelled, !isPlaybackActive else { return }
-            let changed = serversWithWatchStateChanges
+            let changed = serversWithContentChanges
             guard !changed.isEmpty else { return }
             await reload(servers: changed, preservingExistingContent: true)
         }
     }
 
-    private var serversWithWatchStateChanges: Set<ServerIdentity> {
+    private var serversWithContentChanges: Set<ServerIdentity> {
         guard refreshGate.hasStartedInitialLoad else { return [] }
-        return Set(watchStateRevisions.compactMap { server, revision in
-            loadedServers.contains(server) && loadedWatchStateRevisions[server] != revision ? server : nil
+        return Set(contentRevisions.compactMap { server, revision in
+            loadedServers.contains(server) && loadedContentRevisions[server] != revision ? server : nil
         })
     }
 
@@ -381,7 +381,7 @@ final class HomeViewModel {
         )
         // Taken before the request, so a change made while it runs triggers another reload.
         for session in sessions {
-            loadedWatchStateRevisions[session.identity] = registry.services(for: session.identity)?.watchStateRevision
+            loadedContentRevisions[session.identity] = registry.services(for: session.identity)?.homeContentRevision
             loadedConfigurations[session.identity] = configurations[session.identity]
         }
         let shownRowIDs = shownRowIDs
