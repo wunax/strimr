@@ -245,7 +245,7 @@ struct MediaQuickActions {
     }
 }
 
-private extension Error {
+extension Error {
     var isManagementRefusal: Bool {
         if case let .requestFailed(statusCode)? = self as? PlexAPIError {
             return statusCode == 403

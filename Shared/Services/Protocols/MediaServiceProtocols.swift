@@ -444,6 +444,15 @@ protocol MediaManagementService: AnyObject {
     /// Only Plex analyzes media files on demand.
     var supportsAnalyze: Bool { get }
     func analyze(itemID: String) async throws
+    /// Looks for new and removed files.
+    func scanLibrary(id: String) async throws
+    /// Refreshes the metadata of the whole library, keeping locked fields and chosen artwork.
+    func refreshLibraryMetadata(id: String) async throws
+    /// Only offered when `supportsAnalyze`.
+    func analyzeLibrary(id: String) async throws
+    /// Only Plex keeps the items of missing files in a trash.
+    var supportsLibraryTrash: Bool { get }
+    func emptyLibraryTrash(id: String) async throws
 }
 
 @MainActor
@@ -455,4 +464,16 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     func refreshMetadata(itemID _: String) async throws {}
 
     func analyze(itemID _: String) async throws {}
+
+    var supportsLibraryTrash: Bool {
+        false
+    }
+
+    func scanLibrary(id _: String) async throws {}
+
+    func refreshLibraryMetadata(id _: String) async throws {}
+
+    func analyzeLibrary(id _: String) async throws {}
+
+    func emptyLibraryTrash(id _: String) async throws {}
 }
