@@ -177,9 +177,18 @@ protocol MediaHomeService: AnyObject {
     /// Every row the user can add to the home, including the ones the server does not put there.
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
     func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem>
+    /// Only Plex can take an item off Continue Watching without touching its progress.
+    var supportsContinueWatchingRemoval: Bool { get }
+    func removeFromContinueWatching(itemID: String) async throws
 }
 
 extension MediaHomeService {
+    var supportsContinueWatchingRemoval: Bool {
+        false
+    }
+
+    func removeFromContinueWatching(itemID _: String) async throws {}
+
     func homeRowCatalog(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
         []
     }

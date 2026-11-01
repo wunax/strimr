@@ -10,6 +10,8 @@ extension EnvironmentValues {
     @Entry var mediaCardActions: MediaCardActions?
     /// Set where selecting a card plays it instead of opening its details, so the menu offers the details instead.
     @Entry var mediaCardOffersDetails = false
+    /// Set on the cards of the home's Continue Watching row, which can take their item off the row.
+    @Entry var mediaCardIsInContinueWatching = false
     /// Reloads the rows or page holding the card once a menu action changed its item, which can move it out of
     /// Continue Watching or change its badge.
     @Entry var reloadAfterMediaCardAction: ((MediaItem) -> Void)?
@@ -48,6 +50,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(\.mediaCardActions) private var actions
     @Environment(\.mediaCardOffersDetails) private var offersDetails
+    @Environment(\.mediaCardIsInContinueWatching) private var isInContinueWatching
     @Environment(\.reloadAfterMediaCardAction) private var reload
     @Environment(\.reloadAfterPlaylistChange) private var reloadAfterPlaylistChange
     #if !os(tvOS)
@@ -169,6 +172,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 canDownload: canDownload(item, services: services),
                 canAddToPlaylist: isOnline(services),
                 offersDetails: offersDetails,
+                isInContinueWatching: isInContinueWatching && isOnline(services),
             ),
             id: \.self,
         ) { action in
@@ -219,6 +223,10 @@ private struct MediaCardContextMenu: ViewModifier {
             mediaToAddToPlaylist = item
         case .download:
             download(item, services: services)
+        case .removeFromContinueWatching:
+            run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
+                await quickActions.removeFromContinueWatching(item)
+            }
         }
     }
 

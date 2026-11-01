@@ -65,6 +65,14 @@ final class CachedHomeService: MediaHomeService {
         try await base.homeRowCatalog(hiddenLibraryIDs: hiddenLibraryIDs)
     }
 
+    var supportsContinueWatchingRemoval: Bool {
+        base.supportsContinueWatchingRemoval
+    }
+
+    func removeFromContinueWatching(itemID: String) async throws {
+        try await base.removeFromContinueWatching(itemID: itemID)
+    }
+
     /// Last home snapshot, shown immediately while the network response is loading.
     func cachedHome() -> HomeContent? {
         guard let snapshot = policy.store.list(key: Self.homeKey, owner: policy.owner),

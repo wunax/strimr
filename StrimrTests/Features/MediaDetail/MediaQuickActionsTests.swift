@@ -13,11 +13,13 @@ struct MediaQuickActionsTests {
     private final class Calls {
         var played: [(Bool, String)] = []
         var favorites: [(Bool, String)] = []
+        var removedFromContinueWatching: [String] = []
         var changes = 0
     }
 
     private func makeActions(
         supportsFavorites: Bool = true,
+        supportsContinueWatchingRemoval: Bool = true,
         calls: Calls = Calls(),
         error: Error? = nil,
     ) -> MediaQuickActions {
@@ -35,6 +37,12 @@ struct MediaQuickActionsTests {
                     throw error
                 }
             },
+            removeFromContinueWatching: supportsContinueWatchingRemoval ? { id in
+                calls.removedFromContinueWatching.append(id)
+                if let error {
+                    throw error
+                }
+            } : nil,
             didChange: { calls.changes += 1 },
         )
     }
@@ -136,6 +144,46 @@ struct MediaQuickActionsTests {
 
         #expect(outcome == .cancelled)
         #expect(calls.favorites.isEmpty)
+    }
+
+    @Test func `continue watching cards end with the removal`() {
+        let actions = makeActions().menuActions(
+            for: makeMedia(type: .episode, viewOffset: 600),
+            canDownload: false,
+            isInContinueWatching: true,
+        )
+
+        #expect(actions.last == .removeFromContinueWatching)
+    }
+
+    @Test func `removal is only offered in continue watching, on servers that support it`() {
+        let movie = makeMedia(type: .movie, viewOffset: 600)
+
+        #expect(!makeActions().menuActions(for: movie, canDownload: false)
+            .contains(.removeFromContinueWatching))
+        #expect(!makeActions(supportsContinueWatchingRemoval: false)
+            .menuActions(for: movie, canDownload: false, isInContinueWatching: true)
+            .contains(.removeFromContinueWatching))
+    }
+
+    @Test func `removal calls the home service with the item id and reports a change`() async {
+        let calls = Calls()
+
+        let outcome = await makeActions(calls: calls).removeFromContinueWatching(makeMedia(type: .episode))
+
+        #expect(outcome == .succeeded)
+        #expect(calls.removedFromContinueWatching == ["item"])
+        #expect(calls.changes == 1)
+    }
+
+    @Test func `removal is skipped when unsupported`() async {
+        let calls = Calls()
+
+        let outcome = await makeActions(supportsContinueWatchingRemoval: false, calls: calls)
+            .removeFromContinueWatching(makeMedia(type: .movie))
+
+        #expect(outcome == .cancelled)
+        #expect(calls.changes == 0)
     }
 
     @Test func `failures carry the server message`() async {

@@ -41,6 +41,15 @@ final class HubRepository {
         )
     }
 
+    /// Also hides the next episodes of the item's series from the hub.
+    func removeFromContinueWatching(ratingKey: String) async throws {
+        try await network.send(
+            path: "/actions/removeFromContinueWatching",
+            queryItems: [URLQueryItem(name: "ratingKey", value: ratingKey)],
+            method: "PUT",
+        )
+    }
+
     /// External ids (imdb, tmdb, tvdb) are only returned with this flag; they recognize a title on other servers.
     static let includeGuids = URLQueryItem(name: "includeGuids", value: "1")
 

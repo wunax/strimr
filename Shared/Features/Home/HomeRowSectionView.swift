@@ -22,6 +22,7 @@ struct HomeRowSectionView: View {
                 onSelectMedia: select,
             )
             .environment(\.mediaCardOffersDetails, playsOnSelect)
+            .environment(\.mediaCardIsInContinueWatching, row.kind == .continueWatching)
         }
     }
 
