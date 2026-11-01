@@ -14,8 +14,8 @@ struct RootAlert: Identifiable {
     var destructiveAction: DestructiveAction?
 }
 
-/// On iOS and tvOS, a view that held a context menu can no longer present an alert once the menu has closed, so
-/// results that arrive after a menu action are shown from the root instead.
+/// A view that held a context menu can no longer present an alert once the menu has closed, so results that arrive
+/// after a menu action are shown from the root instead.
 @MainActor
 @Observable
 final class RootAlertPresenter {
