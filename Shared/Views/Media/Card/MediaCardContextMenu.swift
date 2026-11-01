@@ -83,6 +83,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 .mediaManagePresentation(
                     manageController,
                     quickActions: MediaQuickActions(services: services),
+                    presentsFromRoot: true,
                     onArtworkChanged: { reload?(item) },
                 ) {
                     reloadAfterServerUpdate(item)

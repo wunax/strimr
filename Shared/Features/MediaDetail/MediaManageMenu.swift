@@ -36,7 +36,6 @@ final class MediaManageController {
             case .analyze: await quickActions.analyze(item)
             default: .cancelled
             }
-            await ContextMenuDismissal.wait()
             isPerforming = false
             switch outcome {
             case .succeeded:
@@ -109,16 +108,19 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onArtworkChanged` runs once the artwork screen closes after a change.
+    /// `onArtworkChanged` runs once the artwork screen closes after a change. `presentsFromRoot` is for views that
+    /// hold a context menu, which can no longer present an alert once it has closed.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
+        presentsFromRoot: Bool = false,
         onArtworkChanged: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
         modifier(MediaManagePresentation(
             controller: controller,
             quickActions: quickActions,
+            presentsFromRoot: presentsFromRoot,
             onArtworkChanged: onArtworkChanged,
             onAccepted: onAccepted,
         ))
@@ -128,9 +130,10 @@ extension View {
 private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
+    let presentsFromRoot: Bool
     let onArtworkChanged: (() -> Void)?
     let onAccepted: (() -> Void)?
-    @Environment(RootAlertPresenter.self) private var rootAlerts: RootAlertPresenter?
+    @Environment(RootAlertPresenter.self) private var rootAlertPresenter: RootAlertPresenter?
     @State private var hasArtworkChanged = false
 
     func body(content: Content) -> some View {
@@ -166,7 +169,10 @@ private struct MediaManagePresentation: ViewModifier {
             .onChange(of: controller.notice?.id) {
                 guard let rootAlerts, let notice = controller.notice else { return }
                 controller.notice = nil
-                rootAlerts.alert = RootAlert(title: notice.title, message: notice.message)
+                Task {
+                    await ContextMenuDismissal.wait()
+                    rootAlerts.alert = RootAlert(title: notice.title, message: notice.message)
+                }
             }
             .alert(item: localNotice) { notice in
                 Alert(
@@ -177,7 +183,10 @@ private struct MediaManagePresentation: ViewModifier {
             }
     }
 
-    /// Only used where no root host is installed.
+    private var rootAlerts: RootAlertPresenter? {
+        presentsFromRoot ? rootAlertPresenter : nil
+    }
+
     private var localNotice: Binding<MediaManageController.Notice?> {
         Binding(
             get: { rootAlerts == nil ? controller.notice : nil },
