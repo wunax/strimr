@@ -13,6 +13,7 @@ enum MediaQuickAction: Hashable {
     case goToSeries
     case goToSeason
     case download
+    case removeFromContinueWatching
 
     var title: String {
         switch self {
@@ -28,6 +29,7 @@ enum MediaQuickAction: Hashable {
         case .goToSeries: String(localized: "media.quickActions.goToSeries")
         case .goToSeason: String(localized: "media.quickActions.goToSeason")
         case .download: String(localized: "downloads.action")
+        case .removeFromContinueWatching: String(localized: "media.quickActions.removeFromContinueWatching")
         }
     }
 
@@ -44,6 +46,7 @@ enum MediaQuickAction: Hashable {
         case .goToSeries: "tv"
         case .goToSeason: "rectangle.stack"
         case .download: "arrow.down.circle"
+        case .removeFromContinueWatching: "minus.circle"
         }
     }
 }
@@ -61,12 +64,16 @@ struct MediaQuickActions {
     private let supportsFavorites: Bool
     private let setPlayedHandler: (Bool, String) async throws -> Void
     private let setFavoriteHandler: (Bool, MediaItem) async throws -> Void
+    private let removeFromContinueWatchingHandler: ((String) async throws -> Void)?
     private let didChange: () -> Void
 
     init(services: MediaServices) {
         supportsFavorites = services.capabilities.favorites
         setPlayedHandler = { played, itemID in try await services.detail.setPlayed(played, itemID: itemID) }
         setFavoriteHandler = { favorite, media in try await services.favorites.setFavorite(favorite, media: media) }
+        removeFromContinueWatchingHandler = services.home.supportsContinueWatchingRemoval
+            ? { itemID in try await services.home.removeFromContinueWatching(itemID: itemID) }
+            : nil
         didChange = { services.noteWatchStateChanged() }
     }
 
@@ -74,11 +81,13 @@ struct MediaQuickActions {
         supportsFavorites: Bool,
         setPlayed: @escaping (Bool, String) async throws -> Void,
         setFavorite: @escaping (Bool, MediaItem) async throws -> Void,
+        removeFromContinueWatching: ((String) async throws -> Void)? = nil,
         didChange: @escaping () -> Void = {},
     ) {
         self.supportsFavorites = supportsFavorites
         setPlayedHandler = setPlayed
         setFavoriteHandler = setFavorite
+        removeFromContinueWatchingHandler = removeFromContinueWatching
         self.didChange = didChange
     }
 
@@ -87,11 +96,13 @@ struct MediaQuickActions {
     }
 
     /// Series and seasons have no play entry: what to play first is only known once the detail page has loaded.
+    /// `isInContinueWatching` is set only for the cards of the home's Continue Watching row.
     func menuActions(
         for item: MediaItem,
         canDownload: Bool,
         canAddToPlaylist: Bool = false,
         offersDetails: Bool = false,
+        isInContinueWatching: Bool = false,
     ) -> [MediaQuickAction] {
         var actions: [MediaQuickAction] = []
         let hasProgress = (item.viewOffset ?? 0) > 0
@@ -130,6 +141,11 @@ struct MediaQuickActions {
         if canDownload, [.movie, .episode, .season].contains(item.type) {
             actions.append(.download)
         }
+        if isInContinueWatching, removeFromContinueWatchingHandler != nil,
+           [.movie, .episode].contains(item.type)
+        {
+            actions.append(.removeFromContinueWatching)
+        }
         return actions
     }
 
@@ -140,6 +156,11 @@ struct MediaQuickActions {
     func setFavorite(_ favorite: Bool, for item: MediaItem) async -> Outcome {
         guard canFavorite(item) else { return .cancelled }
         return await perform { try await setFavoriteHandler(favorite, item) }
+    }
+
+    func removeFromContinueWatching(_ item: MediaItem) async -> Outcome {
+        guard let removeFromContinueWatchingHandler else { return .cancelled }
+        return await perform { try await removeFromContinueWatchingHandler(item.id) }
     }
 
     private func perform(_ operation: () async throws -> Void) async -> Outcome {

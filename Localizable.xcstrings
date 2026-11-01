@@ -8946,6 +8946,50 @@
         }
       }
     },
+    "media.quickActions.removeFromContinueWatching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from Continue Watching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer de Reprendre"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从继续观看中移除"
+          }
+        }
+      }
+    },
+    "media.quickActions.removeFromContinueWatching.error.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t Remove from Continue Watching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de retirer de Reprendre"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法从继续观看中移除"
+          }
+        }
+      }
+    },
     "media.quickActions.showDetails" : {
       "localizations" : {
         "en" : {

@@ -224,6 +224,14 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         !hiddenLibraryIDs.isEmpty && !visibleSections.contains { Int($0.key) != nil }
     }
 
+    var supportsContinueWatchingRemoval: Bool {
+        true
+    }
+
+    func removeFromContinueWatching(itemID: String) async throws {
+        try await HubRepository(context: context).removeFromContinueWatching(ratingKey: itemID)
+    }
+
     private func continueWatchingRows(params: HubRepository.HubParams?) async throws -> [HomeRow] {
         let response = try await HubRepository(context: context).getContinueWatchingHub(params: params)
         guard let continueHub = response.mediaContainer.hub?.first.map({ Hub(plexHub: $0, server: server) }),
