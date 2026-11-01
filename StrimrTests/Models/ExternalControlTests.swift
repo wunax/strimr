@@ -82,10 +82,10 @@ struct ExternalControlTests {
     }
 
     @Test func `reads the tracks of a play link`() throws {
-        let options = try options("strimr://play/1?audio=ja&subs=en")
+        let link = try options("strimr://play/1?audio=ja&subs=en")
 
-        #expect(options.audio == "ja")
-        #expect(options.subs == .language("en"))
+        #expect(link.audio == "ja")
+        #expect(link.subs == .language("en"))
         #expect(try options("strimr://play/1?subs=off").subs == .off)
         #expect(try options("strimr://play/1?audio=&subs=").audio == nil)
         #expect(try options("strimr://play/1?audio=&subs=").subs == nil)
