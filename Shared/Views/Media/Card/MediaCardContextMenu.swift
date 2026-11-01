@@ -60,18 +60,12 @@ private struct MediaCardContextMenu: ViewModifier {
     let media: MediaDisplayItem
 
     @State private var isPerforming = false
-    @State private var failure: Failure?
+    @State private var failure: Toast?
     @State private var successCount = 0
     @State private var mediaToAddToPlaylist: MediaItem?
     @State private var isRenamingPlaylist = false
     @State private var isConfirmingPlaylistDeletion = false
     @State private var manageController = MediaManageController()
-
-    private struct Failure: Identifiable {
-        let id = UUID()
-        let title: LocalizedStringKey
-        let message: String
-    }
 
     func body(content: Content) -> some View {
         if let item = media.playableItem, let services, let actions {
@@ -87,7 +81,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 ) {
                     reloadAfterServerUpdate(item)
                 }
-                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+                .modifier(Feedback(failure: $failure, successCount: successCount))
         } else if case let .playlist(playlist) = media, !playlist.isSmart, let services, isOnline(services) {
             content
                 .contextMenu {
@@ -112,25 +106,19 @@ private struct MediaCardContextMenu: ViewModifier {
                         try await services.playlists.delete(playlistID: playlist.id)
                     }
                 }
-                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+                .modifier(Feedback(failure: $failure, successCount: successCount))
         } else {
             content
         }
     }
 
-    private struct FailureAlert: ViewModifier {
-        @Binding var failure: Failure?
+    private struct Feedback: ViewModifier {
+        @Binding var failure: Toast?
         let successCount: Int
 
         func body(content: Content) -> some View {
             content
-                .alert(item: $failure) { failure in
-                    Alert(
-                        title: Text(failure.title),
-                        message: Text(failure.message),
-                        dismissButton: .default(Text("common.actions.done")),
-                    )
-                }
+                .toast($failure)
             #if os(iOS)
                 .sensoryFeedback(.success, trigger: successCount)
             #endif
@@ -146,7 +134,7 @@ private struct MediaCardContextMenu: ViewModifier {
     }
 
     private func changePlaylist(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         services: MediaServices,
         _ operation: @escaping () async throws -> Void,
     ) {
@@ -162,7 +150,11 @@ private struct MediaCardContextMenu: ViewModifier {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
-                failure = Failure(title: failureTitle, message: error.localizedDescription)
+                failure = Toast(
+                    style: .failure,
+                    title: String(localized: failureTitle),
+                    message: error.localizedDescription,
+                )
             }
         }
     }
@@ -258,7 +250,7 @@ private struct MediaCardContextMenu: ViewModifier {
 
     /// One action at a time per card: a request made while another runs is ignored.
     private func run(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         for item: MediaItem,
         _ operation: @escaping () async -> MediaQuickActions.Outcome,
     ) {
@@ -272,7 +264,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 successCount += 1
                 reload?(item)
             case let .failed(message):
-                failure = Failure(title: failureTitle, message: message)
+                failure = Toast(style: .failure, title: String(localized: failureTitle), message: message)
             case .cancelled:
                 break
             }

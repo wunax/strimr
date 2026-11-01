@@ -63,6 +63,7 @@ struct StrimrApp: App {
         WindowGroup {
             configured(ContentView())
                 .frame(minWidth: 900, minHeight: 620)
+                .toastHost()
                 .preferredColorScheme(.dark)
         }
         .defaultSize(width: 1440, height: 900)

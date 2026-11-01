@@ -2,18 +2,12 @@ import Observation
 import SwiftUI
 
 /// Runs the Manage actions of the card and detail menus. The server applies them in the background, so a success
-/// only means it accepted them, which the notice says.
+/// only means it accepted them, which the toast says.
 @MainActor
 @Observable
 final class MediaManageController {
-    struct Notice: Identifiable {
-        let id = UUID()
-        let title: String
-        let message: String
-    }
-
     private(set) var isPerforming = false
-    var notice: Notice?
+    var toast: Toast?
     /// The media whose actions the tvOS dialog lists.
     var dialogMedia: MediaItem?
     var artworkPicker: ArtworkPickerViewModel?
@@ -39,25 +33,27 @@ final class MediaManageController {
             isPerforming = false
             switch outcome {
             case .succeeded:
-                notice = Self.acceptedNotice(for: action)
+                toast = Self.acceptedToast(for: action)
                 onAccepted?()
             case let .failed(message):
-                notice = Notice(title: Self.failureTitle(for: action), message: message)
+                toast = Toast(style: .failure, title: Self.failureTitle(for: action), message: message)
             case .cancelled:
                 break
             }
         }
     }
 
-    private static func acceptedNotice(for action: MediaQuickAction) -> Notice? {
+    private static func acceptedToast(for action: MediaQuickAction) -> Toast? {
         switch action {
         case .refreshMetadata:
-            Notice(
+            Toast(
+                style: .success,
                 title: String(localized: "media.manage.refreshMetadata.started"),
                 message: String(localized: "media.manage.refreshMetadata.startedMessage"),
             )
         case .analyze:
-            Notice(
+            Toast(
+                style: .success,
                 title: String(localized: "media.manage.analyze.started"),
                 message: String(localized: "media.manage.analyze.startedMessage"),
             )
@@ -161,12 +157,6 @@ private struct MediaManagePresentation: ViewModifier {
                 ArtworkPickerView(viewModel: picker)
                     .onChange(of: picker.changeCount) { hasArtworkChanged = true }
             }
-            .alert(item: $controller.notice) { notice in
-                Alert(
-                    title: Text(notice.title),
-                    message: Text(notice.message),
-                    dismissButton: .default(Text("common.actions.done")),
-                )
-            }
+            .toast($controller.toast)
     }
 }
