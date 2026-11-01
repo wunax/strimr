@@ -64,7 +64,7 @@ final class PlayerViewModel {
     }
 
     var resumePosition: Double? {
-        media?.viewOffset
+        launchOptions?.offset ?? media?.viewOffset
     }
 
     var markers: [SkipSegment] = []
@@ -167,7 +167,7 @@ final class PlayerViewModel {
     }
 
     var shouldResumeFromOffset: Bool {
-        shouldResumeFromOffsetFlag
+        shouldResumeFromOffsetFlag || launchOptions?.offset != nil
     }
 
     var serverAccessGeneration: Int {
@@ -184,6 +184,8 @@ final class PlayerViewModel {
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private let mediaServices: MediaServices?
     @ObservationIgnored private var mediaQueue: PlaybackQueue?
+    /// From a play link; only the first item of a queue carries it.
+    @ObservationIgnored private(set) var launchOptions: ExternalPlayOptions?
     @ObservationIgnored private var playbackPlan: PlaybackPlan?
     @ObservationIgnored private var didReportPlaybackStarted = false
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
@@ -212,6 +214,7 @@ final class PlayerViewModel {
     ) {
         self.launchNotice = launchNotice
         mediaQueue = queue
+        launchOptions = queue.launchOptions
         mediaServices = services
         let currentMedia = queue.items.indices.contains(queue.currentIndex)
             ? queue.items[queue.currentIndex].media
@@ -405,6 +408,7 @@ final class PlayerViewModel {
         else { return nil }
 
         queue.currentIndex = index
+        queue.launchOptions = nil
         let viewModel = PlayerViewModel(
             queue: queue,
             services: mediaServices,
@@ -451,7 +455,8 @@ final class PlayerViewModel {
             }
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag,
+                // An explicit offset is applied by the player, so the server must not start at the saved one.
+                resume: shouldResumeFromOffsetFlag && launchOptions?.offset == nil,
                 quality: selectedQuality,
                 trackPreference: rememberedTrackPreference,
                 version: mediaServices.versionRequest(for: media),

@@ -6,6 +6,7 @@ struct PlayerView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
+    @Environment(TopShelfDeepLinkRouter.self) private var deepLinkRouter
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State var viewModel: PlayerViewModel
     let onExit: () -> Void
@@ -109,6 +110,7 @@ struct PlayerView: View {
         let lifecycle = AnyView(
             base
                 .onAppear {
+                    deepLinkRouter.controlHandler = handleExternalControl
                     guard activePlaybackURL == nil else { return }
                     playerController.onMediaLoaded = handleMediaLoaded
                     playerController.onPlaybackEnded = handlePlaybackEnded
@@ -129,6 +131,7 @@ struct PlayerView: View {
                 }
                 .onDisappear {
                     guard !isSearchingSubtitles else { return }
+                    deepLinkRouter.controlHandler = nil
                     nextEpisodePresentation.cancel()
                     sleepTimer.cancel()
                     pauseScreen.cancel()
@@ -1415,6 +1418,45 @@ struct PlayerView: View {
             )
             appliedPreferredSubtitle = true
         }
+    }
+
+    /// A `strimr://control/<action>` link. Commands that do not apply to what is playing are ignored.
+    private func handleExternalControl(_ command: ExternalControlCommand) {
+        switch command {
+        case .pause:
+            playerController.pause()
+        case .resume:
+            playerController.resume()
+        case .toggle:
+            togglePlayPause()
+        case let .seekTo(time):
+            guard !viewModel.isLivePlayback else { return }
+            playerController.seek(to: time)
+            viewModel.position = time
+            timelinePosition = time
+            showControls(temporarily: true)
+        case let .seekBy(delta):
+            guard !viewModel.isLivePlayback else { return }
+            quickSeek(by: delta)
+        case .skipIntro:
+            skipMarkerFromLink { $0.isIntro }
+        case .skipCredits:
+            skipMarkerFromLink { $0.isCredits }
+        case .next:
+            guard !sharePlayCoordinator.isInSession, viewModel.usesCommonPlaybackQueue,
+                  let nextViewModel = viewModel.makeNextPlayerViewModel() else { return }
+            nextEpisodePresentation.cancel()
+            // Reports the position left behind; the item is not marked as watched.
+            viewModel.handleStop()
+            Task { await startPlayback(using: nextViewModel) }
+        }
+    }
+
+    /// Like the on-screen button: only while the playhead is inside a matching segment.
+    private func skipMarkerFromLink(matching predicate: (SkipSegment) -> Bool) {
+        guard let marker = viewModel.markers.first(where: { predicate($0) && $0.contains(time: viewModel.position) })
+        else { return }
+        skipMarker(to: marker)
     }
 
     private func skipMarker(to marker: SkipSegment) {
