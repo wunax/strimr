@@ -68,6 +68,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setNotifyURL(_ value: String) {
+        settings.playback.notifyURL = value
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()

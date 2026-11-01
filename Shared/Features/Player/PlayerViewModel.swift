@@ -197,6 +197,9 @@ final class PlayerViewModel {
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private let mediaServices: MediaServices?
     @ObservationIgnored private var mediaQueue: PlaybackQueue?
+    /// The Notify URL, set by the player view for every view model it plays.
+    @ObservationIgnored var notifyURL: URL?
+    @ObservationIgnored private var webhookTracker = PlaybackWebhookTracker()
     /// From a play link; only the first item of a queue carries it.
     @ObservationIgnored private(set) var launchOptions: ExternalPlayOptions?
     @ObservationIgnored private var playbackPlan: PlaybackPlan?
@@ -688,6 +691,7 @@ final class PlayerViewModel {
         let previousState = playbackState
         self.isPaused = isPaused
         self.isBuffering = isBuffering
+        notify(webhookTracker.event(isPaused: isPaused))
 
         if previousState != playbackState {
             reportTimeline(state: playbackState, force: true)
@@ -718,6 +722,7 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        notify(webhookTracker.close(finished: false))
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.stop(position: position)
@@ -778,6 +783,7 @@ final class PlayerViewModel {
     }
 
     func markPlaybackFinished() async {
+        notify(webhookTracker.close(finished: true))
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.finish()
@@ -1000,6 +1006,23 @@ final class PlayerViewModel {
         scrubThumbnailSource = plan.scrubThumbnailSource
         serverAccessRecoveryError = nil
         errorMessage = nil
+    }
+
+    private func notify(_ event: PlaybackWebhook.Event?) {
+        guard let event, let notifyURL, let media else { return }
+        PlaybackWebhook.send(
+            PlaybackWebhook.Payload(
+                event: event,
+                provider: media.identity.server.provider.rawValue,
+                server: media.identity.server.id,
+                ratingKey: media.id,
+                type: media.type.rawValue,
+                title: media.title,
+                position: position,
+                duration: duration ?? media.duration,
+            ),
+            to: notifyURL,
+        )
     }
 
     private func reportTimeline(state: TimelineState, force: Bool = false) {

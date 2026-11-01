@@ -31,6 +31,11 @@ struct AppSettingsTests {
         #expect(chosen.interface.portraitEpisodeArtwork == .season)
     }
 
+    @Test func `the notify URL is empty unless set`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.notifyURL.isEmpty)
+        #expect(try decode(#"{"playback":{"notifyURL":"http://host/hook"}}"#).playback.notifyURL == "http://host/hook")
+    }
+
     @Test func `title logo is shown unless turned off`() throws {
         #expect(try decode(#"{"interface":{"displayPlaylists":false}}"#).interface.showsTitleLogo)
         #expect(try !decode(#"{"interface":{"showsTitleLogo":false}}"#).interface.showsTitleLogo)
