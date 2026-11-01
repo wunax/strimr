@@ -189,7 +189,7 @@ struct ArtworkPickerView: View {
 
     private var tileSpacing: CGFloat {
         #if os(tvOS)
-            40
+            32
         #else
             16
         #endif
@@ -198,7 +198,7 @@ struct ArtworkPickerView: View {
     private var tileWidth: CGFloat {
         let posterWidth: CGFloat
         #if os(tvOS)
-            posterWidth = 220
+            posterWidth = 170
         #elseif os(macOS)
             posterWidth = 140
         #else
@@ -220,6 +220,14 @@ private struct ArtworkOptionTile: View {
 
     private let shape = RoundedRectangle(cornerRadius: LayoutMetrics.cardCornerRadius, style: .continuous)
 
+    private var selectionLineWidth: CGFloat {
+        #if os(tvOS)
+            4
+        #else
+            3
+        #endif
+    }
+
     var body: some View {
         Button(action: action) {
             Color.surfaceSubtle
@@ -240,7 +248,7 @@ private struct ArtworkOptionTile: View {
                 .clipShape(shape)
                 .overlay {
                     if option.isSelected {
-                        shape.strokeBorder(Color.selectionAccent, lineWidth: 3)
+                        shape.strokeBorder(Color.selectionAccent, lineWidth: selectionLineWidth)
                     }
                 }
                 .overlay(alignment: .topTrailing) {
@@ -253,11 +261,8 @@ private struct ArtworkOptionTile: View {
                     }
                 }
         }
-        #if os(tvOS)
-        .buttonStyle(.card)
-        #else
+        // The system card style clips the label to its own shape, which cut the selection border on tvOS.
         .buttonStyle(.cardLift)
-        #endif
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(option.isSelected ? .isSelected : [])
     }
