@@ -72,7 +72,7 @@ struct StrimrApp: App {
                 .environment(sharePlayCoordinator)
                 .environment(topShelfDeepLinkRouter)
                 .environment(externalPlaybackCallbackRouter)
-                .rootAlertHost()
+                .toastHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
                     if !externalPlaybackCallbackRouter.receive(url) {

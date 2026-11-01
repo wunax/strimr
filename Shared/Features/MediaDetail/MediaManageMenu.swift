@@ -2,18 +2,12 @@ import Observation
 import SwiftUI
 
 /// Runs the Manage actions of the card and detail menus. The server applies them in the background, so a success
-/// only means it accepted them, which the notice says.
+/// only means it accepted them, which the toast says.
 @MainActor
 @Observable
 final class MediaManageController {
-    struct Notice: Identifiable {
-        let id = UUID()
-        let title: String
-        let message: String
-    }
-
     private(set) var isPerforming = false
-    var notice: Notice?
+    var toast: Toast?
     /// The media whose actions the tvOS dialog lists.
     var dialogMedia: MediaItem?
     var artworkPicker: ArtworkPickerViewModel?
@@ -39,25 +33,27 @@ final class MediaManageController {
             isPerforming = false
             switch outcome {
             case .succeeded:
-                notice = Self.acceptedNotice(for: action)
+                toast = Self.acceptedToast(for: action)
                 onAccepted?()
             case let .failed(message):
-                notice = Notice(title: Self.failureTitle(for: action), message: message)
+                toast = Toast(style: .failure, title: Self.failureTitle(for: action), message: message)
             case .cancelled:
                 break
             }
         }
     }
 
-    private static func acceptedNotice(for action: MediaQuickAction) -> Notice? {
+    private static func acceptedToast(for action: MediaQuickAction) -> Toast? {
         switch action {
         case .refreshMetadata:
-            Notice(
+            Toast(
+                style: .success,
                 title: String(localized: "media.manage.refreshMetadata.started"),
                 message: String(localized: "media.manage.refreshMetadata.startedMessage"),
             )
         case .analyze:
-            Notice(
+            Toast(
+                style: .success,
                 title: String(localized: "media.manage.analyze.started"),
                 message: String(localized: "media.manage.analyze.startedMessage"),
             )
@@ -108,19 +104,16 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onArtworkChanged` runs once the artwork screen closes after a change. `presentsFromRoot` is for views that
-    /// hold a context menu, which can no longer present an alert once it has closed.
+    /// `onArtworkChanged` runs once the artwork screen closes after a change.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
-        presentsFromRoot: Bool = false,
         onArtworkChanged: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
         modifier(MediaManagePresentation(
             controller: controller,
             quickActions: quickActions,
-            presentsFromRoot: presentsFromRoot,
             onArtworkChanged: onArtworkChanged,
             onAccepted: onAccepted,
         ))
@@ -130,10 +123,8 @@ extension View {
 private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
-    let presentsFromRoot: Bool
     let onArtworkChanged: (() -> Void)?
     let onAccepted: (() -> Void)?
-    @Environment(RootAlertPresenter.self) private var rootAlertPresenter: RootAlertPresenter?
     @State private var hasArtworkChanged = false
 
     func body(content: Content) -> some View {
@@ -166,31 +157,6 @@ private struct MediaManagePresentation: ViewModifier {
                 ArtworkPickerView(viewModel: picker)
                     .onChange(of: picker.changeCount) { hasArtworkChanged = true }
             }
-            .onChange(of: controller.notice?.id) {
-                guard let rootAlerts, let notice = controller.notice else { return }
-                controller.notice = nil
-                Task {
-                    await ContextMenuDismissal.wait()
-                    rootAlerts.alert = RootAlert(title: notice.title, message: notice.message)
-                }
-            }
-            .alert(item: localNotice) { notice in
-                Alert(
-                    title: Text(notice.title),
-                    message: Text(notice.message),
-                    dismissButton: .default(Text("common.actions.done")),
-                )
-            }
-    }
-
-    private var rootAlerts: RootAlertPresenter? {
-        presentsFromRoot ? rootAlertPresenter : nil
-    }
-
-    private var localNotice: Binding<MediaManageController.Notice?> {
-        Binding(
-            get: { rootAlerts == nil ? controller.notice : nil },
-            set: { controller.notice = $0 },
-        )
+            .toast($controller.toast)
     }
 }

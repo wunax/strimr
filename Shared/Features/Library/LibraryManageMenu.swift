@@ -12,25 +12,14 @@ final class LibraryManageController {
         let library: Library
     }
 
-    enum Prompt: Identifiable {
-        case confirmation(Request)
-        case notice(MediaManageController.Notice)
-
-        var id: UUID {
-            switch self {
-            case let .confirmation(request): request.id
-            case let .notice(notice): notice.id
-            }
-        }
-    }
-
     private(set) var isPerforming = false
-    var prompt: Prompt?
+    var confirmation: Request?
+    var toast: Toast?
     /// The library whose actions the tvOS dialog lists.
     var dialogLibrary: Library?
 
     func request(_ action: LibraryManageAction, on library: Library) {
-        prompt = .confirmation(Request(action: action, library: library))
+        confirmation = Request(action: action, library: library)
     }
 
     func perform(_ request: Request, actions: LibraryManageActions) {
@@ -41,12 +30,13 @@ final class LibraryManageController {
             isPerforming = false
             switch outcome {
             case .succeeded:
-                prompt = .notice(MediaManageController.Notice(
+                toast = Toast(
+                    style: .success,
                     title: request.action.startedTitle,
                     message: request.action.startedMessage,
-                ))
+                )
             case let .failed(message):
-                prompt = .notice(MediaManageController.Notice(title: request.action.failureTitle, message: message))
+                toast = Toast(style: .failure, title: request.action.failureTitle, message: message)
             case .cancelled:
                 break
             }
@@ -133,25 +123,17 @@ private struct LibraryManagePresentation: ViewModifier {
                 }
                 Button("common.actions.cancel", role: .cancel) {}
             }
-            .alert(item: $controller.prompt) { prompt in
-                switch prompt {
-                case let .confirmation(request):
-                    Alert(
-                        title: Text(request.action.title),
-                        message: Text(request.action.confirmationMessage(for: request.library)),
-                        primaryButton: .default(Text(request.action.title)) {
-                            guard let actions = actions(request.library) else { return }
-                            controller.perform(request, actions: actions)
-                        },
-                        secondaryButton: .cancel(),
-                    )
-                case let .notice(notice):
-                    Alert(
-                        title: Text(notice.title),
-                        message: Text(notice.message),
-                        dismissButton: .default(Text("common.actions.done")),
-                    )
-                }
+            .alert(item: $controller.confirmation) { request in
+                Alert(
+                    title: Text(request.action.title),
+                    message: Text(request.action.confirmationMessage(for: request.library)),
+                    primaryButton: .default(Text(request.action.title)) {
+                        guard let actions = actions(request.library) else { return }
+                        controller.perform(request, actions: actions)
+                    },
+                    secondaryButton: .cancel(),
+                )
             }
+            .toast($controller.toast)
     }
 }
