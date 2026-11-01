@@ -496,6 +496,10 @@ final class PlayerController {
         scrubPreview = nil
     }
 
+    func setNowPlayingChapter(_ number: Int?) {
+        nowPlayingController?.setChapterNumber(number)
+    }
+
     func setPlaybackRate(_ rate: Float) {
         playbackRate = rate
         nowPlayingController?.setPlaybackRate(rate)

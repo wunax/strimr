@@ -267,6 +267,7 @@ struct PlayerView: View {
                             isSharePlay: sharePlayCoordinator.isInSession,
                         )
                     }
+                    viewModel.notifyURL = PlaybackWebhook.endpoint(from: settingsManager.playback.notifyURL)
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
@@ -1564,6 +1565,7 @@ struct PlayerView: View {
     }
 
     private func startPlayback(using nextViewModel: PlayerViewModel) async {
+        nextViewModel.notifyURL = viewModel.notifyURL
         playerController.stop()
         loadedURL = nil
         audioTracks = []

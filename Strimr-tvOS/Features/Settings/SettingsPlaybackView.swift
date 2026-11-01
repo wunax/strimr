@@ -123,6 +123,24 @@ struct SettingsPlaybackView: View {
             }
 
             scrubThumbnailSection
+
+            notifySection
+        }
+    }
+
+    private var notifySection: some View {
+        Section {
+            TextField(
+                "settings.playback.notifyURL",
+                text: viewModel.notifyURLBinding,
+                prompt: Text(verbatim: "http://homeassistant.local:8123/api/webhook/…"),
+            )
+            .settingsFocus("settings.playback.notifyURL")
+            .keyboardType(.URL)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        } footer: {
+            Text("settings.playback.notifyURL.footer")
         }
     }
 

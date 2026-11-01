@@ -172,6 +172,7 @@ struct PlayerView: View {
                     sharePlayCoordinator.detachPlayer(playerController)
                 }
                 .task {
+                    viewModel.notifyURL = PlaybackWebhook.endpoint(from: settingsManager.playback.notifyURL)
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                 },
         )
@@ -1732,6 +1733,7 @@ struct PlayerView: View {
 
     private func startPlayback(using nextViewModel: PlayerViewModel) async {
         await MainActor.run {
+            nextViewModel.notifyURL = viewModel.notifyURL
             activePlaybackURL = nil
             viewModel = nextViewModel
         }

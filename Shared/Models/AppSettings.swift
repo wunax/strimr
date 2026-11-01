@@ -273,6 +273,8 @@ struct PlaybackSettings: Codable, Equatable {
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
     var customExternalPlayer: CustomExternalPlayer?
+    /// Address that receives a JSON POST on start, pause, resume, stop and finish. Empty turns it off.
+    var notifyURL = ""
 
     init() {}
 
@@ -358,6 +360,7 @@ struct PlaybackSettings: Codable, Equatable {
             CustomExternalPlayer.self,
             forKey: .customExternalPlayer,
         )
+        notifyURL = try container.decodeIfPresent(String.self, forKey: .notifyURL) ?? ""
     }
 
     var resolvedExternalPlayer: ExternalPlayer? {

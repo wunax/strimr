@@ -257,6 +257,8 @@ struct PlaybackQueue: Sendable, Equatable {
     var items: [PlaybackQueueItem]
     var currentIndex: Int
     var isShuffled: Bool
+    /// Set by a play link for the first item only.
+    var launchOptions: ExternalPlayOptions?
 }
 
 extension PlaybackQueue {

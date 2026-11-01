@@ -64,7 +64,7 @@ final class PlayerViewModel {
     }
 
     var resumePosition: Double? {
-        media?.viewOffset
+        launchOptions?.offset ?? media?.viewOffset
     }
 
     var markers: [SkipSegment] = []
@@ -99,12 +99,25 @@ final class PlayerViewModel {
     }
 
     func nowPlayingItem(settings: PlaybackSettings) -> NowPlayingItem? {
-        NowPlayingItem(
+        var item = NowPlayingItem(
             media: media,
             artworkService: artworkServices?.artwork,
             skipBackwardSeconds: settings.seekBackwardSeconds,
             skipForwardSeconds: settings.seekForwardSeconds,
         )
+        guard item != nil, !isLivePlayback else { return item }
+        item?.details = NowPlayingDetails(
+            contentIdentifier: media?.id,
+            queueIndex: queueCurrentIndex,
+            queueCount: queueCurrentIndex == nil ? nil : queueItems.count,
+            chapterCount: chapters.isEmpty ? nil : chapters.count,
+            intro: markers.first { $0.isIntro && $0.endTime >= $0.startTime }.map { $0.startTime ... $0.endTime },
+            credits: markers.first { $0.isCredits && $0.endTime >= $0.startTime }.map { $0.startTime ... $0.endTime },
+            nextTitle: queueCurrentIndex.flatMap { index in
+                queueItems.indices.contains(index + 1) ? queueItems[index + 1].media.title : nil
+            },
+        )
+        return item
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -167,7 +180,7 @@ final class PlayerViewModel {
     }
 
     var shouldResumeFromOffset: Bool {
-        shouldResumeFromOffsetFlag
+        shouldResumeFromOffsetFlag || launchOptions?.offset != nil
     }
 
     var serverAccessGeneration: Int {
@@ -184,6 +197,11 @@ final class PlayerViewModel {
     @ObservationIgnored private let ratingKey: String
     @ObservationIgnored private let mediaServices: MediaServices?
     @ObservationIgnored private var mediaQueue: PlaybackQueue?
+    /// The Notify URL, set by the player view for every view model it plays.
+    @ObservationIgnored var notifyURL: URL?
+    @ObservationIgnored private var webhookTracker = PlaybackWebhookTracker()
+    /// From a play link; only the first item of a queue carries it.
+    @ObservationIgnored private(set) var launchOptions: ExternalPlayOptions?
     @ObservationIgnored private var playbackPlan: PlaybackPlan?
     @ObservationIgnored private var didReportPlaybackStarted = false
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
@@ -212,6 +230,7 @@ final class PlayerViewModel {
     ) {
         self.launchNotice = launchNotice
         mediaQueue = queue
+        launchOptions = queue.launchOptions
         mediaServices = services
         let currentMedia = queue.items.indices.contains(queue.currentIndex)
             ? queue.items[queue.currentIndex].media
@@ -405,6 +424,7 @@ final class PlayerViewModel {
         else { return nil }
 
         queue.currentIndex = index
+        queue.launchOptions = nil
         let viewModel = PlayerViewModel(
             queue: queue,
             services: mediaServices,
@@ -451,7 +471,8 @@ final class PlayerViewModel {
             }
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag,
+                // An explicit offset is applied by the player, so the server must not start at the saved one.
+                resume: shouldResumeFromOffsetFlag && launchOptions?.offset == nil,
                 quality: selectedQuality,
                 trackPreference: rememberedTrackPreference,
                 version: mediaServices.versionRequest(for: media),
@@ -670,6 +691,7 @@ final class PlayerViewModel {
         let previousState = playbackState
         self.isPaused = isPaused
         self.isBuffering = isBuffering
+        notify(webhookTracker.event(isPaused: isPaused))
 
         if previousState != playbackState {
             reportTimeline(state: playbackState, force: true)
@@ -700,6 +722,7 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        notify(webhookTracker.close(finished: false))
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.stop(position: position)
@@ -760,6 +783,7 @@ final class PlayerViewModel {
     }
 
     func markPlaybackFinished() async {
+        notify(webhookTracker.close(finished: true))
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.finish()
@@ -982,6 +1006,23 @@ final class PlayerViewModel {
         scrubThumbnailSource = plan.scrubThumbnailSource
         serverAccessRecoveryError = nil
         errorMessage = nil
+    }
+
+    private func notify(_ event: PlaybackWebhook.Event?) {
+        guard let event, let notifyURL, let media else { return }
+        PlaybackWebhook.send(
+            PlaybackWebhook.Payload(
+                event: event,
+                provider: media.identity.server.provider.rawValue,
+                server: media.identity.server.id,
+                ratingKey: media.id,
+                type: media.type.rawValue,
+                title: media.title,
+                position: position,
+                duration: duration ?? media.duration,
+            ),
+            to: notifyURL,
+        )
     }
 
     private func reportTimeline(state: TimelineState, force: Bool = false) {

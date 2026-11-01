@@ -224,8 +224,13 @@ struct MainTabView: View {
                     ErrorReporter.capture(error)
                 }
             case .play:
-                await PlaybackLauncher(services: services, coordinator: coordinator)
-                    .play(ratingKey: action.ratingKey, type: action.type)
+                await PlaybackLauncher(services: services, coordinator: coordinator).play(
+                    ratingKey: action.ratingKey,
+                    type: action.type,
+                    shuffle: action.options.shuffle,
+                    shouldResumeFromOffset: action.options.resume,
+                    launchOptions: action.options,
+                )
             }
         }
         .overlay {

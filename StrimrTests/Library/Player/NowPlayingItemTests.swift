@@ -99,4 +99,57 @@ struct NowPlayingItemTests {
             secondsSincePublish: 5,
         ))
     }
+
+    @Test func `identity info carries the extra details when present`() {
+        var item = NowPlayingItem(title: "Pilot", skipBackwardSeconds: 10, skipForwardSeconds: 10)
+        item.details = NowPlayingDetails(
+            contentIdentifier: "42",
+            queueIndex: 2,
+            queueCount: 10,
+            chapterCount: 8,
+            intro: 30 ... 90,
+            credits: 2400 ... 2500,
+            nextTitle: "Second",
+        )
+
+        let info = item.identityInfo(artwork: nil, isLive: false, chapterNumber: 3)
+
+        #expect(info[MPNowPlayingInfoPropertyExternalContentIdentifier] as? String == "42")
+        #expect(info[MPNowPlayingInfoPropertyPlaybackQueueIndex] as? Int == 2)
+        #expect(info[MPNowPlayingInfoPropertyPlaybackQueueCount] as? Int == 10)
+        #expect(info[MPNowPlayingInfoPropertyChapterCount] as? Int == 8)
+        #expect(info[MPNowPlayingInfoPropertyChapterNumber] as? Int == 3)
+        #expect(info["strimr.intro"] as? [Double] == [30, 90])
+        #expect(info["strimr.credits"] as? [Double] == [2400, 2500])
+        #expect(info["strimr.nextTitle"] as? String == "Second")
+    }
+
+    @Test func `identity info without details adds nothing`() {
+        let info = NowPlayingItem(title: "Pilot", skipBackwardSeconds: 10, skipForwardSeconds: 10)
+            .identityInfo(artwork: nil, isLive: false)
+
+        #expect(info[MPNowPlayingInfoPropertyChapterCount] == nil)
+        #expect(info[MPNowPlayingInfoPropertyPlaybackQueueCount] == nil)
+        #expect(info["strimr.nextTitle"] == nil)
+    }
+
+    @Test func `finds the chapter holding a time, counting from one`() {
+        func chapter(_ index: Int, _ start: Double, _ end: Double) -> MediaChapter {
+            MediaChapter(
+                id: "\(index)",
+                title: "",
+                index: index,
+                startTime: start,
+                endTime: end,
+                image: nil,
+                thumbPath: nil,
+            )
+        }
+        let chapters = [chapter(0, 0, 100), chapter(1, 100, 200)]
+
+        #expect(NowPlayingDetails.chapterNumber(at: 50, in: chapters) == 1)
+        #expect(NowPlayingDetails.chapterNumber(at: 150, in: chapters) == 2)
+        #expect(NowPlayingDetails.chapterNumber(at: 500, in: chapters) == nil)
+        #expect(NowPlayingDetails.chapterNumber(at: 5, in: []) == nil)
+    }
 }

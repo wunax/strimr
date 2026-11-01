@@ -66,6 +66,13 @@ final class SettingsViewModel {
         )
     }
 
+    var notifyURLBinding: Binding<String> {
+        Binding(
+            get: { self.settingsManager.playback.notifyURL },
+            set: { self.settingsManager.setNotifyURL($0) },
+        )
+    }
+
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },

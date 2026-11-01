@@ -20087,6 +20087,26 @@
         }
       }
     },
+    "settings.playback.notifyURL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify URL"
+          }
+        }
+      }
+    },
+    "settings.playback.notifyURL.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strimr sends a small JSON message to this http or https address when playback starts, pauses, resumes, stops or finishes. Leave it empty to turn this off."
+          }
+        }
+      }
+    },
     "settings.playback.overlay.title" : {
       "localizations" : {
         "en" : {

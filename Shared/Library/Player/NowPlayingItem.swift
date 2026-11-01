@@ -1,8 +1,27 @@
 import Foundation
 import MediaPlayer
 
+/// Fields beyond the card itself, for whatever reads the system's Now Playing info (remote apps, HomeKit,
+/// the Companion protocol). The system only documents some keys, see `NowPlayingItem.identityInfo`.
+struct NowPlayingDetails: Equatable {
+    var contentIdentifier: String?
+    /// Zero-based position in the play queue.
+    var queueIndex: Int?
+    var queueCount: Int?
+    var chapterCount: Int?
+    var intro: ClosedRange<TimeInterval>?
+    var credits: ClosedRange<TimeInterval>?
+    var nextTitle: String?
+
+    /// The one-based chapter holding `time`, nil outside every chapter.
+    static func chapterNumber(at time: TimeInterval, in chapters: [MediaChapter]) -> Int? {
+        chapters.firstIndex { $0.contains(time: time) }.map { $0 + 1 }
+    }
+}
+
 /// What the system Now Playing card shows for the current media.
 struct NowPlayingItem {
+    var details = NowPlayingDetails()
     let title: String
     let subtitle: String?
     let artworkPath: String?
@@ -51,7 +70,11 @@ struct NowPlayingItem {
     }
 
     /// Identity keys only: position, duration and rate come from the player.
-    func identityInfo(artwork: MPMediaItemArtwork?, isLive: Bool) -> [String: Any] {
+    ///
+    /// Documented keys: content identifier, queue index and count, chapter count and number (one-based here).
+    /// Chapters and the queue are what tvOS and remote apps can show. The `strimr.*` keys are not documented, so the system may
+    /// keep them in the dictionary without exposing them to anything.
+    func identityInfo(artwork: MPMediaItemArtwork?, isLive: Bool, chapterNumber: Int? = nil) -> [String: Any] {
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: title,
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue,
@@ -62,6 +85,28 @@ struct NowPlayingItem {
         }
         if let artwork {
             info[MPMediaItemPropertyArtwork] = artwork
+        }
+        if let id = details.contentIdentifier {
+            info[MPNowPlayingInfoPropertyExternalContentIdentifier] = id
+        }
+        if let index = details.queueIndex, let count = details.queueCount {
+            info[MPNowPlayingInfoPropertyPlaybackQueueIndex] = index
+            info[MPNowPlayingInfoPropertyPlaybackQueueCount] = count
+        }
+        if let count = details.chapterCount {
+            info[MPNowPlayingInfoPropertyChapterCount] = count
+            if let chapterNumber {
+                info[MPNowPlayingInfoPropertyChapterNumber] = chapterNumber
+            }
+        }
+        if let intro = details.intro {
+            info["strimr.intro"] = [intro.lowerBound, intro.upperBound]
+        }
+        if let credits = details.credits {
+            info["strimr.credits"] = [credits.lowerBound, credits.upperBound]
+        }
+        if let nextTitle = details.nextTitle {
+            info["strimr.nextTitle"] = nextTitle
         }
         return info
     }
