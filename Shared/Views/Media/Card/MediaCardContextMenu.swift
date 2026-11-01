@@ -80,7 +80,11 @@ private struct MediaCardContextMenu: ViewModifier {
                     menu(for: item, services: services, actions: actions)
                 }
                 .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: services)
-                .mediaManagePresentation(manageController, quickActions: MediaQuickActions(services: services)) {
+                .mediaManagePresentation(
+                    manageController,
+                    quickActions: MediaQuickActions(services: services),
+                    onArtworkChanged: { reload?(item) },
+                ) {
                     reloadAfterServerUpdate(item)
                 }
                 .modifier(FailureAlert(failure: $failure, successCount: successCount))
@@ -247,7 +251,7 @@ private struct MediaCardContextMenu: ViewModifier {
             run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
                 await quickActions.removeFromContinueWatching(item)
             }
-        case .manage, .refreshMetadata, .analyze:
+        case .manage, .refreshMetadata, .analyze, .editArtwork:
             break
         }
     }

@@ -74,12 +74,14 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        body: Data? = nil,
     ) async throws {
         let result = try await data(
             path: path,
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
         )
         let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -158,6 +160,7 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]?,
         method: String,
         headers: [String: String],
+        body: Data? = nil,
     ) async throws -> (data: Data, response: URLResponse) {
         let context = try requireContext()
         let snapshot = try context.serverAccessSnapshot()
@@ -167,6 +170,7 @@ final class PlexServerNetworkClient {
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
         )
         let result = try await session.data(for: request)
         guard (result.1 as? HTTPURLResponse)?.statusCode == 401 else {
@@ -181,6 +185,7 @@ final class PlexServerNetworkClient {
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
         )
         return try await session.data(for: retryRequest)
     }
@@ -230,6 +235,7 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        body: Data? = nil,
     ) throws -> URLRequest {
         guard var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent(path),
@@ -247,6 +253,7 @@ final class PlexServerNetworkClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Strimr", forHTTPHeaderField: "X-Plex-Product")
         request.setValue(platform, forHTTPHeaderField: "X-Plex-Platform")

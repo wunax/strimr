@@ -1,0 +1,47 @@
+{
+  "Images": [
+    {
+      "ProviderName": "TheMovieDb",
+      "Url": "https://image.tmdb.org/t/p/original/poster-en.jpg",
+      "ThumbnailUrl": "https://image.tmdb.org/t/p/w500/poster-en.jpg",
+      "Height": 3000,
+      "Width": 2000,
+      "CommunityRating": 5.4,
+      "VoteCount": 12,
+      "Language": "en",
+      "Type": "Primary",
+      "RatingType": "Score"
+    },
+    {
+      "ProviderName": "TheMovieDb",
+      "Url": "https://image.tmdb.org/t/p/original/poster-fr.jpg",
+      "ThumbnailUrl": "https://image.tmdb.org/t/p/w500/poster-fr.jpg",
+      "Height": 1500,
+      "Width": 1000,
+      "Language": "fr",
+      "Type": "Primary",
+      "RatingType": "Score"
+    },
+    {
+      "ProviderName": "TheTVDB",
+      "Url": "https://artworks.thetvdb.com/banners/movies/1/posters/poster-none.jpg",
+      "Height": 1426,
+      "Width": 1000,
+      "Language": null,
+      "Type": "Primary",
+      "RatingType": "Score"
+    },
+    {
+      "ProviderName": "TheMovieDb",
+      "Url": "https://image.tmdb.org/t/p/original/poster-en.jpg",
+      "ThumbnailUrl": "https://image.tmdb.org/t/p/w500/poster-en.jpg",
+      "Height": 3000,
+      "Width": 2000,
+      "Language": "en",
+      "Type": "Primary",
+      "RatingType": "Score"
+    }
+  ],
+  "TotalRecordCount": 4,
+  "Providers": ["TheMovieDb", "TheTVDB"]
+}

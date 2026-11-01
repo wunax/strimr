@@ -47,4 +47,27 @@ final class LibraryManagementRepository {
     func emptySectionTrash(sectionID: String) async throws {
         try await network.send(path: "/library/sections/\(sectionID)/emptyTrash", method: "PUT")
     }
+
+    /// `element` is `poster`, `art` or `clearLogo`; its list lives at the plural path.
+    func artwork(ratingKey: String, element: String) async throws -> PlexArtworkResponse {
+        try await network.request(path: "/library/metadata/\(ratingKey)/\(element)s")
+    }
+
+    func selectArtwork(ratingKey: String, element: String, url: String) async throws {
+        try await network.send(
+            path: "/library/metadata/\(ratingKey)/\(element)",
+            queryItems: [URLQueryItem(name: "url", value: url)],
+            method: "PUT",
+        )
+    }
+
+    /// Plex takes the raw image bytes as the body.
+    func uploadArtwork(ratingKey: String, element: String, data: Data, contentType: String) async throws {
+        try await network.send(
+            path: "/library/metadata/\(ratingKey)/\(element)s",
+            method: "POST",
+            headers: ["Content-Type": contentType],
+            body: data,
+        )
+    }
 }

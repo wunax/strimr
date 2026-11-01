@@ -16,6 +16,7 @@ final class MediaManageController {
     var notice: Notice?
     /// The media whose actions the tvOS dialog lists.
     var dialogMedia: MediaItem?
+    var artworkPicker: ArtworkPickerViewModel?
 
     func perform(
         _ action: MediaQuickAction,
@@ -24,6 +25,10 @@ final class MediaManageController {
         onAccepted: (() -> Void)? = nil,
     ) {
         guard !isPerforming else { return }
+        if action == .editArtwork {
+            artworkPicker = quickActions.artworkPicker(for: item)
+            return
+        }
         isPerforming = true
         Task {
             let outcome: MediaQuickActions.Outcome = switch action {
@@ -103,19 +108,28 @@ struct MediaManageMenu: View {
 }
 
 extension View {
+    /// `onArtworkChanged` runs once the artwork screen closes after a change.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
+        onArtworkChanged: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
-        modifier(MediaManagePresentation(controller: controller, quickActions: quickActions, onAccepted: onAccepted))
+        modifier(MediaManagePresentation(
+            controller: controller,
+            quickActions: quickActions,
+            onArtworkChanged: onArtworkChanged,
+            onAccepted: onAccepted,
+        ))
     }
 }
 
 private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
+    let onArtworkChanged: (() -> Void)?
     let onAccepted: (() -> Void)?
+    @State private var hasArtworkChanged = false
 
     func body(content: Content) -> some View {
         content
@@ -137,6 +151,15 @@ private struct MediaManagePresentation: ViewModifier {
                     }
                 }
                 Button("common.actions.cancel", role: .cancel) {}
+            }
+            .taskPresentation(item: $controller.artworkPicker) {
+                if hasArtworkChanged {
+                    hasArtworkChanged = false
+                    onArtworkChanged?()
+                }
+            } content: { picker in
+                ArtworkPickerView(viewModel: picker)
+                    .onChange(of: picker.changeCount) { hasArtworkChanged = true }
             }
             .alert(item: $controller.notice) { notice in
                 Alert(

@@ -28,3 +28,29 @@ enum PlexServerRights {
         return homeUsers.isEmpty || userUUID == accountID
     }
 }
+
+/// Images listed by `/library/metadata/{id}/posters`, `arts` or `clearLogos`.
+nonisolated struct PlexArtworkResponse: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let metadata: [PlexArtwork]?
+
+        private enum CodingKeys: String, CodingKey {
+            case metadata = "Metadata"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+nonisolated struct PlexArtwork: Codable, Equatable {
+    /// URL of the full-size image, or a path on the server for a local or uploaded one.
+    let key: String
+    let thumb: String?
+    /// Absent for a local or uploaded image.
+    let provider: String?
+    let selected: PlexLenient<Bool>?
+}

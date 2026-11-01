@@ -8,13 +8,14 @@ import SwiftUI
 
 struct ArtworkResourceView: View {
     let resource: ArtworkResource?
+    var contentMode: ContentMode = .fill
 
     var body: some View {
         switch resource {
         case let .url(url):
-            RemoteArtworkImage(url: url)
+            RemoteArtworkImage(url: url, contentMode: contentMode)
         case let .data(data):
-            DataArtworkImage(data: data)
+            DataArtworkImage(data: data, contentMode: contentMode)
         case nil:
             placeholder
         }
@@ -60,13 +61,14 @@ private struct DataArtworkImage: View {
     }()
 
     let data: Data
+    let contentMode: ContentMode
     @State private var loaded: (data: Data, image: PlatformImage)?
     @State private var failed = false
 
     var body: some View {
         Group {
             if let image = currentImage {
-                platformImage(image).resizable().scaledToFill()
+                platformImage(image).resizable().aspectRatio(contentMode: contentMode)
             } else if failed {
                 Color.surfaceSubtle
             } else {
@@ -124,13 +126,14 @@ private struct RemoteArtworkImage: View {
     }()
 
     let url: URL
+    let contentMode: ContentMode
     @State private var loaded: (url: URL, image: PlatformImage)?
     @State private var failedURL: URL?
 
     var body: some View {
         Group {
             if let image = currentImage {
-                platformImage(image).resizable().scaledToFill()
+                platformImage(image).resizable().aspectRatio(contentMode: contentMode)
             } else if failedURL == url {
                 Color.surfaceSubtle
             } else {
