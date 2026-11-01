@@ -139,6 +139,12 @@ struct PlayerView: View {
                     rotateAutomaticallyIfNeeded()
                     configureSleepTimer()
                     showControls(temporarily: true)
+                    if activePlaybackURL == nil {
+                        playbackRate = viewModel.initialPlaybackRate(
+                            settings: settingsManager.playback,
+                            isSharePlay: sharePlayCoordinator.isInSession,
+                        )
+                    }
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.attachPlayer(

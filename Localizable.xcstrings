@@ -19119,6 +19119,28 @@
         }
       }
     },
+    "settings.playback.defaultSpeed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default speed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vitesse par défaut"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认播放速度"
+          }
+        }
+      }
+    },
     "settings.playback.doubleTapToSeek" : {
       "localizations" : {
         "en" : {

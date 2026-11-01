@@ -43,6 +43,15 @@ struct SettingsPlaybackView: View {
                 .settingsFocus("settings.playback.nextEpisodeAutoplay")
 
                 SettingsPicker(
+                    "settings.playback.defaultSpeed",
+                    selection: viewModel.defaultPlaybackRateBinding,
+                    options: PlaybackSpeedOptions.all.map(\.rate),
+                ) { rate in
+                    Text("player.settings.speed.value \(PlaybackSpeedOption(rate: rate).valueText)")
+                }
+                .settingsFocus("settings.playback.defaultSpeed")
+
+                SettingsPicker(
                     "settings.playback.rewind",
                     selection: viewModel.rewindBinding,
                     options: Array(viewModel.seekOptions),

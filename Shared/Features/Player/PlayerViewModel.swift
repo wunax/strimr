@@ -29,6 +29,11 @@ final class PlayerViewModel {
         liveContext != nil
     }
 
+    /// Live streams cannot play faster than real time, and SharePlay takes the group's rate.
+    func initialPlaybackRate(settings: PlaybackSettings, isSharePlay: Bool) -> Float {
+        isLivePlayback || isSharePlay ? 1.0 : settings.defaultPlaybackRate
+    }
+
     var liveChannel: LiveTVChannel? {
         liveContext?.channel
     }

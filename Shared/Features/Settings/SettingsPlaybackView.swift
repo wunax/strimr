@@ -49,6 +49,12 @@ struct SettingsPlaybackView: View {
                     }
                 }
 
+                Picker("settings.playback.defaultSpeed", selection: viewModel.defaultPlaybackRateBinding) {
+                    ForEach(PlaybackSpeedOptions.all) { option in
+                        Text("player.settings.speed.value \(option.valueText)").tag(option.rate)
+                    }
+                }
+
                 Picker("settings.playback.rewind", selection: viewModel.rewindBinding) {
                     ForEach(viewModel.seekOptions, id: \.self) { seconds in
                         Text("settings.playback.seconds \(seconds)").tag(seconds)
