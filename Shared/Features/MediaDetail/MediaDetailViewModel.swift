@@ -123,9 +123,15 @@ final class MediaDetailViewModel {
         !quickActions.manageActions(for: media.mediaItem).isEmpty
     }
 
+    /// The media this page shows, or its series, was deleted from the server from the app.
+    var wasDeleted: Bool {
+        let deleted = services.deletedMediaIDs
+        return deleted.contains(media.id) || parentSeries.map { deleted.contains($0.id) } == true
+    }
+
     /// Reloads when a media this page shows was changed on the server from the app.
     func refreshAfterMediaChange(itemID: String?) async {
-        guard let itemID, shownMediaIDs.contains(itemID) else { return }
+        guard let itemID, shownMediaIDs.contains(itemID), !wasDeleted else { return }
         // A regular reload keeps the tracks, file info and extras of an unchanged item, which an analysis or a
         // refresh may have changed.
         fileInfoMediaID = nil

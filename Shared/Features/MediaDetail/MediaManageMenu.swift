@@ -1,8 +1,9 @@
 import Observation
 import SwiftUI
 
-/// Runs the Manage actions of the card and detail menus. The server applies them in the background, so a success
-/// only means it accepted them, which the toast says.
+/// Runs the Manage actions of the card and detail menus. The server applies most of them in the background, so a
+/// success only means it accepted them, which the toast says. A deletion opens its confirmation right away, since a
+/// view that held a context menu cannot present one once the server has answered.
 @MainActor
 @Observable
 final class MediaManageController {
@@ -11,6 +12,7 @@ final class MediaManageController {
     /// The media whose actions the tvOS dialog lists.
     var dialogMedia: MediaItem?
     var artworkPicker: ArtworkPickerViewModel?
+    var deletionItem: MediaItem?
 
     func perform(
         _ action: MediaQuickAction,
@@ -21,6 +23,10 @@ final class MediaManageController {
         guard !isPerforming else { return }
         if action == .editArtwork {
             artworkPicker = quickActions.artworkPicker(for: item)
+            return
+        }
+        if action == .delete {
+            deletionItem = item
             return
         }
         isPerforming = true
@@ -70,6 +76,12 @@ final class MediaManageController {
     }
 }
 
+extension MediaQuickAction {
+    var role: ButtonRole? {
+        self == .delete ? .destructive : nil
+    }
+}
+
 /// The Manage entry of a menu. tvOS menus handle nested menus poorly, so there it opens a dialog instead, presented
 /// by `mediaManagePresentation`.
 struct MediaManageMenu: View {
@@ -89,7 +101,7 @@ struct MediaManageMenu: View {
         #else
             Menu {
                 ForEach(quickActions.manageActions(for: item), id: \.self) { action in
-                    Button {
+                    Button(role: action.role) {
                         controller.perform(action, on: item, quickActions: quickActions, onAccepted: onAccepted)
                     } label: {
                         Label(action.title, systemImage: action.systemImage)
@@ -104,17 +116,19 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onArtworkChanged` runs once the artwork screen closes after a change.
+    /// `onArtworkChanged` runs once the artwork screen closes after a change, `onDeleted` once an item was deleted.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
         onArtworkChanged: (() -> Void)? = nil,
+        onDeleted: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
         modifier(MediaManagePresentation(
             controller: controller,
             quickActions: quickActions,
             onArtworkChanged: onArtworkChanged,
+            onDeleted: onDeleted,
             onAccepted: onAccepted,
         ))
     }
@@ -124,6 +138,7 @@ private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
     let onArtworkChanged: (() -> Void)?
+    let onDeleted: (() -> Void)?
     let onAccepted: (() -> Void)?
     @State private var hasArtworkChanged = false
 
@@ -142,7 +157,7 @@ private struct MediaManagePresentation: ViewModifier {
                 presenting: controller.dialogMedia,
             ) { item in
                 ForEach(quickActions.manageActions(for: item), id: \.self) { action in
-                    Button(action.title) {
+                    Button(action.title, role: action.role) {
                         controller.perform(action, on: item, quickActions: quickActions, onAccepted: onAccepted)
                     }
                 }
@@ -156,6 +171,12 @@ private struct MediaManagePresentation: ViewModifier {
             } content: { picker in
                 ArtworkPickerView(viewModel: picker)
                     .onChange(of: picker.changeCount) { hasArtworkChanged = true }
+            }
+            .taskPresentation(item: $controller.deletionItem, style: .dialog) { item in
+                MediaDeletionView(
+                    viewModel: MediaDeletionViewModel(item: item, quickActions: quickActions),
+                    onDeleted: onDeleted,
+                )
             }
             .toast($controller.toast)
     }

@@ -165,6 +165,22 @@ final class LibraryBrowseViewModel {
         Task { await refresh() }
     }
 
+    func removeDeletedItems(ids: Set<String>) {
+        let removed = itemsByIndex.compactMap { index, item -> Int? in
+            guard case let .media(media) = item, ids.contains(media.id) else { return nil }
+            return index
+        }
+        guard !removed.isEmpty else { return }
+        var shifted: [Int: LibraryBrowseItem] = [:]
+        for (index, item) in itemsByIndex where !removed.contains(index) {
+            shifted[index - removed.count(where: { $0 < index })] = item
+        }
+        itemsByIndex = shifted
+        totalItemCount = max(totalItemCount - removed.count, 0)
+        // Every page past a removal now starts one item later on the server, so pages load again when shown.
+        loadedPageStarts.removeAll()
+    }
+
     func refresh() async {
         scrollResetID &+= 1
         resetState()

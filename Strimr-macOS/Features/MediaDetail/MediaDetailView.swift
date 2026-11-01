@@ -6,6 +6,7 @@ struct MediaDetailView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.dismiss) private var dismiss
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(AppModel.self) private var appModel
@@ -76,6 +77,10 @@ struct MediaDetailView: View {
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
         .onChange(of: mediaServices.mediaRevision) {
+            guard !viewModel.wasDeleted else {
+                dismiss()
+                return
+            }
             let changedMediaID = mediaServices.lastChangedMediaID
             Task { await viewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }

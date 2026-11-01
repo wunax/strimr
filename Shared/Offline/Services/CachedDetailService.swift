@@ -208,6 +208,10 @@ final class CachedDetailService: MediaDetailService {
         ))
     }
 
+    func forgetDeletedMedia(itemID: String) {
+        itemDisappeared(itemID)
+    }
+
     /// A 404 online removes the item from the browsing cache; a downloaded copy stays playable.
     private func itemDisappeared(_ itemID: String) {
         store.removeMedia(itemID: itemID, owner: owner)

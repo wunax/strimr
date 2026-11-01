@@ -76,6 +76,27 @@ final class PlexManagementService: MediaManagementService {
         )
     }
 
+    func deletionImpact(of item: MediaItem) async throws -> MediaDeletionImpact {
+        let response = try await MetadataRepository(context: context).getMetadata(ratingKey: item.id)
+        guard let metadata = response.mediaContainer.metadata?.first else { throw PlexAPIError.invalidResponse }
+        return Self.deletionImpact(of: metadata)
+    }
+
+    func delete(_ item: MediaItem) async throws {
+        try await LibraryManagementRepository(context: context).deleteMetadata(ratingKey: item.id)
+    }
+
+    static func deletionImpact(of item: PlexItem) -> MediaDeletionImpact {
+        switch item.type {
+        case .show, .season:
+            return .episodes(count: item.leafCount ?? 0)
+        default:
+            let parts = (item.media ?? []).flatMap(\.parts)
+            let sizes = parts.compactMap(\.size)
+            return .files(count: parts.count, totalSize: sizes.isEmpty ? nil : sizes.reduce(0, +))
+        }
+    }
+
     /// An episode has a single 16:9 image, which Plex stores as its poster.
     static func artworkKinds(for type: MediaKind) -> [EditableArtworkKind] {
         switch type {

@@ -50,6 +50,12 @@ struct ArtworkPickerViewModelTests {
 
         func selectArtwork(_: ArtworkOption, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
         func uploadArtwork(_: ArtworkUpload, for _: MediaItem, kind _: EditableArtworkKind) async throws {}
+
+        func deletionImpact(of _: MediaItem) async throws -> MediaDeletionImpact {
+            .files(count: 1, totalSize: nil)
+        }
+
+        func delete(_: MediaItem) async throws {}
     }
 
     @Test func `returning to a loaded kind clears the error of a failed one`() async {

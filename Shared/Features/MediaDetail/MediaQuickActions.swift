@@ -19,6 +19,7 @@ enum MediaQuickAction: Hashable {
     case refreshMetadata
     case analyze
     case editArtwork
+    case delete
 
     var title: String {
         switch self {
@@ -39,6 +40,7 @@ enum MediaQuickAction: Hashable {
         case .refreshMetadata: String(localized: "media.manage.refreshMetadata")
         case .analyze: String(localized: "media.manage.analyze")
         case .editArtwork: String(localized: "media.manage.editArtwork")
+        case .delete: String(localized: "media.manage.delete")
         }
     }
 
@@ -60,6 +62,7 @@ enum MediaQuickAction: Hashable {
         case .refreshMetadata: "arrow.clockwise"
         case .analyze: "waveform.badge.magnifyingglass"
         case .editArtwork: "photo.on.rectangle"
+        case .delete: "trash"
         }
     }
 }
@@ -74,6 +77,12 @@ struct MediaQuickActions {
         case cancelled
     }
 
+    enum DeletionPreparation: Equatable {
+        case ready(MediaDeletionImpact)
+        case failed(message: String)
+        case cancelled
+    }
+
     private let supportsFavorites: Bool
     private let setPlayedHandler: (Bool, String) async throws -> Void
     private let setFavoriteHandler: (Bool, MediaItem) async throws -> Void
@@ -81,8 +90,10 @@ struct MediaQuickActions {
     private let didChange: () -> Void
     private let management: Management?
 
-    /// Present only when the user manages the server's library.
+    /// Present only when the user manages the server's library or can delete its media.
     struct Management {
+        var canManageLibrary = true
+        var canDelete = false
         var supportsAnalyze: Bool
         var refreshMetadata: (String) async throws -> Void
         var analyze: (String) async throws -> Void
@@ -90,6 +101,9 @@ struct MediaQuickActions {
         var updateStarted: (String) -> Void = { _ in }
         var artworkKinds: (MediaItem) -> [EditableArtworkKind] = { _ in [] }
         var artworkPicker: (MediaItem) -> ArtworkPickerViewModel? = { _ in nil }
+        var deletionImpact: (MediaItem) async throws -> MediaDeletionImpact = { _ in .files(count: 0, totalSize: nil) }
+        var delete: (MediaItem) async throws -> Void = { _ in }
+        var deleted: (String) -> Void = { _ in }
     }
 
     init(services: MediaServices) {
@@ -101,8 +115,11 @@ struct MediaQuickActions {
             : nil
         didChange = { services.noteWatchStateChanged() }
         let service = services.management
-        management = services.authorization.canManageLibrary
+        let authorization = services.authorization
+        management = authorization.canManageLibrary || authorization.canDeleteMedia
             ? Management(
+                canManageLibrary: authorization.canManageLibrary,
+                canDelete: authorization.canDeleteMedia,
                 supportsAnalyze: service.supportsAnalyze,
                 refreshMetadata: { try await service.refreshMetadata(itemID: $0) },
                 analyze: { try await service.analyze(itemID: $0) },
@@ -115,6 +132,9 @@ struct MediaQuickActions {
                         services.noteMediaChanged(itemID: $0)
                     }
                 },
+                deletionImpact: { try await service.deletionImpact(of: $0) },
+                delete: { try await service.delete($0) },
+                deleted: { services.noteMediaDeleted(itemID: $0) },
             )
             : nil
     }
@@ -201,9 +221,18 @@ struct MediaQuickActions {
     /// The entries of the Manage submenu; empty when the user does not manage the server.
     func manageActions(for item: MediaItem) -> [MediaQuickAction] {
         guard let management, [.movie, .series, .season, .episode].contains(item.type) else { return [] }
-        var actions: [MediaQuickAction] = management.supportsAnalyze ? [.refreshMetadata, .analyze] : [.refreshMetadata]
-        if !management.artworkKinds(item).isEmpty {
-            actions.append(.editArtwork)
+        var actions: [MediaQuickAction] = []
+        if management.canManageLibrary {
+            actions.append(.refreshMetadata)
+            if management.supportsAnalyze {
+                actions.append(.analyze)
+            }
+            if !management.artworkKinds(item).isEmpty {
+                actions.append(.editArtwork)
+            }
+        }
+        if management.canDelete {
+            actions.append(.delete)
         }
         return actions
     }
@@ -228,13 +257,49 @@ struct MediaQuickActions {
     }
 
     func refreshMetadata(_ item: MediaItem) async -> Outcome {
-        guard let management else { return .cancelled }
+        guard let management, management.canManageLibrary else { return .cancelled }
         return await performManagement(on: item) { try await management.refreshMetadata(item.id) }
     }
 
     func analyze(_ item: MediaItem) async -> Outcome {
-        guard let management, management.supportsAnalyze else { return .cancelled }
+        guard let management, management.canManageLibrary, management.supportsAnalyze else { return .cancelled }
         return await performManagement(on: item) { try await management.analyze(item.id) }
+    }
+
+    /// Checks the user may delete this item and tells what it removes, for the confirmation.
+    func prepareDeletion(of item: MediaItem) async -> DeletionPreparation {
+        guard let management, manageActions(for: item).contains(.delete) else { return .cancelled }
+        do {
+            let impact = try await management.deletionImpact(item)
+            return Task.isCancelled ? .cancelled : .ready(impact)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return .cancelled }
+            return .failed(message: deletionFailureMessage(for: error))
+        }
+    }
+
+    func delete(_ item: MediaItem) async -> Outcome {
+        guard let management, manageActions(for: item).contains(.delete) else { return .cancelled }
+        do {
+            try await management.delete(item)
+            // The item is gone even if the task was cancelled meanwhile.
+            management.deleted(item.id)
+            return .succeeded
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return .cancelled }
+            return .failed(message: deletionFailureMessage(for: error))
+        }
+    }
+
+    private func deletionFailureMessage(for error: Error) -> String {
+        guard error.isManagementRefusal else {
+            ErrorReporter.capture(error)
+            return error.localizedDescription
+        }
+        // Plex refuses every deletion while its "Allow media deletion" setting is off.
+        return error is PlexAPIError
+            ? String(localized: "media.manage.delete.error.plexDisabled")
+            : String(localized: "media.manage.delete.error.forbidden")
     }
 
     private func performManagement(on item: MediaItem, _ operation: () async throws -> Void) async -> Outcome {

@@ -79,6 +79,8 @@ final class MediaServices {
     /// Bumped after a media was changed on the server from the app (refreshed, analyzed), so screens showing it reload.
     private(set) var mediaRevision = 0
     private(set) var lastChangedMediaID: String?
+    /// Media deleted from the server from the app, so pages still showing them close.
+    private(set) var deletedMediaIDs: Set<String> = []
 
     var authorization: MediaAuthorization {
         authorizationService.authorization
@@ -95,6 +97,14 @@ final class MediaServices {
     func noteMediaChanged(itemID: String) {
         lastChangedMediaID = itemID
         mediaRevision += 1
+    }
+
+    func noteMediaDeleted(itemID: String) {
+        deletedMediaIDs.insert(itemID)
+        #if !os(tvOS)
+            (detail as? CachedDetailService)?.forgetDeletedMedia(itemID: itemID)
+        #endif
+        noteMediaChanged(itemID: itemID)
     }
 
     /// Time the server is given to apply a refresh or an analysis before screens reload the media.
