@@ -74,6 +74,10 @@ struct PlayerView: View {
         Double(settingsManager.playback.seekBackwardSeconds)
     }
 
+    private var nowPlayingChapterNumber: Int? {
+        NowPlayingDetails.chapterNumber(at: viewModel.position, in: viewModel.chapters)
+    }
+
     private var timelineSkipSegments: [SkipSegment] {
         settingsManager.playback.showSkipSegmentsOnTimeline ? viewModel.markers : []
     }
@@ -178,6 +182,9 @@ struct PlayerView: View {
                         duration: playerController.duration ?? viewModel.duration,
                         chapters: viewModel.chapters,
                     )
+                }
+                .onChange(of: nowPlayingChapterNumber) { _, number in
+                    playerController.setNowPlayingChapter(number)
                 }
                 .onChange(of: playerController.duration) { _, newValue in
                     viewModel.handlePlaybackDuration(newValue)

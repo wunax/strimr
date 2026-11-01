@@ -99,12 +99,25 @@ final class PlayerViewModel {
     }
 
     func nowPlayingItem(settings: PlaybackSettings) -> NowPlayingItem? {
-        NowPlayingItem(
+        var item = NowPlayingItem(
             media: media,
             artworkService: artworkServices?.artwork,
             skipBackwardSeconds: settings.seekBackwardSeconds,
             skipForwardSeconds: settings.seekForwardSeconds,
         )
+        guard item != nil, !isLivePlayback else { return item }
+        item?.details = NowPlayingDetails(
+            contentIdentifier: media?.id,
+            queueIndex: queueCurrentIndex,
+            queueCount: queueCurrentIndex == nil ? nil : queueItems.count,
+            chapterCount: chapters.isEmpty ? nil : chapters.count,
+            intro: markers.first { $0.isIntro && $0.endTime >= $0.startTime }.map { $0.startTime ... $0.endTime },
+            credits: markers.first { $0.isCredits && $0.endTime >= $0.startTime }.map { $0.startTime ... $0.endTime },
+            nextTitle: queueCurrentIndex.flatMap { index in
+                queueItems.indices.contains(index + 1) ? queueItems[index + 1].media.title : nil
+            },
+        )
+        return item
     }
 
     var subtitleSearchTitlePlaceholder: String {
