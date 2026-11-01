@@ -76,7 +76,8 @@ struct MediaDetailView: View {
         .navigationTitle(viewModel.detailPrimaryLabel)
         .task { await viewModel.loadDetails() }
         .onChange(of: mediaServices.mediaRevision) {
-            Task { await viewModel.refreshAfterMediaChange(itemID: mediaServices.lastChangedMediaID) }
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await viewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }
         .themeMusic(for: viewModel.media.mediaItem)
         .sheet(isPresented: $isShowingShowDownloadSheet) {

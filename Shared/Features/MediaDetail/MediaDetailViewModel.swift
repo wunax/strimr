@@ -125,11 +125,21 @@ final class MediaDetailViewModel {
 
     /// Reloads when a media this page shows was changed on the server from the app.
     func refreshAfterMediaChange(itemID: String?) async {
-        guard let itemID else { return }
-        let shownIDs = [media.id, media.metadataRatingKey, parentSeries?.id].compactMap(\.self)
-            + seasons.map(\.id) + episodes.map(\.id)
-        guard shownIDs.contains(itemID) else { return }
+        guard let itemID, shownMediaIDs.contains(itemID) else { return }
+        // A regular reload keeps the tracks, file info and extras of an unchanged item, which an analysis or a
+        // refresh may have changed.
+        fileInfoMediaID = nil
+        extrasLoadedFor = nil
         await loadDetails(preservingExistingContent: true)
+        await refreshTrackSelectionAfterSubtitleAttachment()
+    }
+
+    /// The episode offered for playback can belong to a season other than the one listed.
+    var shownMediaIDs: Set<String> {
+        Set(
+            [media.id, media.metadataRatingKey, parentSeries?.id, onDeckItem?.id, requestedEpisodeID]
+                .compactMap(\.self) + seasons.map(\.id) + episodes.map(\.id),
+        )
     }
 
     private var detailTargetID: String {

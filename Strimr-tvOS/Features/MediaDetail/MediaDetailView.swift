@@ -96,7 +96,8 @@ struct MediaDetailView: View {
             await bindableViewModel.loadDetails()
         }
         .onChange(of: mediaServices.mediaRevision) {
-            Task { await bindableViewModel.refreshAfterMediaChange(itemID: mediaServices.lastChangedMediaID) }
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await bindableViewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }
         .themeMusic(for: bindableViewModel.media.mediaItem)
         .taskPresentation(isPresented: $isShowingSubtitleSearch) {
