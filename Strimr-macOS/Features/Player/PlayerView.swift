@@ -261,13 +261,13 @@ struct PlayerView: View {
                             ratingKey: viewModel.currentRatingKey,
                         )
                     }
-                    await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     if loadedURL == nil {
                         playbackRate = viewModel.initialPlaybackRate(
                             settings: settingsManager.playback,
                             isSharePlay: sharePlayCoordinator.isInSession,
                         )
                     }
+                    await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
                 .onDisappear {
