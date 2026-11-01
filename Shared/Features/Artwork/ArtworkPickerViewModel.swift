@@ -63,9 +63,9 @@ final class ArtworkPickerViewModel: Identifiable {
     /// Reuses the options already listed for the kind unless `force`.
     func load(force: Bool = false) async {
         let kind = selectedKind
+        errorMessage = nil
         guard force || optionsByKind[kind] == nil else { return }
         isLoading = true
-        errorMessage = nil
         defer { isLoading = false }
         do {
             let options = try await service.artworkOptions(for: item, kind: kind)

@@ -20,7 +20,12 @@ struct ArtworkUploadTests {
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         let image = try #require(context.makeImage())
         let data = NSMutableData()
-        let destination = try #require(CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil))
+        let destination = try #require(CGImageDestinationCreateWithData(
+            data,
+            UTType.png.identifier as CFString,
+            1,
+            nil,
+        ))
         CGImageDestinationAddImage(destination, image, nil)
         #expect(CGImageDestinationFinalize(destination))
         return data as Data
@@ -29,10 +34,10 @@ struct ArtworkUploadTests {
     private func pixelSize(of data: Data) throws -> (width: Int, height: Int, type: String) {
         let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
         let properties = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
-        return (
-            try #require(properties[kCGImagePropertyPixelWidth] as? Int),
-            try #require(properties[kCGImagePropertyPixelHeight] as? Int),
-            try #require(CGImageSourceGetType(source) as String?),
+        return try (
+            #require(properties[kCGImagePropertyPixelWidth] as? Int),
+            #require(properties[kCGImagePropertyPixelHeight] as? Int),
+            #require(CGImageSourceGetType(source) as String?),
         )
     }
 
