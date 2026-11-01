@@ -70,4 +70,25 @@ struct ExternalControlTests {
         #expect(try options("strimr://play/1?offset=soon").offset == nil)
         #expect(try options("strimr://play/1?offset=inf").offset == nil)
     }
+
+    @Test func `parses track commands`() throws {
+        #expect(try command("strimr://control/audio?lang=fr") == .audio(language: "fr"))
+        #expect(try command("strimr://control/audio?lang=ENG") == .audio(language: "eng"))
+        #expect(try command("strimr://control/subs?lang=es") == .subs(.language("es")))
+        #expect(try command("strimr://control/subs?lang=off") == .subs(.off))
+        #expect(try command("strimr://control/audio") == nil)
+        #expect(try command("strimr://control/audio?lang=") == nil)
+        #expect(try command("strimr://control/subs") == nil)
+    }
+
+    @Test func `reads the tracks of a play link`() throws {
+        let options = try options("strimr://play/1?audio=ja&subs=en")
+
+        #expect(options.audio == "ja")
+        #expect(options.subs == .language("en"))
+        #expect(try options("strimr://play/1?subs=off").subs == .off)
+        #expect(try options("strimr://play/1?audio=&subs=").audio == nil)
+        #expect(try options("strimr://play/1?audio=&subs=").subs == nil)
+        #expect(try options("strimr://play/1").subs == nil)
+    }
 }

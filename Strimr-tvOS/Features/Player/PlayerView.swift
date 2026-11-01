@@ -33,6 +33,7 @@ struct PlayerView: View {
     @State private var appliedPreferredAudio = false
     @State private var appliedPreferredSubtitle = false
     @State private var appliedResumeOffset = false
+    @State private var appliedLaunchTracks = false
     @State private var awaitingMediaLoad = false
     @State private var timelinePosition = 0.0
     @State private var sheetPresentation = IsolatedSheetPresentation<PlayerSettingsSheet>()
@@ -1055,6 +1056,14 @@ struct PlayerView: View {
                     {
                         selectedSubtitleTrackID = activeSubtitle
                     }
+
+                    if !appliedLaunchTracks, !audio.isEmpty {
+                        appliedLaunchTracks = true
+                        applyExternalTrackRequest(
+                            audio: viewModel.launchOptions?.audio,
+                            subs: viewModel.launchOptions?.subs,
+                        )
+                    }
                 }
             }
         }
@@ -1438,6 +1447,10 @@ struct PlayerView: View {
         case let .seekBy(delta):
             guard !viewModel.isLivePlayback else { return }
             quickSeek(by: delta)
+        case let .audio(language):
+            applyExternalTrackRequest(audio: language, subs: nil)
+        case let .subs(request):
+            applyExternalTrackRequest(audio: nil, subs: request)
         case .skipIntro:
             skipMarkerFromLink { $0.isIntro }
         case .skipCredits:
@@ -1449,6 +1462,27 @@ struct PlayerView: View {
             // Reports the position left behind; the item is not marked as watched.
             viewModel.handleStop()
             Task { await startPlayback(using: nextViewModel) }
+        }
+    }
+
+    /// Picks tracks by language through the same path as the settings menu, so the choice is saved on the server
+    /// and remembered for the next episodes. A language the file does not have changes nothing: the track the
+    /// app chose itself (remembered, server or file default) keeps playing, and subtitles are not turned off.
+    private func applyExternalTrackRequest(audio: String?, subs: ExternalSubtitleRequest?) {
+        if let audio, let track = audioTracks.best(forLanguage: audio), track.id != selectedAudioTrackID {
+            selectAudioTrack(track.id)
+        }
+        switch subs {
+        case .off:
+            if selectedSubtitleTrackID != nil {
+                selectSubtitleTrack(nil)
+            }
+        case let .language(code):
+            if let track = subtitleTracks.best(forLanguage: code), track.id != selectedSubtitleTrackID {
+                selectSubtitleTrack(track.id)
+            }
+        case nil:
+            break
         }
     }
 

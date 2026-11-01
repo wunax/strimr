@@ -22,6 +22,8 @@ nonisolated enum ExternalControlCommand: Equatable, Sendable {
     case skipIntro
     case skipCredits
     case next
+    case audio(language: String)
+    case subs(ExternalSubtitleRequest)
 
     init?(url: URL) {
         guard url.scheme == "strimr", url.host == "control",
@@ -35,6 +37,12 @@ nonisolated enum ExternalControlCommand: Equatable, Sendable {
         case "skipIntro": self = .skipIntro
         case "skipCredits": self = .skipCredits
         case "next": self = .next
+        case "audio":
+            guard let language = ExternalControlCommand.languageCode(query["lang"]) else { return nil }
+            self = .audio(language: language)
+        case "subs":
+            guard let request = query["lang"].flatMap(ExternalSubtitleRequest.init) else { return nil }
+            self = .subs(request)
         case "seek":
             // `to` wins over `by` when a link carries both.
             if let time = query["to"].flatMap(Self.seconds), time >= 0 {
@@ -48,9 +56,27 @@ nonisolated enum ExternalControlCommand: Equatable, Sendable {
         }
     }
 
+    /// A lowercased language code from a link value, nil when it is empty.
+    static func languageCode(_ value: String?) -> String? {
+        guard let code = value?.trimmingCharacters(in: .whitespaces).lowercased(), !code.isEmpty else { return nil }
+        return code
+    }
+
     /// Rejects `nan` and `inf`, which `Double` would parse.
     static func seconds(_ value: String) -> TimeInterval? {
         Double(value).flatMap { $0.isFinite ? $0 : nil }
+    }
+}
+
+/// A subtitle language, or no subtitles, asked for by a link.
+nonisolated enum ExternalSubtitleRequest: Equatable, Sendable {
+    case off
+    /// A lowercased ISO 639-1 or 639-2 code, as written in the link.
+    case language(String)
+
+    init?(_ value: String) {
+        guard let code = ExternalControlCommand.languageCode(value) else { return nil }
+        self = code == "off" ? .off : .language(code)
     }
 }
 
@@ -58,8 +84,10 @@ nonisolated enum ExternalControlCommand: Equatable, Sendable {
 nonisolated struct ExternalPlayOptions: Equatable, Sendable {
     /// Seconds to start at. Wins over `resume`.
     var offset: TimeInterval?
-    /// false starts from the beginning instead of the saved position, which is what plain play links do.
+    /// false starts from the beginning. Like the Play button, links resume from the saved position by default.
     var resume = true
+    var audio: String?
+    var subs: ExternalSubtitleRequest?
 
     init(query: [String: String]) {
         offset = query["offset"].flatMap(ExternalControlCommand.seconds).flatMap { $0 >= 0 ? $0 : nil }
@@ -67,5 +95,7 @@ nonisolated struct ExternalPlayOptions: Equatable, Sendable {
         case "0", "false": false
         default: true
         }
+        audio = ExternalControlCommand.languageCode(query["audio"])
+        subs = query["subs"].flatMap(ExternalSubtitleRequest.init)
     }
 }
