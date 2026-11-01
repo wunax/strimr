@@ -111,12 +111,27 @@ struct ArtworkPickerView: View {
                     }
                 }
                 .padding(.horizontal, horizontalMargin)
-                .padding(.vertical, 12)
+                .padding(.vertical, gridVerticalPadding)
             }
             #if os(tvOS)
+            // tvOS modals let scroll views overflow so focused tiles can grow; the grid must still not scroll over
+            // the kind picker and the title above it.
+            .mask {
+                Rectangle()
+                    .padding(.horizontal, -40)
+            }
             .focusSection()
             #endif
         }
+    }
+
+    /// Leaves room for the focus lift of the first and last rows, which the tvOS mask would cut.
+    private var gridVerticalPadding: CGFloat {
+        #if os(tvOS)
+            28
+        #else
+            12
+        #endif
     }
 
     @ViewBuilder
