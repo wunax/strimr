@@ -49,6 +49,17 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                SettingsPicker(
+                    "settings.interface.tabBarPlacement",
+                    selection: Binding(
+                        get: { settingsManager.interface.tabBarPlacement },
+                        set: { settingsManager.setTabBarPlacement($0) },
+                    ),
+                    options: Array(TabBarPlacement.allCases),
+                ) { placement in
+                    Text(placement.title)
+                }
+                .settingsFocus("tabBarPlacement")
                 Toggle(
                     "settings.interface.displayFavoritesTab",
                     isOn: Binding(

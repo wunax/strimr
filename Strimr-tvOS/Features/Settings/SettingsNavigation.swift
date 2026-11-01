@@ -1,5 +1,27 @@
 import SwiftUI
 
+/// Keeps the settings navigation alive while Settings is open, so rebuilding the tab view
+/// (switching the tab bar placement) does not send the user back to the first category.
+@MainActor
+final class SettingsNavigationCache {
+    private var navigation: SettingsNavigation?
+
+    /// The first category is known before the first frame, so neither the selection nor the detail page jumps.
+    func navigation(canManageAccounts: Bool) -> SettingsNavigation {
+        if let navigation {
+            return navigation
+        }
+        let category = SettingsCategory.visible(canManageAccounts: canManageAccounts).first ?? .playback
+        let navigation = SettingsNavigation(category: category)
+        self.navigation = navigation
+        return navigation
+    }
+
+    func reset() {
+        navigation = nil
+    }
+}
+
 /// Navigation stays inside the detail column; each category retains its own pages.
 @MainActor
 @Observable

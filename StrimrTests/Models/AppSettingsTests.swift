@@ -60,6 +60,12 @@ struct AppSettingsTests {
         #expect(try decode(#"{"playback":{"defaultPlaybackRate":1.5}}"#).playback.defaultPlaybackRate == 1.5)
     }
 
+    @Test func `tab bar stays on top unless chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.tabBarPlacement == .top)
+        #expect(try decode(#"{"interface":{"tabBarPlacement":"x"}}"#).interface.tabBarPlacement == .top)
+        #expect(try decode(#"{"interface":{"tabBarPlacement":"sidebar"}}"#).interface.tabBarPlacement == .sidebar)
+    }
+
     @Test func `corrupt library browse preferences keep other settings`() throws {
         let settings = try decode(#"""
         {"interface":{"displayPlaylists":false,"libraryBrowseByKey":{"plex|server|account|1":{"plex":{"filters":42}}}}}

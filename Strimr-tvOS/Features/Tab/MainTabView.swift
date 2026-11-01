@@ -12,6 +12,7 @@ struct MainTabView: View {
     @StateObject var coordinator: MainCoordinator
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
+    @State private var settingsNavigationCache = SettingsNavigationCache()
 
     init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel, settingsManager: SettingsManager) {
         _coordinator = StateObject(wrappedValue: MainCoordinator(settingsManager: settingsManager))
@@ -151,7 +152,11 @@ struct MainTabView: View {
                         .navigationDestination(for: MoreRoute.self) { route in
                             switch route {
                             case .settings:
-                                SettingsView(canManageAccounts: sessionManager.canManageAccounts)
+                                SettingsView(
+                                    navigation: settingsNavigationCache.navigation(
+                                        canManageAccounts: sessionManager.canManageAccounts,
+                                    ),
+                                )
                             case .favorites:
                                 FavoritesView(
                                     sessionManager: sessionManager,
@@ -165,6 +170,7 @@ struct MainTabView: View {
                 }
             }
         }
+        .modifier(TabBarPlacementStyle(placement: settingsManager.interface.tabBarPlacement))
         .environmentObject(coordinator)
         .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
         .task {
@@ -182,6 +188,11 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task { await refreshLiveTVAvailability() }
+        }
+        .onChange(of: coordinator.morePath.isEmpty) { _, isEmpty in
+            if isEmpty {
+                settingsNavigationCache.reset()
+            }
         }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
             if !isDisplayed {
@@ -364,6 +375,20 @@ struct MainTabView: View {
                 viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        }
+    }
+}
+
+/// Tab view styles have distinct types, so switching between them needs two branches.
+private struct TabBarPlacementStyle: ViewModifier {
+    let placement: TabBarPlacement
+
+    func body(content: Content) -> some View {
+        switch placement {
+        case .top:
+            content.tabViewStyle(.automatic)
+        case .sidebar:
+            content.tabViewStyle(.sidebarAdaptable)
         }
     }
 }

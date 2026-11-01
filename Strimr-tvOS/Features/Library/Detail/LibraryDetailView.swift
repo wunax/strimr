@@ -34,24 +34,11 @@ struct LibraryDetailView: View {
                 MediaHeroBackgroundView(media: heroMedia)
             }
 
-            HStack(alignment: .center, spacing: 12) {
-                if availableTabs.count > 1 {
-                    sidebarContainer
-                        .zIndex(1)
-                }
-                contentView
-                    .focusSection()
-                    .overlay {
-                        Color.black
-                            .opacity(isSidebarFocused ? 0.35 : 0)
-                            .ignoresSafeArea(edges: [.trailing, .top, .bottom])
-                            .allowsHitTesting(false)
-                    }
+            if settingsManager.interface.tabBarPlacement == .sidebar {
+                chipsLayout
+            } else {
+                sidebarLayout
             }
-            .focusScope(focusNamespace)
-            // The sidebar supplies the leading margin; without it, the safe area does.
-            .ignoresSafeArea(edges: availableTabs.count > 1 ? [.leading] : [])
-            .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
         }
         .onAppear {
             contentFocused = true
@@ -66,6 +53,40 @@ struct LibraryDetailView: View {
                 selectedTab = .recommended
             }
         }
+    }
+
+    /// The app sidebar already sits on the leading edge, so the library sections move to chips on top.
+    private var chipsLayout: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if availableTabs.count > 1 {
+                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
+                    .focusSection()
+            }
+            contentView
+                .focusSection()
+        }
+        .focusScope(focusNamespace)
+    }
+
+    private var sidebarLayout: some View {
+        HStack(alignment: .center, spacing: 12) {
+            if availableTabs.count > 1 {
+                sidebarContainer
+                    .zIndex(1)
+            }
+            contentView
+                .focusSection()
+                .overlay {
+                    Color.black
+                        .opacity(isSidebarFocused ? 0.35 : 0)
+                        .ignoresSafeArea(edges: [.trailing, .top, .bottom])
+                        .allowsHitTesting(false)
+                }
+        }
+        .focusScope(focusNamespace)
+        // The sidebar supplies the leading margin; without it, the safe area does.
+        .ignoresSafeArea(edges: availableTabs.count > 1 ? [.leading] : [])
+        .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
     }
 
     private var contentView: some View {

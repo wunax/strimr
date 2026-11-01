@@ -378,6 +378,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setTabBarPlacement(_ placement: TabBarPlacement) {
+        settings.interface.tabBarPlacement = placement
+        persist()
+    }
+
     func setThemeMusicVolume(_ volume: ThemeMusicVolume) {
         settings.interface.themeMusicVolume = volume
         persist()
