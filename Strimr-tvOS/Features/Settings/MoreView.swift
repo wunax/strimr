@@ -27,6 +27,15 @@ struct MoreView: View {
                     }
                     .buttonStyle(.bordered)
 
+                    if !settingsManager.interface.displayLibrariesTab {
+                        NavigationLink(value: MainCoordinator.Route.libraryBrowser) {
+                            Label("tabs.libraries", systemImage: "rectangle.stack.fill")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
                     if !settingsManager.interface.displayFavoritesTab {
                         NavigationLink(value: MoreRoute.favorites) {
                             Label("tabs.favorites", systemImage: "star.fill")

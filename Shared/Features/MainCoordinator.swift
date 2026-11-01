@@ -20,13 +20,15 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case libraryDetail(LibraryIdentity)
     }
 
-    /// Every route carries its server: the destination is shown with that server's services.
+    /// Server-bound routes carry their server; the library browser spans all enabled servers.
     enum Route: Hashable {
         case mediaDetail(PlayableMediaItem)
         case collectionDetail(CollectionMediaItem)
         case playlistDetail(PlaylistMediaItem)
         case hubDetail(Hub)
         case personDetail(Person, ServerIdentity)
+        case libraryBrowser
+        case libraryDetail(Library)
 
         var server: ServerIdentity? {
             switch self {
@@ -40,6 +42,10 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                 hub.server
             case let .personDetail(_, server):
                 server
+            case .libraryBrowser:
+                nil
+            case let .libraryDetail(library):
+                library.server
             }
         }
     }
@@ -119,6 +125,31 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                 self.pruneMediaRouteEntries(for: tab, maximumDepth: newValue.count)
             },
         )
+    }
+
+    func showLibraryBrowser() {
+        appendNavigationRoute(.libraryBrowser)
+    }
+
+    func showLibrary(_ library: Library) {
+        appendNavigationRoute(.libraryDetail(library))
+    }
+
+    private func appendNavigationRoute(_ route: Route) {
+        let binding = pathBinding(for: tab)
+        var path = binding.wrappedValue
+        path.append(route)
+        binding.wrappedValue = path
+    }
+
+    func reconcileLibraryNavigation(libraryStore: LibraryStore) {
+        if tab == .library, !settingsManager.interface.displayLibrariesTab {
+            tab = .home
+        } else if case let .libraryDetail(identity) = tab,
+                  !libraryStore.isNavigationLibraryEnabled(identity)
+        {
+            tab = .home
+        }
     }
 
     func showMediaDetail(_ media: PlayableMediaItem) {
@@ -307,20 +338,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     func showPersonDetail(_ person: Person, server: ServerIdentity) {
         let route = Route.personDetail(person, server)
 
-        switch tab {
-        case .home:
-            homePath.append(route)
-        case .search:
-            searchPath.append(route)
-        case .library:
-            libraryPath.append(route)
-        case .favorites, .liveTV, .more, .seerrDiscover, .downloads:
-            break
-        case let .libraryDetail(libraryId):
-            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
-            path.append(route)
-            libraryDetailPaths[libraryId] = path
-        }
+        appendNavigationRoute(route)
     }
 
     func showSeerrRequests() {

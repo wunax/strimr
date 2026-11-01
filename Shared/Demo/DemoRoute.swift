@@ -23,8 +23,8 @@
             case .home:
                 coordinator.tab = .home
             case let .library(library):
-                coordinator.tab = .library
-                coordinator.libraryPath.append(library)
+                coordinator.tab = .home
+                coordinator.showLibrary(library)
             case let .media(media):
                 coordinator.tab = .home
                 coordinator.showMediaDetail(media)
@@ -46,7 +46,7 @@
                 case .home:
                     appModel.selection = .home
                 case let .library(library):
-                    appModel.selection = .libraries
+                    appModel.selection = .home
                     appModel.showLibrary(library)
                 case let .media(media):
                     appModel.selection = .home

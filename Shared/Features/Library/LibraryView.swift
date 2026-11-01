@@ -15,6 +15,5 @@ struct LibraryView: View {
     var body: some View {
         LibraryTileGrid(viewModel: viewModel)
             .navigationTitle("tabs.libraries")
-            .tabRootChrome()
     }
 }

@@ -406,6 +406,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayPlaylists = true
     var displayFavoritesTab = false
     var displayDownloadsTab = false
+    var displayLibrariesTab = true
     var displayLiveTVTab = true
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled: Bool?
@@ -445,6 +446,7 @@ struct InterfaceSettings: Codable, Equatable {
         displayPlaylists = try container.decodeIfPresent(Bool.self, forKey: .displayPlaylists) ?? true
         displayFavoritesTab = try container.decodeIfPresent(Bool.self, forKey: .displayFavoritesTab) ?? false
         displayDownloadsTab = try container.decodeIfPresent(Bool.self, forKey: .displayDownloadsTab) ?? false
+        displayLibrariesTab = try container.decodeIfPresent(Bool.self, forKey: .displayLibrariesTab) ?? true
         displayLiveTVTab = try container.decodeIfPresent(Bool.self, forKey: .displayLiveTVTab) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)

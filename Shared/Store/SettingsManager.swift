@@ -428,6 +428,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDisplayLibrariesTab(_ enabled: Bool) {
+        settings.interface.displayLibrariesTab = enabled
+        persist()
+    }
+
     func setDisplayLiveTVTab(_ enabled: Bool) {
         settings.interface.displayLiveTVTab = enabled
         persist()

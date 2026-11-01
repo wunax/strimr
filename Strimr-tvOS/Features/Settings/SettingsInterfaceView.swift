@@ -69,6 +69,14 @@ struct SettingsInterfaceView: View {
                 )
                 .settingsFocus("settings.interface.displayFavoritesTab")
                 Toggle(
+                    "settings.interface.displayLibrariesTab",
+                    isOn: Binding(
+                        get: { settingsManager.interface.displayLibrariesTab },
+                        set: { settingsManager.setDisplayLibrariesTab($0) },
+                    ),
+                )
+                .settingsFocus("settings.interface.displayLibrariesTab")
+                Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(
                         get: { settingsManager.interface.displayLiveTVTab },
