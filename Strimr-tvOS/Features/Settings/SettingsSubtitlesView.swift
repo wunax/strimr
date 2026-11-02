@@ -93,6 +93,21 @@ struct SettingsSubtitlesView: View {
                 Text("settings.playback.subtitles.footer")
             }
 
+            if viewModel.showsSubtitleBottomMargin {
+                Section {
+                    SettingsPicker(
+                        "settings.playback.subtitles.bottomMargin",
+                        selection: viewModel.subtitleBottomMarginBinding,
+                        options: Array(viewModel.subtitleBottomMarginOptions),
+                    ) { margin in
+                        Text(margin.localizedName)
+                    }
+                    .settingsFocus("settings.playback.subtitles.bottomMargin")
+                } footer: {
+                    Text("settings.playback.subtitles.bottomMargin.description")
+                }
+            }
+
             Section {
                 SettingsPicker(
                     "settings.playback.subtitles.brightness",

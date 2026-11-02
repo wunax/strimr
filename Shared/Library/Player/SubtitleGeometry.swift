@@ -2,6 +2,44 @@ import CoreGraphics
 import SwiftAssRenderer
 
 enum SubtitleGeometry {
+    static let defaultTextBottomInset: CGFloat = 48
+
+    /// Bottom inset of text subtitles, kept above the visible controls.
+    static func textBottomInset(
+        margin: SubtitleBottomMargin,
+        screenHeight: CGFloat,
+        controlsInset: CGFloat,
+        minimumInset: CGFloat = 0,
+    ) -> CGFloat {
+        chosenBottomInset(
+            margin: margin,
+            screenHeight: screenHeight,
+            controlsInset: controlsInset,
+            minimumInset: minimumInset,
+        ) ?? max(defaultTextBottomInset, controlsInset, minimumInset)
+    }
+
+    /// Bottom inset of a margin the user picked, or nil when bitmap subtitles keep the track's placement.
+    static func chosenBottomInset(
+        margin: SubtitleBottomMargin,
+        screenHeight: CGFloat,
+        controlsInset: CGFloat,
+        minimumInset: CGFloat = 0,
+    ) -> CGFloat? {
+        guard let percent = margin.percent else { return nil }
+        return max(screenHeight * CGFloat(percent) / 100, controlsInset, minimumInset)
+    }
+
+    /// Moves the bitmap subtitles of the lower half so the lowest one ends `bottomInset` above the bottom of
+    /// `bounds`. They move together to keep the spacing between lines, and images in the upper half, usually
+    /// signs or titles, stay where the track put them.
+    static func placingLowerFrames(_ frames: [CGRect], bottomInset: CGFloat, in bounds: CGRect) -> [CGRect] {
+        let isLower = { (frame: CGRect) in frame.midY >= bounds.midY }
+        guard let lowestEdge = frames.filter(isLower).map(\.maxY).max() else { return frames }
+        let shift = bounds.maxY - bottomInset - lowestEdge
+        return frames.map { isLower($0) ? $0.offsetBy(dx: 0, dy: shift) : $0 }
+    }
+
     /// Applies the video's zoom, centered on the screen, to a rect laid out on the fitted picture.
     static func zoomed(_ rect: CGRect, by scale: Double, in container: CGSize) -> CGRect {
         guard scale != 1 else { return rect }

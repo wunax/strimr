@@ -14,7 +14,9 @@ struct SubtitleOverlayView: View {
     let currentTime: Double
     let maxCueDuration: Double
     let appearance: SubtitleAppearance
-    let bottomPadding: CGFloat
+    /// Height the visible player controls take at the bottom, 0 when they are hidden.
+    let controlsInset: CGFloat
+    var minimumBottomInset: CGFloat = 0
     let videoSize: CGSize?
     let assRenderer: AssSubtitlesRenderer?
     let activeSubtitleCodec: String?
@@ -53,9 +55,13 @@ struct SubtitleOverlayView: View {
                 Color.clear
                     .overlay(alignment: .topLeading) {
                         let images = activeImages
+                        let bounds = CGRect(origin: .zero, size: geometry.size)
                         let frames = SubtitleGeometry.keptVisible(
-                            images.map { imageFrame($0.image, in: geometry.size) },
-                            in: CGRect(origin: .zero, size: geometry.size),
+                            placedImageFrames(
+                                images.map { imageFrame($0.image, in: geometry.size) },
+                                in: bounds,
+                            ),
+                            in: bounds,
                         )
                         ForEach(Array(zip(images, frames)), id: \.0.id) { item, frame in
                             imageView(item.image, frame: frame)
@@ -66,6 +72,12 @@ struct SubtitleOverlayView: View {
             .ignoresSafeArea()
 
             GeometryReader { geometry in
+                let bottomInset = SubtitleGeometry.textBottomInset(
+                    margin: appearance.bottomMargin,
+                    screenHeight: geometry.size.height,
+                    controlsInset: controlsInset,
+                    minimumInset: minimumBottomInset,
+                )
                 Color.clear
                     .overlay(alignment: appearance.verticalPosition.alignment) {
                         let lines = activeTextLines
@@ -77,13 +89,8 @@ struct SubtitleOverlayView: View {
                             }
                             .frame(maxWidth: max(0, geometry.size.width - 48))
                             .padding(.top, appearance.verticalPosition == .top ? 48 : 0)
-                            .padding(
-                                .bottom,
-                                appearance.verticalPosition == .bottom
-                                    ? bottomPadding
-                                    : 0,
-                            )
-                            .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomPadding)
+                            .padding(.bottom, appearance.verticalPosition == .bottom ? bottomInset : 0)
+                            .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomInset)
                         }
                     }
             }
@@ -206,6 +213,18 @@ struct SubtitleOverlayView: View {
                 x: frame.minX,
                 y: frame.minY,
             )
+    }
+
+    private func placedImageFrames(_ frames: [CGRect], in bounds: CGRect) -> [CGRect] {
+        guard appearance.verticalPosition == .bottom,
+              let bottomInset = SubtitleGeometry.chosenBottomInset(
+                  margin: appearance.bottomMargin,
+                  screenHeight: bounds.height,
+                  controlsInset: controlsInset,
+                  minimumInset: minimumBottomInset,
+              )
+        else { return frames }
+        return SubtitleGeometry.placingLowerFrames(frames, bottomInset: bottomInset, in: bounds)
     }
 
     private func videoRect(in overlaySize: CGSize) -> CGRect {
@@ -481,19 +500,27 @@ struct SubtitleAppearancePreview: View {
                 endPoint: .bottomTrailing,
             )
 
-            SubtitleTextView(
-                text: String(localized: "settings.playback.subtitles.preview.sample"),
-                appearance: appearance,
-            )
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity,
-                alignment: appearance.verticalPosition.alignment,
-            )
-            .padding(20)
+            GeometryReader { geometry in
+                SubtitleTextView(
+                    text: String(localized: "settings.playback.subtitles.preview.sample"),
+                    appearance: appearance,
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity,
+                    alignment: appearance.verticalPosition.alignment,
+                )
+                .padding([.horizontal, .top], 20)
+                .padding(.bottom, bottomPadding(height: geometry.size.height))
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityLabel("settings.playback.subtitles.preview.title")
+    }
+
+    private func bottomPadding(height: CGFloat) -> CGFloat {
+        guard appearance.verticalPosition == .bottom, let percent = appearance.bottomMargin.percent else { return 20 }
+        return height * CGFloat(percent) / 100
     }
 }
 
@@ -622,6 +649,16 @@ extension SubtitleEdgeStyle {
             "settings.playback.subtitles.edge.outline"
         case .none:
             "settings.playback.subtitles.edge.none"
+        }
+    }
+}
+
+extension SubtitleBottomMargin {
+    var localizedName: LocalizedStringKey {
+        if let percent {
+            "settings.playback.subtitles.bottomMargin.percent \(percent)"
+        } else {
+            "settings.playback.subtitles.bottomMargin.automatic"
         }
     }
 }

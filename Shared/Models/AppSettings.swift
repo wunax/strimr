@@ -216,6 +216,33 @@ enum SubtitleVerticalPosition: String, Codable, CaseIterable, Hashable {
     case top
 }
 
+enum SubtitleBottomMargin: String, Codable, CaseIterable, Hashable {
+    case automatic
+    case percent0
+    case percent2
+    case percent4
+    case percent6
+    case percent8
+    case percent10
+    case percent15
+    case percent20
+
+    /// Nil keeps the player's default margin.
+    var percent: Int? {
+        switch self {
+        case .automatic: nil
+        case .percent0: 0
+        case .percent2: 2
+        case .percent4: 4
+        case .percent6: 6
+        case .percent8: 8
+        case .percent10: 10
+        case .percent15: 15
+        case .percent20: 20
+        }
+    }
+}
+
 enum NextEpisodeAutoplay: String, Codable, CaseIterable, Hashable {
     case disabled
     case immediately
@@ -271,6 +298,7 @@ struct SubtitleAppearance: Equatable {
     let backgroundStrength: SubtitleBackgroundStrength
     let edgeStyle: SubtitleEdgeStyle
     let verticalPosition: SubtitleVerticalPosition
+    let bottomMargin: SubtitleBottomMargin
 }
 
 struct PlaybackSettings: Codable, Equatable {
@@ -308,6 +336,7 @@ struct PlaybackSettings: Codable, Equatable {
     var subtitleBackgroundStrength = SubtitleBackgroundStrength.standard
     var subtitleEdgeStyle = SubtitleEdgeStyle.shadow
     var subtitleVerticalPosition = SubtitleVerticalPosition.bottom
+    var subtitleBottomMargin = SubtitleBottomMargin.automatic
     /// Nil plays in Strimr's built-in player.
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
@@ -393,6 +422,10 @@ struct PlaybackSettings: Codable, Equatable {
             try? container.decode(SubtitleVerticalPosition.self, forKey: .subtitleVerticalPosition),
         )
             ?? .bottom
+        subtitleBottomMargin = (
+            try? container.decode(SubtitleBottomMargin.self, forKey: .subtitleBottomMargin),
+        )
+            ?? .automatic
         externalPlayer = try? container.decodeIfPresent(ExternalPlayerSelection.self, forKey: .externalPlayer)
         customExternalPlayer = try? container.decodeIfPresent(
             CustomExternalPlayer.self,
@@ -413,6 +446,7 @@ struct PlaybackSettings: Codable, Equatable {
             backgroundStrength: subtitleBackgroundStrength,
             edgeStyle: subtitleEdgeStyle,
             verticalPosition: subtitleVerticalPosition,
+            bottomMargin: subtitleBottomMargin,
         )
     }
 
@@ -424,6 +458,7 @@ struct PlaybackSettings: Codable, Equatable {
         subtitleBackgroundStrength = .standard
         subtitleEdgeStyle = .shadow
         subtitleVerticalPosition = .bottom
+        subtitleBottomMargin = .automatic
     }
 
     private static var defaultSubtitleFontSize: Int {
