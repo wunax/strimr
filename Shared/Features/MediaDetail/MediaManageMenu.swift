@@ -172,6 +172,9 @@ private struct MediaManagePresentation: ViewModifier {
     let onDeleted: (() -> Void)?
     let onAccepted: (() -> Void)?
     @State private var hasEdited = false
+    #if !os(tvOS)
+        @State private var presentedEditor: MetadataEditorViewModel?
+    #endif
     @State private var hasMatchChanged = false
 
     func body(content: Content) -> some View {
@@ -200,9 +203,9 @@ private struct MediaManagePresentation: ViewModifier {
                     .onChange(of: picker.changeCount) { hasEdited = true }
             }
         #if !os(tvOS)
-            .taskPresentation(item: $controller.metadataEditor, onDismiss: noteDismissal) { editor in
+            .taskPresentation(item: $controller.metadataEditor, onDismiss: noteEditorDismissal) { editor in
                 MetadataEditorView(viewModel: editor)
-                    .onChange(of: editor.changeCount) { hasEdited = true }
+                    .onAppear { presentedEditor = editor }
             }
         #endif
             .taskPresentation(item: $controller.deletionItem, style: .dialog) { item in
@@ -252,6 +255,17 @@ private struct MediaManagePresentation: ViewModifier {
         let action = quickActions.manageActions(for: item).first { $0 == .fixMatch || $0 == .identify }
         return (action ?? .identify).title
     }
+
+    #if !os(tvOS)
+        /// The editor closes right after saving, possibly before an `onChange` on its change count could run.
+        private func noteEditorDismissal() {
+            if let presentedEditor, presentedEditor.changeCount > 0 {
+                hasEdited = true
+            }
+            presentedEditor = nil
+            noteDismissal()
+        }
+    #endif
 
     private func noteDismissal() {
         guard hasEdited else { return }
