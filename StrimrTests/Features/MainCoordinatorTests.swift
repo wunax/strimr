@@ -46,11 +46,22 @@ struct MainCoordinatorTests {
         #expect(coordinator.tab == .home)
     }
 
-    @Test func `does not switch tabs once the user is browsing Home`() {
+    @Test func `does not switch tabs once the user has browsed Home`() {
         let coordinator = coordinator(startupScreen: .discover)
 
         coordinator.homePath.append("detail")
+        coordinator.homePath = NavigationPath()
         coordinator.openPendingStartupTab(.seerrDiscover)
+
+        #expect(coordinator.tab == .home)
+    }
+
+    @Test func `does not switch tabs once something has been played`() {
+        let coordinator = coordinator(startupScreen: .liveTV)
+
+        coordinator.isPresentingPlayer = true
+        coordinator.resetPlayer()
+        coordinator.openPendingStartupTab(.liveTV)
 
         #expect(coordinator.tab == .home)
     }

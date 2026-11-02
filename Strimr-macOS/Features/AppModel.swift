@@ -136,8 +136,22 @@ final class AppModel: PlaybackPresenting {
         }
     }
 
-    var playerPresentation: PlayerPresentation?
-    private var paths: [SidebarItem: NavigationPath] = [:]
+    var playerPresentation: PlayerPresentation? {
+        didSet {
+            if playerPresentation != nil {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
+    private var paths: [SidebarItem: NavigationPath] = [:] {
+        didSet {
+            if paths[.home]?.isEmpty == false {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
     @ObservationIgnored private let settingsManager: SettingsManager
     /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
@@ -174,9 +188,6 @@ final class AppModel: PlaybackPresenting {
 
     func openPendingStartupSelection(_ candidate: SidebarItem) {
         guard pendingStartupSelection == candidate else { return }
-        pendingStartupSelection = nil
-        // Too late once the user has started browsing Home or playing something.
-        guard paths[.home]?.isEmpty ?? true, playerPresentation == nil else { return }
         selection = candidate
     }
 

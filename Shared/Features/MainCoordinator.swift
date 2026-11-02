@@ -52,7 +52,14 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
-    @Published var homePath = NavigationPath()
+    @Published var homePath = NavigationPath() {
+        didSet {
+            if !homePath.isEmpty {
+                pendingStartupTab = nil
+            }
+        }
+    }
+
     @Published var searchPath = NavigationPath()
     @Published var downloadsPath = NavigationPath()
     @Published var libraryPath = NavigationPath()
@@ -103,13 +110,17 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
 
     func openPendingStartupTab(_ candidate: Tab) {
         guard pendingStartupTab == candidate else { return }
-        pendingStartupTab = nil
-        // Too late once the user has started browsing Home or playing something.
-        guard homePath.isEmpty, !isPresentingPlayer else { return }
         tab = candidate
     }
 
-    @Published var isPresentingPlayer = false
+    @Published var isPresentingPlayer = false {
+        didSet {
+            if isPresentingPlayer {
+                pendingStartupTab = nil
+            }
+        }
+    }
+
     @Published var shouldResumeFromOffset = true
     @Published var selectedMediaQueue: PlaybackQueue?
     @Published var selectedMediaServices: MediaServices?
