@@ -58,6 +58,20 @@ struct ItemSettingsViewModelTests {
 
         func unmatch(itemID _: String) async throws {}
 
+        func editableMetadataFields(for _: MediaItem) -> [MetadataField] {
+            []
+        }
+
+        func loadMetadataDraft(for _: MediaItem) async throws -> MetadataDraft {
+            throw CancellationError()
+        }
+
+        func saveMetadata(_: MetadataDraft, original _: MetadataDraft, for _: MediaItem) async throws {}
+
+        func metadataSuggestions(for _: MetadataField, item _: MediaItem) async throws -> [String] {
+            []
+        }
+
         func supportsAdvancedSettings(for _: MediaItem) -> Bool {
             true
         }

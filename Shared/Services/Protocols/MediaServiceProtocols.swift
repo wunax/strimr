@@ -468,6 +468,13 @@ protocol MediaManagementService: AnyObject {
     /// Only Plex can detach an item from its match.
     var supportsUnmatch: Bool { get }
     func unmatch(itemID: String) async throws
+    /// Empty when the metadata of the item cannot be edited.
+    func editableMetadataFields(for item: MediaItem) -> [MetadataField]
+    func loadMetadataDraft(for item: MediaItem) async throws -> MetadataDraft
+    /// Sends only what changed since `original`, the draft as loaded.
+    func saveMetadata(_ draft: MetadataDraft, original: MetadataDraft, for item: MediaItem) async throws
+    /// Values already used on the server for a list field, offered while typing; empty when there are none.
+    func metadataSuggestions(for field: MetadataField, item: MediaItem) async throws -> [String]
     /// Only Plex has per-item settings, such as the episode order of a series.
     func supportsAdvancedSettings(for item: MediaItem) -> Bool
     /// The settings offered as a choice in a list, labeled in the app's language by the server.
@@ -526,6 +533,19 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     }
 
     func unmatch(itemID _: String) async throws {}
+    func editableMetadataFields(for _: MediaItem) -> [MetadataField] {
+        []
+    }
+
+    func loadMetadataDraft(for _: MediaItem) async throws -> MetadataDraft {
+        throw CancellationError()
+    }
+
+    func saveMetadata(_: MetadataDraft, original _: MetadataDraft, for _: MediaItem) async throws {}
+
+    func metadataSuggestions(for _: MetadataField, item _: MediaItem) async throws -> [String] {
+        []
+    }
 
     func supportsAdvancedSettings(for _: MediaItem) -> Bool {
         false

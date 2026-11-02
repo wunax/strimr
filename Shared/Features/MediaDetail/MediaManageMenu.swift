@@ -16,6 +16,7 @@ final class MediaManageController {
     var matchSearch: MatchSearchViewModel?
     /// The media whose unmatch waits for a confirmation.
     var pendingUnmatch: MediaItem?
+    var metadataEditor: MetadataEditorViewModel?
     var itemSettings: ItemSettingsViewModel?
 
     func perform(
@@ -34,6 +35,8 @@ final class MediaManageController {
             matchSearch = quickActions.matchSearch(for: item)
         case .unmatch:
             pendingUnmatch = item
+        case .editMetadata:
+            metadataEditor = quickActions.metadataEditor(for: item)
         case .advancedSettings:
             itemSettings = quickActions.itemSettings(for: item)
         default:
@@ -147,19 +150,19 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onMediaChanged` runs once the artwork or settings screen closes after a change, `onDeleted` once an item was
-    /// deleted.
+    /// `onEdited` runs once the artwork, metadata or settings screen closes after a change, `onDeleted` once an item
+    /// was deleted.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
-        onMediaChanged: (() -> Void)? = nil,
+        onEdited: (() -> Void)? = nil,
         onDeleted: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
         modifier(MediaManagePresentation(
             controller: controller,
             quickActions: quickActions,
-            onMediaChanged: onMediaChanged,
+            onEdited: onEdited,
             onDeleted: onDeleted,
             onAccepted: onAccepted,
         ))
@@ -169,10 +172,13 @@ extension View {
 private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
-    let onMediaChanged: (() -> Void)?
+    let onEdited: (() -> Void)?
     let onDeleted: (() -> Void)?
     let onAccepted: (() -> Void)?
-    @State private var hasMediaChanged = false
+    @State private var hasEdited = false
+    #if !os(tvOS)
+        @State private var presentedEditor: MetadataEditorViewModel?
+    #endif
     @State private var hasMatchChanged = false
 
     func body(content: Content) -> some View {
@@ -196,14 +202,20 @@ private struct MediaManagePresentation: ViewModifier {
                 }
                 Button("common.actions.cancel", role: .cancel) {}
             }
-            .taskPresentation(item: $controller.artworkPicker, onDismiss: notifyMediaChange) { picker in
+            .taskPresentation(item: $controller.artworkPicker, onDismiss: noteDismissal) { picker in
                 ArtworkPickerView(viewModel: picker)
-                    .onChange(of: picker.changeCount) { hasMediaChanged = true }
+                    .onChange(of: picker.changeCount) { hasEdited = true }
             }
-            .taskPresentation(item: $controller.itemSettings, onDismiss: notifyMediaChange) { settings in
+        #if !os(tvOS)
+            .taskPresentation(item: $controller.itemSettings, onDismiss: noteDismissal) { settings in
                 ItemSettingsView(viewModel: settings)
-                    .onChange(of: settings.changeCount) { hasMediaChanged = true }
+                    .onChange(of: settings.changeCount) { hasEdited = true }
             }
+            .taskPresentation(item: $controller.metadataEditor, onDismiss: noteEditorDismissal) { editor in
+                MetadataEditorView(viewModel: editor)
+                    .onAppear { presentedEditor = editor }
+            }
+        #endif
             .taskPresentation(item: $controller.deletionItem, style: .dialog) { item in
                 MediaDeletionView(
                     viewModel: MediaDeletionViewModel(item: item, quickActions: quickActions),
@@ -247,15 +259,26 @@ private struct MediaManagePresentation: ViewModifier {
             .toast($controller.toast)
     }
 
-    private func notifyMediaChange() {
-        guard hasMediaChanged else { return }
-        hasMediaChanged = false
-        onMediaChanged?()
-    }
-
     private func matchTitle(for item: MediaItem) -> String {
         let action = quickActions.manageActions(for: item).first { $0 == .fixMatch || $0 == .identify }
         return (action ?? .identify).title
+    }
+
+    #if !os(tvOS)
+        /// The editor closes right after saving, possibly before an `onChange` on its change count could run.
+        private func noteEditorDismissal() {
+            if let presentedEditor, presentedEditor.changeCount > 0 {
+                hasEdited = true
+            }
+            presentedEditor = nil
+            noteDismissal()
+        }
+    #endif
+
+    private func noteDismissal() {
+        guard hasEdited else { return }
+        hasEdited = false
+        onEdited?()
     }
 }
 

@@ -25,6 +25,8 @@ enum MediaQuickAction: Hashable {
     /// Jellyfin wording of the match search.
     case identify
     case unmatch
+    /// iOS and macOS only: the form needs text editing tvOS handles poorly.
+    case editMetadata
     case advancedSettings
 
     var title: String {
@@ -50,6 +52,7 @@ enum MediaQuickAction: Hashable {
         case .fixMatch: String(localized: "media.manage.fixMatch")
         case .identify: String(localized: "media.manage.identify")
         case .unmatch: String(localized: "media.manage.unmatch")
+        case .editMetadata: String(localized: "media.manage.editMetadata")
         case .advancedSettings: String(localized: "media.manage.advancedSettings")
         }
     }
@@ -75,6 +78,7 @@ enum MediaQuickAction: Hashable {
         case .delete: "trash"
         case .fixMatch, .identify: "magnifyingglass"
         case .unmatch: "link.badge.minus"
+        case .editMetadata: "pencil"
         case .advancedSettings: "slider.horizontal.3"
         }
     }
@@ -121,6 +125,8 @@ struct MediaQuickActions {
         /// Plex can also detach an item from its match; it names the search "fix match", Jellyfin "identify".
         var supportsUnmatch = false
         var unmatch: (String) async throws -> Void = { _ in }
+        var metadataFields: (MediaItem) -> [MetadataField] = { _ in [] }
+        var metadataEditor: (MediaItem) -> MetadataEditorViewModel? = { _ in nil }
         var supportsAdvancedSettings: (MediaItem) -> Bool = { _ in false }
         var itemSettings: (MediaItem) -> ItemSettingsViewModel? = { _ in nil }
     }
@@ -135,6 +141,13 @@ struct MediaQuickActions {
         didChange = { services.noteWatchStateChanged() }
         let service = services.management
         let authorization = services.authorization
+        func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
+            let kinds = service.artworkKinds(for: item)
+            guard !kinds.isEmpty else { return nil }
+            return ArtworkPickerViewModel(item: item, kinds: kinds, service: service) {
+                services.noteMediaChanged(itemID: $0)
+            }
+        }
         management = authorization.canManageLibrary || authorization.canDeleteMedia
             ? Management(
                 canManageLibrary: authorization.canManageLibrary,
@@ -144,13 +157,7 @@ struct MediaQuickActions {
                 analyze: { try await service.analyze(itemID: $0) },
                 updateStarted: { services.noteMediaChangeScheduled(itemID: $0) },
                 artworkKinds: { service.artworkKinds(for: $0) },
-                artworkPicker: { item in
-                    let kinds = service.artworkKinds(for: item)
-                    guard !kinds.isEmpty else { return nil }
-                    return ArtworkPickerViewModel(item: item, kinds: kinds, service: service) {
-                        services.noteMediaChanged(itemID: $0)
-                    }
-                },
+                artworkPicker: artworkPicker(for:),
                 deletionImpact: { try await service.deletionImpact(of: $0) },
                 delete: { try await service.delete($0) },
                 deleted: { services.noteMediaDeleted(itemID: $0) },
@@ -163,6 +170,14 @@ struct MediaQuickActions {
                 },
                 supportsUnmatch: service.supportsUnmatch,
                 unmatch: { try await service.unmatch(itemID: $0) },
+                metadataFields: { service.editableMetadataFields(for: $0) },
+                metadataEditor: { item in
+                    MetadataEditorViewModel(
+                        item: item,
+                        service: service,
+                        makeArtworkPicker: service.artworkKinds(for: item).isEmpty ? nil : { artworkPicker(for: item) },
+                    ) { services.noteMediaChanged(itemID: $0) }
+                },
                 supportsAdvancedSettings: { service.supportsAdvancedSettings(for: $0) },
                 itemSettings: { item in
                     ItemSettingsViewModel(item: item, service: service) {
@@ -264,6 +279,11 @@ struct MediaQuickActions {
             if !management.artworkKinds(item).isEmpty {
                 actions.append(.editArtwork)
             }
+            #if !os(tvOS)
+                if !management.metadataFields(item).isEmpty {
+                    actions.append(.editMetadata)
+                }
+            #endif
             if management.supportsAdvancedSettings(item) {
                 actions.append(.advancedSettings)
             }
@@ -285,14 +305,19 @@ struct MediaQuickActions {
         [.movie, .series].contains(item.type)
     }
 
-    func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
-        guard manageActions(for: item).contains(.editArtwork) else { return nil }
-        return management?.artworkPicker(item)
-    }
-
     func itemSettings(for item: MediaItem) -> ItemSettingsViewModel? {
         guard manageActions(for: item).contains(.advancedSettings) else { return nil }
         return management?.itemSettings(item)
+    }
+
+    func metadataEditor(for item: MediaItem) -> MetadataEditorViewModel? {
+        guard manageActions(for: item).contains(.editMetadata) else { return nil }
+        return management?.metadataEditor(item)
+    }
+
+    func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
+        guard manageActions(for: item).contains(.editArtwork) else { return nil }
+        return management?.artworkPicker(item)
     }
 
     func matchSearch(for item: MediaItem) -> MatchSearchViewModel? {

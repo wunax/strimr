@@ -35,6 +35,7 @@ struct MediaQuickActionsTests {
         deletionError: Error? = nil,
         supportsUnmatch: Bool = false,
         supportsAdvancedSettings: Bool = false,
+        metadataFields: [MetadataField] = [],
     ) -> MediaQuickActions {
         MediaQuickActions(
             supportsFavorites: supportsFavorites,
@@ -105,6 +106,10 @@ struct MediaQuickActionsTests {
                         if let error {
                             throw error
                         }
+                    },
+                    metadataFields: { _ in metadataFields },
+                    metadataEditor: { item in
+                        MetadataEditorViewModel(item: item, service: UnsupportedMediaManagementService()) { _ in }
                     },
                     supportsAdvancedSettings: { _ in supportsAdvancedSettings },
                     itemSettings: { item in
@@ -187,6 +192,22 @@ struct MediaQuickActionsTests {
         #expect(makeActions(canManageLibrary: true).artworkPicker(for: makeMedia(type: .movie)) == nil)
         #expect(!makeActions(canManageLibrary: true).manageActions(for: makeMedia(type: .movie))
             .contains(.editArtwork))
+    }
+
+    @Test func `metadata entry follows the fields the server can edit`() {
+        let actions = makeActions(canManageLibrary: true, metadataFields: [.title])
+
+        #expect(actions.manageActions(for: makeMedia(type: .movie)) == [
+            .refreshMetadata,
+            .analyze,
+            .editMetadata,
+            .identify,
+        ])
+        #expect(actions.metadataEditor(for: makeMedia(type: .movie))?.item.id == "item")
+        #expect(makeActions(canManageLibrary: true).metadataEditor(for: makeMedia(type: .movie)) == nil)
+        #expect(makeActions(metadataFields: [.title]).manageActions(for: makeMedia(type: .movie)).isEmpty)
+        #expect(makeActions(canDelete: true, metadataFields: [.title]).manageActions(for: makeMedia(type: .movie))
+            == [.delete])
     }
 
     @Test func `artwork cannot be edited without the right to manage the library`() {

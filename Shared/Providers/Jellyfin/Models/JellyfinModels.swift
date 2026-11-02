@@ -996,3 +996,30 @@ nonisolated struct JellyfinImageInfo: Codable, Hashable, Sendable {
         case height = "Height"
     }
 }
+
+/// The values used across the server, from `/Items/Filters`.
+nonisolated struct JellyfinItemFilters: Decodable, Sendable {
+    let genres: [String]?
+    let tags: [String]?
+
+    private enum CodingKeys: String, CodingKey {
+        case genres = "Genres"
+        case tags = "Tags"
+    }
+}
+
+nonisolated struct JellyfinMetadataEditorInfo: Decodable, Sendable {
+    struct ParentalRating: Decodable, Sendable {
+        let name: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case name = "Name"
+        }
+    }
+
+    let parentalRatingOptions: [ParentalRating]?
+
+    private enum CodingKeys: String, CodingKey {
+        case parentalRatingOptions = "ParentalRatingOptions"
+    }
+}

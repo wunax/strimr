@@ -259,6 +259,43 @@ final class JellyfinManagementService: MediaManagementService {
         return marked
     }
 
+    func editableMetadataFields(for item: MediaItem) -> [MetadataField] {
+        MetadataField.editableFields(for: item.type)
+    }
+
+    func loadMetadataDraft(for item: MediaItem) async throws -> MetadataDraft {
+        guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
+        let data = try await context.rawData(path: ["Users", userID, "Items", item.id])
+        let editor: JellyfinMetadataEditorInfo = try await context.get(path: ["Items", item.id, "MetadataEditor"])
+        guard let draft = Self.metadataDraft(
+            from: data,
+            fields: editableMetadataFields(for: item),
+            contentRatingOptions: (editor.parentalRatingOptions ?? []).compactMap(\.name),
+        ) else { throw JellyfinAPIError.invalidResponse }
+        return draft
+    }
+
+    func saveMetadata(_ draft: MetadataDraft, original: MetadataDraft, for item: MediaItem) async throws {
+        guard case let .jellyfin(data) = draft.payload,
+              let dto = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { throw JellyfinAPIError.invalidResponse }
+        let updated = Self.updatedItem(dto, draft: draft, original: original)
+        try await context.send(
+            path: ["Items", item.id],
+            method: "POST",
+            body: JSONSerialization.data(withJSONObject: updated),
+        )
+    }
+
+    func metadataSuggestions(for field: MetadataField, item _: MediaItem) async throws -> [String] {
+        guard let key = Self.suggestionKey(for: field), let userID = context.connection?.userID else { return [] }
+        let filters: JellyfinItemFilters = try await context.get(
+            path: ["Items", "Filters"],
+            query: [URLQueryItem(name: "UserId", value: userID)],
+        )
+        return (key == "Genres" ? filters.genres : filters.tags) ?? []
+    }
+
     func supportsAdvancedSettings(for _: MediaItem) -> Bool {
         false
     }
@@ -268,6 +305,167 @@ final class JellyfinManagementService: MediaManagementService {
     }
 
     func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
+
+    private static func suggestionKey(for field: MetadataField) -> String? {
+        switch field {
+        case .genres: "Genres"
+        case .labels: "Tags"
+        default: nil
+        }
+    }
+
+    /// Jellyfin has no lock for the sort title, the original title, the date and the tagline, and locks directors
+    /// and writers together as the cast.
+    nonisolated static func lockName(for field: MetadataField) -> String? {
+        switch field {
+        case .title: "Name"
+        case .contentRating: "OfficialRating"
+        case .studio: "Studios"
+        case .summary: "Overview"
+        case .genres: "Genres"
+        case .labels: "Tags"
+        case .directors, .writers: "Cast"
+        case .countries: "ProductionLocations"
+        case .sortTitle, .originalTitle, .releaseDate, .tagline: nil
+        }
+    }
+
+    private nonisolated static func personType(for field: MetadataField) -> String? {
+        switch field {
+        case .directors: "Director"
+        case .writers: "Writer"
+        default: nil
+        }
+    }
+
+    nonisolated static func metadataDraft(
+        from data: Data,
+        fields: [MetadataField],
+        contentRatingOptions: [String],
+    ) -> MetadataDraft? {
+        guard let dto = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
+        let people = dto["People"] as? [[String: Any]] ?? []
+        func names(_ value: Any?) -> [String] {
+            (value as? [[String: Any]] ?? []).compactMap { $0["Name"] as? String }
+        }
+        func peopleNames(_ type: String) -> [String] {
+            people.filter { ($0["Type"] as? String)?.caseInsensitiveCompare(type) == .orderedSame }
+                .compactMap { $0["Name"] as? String }
+        }
+        let values: [MetadataField: String] = [
+            .title: dto["Name"] as? String,
+            .sortTitle: dto["ForcedSortName"] as? String,
+            .originalTitle: dto["OriginalTitle"] as? String,
+            .releaseDate: (dto["PremiereDate"] as? String).map { String($0.prefix(10)) },
+            .contentRating: dto["OfficialRating"] as? String,
+            .studio: names(dto["Studios"]).first,
+            .tagline: (dto["Taglines"] as? [String])?.first,
+            .summary: dto["Overview"] as? String,
+        ].compactMapValues(\.self)
+        let lists: [MetadataField: [String]] = [
+            .genres: dto["Genres"] as? [String] ?? [],
+            .labels: dto["Tags"] as? [String] ?? [],
+            .directors: peopleNames("Director"),
+            .writers: peopleNames("Writer"),
+            .countries: dto["ProductionLocations"] as? [String] ?? [],
+        ]
+        let lockNames = Set(dto["LockedFields"] as? [String] ?? [])
+        let lockable = fields.filter { lockName(for: $0) != nil }
+        return MetadataDraft(
+            fields: fields,
+            values: values,
+            lists: lists,
+            lockedFields: Set(lockable.filter { lockName(for: $0).map(lockNames.contains) == true }),
+            lockableFields: Set(lockable),
+            sharedLocks: [[.directors, .writers]],
+            contentRatingOptions: contentRatingOptions,
+            payload: .jellyfin(item: data),
+        )
+    }
+
+    /// Changes only the edited keys of the item Jellyfin sent, since it clears whatever is missing from the body.
+    nonisolated static func updatedItem(
+        _ dto: [String: Any],
+        draft: MetadataDraft,
+        original: MetadataDraft,
+    ) -> [String: Any] {
+        var item = dto
+        item.removeValue(forKey: "Trickplay")
+        func text(_ field: MetadataField) -> Any {
+            let value = draft.value(field).trimmingCharacters(in: .whitespacesAndNewlines)
+            return value.isEmpty ? NSNull() : value
+        }
+        for field in draft.changedFields(from: original) {
+            switch field {
+            case .title: item["Name"] = draft.value(.title).trimmingCharacters(in: .whitespacesAndNewlines)
+            case .sortTitle: item["ForcedSortName"] = text(field)
+            case .originalTitle: item["OriginalTitle"] = text(field)
+            case .contentRating: item["OfficialRating"] = text(field)
+            case .summary: item["Overview"] = text(field)
+            case .releaseDate:
+                let value = draft.value(field)
+                if MetadataDate.date(from: value) != nil {
+                    // Keeps the time of day Jellyfin stored, which it reads back as is.
+                    let previous = dto["PremiereDate"] as? String
+                    let time = previous.flatMap { date in date.firstIndex(of: "T").map { String(date[$0...]) } }
+                    item["PremiereDate"] = value + (time ?? "T00:00:00.0000000Z")
+                    item["ProductionYear"] = Int(value.prefix(4))
+                } else {
+                    item["PremiereDate"] = NSNull()
+                    item["ProductionYear"] = NSNull()
+                }
+            case .studio:
+                let others = Array((dto["Studios"] as? [[String: Any]] ?? []).dropFirst())
+                let name = draft.value(field).trimmingCharacters(in: .whitespacesAndNewlines)
+                item["Studios"] = name.isEmpty ? others : [["Name": name]] + others
+            case .tagline:
+                let others = Array((dto["Taglines"] as? [String] ?? []).dropFirst())
+                let tagline = draft.value(field).trimmingCharacters(in: .whitespacesAndNewlines)
+                item["Taglines"] = tagline.isEmpty ? others : [tagline] + others
+            case .genres: item["Genres"] = draft.list(field)
+            case .labels: item["Tags"] = draft.list(field)
+            case .countries: item["ProductionLocations"] = draft.list(field)
+            case .directors, .writers:
+                guard let type = personType(for: field) else { continue }
+                item["People"] = replacingPeople(
+                    item["People"] as? [[String: Any]] ?? [],
+                    type: type,
+                    names: draft.list(field),
+                )
+            }
+        }
+        var lockNames = (dto["LockedFields"] as? [String] ?? []).filter { name in
+            !draft.lockableFields.contains { lockName(for: $0) == name }
+        }
+        for field in draft.fields where draft.isLocked(field) {
+            if let name = lockName(for: field), !lockNames.contains(name) {
+                lockNames.append(name)
+            }
+        }
+        item["LockedFields"] = lockNames
+        return item
+    }
+
+    /// Keeps the people of other types, and the details (id, image) of those still named.
+    private nonisolated static func replacingPeople(
+        _ people: [[String: Any]],
+        type: String,
+        names: [String],
+    ) -> [[String: Any]] {
+        func isOfType(_ person: [String: Any]) -> Bool {
+            (person["Type"] as? String)?.caseInsensitiveCompare(type) == .orderedSame
+        }
+        var existing = people.filter(isOfType)
+        let kept = names.map { name -> [String: Any] in
+            if let index = existing.firstIndex(where: {
+                ($0["Name"] as? String)?.caseInsensitiveCompare(name) == .orderedSame
+            }) {
+                return existing.remove(at: index)
+            }
+            return ["Name": name, "Type": type]
+        }
+        return people.filter { !isOfType($0) } + kept
+    }
 
     private func refreshLibrary(id: String, mode: String, replaceAllMetadata: Bool) async throws {
         try await context.send(
