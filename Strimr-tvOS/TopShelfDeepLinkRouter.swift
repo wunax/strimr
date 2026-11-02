@@ -15,11 +15,18 @@ final class TopShelfDeepLinkRouter {
         let serverIdentifier: String?
         let ratingKey: String
         let type: MediaKind
+        let options: ExternalPlayOptions
     }
 
     private(set) var pendingAction: Action?
+    /// Set by the player while it is open. Control links arriving at any other time are dropped.
+    @ObservationIgnored var controlHandler: ((ExternalControlCommand) -> Void)?
 
     func receive(_ url: URL) {
+        if let command = ExternalControlCommand(url: url) {
+            controlHandler?(command)
+            return
+        }
         guard url.scheme == "strimr",
               let host = url.host,
               let kind: Action.Kind = switch host
@@ -47,6 +54,7 @@ final class TopShelfDeepLinkRouter {
             serverIdentifier: components.queryItems?.first(where: { $0.name == "server" })?.value,
             ratingKey: ratingKey,
             type: type,
+            options: ExternalPlayOptions(query: url.queryValues),
         )
     }
 

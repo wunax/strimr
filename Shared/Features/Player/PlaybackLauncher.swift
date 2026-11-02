@@ -29,6 +29,7 @@ struct PlaybackLauncher {
         shuffle: Bool = false,
         shouldResumeFromOffset: Bool = true,
         allowsExternalPlayer: Bool = true,
+        launchOptions: ExternalPlayOptions? = nil,
     ) async {
         ThemeMusicPlayer.shared.silence()
         #if !os(tvOS)
@@ -39,11 +40,12 @@ struct PlaybackLauncher {
             }
         #endif
         do {
-            let queue = try await services.playback.queue(
+            var queue = try await services.playback.queue(
                 startingWith: ratingKey,
                 kind: type,
                 shuffle: shuffle,
             )
+            queue.launchOptions = launchOptions
             await present(
                 queue,
                 shouldResumeFromOffset: shouldResumeFromOffset,

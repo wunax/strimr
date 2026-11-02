@@ -27,6 +27,7 @@ final class NowPlayingController {
     private let commands: Commands
     private var item: NowPlayingItem?
     private var isLive = false
+    private var chapterNumber: Int?
     private var artwork: MPMediaItemArtwork?
     private var artworkTask: Task<Void, Never>?
     private var commandCenter: MPRemoteCommandCenter?
@@ -60,6 +61,7 @@ final class NowPlayingController {
         self.item = item
         self.isLive = isLive
         artwork = nil
+        chapterNumber = nil
         #if !os(macOS)
             if let item {
                 engine.remoteSkipInterval = item.skipForwardSeconds
@@ -77,6 +79,13 @@ final class NowPlayingController {
         #else
             attachCommandsToSession()
         #endif
+    }
+
+    /// The chapter holding the playhead, republished when it changes.
+    func setChapterNumber(_ number: Int?) {
+        guard number != chapterNumber, item != nil else { return }
+        chapterNumber = number
+        publishIdentity()
     }
 
     func setPlaybackRate(_ rate: Float) {
@@ -106,7 +115,7 @@ final class NowPlayingController {
         #if os(macOS)
             publishPlayback()
         #else
-            let info = item?.identityInfo(artwork: artwork, isLive: isLive) ?? [:]
+            let info = item?.identityInfo(artwork: artwork, isLive: isLive, chapterNumber: chapterNumber) ?? [:]
             engine.setVideoNowPlayingInfo(info)
             engine.setAudioNowPlayingInfo(info)
         #endif
@@ -264,7 +273,7 @@ final class NowPlayingController {
                 requestedRate: requestedRate,
             )
             let isLive = isLive || engine.isLive
-            var info = item.identityInfo(artwork: artwork, isLive: isLive)
+            var info = item.identityInfo(artwork: artwork, isLive: isLive, chapterNumber: chapterNumber)
             info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
             info[MPNowPlayingInfoPropertyPlaybackRate] = rate
             info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = Double(requestedRate)
