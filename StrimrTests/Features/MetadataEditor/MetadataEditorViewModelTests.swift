@@ -83,6 +83,16 @@ struct MetadataEditorViewModelTests {
         func metadataSuggestions(for field: MetadataField, item _: MediaItem) async throws -> [String] {
             field == .genres ? ["Action", "Adventure", "Drama"] : []
         }
+
+        func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+            false
+        }
+
+        func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+            []
+        }
+
+        func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
     }
 
     private let item = MediaItem.make(id: "item", server: ServerIdentity(provider: .plex, id: "server"))

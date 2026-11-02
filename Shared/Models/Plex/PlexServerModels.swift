@@ -157,3 +157,84 @@ nonisolated struct PlexTagValuesResponse: Codable, Equatable {
         case mediaContainer = "MediaContainer"
     }
 }
+
+/// `/library/metadata/{id}?includePreferences=1`, reduced to the item's settings.
+nonisolated struct PlexItemPreferencesResponse: Decodable, Equatable {
+    struct MediaContainer: Decodable, Equatable {
+        let metadata: [Metadata]?
+
+        private enum CodingKeys: String, CodingKey {
+            case metadata = "Metadata"
+        }
+    }
+
+    struct Metadata: Decodable, Equatable {
+        let preferences: Preferences?
+        /// Some servers list the settings on the item itself.
+        let settings: [PlexItemPreference]?
+
+        private enum CodingKeys: String, CodingKey {
+            case preferences = "Preferences"
+            case settings = "Setting"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            preferences = try container.decodeIfPresent(Preferences.self, forKey: .preferences)
+            settings = try container.decodeLossyArrayIfPresent(PlexItemPreference.self, forKey: .settings)
+        }
+    }
+
+    struct Preferences: Decodable, Equatable {
+        let settings: [PlexItemPreference]?
+
+        private enum CodingKeys: String, CodingKey {
+            case settings = "Setting"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            settings = try container.decodeLossyArrayIfPresent(PlexItemPreference.self, forKey: .settings)
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+
+    var settings: [PlexItemPreference] {
+        guard let metadata = mediaContainer.metadata?.first else { return [] }
+        return metadata.preferences?.settings ?? metadata.settings ?? []
+    }
+}
+
+nonisolated struct PlexItemPreference: Decodable, Equatable {
+    let id: String
+    let label: String?
+    let summary: String?
+    /// nil when the value is neither a string, a number nor a flag.
+    let value: String?
+    let hidden: Bool
+    /// `value:label` pairs joined with `|`, each part percent-encoded.
+    let enumValues: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, label, summary, value, hidden, enumValues
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        label = try container.decodeIfPresent(String.self, forKey: .label)
+        summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        if let flag = try? container.decodeIfPresent(Bool.self, forKey: .value) {
+            value = flag ? "1" : "0"
+        } else {
+            value = try? container.decodeIfPresent(PlexLenient<String>.self, forKey: .value)?.value
+        }
+        hidden = (try? container.decodeIfPresent(PlexLenient<Bool>.self, forKey: .hidden))?.value ?? false
+        enumValues = try container.decodeIfPresent(String.self, forKey: .enumValues)
+    }
+}

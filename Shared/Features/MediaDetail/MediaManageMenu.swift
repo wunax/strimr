@@ -17,6 +17,7 @@ final class MediaManageController {
     /// The media whose unmatch waits for a confirmation.
     var pendingUnmatch: MediaItem?
     var metadataEditor: MetadataEditorViewModel?
+    var itemSettings: ItemSettingsViewModel?
 
     func perform(
         _ action: MediaQuickAction,
@@ -36,6 +37,8 @@ final class MediaManageController {
             pendingUnmatch = item
         case .editMetadata:
             metadataEditor = quickActions.metadataEditor(for: item)
+        case .advancedSettings:
+            itemSettings = quickActions.itemSettings(for: item)
         default:
             run(action, on: item, quickActions: quickActions, onAccepted: onAccepted)
         }
@@ -147,7 +150,8 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onEdited` runs once the artwork or metadata screen closes after a change, `onDeleted` once an item was deleted.
+    /// `onEdited` runs once the artwork, metadata or settings screen closes after a change, `onDeleted` once an item
+    /// was deleted.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
@@ -203,6 +207,10 @@ private struct MediaManagePresentation: ViewModifier {
                     .onChange(of: picker.changeCount) { hasEdited = true }
             }
         #if !os(tvOS)
+            .taskPresentation(item: $controller.itemSettings, onDismiss: noteDismissal) { settings in
+                ItemSettingsView(viewModel: settings)
+                    .onChange(of: settings.changeCount) { hasEdited = true }
+            }
             .taskPresentation(item: $controller.metadataEditor, onDismiss: noteEditorDismissal) { editor in
                 MetadataEditorView(viewModel: editor)
                     .onAppear { presentedEditor = editor }

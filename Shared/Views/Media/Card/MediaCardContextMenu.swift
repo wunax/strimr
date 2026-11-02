@@ -244,7 +244,8 @@ private struct MediaCardContextMenu: ViewModifier {
             run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
                 await quickActions.removeFromContinueWatching(item)
             }
-        case .manage, .refreshMetadata, .analyze, .editArtwork, .editMetadata, .fixMatch, .identify, .unmatch, .delete:
+        case .manage, .refreshMetadata, .analyze, .editArtwork, .editMetadata, .advancedSettings, .fixMatch, .identify,
+             .unmatch, .delete:
             break
         }
     }

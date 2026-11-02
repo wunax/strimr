@@ -34,6 +34,7 @@ struct MediaQuickActionsTests {
         canDelete: Bool = false,
         deletionError: Error? = nil,
         supportsUnmatch: Bool = false,
+        supportsAdvancedSettings: Bool = false,
         metadataFields: [MetadataField] = [],
     ) -> MediaQuickActions {
         MediaQuickActions(
@@ -109,6 +110,10 @@ struct MediaQuickActionsTests {
                     metadataFields: { _ in metadataFields },
                     metadataEditor: { item in
                         MetadataEditorViewModel(item: item, service: UnsupportedMediaManagementService()) { _ in }
+                    },
+                    supportsAdvancedSettings: { _ in supportsAdvancedSettings },
+                    itemSettings: { item in
+                        ItemSettingsViewModel(item: item, service: UnsupportedMediaManagementService()) { _ in }
                     },
                 )
                 : nil,
@@ -210,6 +215,17 @@ struct MediaQuickActionsTests {
 
         #expect(actions.manageActions(for: makeMedia(type: .movie)).isEmpty)
         #expect(actions.artworkPicker(for: makeMedia(type: .movie)) == nil)
+    }
+
+    @Test func `advanced settings entry follows the server support`() {
+        let actions = makeActions(canManageLibrary: true, supportsAdvancedSettings: true)
+
+        #expect(actions.manageActions(for: makeMedia(type: .series))
+            == [.refreshMetadata, .analyze, .advancedSettings, .identify])
+        #expect(actions.itemSettings(for: makeMedia(type: .series))?.item.id == makeMedia(type: .series).id)
+        #expect(makeActions(canManageLibrary: true).itemSettings(for: makeMedia(type: .series)) == nil)
+        #expect(makeActions(supportsAdvancedSettings: true).itemSettings(for: makeMedia(type: .series)) == nil)
+        #expect(actions.itemSettings(for: makeMedia(type: .clip)) == nil)
     }
 
     @Test func `delete ends the manage entries of users allowed to delete`() {

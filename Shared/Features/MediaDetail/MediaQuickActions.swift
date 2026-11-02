@@ -27,6 +27,7 @@ enum MediaQuickAction: Hashable {
     case unmatch
     /// iOS and macOS only: the form needs text editing tvOS handles poorly.
     case editMetadata
+    case advancedSettings
 
     var title: String {
         switch self {
@@ -52,6 +53,7 @@ enum MediaQuickAction: Hashable {
         case .identify: String(localized: "media.manage.identify")
         case .unmatch: String(localized: "media.manage.unmatch")
         case .editMetadata: String(localized: "media.manage.editMetadata")
+        case .advancedSettings: String(localized: "media.manage.advancedSettings")
         }
     }
 
@@ -77,6 +79,7 @@ enum MediaQuickAction: Hashable {
         case .fixMatch, .identify: "magnifyingglass"
         case .unmatch: "link.badge.minus"
         case .editMetadata: "pencil"
+        case .advancedSettings: "slider.horizontal.3"
         }
     }
 }
@@ -124,6 +127,8 @@ struct MediaQuickActions {
         var unmatch: (String) async throws -> Void = { _ in }
         var metadataFields: (MediaItem) -> [MetadataField] = { _ in [] }
         var metadataEditor: (MediaItem) -> MetadataEditorViewModel? = { _ in nil }
+        var supportsAdvancedSettings: (MediaItem) -> Bool = { _ in false }
+        var itemSettings: (MediaItem) -> ItemSettingsViewModel? = { _ in nil }
     }
 
     init(services: MediaServices) {
@@ -172,6 +177,12 @@ struct MediaQuickActions {
                         service: service,
                         makeArtworkPicker: service.artworkKinds(for: item).isEmpty ? nil : { artworkPicker(for: item) },
                     ) { services.noteMediaChanged(itemID: $0) }
+                },
+                supportsAdvancedSettings: { service.supportsAdvancedSettings(for: $0) },
+                itemSettings: { item in
+                    ItemSettingsViewModel(item: item, service: service) {
+                        services.noteMediaChanged(itemID: $0)
+                    }
                 },
             )
             : nil
@@ -273,6 +284,9 @@ struct MediaQuickActions {
                     actions.append(.editMetadata)
                 }
             #endif
+            if management.supportsAdvancedSettings(item) {
+                actions.append(.advancedSettings)
+            }
             if Self.canMatch(item) {
                 actions.append(management.supportsUnmatch ? .fixMatch : .identify)
                 // Plex gives unmatched items a `local://` guid.
@@ -289,6 +303,11 @@ struct MediaQuickActions {
 
     static func canMatch(_ item: MediaItem) -> Bool {
         [.movie, .series].contains(item.type)
+    }
+
+    func itemSettings(for item: MediaItem) -> ItemSettingsViewModel? {
+        guard manageActions(for: item).contains(.advancedSettings) else { return nil }
+        return management?.itemSettings(item)
     }
 
     func metadataEditor(for item: MediaItem) -> MetadataEditorViewModel? {

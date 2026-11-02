@@ -296,6 +296,16 @@ final class JellyfinManagementService: MediaManagementService {
         return (key == "Genres" ? filters.genres : filters.tags) ?? []
     }
 
+    func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+        false
+    }
+
+    func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+        []
+    }
+
+    func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
+
     private static func suggestionKey(for field: MetadataField) -> String? {
         switch field {
         case .genres: "Genres"

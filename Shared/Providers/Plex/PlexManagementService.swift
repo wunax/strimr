@@ -284,6 +284,60 @@ final class PlexManagementService: MediaManagementService {
         return [main] + separateRemovals
     }
 
+    func supportsAdvancedSettings(for item: MediaItem) -> Bool {
+        Self.supportsAdvancedSettings(for: item.type)
+    }
+
+    func advancedSettings(itemID: String) async throws -> [ItemSetting] {
+        let response = try await LibraryManagementRepository(context: context).itemPreferences(ratingKey: itemID)
+        return Self.itemSettings(from: response)
+    }
+
+    func updateAdvancedSetting(_ setting: ItemSetting, value: String, itemID: String) async throws {
+        try await LibraryManagementRepository(context: context)
+            .setItemPreference(ratingKey: itemID, id: setting.id, value: value)
+    }
+
+    /// Seasons and episodes have no settings of their own.
+    static func supportsAdvancedSettings(for type: MediaKind) -> Bool {
+        [.movie, .series].contains(type)
+    }
+
+    /// Settings without a list of choices, such as free text, are left out.
+    static func itemSettings(from response: PlexItemPreferencesResponse) -> [ItemSetting] {
+        response.settings.compactMap { preference in
+            guard !preference.hidden, let label = preference.label, !label.isEmpty,
+                  let enumValues = preference.enumValues
+            else { return nil }
+            var options = settingOptions(from: enumValues)
+            guard !options.isEmpty else { return nil }
+            let value = preference.value ?? ""
+            // Shows a value missing from the choices as it is, so choosing any listed one still sends it.
+            if !options.contains(where: { $0.value == value }) {
+                options.insert(ItemSetting.Option(value: value, label: value), at: 0)
+            }
+            return ItemSetting(
+                id: preference.id,
+                label: label,
+                summary: preference.summary.flatMap { $0.isEmpty ? nil : $0 },
+                value: value,
+                options: options,
+            )
+        }
+    }
+
+    static func settingOptions(from enumValues: String) -> [ItemSetting.Option] {
+        enumValues.split(separator: "|", omittingEmptySubsequences: true).map { entry in
+            let parts = entry.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            let value = decoded(parts[0])
+            return ItemSetting.Option(value: value, label: parts.count > 1 ? decoded(parts[1]) : value)
+        }
+    }
+
+    private static func decoded(_ part: Substring) -> String {
+        String(part).removingPercentEncoding ?? String(part)
+    }
+
     /// An episode has a single 16:9 image, which Plex stores as its poster.
     static func artworkKinds(for type: MediaKind) -> [EditableArtworkKind] {
         switch type {

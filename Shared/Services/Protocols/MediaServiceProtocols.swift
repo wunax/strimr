@@ -475,6 +475,11 @@ protocol MediaManagementService: AnyObject {
     func saveMetadata(_ draft: MetadataDraft, original: MetadataDraft, for item: MediaItem) async throws
     /// Values already used on the server for a list field, offered while typing; empty when there are none.
     func metadataSuggestions(for field: MetadataField, item: MediaItem) async throws -> [String]
+    /// Only Plex has per-item settings, such as the episode order of a series.
+    func supportsAdvancedSettings(for item: MediaItem) -> Bool
+    /// The settings offered as a choice in a list, labeled in the app's language by the server.
+    func advancedSettings(itemID: String) async throws -> [ItemSetting]
+    func updateAdvancedSetting(_ setting: ItemSetting, value: String, itemID: String) async throws
 }
 
 @MainActor
@@ -541,4 +546,14 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     func metadataSuggestions(for _: MetadataField, item _: MediaItem) async throws -> [String] {
         []
     }
+
+    func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+        false
+    }
+
+    func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+        []
+    }
+
+    func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
 }
