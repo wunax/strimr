@@ -65,6 +65,14 @@ struct LibraryBrowseFiltersView: View {
             }
             #endif
         }
+        #if os(tvOS)
+        // Focused rows grow past the form's bounds; let them spill into the panel padding sideways only.
+        .scrollClipDisabled()
+        .mask {
+            Rectangle()
+                .padding(.horizontal, -24)
+        }
+        #endif
     }
 
     @ViewBuilder
