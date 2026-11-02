@@ -199,6 +199,12 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                NavigationLink("settings.interface.manageLibraries") {
+                    LibrariesSettingsView(
+                        settingsManager: settingsManager,
+                        libraryStore: libraryStore,
+                    )
+                }
                 Picker(
                     "settings.interface.libraries.defaultLayout",
                     selection: Binding(
@@ -219,16 +225,6 @@ struct SettingsInterfaceView: View {
             } footer: {
                 Text("settings.interface.libraries.footer")
             }
-
-            DisplayedLibrariesSectionView(
-                settingsManager: settingsManager,
-                libraryStore: libraryStore,
-            )
-
-            NavigationLibrariesSectionView(
-                settingsManager: settingsManager,
-                libraryStore: libraryStore,
-            )
         }
         .insetListStyle()
         .navigationTitle("settings.interface.title")
