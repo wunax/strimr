@@ -165,15 +165,17 @@ struct RemoteSubtitleResult: Hashable, Identifiable {
 
 @MainActor
 protocol MediaHomeService: AnyObject {
-    /// `shownRowIDs` are the rows the user turned on that the server does not put on its home.
+    /// `shownRowIDs` are the rows the user turned on that the server does not put on its home. `mergesNextUp` folds
+    /// Next Up into Continue Watching on servers that keep them apart.
     func loadHome(
         hiddenLibraryIDs: Set<String>,
         includesPlaylists: Bool,
         shownRowIDs: Set<String>,
+        mergesNextUp: Bool,
     ) async throws -> HomeContent
     /// Only the Continue Watching and Next Up rows, the ones that change as the user watches: much cheaper than the
     /// whole home, so they can be refreshed each time the home comes back.
-    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow]
     /// Every row the user can add to the home, including the ones the server does not put there.
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow]
     func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem>
@@ -193,9 +195,14 @@ extension MediaHomeService {
         []
     }
 
-    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
-        try await loadHome(hiddenLibraryIDs: hiddenLibraryIDs, includesPlaylists: false, shownRowIDs: [])
-            .rows.filter(\.isWatchingRow)
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
+        try await loadHome(
+            hiddenLibraryIDs: hiddenLibraryIDs,
+            includesPlaylists: false,
+            shownRowIDs: [],
+            mergesNextUp: mergesNextUp,
+        )
+        .rows.filter(\.isWatchingRow)
     }
 }
 
@@ -203,7 +210,7 @@ extension MediaHomeService {
 protocol MediaLibraryService: AnyObject {
     func libraries() async throws -> [Library]
     func preview(for library: Library) async throws -> LibraryPreview?
-    func recommended(in library: Library) async throws -> [Hub]
+    func recommended(in library: Library, mergesNextUp: Bool) async throws -> [Hub]
     func items(
         in library: Library,
         parentID: String?,

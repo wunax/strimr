@@ -29,6 +29,7 @@ final class CachedHomeService: MediaHomeService {
         hiddenLibraryIDs: Set<String>,
         includesPlaylists: Bool,
         shownRowIDs: Set<String>,
+        mergesNextUp: Bool,
     ) async throws -> HomeContent {
         let content = try await policy.read(
             network: {
@@ -36,6 +37,7 @@ final class CachedHomeService: MediaHomeService {
                     hiddenLibraryIDs: hiddenLibraryIDs,
                     includesPlaylists: includesPlaylists,
                     shownRowIDs: shownRowIDs,
+                    mergesNextUp: mergesNextUp,
                 )
             },
             write: save,
@@ -46,8 +48,9 @@ final class CachedHomeService: MediaHomeService {
     }
 
     /// Not cached: the next full load saves the home.
-    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
-        try await base.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs).map(overlayingLocalProgress)
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
+        try await base.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs, mergesNextUp: mergesNextUp)
+            .map(overlayingLocalProgress)
     }
 
     private func overlayingLocalProgress(_ row: HomeRow) -> HomeRow {

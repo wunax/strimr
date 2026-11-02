@@ -47,8 +47,32 @@
             hiddenLibraryIDs _: Set<String>,
             includesPlaylists _: Bool,
             shownRowIDs _: Set<String>,
+            mergesNextUp: Bool,
         ) async throws -> HomeContent {
-            HomeContent(rows: catalog.homeRows)
+            guard mergesNextUp,
+                  let continueRow = catalog.homeRows.first(where: { $0.kind == .continueWatching }),
+                  let nextUpRow = catalog.homeRows.first(where: { $0.kind == .nextUp })
+            else { return HomeContent(rows: catalog.homeRows) }
+            let continueIDs = Set(continueRow.items.map(\.id))
+            let items = continueRow.items + nextUpRow.items.filter { !continueIDs.contains($0.id) }
+            let hub = continueRow.hub
+            let merged = HomeRow(id: continueRow.id, kind: .continueWatching, style: continueRow.style, hub: Hub(
+                id: hub.id,
+                key: hub.key,
+                hubKey: hub.hubKey,
+                title: hub.title,
+                size: items.count,
+                more: hub.more,
+                items: items,
+                server: hub.server,
+            ))
+            return HomeContent(rows: catalog.homeRows.compactMap { row in
+                switch row.kind {
+                case .continueWatching: merged
+                case .nextUp: nil
+                default: row
+                }
+            })
         }
 
         func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem> {
@@ -72,7 +96,7 @@
             return LibraryPreview(artworks: artworks, itemCount: titles.count)
         }
 
-        func recommended(in library: Library) async throws -> [Hub] {
+        func recommended(in library: Library, mergesNextUp _: Bool) async throws -> [Hub] {
             catalog.recommendedHubs(in: library.id)
         }
 

@@ -10,11 +10,13 @@ final class LibraryRecommendedViewModel {
     var errorMessage: String?
 
     @ObservationIgnored private let service: any MediaLibraryService
+    @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
 
-    init(library: Library, services: MediaServices) {
+    init(library: Library, services: MediaServices, settingsManager: SettingsManager) {
         self.library = library
         service = services.library
+        self.settingsManager = settingsManager
     }
 
     var hasContent: Bool {
@@ -46,7 +48,10 @@ final class LibraryRecommendedViewModel {
         defer { isLoading = false }
 
         do {
-            hubs = try await service.recommended(in: library)
+            hubs = try await service.recommended(
+                in: library,
+                mergesNextUp: settingsManager.interface.mergesNextUpIntoContinueWatching,
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)

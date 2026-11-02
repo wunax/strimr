@@ -423,6 +423,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setMergesNextUpIntoContinueWatching(_ enabled: Bool) {
+        settings.interface.mergesNextUpIntoContinueWatching = enabled
+        persist()
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

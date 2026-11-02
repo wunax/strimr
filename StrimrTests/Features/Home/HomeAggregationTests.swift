@@ -39,6 +39,24 @@ struct HomeAggregationTests {
         #expect(row?.serverName == nil)
     }
 
+    @Test func `an item never played keeps its place in its server's order`() {
+        let homes = [
+            home(plex, rows: [continueWatching(on: plex, items: [
+                movie("p1", on: plex, date: 40),
+                movie("p2", on: plex, date: 10),
+            ])]),
+            home(jellyfin, rows: [continueWatching(on: jellyfin, items: [
+                movie("j1", on: jellyfin, date: 30),
+                episode("j2", on: jellyfin, ids: ExternalIDs()),
+                movie("j3", on: jellyfin, date: 20),
+            ])]),
+        ]
+
+        let row = HomeAggregation.merge(homes, showsServerNames: true).first
+
+        #expect(row?.items.map(\.id) == ["p1", "j1", "j2", "j3", "p2"])
+    }
+
     @Test func `duplicates across servers keep the most recent copy`() {
         let ids = ExternalIDs(imdb: "tt1")
         let homes = [

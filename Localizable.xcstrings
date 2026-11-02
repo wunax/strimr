@@ -20485,6 +20485,50 @@
         }
       }
     },
+    "settings.interface.mergeNextUp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge Next Up into Continue Watching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fusionner À suivre dans Continuer à regarder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将接下来播放合并到继续观看"
+          }
+        }
+      }
+    },
+    "settings.interface.mergeNextUp.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin only. Next Up episodes join Continue Watching."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin uniquement. Les épisodes À suivre rejoignent Continuer à regarder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅限 Jellyfin。接下来播放的剧集会并入继续观看。"
+          }
+        }
+      }
+    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {

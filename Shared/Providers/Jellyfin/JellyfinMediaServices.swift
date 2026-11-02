@@ -135,8 +135,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         hiddenLibraryIDs: Set<String>,
         includesPlaylists _: Bool,
         shownRowIDs _: Set<String>,
+        mergesNextUp: Bool,
     ) async throws -> HomeContent {
-        async let watchingRows = loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs)
+        async let watchingRows = loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs, mergesNextUp: mergesNextUp)
         let visibleLibraries = try await catalog.libraries().filter {
             !hiddenLibraryIDs.contains($0.id)
                 && ($0.collectionType?.lowercased() == "movies" || $0.collectionType?.lowercased() == "tvshows")
@@ -174,7 +175,15 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return HomeContent(rows: rows)
     }
 
-    func loadWatchingRows(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
+    func loadWatchingRows(hiddenLibraryIDs _: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
+        if mergesNextUp {
+            let continueHub = try await hub(
+                id: "jellyfin.resume",
+                title: String(localized: "jellyfin.home.resume"),
+                items: catalog.continueWatching(),
+            )
+            return continueHub.hasItems ? [.continueWatching(server: server, hub: continueHub)] : []
+        }
         async let resumeItems = catalog.resume()
         async let nextUpItems = catalog.nextUp()
         let resumeHub = try await hub(
@@ -228,8 +237,27 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return LibraryPreview(artworks: artworks, itemCount: result.totalRecordCount)
     }
 
-    func recommended(in library: Library) async throws -> [Hub] {
+    func recommended(in library: Library, mergesNextUp: Bool) async throws -> [Hub] {
         switch library.type {
+        case .series where mergesNextUp:
+            async let continueItems = catalog.continueWatching(parentID: library.id, resumeLimit: 3, nextUpLimit: 24)
+            async let latestItems = catalog.latest(
+                types: "Episode",
+                parentID: library.id,
+                limit: 30,
+            )
+            return try await [
+                hubIfNotEmpty(
+                    id: "jellyfin.library.inProgress.\(library.id)",
+                    title: String(localized: "jellyfin.home.resume"),
+                    items: continueItems,
+                ),
+                hubIfNotEmpty(
+                    id: "jellyfin.library.latestEpisodes.\(library.id)",
+                    title: String(localized: "jellyfin.library.recentlyAdded"),
+                    items: latestItems,
+                ),
+            ].compactMap(\.self)
         case .series:
             async let resumableItems = catalog.resumable(
                 parentID: library.id,
