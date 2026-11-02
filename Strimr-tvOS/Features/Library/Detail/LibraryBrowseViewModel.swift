@@ -106,6 +106,28 @@ final class LibraryBrowseViewModel {
         showsFolderTree && canShowFolderTree
     }
 
+    var viewMode: LibraryBrowseViewMode {
+        isFolderTreeActive ? .tree : LibraryBrowseViewMode(layout: layout)
+    }
+
+    var viewModes: [LibraryBrowseViewMode] {
+        canShowFolderTree ? [.grid, .list, .tree] : [.grid, .list]
+    }
+
+    func setViewMode(_ mode: LibraryBrowseViewMode) {
+        switch mode {
+        case .tree:
+            if !isFolderTreeActive {
+                toggleFolderTree()
+            }
+        case .grid, .list:
+            setLayout(mode == .grid ? .grid : .list)
+            if isFolderTreeActive {
+                toggleFolderTree()
+            }
+        }
+    }
+
     func toggleFolderTree() {
         showsFolderTree.toggle()
         var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)

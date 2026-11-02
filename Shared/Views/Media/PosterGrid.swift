@@ -42,7 +42,8 @@ struct PosterGrid<Content: View>: View {
         }
         // Lets a scroll view report which cards are visible.
         .scrollTargetLayout()
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // A zero minimum keeps the fixed columns from holding the width open, so the grid can shrink and refit.
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
     }
 }

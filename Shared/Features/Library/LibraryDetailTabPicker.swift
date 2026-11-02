@@ -140,3 +140,65 @@ extension LibraryDetailTabPicker where Accessory == EmptyView {
         self.init(selection: selection, tabs: tabs) { EmptyView() }
     }
 }
+
+#if os(iOS)
+    /// Underlined text tabs, so the library sections read as navigation rather than as filter chips.
+    struct LibraryDetailTabBar: View {
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Binding var selection: LibraryDetailTab
+        let tabs: [LibraryDetailTab]
+        @Namespace private var indicator
+
+        var body: some View {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 24) {
+                        ForEach(tabs) { tab in
+                            tabButton(for: tab)
+                                .id(tab)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                // The selection can start off screen (a remembered tab) or move there (a hidden tab resets it).
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+                .onChange(of: selection) { _, newSelection in
+                    withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                        proxy.scrollTo(newSelection, anchor: .center)
+                    }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(.strokeSubtle)
+                    .frame(height: 1)
+            }
+            .accessibilityLabel(Text("library.detail.tabPicker"))
+        }
+
+        private func tabButton(for tab: LibraryDetailTab) -> some View {
+            let isSelected = selection == tab
+            return Button {
+                withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                    selection = tab
+                }
+            } label: {
+                Text(tab.title)
+                    .font(.rowTitle)
+                    .foregroundStyle(isSelected ? Color.textPrimary : .textSecondary)
+                    .padding(.vertical, 10)
+                    .overlay(alignment: .bottom) {
+                        if isSelected {
+                            Capsule()
+                                .fill(.selectionAccent)
+                                .frame(height: 3)
+                                .matchedGeometryEffect(id: "indicator", in: indicator)
+                        }
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        }
+    }
+#endif

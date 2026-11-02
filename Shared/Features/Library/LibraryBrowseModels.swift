@@ -73,6 +73,43 @@ enum LibraryBrowseLayout: String, Codable, Equatable, Sendable {
     }
 }
 
+/// What the view options menu offers: the two layouts, plus the folder tree for Plex folder listings.
+enum LibraryBrowseViewMode: Hashable, Identifiable {
+    case grid
+    case list
+    case tree
+
+    var id: Self {
+        self
+    }
+
+    init(layout: LibraryBrowseLayout) {
+        self = layout == .grid ? .grid : .list
+    }
+
+    var title: String {
+        switch self {
+        case .grid:
+            String(localized: "library.browse.layout.grid")
+        case .list:
+            String(localized: "library.browse.layout.list")
+        case .tree:
+            String(localized: "library.browse.folders.tree")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .grid:
+            "square.grid.2x2"
+        case .list:
+            "list.bullet"
+        case .tree:
+            "list.bullet.indent"
+        }
+    }
+}
+
 enum LibraryDefaultLayout: String, Codable, CaseIterable, Hashable {
     case automatic
     case grid
