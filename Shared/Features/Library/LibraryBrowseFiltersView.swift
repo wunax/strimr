@@ -53,15 +53,16 @@ struct LibraryBrowseFiltersView: View {
             }
             #if os(macOS)
             .formStyle(.grouped)
-            #endif
             .navigationTitle(Text("library.browse.filters.title"))
+            #endif
             #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("common.actions.done", action: onDone)
-                    }
+            .navigationTitle(Text("library.browse.filters.title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.actions.done", action: onDone)
                 }
+            }
             #endif
         }
     }
@@ -185,7 +186,9 @@ private struct JellyfinFilterOptionsView: View {
     var body: some View {
         FilterOptionsContent(
             isLoading: viewModel.isLoadingJellyfinFilterOptions
-                || (viewModel.jellyfinFilterOptions == LibraryBrowseFilterOptions() && viewModel.jellyfinFilterOptionsError == nil),
+                ||
+                (viewModel.jellyfinFilterOptions == LibraryBrowseFilterOptions() && viewModel
+                    .jellyfinFilterOptionsError == nil),
             errorMessage: viewModel.jellyfinFilterOptionsError,
             isEmpty: viewModel.jellyfinOptions(for: filter).isEmpty,
         ) {
