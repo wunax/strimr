@@ -60,6 +60,17 @@ struct SettingsInterfaceView: View {
                     Text(placement.title)
                 }
                 .settingsFocus("tabBarPlacement")
+                SettingsPicker(
+                    "settings.interface.startupScreen",
+                    selection: Binding(
+                        get: { settingsManager.interface.startupScreen },
+                        set: { settingsManager.setStartupScreen($0) },
+                    ),
+                    options: StartupScreen.selectableCases,
+                ) { screen in
+                    Text(screen.title)
+                }
+                .settingsFocus("startupScreen")
                 Toggle(
                     "settings.interface.displayFavoritesTab",
                     isOn: Binding(

@@ -20,6 +20,14 @@ struct MainTabView: View {
         _libraryViewModel = State(initialValue: libraryViewModel)
     }
 
+    private var isDiscoverAvailable: Bool {
+        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    }
+
+    private var isLiveTVAvailable: Bool {
+        !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
+    }
+
     var body: some View {
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
@@ -34,7 +42,7 @@ struct MainTabView: View {
                 }
             }
 
-            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+            if isDiscoverAvailable {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
                         SeerrDiscoverView(
@@ -91,7 +99,7 @@ struct MainTabView: View {
                 }
             }
 
-            if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
+            if isLiveTVAvailable {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
                         LiveTVServersView(
@@ -192,6 +200,16 @@ struct MainTabView: View {
         .onChange(of: coordinator.morePath.isEmpty) { _, isEmpty in
             if isEmpty {
                 settingsNavigationCache.reset()
+            }
+        }
+        .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                coordinator.openPendingStartupTab(.seerrDiscover)
+            }
+        }
+        .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                coordinator.openPendingStartupTab(.liveTV)
             }
         }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in

@@ -388,6 +388,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setStartupScreen(_ screen: StartupScreen) {
+        settings.interface.startupScreen = screen
+        persist()
+    }
+
     func setThemeMusicVolume(_ volume: ThemeMusicVolume) {
         settings.interface.themeMusicVolume = volume
         persist()
