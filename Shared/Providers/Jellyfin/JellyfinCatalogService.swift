@@ -121,11 +121,18 @@ struct JellyfinCatalogService {
         async let resumeItems = inProgress(parentID: parentID, limit: resumeLimit)
         async let nextUpItems = nextUp(parentID: parentID, limit: nextUpLimit)
         async let playedItems = recentlyPlayedEpisodes(parentID: parentID)
-        return try await Self.continueWatching(
-            resume: resumeItems,
-            nextUp: nextUpItems,
-            playedEpisodes: playedItems,
-        )
+        let resume = try await resumeItems
+        let nextUp = try await nextUpItems
+        let played: [JellyfinItem]
+        // Only orders the row: without it, Next Up keeps the server's order.
+        do {
+            played = try await playedItems
+        } catch {
+            guard !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            played = []
+        }
+        return Self.continueWatching(resume: resume, nextUp: nextUp, playedEpisodes: played)
     }
 
     /// - Parameters:
