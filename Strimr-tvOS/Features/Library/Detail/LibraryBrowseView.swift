@@ -75,8 +75,8 @@ struct LibraryBrowseView: View {
                 .id(viewModel.folderPath)
                 .frame(minWidth: 0, maxWidth: .infinity)
 
-                if viewModel.showsCharacterColumn {
-                    characterColumn(proxy: proxy)
+                if viewModel.showsCharacterColumn, let sectionIndex = viewModel.sectionIndex {
+                    characterColumn(sectionIndex, proxy: proxy)
                 }
             }
             .overlay {
@@ -163,9 +163,9 @@ struct LibraryBrowseView: View {
         }
     }
 
-    private func characterColumn(proxy: ScrollViewProxy) -> some View {
+    private func characterColumn(_ sectionIndex: LibrarySectionIndex, proxy: ScrollViewProxy) -> some View {
         VStack(spacing: 4) {
-            ForEach(viewModel.sectionCharacters) { character in
+            ForEach(sectionIndex.sections) { character in
                 characterButton(character, proxy: proxy)
             }
         }
@@ -175,7 +175,7 @@ struct LibraryBrowseView: View {
     }
 
     private func characterButton(
-        _ character: LibraryBrowseViewModel.SectionCharacter,
+        _ character: LibrarySectionIndex.Section,
         proxy: ScrollViewProxy,
     ) -> some View {
         let isFocused = focusedCharacterId == character.id

@@ -191,6 +191,12 @@ final class LibraryBrowseControlsViewModel {
         )
     }
 
+    /// Without an explicit sort, Plex lists a section by title.
+    var isPlexTitleSort: Bool {
+        let key = pendingRestore.map(\.sortKey) ?? selectedSort?.sort.key
+        return key == nil || key == "titleSort"
+    }
+
     var hasActiveFilters: Bool {
         isJellyfinBrowse ? jellyfinActiveFilterCount > 0 : !selectedFilters.isEmpty
     }
