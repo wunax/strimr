@@ -12,6 +12,7 @@ struct MediaHomeServiceTests {
             hiddenLibraryIDs: Set<String>,
             includesPlaylists _: Bool,
             shownRowIDs _: Set<String>,
+            mergesNextUp _: Bool,
         ) async throws -> HomeContent {
             self.hiddenLibraryIDs = hiddenLibraryIDs
             return HomeContent(rows: [
@@ -33,7 +34,7 @@ struct MediaHomeServiceTests {
     @Test func `without a dedicated request, the watching rows come from the whole home`() async throws {
         let service = HomeOnlyService()
 
-        let rows = try await service.loadWatchingRows(hiddenLibraryIDs: ["2"])
+        let rows = try await service.loadWatchingRows(hiddenLibraryIDs: ["2"], mergesNextUp: false)
 
         #expect(rows.map(\.kind) == [.continueWatching, .nextUp])
         #expect(service.hiddenLibraryIDs == ["2"])

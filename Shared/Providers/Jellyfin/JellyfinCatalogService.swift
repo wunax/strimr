@@ -113,6 +113,119 @@ struct JellyfinCatalogService {
         (item.parentIndexNumber ?? 0, item.indexNumber ?? 0)
     }
 
+    /// Continue Watching and Next Up as one row, the way Plex shows it: one episode per series, the series watched
+    /// most recently first.
+    func continueWatching(parentID: String? = nil, resumeLimit: Int = 20, nextUpLimit: Int = 20) async throws
+        -> [JellyfinItem]
+    {
+        async let resumeItems = inProgress(parentID: parentID, limit: resumeLimit)
+        async let nextUpItems = nextUp(parentID: parentID, limit: nextUpLimit)
+        async let playedItems = recentlyPlayedEpisodes(parentID: parentID)
+        let resume = try await resumeItems
+        let nextUp = try await nextUpItems
+        let played: [JellyfinItem]
+        // Only orders the row: without it, Next Up keeps the server's order.
+        do {
+            played = try await playedItems
+        } catch {
+            guard !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            played = []
+        }
+        return Self.continueWatching(resume: resume, nextUp: nextUp, playedEpisodes: played)
+    }
+
+    /// - Parameters:
+    ///   - resume: in-progress items, most recently played first.
+    ///   - nextUp: next episodes, the series watched most recently first.
+    ///   - playedEpisodes: recently played episodes. Next Up episodes were never played, so they take the date their
+    ///     series was last watched.
+    static func continueWatching(
+        resume: [JellyfinItem],
+        nextUp: [JellyfinItem],
+        playedEpisodes: [JellyfinItem],
+    ) -> [JellyfinItem] {
+        var seriesDates: [String: Date] = [:]
+        for item in playedEpisodes + resume {
+            guard let seriesID = item.seriesID, let date = item.userData?.lastPlayedDate else { continue }
+            seriesDates[seriesID] = max(seriesDates[seriesID] ?? date, date)
+        }
+
+        var entries: [(item: JellyfinItem, date: Date?, nextUpRank: Int)] = []
+        var entryIndexBySeries: [String: Int] = [:]
+        for item in resume {
+            if let seriesID = item.seriesID {
+                guard entryIndexBySeries[seriesID] == nil else { continue }
+                entryIndexBySeries[seriesID] = entries.count
+            }
+            let date = item.seriesID.flatMap { seriesDates[$0] } ?? item.userData?.lastPlayedDate
+            entries.append((item, date, .max))
+        }
+        // Series too old to be among the played episodes keep Next Up's own order, taking the date of the series
+        // before them, or of the first dated one when they lead.
+        var previousNextUpDate = nextUp.lazy.compactMap { $0.seriesID.flatMap { seriesDates[$0] } }.first
+        for (rank, item) in nextUp.enumerated() {
+            guard let seriesID = item.seriesID else { continue }
+            if let index = entryIndexBySeries[seriesID] {
+                if let episode = continueEpisode(nextUp: item, resumable: entries[index].item) {
+                    entries[index].item = episode
+                }
+                entries[index].nextUpRank = rank
+                previousNextUpDate = entries[index].date ?? previousNextUpDate
+                continue
+            }
+            let date = seriesDates[seriesID] ?? previousNextUpDate
+            entryIndexBySeries[seriesID] = entries.count
+            entries.append((item, date, rank))
+            previousNextUpDate = date
+        }
+
+        return entries.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.date, rhs.element.date) {
+            case let (left?, right?) where left != right:
+                left > right
+            case (_?, nil):
+                true
+            case (nil, _?):
+                false
+            default:
+                // A series that took the date of another one is at least as recent: Next Up decides between them.
+                (lhs.element.nextUpRank, lhs.offset) < (rhs.element.nextUpRank, rhs.offset)
+            }
+        }.map(\.element.item)
+    }
+
+    private func inProgress(parentID: String?, limit: Int) async throws -> [JellyfinItem] {
+        guard let parentID else { return try await resume(limit: limit) }
+        return try await resumable(parentID: parentID, includeTypes: "Episode", limit: limit)
+    }
+
+    private func recentlyPlayedEpisodes(parentID: String?, limit: Int = 100) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        var query = [
+            URLQueryItem(name: "SortBy", value: "DatePlayed"),
+            URLQueryItem(name: "SortOrder", value: "Descending"),
+            URLQueryItem(name: "IncludeItemTypes", value: "Episode"),
+            URLQueryItem(name: "Filters", value: "IsPlayed"),
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "Limit", value: String(limit)),
+            URLQueryItem(name: "Fields", value: "SeriesId"),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+            URLQueryItem(name: "EnableImages", value: "false"),
+            URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+        ]
+        if let parentID {
+            query.append(URLQueryItem(name: "ParentId", value: parentID))
+        }
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items"],
+            query: query,
+        )
+        return response.items
+    }
+
     func latest(
         types: String? = nil,
         parentID: String? = nil,

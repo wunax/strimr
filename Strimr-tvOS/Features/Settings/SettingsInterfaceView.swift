@@ -8,7 +8,7 @@ struct SettingsInterfaceView: View {
 
     var body: some View {
         SettingsList {
-            Section("settings.interface.homeRows.section") {
+            Section {
                 SettingsLink("settings.interface.homeRows.title") {
                     HomeRowsSettingsView(
                         sessionManager: sessionManager,
@@ -27,6 +27,18 @@ struct SettingsInterfaceView: View {
                     Text(action.title)
                 }
                 .settingsFocus("continueWatchingAction")
+                Toggle(
+                    "settings.interface.mergeNextUp",
+                    isOn: Binding(
+                        get: { settingsManager.interface.mergesNextUpIntoContinueWatching },
+                        set: { settingsManager.setMergesNextUpIntoContinueWatching($0) },
+                    ),
+                )
+                .settingsFocus("settings.interface.mergeNextUp")
+            } header: {
+                Text("settings.interface.homeRows.section")
+            } footer: {
+                Text("settings.interface.mergeNextUp.footer")
             }
 
             Section {

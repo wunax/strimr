@@ -45,6 +45,7 @@ final class HomeViewModel {
     private struct LoadConfiguration: Equatable {
         let hiddenLibraryIDs: Set<String>
         let includesPlaylists: Bool
+        let mergesNextUp: Bool
     }
 
     private static let periodicRefreshInterval: Duration = .seconds(300)
@@ -249,12 +250,16 @@ final class HomeViewModel {
     private func fetchWatchingRows(servers: Set<ServerIdentity>) async {
         let generation = rowsLoadGeneration
         let sessions = registry.sessions.filter { servers.contains($0.identity) }
-        let hiddenLibraryIDs = Dictionary(
-            sessions.map { ($0.identity, loadConfiguration(for: $0.identity).hiddenLibraryIDs) },
+        let configurations = Dictionary(
+            sessions.map { ($0.identity, loadConfiguration(for: $0.identity)) },
             uniquingKeysWith: { first, _ in first },
         )
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
-            try await services.home.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs[services.identity] ?? [])
+            let configuration = configurations[services.identity]
+            return try await services.home.loadWatchingRows(
+                hiddenLibraryIDs: configuration?.hiddenLibraryIDs ?? [],
+                mergesNextUp: configuration?.mergesNextUp ?? false,
+            )
         }
         guard !Task.isCancelled, generation == rowsLoadGeneration else { return }
         for (server, watchingRows) in result.value {
@@ -315,6 +320,7 @@ final class HomeViewModel {
         return LoadConfiguration(
             hiddenLibraryIDs: Set(hidden.filter { $0.server == server }.map(\.libraryID)),
             includesPlaylists: settingsManager.interface.displayPlaylists,
+            mergesNextUp: settingsManager.interface.mergesNextUpIntoContinueWatching,
         )
     }
 
@@ -392,6 +398,7 @@ final class HomeViewModel {
                 hiddenLibraryIDs: configuration?.hiddenLibraryIDs ?? [],
                 includesPlaylists: configuration?.includesPlaylists ?? false,
                 shownRowIDs: shownRowIDs,
+                mergesNextUp: configuration?.mergesNextUp ?? false,
             )
         }
         guard !Task.isCancelled else { return }
@@ -515,6 +522,7 @@ final class HomeViewModel {
                     hiddenLibraryIDs: Set(hidden),
                     includesPlaylists: settingsManager.interface.displayPlaylists,
                     shownRowIDs: shownRowIDs,
+                    mergesNextUp: settingsManager.interface.mergesNextUpIntoContinueWatching,
                 ) else { continue }
                 rowsByServer[services.identity] = content.rows
                 cachedOnlyServers.insert(services.identity)

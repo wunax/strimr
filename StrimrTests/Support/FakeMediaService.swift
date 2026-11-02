@@ -22,11 +22,12 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         hiddenLibraryIDs _: Set<String>,
         includesPlaylists _: Bool,
         shownRowIDs _: Set<String>,
+        mergesNextUp _: Bool,
     ) async throws -> HomeContent {
         throw NotStubbed(function: #function)
     }
 
-    func loadWatchingRows(hiddenLibraryIDs _: Set<String>) async throws -> [HomeRow] {
+    func loadWatchingRows(hiddenLibraryIDs _: Set<String>, mergesNextUp _: Bool) async throws -> [HomeRow] {
         throw NotStubbed(function: #function)
     }
 
@@ -48,7 +49,7 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         throw NotStubbed(function: #function)
     }
 
-    func recommended(in _: Library) async throws -> [Hub] {
+    func recommended(in _: Library, mergesNextUp _: Bool) async throws -> [Hub] {
         throw NotStubbed(function: #function)
     }
 

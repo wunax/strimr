@@ -533,6 +533,8 @@ struct InterfaceSettings: Codable, Equatable {
     var showsCardLabels = true
     var showsWatchStatusBadges = true
     var continueWatchingAction = ContinueWatchingAction.openDetails
+    /// Jellyfin keeps Next Up apart; Plex already shows a single row.
+    var mergesNextUpIntoContinueWatching = false
     var tabBarPlacement = TabBarPlacement.top
     var startupScreen = StartupScreen.home
 
@@ -588,6 +590,10 @@ struct InterfaceSettings: Codable, Equatable {
             ContinueWatchingAction.self,
             forKey: .continueWatchingAction,
         )) ?? .openDetails
+        mergesNextUpIntoContinueWatching = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .mergesNextUpIntoContinueWatching,
+        ) ?? false
         tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
         startupScreen = (try? container.decode(StartupScreen.self, forKey: .startupScreen)) ?? .home
     }

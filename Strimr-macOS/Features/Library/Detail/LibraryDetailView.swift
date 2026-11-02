@@ -26,6 +26,7 @@ struct LibraryDetailView: View {
                         viewModel: LibraryRecommendedViewModel(
                             library: library,
                             services: mediaServices,
+                            settingsManager: settingsManager,
                         ),
                         onSelectMedia: onSelectMedia,
                     )

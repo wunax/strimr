@@ -188,6 +188,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         hiddenLibraryIDs: Set<String>,
         includesPlaylists: Bool,
         shownRowIDs: Set<String>,
+        mergesNextUp _: Bool,
     ) async throws -> HomeContent {
         let repository = try HubRepository(context: context)
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
@@ -217,7 +218,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return HomeContent(rows: rows)
     }
 
-    func loadWatchingRows(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>, mergesNextUp _: Bool) async throws -> [HomeRow] {
         // The sections are only needed to scope the hub to the visible libraries.
         guard !hiddenLibraryIDs.isEmpty else { return try await continueWatchingRows(params: nil) }
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
@@ -352,7 +353,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return LibraryPreview(artworks: artworks, itemCount: response.mediaContainer.totalSize)
     }
 
-    func recommended(in library: Library) async throws -> [Hub] {
+    func recommended(in library: Library, mergesNextUp _: Bool) async throws -> [Hub] {
         guard let sectionID = library.sectionId else { return [] }
         let response = try await HubRepository(context: context).getSectionHubs(sectionId: sectionID)
         return (response.mediaContainer.hub ?? []).map { Hub(plexHub: $0, server: server) }
