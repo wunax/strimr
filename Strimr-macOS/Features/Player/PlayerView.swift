@@ -827,6 +827,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private var audioMenu: some View {
         Menu {
             if audioTracks.isEmpty {
@@ -849,6 +859,31 @@ struct PlayerView: View {
             }
             Divider()
             offsetMenuButton(.audio)
+            Divider()
+            Section {
+                Toggle(isOn: Binding(
+                    get: { settingsManager.playback.nightMode },
+                    set: { setNightMode($0) },
+                )) {
+                    Label("settings.playback.nightMode", systemImage: "moon.stars")
+                }
+                Picker(selection: Binding(
+                    get: { settingsManager.playback.dialogueBoost },
+                    set: { selectDialogueBoost($0) },
+                )) {
+                    ForEach(DialogueBoost.allCases) { boost in
+                        Text(boost.title).tag(boost)
+                    }
+                } label: {
+                    Label("settings.playback.dialogueBoost", systemImage: "person.wave.2")
+                }
+            } header: {
+                if playerController.isAudioShapingAvailable {
+                    Text("settings.playback.audioEnhancements")
+                } else {
+                    Text("player.settings.audioEnhancements.unavailable")
+                }
+            }
         } label: {
             Label("player.settings.audio", systemImage: "waveform")
                 .labelStyle(.iconOnly)
@@ -1185,6 +1220,7 @@ struct PlayerView: View {
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !wasPaused,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1458,6 +1494,7 @@ struct PlayerView: View {
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !isSharePlayPlayback,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1677,6 +1714,7 @@ struct PlayerView: View {
                 nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
                 dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
                 audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+                audioShaping: settingsManager.playback.audioShaping,
                 autoplay: !isSharePlay,
                 nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
             )

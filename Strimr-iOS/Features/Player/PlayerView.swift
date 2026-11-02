@@ -291,6 +291,9 @@ struct PlayerView: View {
                         playbackRate: playbackRate,
                         videoZoom: playerController.videoZoom,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+                        nightMode: settingsManager.playback.nightMode,
+                        dialogueBoost: settingsManager.playback.dialogueBoost,
+                        isAudioShapingAvailable: playerController.isAudioShapingAvailable,
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
@@ -888,6 +891,11 @@ struct PlayerView: View {
             onSelectVersion: { selectVersion($0) },
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
+            nightMode: settingsManager.playback.nightMode,
+            dialogueBoost: settingsManager.playback.dialogueBoost,
+            isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+            onSetNightMode: setNightMode(_:),
+            onSelectDialogueBoost: selectDialogueBoost(_:),
             onSearchSubtitles: viewModel.canSearchSubtitles
                 ? { sheetPresentation.item = .subtitleSearch }
                 : nil,
@@ -1196,6 +1204,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private func selectSubtitleTrack(_ id: Int?) {
         if id != selectedSubtitleTrackID {
             playerController.setSubtitleDelay(milliseconds: 0)
@@ -1471,6 +1489,7 @@ struct PlayerView: View {
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !sharePlayCoordinator.isInSession,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1902,6 +1921,9 @@ private struct PlayerSheetRefreshID: Hashable {
     let playbackRate: Float
     let videoZoom: VideoZoom
     let syncItems: [PlaybackOffsetMenuItem]
+    let nightMode: Bool
+    let dialogueBoost: DialogueBoost
+    let isAudioShapingAvailable: Bool
 }
 
 private enum PlayerSheet: String, Identifiable {

@@ -83,6 +83,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setNightMode(_ enabled: Bool) {
+        settings.playback.nightMode = enabled
+        persist()
+    }
+
+    func setDialogueBoost(_ boost: DialogueBoost) {
+        settings.playback.dialogueBoost = boost
+        persist()
+    }
+
     func setRememberTrackSelections(_ enabled: Bool) {
         settings.playback.rememberTrackSelections = enabled
         persist()

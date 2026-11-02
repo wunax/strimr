@@ -6,7 +6,6 @@ struct LibraryDetailView: View {
     let library: Library
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
     @State private var manageController = LibraryManageController()
 
@@ -16,10 +15,6 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
-        _selectedTab = State(
-            initialValue: library.isShared || library.type == .collection || library.type == .playlist
-                ? .browse : .recommended,
-        )
     }
 
     var body: some View {
@@ -69,7 +64,7 @@ struct LibraryDetailView: View {
         .toolbar {
             if availableTabs.count > 1 {
                 ToolbarItem(placement: .principal) {
-                    Picker(selection: $selectedTab) {
+                    Picker(selection: selectedTabBinding) {
                         ForEach(availableTabs) { tab in
                             Text(tab.title).tag(tab)
                         }
@@ -99,16 +94,6 @@ struct LibraryDetailView: View {
             }
         }
         .libraryManagePresentation(manageController) { _ in manageActions }
-        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
-            if !displayCollections, selectedTab == .collections {
-                selectedTab = .recommended
-            }
-        }
-        .onChange(of: settingsManager.interface.displayPlaylists) { _, displayPlaylists in
-            if !displayPlaylists, selectedTab == .playlists {
-                selectedTab = .recommended
-            }
-        }
     }
 
     private var manageActions: LibraryManageActions {
@@ -119,23 +104,33 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        if mediaServices.provider == .jellyfin {
-            return library.type == .collection || library.type == .playlist
-                ? [.browse]
-                : [.recommended, .browse]
-        }
-        if library.isShared {
-            return [.browse]
-        }
-        return LibraryDetailTab.allCases.filter { tab in
-            switch tab {
-            case .collections:
-                settingsManager.interface.displayCollections
-            case .playlists:
-                settingsManager.interface.displayPlaylists
-            default:
-                true
-            }
-        }
+        LibraryDetailTab.available(
+            for: library,
+            provider: mediaServices.provider,
+            displaysCollections: settingsManager.interface.displayCollections,
+            displaysPlaylists: settingsManager.interface.displayPlaylists,
+        )
+    }
+
+    private var preferencesKey: String {
+        LibraryBrowsePreferences.key(scopeID: mediaServices.serverPreferencesScopeID, libraryID: library.id)
+    }
+
+    private var selectedTab: LibraryDetailTab {
+        LibraryDetailTab.resolved(
+            saved: settingsManager.libraryBrowsePreferences(for: preferencesKey).selectedTab,
+            available: availableTabs,
+            library: library,
+        )
+    }
+
+    private var selectedTabBinding: Binding<LibraryDetailTab> {
+        Binding { selectedTab } set: { select($0) }
+    }
+
+    private func select(_ tab: LibraryDetailTab) {
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.setSelectedTab(tab, for: library)
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 }

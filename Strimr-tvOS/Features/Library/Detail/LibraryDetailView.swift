@@ -7,7 +7,6 @@ struct LibraryDetailView: View {
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @State private var viewModel = LibraryDetailViewModel()
-    @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
     @State private var manageController = LibraryManageController()
     @FocusState private var focusedSidebarItem: LibraryDetailTab?
@@ -21,10 +20,6 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
-        _selectedTab = State(
-            initialValue: library.isShared || library.type == .collection || library.type == .playlist
-                ? .browse : .recommended,
-        )
     }
 
     var body: some View {
@@ -46,23 +41,13 @@ struct LibraryDetailView: View {
             contentFocused = true
         }
         .libraryManagePresentation(manageController) { _ in manageActions }
-        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
-            if !displayCollections, selectedTab == .collections {
-                selectedTab = .recommended
-            }
-        }
-        .onChange(of: settingsManager.interface.displayPlaylists) { _, displayPlaylists in
-            if !displayPlaylists, selectedTab == .playlists {
-                selectedTab = .recommended
-            }
-        }
     }
 
     /// The app sidebar already sits on the leading edge, so the library sections move to chips on top.
     private var chipsLayout: some View {
         VStack(alignment: .leading, spacing: 24) {
             if availableTabs.count > 1 {
-                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs) {
+                LibraryDetailTabPicker(selection: selectedTabBinding, tabs: availableTabs) {
                     if canManage {
                         Button {
                             openManageDialog()
@@ -193,7 +178,7 @@ struct LibraryDetailView: View {
 
     private func sidebarButton(for tab: LibraryDetailTab) -> some View {
         Button {
-            selectedTab = tab
+            select(tab)
         } label: {
             sidebarLabel(title: tab.title, systemImage: tab.systemImageName)
                 // Hierarchical so the system focus, which turns the button white, inverts it.
@@ -260,23 +245,33 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        if mediaServices.provider == .jellyfin {
-            return library.type == .collection || library.type == .playlist
-                ? [.browse]
-                : [.recommended, .browse]
-        }
-        if library.isShared {
-            return [.browse]
-        }
-        return LibraryDetailTab.allCases.filter { tab in
-            switch tab {
-            case .collections:
-                settingsManager.interface.displayCollections
-            case .playlists:
-                settingsManager.interface.displayPlaylists
-            default:
-                true
-            }
-        }
+        LibraryDetailTab.available(
+            for: library,
+            provider: mediaServices.provider,
+            displaysCollections: settingsManager.interface.displayCollections,
+            displaysPlaylists: settingsManager.interface.displayPlaylists,
+        )
+    }
+
+    private var preferencesKey: String {
+        LibraryBrowsePreferences.key(scopeID: mediaServices.serverPreferencesScopeID, libraryID: library.id)
+    }
+
+    private var selectedTab: LibraryDetailTab {
+        LibraryDetailTab.resolved(
+            saved: settingsManager.libraryBrowsePreferences(for: preferencesKey).selectedTab,
+            available: availableTabs,
+            library: library,
+        )
+    }
+
+    private var selectedTabBinding: Binding<LibraryDetailTab> {
+        Binding { selectedTab } set: { select($0) }
+    }
+
+    private func select(_ tab: LibraryDetailTab) {
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.setSelectedTab(tab, for: library)
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 }

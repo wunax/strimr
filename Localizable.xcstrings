@@ -13310,6 +13310,28 @@
         }
       }
     },
+    "player.settings.audioEnhancements.unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available for this stream"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponible pour ce flux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此串流不可用"
+          }
+        }
+      }
+    },
     "player.settings.display" : {
       "localizations" : {
         "en" : {
@@ -21579,6 +21601,50 @@
         }
       }
     },
+    "settings.playback.audioEnhancements" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio enhancements"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Améliorations audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频增强"
+          }
+        }
+      }
+    },
+    "settings.playback.audioEnhancements.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These options process the audio on the device. While one is on, Dolby Atmos and other bitstream formats are no longer passed through, and spatial audio is not used."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ces options traitent le son sur l’appareil. Tant que l’une d’elles est active, le Dolby Atmos et les autres formats bitstream ne sont plus transmis tels quels, et l’audio spatial n’est pas utilisé."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些选项会在设备上处理音频。启用任一选项时，杜比全景声及其他比特流格式不再直通输出，且不使用空间音频。"
+          }
+        }
+      }
+    },
     "settings.playback.autoRotateVideo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21741,6 +21807,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认播放速度"
+          }
+        }
+      }
+    },
+    "settings.playback.dialogueBoost" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dialogue boost"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renforcer les dialogues"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对白增强"
+          }
+        }
+      }
+    },
+    "settings.playback.dialogueBoost.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makes voices stand out from music and effects."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fait ressortir les voix par rapport à la musique et aux effets."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "让人声在音乐和音效中更加突出。"
+          }
+        }
+      }
+    },
+    "settings.playback.dialogueBoost.light" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Léger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻度"
+          }
+        }
+      }
+    },
+    "settings.playback.dialogueBoost.off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
+    "settings.playback.dialogueBoost.strong" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strong"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fort"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强"
           }
         }
       }
@@ -22357,6 +22533,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "立即"
+          }
+        }
+      }
+    },
+    "settings.playback.nightMode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Night mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode nuit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夜间模式"
+          }
+        }
+      }
+    },
+    "settings.playback.nightMode.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Softens loud scenes and lifts quiet ones, for listening at low volume."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atténue les scènes bruyantes et remonte les passages calmes, pour écouter à faible volume."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "减弱响亮场景并提升安静段落，适合低音量收听。"
           }
         }
       }

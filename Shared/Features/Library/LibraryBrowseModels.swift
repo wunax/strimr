@@ -144,6 +144,7 @@ struct LibraryBrowsePreferences: Codable, Equatable {
     var showsFolderTree: Bool?
     var plex: PlexSelection?
     var jellyfinQuery: LibraryBrowseQuery?
+    var selectedTab: LibraryDetailTab?
 
     struct PlexSelection: Codable, Equatable {
         var displayTypeKey: String?
@@ -169,6 +170,11 @@ struct LibraryBrowsePreferences: Codable, Equatable {
     /// Only a layout that differs from the default is saved, so changing the default reaches every other library.
     mutating func setLayout(_ layout: LibraryBrowseLayout, for kind: MediaKind, defaultLayout: LibraryDefaultLayout) {
         self.layout = layout == defaultLayout.layout(for: kind) ? nil : layout
+    }
+
+    /// Like the layout, the default tab is not saved.
+    mutating func setSelectedTab(_ tab: LibraryDetailTab, for library: Library) {
+        selectedTab = tab == LibraryDetailTab.defaultTab(for: library) ? nil : tab
     }
 
     /// Plex section keys repeat across servers, so the key is scoped by provider, server and account.
