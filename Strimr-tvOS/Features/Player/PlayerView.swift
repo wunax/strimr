@@ -63,6 +63,7 @@ struct PlayerView: View {
     @State private var pauseScreen = PauseScreenPresentation()
     @State private var qualityNoticeMessage: String?
     @State private var activeAdjustmentBar: PlayerAdjustmentBar?
+    @State private var showsPlaybackStatistics = false
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -453,6 +454,14 @@ struct PlayerView: View {
                 bufferingOverlay
             }
 
+            if showsPlaybackStatistics, !isShowingInfoPanel {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, controlsVisible ? 150 : 0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
+                    .transition(.opacity)
+            }
+
             if controlsVisible, !isShowingInfoPanel {
                 PlayerControlsView(
                     media: viewModel.media,
@@ -659,6 +668,8 @@ struct PlayerView: View {
                 onShowVersions: { sheetPresentation.item = .version },
                 onShowDisplay: { sheetPresentation.item = .display },
                 onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
+                showsPlaybackStatistics: showsPlaybackStatistics,
+                onTogglePlaybackStatistics: { showsPlaybackStatistics.toggle() },
             )
         case .dialogueBoost:
             PlayerDialogueBoostSelectionView(

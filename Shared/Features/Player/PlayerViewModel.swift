@@ -63,6 +63,14 @@ final class PlayerViewModel {
         playbackPlan?.burnsSubtitles ?? false
     }
 
+    var playbackStatisticsContext: PlaybackStatisticsContext {
+        PlaybackStatisticsContext(
+            method: isLocalPlayback ? .offline : playbackPlan?.method,
+            quality: playbackPlan?.effectiveQuality ?? .original,
+            burnsSubtitles: burnsSubtitles,
+        )
+    }
+
     var resumePosition: Double? {
         media?.viewOffset
     }

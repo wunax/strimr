@@ -11,6 +11,8 @@ struct PlayerSettingsMenuView: View {
     var onShowVersions: () -> Void
     var onShowDisplay: () -> Void
     var onShowSleepTimer: () -> Void
+    var showsPlaybackStatistics: Bool
+    var onTogglePlaybackStatistics: () -> Void
 
     var body: some View {
         PlayerSettingsOptionsView(
@@ -62,6 +64,17 @@ struct PlayerSettingsMenuView: View {
             systemImage: sleepTimer.isActive ? "moon.zzz.fill" : "moon.zzz",
             opensSubmenu: true,
             action: onShowSleepTimer,
+        ))
+
+        options.append(PlayerSettingsOption(
+            id: "statistics",
+            title: String(localized: "player.statistics.title"),
+            subtitle: showsPlaybackStatistics
+                ? String(localized: "player.statistics.state.on")
+                : String(localized: "player.statistics.state.off"),
+            highlightsSubtitle: showsPlaybackStatistics,
+            systemImage: "chart.bar.xaxis",
+            action: onTogglePlaybackStatistics,
         ))
 
         return options

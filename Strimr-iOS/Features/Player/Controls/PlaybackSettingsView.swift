@@ -31,6 +31,7 @@ struct PlaybackSettingsView: View {
     var sleepTimerMediaKind: MediaKind?
     var isSleepTimerAvailable = true
     var onSelectSleepTimer: (SleepTimerMode?) -> Void = { _ in }
+    @Binding var showsPlaybackStatistics: Bool
     var onClose: () -> Void
 
     var body: some View {
@@ -190,6 +191,14 @@ struct PlaybackSettingsView: View {
                         isAvailable: isSleepTimerAvailable,
                         onSelect: onSelectSleepTimer,
                     )
+                }
+
+                Section {
+                    Toggle(isOn: $showsPlaybackStatistics) {
+                        Label("player.statistics.title", systemImage: "chart.bar.xaxis")
+                    }
+                } footer: {
+                    Text("player.statistics.footer")
                 }
 
                 if let onResetTrackSelections {

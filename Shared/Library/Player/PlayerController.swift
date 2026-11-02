@@ -1062,6 +1062,51 @@ final class PlayerController {
         }
     }
 
+    func playbackStatistics(context: PlaybackStatisticsContext) -> PlaybackStatistics {
+        let audioTrack = engine.activeAudioTrackIndex.flatMap { index in
+            engine.audioTracks.first { $0.id == index }
+        }
+        return PlaybackStatistics(PlaybackStatisticsSource(
+            context: context,
+            videoRoute: engine.videoRoute,
+            containerFormat: engine.sourceContainerFormat,
+            videoCodec: engine.sourceVideoCodecName,
+            videoStreamFormat: engine.sourceVideoStreamFormat,
+            decodedVideoFormat: engine.decodedVideoFormat,
+            sourceVideoSize: sourceVideoSize,
+            displayVideoSize: displayVideoSize,
+            frameRate: engine.sourceVideoFrameRate,
+            videoBitrate: engine.sourceVideoBitrate,
+            sourceVideoFormat: engine.sourceVideoFormat,
+            presentedVideoFormat: engine.videoFormat,
+            dolbyVisionProfile: engine.sourceDVProfile,
+            dolbyVisionConversion: engine.dolbyVisionConversion,
+            videoDecoder: engine.activeVideoDecoder,
+            audioTrack: audioTrack,
+            audioDecoder: engine.activeAudioDecoder,
+            audioDelivery: engine.audioDelivery,
+            subtitleCodec: activeSubtitleCodec,
+            subtitleRenderer: statisticsSubtitleRenderer(burnsSubtitles: context.burnsSubtitles),
+            bufferedAhead: isLive ? nil : bufferedAhead,
+            telemetry: engine.diagnostics.liveTelemetry,
+        ))
+    }
+
+    private func statisticsSubtitleRenderer(burnsSubtitles: Bool) -> PlaybackStatisticsSubtitleRenderer? {
+        if burnsSubtitles {
+            return .burnedIn
+        }
+        guard let selectedSubtitleTrackID,
+              let track = engine.subtitleTracks.first(where: { $0.id == selectedSubtitleTrackID })
+        else {
+            return nil
+        }
+        if track.isNativelyRenderedSubtitle {
+            return .native
+        }
+        return assRenderer == nil ? .overlay : .styled
+    }
+
     private func observeEngine() {
         #if os(iOS)
             // Without this the system pauses a player showing video as soon as the app leaves the foreground.
