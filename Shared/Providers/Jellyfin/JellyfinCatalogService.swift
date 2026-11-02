@@ -160,7 +160,9 @@ struct JellyfinCatalogService {
             }
             entries.append((item, item.seriesID.flatMap { seriesDates[$0] } ?? item.userData?.lastPlayedDate))
         }
-        var previousNextUpDate: Date?
+        // Series too old to be among the played episodes keep Next Up's own order, taking the date of the series
+        // before them, or of the first dated one when they lead.
+        var previousNextUpDate = nextUp.lazy.compactMap { $0.seriesID.flatMap { seriesDates[$0] } }.first
         for item in nextUp {
             guard let seriesID = item.seriesID else { continue }
             if let index = entryIndexBySeries[seriesID] {
@@ -170,7 +172,6 @@ struct JellyfinCatalogService {
                 previousNextUpDate = entries[index].date ?? previousNextUpDate
                 continue
             }
-            // Series too old to be among the played episodes keep Next Up's own order.
             let date = seriesDates[seriesID] ?? previousNextUpDate
             entryIndexBySeries[seriesID] = entries.count
             entries.append((item, date))

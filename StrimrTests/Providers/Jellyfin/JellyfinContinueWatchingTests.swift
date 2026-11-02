@@ -36,6 +36,16 @@ struct JellyfinContinueWatchingTests {
         #expect(items.contains { $0.id == "series-a-s1e3" })
     }
 
+    @Test func `without played history, the first next up series does not fall to the end`() {
+        let items = JellyfinCatalogService.continueWatching(
+            resume: lists.resume,
+            nextUp: lists.nextUp,
+            playedEpisodes: [],
+        )
+
+        #expect(items.map(\.id) == ["movie-1", "series-a-s1e3", "series-b-s2e1", "series-c-s1e5"])
+    }
+
     @Test func `a series missing from the played episodes keeps next up's order`() {
         let items = JellyfinCatalogService.continueWatching(
             resume: [],
