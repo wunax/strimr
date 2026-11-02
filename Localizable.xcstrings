@@ -20419,6 +20419,28 @@
         }
       }
     },
+    "settings.interface.manageLibraries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage libraries"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer les bibliothèques"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理媒体库"
+          }
+        }
+      }
+    },
     "settings.interface.navigationLibraries" : {
       "localizations" : {
         "en" : {
