@@ -21,7 +21,7 @@ struct LibraryBrowseControlsView<Filters: View>: View {
     var itemCount: Int?
     @ViewBuilder let filters: () -> Filters
 
-    /// Below this width, sort and filters drop their titles so the row never has to scroll.
+    /// Below this width, the filters button drops its title so the row never has to scroll.
     private static var compactRowWidth: CGFloat {
         460
     }
@@ -64,7 +64,7 @@ struct LibraryBrowseControlsView<Filters: View>: View {
                 filtersButton(isCompact: isCompact)
             }
             if showsServerControls, viewModel.showsSortControl {
-                sortMenu(isCompact: isCompact)
+                sortMenu
             }
             Spacer(minLength: 0)
             if viewModes.count > 1 {
@@ -119,11 +119,11 @@ struct LibraryBrowseControlsView<Filters: View>: View {
                 #endif
             }
         #endif
-        .accessibilityLabel(Text("library.browse.filters.title"))
-        .accessibilityValue(filterCount > 0 ? Text(verbatim: String(filterCount)) : Text(verbatim: ""))
+            .accessibilityLabel(Text("library.browse.filters.title"))
+            .accessibilityValue(filterCount > 0 ? Text(verbatim: String(filterCount)) : Text(verbatim: ""))
     }
 
-    private func sortMenu(isCompact: Bool) -> some View {
+    private var sortMenu: some View {
         Menu {
             Picker(selection: sortSelection) {
                 ForEach(viewModel.sortChoices) { choice in
@@ -146,12 +146,11 @@ struct LibraryBrowseControlsView<Filters: View>: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: sortImage)
-                if !isCompact {
-                    Text(verbatim: viewModel.selectedSortTitle ?? String(localized: "library.browse.sort.title"))
-                }
+                Text(verbatim: viewModel.selectedSortTitle ?? String(localized: "library.browse.sort.title"))
             }
         }
-        .modifier(BrowseControlStyle(isActive: false, isMenu: true))
+        // The only control allowed to shrink: a long sort name truncates instead of pushing the row off screen.
+        .modifier(BrowseControlStyle(isActive: false, isMenu: true, isFlexible: true))
         .accessibilityLabel(Text("library.browse.sort.title"))
         .accessibilityValue(Text(verbatim: viewModel.selectedSortTitle ?? ""))
     }
@@ -194,7 +193,6 @@ struct LibraryBrowseControlsView<Filters: View>: View {
         }
     }
 
-    @ViewBuilder
     private var summaryRow: some View {
         #if os(tvOS)
             // Plain text: removable chips would add a focus row between the controls and the grid.
@@ -292,6 +290,7 @@ struct LibraryBrowseControlsView<Filters: View>: View {
 private struct BrowseControlStyle: ViewModifier {
     let isActive: Bool
     var isMenu = false
+    var isFlexible = false
 
     func body(content: Content) -> some View {
         #if os(tvOS)
@@ -307,7 +306,7 @@ private struct BrowseControlStyle: ViewModifier {
                     .menuStyle(.button)
                     .menuIndicator(.hidden)
                     .buttonStyle(.chip(isSelected: isActive))
-                    .fixedSize()
+                    .fixedSize(horizontal: !isFlexible, vertical: true)
             } else {
                 content
                     .buttonStyle(.chip(isSelected: isActive))
