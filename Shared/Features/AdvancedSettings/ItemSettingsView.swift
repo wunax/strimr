@@ -12,6 +12,7 @@ struct ItemSettingsView: View {
                 .taskModalTitle("media.advancedSettings.title")
                 .taskModalActions {
                     Button("common.actions.done") { dismiss() }
+                        .disabled(viewModel.updatingSettingID != nil)
                 } actions: {
                     EmptyView()
                 }
