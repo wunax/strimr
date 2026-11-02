@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 @testable import Strimr
 import Testing
@@ -174,6 +175,23 @@ struct AppSettingsTests {
 
         #expect(settings.playback.audioDelayMilliseconds == 0)
         #expect(settings.playback.seekForwardSeconds == 30)
+    }
+
+    @Test func `audio enhancements are off unless chosen`() throws {
+        let playback = try decode(#"{"playback":{"dialogueBoost":"loud","seekForwardSeconds":30}}"#).playback
+
+        #expect(!playback.nightMode)
+        #expect(playback.dialogueBoost == .off)
+        #expect(playback.seekForwardSeconds == 30)
+        #expect(!playback.audioShaping.isActive)
+    }
+
+    @Test func `audio enhancements combine into one shaping`() throws {
+        let playback = try decode(#"{"playback":{"nightMode":true,"dialogueBoost":"strong"}}"#).playback
+
+        #expect(playback.audioShaping.compressor == .night)
+        #expect(playback.audioShaping.dialogueGainDB == 8)
+        #expect(playback.audioShaping.maxChannels == nil)
     }
 
     @Test func `subtitle brightness is full unless chosen`() throws {

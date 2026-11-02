@@ -10,9 +10,11 @@ struct PlayerTrackSelectionView: View {
     var onResetTrackSelections: (() -> Void)?
     var syncItem: PlaybackOffsetMenuItem?
     var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
+    var audioEnhancements: PlayerAudioEnhancements?
+    var initialOptionID: String?
 
     var body: some View {
-        PlayerSettingsOptionsView(title: titleKey, options: options)
+        PlayerSettingsOptionsView(title: titleKey, options: options, initialOptionID: initialOptionID)
             .overlay {
                 if tracks.isEmpty, !showOffOption {
                     Text("player.settings.audio.empty").foregroundStyle(.secondary)
@@ -67,6 +69,40 @@ struct PlayerTrackSelectionView: View {
                 action: { onSelectSync(syncItem.kind) },
             ))
         }
+        if let audioEnhancements {
+            result += audioEnhancements.options
+        }
         return result
+    }
+}
+
+struct PlayerAudioEnhancements {
+    var nightMode: Bool
+    var dialogueBoost: DialogueBoost
+    var isAvailable: Bool
+    var onToggleNightMode: () -> Void
+    var onShowDialogueBoost: () -> Void
+
+    fileprivate var options: [PlayerSettingsOption] {
+        [
+            PlayerSettingsOption(
+                id: "nightMode",
+                title: String(localized: "settings.playback.nightMode"),
+                subtitle: isAvailable ? nil : String(localized: "player.settings.audioEnhancements.unavailable"),
+                isSelected: nightMode,
+                systemImage: "moon.stars",
+                sectionTitle: String(localized: "settings.playback.audioEnhancements"),
+                action: onToggleNightMode,
+            ),
+            PlayerSettingsOption(
+                id: "dialogueBoost",
+                title: String(localized: "settings.playback.dialogueBoost"),
+                subtitle: dialogueBoost.title,
+                highlightsSubtitle: dialogueBoost != .off,
+                systemImage: "person.wave.2",
+                opensSubmenu: true,
+                action: onShowDialogueBoost,
+            ),
+        ]
     }
 }
