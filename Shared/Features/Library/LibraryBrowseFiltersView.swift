@@ -51,9 +51,10 @@ struct LibraryBrowseFiltersView: View {
                     }
                 }
             }
+            .focusRoom()
             #if os(macOS)
-            .formStyle(.grouped)
-            .navigationTitle(Text("library.browse.filters.title"))
+                .formStyle(.grouped)
+                .navigationTitle(Text("library.browse.filters.title"))
             #endif
             #if os(iOS)
             .navigationTitle(Text("library.browse.filters.title"))
@@ -65,14 +66,6 @@ struct LibraryBrowseFiltersView: View {
             }
             #endif
         }
-        #if os(tvOS)
-        // Focused rows grow past the form's bounds; let them spill into the panel padding sideways only.
-        .scrollClipDisabled()
-        .mask {
-            Rectangle()
-                .padding(.horizontal, -24)
-        }
-        #endif
     }
 
     @ViewBuilder
@@ -180,6 +173,7 @@ private struct PlexFilterOptionsView: View {
                     }
                 }
             }
+            .focusRoom()
         }
         .navigationTitle(Text(verbatim: filter.title))
         .task { await viewModel.loadFilterOptionsIfNeeded(for: filter) }
@@ -218,6 +212,7 @@ private struct JellyfinFilterOptionsView: View {
                     }
                 }
             }
+            .focusRoom()
             .searchable(text: $searchText, prompt: Text("library.browse.filters.search"))
         }
         .navigationTitle(Text(verbatim: filter.title))
@@ -285,5 +280,18 @@ private struct FilterOptionRow: View {
         .buttonStyle(.plain)
         #endif
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private extension View {
+    /// The navigation stack clips its pages, so on tvOS the list sits a little inside it, unclipped, leaving room
+    /// for focused rows to grow.
+    func focusRoom() -> some View {
+        #if os(tvOS)
+            scrollClipDisabled()
+                .padding(.horizontal, 12)
+        #else
+            self
+        #endif
     }
 }
