@@ -84,11 +84,14 @@ struct PlayerAudioEnhancements {
     var onShowDialogueBoost: () -> Void
 
     fileprivate var options: [PlayerSettingsOption] {
-        [
+        let unavailableMessage = isAvailable
+            ? nil
+            : String(localized: "player.settings.audioEnhancements.unavailable")
+        return [
             PlayerSettingsOption(
                 id: "nightMode",
                 title: String(localized: "settings.playback.nightMode"),
-                subtitle: isAvailable ? nil : String(localized: "player.settings.audioEnhancements.unavailable"),
+                subtitle: unavailableMessage,
                 isSelected: nightMode,
                 systemImage: "moon.stars",
                 sectionTitle: String(localized: "settings.playback.audioEnhancements"),
@@ -97,8 +100,8 @@ struct PlayerAudioEnhancements {
             PlayerSettingsOption(
                 id: "dialogueBoost",
                 title: String(localized: "settings.playback.dialogueBoost"),
-                subtitle: dialogueBoost.title,
-                highlightsSubtitle: dialogueBoost != .off,
+                subtitle: unavailableMessage ?? dialogueBoost.title,
+                highlightsSubtitle: isAvailable && dialogueBoost != .off,
                 systemImage: "person.wave.2",
                 opensSubmenu: true,
                 action: onShowDialogueBoost,

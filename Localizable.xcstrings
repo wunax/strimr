@@ -21452,19 +21452,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "These options process the audio on the device. While one is on, Dolby Atmos and other bitstream formats play as multichannel PCM, and spatial audio is not used."
+            "value" : "These options process the audio on the device. While one is on, Dolby Atmos and other bitstream formats are no longer passed through, and spatial audio is not used."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ces options traitent le son sur l’appareil. Tant que l’une d’elles est active, le Dolby Atmos et les autres formats bitstream sont lus en PCM multicanal, et l’audio spatial n’est pas utilisé."
+            "value" : "Ces options traitent le son sur l’appareil. Tant que l’une d’elles est active, le Dolby Atmos et les autres formats bitstream ne sont plus transmis tels quels, et l’audio spatial n’est pas utilisé."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这些选项会在设备上处理音频。启用任一选项时，杜比全景声及其他比特流格式将以多声道 PCM 播放，且不使用空间音频。"
+            "value" : "这些选项会在设备上处理音频。启用任一选项时，杜比全景声及其他比特流格式不再直通输出，且不使用空间音频。"
           }
         }
       }

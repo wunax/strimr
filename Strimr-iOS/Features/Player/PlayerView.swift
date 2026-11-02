@@ -291,6 +291,9 @@ struct PlayerView: View {
                         playbackRate: playbackRate,
                         videoZoom: playerController.videoZoom,
                         syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+                        nightMode: settingsManager.playback.nightMode,
+                        dialogueBoost: settingsManager.playback.dialogueBoost,
+                        isAudioShapingAvailable: playerController.isAudioShapingAvailable,
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
@@ -1918,6 +1921,9 @@ private struct PlayerSheetRefreshID: Hashable {
     let playbackRate: Float
     let videoZoom: VideoZoom
     let syncItems: [PlaybackOffsetMenuItem]
+    let nightMode: Bool
+    let dialogueBoost: DialogueBoost
+    let isAudioShapingAvailable: Bool
 }
 
 private enum PlayerSheet: String, Identifiable {
