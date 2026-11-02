@@ -100,6 +100,20 @@ final class SettingsViewModel {
         )
     }
 
+    var nightModeBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.nightMode },
+            set: { self.settingsManager.setNightMode($0) },
+        )
+    }
+
+    var dialogueBoostBinding: Binding<DialogueBoost> {
+        Binding(
+            get: { self.settingsManager.playback.dialogueBoost },
+            set: { self.settingsManager.setDialogueBoost($0) },
+        )
+    }
+
     var rememberTrackSelectionsBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.rememberTrackSelections },

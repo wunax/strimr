@@ -615,6 +615,14 @@ struct PlayerView: View {
                 onSelect: selectAudioTrack(_:),
                 syncItem: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
+                audioEnhancements: PlayerAudioEnhancements(
+                    nightMode: settingsManager.playback.nightMode,
+                    dialogueBoost: settingsManager.playback.dialogueBoost,
+                    isAvailable: playerController.isAudioShapingAvailable,
+                    onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
+                    onShowDialogueBoost: { sheetPresentation.item = .dialogueBoost },
+                ),
+                initialOptionID: settingsMenuFocusID,
             )
         case .subtitle:
             PlayerTrackSelectionView(
@@ -651,6 +659,11 @@ struct PlayerView: View {
                 onShowVersions: { sheetPresentation.item = .version },
                 onShowDisplay: { sheetPresentation.item = .display },
                 onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
+            )
+        case .dialogueBoost:
+            PlayerDialogueBoostSelectionView(
+                selectedBoost: settingsManager.playback.dialogueBoost,
+                onSelect: selectDialogueBoost(_:),
             )
         case .quality:
             PlayerQualitySelectionView(
@@ -750,6 +763,7 @@ struct PlayerView: View {
     private func showAudioSettings() {
         refreshTracks()
         settingsControl = .audio
+        settingsMenuFocusID = nil
         sheetPresentation.item = .audio
         showControls(temporarily: true)
     }
@@ -1080,6 +1094,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private func selectSubtitleTrack(_ id: Int?) {
         if id != selectedSubtitleTrackID {
             playerController.setSubtitleDelay(milliseconds: 0)
@@ -1254,6 +1278,7 @@ struct PlayerView: View {
             nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
             dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !sharePlayCoordinator.isInSession,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1768,6 +1793,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case version
     case display
     case sleepTimer
+    case dialogueBoost
     case subtitleSearch
 
     var id: String {
@@ -1778,6 +1804,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
         switch self {
         case .quality, .version, .display, .sleepTimer:
             .settings
+        case .dialogueBoost:
+            .audio
         case .audio, .subtitle, .speed, .settings, .subtitleSearch:
             nil
         }
@@ -1801,6 +1829,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.display"
         case .sleepTimer:
             "player.sleepTimer.title"
+        case .dialogueBoost:
+            "settings.playback.dialogueBoost"
         case .subtitleSearch:
             "subtitles.search.title"
         }

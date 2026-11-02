@@ -49,6 +49,8 @@ final class PlayerController {
     private(set) var audioDelayMilliseconds = 0
     private(set) var subtitleDelayMilliseconds = 0
     private(set) var isApplyingAudioDelay = false
+    private(set) var audioShaping = AudioShaping()
+    private(set) var audioShapingState: AudioShapingState = .off
     private(set) var videoRoute: VideoRoute = .none
     private(set) var selectedSubtitleTrackID: Int?
     private(set) var volume: Float = 1.0
@@ -83,6 +85,11 @@ final class PlayerController {
             isAudioOnly: videoRoute == .audio,
             isLiveWithoutDVR: isLive && !hasLiveDVRWindow && seekableLiveRange == nil,
         )
+    }
+
+    /// AVPlayer owns the audio on the native bypass, so the engine has no PCM to shape there.
+    var isAudioShapingAvailable: Bool {
+        videoRoute != .remoteBypass && audioShapingState != .unavailable
     }
 
     func subtitleDelayAvailability(burnsSubtitles: Bool) -> PlaybackOffsetAvailability {
@@ -190,6 +197,7 @@ final class PlayerController {
         nativeRemoteHLS: Bool = false,
         dvrWindowSeconds: TimeInterval? = nil,
         audioDelayMilliseconds: Int = 0,
+        audioShaping: AudioShaping = AudioShaping(),
         autoplay: Bool = true,
         nowPlaying: NowPlayingItem? = nil,
     ) {
@@ -226,6 +234,7 @@ final class PlayerController {
         cancelPendingAudioDelay()
         self.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(audioDelayMilliseconds)
         let audioDelaySeconds = PlaybackOffset(milliseconds: self.audioDelayMilliseconds).seconds
+        self.audioShaping = audioShaping.clamped
         self.providerStreamIDsByFFIndex = providerStreamIDsByFFIndex
         externalSubtitleProviderStreamIDs = [:]
         errorMessage = nil
@@ -250,6 +259,7 @@ final class PlayerController {
                         externalSubtitles: externalSubtitles.map(\.track),
                         autoplay: autoplay,
                         audioDelaySeconds: audioDelaySeconds,
+                        audioShaping: audioShaping,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
@@ -624,6 +634,12 @@ final class PlayerController {
         if let pending = audioDelayDispatch.flush() {
             sendAudioDelay(pending)
         }
+    }
+
+    /// Each change rebuilds the session at the playhead (about 0.3 s of held picture).
+    func setAudioShaping(_ shaping: AudioShaping) {
+        audioShaping = shaping.clamped
+        engine.setAudioShaping(shaping)
     }
 
     func setSubtitleDelay(milliseconds: Int) {
@@ -1094,6 +1110,11 @@ final class PlayerController {
         engine.$videoRoute
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.videoRoute = $0 }
+            .store(in: &cancellables)
+
+        engine.$audioShapingState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.audioShapingState = $0 }
             .store(in: &cancellables)
 
         engine.$isBuffering

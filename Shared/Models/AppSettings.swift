@@ -301,6 +301,35 @@ struct SubtitleAppearance: Equatable {
     let bottomMargin: SubtitleBottomMargin
 }
 
+enum DialogueBoost: String, Codable, CaseIterable, Hashable, Identifiable {
+    case off
+    case light
+    case strong
+
+    var id: Self {
+        self
+    }
+
+    var gainDB: Double {
+        switch self {
+        case .off: 0
+        case .light: 4
+        case .strong: 8
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .off:
+            String(localized: "settings.playback.dialogueBoost.off")
+        case .light:
+            String(localized: "settings.playback.dialogueBoost.light")
+        case .strong:
+            String(localized: "settings.playback.dialogueBoost.strong")
+        }
+    }
+}
+
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
@@ -314,6 +343,8 @@ struct PlaybackSettings: Codable, Equatable {
     var losslessAudio = false
     /// Nil keeps TrueHD Atmos and DTS:X on the channel bridge.
     var spatialAudioLayout: SpatialSpeakerLayout?
+    var nightMode = false
+    var dialogueBoost = DialogueBoost.off
     var rememberTrackSelections = true
     var showChaptersOnTimeline = true
     var showSkipSegmentsOnTimeline = false
@@ -365,6 +396,8 @@ struct PlaybackSettings: Codable, Equatable {
             SpatialSpeakerLayout.self,
             forKey: .spatialAudioLayout,
         )
+        nightMode = (try? container.decodeIfPresent(Bool.self, forKey: .nightMode)) ?? false
+        dialogueBoost = (try? container.decodeIfPresent(DialogueBoost.self, forKey: .dialogueBoost)) ?? .off
         rememberTrackSelections = try container.decodeIfPresent(
             Bool.self,
             forKey: .rememberTrackSelections,
@@ -431,6 +464,10 @@ struct PlaybackSettings: Codable, Equatable {
             CustomExternalPlayer.self,
             forKey: .customExternalPlayer,
         )
+    }
+
+    var audioShaping: AudioShaping {
+        AudioShaping(dialogueGainDB: dialogueBoost.gainDB, compressor: nightMode ? .night : nil)
     }
 
     var resolvedExternalPlayer: ExternalPlayer? {

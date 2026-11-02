@@ -12,6 +12,11 @@ struct PlaybackSettingsView: View {
     var onSelectVersion: (String) -> Void = { _ in }
     var onSelectAudio: (Int?) -> Void
     var onSelectSubtitle: (Int?) -> Void
+    var nightMode = false
+    var dialogueBoost = DialogueBoost.off
+    var isAudioShapingAvailable = true
+    var onSetNightMode: (Bool) -> Void = { _ in }
+    var onSelectDialogueBoost: (DialogueBoost) -> Void = { _ in }
     var onSearchSubtitles: (() -> Void)?
     var onResetTrackSelections: (() -> Void)?
     var onSelectPlaybackRate: (Float) -> Void
@@ -77,6 +82,29 @@ struct PlaybackSettingsView: View {
                         ) {
                             onSelectAudio(track.track.id)
                         }
+                    }
+                }
+
+                Section {
+                    Toggle(isOn: Binding(get: { nightMode }, set: { onSetNightMode($0) })) {
+                        Label("settings.playback.nightMode", systemImage: "moon.stars")
+                    }
+
+                    Picker(
+                        selection: Binding(get: { dialogueBoost }, set: { onSelectDialogueBoost($0) }),
+                    ) {
+                        ForEach(DialogueBoost.allCases) { boost in
+                            Text(boost.title).tag(boost)
+                        }
+                    } label: {
+                        Label("settings.playback.dialogueBoost", systemImage: "person.wave.2")
+                    }
+                    .pickerStyle(.menu)
+                } header: {
+                    Text("settings.playback.audioEnhancements")
+                } footer: {
+                    if !isAudioShapingAvailable {
+                        Text("player.settings.audioEnhancements.unavailable")
                     }
                 }
 
