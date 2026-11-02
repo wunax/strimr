@@ -171,15 +171,18 @@ final class PlexManagementService: MediaManagementService {
             guard !preference.hidden, let label = preference.label, !label.isEmpty,
                   let enumValues = preference.enumValues
             else { return nil }
-            let options = settingOptions(from: enumValues)
+            var options = settingOptions(from: enumValues)
             guard !options.isEmpty else { return nil }
             let value = preference.value ?? ""
+            // Shows a value missing from the choices as it is, so choosing any listed one still sends it.
+            if !options.contains(where: { $0.value == value }) {
+                options.insert(ItemSetting.Option(value: value, label: value), at: 0)
+            }
             return ItemSetting(
                 id: preference.id,
                 label: label,
                 summary: preference.summary.flatMap { $0.isEmpty ? nil : $0 },
-                // A value missing from the choices would leave the picker without a selection.
-                value: options.contains { $0.value == value } ? value : options[0].value,
+                value: value,
                 options: options,
             )
         }

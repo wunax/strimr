@@ -34,8 +34,12 @@ struct PlexItemSettingsTests {
         #expect(ordering.summary == nil)
     }
 
-    @Test func `a value missing from the choices falls back to the first one`() throws {
-        #expect(try settings().first { $0.id == "useOriginalTitle" }?.value == "-1")
+    @Test func `a value missing from the choices is kept as a choice of its own`() throws {
+        let setting = try #require(try settings().first { $0.id == "useOriginalTitle" })
+
+        #expect(setting.value == "7")
+        #expect(setting.options.map(\.value) == ["7", "-1", "0", "1"])
+        #expect(setting.options.first?.label == "7")
     }
 
     @Test func `percent-encoded choices are decoded`() throws {

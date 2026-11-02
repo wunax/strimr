@@ -26,6 +26,8 @@ struct ItemSettingsView: View {
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 440)
         #endif
+        // Closing while a choice is saved would skip the reload of the card that opened the screen.
+        .interactiveDismissDisabled(viewModel.updatingSettingID != nil)
         .task {
             await viewModel.load()
         }
