@@ -200,6 +200,16 @@ struct LibraryBrowseView: View {
                 description: Text("common.errors.tryAgainLater"),
             )
             .symbolRenderingMode(.multicolor)
+        } else if isEmpty, viewModel.isServerUnreachable, viewModel.hasDownloads {
+            ContentUnavailableView {
+                Label("offline.banner.serverUnreachable", systemImage: "wifi.slash")
+            } description: {
+                Text("library.browse.empty.offline.downloadsDescription")
+            } actions: {
+                Button("library.browse.empty.showDownloads") {
+                    viewModel.setDownloadedOnly(true)
+                }
+            }
         } else if isEmpty, viewModel.isServerUnreachable {
             ContentUnavailableView(
                 "offline.banner.serverUnreachable",

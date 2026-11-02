@@ -3614,6 +3614,28 @@
         }
       }
     },
+    "library.browse.empty.offline.downloadsDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only downloaded items are available offline."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuls les éléments téléchargés sont disponibles hors ligne."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线时仅可使用已下载的内容。"
+          }
+        }
+      }
+    },
     "library.browse.empty.reset" : {
       "localizations" : {
         "en" : {
@@ -3632,6 +3654,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重置筛选"
+          }
+        }
+      }
+    },
+    "library.browse.empty.showDownloads" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Downloads"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les téléchargements"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示已下载内容"
           }
         }
       }
