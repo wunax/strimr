@@ -26,7 +26,7 @@ struct LibraryDetailView: View {
         VStack(spacing: 0) {
             if availableTabs.count > 1 {
                 LibraryDetailTabBar(selection: $selectedTab, tabs: availableTabs)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 4)
             }
 
             Group {
