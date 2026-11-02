@@ -74,6 +74,7 @@ struct PlayerView: View {
     @State private var activeOffsetBar: PlaybackOffsetKind?
     @State private var doubleTapSeek = DoubleTapSeek()
     @State private var tapAreaWidth = 0.0
+    @State private var showsPlaybackStatistics = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
@@ -529,6 +530,15 @@ struct PlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
+            if showsPlaybackStatistics, !isShowingInfoPanel {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, areControlsShown ? 84 : 12)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: areControlsShown)
+                    .transition(.opacity)
+            }
+
             if controlsVisible || (isControlsLocked && isVoiceOverEnabled), !isShowingInfoPanel {
                 playerControls
                     .transition(.opacity)
@@ -909,6 +919,7 @@ struct PlayerView: View {
             sleepTimerMediaKind: viewModel.media?.type,
             isSleepTimerAvailable: !sharePlayCoordinator.isInSession,
             onSelectSleepTimer: selectSleepTimer(_:),
+            showsPlaybackStatistics: $showsPlaybackStatistics,
             onClose: { sheetPresentation.item = nil },
         )
     }

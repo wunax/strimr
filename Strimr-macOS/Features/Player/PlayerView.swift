@@ -103,6 +103,7 @@ struct PlayerView: View {
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var showsPlaybackStatistics = false
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -146,11 +147,25 @@ struct PlayerView: View {
                                 .onEnded { toggleControlsVisibility() },
                         ),
                 )
+                .contextMenu {
+                    Toggle(isOn: $showsPlaybackStatistics) {
+                        Label("player.statistics.title", systemImage: "chart.bar.xaxis")
+                    }
+                }
 
             if viewModel.isLoading || viewModel.isBuffering || isRecoveringServerAccess {
                 ProgressView()
                     .controlSize(.large)
                     .tint(.white)
+            }
+
+            if showsPlaybackStatistics {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, controlsVisible ? 76 : 20)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
+                    .transition(.opacity)
             }
 
             if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented,
@@ -1286,6 +1301,9 @@ struct PlayerView: View {
                 EmptyView()
             }
             .keyboardShortcut("i", modifiers: [])
+
+            Button(action: { showsPlaybackStatistics.toggle() }) { EmptyView() }
+                .keyboardShortcut("s", modifiers: [])
 
             Button {
                 guard !dismissPauseScreen() else { return }
