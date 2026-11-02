@@ -20,6 +20,11 @@ struct LibraryBrowseFiltersView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Reaching the bottom of a long list is slow with a remote, so tvOS leads with it.
+                if canReset, Self.leadsWithReset {
+                    resetSection
+                }
+
                 if showsDownloadsToggle {
                     Section {
                         Toggle(isOn: isDownloadedOnly) {
@@ -45,10 +50,8 @@ struct LibraryBrowseFiltersView: View {
                     .disabled(serverFilters != .available)
                 }
 
-                if canReset {
-                    Section {
-                        Button("library.browse.filters.reset", role: .destructive, action: onReset)
-                    }
+                if canReset, !Self.leadsWithReset {
+                    resetSection
                 }
             }
             .focusRoom()
@@ -65,6 +68,20 @@ struct LibraryBrowseFiltersView: View {
                 }
             }
             #endif
+        }
+    }
+
+    private static var leadsWithReset: Bool {
+        #if os(tvOS)
+            true
+        #else
+            false
+        #endif
+    }
+
+    private var resetSection: some View {
+        Section {
+            Button("library.browse.filters.reset", role: .destructive, action: onReset)
         }
     }
 
