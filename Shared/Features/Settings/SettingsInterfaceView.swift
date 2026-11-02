@@ -46,6 +46,17 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Picker(
+                    "settings.interface.startupScreen",
+                    selection: Binding(
+                        get: { settingsManager.interface.startupScreen },
+                        set: { settingsManager.setStartupScreen($0) },
+                    ),
+                ) {
+                    ForEach(StartupScreen.selectableCases, id: \.self) { screen in
+                        Text(screen.title).tag(screen)
+                    }
+                }
                 #if os(iOS)
                     Toggle(
                         "settings.interface.displayFavoritesTab",

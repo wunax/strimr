@@ -20111,6 +20111,28 @@
         }
       }
     },
+    "settings.interface.startupScreen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startup Screen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran de démarrage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动页面"
+          }
+        }
+      }
+    },
     "settings.interface.tabBarPlacement" : {
       "localizations" : {
         "en" : {

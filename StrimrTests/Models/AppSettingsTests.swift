@@ -66,6 +66,12 @@ struct AppSettingsTests {
         #expect(try decode(#"{"interface":{"tabBarPlacement":"sidebar"}}"#).interface.tabBarPlacement == .sidebar)
     }
 
+    @Test func `app opens on Home unless another screen is chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.startupScreen == .home)
+        #expect(try decode(#"{"interface":{"startupScreen":"x"}}"#).interface.startupScreen == .home)
+        #expect(try decode(#"{"interface":{"startupScreen":"liveTV"}}"#).interface.startupScreen == .liveTV)
+    }
+
     @Test func `corrupt library browse preferences keep other settings`() throws {
         let settings = try decode(#"""
         {"interface":{"displayPlaylists":false,"libraryBrowseByKey":{"plex|server|account|1":{"plex":{"filters":42}}}}}

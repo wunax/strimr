@@ -60,6 +60,43 @@ enum PortraitEpisodeArtwork: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum StartupScreen: String, Codable, CaseIterable, Hashable {
+    case home
+    case discover
+    case search
+    case downloads
+    case libraries
+    case liveTV
+    case favorites
+
+    static var selectableCases: [StartupScreen] {
+        #if os(tvOS)
+            allCases.filter { $0 != .downloads }
+        #else
+            allCases
+        #endif
+    }
+
+    var title: String {
+        switch self {
+        case .home:
+            String(localized: "tabs.home")
+        case .discover:
+            String(localized: "tabs.discover")
+        case .search:
+            String(localized: "tabs.search")
+        case .downloads:
+            String(localized: "downloads.title")
+        case .libraries:
+            String(localized: "tabs.libraries")
+        case .liveTV:
+            String(localized: "livetv.title")
+        case .favorites:
+            String(localized: "tabs.favorites")
+        }
+    }
+}
+
 enum TabBarPlacement: String, Codable, CaseIterable, Hashable {
     case top
     case sidebar
@@ -425,6 +462,7 @@ struct InterfaceSettings: Codable, Equatable {
     var showsWatchStatusBadges = true
     var continueWatchingAction = ContinueWatchingAction.openDetails
     var tabBarPlacement = TabBarPlacement.top
+    var startupScreen = StartupScreen.home
 
     init() {}
 
@@ -479,6 +517,7 @@ struct InterfaceSettings: Codable, Equatable {
             forKey: .continueWatchingAction,
         )) ?? .openDetails
         tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
+        startupScreen = (try? container.decode(StartupScreen.self, forKey: .startupScreen)) ?? .home
     }
 }
 

@@ -27,7 +27,7 @@ struct MainView: View {
                 Section {
                     sidebarLabel("tabs.home", systemImage: "house.fill", item: .home)
 
-                    if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+                    if isDiscoverAvailable {
                         sidebarLabel("tabs.discover", systemImage: "sparkles", item: .discover)
                     }
 
@@ -35,7 +35,7 @@ struct MainView: View {
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
                     sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
-                    if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
+                    if isLiveTVAvailable {
                         sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
                     }
                 }
@@ -93,6 +93,16 @@ struct MainView: View {
             guard phase == .active else { return }
             Task { await refreshLiveTVAvailability() }
         }
+        .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                appModel.openPendingStartupSelection(.discover)
+            }
+        }
+        .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                appModel.openPendingStartupSelection(.liveTV)
+            }
+        }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
             if !isDisplayed {
                 appModel.resetLiveTVNavigation()
@@ -115,6 +125,14 @@ struct MainView: View {
     }
 
     @State private var lastPlayedServer: ServerIdentity?
+
+    private var isDiscoverAvailable: Bool {
+        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    }
+
+    private var isLiveTVAvailable: Bool {
+        !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
+    }
 
     private func refreshLiveTVAvailability() async {
         await registry.refreshLiveTVAvailability()

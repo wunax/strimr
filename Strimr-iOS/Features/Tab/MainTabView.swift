@@ -41,6 +41,16 @@ struct MainTabView: View {
             .handlesExternalPlaybackCallbacks { server in
                 Task { await homeViewModel.refresh(server: server) }
             }
+            .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+                if isAvailable {
+                    coordinator.openPendingStartupTab(.seerrDiscover)
+                }
+            }
+            .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
+                if isAvailable {
+                    coordinator.openPendingStartupTab(.liveTV)
+                }
+            }
             .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
                 if !isDisplayed {
                     coordinator.resetLiveTVNavigation()
@@ -89,13 +99,21 @@ struct MainTabView: View {
         }
     }
 
+    private var isDiscoverAvailable: Bool {
+        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    }
+
+    private var isLiveTVAvailable: Bool {
+        !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
+    }
+
     private var tabView: some View {
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
                 homeTabContent
             }
 
-            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+            if isDiscoverAvailable {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     discoverTabContent
                 }
@@ -128,7 +146,7 @@ struct MainTabView: View {
                 libraryTabContent
             }
 
-            if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
+            if isLiveTVAvailable {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     liveTVTabContent
                 }

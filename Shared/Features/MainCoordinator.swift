@@ -44,7 +44,14 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
-    @Published var tab: Tab = .home
+    @Published var tab: Tab = .home {
+        didSet {
+            if tab != oldValue {
+                pendingStartupTab = nil
+            }
+        }
+    }
+
     @Published var homePath = NavigationPath()
     @Published var searchPath = NavigationPath()
     @Published var downloadsPath = NavigationPath()
@@ -56,9 +63,50 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     @Published private var libraryDetailPaths: [LibraryIdentity: NavigationPath] = [:]
     private var mediaRouteEntries: [Tab: [MediaRouteEntry]] = [:]
     private let settingsManager: SettingsManager
+    /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
+    /// up, unless the user has picked another tab meanwhile.
+    private var pendingStartupTab: Tab?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
+        applyStartupScreen(settingsManager.interface)
+    }
+
+    private func applyStartupScreen(_ interface: InterfaceSettings) {
+        switch interface.startupScreen {
+        case .home:
+            break
+        case .search:
+            tab = .search
+        case .libraries:
+            tab = .library
+        case .favorites:
+            if interface.displayFavoritesTab {
+                tab = .favorites
+            }
+        case .downloads:
+            #if os(iOS)
+                if interface.displayDownloadsTab {
+                    tab = .downloads
+                }
+            #endif
+        case .discover:
+            if interface.displaySeerrDiscoverTab {
+                pendingStartupTab = .seerrDiscover
+            }
+        case .liveTV:
+            if interface.displayLiveTVTab {
+                pendingStartupTab = .liveTV
+            }
+        }
+    }
+
+    func openPendingStartupTab(_ candidate: Tab) {
+        guard pendingStartupTab == candidate else { return }
+        pendingStartupTab = nil
+        // Too late once the user has started browsing Home or playing something.
+        guard homePath.isEmpty, !isPresentingPlayer else { return }
+        tab = candidate
     }
 
     @Published var isPresentingPlayer = false

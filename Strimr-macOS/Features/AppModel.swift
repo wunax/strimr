@@ -128,14 +128,56 @@ final class AppModel: PlaybackPresenting {
         }
     }
 
-    var selection: SidebarItem = .home
+    var selection: SidebarItem = .home {
+        didSet {
+            if selection != oldValue {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
     var playerPresentation: PlayerPresentation?
     private var paths: [SidebarItem: NavigationPath] = [:]
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
     @ObservationIgnored private let settingsManager: SettingsManager
+    /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
+    /// up, unless the user has picked another item meanwhile.
+    @ObservationIgnored private var pendingStartupSelection: SidebarItem?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
+        applyStartupScreen(settingsManager.interface)
+    }
+
+    private func applyStartupScreen(_ interface: InterfaceSettings) {
+        switch interface.startupScreen {
+        case .home:
+            break
+        case .search:
+            selection = .search
+        case .downloads:
+            selection = .downloads
+        case .libraries:
+            selection = .libraries
+        case .favorites:
+            selection = .favorites
+        case .discover:
+            if interface.displaySeerrDiscoverTab {
+                pendingStartupSelection = .discover
+            }
+        case .liveTV:
+            if interface.displayLiveTVTab {
+                pendingStartupSelection = .liveTV
+            }
+        }
+    }
+
+    func openPendingStartupSelection(_ candidate: SidebarItem) {
+        guard pendingStartupSelection == candidate else { return }
+        pendingStartupSelection = nil
+        // Too late once the user has started browsing Home or playing something.
+        guard paths[.home]?.isEmpty ?? true, playerPresentation == nil else { return }
+        selection = candidate
     }
 
     var externalPlayer: ExternalPlayer? {
