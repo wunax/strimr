@@ -1,0 +1,26 @@
+{
+  "Name": "Example Movie",
+  "ServerId": "server",
+  "Id": "item",
+  "ForcedSortName": "Movie, Example",
+  "OriginalTitle": "Film Exemple",
+  "PremiereDate": "2010-07-16T04:00:00.0000000Z",
+  "ProductionYear": 2010,
+  "OfficialRating": "PG-13",
+  "Overview": "An example summary.",
+  "Taglines": ["An example tagline.", "Another tagline."],
+  "Genres": ["Action", "Science Fiction"],
+  "Tags": ["Favorites"],
+  "ProductionLocations": ["United States of America"],
+  "Studios": [{ "Name": "Example Studio", "Id": "studio-1" }, { "Name": "Second Studio", "Id": "studio-2" }],
+  "People": [
+    { "Name": "Jane Doe", "Id": "person-1", "Type": "Director", "PrimaryImageTag": "tag-1" },
+    { "Name": "John Doe", "Id": "person-2", "Type": "Writer" },
+    { "Name": "Alex Doe", "Id": "person-3", "Role": "Hero", "Type": "Actor" }
+  ],
+  "ProviderIds": { "Tmdb": "1" },
+  "LockedFields": ["Name", "Runtime"],
+  "LockData": false,
+  "Trickplay": { "item": {} },
+  "Type": "Movie"
+}

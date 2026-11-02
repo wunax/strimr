@@ -25,6 +25,8 @@ enum MediaQuickAction: Hashable {
     /// Jellyfin wording of the match search.
     case identify
     case unmatch
+    /// iOS and macOS only: the form needs text editing tvOS handles poorly.
+    case editMetadata
 
     var title: String {
         switch self {
@@ -49,6 +51,7 @@ enum MediaQuickAction: Hashable {
         case .fixMatch: String(localized: "media.manage.fixMatch")
         case .identify: String(localized: "media.manage.identify")
         case .unmatch: String(localized: "media.manage.unmatch")
+        case .editMetadata: String(localized: "media.manage.editMetadata")
         }
     }
 
@@ -73,6 +76,7 @@ enum MediaQuickAction: Hashable {
         case .delete: "trash"
         case .fixMatch, .identify: "magnifyingglass"
         case .unmatch: "link.badge.minus"
+        case .editMetadata: "pencil"
         }
     }
 }
@@ -118,6 +122,8 @@ struct MediaQuickActions {
         /// Plex can also detach an item from its match; it names the search "fix match", Jellyfin "identify".
         var supportsUnmatch = false
         var unmatch: (String) async throws -> Void = { _ in }
+        var metadataFields: (MediaItem) -> [MetadataField] = { _ in [] }
+        var metadataEditor: (MediaItem) -> MetadataEditorViewModel? = { _ in nil }
     }
 
     init(services: MediaServices) {
@@ -130,6 +136,13 @@ struct MediaQuickActions {
         didChange = { services.noteWatchStateChanged() }
         let service = services.management
         let authorization = services.authorization
+        func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
+            let kinds = service.artworkKinds(for: item)
+            guard !kinds.isEmpty else { return nil }
+            return ArtworkPickerViewModel(item: item, kinds: kinds, service: service) {
+                services.noteMediaChanged(itemID: $0)
+            }
+        }
         management = authorization.canManageLibrary || authorization.canDeleteMedia
             ? Management(
                 canManageLibrary: authorization.canManageLibrary,
@@ -139,13 +152,7 @@ struct MediaQuickActions {
                 analyze: { try await service.analyze(itemID: $0) },
                 updateStarted: { services.noteMediaChangeScheduled(itemID: $0) },
                 artworkKinds: { service.artworkKinds(for: $0) },
-                artworkPicker: { item in
-                    let kinds = service.artworkKinds(for: item)
-                    guard !kinds.isEmpty else { return nil }
-                    return ArtworkPickerViewModel(item: item, kinds: kinds, service: service) {
-                        services.noteMediaChanged(itemID: $0)
-                    }
-                },
+                artworkPicker: artworkPicker(for:),
                 deletionImpact: { try await service.deletionImpact(of: $0) },
                 delete: { try await service.delete($0) },
                 deleted: { services.noteMediaDeleted(itemID: $0) },
@@ -158,6 +165,14 @@ struct MediaQuickActions {
                 },
                 supportsUnmatch: service.supportsUnmatch,
                 unmatch: { try await service.unmatch(itemID: $0) },
+                metadataFields: { service.editableMetadataFields(for: $0) },
+                metadataEditor: { item in
+                    MetadataEditorViewModel(
+                        item: item,
+                        service: service,
+                        makeArtworkPicker: service.artworkKinds(for: item).isEmpty ? nil : { artworkPicker(for: item) },
+                    ) { services.noteMediaChanged(itemID: $0) }
+                },
             )
             : nil
     }
@@ -253,6 +268,11 @@ struct MediaQuickActions {
             if !management.artworkKinds(item).isEmpty {
                 actions.append(.editArtwork)
             }
+            #if !os(tvOS)
+                if !management.metadataFields(item).isEmpty {
+                    actions.append(.editMetadata)
+                }
+            #endif
             if Self.canMatch(item) {
                 actions.append(management.supportsUnmatch ? .fixMatch : .identify)
                 // Plex gives unmatched items a `local://` guid.
@@ -269,6 +289,11 @@ struct MediaQuickActions {
 
     static func canMatch(_ item: MediaItem) -> Bool {
         [.movie, .series].contains(item.type)
+    }
+
+    func metadataEditor(for item: MediaItem) -> MetadataEditorViewModel? {
+        guard manageActions(for: item).contains(.editMetadata) else { return nil }
+        return management?.metadataEditor(item)
     }
 
     func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {

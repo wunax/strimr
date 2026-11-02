@@ -83,3 +83,77 @@ nonisolated struct PlexMatchResult: Codable, Equatable {
     /// Absent for some titles.
     let thumb: String?
 }
+
+/// The fields of an item that the metadata editor shows, with the fields locked against refreshes.
+nonisolated struct PlexEditableMetadataResponse: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let librarySectionID: PlexLenient<String>?
+        let metadata: [PlexEditableMetadata]?
+
+        private enum CodingKeys: String, CodingKey {
+            case librarySectionID
+            case metadata = "Metadata"
+        }
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
+
+nonisolated struct PlexEditableMetadata: Codable, Equatable {
+    struct Field: Codable, Equatable {
+        let name: String
+        let locked: PlexLenient<Bool>?
+    }
+
+    let librarySectionID: PlexLenient<String>?
+    let title: String?
+    let titleSort: String?
+    let originalTitle: String?
+    let originallyAvailableAt: String?
+    let contentRating: String?
+    let studio: String?
+    let tagline: String?
+    let summary: String?
+    let genres: [PlexTag]?
+    let labels: [PlexTag]?
+    let directors: [PlexTag]?
+    let writers: [PlexTag]?
+    let countries: [PlexTag]?
+    let fields: [Field]?
+
+    private enum CodingKeys: String, CodingKey {
+        case librarySectionID, title, titleSort, originalTitle, originallyAvailableAt, contentRating, studio, tagline
+        case summary
+        case genres = "Genre"
+        case labels = "Label"
+        case directors = "Director"
+        case writers = "Writer"
+        case countries = "Country"
+        case fields = "Field"
+    }
+}
+
+/// The values of a tag across a library section, such as its genres.
+nonisolated struct PlexTagValuesResponse: Codable, Equatable {
+    struct MediaContainer: Codable, Equatable {
+        let directory: [Directory]?
+
+        private enum CodingKeys: String, CodingKey {
+            case directory = "Directory"
+        }
+    }
+
+    struct Directory: Codable, Equatable {
+        let title: String
+    }
+
+    let mediaContainer: MediaContainer
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaContainer = "MediaContainer"
+    }
+}
