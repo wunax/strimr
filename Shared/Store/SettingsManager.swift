@@ -193,6 +193,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setSubtitleBottomMargin(_ margin: SubtitleBottomMargin) {
+        settings.playback.subtitleBottomMargin = margin
+        persist()
+    }
+
     func setExternalPlayer(_ selection: ExternalPlayerSelection?) {
         settings.playback.externalPlayer = selection
         persist()

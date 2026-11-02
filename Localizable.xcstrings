@@ -22625,6 +22625,94 @@
         }
       }
     },
+    "settings.playback.subtitles.bottomMargin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom margin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marge du bas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "底部边距"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.bottomMargin.automatic" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.bottomMargin.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distance between the subtitles and the bottom of the screen, as a share of its height. Also applies to bitmap subtitles. ASS subtitles keep their own placement."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distance entre les sous-titres et le bas de l’écran, en pourcentage de sa hauteur. S’applique aussi aux sous-titres bitmap. Les sous-titres ASS conservent leur propre placement."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕与屏幕底部的距离，按屏幕高度的百分比计算。同样适用于位图字幕。ASS 字幕保留其原有位置。"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.bottomMargin.percent %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
     "settings.playback.subtitles.brightness" : {
       "localizations" : {
         "en" : {

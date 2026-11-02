@@ -48,6 +48,7 @@ struct PlayerView: View {
     @State private var pinchStartZoomScale: Double?
     @State private var videoZoomFillCrossings = 0
     @State private var videoAreaSize = CGSize.zero
+    @State private var bottomSafeAreaInset: CGFloat = 0
     @State private var layoutMode = PlayerLayoutMode.fullScreen
     @State private var hinge = PlayerHingeState.unavailable
     @State private var isTabletopLocked = false
@@ -443,12 +444,17 @@ struct PlayerView: View {
                 .ignoresSafeArea()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { videoAreaSize = $0 }
 
+            Color.clear
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomSafeAreaInset = $0 }
+                .ignoresSafeArea()
+
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: areControlsShown && !layoutMode.isTabletop ? 120 : 48,
+                controlsInset: areControlsShown && !layoutMode.isTabletop ? 120 : 0,
+                minimumBottomInset: bottomSafeAreaInset,
                 videoSize: playerController.displayVideoSize ?? playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,

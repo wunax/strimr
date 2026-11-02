@@ -391,7 +391,7 @@ struct PlayerView: View {
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: subtitleBottomPadding,
+                controlsInset: subtitleControlsInset,
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
@@ -425,8 +425,8 @@ struct PlayerView: View {
         }
     }
 
-    private var subtitleBottomPadding: CGFloat {
-        guard controlsVisible else { return 48 }
+    private var subtitleControlsInset: CGFloat {
+        guard controlsVisible else { return 0 }
         return isShowingInfoPanel ? 440 : 380
     }
 

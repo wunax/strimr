@@ -20,6 +20,7 @@ final class SettingsViewModel {
     let subtitleBackgroundStrengthOptions = SubtitleBackgroundStrength.allCases
     let subtitleEdgeStyleOptions = SubtitleEdgeStyle.allCases
     let subtitleVerticalPositionOptions = SubtitleVerticalPosition.allCases
+    let subtitleBottomMarginOptions = SubtitleBottomMargin.allCases
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -241,6 +242,17 @@ final class SettingsViewModel {
             get: { self.settingsManager.playback.subtitleVerticalPosition },
             set: { self.settingsManager.setSubtitleVerticalPosition($0) },
         )
+    }
+
+    var subtitleBottomMarginBinding: Binding<SubtitleBottomMargin> {
+        Binding(
+            get: { self.settingsManager.playback.subtitleBottomMargin },
+            set: { self.settingsManager.setSubtitleBottomMargin($0) },
+        )
+    }
+
+    var showsSubtitleBottomMargin: Bool {
+        settingsManager.playback.subtitleVerticalPosition == .bottom
     }
 
     var subtitleEdgeStyleBinding: Binding<SubtitleEdgeStyle> {

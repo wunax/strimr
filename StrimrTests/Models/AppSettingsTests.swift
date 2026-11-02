@@ -182,6 +182,28 @@ struct AppSettingsTests {
         #expect(settings.playback.subtitleTextColor == .cream)
     }
 
+    @Test func `subtitle bottom margin is automatic unless chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.subtitleBottomMargin == .automatic)
+        #expect(try decode(#"{"playback":{"subtitleBottomMargin":"percent8"}}"#).playback
+            .subtitleBottomMargin == .percent8)
+    }
+
+    @Test func `unknown subtitle bottom margin keeps other subtitle settings`() throws {
+        let settings = try decode(#"{"playback":{"subtitleBottomMargin":"huge","subtitleTextColor":"cream"}}"#)
+
+        #expect(settings.playback.subtitleBottomMargin == .automatic)
+        #expect(settings.playback.subtitleTextColor == .cream)
+    }
+
+    @Test func `resetting subtitle appearance restores the automatic bottom margin`() {
+        var playback = PlaybackSettings()
+        playback.subtitleBottomMargin = .percent15
+
+        playback.resetSubtitleAppearance()
+
+        #expect(playback.subtitleBottomMargin == .automatic)
+    }
+
     @Test func `resetting subtitle appearance restores full brightness`() {
         var playback = PlaybackSettings()
         playback.subtitleBrightness = .low

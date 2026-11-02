@@ -92,4 +92,55 @@ struct SubtitleGeometryTests {
             CGRect(x: -100, y: 300, width: 1200, height: 40),
         ])
     }
+
+    @Test func `text keeps the default inset unless a margin is chosen`() {
+        #expect(SubtitleGeometry.textBottomInset(margin: .automatic, screenHeight: 500, controlsInset: 0) == 48)
+        #expect(SubtitleGeometry.textBottomInset(margin: .automatic, screenHeight: 500, controlsInset: 120) == 120)
+        #expect(SubtitleGeometry.textBottomInset(margin: .percent10, screenHeight: 500, controlsInset: 0) == 50)
+        #expect(SubtitleGeometry.textBottomInset(margin: .percent0, screenHeight: 500, controlsInset: 0) == 0)
+    }
+
+    @Test func `a chosen margin stays above the controls and the safe area`() {
+        #expect(SubtitleGeometry.textBottomInset(margin: .percent10, screenHeight: 500, controlsInset: 120) == 120)
+        #expect(SubtitleGeometry.textBottomInset(margin: .percent20, screenHeight: 500, controlsInset: 60) == 100)
+        #expect(SubtitleGeometry.textBottomInset(
+            margin: .percent0,
+            screenHeight: 500,
+            controlsInset: 0,
+            minimumInset: 21,
+        ) == 21)
+    }
+
+    @Test func `the default margin does not move bitmap subtitles`() {
+        #expect(SubtitleGeometry.chosenBottomInset(margin: .automatic, screenHeight: 500, controlsInset: 120) == nil)
+    }
+
+    @Test func `lower bitmap subtitles move together to the chosen inset`() {
+        let frames = [
+            CGRect(x: 300, y: 400, width: 400, height: 40),
+            CGRect(x: 320, y: 450, width: 360, height: 40),
+        ]
+
+        #expect(SubtitleGeometry.placingLowerFrames(frames, bottomInset: 50, in: bounds) == [
+            CGRect(x: 300, y: 360, width: 400, height: 40),
+            CGRect(x: 320, y: 410, width: 360, height: 40),
+        ])
+        #expect(SubtitleGeometry.placingLowerFrames(frames, bottomInset: 0, in: bounds) == [
+            CGRect(x: 300, y: 410, width: 400, height: 40),
+            CGRect(x: 320, y: 460, width: 360, height: 40),
+        ])
+    }
+
+    @Test func `upper bitmap subtitles keep their placement`() {
+        let frames = [
+            CGRect(x: 300, y: 20, width: 400, height: 40),
+            CGRect(x: 300, y: 450, width: 400, height: 40),
+        ]
+
+        #expect(SubtitleGeometry.placingLowerFrames(frames, bottomInset: 50, in: bounds) == [
+            CGRect(x: 300, y: 20, width: 400, height: 40),
+            CGRect(x: 300, y: 410, width: 400, height: 40),
+        ])
+        #expect(SubtitleGeometry.placingLowerFrames([frames[0]], bottomInset: 50, in: bounds) == [frames[0]])
+    }
 }
