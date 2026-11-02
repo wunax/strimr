@@ -40,6 +40,8 @@ struct PosterGrid<Content: View>: View {
         ) {
             content(layout.cardWidth)
         }
+        // Lets a scroll view report which cards are visible.
+        .scrollTargetLayout()
         .frame(maxWidth: .infinity, alignment: .leading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
     }

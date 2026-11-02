@@ -94,6 +94,7 @@
 				Features/Downloads/DownloadOptionsView.swift,
 				Features/Downloads/DownloadRowViews.swift,
 				Features/Home/HomeView.swift,
+				Features/Library/LibraryBrowseView.swift,
 				Features/Library/LibraryBrowseViewModel.swift,
 				Features/Library/LibraryCollectionsViewModel.swift,
 				Features/Library/LibraryView.swift,

@@ -4,13 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class LibraryBrowseViewModel {
-    struct SectionCharacter: Identifiable, Hashable {
-        let id: String
-        let title: String
-        let size: Int
-        let startIndex: Int
-    }
-
     private struct FolderBreadcrumb: Identifiable, Equatable {
         let id: String
         let title: String
@@ -20,7 +13,7 @@ final class LibraryBrowseViewModel {
     let library: Library
     var itemsByIndex: [Int: LibraryBrowseItem] = [:]
     var totalItemCount = 0
-    var sectionCharacters: [SectionCharacter] = []
+    var sectionIndex: LibrarySectionIndex?
     var isLoading = false
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
@@ -102,7 +95,7 @@ final class LibraryBrowseViewModel {
     }
 
     var showsCharacterColumn: Bool {
-        folderTree == nil && supportsSectionCharacters && !sectionCharacters.isEmpty
+        folderTree == nil && supportsSectionCharacters && sectionIndex?.isUsable == true
     }
 
     var canShowFolderTree: Bool {
@@ -178,26 +171,9 @@ final class LibraryBrowseViewModel {
         }
         itemsByIndex = shifted
         totalItemCount = max(totalItemCount - removed.count, 0)
-        sectionCharacters = Self.sections(sectionCharacters, removingIndexes: removed)
+        sectionIndex = sectionIndex?.removingIndexes(removed)
         // Every page past a removal now starts one item later on the server, so pages load again when shown.
         loadedPageStarts.removeAll()
-    }
-
-    /// Removed indexes are those before the shift; sections left empty are dropped.
-    static func sections(_ sections: [SectionCharacter], removingIndexes removed: [Int]) -> [SectionCharacter] {
-        var runningIndex = 0
-        return sections.compactMap { section in
-            let end = section.startIndex + section.size
-            let size = section.size - removed.count(where: { $0 >= section.startIndex && $0 < end })
-            guard size > 0 else { return nil }
-            defer { runningIndex += size }
-            return SectionCharacter(
-                id: "\(section.title)-\(runningIndex)",
-                title: section.title,
-                size: size,
-                startIndex: runningIndex,
-            )
-        }
     }
 
     func refresh() async {
@@ -286,7 +262,7 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetchCharactersIfNeeded() async {
-        guard let advancedService, sectionCharacters.isEmpty, supportsSectionCharacters,
+        guard let advancedService, sectionIndex == nil, supportsSectionCharacters,
               let browsePath = library.plexBrowsePath else { return }
         do {
             let endpoint = resolvedEndpoint(browsePath: browsePath)
@@ -302,26 +278,9 @@ final class LibraryBrowseViewModel {
                 path: firstCharacterEndpoint.path,
                 queryItems: queryItems,
             )
-            var runningIndex = 0
-            var characters: [SectionCharacter] = []
-
-            for value in values {
-                let size = value.size
-                let title = value.title
-                let identifier = "\(title)-\(runningIndex)"
-                characters.append(
-                    SectionCharacter(
-                        id: identifier,
-                        title: title,
-                        size: size,
-                        startIndex: runningIndex,
-                    ),
-                )
-                runningIndex += size
-            }
-
-            sectionCharacters = characters
-            totalItemCount = max(totalItemCount, runningIndex)
+            let index = LibrarySectionIndex(characters: values)
+            sectionIndex = index
+            totalItemCount = max(totalItemCount, index.sections.reduce(0) { $0 + $1.size })
         } catch {
             if itemsByIndex.isEmpty {
                 errorMessage = error.localizedDescription
@@ -463,7 +422,8 @@ final class LibraryBrowseViewModel {
 
     private var supportsSectionCharacters: Bool {
         // The shared view answers with no characters.
-        guard advancedService != nil, !library.isShared, let browsePath = library.plexBrowsePath else { return false }
+        guard advancedService != nil, !library.isShared, controls.isPlexTitleSort,
+              let browsePath = library.plexBrowsePath else { return false }
         let endpoint = resolvedEndpoint(browsePath: browsePath)
         return firstCharacterEndpoint(from: endpoint) != nil
     }
@@ -471,7 +431,7 @@ final class LibraryBrowseViewModel {
     private func resetState(error: String? = nil) {
         itemsByIndex = [:]
         totalItemCount = 0
-        sectionCharacters = []
+        sectionIndex = nil
         errorMessage = error
         isLoading = false
         loadedPageStarts = []

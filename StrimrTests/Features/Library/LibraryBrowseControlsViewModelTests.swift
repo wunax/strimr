@@ -141,6 +141,31 @@ struct LibraryBrowseControlsViewModelTests {
         #expect(!makeControls(restoring: nil).isFolderDisplayType)
     }
 
+    @Test func `no sort counts as the title sort`() {
+        #expect(makeControls(restoring: nil).isPlexTitleSort)
+        #expect(makeControls(restoring: PlexSelection()).isPlexTitleSort)
+    }
+
+    @Test func `pending sort decides the title sort before meta`() {
+        let byDate = makeControls(restoring: PlexSelection(sortKey: "addedAt", sortQueryValue: "addedAt:desc"))
+        let byTitle = makeControls(restoring: PlexSelection(sortKey: "titleSort", sortQueryValue: "titleSort:desc"))
+
+        #expect(!byDate.isPlexTitleSort)
+        #expect(byTitle.isPlexTitleSort)
+    }
+
+    @Test func `selected sort decides the title sort after meta`() throws {
+        let controls = makeControls(restoring: PlexSelection(
+            sortKey: "addedAt",
+            sortDirection: .desc,
+            sortQueryValue: "addedAt:desc",
+        ))
+
+        _ = try controls.applyMeta(meta())
+
+        #expect(!controls.isPlexTitleSort)
+    }
+
     private func makeControls(restoring selection: PlexSelection?) -> LibraryBrowseControlsViewModel {
         LibraryBrowseControlsViewModel(advancedService: nil, pendingRestore: selection)
     }
