@@ -123,17 +123,12 @@ struct LibraryBrowseFiltersView: View {
 
     @ViewBuilder
     private var jellyfinRows: some View {
-        Picker(
-            LibraryBrowseControlsViewModel.JellyfinFilter.watchStatus.title,
-            selection: Binding(
-                get: { viewModel.jellyfinWatchStatus },
-                set: { viewModel.setJellyfinWatchStatus($0) },
-            ),
-        ) {
-            Text("library.browse.filters.all").tag(LibraryBrowseWatchStatus.all)
-            Text("library.browse.filters.unplayed").tag(LibraryBrowseWatchStatus.unplayed)
-            Text("library.browse.filters.played").tag(LibraryBrowseWatchStatus.played)
-        }
+        #if os(tvOS)
+            // A form picker opens an empty page in the tvOS panel, so the choices get the same list as the others.
+            jellyfinOptionsLink(.watchStatus)
+        #else
+            watchStatusPicker
+        #endif
 
         ForEach([LibraryBrowseControlsViewModel.JellyfinFilter.inProgress, .favorites]) { filter in
             Toggle(
@@ -146,15 +141,38 @@ struct LibraryBrowseFiltersView: View {
         }
 
         ForEach([LibraryBrowseControlsViewModel.JellyfinFilter.genres, .years]) { filter in
-            NavigationLink {
-                JellyfinFilterOptionsView(viewModel: viewModel, filter: filter)
-            } label: {
-                LabeledContent(filter.title, value: jellyfinSelectionSummary(filter))
-            }
+            jellyfinOptionsLink(filter)
+        }
+    }
+
+    private func jellyfinOptionsLink(_ filter: LibraryBrowseControlsViewModel.JellyfinFilter) -> some View {
+        NavigationLink {
+            JellyfinFilterOptionsView(viewModel: viewModel, filter: filter)
+        } label: {
+            LabeledContent(filter.title, value: jellyfinSelectionSummary(filter))
+        }
+    }
+
+    private var watchStatusPicker: some View {
+        Picker(
+            LibraryBrowseControlsViewModel.JellyfinFilter.watchStatus.title,
+            selection: Binding(
+                get: { viewModel.jellyfinWatchStatus },
+                set: { viewModel.setJellyfinWatchStatus($0) },
+            ),
+        ) {
+            Text("library.browse.filters.all").tag(LibraryBrowseWatchStatus.all)
+            Text("library.browse.filters.unplayed").tag(LibraryBrowseWatchStatus.unplayed)
+            Text("library.browse.filters.played").tag(LibraryBrowseWatchStatus.played)
         }
     }
 
     private func jellyfinSelectionSummary(_ filter: LibraryBrowseControlsViewModel.JellyfinFilter) -> String {
+        if filter == .watchStatus {
+            return viewModel.jellyfinOptions(for: filter)
+                .first { $0.id == viewModel.jellyfinWatchStatus.rawValue }?.title
+                ?? String(localized: "library.browse.filters.all")
+        }
         let count = viewModel.jellyfinSelectionCount(filter)
         return count == 0 ? String(localized: "library.browse.filters.all") : String(count)
     }
@@ -198,21 +216,20 @@ private struct PlexFilterOptionsView: View {
 }
 
 private struct JellyfinFilterOptionsView: View {
+    @Environment(\.dismiss) private var dismiss
     let viewModel: LibraryBrowseControlsViewModel
     let filter: LibraryBrowseControlsViewModel.JellyfinFilter
     @State private var searchText = ""
 
     var body: some View {
         FilterOptionsContent(
-            isLoading: viewModel.isLoadingJellyfinFilterOptions
-                ||
-                (viewModel.jellyfinFilterOptions == LibraryBrowseFilterOptions() && viewModel
-                    .jellyfinFilterOptionsError == nil),
-            errorMessage: viewModel.jellyfinFilterOptionsError,
+            isLoading: filter.supportsMultiple && isLoadingOptions,
+            errorMessage: filter.supportsMultiple ? viewModel.jellyfinFilterOptionsError : nil,
             isEmpty: viewModel.jellyfinOptions(for: filter).isEmpty,
         ) {
             List {
-                if searchText.isEmpty {
+                // Single choices already list their own "All".
+                if filter.supportsMultiple, searchText.isEmpty {
                     FilterOptionRow(
                         title: String(localized: "library.browse.filters.all"),
                         isSelected: !viewModel.jellyfinFilterIsSelected(filter),
@@ -226,20 +243,51 @@ private struct JellyfinFilterOptionsView: View {
                         isSelected: viewModel.jellyfinOptionIsSelected(option, for: filter),
                     ) {
                         viewModel.selectJellyfinOption(option, for: filter)
+                        if !filter.supportsMultiple {
+                            dismiss()
+                        }
                     }
                 }
             }
             .focusRoom()
-            .searchable(text: $searchText, prompt: Text("library.browse.filters.search"))
+            .modifier(OptionsSearch(isEnabled: filter.supportsMultiple, text: $searchText))
         }
         .navigationTitle(Text(verbatim: filter.title))
-        .task { await viewModel.loadJellyfinFilterOptionsIfNeeded() }
+        .task {
+            if filter.supportsMultiple {
+                await viewModel.loadJellyfinFilterOptionsIfNeeded()
+            }
+        }
+    }
+
+    private var isLoadingOptions: Bool {
+        viewModel.isLoadingJellyfinFilterOptions
+            || (viewModel.jellyfinFilterOptions == LibraryBrowseFilterOptions()
+                && viewModel.jellyfinFilterOptionsError == nil)
     }
 
     private var filteredOptions: [LibraryBrowseValueOption] {
         let options = viewModel.jellyfinOptions(for: filter)
         guard !searchText.isEmpty else { return options }
         return options.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+}
+
+/// Not on tvOS, where the search field brings a full-width keyboard that does not fit the side panel.
+private struct OptionsSearch: ViewModifier {
+    let isEnabled: Bool
+    @Binding var text: String
+
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+            content
+        #else
+            if isEnabled {
+                content.searchable(text: $text, prompt: Text("library.browse.filters.search"))
+            } else {
+                content
+            }
+        #endif
     }
 }
 
