@@ -16,7 +16,7 @@ enum SubtitleGeometry {
             screenHeight: screenHeight,
             controlsInset: controlsInset,
             minimumInset: minimumInset,
-        ) ?? max(defaultTextBottomInset, controlsInset)
+        ) ?? max(defaultTextBottomInset, controlsInset, minimumInset)
     }
 
     /// Bottom inset of a margin the user picked, or nil when bitmap subtitles keep the track's placement.

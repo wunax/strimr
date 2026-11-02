@@ -98,6 +98,12 @@ struct SubtitleGeometryTests {
         #expect(SubtitleGeometry.textBottomInset(margin: .automatic, screenHeight: 500, controlsInset: 120) == 120)
         #expect(SubtitleGeometry.textBottomInset(margin: .percent10, screenHeight: 500, controlsInset: 0) == 50)
         #expect(SubtitleGeometry.textBottomInset(margin: .percent0, screenHeight: 500, controlsInset: 0) == 0)
+        #expect(SubtitleGeometry.textBottomInset(
+            margin: .automatic,
+            screenHeight: 500,
+            controlsInset: 0,
+            minimumInset: 80,
+        ) == 80)
     }
 
     @Test func `a chosen margin stays above the controls and the safe area`() {
