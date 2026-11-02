@@ -61,6 +61,10 @@ final class SeerrMediaDetailViewModel {
         media.trailerURL(youtubeBaseURL: store.settings?.youtubeUrl, serverURL: baseURL)
     }
 
+    var youtubeAppTrailerURL: URL? {
+        media.youtubeAppTrailerURL
+    }
+
     var genres: [String] {
         media.genreNames
     }
