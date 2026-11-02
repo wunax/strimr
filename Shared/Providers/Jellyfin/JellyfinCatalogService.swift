@@ -151,30 +151,32 @@ struct JellyfinCatalogService {
             seriesDates[seriesID] = max(seriesDates[seriesID] ?? date, date)
         }
 
-        var entries: [(item: JellyfinItem, date: Date?)] = []
+        var entries: [(item: JellyfinItem, date: Date?, nextUpRank: Int)] = []
         var entryIndexBySeries: [String: Int] = [:]
         for item in resume {
             if let seriesID = item.seriesID {
                 guard entryIndexBySeries[seriesID] == nil else { continue }
                 entryIndexBySeries[seriesID] = entries.count
             }
-            entries.append((item, item.seriesID.flatMap { seriesDates[$0] } ?? item.userData?.lastPlayedDate))
+            let date = item.seriesID.flatMap { seriesDates[$0] } ?? item.userData?.lastPlayedDate
+            entries.append((item, date, .max))
         }
         // Series too old to be among the played episodes keep Next Up's own order, taking the date of the series
         // before them, or of the first dated one when they lead.
         var previousNextUpDate = nextUp.lazy.compactMap { $0.seriesID.flatMap { seriesDates[$0] } }.first
-        for item in nextUp {
+        for (rank, item) in nextUp.enumerated() {
             guard let seriesID = item.seriesID else { continue }
             if let index = entryIndexBySeries[seriesID] {
                 if let episode = continueEpisode(nextUp: item, resumable: entries[index].item) {
                     entries[index].item = episode
                 }
+                entries[index].nextUpRank = rank
                 previousNextUpDate = entries[index].date ?? previousNextUpDate
                 continue
             }
             let date = seriesDates[seriesID] ?? previousNextUpDate
             entryIndexBySeries[seriesID] = entries.count
-            entries.append((item, date))
+            entries.append((item, date, rank))
             previousNextUpDate = date
         }
 
@@ -187,7 +189,8 @@ struct JellyfinCatalogService {
             case (nil, _?):
                 false
             default:
-                lhs.offset < rhs.offset
+                // A series that took the date of another one is at least as recent: Next Up decides between them.
+                (lhs.element.nextUpRank, lhs.offset) < (rhs.element.nextUpRank, rhs.offset)
             }
         }.map(\.element.item)
     }

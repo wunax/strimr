@@ -43,7 +43,7 @@ struct JellyfinContinueWatchingTests {
             playedEpisodes: [],
         )
 
-        #expect(items.map(\.id) == ["movie-1", "series-a-s1e3", "series-b-s2e1", "series-c-s1e5"])
+        #expect(items.map(\.id) == ["movie-1", "series-b-s2e1", "series-a-s1e3", "series-c-s1e5"])
     }
 
     @Test func `a series missing from the played episodes keeps next up's order`() {
