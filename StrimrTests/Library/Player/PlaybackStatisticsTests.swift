@@ -127,6 +127,32 @@ struct PlaybackStatisticsTests {
             == String(localized: "player.statistics.unit.seconds \("12.3")"))
     }
 
+    @Test func `hides software buffer that only covers decoded frames`() {
+        var source = hevcSource()
+        source.bufferedAhead = 0.2
+        source.telemetry = telemetry(forwardBufferSeconds: nil, displayCushionSeconds: 0.2)
+        #expect(PlaybackStatistics(source, locale: locale).value(for: .buffer) == nil)
+
+        source.bufferedAhead = 38
+        #expect(PlaybackStatistics(source, locale: locale).value(for: .buffer)
+            == String(localized: "player.statistics.unit.seconds \("38.0")"))
+    }
+
+    @Test func `balances sections across columns`() {
+        let rows = { (count: Int) in (0 ..< count).map { _ in PlaybackStatistics.Row(field: .codec, value: "") } }
+        let statistics = PlaybackStatistics(sections: [
+            .init(kind: .playback, rows: rows(3)),
+            .init(kind: .video, rows: rows(8)),
+            .init(kind: .audio, rows: rows(6)),
+            .init(kind: .subtitles, rows: rows(2)),
+            .init(kind: .network, rows: rows(5)),
+        ])
+
+        #expect(statistics.columns(1).map { $0.map(\.kind) } == [[.playback, .video, .audio, .subtitles, .network]])
+        #expect(statistics.columns(2).map { $0.map(\.kind) } == [[.playback, .video], [.audio, .subtitles, .network]])
+        #expect(statistics.columns(3).map { $0.map(\.kind) } == [[.playback, .video], [.audio], [.subtitles, .network]])
+    }
+
     @Test func `formats live telemetry`() {
         var source = hevcSource()
         source.telemetry = telemetry(forwardBufferSeconds: nil)
@@ -191,7 +217,7 @@ struct PlaybackStatisticsTests {
         )
     }
 
-    private func telemetry(forwardBufferSeconds: Double?) -> LiveTelemetry {
+    private func telemetry(forwardBufferSeconds: Double?, displayCushionSeconds: Double? = nil) -> LiveTelemetry {
         LiveTelemetry(
             instantBitrateMbps: 24.5,
             averageBitrateMbps: 8.25,
@@ -199,6 +225,7 @@ struct PlaybackStatisticsTests {
             observedFps: 23.9,
             droppedFrameCount: 3,
             forwardBufferSeconds: forwardBufferSeconds,
+            displayCushionSeconds: displayCushionSeconds,
             cachedBytes: nil,
             networkThroughputMbps: nil,
             networkTransferredBytes: nil,

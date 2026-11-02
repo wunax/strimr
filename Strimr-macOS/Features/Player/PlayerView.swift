@@ -162,6 +162,7 @@ struct PlayerView: View {
             if showsPlaybackStatistics {
                 PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
                     .padding(.top, controlsVisible ? 76 : 20)
+                    .padding(.bottom, 12)
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)

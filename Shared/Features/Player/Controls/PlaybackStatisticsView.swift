@@ -15,12 +15,44 @@ struct PlaybackStatisticsOverlay: View {
     }
 }
 
+/// Takes the fewest columns that fit the height it is offered, so it never runs off a short screen.
 struct PlaybackStatisticsPanel: View {
     let statistics: PlaybackStatistics
 
     var body: some View {
-        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Metrics.columnSpacing, verticalSpacing: 3) {
-            ForEach(Array(statistics.sections.enumerated()), id: \.element.id) { index, section in
+        ViewThatFits(in: .vertical) {
+            #if os(tvOS)
+                // A single column covers most of a TV picture; two keep the lower half clear.
+                panel(columns: 2)
+                panel(columns: 3)
+            #else
+                panel(columns: 1)
+                panel(columns: 2)
+                panel(columns: 3)
+            #endif
+        }
+    }
+
+    private func panel(columns count: Int) -> some View {
+        let columns = statistics.columns(count)
+        return HStack(alignment: .top, spacing: Metrics.columnGap) {
+            ForEach(Array(columns.enumerated()), id: \.offset) { _, sections in
+                column(sections)
+                    .frame(maxWidth: Metrics.columnWidth, alignment: .leading)
+            }
+        }
+        .font(.cardMetadata)
+        .lineLimit(2)
+        .padding(Metrics.padding)
+        .videoOverlayGlass(
+            in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
+        )
+        .accessibilityElement(children: .contain)
+    }
+
+    private func column(_ sections: [PlaybackStatistics.Section]) -> some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Metrics.labelGap, verticalSpacing: 3) {
+            ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
                 GridRow {
                     Text(section.kind.title)
                         .eyebrowStyle()
@@ -41,27 +73,21 @@ struct PlaybackStatisticsPanel: View {
                 }
             }
         }
-        .font(.cardMetadata)
-        .lineLimit(2)
-        .padding(Metrics.padding)
-        .frame(maxWidth: Metrics.maxWidth, alignment: .leading)
-        .videoOverlayGlass(
-            in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
-        )
-        .accessibilityElement(children: .contain)
     }
 
     private enum Metrics {
         #if os(tvOS)
             static let padding: CGFloat = 28
-            static let columnSpacing: CGFloat = 20
+            static let labelGap: CGFloat = 20
+            static let columnGap: CGFloat = 40
             static let sectionSpacing: CGFloat = 12
-            static let maxWidth: CGFloat = 760
+            static let columnWidth: CGFloat = 640
         #else
             static let padding: CGFloat = 14
-            static let columnSpacing: CGFloat = 12
+            static let labelGap: CGFloat = 12
+            static let columnGap: CGFloat = 24
             static let sectionSpacing: CGFloat = 8
-            static let maxWidth: CGFloat = 420
+            static let columnWidth: CGFloat = 400
         #endif
     }
 }

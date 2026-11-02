@@ -533,6 +533,7 @@ struct PlayerView: View {
             if showsPlaybackStatistics, !isShowingInfoPanel {
                 PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
                     .padding(.top, areControlsShown ? 84 : 12)
+                    .padding(.bottom, 12)
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: areControlsShown)

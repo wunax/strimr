@@ -137,6 +137,31 @@ struct PlaybackStatistics: Equatable {
     func value(for field: Field) -> String? {
         sections.lazy.flatMap(\.rows).first { $0.field == field }?.value
     }
+
+    /// Splits the sections, in order, into at most `count` columns whose tallest one is as short as possible.
+    func columns(_ count: Int) -> [[Section]] {
+        guard count > 1, sections.count > 1 else { return [sections] }
+        let weights = sections.map { $0.rows.count + 1 }
+
+        func split(from start: Int, into parts: Int) -> (height: Int, cuts: [Int]) {
+            let remaining = weights[start...].reduce(0, +)
+            guard parts > 1, sections.count - start > 1 else { return (remaining, []) }
+            var best = (height: remaining, cuts: [Int]())
+            var height = 0
+            for end in (start + 1) ..< sections.count {
+                height += weights[end - 1]
+                let rest = split(from: end, into: parts - 1)
+                let candidate = max(height, rest.height)
+                if candidate < best.height {
+                    best = (candidate, [end] + rest.cuts)
+                }
+            }
+            return best
+        }
+
+        let bounds = [0] + split(from: 0, into: count).cuts + [sections.count]
+        return zip(bounds, bounds.dropFirst()).map { Array(sections[$0 ..< $1]) }
+    }
 }
 
 extension PlaybackStatistics {
@@ -298,7 +323,7 @@ extension PlaybackStatistics {
         }
 
         // The software path leaves the native loaded-range metric nil; the engine's buffered position covers it.
-        if let buffer = telemetry?.forwardBufferSeconds ?? source.bufferedAhead {
+        if let buffer = telemetry?.forwardBufferSeconds ?? packetBufferAhead(source) {
             rows.append(Row(field: .buffer, value: formatter.seconds(max(0, buffer))))
         }
 
@@ -314,6 +339,16 @@ extension PlaybackStatistics {
             rows.append(Row(field: .cache, value: formatter.bytes(cached)))
         }
         return rows
+    }
+
+    /// The engine's buffered position on the software path falls back to the decoded frame cushion whenever
+    /// its packet coverage has a hole, which is a fraction of a second and says nothing about the read-ahead.
+    private static func packetBufferAhead(_ source: PlaybackStatisticsSource) -> Double? {
+        guard let ahead = source.bufferedAhead else { return nil }
+        guard source.videoRoute == .software, let cushion = source.telemetry?.displayCushionSeconds else {
+            return ahead
+        }
+        return ahead > cushion + 0.1 ? ahead : nil
     }
 
     private static func routeLabel(_ route: VideoRoute) -> String? {
