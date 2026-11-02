@@ -465,6 +465,8 @@ final class LibraryBrowseViewModel {
             return true
         } catch {
             guard !error.isCancellation, generation == scrollResetID else { return false }
+            // Offline with nothing cached: the empty state explains the unreachable server better than an error.
+            guard !(error is MediaUnavailableOffline) else { return false }
             errorMessage = error.localizedDescription
             return false
         }
@@ -494,7 +496,8 @@ final class LibraryBrowseViewModel {
             store(page.items.map(LibraryBrowseItem.media), at: start, reportedTotal: page.totalCount)
             return true
         } catch {
-            guard !error.isCancellation, generation == scrollResetID else { return false }
+            guard !error.isCancellation, generation == scrollResetID,
+                  !(error is MediaUnavailableOffline) else { return false }
             ErrorReporter.capture(error)
             errorMessage = error.localizedDescription
             return false
