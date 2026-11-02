@@ -146,6 +146,144 @@ final class PlexManagementService: MediaManagementService {
         return scheme.components(separatedBy: ".").last
     }
 
+    func editableMetadataFields(for item: MediaItem) -> [MetadataField] {
+        Self.metadataType(for: item.type) == nil ? [] : MetadataField.editableFields(for: item.type)
+    }
+
+    func loadMetadataDraft(for item: MediaItem) async throws -> MetadataDraft {
+        let response = try await LibraryManagementRepository(context: context).editableMetadata(ratingKey: item.id)
+        guard let metadata = response.mediaContainer.metadata?.first,
+              let sectionID = metadata.librarySectionID?.value ?? response.mediaContainer.librarySectionID?.value
+              ?? item.librarySectionID,
+              let type = Self.metadataType(for: item.type)
+        else { throw PlexAPIError.invalidResponse }
+        return Self.metadataDraft(
+            from: metadata,
+            fields: MetadataField.editableFields(for: item.type),
+            sectionID: sectionID,
+            type: type,
+        )
+    }
+
+    func saveMetadata(_ draft: MetadataDraft, original: MetadataDraft, for item: MediaItem) async throws {
+        guard case let .plex(sectionID, type) = draft.payload else { return }
+        let repository = try LibraryManagementRepository(context: context)
+        for queryItems in Self.metadataUpdates(draft, original: original, itemID: item.id, type: type) {
+            try await repository.updateMetadata(sectionID: sectionID, queryItems: queryItems)
+        }
+    }
+
+    func metadataSuggestions(for field: MetadataField, item: MediaItem) async throws -> [String] {
+        guard [.genres, .labels].contains(field), let tag = Self.metadataKey(for: field),
+              let sectionID = item.librarySectionID
+        else { return [] }
+        let response = try await LibraryManagementRepository(context: context)
+            .tagValues(sectionID: sectionID, tag: tag)
+        return (response.mediaContainer.directory ?? []).map(\.title)
+    }
+
+    static func metadataType(for type: MediaKind) -> Int? {
+        switch type {
+        case .movie: 1
+        case .series: 2
+        case .episode: 4
+        default: nil
+        }
+    }
+
+    static func metadataKey(for field: MetadataField) -> String? {
+        switch field {
+        case .title: "title"
+        case .sortTitle: "titleSort"
+        case .originalTitle: "originalTitle"
+        case .releaseDate: "originallyAvailableAt"
+        case .contentRating: "contentRating"
+        case .studio: "studio"
+        case .tagline: "tagline"
+        case .summary: "summary"
+        case .genres: "genre"
+        case .labels: "label"
+        case .directors: "director"
+        case .writers: "writer"
+        case .countries: "country"
+        }
+    }
+
+    static func metadataDraft(
+        from metadata: PlexEditableMetadata,
+        fields: [MetadataField],
+        sectionID: String,
+        type: Int,
+    ) -> MetadataDraft {
+        let lockedKeys = Set((metadata.fields ?? []).filter { $0.locked?.value == true }.map(\.name))
+        let values: [MetadataField: String] = [
+            .title: metadata.title,
+            .sortTitle: metadata.titleSort,
+            .originalTitle: metadata.originalTitle,
+            .releaseDate: metadata.originallyAvailableAt.map { String($0.prefix(10)) },
+            .contentRating: metadata.contentRating,
+            .studio: metadata.studio,
+            .tagline: metadata.tagline,
+            .summary: metadata.summary,
+        ].compactMapValues(\.self)
+        let lists: [MetadataField: [String]] = [
+            .genres: metadata.genres,
+            .labels: metadata.labels,
+            .directors: metadata.directors,
+            .writers: metadata.writers,
+            .countries: metadata.countries,
+        ].compactMapValues { $0?.map(\.tag) }
+        return MetadataDraft(
+            fields: fields,
+            values: values,
+            lists: lists,
+            lockedFields: Set(fields.filter { metadataKey(for: $0).map(lockedKeys.contains) == true }),
+            lockableFields: Set(fields),
+            payload: .plex(sectionID: sectionID, type: type),
+        )
+    }
+
+    /// The edit requests, usually one. `tag.tag-` removes a comma-separated list with no escape, so a removed tag
+    /// containing a comma gets a request of its own; each request restates the kept tags, so the order is irrelevant.
+    static func metadataUpdates(
+        _ draft: MetadataDraft,
+        original: MetadataDraft,
+        itemID: String,
+        type: Int,
+    ) -> [[URLQueryItem]] {
+        let base = [URLQueryItem(name: "type", value: String(type)), URLQueryItem(name: "id", value: itemID)]
+        var main = base
+        var separateRemovals: [[URLQueryItem]] = []
+        func lock(_ key: String, _ field: MetadataField) -> URLQueryItem {
+            URLQueryItem(name: "\(key).locked", value: draft.isLocked(field) ? "1" : "0")
+        }
+        for field in draft.changedFields(from: original) {
+            guard let key = metadataKey(for: field) else { continue }
+            guard field.isList else {
+                main += [URLQueryItem(name: "\(key).value", value: draft.value(field)), lock(key, field)]
+                continue
+            }
+            let current = draft.list(field)
+            let kept = current.enumerated()
+                .map { URLQueryItem(name: "\(key)[\($0.offset)].tag.tag", value: $0.element) }
+            let removed = original.list(field).filter { !current.contains($0) }
+            main += kept
+            if removed.contains(where: { $0.contains(",") }) {
+                separateRemovals += removed.map {
+                    base + kept + [URLQueryItem(name: "\(key)[].tag.tag-", value: $0), lock(key, field)]
+                }
+            } else if !removed.isEmpty {
+                main.append(URLQueryItem(name: "\(key)[].tag.tag-", value: removed.joined(separator: ",")))
+            }
+            main.append(lock(key, field))
+        }
+        for field in draft.lockChangedFields(from: original) {
+            guard let key = metadataKey(for: field) else { continue }
+            main.append(lock(key, field))
+        }
+        return [main] + separateRemovals
+    }
+
     /// An episode has a single 16:9 image, which Plex stores as its poster.
     static func artworkKinds(for type: MediaKind) -> [EditableArtworkKind] {
         switch type {

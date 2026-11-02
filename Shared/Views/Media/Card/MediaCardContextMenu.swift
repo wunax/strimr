@@ -77,7 +77,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 .mediaManagePresentation(
                     manageController,
                     quickActions: MediaQuickActions(services: services),
-                    onArtworkChanged: { reload?(item) },
+                    onEdited: { reload?(item) },
                     onDeleted: { reload?(item) },
                 ) {
                     reloadAfterServerUpdate(item)
@@ -244,7 +244,7 @@ private struct MediaCardContextMenu: ViewModifier {
             run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
                 await quickActions.removeFromContinueWatching(item)
             }
-        case .manage, .refreshMetadata, .analyze, .editArtwork, .fixMatch, .identify, .unmatch, .delete:
+        case .manage, .refreshMetadata, .analyze, .editArtwork, .editMetadata, .fixMatch, .identify, .unmatch, .delete:
             break
         }
     }

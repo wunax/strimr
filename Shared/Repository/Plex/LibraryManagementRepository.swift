@@ -102,7 +102,26 @@ final class LibraryManagementRepository {
         )
     }
 
+    func editableMetadata(ratingKey: String) async throws -> PlexEditableMetadataResponse {
+        try await network.request(path: "/library/metadata/\(ratingKey)")
+    }
+
+    /// `queryItems` name the item and the changed fields, see `PlexManagementService.metadataUpdates`.
+    func updateMetadata(sectionID: String, queryItems: [URLQueryItem]) async throws {
+        try await network.send(
+            path: "/library/sections/\(sectionID)/all",
+            queryItems: queryItems,
+            method: "PUT",
+            encodesPlusSign: true,
+        )
+    }
+
     func unmatch(ratingKey: String) async throws {
         try await network.send(path: "/library/metadata/\(ratingKey)/unmatch", method: "PUT")
+    }
+
+    /// `tag` is the singular name of the tag, such as `genre` or `label`.
+    func tagValues(sectionID: String, tag: String) async throws -> PlexTagValuesResponse {
+        try await network.request(path: "/library/sections/\(sectionID)/\(tag)")
     }
 }

@@ -1,0 +1,31 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "librarySectionID": 3,
+    "Metadata": [
+      {
+        "ratingKey": "100",
+        "type": "movie",
+        "librarySectionID": 3,
+        "title": "Example Movie",
+        "titleSort": "Movie, Example",
+        "originalTitle": "Film Exemple",
+        "originallyAvailableAt": "2010-07-16",
+        "contentRating": "PG-13",
+        "studio": "Example Studio",
+        "tagline": "An example tagline.",
+        "summary": "An example summary.",
+        "Genre": [{ "id": 1, "tag": "Action" }, { "id": 2, "tag": "Science Fiction" }],
+        "Label": [{ "id": 3, "tag": "Favorites" }],
+        "Director": [{ "id": 4, "tag": "Jane Doe" }],
+        "Writer": [{ "id": 5, "tag": "John Doe" }],
+        "Country": [{ "id": 6, "tag": "United States of America" }],
+        "Field": [
+          { "name": "title", "locked": true },
+          { "name": "genre", "locked": "1" },
+          { "name": "collection", "locked": true }
+        ]
+      }
+    ]
+  }
+}
