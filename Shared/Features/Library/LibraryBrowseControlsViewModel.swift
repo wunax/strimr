@@ -4,12 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class LibraryBrowseControlsViewModel {
-    enum Panel: Hashable {
-        case type
-        case filters
-        case sort
-    }
-
     struct DisplayType: Identifiable, Equatable {
         let id: String
         let key: String
@@ -59,12 +53,15 @@ final class LibraryBrowseControlsViewModel {
         let selectedOption: FilterOption?
     }
 
-    struct FilterSheetState: Identifiable, Equatable {
-        let filter: PlexSectionItemFilter
+    struct ActiveFilter: Identifiable {
+        let id: String
+        let title: String
+        let remove: () -> Void
+    }
 
-        var id: String {
-            filter.filter
-        }
+    struct SortChoice: Identifiable, Equatable {
+        let id: String
+        let title: String
     }
 
     enum JellyfinFilter: String, CaseIterable, Identifiable {
@@ -110,11 +107,8 @@ final class LibraryBrowseControlsViewModel {
 
     var displayTypes: [DisplayType] = []
     var selectedDisplayType: DisplayType?
-    var activePanel: Panel?
     var selectedSort: SortSelection?
     var selectedFilters: [String: FilterSelection] = [:]
-    var activeFilterSheet: FilterSheetState?
-    var activeJellyfinFilterSheet: JellyfinFilter?
     var jellyfinFilterOptions = LibraryBrowseFilterOptions()
     var isLoadingJellyfinFilterOptions = false
     var jellyfinFilterOptionsError: String?
@@ -216,41 +210,56 @@ final class LibraryBrowseControlsViewModel {
         selectedDisplayType?.sorts ?? []
     }
 
-    var showsFilterPill: Bool {
+    var showsFilterControl: Bool {
         isJellyfinBrowse || !availableFilters.isEmpty
     }
 
-    var showsSortPill: Bool {
+    var showsSortControl: Bool {
         isJellyfinBrowse || !availableSorts.isEmpty
     }
 
-    var typePillTitle: String {
+    var typeTitle: String {
         selectedDisplayType?.title ?? String(localized: "library.browse.type.title")
     }
 
-    var filterPillTitle: String {
-        let base = String(localized: "library.browse.filters.title")
+    var activeFilters: [ActiveFilter] {
         if isJellyfinBrowse {
-            let count = jellyfinActiveFilterCount
-            return count == 0 ? base : String(localized: "library.browse.filters.count \(count)")
+            return JellyfinFilter.allCases.filter(jellyfinFilterIsSelected).map { filter in
+                ActiveFilter(id: filter.id, title: jellyfinFilterLabel(filter)) { [weak self] in
+                    self?.clearJellyfinFilter(filter)
+                }
+            }
         }
-        let summaries = activeFilterSummaries()
-        guard !summaries.isEmpty else { return base }
-        if summaries.count <= 2 {
-            return base + " · " + summaries.joined(separator: ", ")
-        }
-        return String(localized: "library.browse.filters.count \(summaries.count)")
+        return selectedFilters.values
+            .compactMap { selection -> ActiveFilter? in
+                guard let title = summary(of: selection) else { return nil }
+                return ActiveFilter(id: selection.filter.filter, title: title) { [weak self] in
+                    self?.clearFilter(selection.filter)
+                }
+            }
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
-    var sortPillTitle: String {
-        let base = String(localized: "library.browse.sort.title")
-        if isJellyfinBrowse, let option = jellyfinSortOptions.first(where: { $0.id == browseSession?.query.sort }) {
-            let direction = browseSession?.query.sortDirection ?? .ascending
-            return base + " · " + option.title + " · " + jellyfinSortDirectionLabel(direction)
+    var sortChoices: [SortChoice] {
+        if isJellyfinBrowse {
+            return jellyfinSortOptions.map { SortChoice(id: $0.id.rawValue, title: $0.title) }
         }
-        guard let selectedSort else { return base }
-        let directionLabel = sortDirectionLabel(for: selectedSort.direction)
-        return base + " · " + selectedSort.sort.title + " · " + directionLabel
+        return availableSorts.map { SortChoice(id: $0.key, title: $0.title) }
+    }
+
+    var selectedSortID: String? {
+        isJellyfinBrowse ? browseSession?.query.sort.rawValue : selectedSort?.sort.key
+    }
+
+    var selectedSortTitle: String? {
+        sortChoices.first { $0.id == selectedSortID }?.title
+    }
+
+    var isSortAscending: Bool? {
+        if isJellyfinBrowse {
+            return browseSession.map { $0.query.sortDirection == .ascending }
+        }
+        return selectedSort.map { $0.direction == .asc }
     }
 
     var jellyfinSortOptions: [JellyfinSortOption] {
@@ -280,20 +289,8 @@ final class LibraryBrowseControlsViewModel {
             + (query.years.isEmpty ? 0 : 1)
     }
 
-    var browseSessionSort: LibraryBrowseSort? {
-        browseSession?.query.sort
-    }
-
-    var jellyfinSortDirectionImage: String {
-        browseSession?.query.sortDirection == .descending ? "arrow.down" : "arrow.up"
-    }
-
-    func togglePanel(_ panel: Panel) {
-        if activePanel == panel {
-            activePanel = nil
-        } else {
-            activePanel = panel
-        }
+    var jellyfinWatchStatus: LibraryBrowseWatchStatus {
+        browseSession?.query.watchStatus ?? .all
     }
 
     func selectDisplayType(_ type: DisplayType) {
@@ -303,66 +300,67 @@ final class LibraryBrowseControlsViewModel {
         onDisplayTypeChanged?()
     }
 
-    func toggleSort(_ sort: PlexSectionItemSort) {
-        if let selection = selectedSort, selection.sort.key == sort.key {
-            if selection.direction == sort.defaultDirection {
-                selectedSort = SortSelection(sort: sort, direction: selection.direction.opposite)
-            } else {
-                selectedSort = nil
-            }
+    func selectSort(id: String) {
+        guard id != selectedSortID else { return }
+        if isJellyfinBrowse {
+            guard let browseSession, let option = jellyfinSortOptions.first(where: { $0.id.rawValue == id })
+            else { return }
+            browseSession.query.sort = option.id
+            browseSession.query.sortDirection = option.defaultDirection
         } else {
+            guard let sort = availableSorts.first(where: { $0.key == id }) else { return }
             selectedSort = SortSelection(sort: sort, direction: sort.defaultDirection)
         }
         onSelectionChanged?()
     }
 
-    func toggleJellyfinSort(_ sort: JellyfinSortOption) {
-        guard let browseSession else { return }
-        if browseSession.query.sort == sort.id {
-            browseSession.query.sortDirection = browseSession.query.sortDirection.opposite
+    func setSortAscending(_ isAscending: Bool) {
+        guard isAscending != isSortAscending else { return }
+        if isJellyfinBrowse {
+            guard let browseSession else { return }
+            browseSession.query.sortDirection = isAscending ? .ascending : .descending
         } else {
-            browseSession.query.sort = sort.id
-            browseSession.query.sortDirection = sort.defaultDirection
+            guard let selectedSort else { return }
+            self.selectedSort = SortSelection(sort: selectedSort.sort, direction: isAscending ? .asc : .desc)
         }
         onSelectionChanged?()
     }
 
-    func toggleFilter(_ filter: PlexSectionItemFilter) {
-        if filter.isBoolean {
-            if let existing = selectedFilters[filter.filter], existing.isEnabled {
-                selectedFilters[filter.filter] = nil
-            } else {
-                selectedFilters[filter.filter] = FilterSelection(
-                    filter: filter,
-                    isEnabled: true,
-                    selectedOption: nil,
-                )
-            }
-            onSelectionChanged?()
-        } else {
-            activeFilterSheet = FilterSheetState(filter: filter)
-            Task { await loadFilterOptionsIfNeeded(for: filter) }
-        }
+    func isFilterOn(_ filter: PlexSectionItemFilter) -> Bool {
+        selectedFilters[filter.filter]?.isEnabled == true
     }
 
-    func toggleJellyfinFilter(_ filter: JellyfinFilter) {
-        guard let browseSession else { return }
+    func setFilter(_ filter: PlexSectionItemFilter, isOn: Bool) {
+        guard filter.isBoolean, isOn != isFilterOn(filter) else { return }
+        selectedFilters[filter.filter] = isOn
+            ? FilterSelection(filter: filter, isEnabled: true, selectedOption: nil)
+            : nil
+        onSelectionChanged?()
+    }
+
+    func setJellyfinFlag(_ filter: JellyfinFilter, isOn: Bool) {
+        guard let browseSession, filter.isBoolean, isOn != jellyfinFilterIsSelected(filter) else { return }
         switch filter {
         case .inProgress:
-            browseSession.query.isResumable.toggle()
-            if browseSession.query.isResumable {
+            browseSession.query.isResumable = isOn
+            if isOn {
                 browseSession.query.watchStatus = .all
             }
-            onSelectionChanged?()
         case .favorites:
-            browseSession.query.isFavorite.toggle()
-            onSelectionChanged?()
+            browseSession.query.isFavorite = isOn
         case .watchStatus, .genres, .years:
-            activeJellyfinFilterSheet = filter
-            if filter == .genres || filter == .years {
-                Task { await loadJellyfinFilterOptionsIfNeeded() }
-            }
+            return
         }
+        onSelectionChanged?()
+    }
+
+    func setJellyfinWatchStatus(_ status: LibraryBrowseWatchStatus) {
+        guard let browseSession, status != browseSession.query.watchStatus else { return }
+        browseSession.query.watchStatus = status
+        if status != .all {
+            browseSession.query.isResumable = false
+        }
+        onSelectionChanged?()
     }
 
     func jellyfinFilterIsSelected(_ filter: JellyfinFilter) -> Bool {
@@ -397,6 +395,15 @@ final class LibraryBrowseControlsViewModel {
             return selectionCountLabel(filter.title, count: query.years.count)
         case .inProgress, .favorites:
             return filter.title
+        }
+    }
+
+    func jellyfinSelectionCount(_ filter: JellyfinFilter) -> Int {
+        guard let query = browseSession?.query else { return 0 }
+        return switch filter {
+        case .genres: query.genreIDs.count
+        case .years: query.years.count
+        case .watchStatus, .inProgress, .favorites: jellyfinFilterIsSelected(filter) ? 1 : 0
         }
     }
 
@@ -659,27 +666,11 @@ final class LibraryBrowseControlsViewModel {
         }
     }
 
-    private func activeFilterSummaries() -> [String] {
-        var summaries: [String] = []
-        for selection in selectedFilters.values {
-            if selection.filter.isBoolean {
-                if selection.isEnabled {
-                    summaries.append(selection.filter.title)
-                }
-            } else if let option = selection.selectedOption {
-                summaries.append(selection.filter.title + ": " + option.title)
-            }
+    private func summary(of selection: FilterSelection) -> String? {
+        if selection.filter.isBoolean {
+            return selection.isEnabled ? selection.filter.title : nil
         }
-        return summaries.sorted()
-    }
-
-    private func sortDirectionLabel(for direction: PlexSortDirection) -> String {
-        switch direction {
-        case .asc:
-            String(localized: "library.browse.sort.direction.asc")
-        case .desc:
-            String(localized: "library.browse.sort.direction.desc")
-        }
+        return selection.selectedOption.map { selection.filter.title + ": " + $0.title }
     }
 
     private func jellyfinSortOption(
@@ -690,20 +681,11 @@ final class LibraryBrowseControlsViewModel {
         JellyfinSortOption(id: id, title: String(localized: localizationKey), defaultDirection: direction)
     }
 
-    private func jellyfinSortDirectionLabel(_ direction: LibraryBrowseSortDirection) -> String {
-        switch direction {
-        case .ascending:
-            String(localized: "library.browse.sort.direction.asc")
-        case .descending:
-            String(localized: "library.browse.sort.direction.desc")
-        }
-    }
-
     private func selectionCountLabel(_ title: String, count: Int) -> String {
         count == 0 ? title : title + " · " + String(count)
     }
 
-    private func loadJellyfinFilterOptionsIfNeeded() async {
+    func loadJellyfinFilterOptionsIfNeeded() async {
         guard jellyfinFilterOptions.genres.isEmpty, jellyfinFilterOptions.years.isEmpty,
               !isLoadingJellyfinFilterOptions,
               let browseService, let library else { return }
@@ -719,7 +701,7 @@ final class LibraryBrowseControlsViewModel {
         }
     }
 
-    private func loadFilterOptionsIfNeeded(for filter: PlexSectionItemFilter) async {
+    func loadFilterOptionsIfNeeded(for filter: PlexSectionItemFilter) async {
         let filterKey = filter.filter
         guard !filterOptionsLoading.contains(filterKey), filterOptions[filterKey] == nil, let advancedService,
               let endpoint = PlexEndpoint(key: filter.key) else { return }

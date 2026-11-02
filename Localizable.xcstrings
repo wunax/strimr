@@ -3592,6 +3592,28 @@
         }
       }
     },
+    "library.browse.empty.offline.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing has been downloaded from this library yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien n'a encore été téléchargé depuis cette bibliothèque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未从此资料库下载任何内容。"
+          }
+        }
+      }
+    },
     "library.browse.empty.reset" : {
       "localizations" : {
         "en" : {
@@ -3658,6 +3680,28 @@
         }
       }
     },
+    "library.browse.filters.availability" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibilité"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用性"
+          }
+        }
+      }
+    },
     "library.browse.filters.clear" : {
       "localizations" : {
         "en" : {
@@ -3698,6 +3742,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "筛选（%lld）"
+          }
+        }
+      }
+    },
+    "library.browse.filters.downloadedOnly" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargés uniquement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅显示已下载"
+          }
+        }
+      }
+    },
+    "library.browse.filters.downloadsFooter" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server filters don't apply to downloads."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les filtres du serveur ne s'appliquent pas aux téléchargements."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器筛选不适用于已下载内容。"
           }
         }
       }
@@ -3812,6 +3900,28 @@
         }
       }
     },
+    "library.browse.filters.remove %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除%@"
+          }
+        }
+      }
+    },
     "library.browse.filters.reset" : {
       "localizations" : {
         "en" : {
@@ -3896,6 +4006,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未播放"
+          }
+        }
+      }
+    },
+    "library.browse.filters.unreachableFooter" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server filters are unavailable while the server is unreachable."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les filtres du serveur sont indisponibles tant que le serveur est injoignable."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接服务器时，服务器筛选不可用。"
           }
         }
       }
@@ -4142,6 +4274,28 @@
         }
       }
     },
+    "library.browse.sort.direction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordre"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顺序"
+          }
+        }
+      }
+    },
     "library.browse.sort.direction.asc" : {
       "localizations" : {
         "en" : {
@@ -4336,6 +4490,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "类型"
+          }
+        }
+      }
+    },
+    "library.browse.view.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affichage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示方式"
           }
         }
       }

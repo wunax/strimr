@@ -24,13 +24,6 @@ struct LibraryDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if availableTabs.count > 1 {
-                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-            }
-
             Group {
                 switch selectedTab {
                 case .recommended:
@@ -74,6 +67,20 @@ struct LibraryDetailView: View {
         .navigationTitle(library.title)
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
+            if availableTabs.count > 1 {
+                ToolbarItem(placement: .principal) {
+                    Picker(selection: $selectedTab) {
+                        ForEach(availableTabs) { tab in
+                            Text(tab.title).tag(tab)
+                        }
+                    } label: {
+                        Text("library.detail.tabPicker")
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            }
             if !manageActions.actions(for: library).isEmpty {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {

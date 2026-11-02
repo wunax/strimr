@@ -22,8 +22,8 @@ final class LibraryBrowseViewModel {
     var controls: LibraryBrowseControlsViewModel
     var scrollResetID = 0
     private(set) var layout: LibraryBrowseLayout
-    /// Switches the data source to the local downloads of this library, online or offline.
-    private(set) var isDownloadedOnly = false
+    /// The user's choice for the downloads filter; `nil` follows the connection.
+    private var downloadedOnlyChoice: Bool?
     private(set) var hasDownloads = false
     private(set) var showsFolderTree: Bool
     private(set) var folderTree: FolderTreeModel?
@@ -103,9 +103,31 @@ final class LibraryBrowseViewModel {
         OfflineCoordinator.shared.isUnreachable(owner.server)
     }
 
+    /// Switches the data source to the local downloads of this library. Offline, it is on by default since only
+    /// downloads can be played.
+    var isDownloadedOnly: Bool {
+        downloadedOnlyChoice ?? (isServerUnreachable && hasDownloads)
+    }
+
     /// Hidden in libraries without downloads, but kept while active so it can always be turned off.
     var showsDownloadedOnlyToggle: Bool {
         hasDownloads || isDownloadedOnly
+    }
+
+    var activeFilterCount: Int {
+        (isDownloadedOnly ? 1 : 0) + (showsServerControls ? controls.activeFilters.count : 0)
+    }
+
+    var showsFiltersButton: Bool {
+        showsDownloadedOnlyToggle || (controls.hasControls && controls.showsFilterControl)
+    }
+
+    var viewMode: LibraryBrowseViewMode {
+        isFolderTreeActive ? .tree : LibraryBrowseViewMode(layout: layout)
+    }
+
+    var viewModes: [LibraryBrowseViewMode] {
+        canShowFolderTree ? [.grid, .list, .tree] : [.grid, .list]
     }
 
     var showsServerControls: Bool {
@@ -128,10 +150,59 @@ final class LibraryBrowseViewModel {
         Task { await refresh() }
     }
 
-    func toggleDownloadedOnly() {
-        isDownloadedOnly.toggle()
+    func setDownloadedOnly(_ isOn: Bool) {
+        guard isOn != isDownloadedOnly else { return }
+        downloadedOnlyChoice = isOn
         folderStack = []
         Task { await refresh() }
+    }
+
+    var serverFilters: LibraryBrowseFiltersView.ServerFilters {
+        if isServerUnreachable {
+            return .unreachable
+        }
+        return isDownloadedOnly ? .downloads : .available
+    }
+
+    var downloadsFilter: LibraryBrowseControlsViewModel.ActiveFilter? {
+        guard isDownloadedOnly else { return nil }
+        return .init(id: "downloadedOnly", title: String(localized: "offline.library.downloadedOnly")) { [weak self] in
+            self?.setDownloadedOnly(false)
+        }
+    }
+
+    var canResetFilters: Bool {
+        downloadedOnlyChoice != nil || (showsServerControls && controls.canResetSelection)
+    }
+
+    func resetFilters() {
+        let resetsServerSelection = showsServerControls && controls.canResetSelection
+        downloadedOnlyChoice = nil
+        if resetsServerSelection {
+            controls.resetSelection()
+        } else {
+            folderStack = []
+            Task { await refresh() }
+        }
+    }
+
+    func connectionChanged() {
+        downloadedOnlyChoice = nil
+        Task { await refresh() }
+    }
+
+    func setViewMode(_ mode: LibraryBrowseViewMode) {
+        switch mode {
+        case .tree:
+            if !isFolderTreeActive {
+                toggleFolderTree()
+            }
+        case .grid, .list:
+            setLayout(mode == .grid ? .grid : .list)
+            if isFolderTreeActive {
+                toggleFolderTree()
+            }
+        }
     }
 
     /// Size shown next to the controls; unknown while the server has not reported it.

@@ -60,7 +60,7 @@ struct LibraryBrowseControlsViewModelTests {
         #expect(controls.selectedDisplayType?.key == movieTypeKey)
         #expect(controls.selectedSort?.sort.key == "addedAt")
         #expect(controls.selectedSort?.direction == .desc)
-        #expect(controls.filterPillTitle.hasSuffix("Genre: Action"))
+        #expect(controls.activeFilters.map(\.title) == ["Genre: Action"])
         #expect(queryItems(controls, includeMeta: false)["sort"] == "addedAt:desc")
     }
 
@@ -164,6 +164,33 @@ struct LibraryBrowseControlsViewModelTests {
         _ = try controls.applyMeta(meta())
 
         #expect(!controls.isPlexTitleSort)
+    }
+
+    @Test func `selecting a sort uses its default direction`() throws {
+        let controls = makeControls(restoring: nil)
+        try controls.applyMeta(meta())
+
+        controls.selectSort(id: "addedAt")
+        #expect(controls.selectedSortID == "addedAt")
+        #expect(controls.isSortAscending == false)
+        #expect(queryItems(controls, includeMeta: false)["sort"] == "addedAt:desc")
+
+        controls.setSortAscending(true)
+        #expect(queryItems(controls, includeMeta: false)["sort"] == "addedAt")
+    }
+
+    @Test func `boolean filter is listed as active and can be removed`() throws {
+        let controls = makeControls(restoring: nil)
+        try controls.applyMeta(meta())
+        let unwatched = try #require(controls.availableFilters.first { $0.filter == "unwatched" })
+
+        controls.setFilter(unwatched, isOn: true)
+        #expect(controls.activeFilters.map(\.title) == ["Unwatched"])
+        #expect(queryItems(controls, includeMeta: false)["unwatched"] == "1")
+
+        controls.activeFilters.first?.remove()
+        #expect(controls.activeFilters.isEmpty)
+        #expect(queryItems(controls, includeMeta: false)["unwatched"] == nil)
     }
 
     private func makeControls(restoring selection: PlexSelection?) -> LibraryBrowseControlsViewModel {

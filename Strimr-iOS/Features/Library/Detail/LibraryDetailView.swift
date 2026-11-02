@@ -25,10 +25,8 @@ struct LibraryDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if availableTabs.count > 1 {
-                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
+                LibraryDetailTabBar(selection: $selectedTab, tabs: availableTabs)
+                    .padding(.bottom, 12)
             }
 
             Group {

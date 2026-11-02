@@ -15,20 +15,7 @@ struct LibraryBrowseView: View {
         @FocusState private var isGridFocused: Bool
     #endif
 
-    private var downloadedOnlyToggle: LibraryBrowseToggle? {
-        guard viewModel.showsDownloadedOnlyToggle else { return nil }
-        return LibraryBrowseToggle(
-            title: String(localized: "offline.library.downloadedOnly"),
-            systemImage: "arrow.down.circle",
-            isSelected: viewModel.isDownloadedOnly,
-            action: viewModel.toggleDownloadedOnly,
-        )
-    }
-
-    private var folderTreeToggle: LibraryBrowseToggle? {
-        guard viewModel.canShowFolderTree else { return nil }
-        return .folderTree(isSelected: viewModel.showsFolderTree, action: viewModel.toggleFolderTree)
-    }
+    @State private var isFiltersPresented = false
 
     private let pageMargin: CGFloat = 16
 
@@ -37,8 +24,6 @@ struct LibraryBrowseView: View {
     }
 
     var body: some View {
-        @Bindable var controls = viewModel.controls
-
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -47,17 +32,23 @@ struct LibraryBrowseView: View {
                         .id("libraryBrowseTop")
 
                     LibraryBrowseControlsView(
-                        viewModel: controls,
+                        viewModel: viewModel.controls,
+                        showsServerControls: viewModel.showsServerControls,
                         showsBackButton: viewModel.canNavigateBack,
                         onNavigateBack: viewModel.navigateBack,
-                        leadingToggle: downloadedOnlyToggle,
-                        showsServerControls: viewModel.showsServerControls,
-                        folderTreeToggle: folderTreeToggle,
-                        layoutToggle: viewModel.folderTree == nil
-                            ? .layout(current: viewModel.layout, onChange: viewModel.setLayout)
-                            : nil,
+                        showsFiltersButton: viewModel.showsFiltersButton,
+                        filterCount: viewModel.activeFilterCount,
+                        isFiltersPresented: $isFiltersPresented,
+                        downloadsFilter: viewModel.downloadsFilter,
+                        canReset: viewModel.canResetFilters,
+                        onReset: viewModel.resetFilters,
+                        viewMode: viewModel.viewMode,
+                        viewModes: viewModel.viewModes,
+                        onSelectViewMode: viewModel.setViewMode,
                         itemCount: viewModel.folderTree == nil ? viewModel.itemCount : nil,
-                    )
+                    ) {
+                        LibraryBrowseFiltersView(browse: viewModel) { isFiltersPresented = false }
+                    }
                     .padding(.horizontal, pageMargin)
 
                     Group {
@@ -86,6 +77,9 @@ struct LibraryBrowseView: View {
                     .padding(.horizontal, pageMargin)
                     .padding(.trailing, sectionIndexInset)
                 }
+                #if os(macOS)
+                .padding(.top, 12)
+                #endif
             }
             #if os(iOS)
             .scrollIndicators(showsScrubber ? .hidden : .automatic)
@@ -146,7 +140,7 @@ struct LibraryBrowseView: View {
                 proxy.scrollTo("libraryBrowseTop", anchor: .top)
             }
             .onChange(of: viewModel.isServerUnreachable) {
-                Task { await viewModel.refresh() }
+                viewModel.connectionChanged()
             }
         }
     }
@@ -206,6 +200,12 @@ struct LibraryBrowseView: View {
                 description: Text("common.errors.tryAgainLater"),
             )
             .symbolRenderingMode(.multicolor)
+        } else if isEmpty, viewModel.isServerUnreachable {
+            ContentUnavailableView(
+                "offline.banner.serverUnreachable",
+                systemImage: "wifi.slash",
+                description: Text("library.browse.empty.offline.description"),
+            )
         } else if isEmpty, viewModel.showsServerControls, viewModel.controls.hasActiveFilters {
             ContentUnavailableView {
                 Label("library.browse.empty.title", systemImage: "line.3.horizontal.decrease.circle")
@@ -270,4 +270,21 @@ struct LibraryBrowseView: View {
             return .handled
         }
     #endif
+}
+
+extension LibraryBrowseFiltersView {
+    init(browse viewModel: LibraryBrowseViewModel, onDone: @escaping () -> Void) {
+        self.init(
+            viewModel: viewModel.controls,
+            showsDownloadsToggle: viewModel.showsDownloadedOnlyToggle,
+            isDownloadedOnly: Binding(
+                get: { viewModel.isDownloadedOnly },
+                set: { viewModel.setDownloadedOnly($0) },
+            ),
+            serverFilters: viewModel.serverFilters,
+            canReset: viewModel.canResetFilters,
+            onReset: viewModel.resetFilters,
+            onDone: onDone,
+        )
+    }
 }
