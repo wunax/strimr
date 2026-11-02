@@ -150,13 +150,23 @@ extension LibraryDetailTabPicker where Accessory == EmptyView {
         @Namespace private var indicator
 
         var body: some View {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 24) {
-                    ForEach(tabs) { tab in
-                        tabButton(for: tab)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 24) {
+                        ForEach(tabs) { tab in
+                            tabButton(for: tab)
+                                .id(tab)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                // The selection can start off screen (a remembered tab) or move there (a hidden tab resets it).
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+                .onChange(of: selection) { _, newSelection in
+                    withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                        proxy.scrollTo(newSelection, anchor: .center)
                     }
                 }
-                .padding(.horizontal, 16)
             }
             .overlay(alignment: .bottom) {
                 Rectangle()
