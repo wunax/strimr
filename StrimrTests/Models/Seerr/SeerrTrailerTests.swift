@@ -48,6 +48,18 @@ struct SeerrTrailerTests {
             URL(string: "https://www.youtube.com/watch?v=largeKey"))
     }
 
+    @Test func `youtube app trailer picks the largest youtube trailer`() throws {
+        let media = try Fixtures.decode(SeerrMedia.self, from: "seerr-movie-videos")
+
+        #expect(media.youtubeAppTrailerURL == URL(string: "youtube://watch/largeKey"))
+    }
+
+    @Test func `media without trailers has no youtube app trailer`() throws {
+        let media = try Fixtures.decode(SeerrMedia.self, from: "seerr-movie")
+
+        #expect(media.youtubeAppTrailerURL == nil)
+    }
+
     @Test func `media without trailers has no trailer url`() throws {
         let media = try Fixtures.decode(SeerrMedia.self, from: "seerr-movie")
 

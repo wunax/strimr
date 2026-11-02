@@ -92,11 +92,22 @@ extension SeerrMedia {
     /// instance's `youtubeUrl` override. Seerr only builds `url` for YouTube, so
     /// trailers from other sites are skipped when they have none.
     func trailerURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        largestTrailerURL { $0.resolvedURL(youtubeBaseURL: youtubeBaseURL, serverURL: serverURL) }
+    }
+
+    /// tvOS has no browser, so trailers there can only open in the YouTube app, which ignores the
+    /// instance's `youtubeUrl` override.
+    var youtubeAppTrailerURL: URL? {
+        largestTrailerURL { video in
+            guard video.site == "YouTube", let key = video.key, !key.isEmpty else { return nil }
+            return URL(string: "youtube://watch/\(key)")
+        }
+    }
+
+    private func largestTrailerURL(_ resolve: (SeerrVideo) -> URL?) -> URL? {
         (relatedVideos ?? [])
             .filter { $0.type == "Trailer" }
-            .compactMap { video in
-                video.resolvedURL(youtubeBaseURL: youtubeBaseURL, serverURL: serverURL).map { (video, $0) }
-            }
+            .compactMap { video in resolve(video).map { (video, $0) } }
             .max { ($0.0.size ?? 0) < ($1.0.size ?? 0) }?
             .1
     }
