@@ -72,7 +72,7 @@ file order. Languages are compared as ISO 639-1 after mapping three-letter codes
 `type=collection` goes through `PlaybackLauncher` to the provider's queue builder. On Plex that is
 `PlayQueueRepository.createQueue` with the collection URI and the `shuffle` flag, so the server holds the queue. On
 Jellyfin the code path exists (`JellyfinCatalogService.playbackQueue` handles box sets and the queue is built on the
-client, with no server-side play queue) but it has not been exercised through a link; see HANDOFF.md.
+client, with no server-side play queue) but it has not been exercised through a link.
 
 ## Now Playing
 
@@ -82,7 +82,7 @@ The system Now Playing info now also carries:
 | --- | --- |
 | `MPNowPlayingInfoPropertyExternalContentIdentifier` | Item id (`ratingKey`) |
 | `MPNowPlayingInfoPropertyPlaybackQueueIndex` / `Count` | Position in the play queue |
-| `MPNowPlayingInfoPropertyChapterCount` / `ChapterNumber` | Chapters; the number follows the playhead (1-based) |
+| `MPNowPlayingInfoPropertyChapterCount` / `ChapterNumber` | Chapters; the number follows the playhead (published zero-based, as Apple documents it) |
 | `strimr.intro`, `strimr.credits` | `[start, end]` seconds |
 | `strimr.nextTitle` | Title of the next queue item |
 

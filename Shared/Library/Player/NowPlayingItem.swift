@@ -71,7 +71,7 @@ struct NowPlayingItem {
 
     /// Identity keys only: position, duration and rate come from the player.
     ///
-    /// Documented keys: content identifier, queue index and count, chapter count and number (one-based here).
+    /// Documented keys: content identifier, queue index and count, chapter count and number (zero-based, so the one-based `chapterNumber` is shifted).
     /// Chapters and the queue are what tvOS and remote apps can show. The `strimr.*` keys are not documented, so the system may
     /// keep them in the dictionary without exposing them to anything.
     func identityInfo(artwork: MPMediaItemArtwork?, isLive: Bool, chapterNumber: Int? = nil) -> [String: Any] {
@@ -96,7 +96,7 @@ struct NowPlayingItem {
         if let count = details.chapterCount {
             info[MPNowPlayingInfoPropertyChapterCount] = count
             if let chapterNumber {
-                info[MPNowPlayingInfoPropertyChapterNumber] = chapterNumber
+                info[MPNowPlayingInfoPropertyChapterNumber] = chapterNumber - 1
             }
         }
         if let intro = details.intro {

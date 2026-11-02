@@ -1065,7 +1065,7 @@ struct PlayerView: View {
                         selectedSubtitleTrackID = activeSubtitle
                     }
 
-                    if !appliedLaunchTracks, !audio.isEmpty {
+                    if !appliedLaunchTracks, !audio.isEmpty || !subtitles.isEmpty {
                         appliedLaunchTracks = true
                         applyExternalTrackRequest(
                             audio: viewModel.launchOptions?.audio,

@@ -44,13 +44,31 @@ nonisolated enum PlaybackWebhook {
     }
 
     /// Never blocks and never reports a failure. A transport error is retried once; an HTTP error status is not,
-    /// since the receiver did get the message.
+    /// since the receiver did get the message. Events are delivered one at a time, in the order they were sent.
     static func send(_ payload: Payload, to url: URL, session: URLSession = .shared) {
         guard let request = try? request(for: payload, to: url) else { return }
         Task.detached(priority: .utility) {
-            if (try? await session.data(for: request)) == nil {
-                _ = try? await session.data(for: request)
+            await DeliveryQueue.shared.enqueue {
+                if (try? await session.data(for: request)) == nil {
+                    _ = try? await session.data(for: request)
+                }
             }
+        }
+    }
+
+    /// Chains each delivery after the previous one, so a slow `pause` cannot be overtaken by the `resume` after it.
+    private actor DeliveryQueue {
+        static let shared = DeliveryQueue()
+        private var last: Task<Void, Never>?
+
+        func enqueue(_ work: @escaping @Sendable () async -> Void) async {
+            let previous = last
+            let task = Task {
+                await previous?.value
+                await work()
+            }
+            last = task
+            await task.value
         }
     }
 }

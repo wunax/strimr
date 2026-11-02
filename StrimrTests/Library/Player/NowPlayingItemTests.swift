@@ -118,7 +118,7 @@ struct NowPlayingItemTests {
         #expect(info[MPNowPlayingInfoPropertyPlaybackQueueIndex] as? Int == 2)
         #expect(info[MPNowPlayingInfoPropertyPlaybackQueueCount] as? Int == 10)
         #expect(info[MPNowPlayingInfoPropertyChapterCount] as? Int == 8)
-        #expect(info[MPNowPlayingInfoPropertyChapterNumber] as? Int == 3)
+        #expect(info[MPNowPlayingInfoPropertyChapterNumber] as? Int == 2)
         #expect(info["strimr.intro"] as? [Double] == [30, 90])
         #expect(info["strimr.credits"] as? [Double] == [2400, 2500])
         #expect(info["strimr.nextTitle"] as? String == "Second")

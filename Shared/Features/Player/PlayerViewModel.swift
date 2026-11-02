@@ -107,7 +107,7 @@ final class PlayerViewModel {
         )
         guard item != nil, !isLivePlayback else { return item }
         item?.details = NowPlayingDetails(
-            contentIdentifier: media?.id,
+            contentIdentifier: media.map { "\($0.identity.server.id):\($0.id)" },
             queueIndex: queueCurrentIndex,
             queueCount: queueCurrentIndex == nil ? nil : queueItems.count,
             chapterCount: chapters.isEmpty ? nil : chapters.count,
@@ -960,10 +960,13 @@ final class PlayerViewModel {
         do {
             let source = try await replacement.source(offsetFromCaptureStart: nil)
             let previous = liveSession
+            notify(webhookTracker.close(finished: false))
             liveContext = replacementContext
             adoptLiveSession(replacement)
             pendingLiveSessionToStop = previous
             media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
+            webhookTracker = PlaybackWebhookTracker()
+            notify(webhookTracker.event(isPaused: isPaused))
             apply(liveSource: source)
             return source.url
         } catch {
