@@ -1,0 +1,85 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "identifier": "com.plexapp.plugins.library",
+    "Metadata": [
+      {
+        "ratingKey": "1000",
+        "type": "show",
+        "title": "Demo Series",
+        "Preferences": {
+          "Setting": [
+            {
+              "id": "episodeSort",
+              "label": "Episode sorting",
+              "summary": "How to sort the episodes of this show.",
+              "type": "int",
+              "default": -1,
+              "value": 1,
+              "hidden": false,
+              "advanced": false,
+              "group": "",
+              "enumValues": "-1:Library default|0:Oldest first|1:Newest first"
+            },
+            {
+              "id": "showOrdering",
+              "label": "Episode ordering",
+              "summary": "",
+              "type": "text",
+              "default": "",
+              "value": "",
+              "hidden": false,
+              "advanced": false,
+              "group": "",
+              "enumValues": ":Library default|tmdbAiring:The Movie Database (Aired)|tvdbDvd:TheTVDB (DVD)"
+            },
+            {
+              "id": "useOriginalTitle",
+              "label": "Use original titles",
+              "summary": "",
+              "type": "int",
+              "default": -1,
+              "value": 7,
+              "hidden": false,
+              "advanced": false,
+              "group": "",
+              "enumValues": "-1:Library default|0:No|1:Yes"
+            },
+            {
+              "id": "languageOverride",
+              "label": "Language",
+              "type": "text",
+              "default": "",
+              "value": "fr-FR",
+              "hidden": false,
+              "enumValues": ":Library%20default|fr-FR:Fran%C3%A7ais"
+            },
+            {
+              "id": "flattenSeasons",
+              "label": "Seasons",
+              "type": "bool",
+              "default": false,
+              "value": true,
+              "hidden": false
+            },
+            {
+              "id": "hiddenSetting",
+              "label": "Hidden",
+              "type": "int",
+              "value": 0,
+              "hidden": true,
+              "enumValues": "0:No|1:Yes"
+            },
+            {
+              "id": "notes",
+              "label": "Notes",
+              "type": "text",
+              "value": "Free text",
+              "hidden": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

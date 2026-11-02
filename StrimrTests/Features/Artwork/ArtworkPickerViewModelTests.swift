@@ -68,6 +68,16 @@ struct ArtworkPickerViewModelTests {
         }
 
         func unmatch(itemID _: String) async throws {}
+
+        func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+            false
+        }
+
+        func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+            []
+        }
+
+        func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
     }
 
     @Test func `returning to a loaded kind clears the error of a failed one`() async {

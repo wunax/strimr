@@ -25,6 +25,7 @@ enum MediaQuickAction: Hashable {
     /// Jellyfin wording of the match search.
     case identify
     case unmatch
+    case advancedSettings
 
     var title: String {
         switch self {
@@ -49,6 +50,7 @@ enum MediaQuickAction: Hashable {
         case .fixMatch: String(localized: "media.manage.fixMatch")
         case .identify: String(localized: "media.manage.identify")
         case .unmatch: String(localized: "media.manage.unmatch")
+        case .advancedSettings: String(localized: "media.manage.advancedSettings")
         }
     }
 
@@ -73,6 +75,7 @@ enum MediaQuickAction: Hashable {
         case .delete: "trash"
         case .fixMatch, .identify: "magnifyingglass"
         case .unmatch: "link.badge.minus"
+        case .advancedSettings: "slider.horizontal.3"
         }
     }
 }
@@ -118,6 +121,8 @@ struct MediaQuickActions {
         /// Plex can also detach an item from its match; it names the search "fix match", Jellyfin "identify".
         var supportsUnmatch = false
         var unmatch: (String) async throws -> Void = { _ in }
+        var supportsAdvancedSettings: (MediaItem) -> Bool = { _ in false }
+        var itemSettings: (MediaItem) -> ItemSettingsViewModel? = { _ in nil }
     }
 
     init(services: MediaServices) {
@@ -158,6 +163,12 @@ struct MediaQuickActions {
                 },
                 supportsUnmatch: service.supportsUnmatch,
                 unmatch: { try await service.unmatch(itemID: $0) },
+                supportsAdvancedSettings: { service.supportsAdvancedSettings(for: $0) },
+                itemSettings: { item in
+                    ItemSettingsViewModel(item: item, service: service) {
+                        services.noteMediaChanged(itemID: $0)
+                    }
+                },
             )
             : nil
     }
@@ -253,6 +264,9 @@ struct MediaQuickActions {
             if !management.artworkKinds(item).isEmpty {
                 actions.append(.editArtwork)
             }
+            if management.supportsAdvancedSettings(item) {
+                actions.append(.advancedSettings)
+            }
             if Self.canMatch(item) {
                 actions.append(management.supportsUnmatch ? .fixMatch : .identify)
                 // Plex gives unmatched items a `local://` guid.
@@ -274,6 +288,11 @@ struct MediaQuickActions {
     func artworkPicker(for item: MediaItem) -> ArtworkPickerViewModel? {
         guard manageActions(for: item).contains(.editArtwork) else { return nil }
         return management?.artworkPicker(item)
+    }
+
+    func itemSettings(for item: MediaItem) -> ItemSettingsViewModel? {
+        guard manageActions(for: item).contains(.advancedSettings) else { return nil }
+        return management?.itemSettings(item)
     }
 
     func matchSearch(for item: MediaItem) -> MatchSearchViewModel? {

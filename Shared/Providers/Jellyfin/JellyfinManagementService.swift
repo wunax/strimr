@@ -259,6 +259,16 @@ final class JellyfinManagementService: MediaManagementService {
         return marked
     }
 
+    func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+        false
+    }
+
+    func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+        []
+    }
+
+    func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
+
     private func refreshLibrary(id: String, mode: String, replaceAllMetadata: Bool) async throws {
         try await context.send(
             path: ["Items", id, "Refresh"],

@@ -468,6 +468,11 @@ protocol MediaManagementService: AnyObject {
     /// Only Plex can detach an item from its match.
     var supportsUnmatch: Bool { get }
     func unmatch(itemID: String) async throws
+    /// Only Plex has per-item settings, such as the episode order of a series.
+    func supportsAdvancedSettings(for item: MediaItem) -> Bool
+    /// The settings offered as a choice in a list, labeled in the app's language by the server.
+    func advancedSettings(itemID: String) async throws -> [ItemSetting]
+    func updateAdvancedSetting(_ setting: ItemSetting, value: String, itemID: String) async throws
 }
 
 @MainActor
@@ -521,4 +526,14 @@ final class UnsupportedMediaManagementService: MediaManagementService {
     }
 
     func unmatch(itemID _: String) async throws {}
+
+    func supportsAdvancedSettings(for _: MediaItem) -> Bool {
+        false
+    }
+
+    func advancedSettings(itemID _: String) async throws -> [ItemSetting] {
+        []
+    }
+
+    func updateAdvancedSetting(_: ItemSetting, value _: String, itemID _: String) async throws {}
 }

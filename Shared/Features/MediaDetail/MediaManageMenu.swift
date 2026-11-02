@@ -16,6 +16,7 @@ final class MediaManageController {
     var matchSearch: MatchSearchViewModel?
     /// The media whose unmatch waits for a confirmation.
     var pendingUnmatch: MediaItem?
+    var itemSettings: ItemSettingsViewModel?
 
     func perform(
         _ action: MediaQuickAction,
@@ -33,6 +34,8 @@ final class MediaManageController {
             matchSearch = quickActions.matchSearch(for: item)
         case .unmatch:
             pendingUnmatch = item
+        case .advancedSettings:
+            itemSettings = quickActions.itemSettings(for: item)
         default:
             run(action, on: item, quickActions: quickActions, onAccepted: onAccepted)
         }
@@ -144,18 +147,19 @@ struct MediaManageMenu: View {
 }
 
 extension View {
-    /// `onArtworkChanged` runs once the artwork screen closes after a change, `onDeleted` once an item was deleted.
+    /// `onMediaChanged` runs once the artwork or settings screen closes after a change, `onDeleted` once an item was
+    /// deleted.
     func mediaManagePresentation(
         _ controller: MediaManageController,
         quickActions: MediaQuickActions,
-        onArtworkChanged: (() -> Void)? = nil,
+        onMediaChanged: (() -> Void)? = nil,
         onDeleted: (() -> Void)? = nil,
         onAccepted: (() -> Void)? = nil,
     ) -> some View {
         modifier(MediaManagePresentation(
             controller: controller,
             quickActions: quickActions,
-            onArtworkChanged: onArtworkChanged,
+            onMediaChanged: onMediaChanged,
             onDeleted: onDeleted,
             onAccepted: onAccepted,
         ))
@@ -165,10 +169,10 @@ extension View {
 private struct MediaManagePresentation: ViewModifier {
     @Bindable var controller: MediaManageController
     let quickActions: MediaQuickActions
-    let onArtworkChanged: (() -> Void)?
+    let onMediaChanged: (() -> Void)?
     let onDeleted: (() -> Void)?
     let onAccepted: (() -> Void)?
-    @State private var hasArtworkChanged = false
+    @State private var hasMediaChanged = false
     @State private var hasMatchChanged = false
 
     func body(content: Content) -> some View {
@@ -192,14 +196,13 @@ private struct MediaManagePresentation: ViewModifier {
                 }
                 Button("common.actions.cancel", role: .cancel) {}
             }
-            .taskPresentation(item: $controller.artworkPicker) {
-                if hasArtworkChanged {
-                    hasArtworkChanged = false
-                    onArtworkChanged?()
-                }
-            } content: { picker in
+            .taskPresentation(item: $controller.artworkPicker, onDismiss: notifyMediaChange) { picker in
                 ArtworkPickerView(viewModel: picker)
-                    .onChange(of: picker.changeCount) { hasArtworkChanged = true }
+                    .onChange(of: picker.changeCount) { hasMediaChanged = true }
+            }
+            .taskPresentation(item: $controller.itemSettings, onDismiss: notifyMediaChange) { settings in
+                ItemSettingsView(viewModel: settings)
+                    .onChange(of: settings.changeCount) { hasMediaChanged = true }
             }
             .taskPresentation(item: $controller.deletionItem, style: .dialog) { item in
                 MediaDeletionView(
@@ -242,6 +245,12 @@ private struct MediaManagePresentation: ViewModifier {
                 Text("media.manage.unmatch.confirmMessage")
             }
             .toast($controller.toast)
+    }
+
+    private func notifyMediaChange() {
+        guard hasMediaChanged else { return }
+        hasMediaChanged = false
+        onMediaChanged?()
     }
 
     private func matchTitle(for item: MediaItem) -> String {

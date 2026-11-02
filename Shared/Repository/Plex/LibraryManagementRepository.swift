@@ -105,4 +105,20 @@ final class LibraryManagementRepository {
     func unmatch(ratingKey: String) async throws {
         try await network.send(path: "/library/metadata/\(ratingKey)/unmatch", method: "PUT")
     }
+
+    func itemPreferences(ratingKey: String) async throws -> PlexItemPreferencesResponse {
+        try await network.request(
+            path: "/library/metadata/\(ratingKey)",
+            queryItems: [URLQueryItem(name: "includePreferences", value: "1")],
+        )
+    }
+
+    func setItemPreference(ratingKey: String, id: String, value: String) async throws {
+        try await network.send(
+            path: "/library/metadata/\(ratingKey)/prefs",
+            queryItems: [URLQueryItem(name: id, value: value)],
+            method: "PUT",
+            encodesPlusSign: true,
+        )
+    }
 }
