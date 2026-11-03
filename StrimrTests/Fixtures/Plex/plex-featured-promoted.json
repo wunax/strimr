@@ -1,0 +1,14 @@
+{
+  "MediaContainer": {
+    "size": 4,
+    "Hub": [
+      {"key": "/hubs/home/continueWatching", "title": "Continue Watching", "hubIdentifier": "home.continue", "type": "mixed", "size": 1, "Metadata": [{"ratingKey": "401", "key": "/library/metadata/401", "guid": "plex://movie/c401", "type": "movie", "title": "Halfway", "art": "/a/401", "viewOffset": 1200}]},
+      {"key": "/hubs/sections/1/curated", "title": "Spooky Picks", "hubIdentifier": "movie.curated.1.1", "type": "movie", "size": 1, "Metadata": [{"ratingKey": "402", "key": "/library/metadata/402", "guid": "plex://movie/c402", "type": "movie", "title": "Generated", "art": "/a/402"}]},
+      {"key": "/library/collections/900/children", "title": "Staff Picks", "hubIdentifier": "custom.collection.1.900", "type": "movie", "size": 2, "Metadata": [
+        {"ratingKey": "403", "key": "/library/metadata/403", "guid": "plex://movie/c403", "type": "movie", "title": "Picked", "art": "/a/403"},
+        {"ratingKey": "404", "key": "/library/metadata/404", "guid": "plex://movie/c404", "type": "movie", "title": "Picked Seen", "art": "/a/404", "viewCount": 2}
+      ]},
+      {"key": "/hubs/home/recentlyAdded?type=1&sectionID=1", "title": "Recently Added", "hubIdentifier": "movie.recentlyadded.1", "type": "movie", "size": 1, "Metadata": [{"ratingKey": "405", "key": "/library/metadata/405", "guid": "plex://movie/c405", "type": "movie", "title": "New", "art": "/a/405"}]}
+    ]
+  }
+}

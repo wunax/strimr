@@ -3,9 +3,12 @@ import SwiftUI
 @MainActor
 struct HomeView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(SeerrStore.self) private var seerrStore
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.mediaCardActions) private var mediaCardActions
     @State var viewModel: HomeViewModel
     @State private var selectedHub: Hub?
+    @State private var scrollInteractionCount = 0
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
@@ -18,6 +21,15 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
+            if !viewModel.heroSlides.isEmpty {
+                HomeHeroCarousel(
+                    slides: viewModel.heroSlides,
+                    interactionCount: scrollInteractionCount,
+                    onPlay: { mediaCardActions?.play($0, false) },
+                    onDetails: { onSelectMedia(.playable($0)) },
+                )
+            }
+
             VStack(alignment: .leading, spacing: 24) {
                 ForEach(viewModel.rows) { row in
                     HomeRowSectionView(
@@ -43,6 +55,16 @@ struct HomeView: View {
             .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 20)
         }
+        .onScrollPhaseChange { _, phase in
+            if phase != .idle {
+                scrollInteractionCount += 1
+            }
+        }
+        #if os(iOS)
+        // The hero artwork runs up behind the status and navigation bars.
+        .ignoresSafeArea(edges: viewModel.heroSlides.isEmpty ? [] : .top)
+        .softTopScrollEdge()
+        #endif
         .navigationTitle("tabs.home")
         .tabRootChrome()
         .environment(\.reloadAfterPlaylistChange) { server in
@@ -54,6 +76,15 @@ struct HomeView: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.refreshPeriodically()
+        }
+        .task(id: seerrStore.isLoggedIn) {
+            viewModel.seerrBaseURL = seerrStore.isLoggedIn ? seerrStore.baseURLString.flatMap(URL.init(string:)) : nil
+        }
+        .onChange(of: settingsManager.interface.homeHero) {
+            viewModel.heroSettingsChanged()
+        }
+        .onChange(of: settingsManager.interface.homeHeroIncludesTrending) {
+            viewModel.heroSettingsChanged()
         }
         .onAppear {
             Task { await viewModel.refreshIfNeeded() }
@@ -90,3 +121,16 @@ struct HomeView: View {
         }
     }
 }
+
+#if os(iOS)
+    private extension View {
+        @ViewBuilder
+        func softTopScrollEdge() -> some View {
+            if #available(iOS 26.0, *) {
+                scrollEdgeEffectStyle(.soft, for: .top)
+            } else {
+                self
+            }
+        }
+    }
+#endif

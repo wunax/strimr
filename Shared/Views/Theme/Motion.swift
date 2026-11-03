@@ -13,6 +13,8 @@ enum Motion {
     /// Panels and bars sliding over the video, such as the player info panel or the tvOS player settings.
     static let panel: Animation = .smooth(duration: 0.3)
     static let heroFocusDelay: Duration = .milliseconds(150)
+    /// The home hero moving between its showcase and the rows below it: a larger move than `hero`.
+    static let showcase: Animation = .smooth(duration: 0.45)
 
     private static let fades: [Animation] = [crossfade, hero, ambient, controls]
 

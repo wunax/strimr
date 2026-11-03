@@ -817,6 +817,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let year: Int?
     let viewOffset: Int?
     let lastViewedAt: Int?
+    let addedAt: Int?
     let viewCount: Int?
     let originallyAvailableAt: String?
     let duration: Int?
@@ -895,7 +896,7 @@ nonisolated struct PlexItem: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, editionTitle, summary, thumb,
-             art, theme, year, viewOffset, lastViewedAt, viewCount
+             art, theme, year, viewOffset, lastViewedAt, addedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
         case contentRatingAge, tagline, slug, studio, rating, chapterSource, primaryExtraKey, ratingImage
         case index, leafCount, viewedLeafCount, childCount

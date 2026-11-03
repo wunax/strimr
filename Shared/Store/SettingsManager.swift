@@ -438,6 +438,32 @@ final class SettingsManager {
         persist()
     }
 
+    func setHomeHero(_ source: HomeHeroSource) {
+        settings.interface.homeHero = source
+        persist()
+    }
+
+    func setHomeHeroIncludesTrending(_ enabled: Bool) {
+        settings.interface.homeHeroIncludesTrending = enabled
+        persist()
+    }
+
+    /// Kept apart from the settings: it changes every day and holds whole items.
+    func featuredSelection(profileID: String) -> FeaturedSelection? {
+        defaults.data(forKey: featuredSelectionKey(profileID)).flatMap {
+            try? JSONDecoder().decode(FeaturedSelection.self, from: $0)
+        }
+    }
+
+    func setFeaturedSelection(_ selection: FeaturedSelection, profileID: String) {
+        guard let data = try? JSONEncoder().encode(selection) else { return }
+        defaults.set(data, forKey: featuredSelectionKey(profileID))
+    }
+
+    private func featuredSelectionKey(_ profileID: String) -> String {
+        "strimr.home.featured.\(profileID)"
+    }
+
     func setDisplayCollections(_ enabled: Bool) {
         settings.interface.displayCollections = enabled
         persist()

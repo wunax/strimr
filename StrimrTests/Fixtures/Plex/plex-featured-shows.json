@@ -1,0 +1,12 @@
+{
+  "MediaContainer": {
+    "size": 5,
+    "Metadata": [
+      {"ratingKey": "101", "key": "/library/metadata/101/children", "guid": "plex://show/aaa101", "type": "show", "title": "Fresh Show", "art": "/library/metadata/101/art/1", "addedAt": 1799500000, "leafCount": 8, "viewedLeafCount": 0, "audienceRating": 8.1, "Guid": [{"id": "tmdb://9001"}]},
+      {"ratingKey": "102", "key": "/library/metadata/102/children", "guid": "plex://show/aaa102", "type": "show", "title": "Started Show", "art": "/library/metadata/102/art/1", "addedAt": 1799400000, "leafCount": 10, "viewedLeafCount": 1, "audienceRating": 8.4},
+      {"ratingKey": "103", "key": "/library/metadata/103/children", "guid": "plex://show/aaa103", "type": "show", "title": "Finished Show", "art": "/library/metadata/103/art/1", "addedAt": 1780000000, "leafCount": 12, "viewedLeafCount": 12, "audienceRating": 8.3},
+      {"ratingKey": "104", "key": "/library/metadata/104/children", "guid": "plex://show/aaa104", "type": "show", "title": "Old Gem", "art": "/library/metadata/104/art/1", "addedAt": 1780000000, "leafCount": 6, "viewedLeafCount": 0, "audienceRating": 8.8},
+      {"ratingKey": "105", "key": "/library/metadata/105/children", "guid": "plex://show/aaa105", "type": "show", "title": "Old Average", "art": "/library/metadata/105/art/1", "addedAt": 1780000000, "leafCount": 6, "viewedLeafCount": 0, "audienceRating": 5.2}
+    ]
+  }
+}

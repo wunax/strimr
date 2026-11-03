@@ -16,6 +16,27 @@ final class HomeViewModel {
     private var catalogByServer: [ServerIdentity: [HomeRow]] = [:]
     private var libraryGroupOrder: [String] = []
     private(set) var loadedServers: Set<ServerIdentity> = []
+    /// Pages of the hero at the top of the home; empty when it is off or has nothing to show.
+    private(set) var heroSlides: [HomeHeroSlide] = []
+    @ObservationIgnored private var featuredByServer: [ServerIdentity: [FeaturedCandidate]] = [:]
+    @ObservationIgnored private var trendingCandidates: [FeaturedCandidate] = []
+    @ObservationIgnored private var trendingTask: Task<Void, Never>?
+    /// The day's selection is only saved once trending titles are in, or they could never take a place in it.
+    @ObservationIgnored private var isTrendingPending = false
+    @ObservationIgnored private var hasLoadedTrending = false
+    /// Set by the home while the user is signed in to Seerr, whose trending titles the hero can show.
+    @ObservationIgnored var seerrBaseURL: URL? {
+        didSet {
+            guard seerrBaseURL != oldValue else { return }
+            trendingCandidates = []
+            hasLoadedTrending = false
+            guard heroSource == .discover, refreshGate.hasStartedInitialLoad else { return }
+            loadTrending()
+            rebuildHero()
+        }
+    }
+
+    @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var loadedShownRowIDs: Set<String> = []
 
     @ObservationIgnored private let sessionManager: SessionManager
@@ -46,14 +67,16 @@ final class HomeViewModel {
         let hiddenLibraryIDs: Set<String>
         let includesPlaylists: Bool
         let mergesNextUp: Bool
+        let loadsFeatured: Bool
     }
 
     private static let periodicRefreshInterval: Duration = .seconds(300)
     private static let failedServersRetryInterval: TimeInterval = 90
 
-    init(sessionManager: SessionManager, settingsManager: SettingsManager) {
+    init(sessionManager: SessionManager, settingsManager: SettingsManager, now: @escaping () -> Date = Date.init) {
         self.sessionManager = sessionManager
         self.settingsManager = settingsManager
+        self.now = now
     }
 
     private var registry: ServerRegistry {
@@ -203,6 +226,8 @@ final class HomeViewModel {
         guard !isPlaybackActive, refreshGate.hasStartedInitialLoad else { return }
         if libraryOrder != builtLibraryOrder {
             rebuild()
+        } else {
+            rebuildHero()
         }
         var reloaded = serversWithContentChanges.union(serversWithConfigurationChanges)
         let shownRowIDs = shownRowIDs
@@ -321,6 +346,7 @@ final class HomeViewModel {
             hiddenLibraryIDs: Set(hidden.filter { $0.server == server }.map(\.libraryID)),
             includesPlaylists: settingsManager.interface.displayPlaylists,
             mergesNextUp: settingsManager.interface.mergesNextUpIntoContinueWatching,
+            loadsFeatured: settingsManager.interface.homeHero == .discover,
         )
     }
 
@@ -344,6 +370,7 @@ final class HomeViewModel {
             for server in removed {
                 rowsByServer[server] = nil
                 catalogByServer[server] = nil
+                featuredByServer[server] = nil
                 cachedOnlyServers.remove(server)
             }
             loadedServers.subtract(removed)
@@ -392,6 +419,8 @@ final class HomeViewModel {
         }
         let shownRowIDs = shownRowIDs
         loadedShownRowIDs = shownRowIDs
+        let loadsFeatured = settingsManager.interface.homeHero == .discover
+        async let featured = fetchFeatured(sessions: loadsFeatured ? sessions : [], configurations: configurations)
         let result = await sessionManager.aggregation.fanOut(servers: sessions) { services in
             let configuration = configurations[services.identity]
             return try await services.home.loadHome(
@@ -401,10 +430,14 @@ final class HomeViewModel {
                 mergesNextUp: configuration?.mergesNextUp ?? false,
             )
         }
+        let featuredResult = await featured
         guard !Task.isCancelled else { return }
 
         for (server, content) in result.value {
             rowsByServer[server] = content.rows
+        }
+        for (server, candidates) in featuredResult {
+            featuredByServer[server] = candidates
         }
         cachedOnlyServers.subtract(result.succeeded)
         loadedServers.formUnion(result.succeeded)
@@ -412,6 +445,7 @@ final class HomeViewModel {
             // Servers that did not answer are absent from the home; their row preferences are untouched.
             for server in Set(rowsByServer.keys).subtracting(result.succeeded) {
                 rowsByServer[server] = nil
+                featuredByServer[server] = nil
                 cachedOnlyServers.remove(server)
             }
             loadedServers = result.succeeded
@@ -423,6 +457,9 @@ final class HomeViewModel {
             }
         #endif
 
+        if loadsFeatured, servers == nil || !hasLoadedTrending {
+            loadTrending()
+        }
         rebuild()
         if !hasContent, !result.failed.isEmpty, result.succeeded.isEmpty, !preservingExistingContent {
             errorMessage = String(localized: "home.error.unavailable")
@@ -475,6 +512,112 @@ final class HomeViewModel {
         )
         var seenGroups = Set<String>()
         libraryGroupOrder = allCatalogRows.map(Self.groupID(of:)).filter { seenGroups.insert($0).inserted }
+        rebuildHero()
+    }
+
+    // MARK: - Hero
+
+    var heroSource: HomeHeroSource {
+        settingsManager.interface.homeHero
+    }
+
+    /// Applies a change of the hero settings without waiting for the next refresh.
+    func heroSettingsChanged() {
+        rebuildHero()
+        guard heroSource == .discover, refreshGate.hasStartedInitialLoad else { return }
+        let missing = loadedServers.subtracting(featuredByServer.keys)
+        if !missing.isEmpty {
+            Task { await reload(servers: missing, preservingExistingContent: true) }
+        } else if settingsManager.interface.homeHeroIncludesTrending, !hasLoadedTrending, !isTrendingPending {
+            loadTrending()
+        }
+    }
+
+    private func fetchFeatured(
+        sessions: [ServerSession],
+        configurations: [ServerIdentity: LoadConfiguration],
+    ) async -> [ServerIdentity: [FeaturedCandidate]] {
+        guard !sessions.isEmpty else { return [:] }
+        return await sessionManager.aggregation.fanOut(servers: sessions) { services in
+            try await services.home.loadFeaturedCandidates(
+                hiddenLibraryIDs: configurations[services.identity]?.hiddenLibraryIDs ?? [],
+            )
+        }.value
+    }
+
+    /// Trending titles load after the home, as they take a search per title on every server.
+    private func loadTrending() {
+        trendingTask?.cancel()
+        guard settingsManager.interface.homeHeroIncludesTrending, let seerrBaseURL else {
+            isTrendingPending = false
+            return
+        }
+        isTrendingPending = true
+        let sessions = registry.sessions
+        let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
+        let hiddenByServer = Dictionary(grouping: hidden, by: \.server).mapValues { Set($0.map(\.libraryID)) }
+        let loader = FeaturedTrendingLoader(baseURL: seerrBaseURL, aggregation: sessionManager.aggregation)
+        trendingTask = Task { [weak self] in
+            let candidates = await loader.candidates(sessions: sessions, hiddenLibraryIDs: hiddenByServer)
+            guard let self, !Task.isCancelled else { return }
+            trendingCandidates = candidates
+            isTrendingPending = false
+            hasLoadedTrending = true
+            rebuildHero()
+        }
+    }
+
+    private func rebuildHero() {
+        let slides: [HomeHeroSlide] = switch heroSource {
+        case .off:
+            []
+        case .continueWatching:
+            HomeHeroSlides.resume(from: availableRows)
+        case .discover:
+            HomeHeroSlides.featured(featuredSelection())
+        }
+        if slides != heroSlides {
+            heroSlides = slides
+        }
+    }
+
+    /// Today's titles: the saved selection keeps its places, and shows alone until the servers answer.
+    private func featuredSelection() -> [FeaturedCandidate] {
+        let seed = FeaturedSeed.make(profileID: profileID, date: now())
+        let stored = settingsManager.featuredSelection(profileID: profileID).flatMap { $0.day == seed.day ? $0 : nil }
+        let watching = HomeHeroSlides.watchingItems(in: availableRows)
+        let order = registry.sessions.map(\.identity)
+        guard !featuredByServer.isEmpty else {
+            guard let stored else { return [] }
+            let servers = order.map { server in
+                ServerFeaturedCandidates(server: server, candidates: stored.candidates.filter { $0.server == server })
+            }
+            return FeaturedAggregation.select(
+                servers,
+                excluding: watching,
+                previous: stored.candidates.map(\.id),
+                seed: seed,
+            )
+        }
+        let includesTrending = settingsManager.interface.homeHeroIncludesTrending
+        let trending = Dictionary(grouping: includesTrending ? trendingCandidates : [], by: \.server)
+        let servers = order.compactMap { server -> ServerFeaturedCandidates? in
+            let candidates = (featuredByServer[server] ?? []) + (trending[server] ?? [])
+            return candidates.isEmpty ? nil : ServerFeaturedCandidates(server: server, candidates: candidates)
+        }
+        let selection = FeaturedAggregation.select(
+            servers,
+            excluding: watching,
+            previous: stored?.candidates.map(\.id) ?? [],
+            seed: seed,
+        )
+        if !isTrendingPending, selection != stored?.candidates {
+            settingsManager.setFeaturedSelection(
+                FeaturedSelection(day: seed.day, candidates: selection),
+                profileID: profileID,
+            )
+        }
+        return selection
     }
 
     // MARK: - Catalog
