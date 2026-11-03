@@ -22,7 +22,9 @@
 
         var body: some View {
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
+                // Not lazy: a page built while an arrow scrolls to it would lay out inside that animation, its text
+                // sliding in and the scroll coming to rest off the page.
+                HStack(spacing: 0) {
                     ForEach(slides) { slide in
                         HomeHeroPage(slide: slide, onPlay: onPlay, onDetails: onDetails)
                             .containerRelativeFrame(.horizontal)
@@ -30,15 +32,15 @@
                 }
                 .scrollTargetLayout()
             }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $selection)
-            .scrollIndicators(.never)
-            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+            .scrollPosition(id: $selection, anchor: .leading)
             .onScrollPhaseChange { _, phase in
                 if phase != .idle {
                     restart += 1
                 }
             }
+            .scrollIndicators(.never)
+            .scrollClipDisabled()
             .onScrollVisibilityChange(threshold: 0.5) { isVisible = $0 }
             .containerRelativeFrame(.vertical) { height, _ in
                 Self.height(for: height)
