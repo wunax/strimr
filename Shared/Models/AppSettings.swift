@@ -60,6 +60,24 @@ enum PortraitEpisodeArtwork: String, Codable, CaseIterable, Hashable {
     }
 }
 
+/// What the hero at the top of the home shows.
+enum HomeHeroSource: String, Codable, CaseIterable, Hashable {
+    case discover
+    case continueWatching
+    case off
+
+    var title: String {
+        switch self {
+        case .discover:
+            String(localized: "settings.interface.homeHero.discover")
+        case .continueWatching:
+            String(localized: "settings.interface.homeHero.continueWatching")
+        case .off:
+            String(localized: "settings.interface.homeHero.off")
+        }
+    }
+}
+
 enum StartupScreen: String, Codable, CaseIterable, Hashable {
     case home
     case discover
@@ -535,6 +553,8 @@ struct InterfaceSettings: Codable, Equatable {
     var continueWatchingAction = ContinueWatchingAction.openDetails
     /// Jellyfin keeps Next Up apart; Plex already shows a single row.
     var mergesNextUpIntoContinueWatching = false
+    var homeHero = HomeHeroSource.discover
+    var homeHeroIncludesTrending = true
     var tabBarPlacement = TabBarPlacement.top
     var startupScreen = StartupScreen.home
 
@@ -594,6 +614,8 @@ struct InterfaceSettings: Codable, Equatable {
             Bool.self,
             forKey: .mergesNextUpIntoContinueWatching,
         ) ?? false
+        homeHero = (try? container.decode(HomeHeroSource.self, forKey: .homeHero)) ?? .discover
+        homeHeroIncludesTrending = try container.decodeIfPresent(Bool.self, forKey: .homeHeroIncludesTrending) ?? true
         tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
         startupScreen = (try? container.decode(StartupScreen.self, forKey: .startupScreen)) ?? .home
     }

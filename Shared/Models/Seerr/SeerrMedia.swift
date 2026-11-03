@@ -136,12 +136,16 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
     let mediaType: SeerrMediaType?
     let jellyfinMediaId: String?
     let jellyfinMediaId4k: String?
+    /// Id of the title on the Plex server linked to Seerr.
+    let ratingKey: String?
+    /// Link to the title on the linked server; for Plex it carries the server's machine identifier.
+    let mediaUrl: String?
     let downloadStatus: [SeerrDownloadItem]?
     let downloadStatus4k: [SeerrDownloadItem]?
 
     private enum CodingKeys: String, CodingKey {
         case id, status, status4k, seasons, requests, tmdbId, mediaType
-        case jellyfinMediaId, jellyfinMediaId4k
+        case jellyfinMediaId, jellyfinMediaId4k, ratingKey, mediaUrl
         case downloadStatus, downloadStatus4k
     }
 
@@ -156,6 +160,8 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
         mediaType = try container.decodeIfPresent(SeerrMediaType.self, forKey: .mediaType)
         jellyfinMediaId = Self.decodeString(container, key: .jellyfinMediaId)
         jellyfinMediaId4k = Self.decodeString(container, key: .jellyfinMediaId4k)
+        ratingKey = Self.decodeString(container, key: .ratingKey)
+        mediaUrl = Self.decodeString(container, key: .mediaUrl)
         downloadStatus = try? container.decodeIfPresent([SeerrDownloadItem].self, forKey: .downloadStatus)
         downloadStatus4k = try? container.decodeIfPresent([SeerrDownloadItem].self, forKey: .downloadStatus4k)
     }

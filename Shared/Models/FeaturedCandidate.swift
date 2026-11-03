@@ -85,3 +85,9 @@ struct FeaturedSeed: Hashable {
         return hash
     }
 }
+
+/// The hero of a day, saved to show it at once on launch and to keep it stable through the day.
+struct FeaturedSelection: Codable, Equatable {
+    let day: Int
+    let candidates: [FeaturedCandidate]
+}

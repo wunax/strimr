@@ -4,6 +4,9 @@ import Observation
 @Observable
 final class MediaFocusModel {
     var focusedMedia: MediaItem?
+    /// Bumped as soon as a card takes focus, before the hero settles on it, for views that react to focus entering
+    /// the cards.
+    private(set) var cardFocusCount = 0
     @ObservationIgnored private var pendingUpdate: Task<Void, Never>?
 
     init(focusedMedia: MediaItem? = nil) {
@@ -12,6 +15,7 @@ final class MediaFocusModel {
 
     /// Points the hero at `media` once focus has rested on it.
     func focus(_ media: MediaItem) {
+        cardFocusCount += 1
         settle { [weak self] in
             self?.focusedMedia = media
         }
