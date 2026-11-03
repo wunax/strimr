@@ -5644,28 +5644,6 @@
         }
       }
     },
-    "livetv.channel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Channel"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chaîne"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "频道"
-          }
-        }
-      }
-    },
     "livetv.channel.unknown" : {
       "localizations" : {
         "en" : {
@@ -5892,28 +5870,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "À venir"
-          }
-        }
-      }
-    },
-    "livetv.dvr.unsupported" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DVR is not configured for this server."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le DVR n’est pas configuré sur ce serveur."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此服务器尚未配置 DVR。"
           }
         }
       }
@@ -6160,28 +6116,6 @@
         }
       }
     },
-    "livetv.favoritesOnly" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favorites Only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favoris uniquement"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅显示收藏"
-          }
-        }
-      }
-    },
     "livetv.guide.channelSchedule" : {
       "localizations" : {
         "en" : {
@@ -6246,28 +6180,6 @@
         }
       }
     },
-    "livetv.guide.next" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next 6 Hours"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "6 heures suivantes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "后6小时"
-          }
-        }
-      }
-    },
     "livetv.guide.next %@ %@" : {
       "localizations" : {
         "en" : {
@@ -6280,28 +6192,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ensuite : %1$@ %2$@"
-          }
-        }
-      }
-    },
-    "livetv.guide.noData" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No guide data"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune donnée de guide"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无节目指南数据"
           }
         }
       }
@@ -6324,28 +6214,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "现在"
-          }
-        }
-      }
-    },
-    "livetv.guide.previous" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Previous 6 Hours"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "6 heures précédentes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前6小时"
           }
         }
       }
@@ -6586,28 +6454,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法播放直播频道。"
-          }
-        }
-      }
-    },
-    "livetv.player.behind %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min behind"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min de retard"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "落后直播 %lld 分钟"
           }
         }
       }
