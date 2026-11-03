@@ -100,13 +100,6 @@ final class SettingsViewModel {
         )
     }
 
-    var tintsLiveTVGuideCategoriesBinding: Binding<Bool> {
-        Binding(
-            get: { self.settingsManager.interface.tintsLiveTVGuideCategories },
-            set: { self.settingsManager.setTintsLiveTVGuideCategories($0) },
-        )
-    }
-
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },

@@ -27,9 +27,10 @@ struct LiveTVView: View {
     @Environment(MediaServices.self) private var services
     @Environment(SettingsManager.self) private var settingsManager
     @State private var section = LiveTVSection.onNow
-    @State private var favoritesOnly = false
     @State private var selectedProgram: LiveTVProgram?
     @State private var isManagingFavorites = false
+    @State private var isSearching = false
+    @State private var guideScrollRequest: LiveTVGuideScrollRequest?
 
     private var sections: [LiveTVSection] {
         store.dvr == nil ? [.onNow, .guide] : LiveTVSection.allCases
@@ -55,9 +56,11 @@ struct LiveTVView: View {
                 case .guide:
                     LiveTVGuideView(
                         store: store,
-                        favoritesOnly: favoritesOnly,
+                        scrollRequest: $guideScrollRequest,
+                        onOpenProgram: open,
+                        onShowDetails: { selectedProgram = $0 },
                         onTuneChannel: tune,
-                        onSelectProgram: { selectedProgram = $0 },
+                        onManageFavorites: { isManagingFavorites = true },
                     )
                 case .recordings:
                     LiveTVRecordingsView(
@@ -71,19 +74,27 @@ struct LiveTVView: View {
         .navigationTitle("livetv.title")
         .toolbar {
             ToolbarItemGroup {
-                if section == .guide {
-                    Toggle("livetv.favoritesOnly", systemImage: "star.fill", isOn: $favoritesOnly)
-                    Button("livetv.favorites.manage", systemImage: "arrow.up.arrow.down") {
-                        isManagingFavorites = true
-                    }
+                Button { isSearching = true } label: {
+                    Image(systemName: "magnifyingglass")
                 }
-                Button("common.refresh", systemImage: "arrow.clockwise") {
+                .accessibilityLabel(Text("livetv.search.title"))
+                .disabled(store.channels.isEmpty)
+                Button {
                     Task { await store.load(start: store.guideStart, force: true) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
+                .accessibilityLabel(Text("common.refresh"))
             }
         }
         .task { await store.load() }
         .onAppear {
+            #if DEBUG
+                if DemoMode.isEnabled, let demo = DemoLiveTV.section.flatMap(LiveTVSection.init(rawValue:)) {
+                    section = demo
+                    return
+                }
+            #endif
             if let saved = settingsManager.liveTVSection(server: services.identity)
                 .flatMap(LiveTVSection.init(rawValue:)), sections.contains(saved)
             {
@@ -103,6 +114,27 @@ struct LiveTVView: View {
         }
         .taskPresentation(isPresented: $isManagingFavorites) {
             FavoriteChannelOrderView(store: store)
+        }
+        .taskPresentation(isPresented: $isSearching) {
+            LiveTVGuideSearchView(
+                store: store,
+                onSelectChannel: { channel in
+                    section = .guide
+                    guideScrollRequest = LiveTVGuideScrollRequest(
+                        date: Date(),
+                        channel: channel.identity,
+                        movesFocus: true,
+                    )
+                },
+                onSelectProgram: { program in
+                    section = .guide
+                    guideScrollRequest = LiveTVGuideScrollRequest(
+                        date: max(program.startDate, Date()),
+                        channel: program.channelIdentity,
+                        movesFocus: true,
+                    )
+                },
+            )
         }
     }
 
@@ -149,6 +181,15 @@ struct LiveTVView: View {
             } : nil,
             toggleFavorite: { channel in Task { await store.toggleFavorite(channel) } },
         )
+    }
+
+    /// On air plays, later opens the program page.
+    private func open(_ program: LiveTVProgram) {
+        if program.isCurrentlyAiring {
+            tune(program)
+        } else {
+            selectedProgram = program
+        }
     }
 
     private func openRecording(_ recording: DVRRecording) {

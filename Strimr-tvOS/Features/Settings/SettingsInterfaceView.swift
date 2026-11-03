@@ -99,6 +99,16 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayLiveTVTab")
+                if settingsManager.interface.displayLiveTVTab {
+                    Toggle(
+                        "settings.interface.liveTVGuideCategoryTint",
+                        isOn: Binding(
+                            get: { settingsManager.interface.tintsLiveTVGuideCategories },
+                            set: { settingsManager.setTintsLiveTVGuideCategories($0) },
+                        ),
+                    )
+                    .settingsFocus("settings.interface.liveTVGuideCategoryTint")
+                }
             } header: {
                 Text("settings.interface.tabs.section")
             }

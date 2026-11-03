@@ -3,7 +3,7 @@ import SwiftUI
 /// A channel's logo, or its number and name when the server has none.
 struct LiveTVChannelLogo: View {
     let channel: LiveTVChannel
-    var showsNumber = false
+    var showsNumber = true
 
     var body: some View {
         if let thumbPath = channel.thumbPath {
@@ -11,7 +11,7 @@ struct LiveTVChannelLogo: View {
                 .accessibilityLabel(Text(channel.displayTitle))
         } else {
             VStack(spacing: 2) {
-                if let number = channel.number {
+                if showsNumber, let number = channel.number {
                     Text(number)
                         .font(.cardTitle.monospacedDigit())
                 }

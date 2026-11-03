@@ -735,6 +735,8 @@ final class PlayerViewModel {
         if let liveSession {
             self.liveSession = nil
             invalidateLiveReporting()
+            liveWatchTask?.cancel()
+            mediaServices?.liveTVStore.notePlaybackEnded(on: liveSession.channel.identity)
             let pending = pendingLiveSessionToStop
             pendingLiveSessionToStop = nil
             Task {

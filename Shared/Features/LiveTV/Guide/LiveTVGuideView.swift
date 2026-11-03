@@ -1,362 +1,329 @@
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
+enum LiveTVGuideFilter: Hashable {
+    case all
+    case favorites
+    case category(LiveTVCategory)
 
-#if os(iOS)
-    private final class GuideScrollViewConfiguratorView: UIView {
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            configureScrollView()
+    var title: LocalizedStringKey {
+        switch self {
+        case .all: "livetv.guide.filter.all"
+        case .favorites: "livetv.shelf.favorites"
+        case let .category(category): category.title
         }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            configureScrollView()
-        }
-
-        private func configureScrollView() {
-            var ancestor = superview
-            while let current = ancestor {
-                if let scrollView = current as? UIScrollView {
-                    scrollView.bounces = false
-                    scrollView.alwaysBounceHorizontal = false
-                    scrollView.alwaysBounceVertical = false
-                    scrollView.isDirectionalLockEnabled = true
-                    return
-                }
-                ancestor = current.superview
-            }
-        }
-    }
-
-    private struct GuideScrollViewConfigurator: UIViewRepresentable {
-        func makeUIView(context _: Context) -> GuideScrollViewConfiguratorView {
-            GuideScrollViewConfiguratorView(frame: .zero)
-        }
-
-        func updateUIView(_ view: GuideScrollViewConfiguratorView, context _: Context) {
-            view.setNeedsLayout()
-        }
-    }
-#endif
-
-struct LiveTVGuideView: View {
-    private enum FocusItem: Hashable {
-        case favorite(LiveTVChannelIdentity)
-        case channel(LiveTVChannelIdentity)
-        case program(LiveTVProgramIdentity)
-    }
-
-    @Bindable var store: LiveTVStore
-    let favoritesOnly: Bool
-    let onTuneChannel: (LiveTVChannel) -> Void
-    let onSelectProgram: (LiveTVProgram) -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    #if os(tvOS)
-        @FocusState private var focusedGuideItem: FocusItem?
-    #endif
-
-    private var displayedChannels: [LiveTVChannel] {
-        favoritesOnly ? store.channels.filter(\.isFavorite) : store.channels
-    }
-
-    var body: some View {
-        VStack(spacing: 8) {
-            guideNavigation
-
-            if displayedChannels.isEmpty {
-                LiveTVEmptyState("livetv.empty.favorites", systemImage: "star", message: store.errorMessage)
-            } else {
-                ScrollView([.horizontal, .vertical]) {
-                    LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
-                        Section {
-                            ForEach(displayedChannels) { channel in guideRow(channel) }
-                        } header: {
-                            guideHeader
-                                .glassSurface(in: Rectangle())
-                        }
-                    }
-                    .padding(.horizontal)
-                    .overlay(alignment: .topLeading) {
-                        TimelineView(.periodic(from: .now, by: 60)) { context in
-                            if store.guideStart <= context.date, context.date < store.guideEnd {
-                                Rectangle()
-                                    .fill(.red)
-                                    .frame(width: 2, height: CGFloat(displayedChannels.count * 68 + 28))
-                                    .offset(
-                                        x: 186 + context.date.timeIntervalSince(store.guideStart) / 15,
-                                        y: 24,
-                                    )
-                                    .accessibilityHidden(true)
-                            }
-                        }
-                    }
-                    #if os(iOS)
-                    .background(GuideScrollViewConfigurator())
-                    #endif
-                }
-            }
-        }
-    }
-
-    private var guideNavigation: some View {
-        ViewThatFits(in: .horizontal) {
-            ZStack {
-                guideDateLabel
-                    .fixedSize(horizontal: true, vertical: false)
-                HStack(spacing: 12) {
-                    Button("livetv.guide.previous", systemImage: "chevron.left") {
-                        shiftGuide(hours: -6)
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 8)
-                    HStack(spacing: 12) {
-                        Button("livetv.guide.now") {
-                            Task { await store.jumpToNow() }
-                        }
-                        .fixedSize(horizontal: true, vertical: false)
-                        Button("livetv.guide.next", systemImage: "chevron.right") {
-                            shiftGuide(hours: 6)
-                        }
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                }
-            }
-
-            ZStack {
-                guideDateLabel
-                    .minimumScaleFactor(0.8)
-                HStack {
-                    guideArrowButton(systemName: "chevron.left", label: "livetv.guide.previous") {
-                        shiftGuide(hours: -6)
-                    }
-                    Spacer(minLength: 0)
-                    HStack(spacing: 8) {
-                        Button {
-                            Task { await store.jumpToNow() }
-                        } label: {
-                            Image(systemName: "dot.circle")
-                                .frame(minWidth: 44, minHeight: 44)
-                        }
-                        .accessibilityLabel(Text("livetv.guide.now"))
-                        guideArrowButton(systemName: "chevron.right", label: "livetv.guide.next") {
-                            shiftGuide(hours: 6)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-
-    private var guideDateLabel: some View {
-        Text(store.guideStart, format: .dateTime.weekday().month().day())
-            .font(.facts.weight(.semibold))
-            .foregroundStyle(.textPrimary)
-            .lineLimit(1)
-    }
-
-    private func guideArrowButton(
-        systemName: String,
-        label: LocalizedStringKey,
-        action: @escaping () -> Void,
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .frame(minWidth: 44, minHeight: 44)
-        }
-        .accessibilityLabel(Text(label))
-    }
-
-    private func shiftGuide(hours: Int) {
-        Task { await store.shiftGuide(hours: hours) }
-    }
-
-    private var guideHeader: some View {
-        HStack(spacing: 0) {
-            Text("livetv.channel").frame(width: 170, alignment: .leading)
-            ForEach(0 ..< 12, id: \.self) { index in
-                Text(store.guideStart.addingTimeInterval(Double(index) * 1800), format: .dateTime.hour().minute())
-                    .frame(width: 120, alignment: .leading)
-            }
-        }
-        .font(.cardMetadata)
-        .foregroundStyle(.textSecondary)
-    }
-
-    private func guideRow(_ channel: LiveTVChannel) -> some View {
-        #if os(tvOS)
-            let isFavoriteFocused = focusedGuideItem == .favorite(channel.identity)
-            let isChannelFocused = focusedGuideItem == .channel(channel.identity)
-        #else
-            let isFavoriteFocused = false
-            let isChannelFocused = false
-        #endif
-
-        return HStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Group {
-                    #if os(tvOS)
-                        guideFavoriteLabel(channel, isFocused: isFavoriteFocused)
-                            .focusable()
-                            .focused($focusedGuideItem, equals: .favorite(channel.identity))
-                            .onTapGesture { Task { await store.toggleFavorite(channel) } }
-                            .accessibilityAddTraits(.isButton)
-                    #else
-                        Button { Task { await store.toggleFavorite(channel) } } label: {
-                            guideFavoriteLabel(channel, isFocused: false)
-                        }
-                        .buttonStyle(.plain)
-                    #endif
-                }
-                .animation(Motion.focus, value: isFavoriteFocused)
-                .accessibilityLabel(
-                    Text(channel.isFavorite ? "livetv.favorite.remove" : "livetv.favorite.add"),
-                )
-
-                Group {
-                    #if os(tvOS)
-                        guideChannelLabel(channel, isFocused: isChannelFocused)
-                            .focusable()
-                            .focused($focusedGuideItem, equals: .channel(channel.identity))
-                            .onTapGesture { onTuneChannel(channel) }
-                            .accessibilityAddTraits(.isButton)
-                    #else
-                        Button { onTuneChannel(channel) } label: {
-                            guideChannelLabel(channel, isFocused: false)
-                        }
-                        .buttonStyle(.plain)
-                    #endif
-                }
-                .animation(Motion.focus, value: isChannelFocused)
-                .accessibilityLabel(Text("livetv.channel.watch \(channel.displayTitle)"))
-            }
-            .frame(width: 160, alignment: .leading)
-
-            let programs = store.programs
-                .filter {
-                    $0.channelIdentity == channel.identity && $0.endDate > store.guideStart && $0.startDate < store
-                        .guideEnd
-                }
-            ZStack(alignment: .leading) {
-                if programs.isEmpty {
-                    Text("livetv.guide.noData")
-                        .font(.cardMetadata)
-                        .foregroundStyle(.textTertiary)
-                } else {
-                    ForEach(programs, id: \.identity) { program in
-                        let visibleStart = max(program.startDate, store.guideStart)
-                        let visibleEnd = min(program.endDate, store.guideEnd)
-                        #if os(tvOS)
-                            let isFocused = focusedGuideItem == .program(program.identity)
-                        #else
-                            let isFocused = false
-                        #endif
-                        Group {
-                            #if os(tvOS)
-                                guideProgramLabel(
-                                    program,
-                                    width: max(4, visibleEnd.timeIntervalSince(visibleStart) / 15 - 4),
-                                    isFocused: isFocused,
-                                )
-                                .focusable()
-                                .focused($focusedGuideItem, equals: .program(program.identity))
-                                .onTapGesture { onSelectProgram(program) }
-                                .accessibilityAddTraits(.isButton)
-                            #else
-                                Button { onSelectProgram(program) } label: {
-                                    guideProgramLabel(
-                                        program,
-                                        width: max(4, visibleEnd.timeIntervalSince(visibleStart) / 15 - 4),
-                                        isFocused: false,
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            #endif
-                        }
-                        .offset(x: visibleStart.timeIntervalSince(store.guideStart) / 15)
-                        .zIndex(isFocused ? 1 : 0)
-                        .animation(Motion.focus, value: isFocused)
-                    }
-                }
-            }
-            .frame(width: 1440, height: 64, alignment: .leading)
-            .clipped()
-        }
-    }
-
-    private func guideFavoriteLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
-        Image(systemName: channel.isFavorite ? "star.fill" : "star")
-            .foregroundStyle(channel.isFavorite ? .yellow : .textTertiary)
-            .frame(width: 34, height: 34)
-            .guideFocusAppearance(in: Circle(), isFocused: isFocused, scale: 1.08, reduceMotion: reduceMotion)
-    }
-
-    private func guideChannelLabel(_ channel: LiveTVChannel, isFocused: Bool) -> some View {
-        Text(channel.displayTitle)
-            .font(.cardTitle)
-            .foregroundStyle(.textPrimary)
-            .lineLimit(2)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .guideFocusAppearance(in: guideCellShape, isFocused: isFocused, scale: 1.025, reduceMotion: reduceMotion)
-    }
-
-    private func guideProgramLabel(_ program: LiveTVProgram, width: CGFloat, isFocused: Bool) -> some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(program.title)
-                    .font(.cardTitle)
-                    .foregroundStyle(.textPrimary)
-                    .lineLimit(1)
-                if program.recordingID != nil || program.seriesRecordingID != nil {
-                    Image(systemName: "record.circle.fill").foregroundStyle(.red)
-                }
-            }
-            Text(program.startDate, format: .dateTime.hour().minute())
-                .font(.cardMetadata)
-                .foregroundStyle(.textSecondary)
-        }
-        .padding(8)
-        .frame(width: width, height: 64, alignment: .leading)
-        .background(program.isCurrentlyAiring ? Color.surfaceRaised : Color.surfaceSubtle)
-        .overlay(alignment: .bottomLeading) {
-            if program.isCurrentlyAiring {
-                Rectangle()
-                    .fill(.progressFill)
-                    .frame(width: width * min(max(program.progress, 0), 1), height: 3)
-                    .accessibilityHidden(true)
-            }
-        }
-        .clipShape(guideCellShape)
-        .guideFocusAppearance(in: guideCellShape, isFocused: isFocused, scale: 1.025, reduceMotion: reduceMotion)
-        .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: 10, y: 5)
-    }
-
-    private var guideCellShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
     }
 }
 
-private extension View {
-    /// Focus treatment of guide cells on tvOS, where they are focusable views rather than buttons.
-    func guideFocusAppearance(
-        in shape: some Shape,
-        isFocused: Bool,
-        scale: CGFloat,
-        reduceMotion: Bool,
-    ) -> some View {
-        background {
-            shape.fill(isFocused ? Color.surfaceRaised : Color.clear)
+/// The program guide: an information banner, filters and the grid, or a channel list on iPhone.
+struct LiveTVGuideView: View {
+    @Bindable var store: LiveTVStore
+    @Binding var scrollRequest: LiveTVGuideScrollRequest?
+    let onOpenProgram: (LiveTVProgram) -> Void
+    let onShowDetails: (LiveTVProgram) -> Void
+    let onTuneChannel: (LiveTVChannel) -> Void
+    let onManageFavorites: () -> Void
+
+    @Environment(MediaServices.self) private var services
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @State private var filter = LiveTVGuideFilter.all
+    @State private var focusedProgram: LiveTVProgram?
+    @State private var lastSeen: Date?
+
+    /// After this long away, the guide comes back on the current time rather than where it was left.
+    private static let recenterDelay: TimeInterval = 10 * 60
+
+    private var usesChannelList: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact && verticalSizeClass != .compact
+        #else
+            false
+        #endif
+    }
+
+    private var filters: [LiveTVGuideFilter] {
+        let available = Set(store.programs.flatMap(\.categories))
+        return [.all, .favorites] + LiveTVShelves.categoryOrder.filter(available.contains).map { .category($0) }
+    }
+
+    private var channels: [LiveTVChannel] {
+        switch filter {
+        case .all:
+            return store.channels
+        case .favorites:
+            return store.channels.filter(\.isFavorite)
+        case let .category(category):
+            let matching = Set(store.programs.filter { $0.categories.contains(category) }.map(\.channelIdentity))
+            return store.channels.filter { matching.contains($0.identity) }
         }
-        .overlay {
-            shape.stroke(.textPrimary, lineWidth: isFocused ? 2 : 0)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if usesChannelList {
+                filterBar
+                LiveTVChannelListView(store: store, channels: channels, onTuneChannel: onTuneChannel)
+            } else {
+                GeometryReader { proxy in
+                    VStack(alignment: .leading, spacing: 12) {
+                        if showsBanner(in: proxy.size), let program = bannerProgram {
+                            LiveTVGuideBanner(program: program, channel: store.channel(for: program.channelIdentity))
+                                .padding(.horizontal, LayoutMetrics.pageMargin)
+                        }
+                        filterBar
+                        grid
+                    }
+                }
+            }
         }
-        .scaleEffect(isFocused && !reduceMotion ? scale : 1)
-        .contentShape(shape)
+        .onAppear {
+            if let lastSeen, Date().timeIntervalSince(lastSeen) > Self.recenterDelay {
+                jumpToNow(movesFocus: false)
+            }
+        }
+        .onDisappear { lastSeen = Date() }
+        .onChange(of: store.playbackEndedAt) { _, _ in
+            guard let channel = store.lastPlayedChannel else { return }
+            if !(store.guideStart ... store.guideEnd).contains(Date()) {
+                Task { await store.jumpToNow() }
+            }
+            scrollRequest = LiveTVGuideScrollRequest(date: Date(), channel: channel, movesFocus: true)
+        }
+    }
+
+    @ViewBuilder
+    private var grid: some View {
+        if channels.isEmpty {
+            LiveTVEmptyState("livetv.empty.favorites", systemImage: "star", message: store.errorMessage)
+        } else {
+            LiveTVGuideGrid(
+                model: LiveTVGuideGridModel(
+                    channels: channels,
+                    programs: store.programs,
+                    start: store.guideStart,
+                    end: store.guideEnd,
+                    playingChannel: store.lastPlayedChannel,
+                    tintsCategories: settingsManager.interface.tintsLiveTVGuideCategories,
+                ),
+                services: services,
+                scrollRequest: scrollRequest,
+                actions: LiveTVGuideGridActions(
+                    openProgram: onOpenProgram,
+                    showDetails: onShowDetails,
+                    tuneChannel: onTuneChannel,
+                    toggleFavorite: { channel in Task { await store.toggleFavorite(channel) } },
+                    focusProgram: { focusedProgram = $0 },
+                    reachEdge: { forward in Task { await store.extendGuide(forward: forward) } },
+                ),
+            )
+            .task(id: store.guideStart) {
+                if scrollRequest == nil {
+                    scrollRequest = LiveTVGuideScrollRequest(date: Date(), movesFocus: false)
+                }
+            }
+        }
+    }
+
+    private var bannerProgram: LiveTVProgram? {
+        if let focusedProgram {
+            return store.programs.first { $0.identity == focusedProgram.identity } ?? focusedProgram
+        }
+        return channels.lazy.compactMap { store.currentProgram(on: $0.identity) }.first
+    }
+
+    private func showsBanner(in size: CGSize) -> Bool {
+        #if os(iOS)
+            // iPad portrait keeps its height for the grid.
+            size.width > size.height
+        #else
+            true
+        #endif
+    }
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: LayoutMetrics.chipSpacing) {
+                ForEach(filters, id: \.self) { item in
+                    Button { filter = item } label: { Text(item.title) }
+                        .buttonStyle(.chip(isSelected: filter == item))
+                }
+                if filter == .favorites, store.channels.contains(where: \.isFavorite) {
+                    Button(action: onManageFavorites) {
+                        Label("livetv.favorites.manage", systemImage: "arrow.up.arrow.down")
+                    }
+                    .buttonStyle(.chip(isSelected: false))
+                }
+                Divider().frame(height: 24)
+                dayMenu
+                Button { jumpToNow(movesFocus: true) } label: {
+                    Label("livetv.guide.now", systemImage: "clock")
+                }
+                .buttonStyle(.chip(isSelected: false))
+            }
+            .padding(.horizontal, LayoutMetrics.pageMargin)
+            .padding(.vertical, 6)
+        }
+        .scrollClipDisabled()
+        #if os(tvOS)
+            .focusSection()
+        #endif
+    }
+
+    private var dayMenu: some View {
+        Menu {
+            ForEach(Self.days(), id: \.self) { day in
+                Button { select(day: day) } label: {
+                    Text(Self.dayTitle(day))
+                }
+            }
+        } label: {
+            Label {
+                Text(Self.dayTitle(store.guideStart.addingTimeInterval(3600)))
+            } icon: {
+                Image(systemName: "calendar")
+            }
+        }
+        #if os(tvOS)
+        .buttonStyle(.chip(isSelected: false))
+        #else
+        .menuStyle(.button)
+        .buttonStyle(.chip(isSelected: false))
+        #endif
+    }
+
+    private func select(day: Date) {
+        let start = LiveTVStore.guideStart(forDay: day)
+        Task {
+            await store.load(start: start, force: true)
+            scrollRequest = LiveTVGuideScrollRequest(date: start, movesFocus: true)
+        }
+    }
+
+    private func jumpToNow(movesFocus: Bool) {
+        let now = Date()
+        Task {
+            if !(store.guideStart ... store.guideEnd).contains(now) {
+                await store.jumpToNow()
+            }
+            scrollRequest = LiveTVGuideScrollRequest(date: now, movesFocus: movesFocus)
+        }
+    }
+
+    static func days(from now: Date = Date(), calendar: Calendar = .current) -> [Date] {
+        (0 ..< 7).compactMap { calendar.date(byAdding: .day, value: $0, to: calendar.startOfDay(for: now)) }
+    }
+
+    static func dayTitle(_ day: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        if calendar.isDate(day, inSameDayAs: now) {
+            return String(localized: "livetv.guide.today")
+        }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+           calendar.isDate(day, inSameDayAs: tomorrow)
+        {
+            return String(localized: "livetv.guide.tomorrow")
+        }
+        return day.formatted(.dateTime.weekday(.wide).day().month(.abbreviated))
+    }
+}
+
+/// The focused or hovered program above the grid: what it is, when, and a picture.
+struct LiveTVGuideBanner: View {
+    let program: LiveTVProgram
+    let channel: LiveTVChannel?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(program.title)
+                    .font(.tileTitle)
+                    .foregroundStyle(.textPrimary)
+                    .lineLimit(1)
+                Text(facts)
+                    .font(.facts)
+                    .foregroundStyle(.textSecondary)
+                    .lineLimit(1)
+                badges
+                if let summary = program.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.bodyText)
+                        .foregroundStyle(.textSecondary)
+                        .lineLimit(bannerSummaryLines)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let path = program.thumbPath ?? program.artPath {
+                ArtworkPathView(path: path, width: 480, height: 270)
+                    .frame(width: bannerImageWidth, height: bannerImageWidth * 9 / 16)
+                    .clipped()
+                    .mediaArtworkStyle(.compact)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(height: bannerHeight, alignment: .top)
+        .animation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion), value: program.identity)
+    }
+
+    private var facts: String {
+        var parts = [
+            program.startDate.formatted(date: .omitted, time: .shortened)
+                + " – " + program.endDate.formatted(date: .omitted, time: .shortened),
+        ]
+        if let episode = program.episodeLabel {
+            parts.append(episode)
+        }
+        if let channel {
+            parts.append(channel.displayTitle)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var badges: some View {
+        HStack(spacing: 6) {
+            if program.isLive {
+                badge("livetv.badge.live", color: .liveIndicator)
+            }
+            if program.isPremiere {
+                badge("livetv.badge.new", color: .textPrimary)
+            }
+            if program.isScheduledForRecording {
+                badge("livetv.badge.recorded", color: .recordingIndicator)
+            }
+        }
+    }
+
+    private func badge(_ title: LocalizedStringKey, color: Color) -> some View {
+        Text(title)
+            .font(.badge)
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(.surfaceRaised, in: Capsule(style: .continuous))
+    }
+
+    private var bannerHeight: CGFloat {
+        #if os(tvOS)
+            200
+        #else
+            132
+        #endif
+    }
+
+    private var bannerImageWidth: CGFloat {
+        #if os(tvOS)
+            340
+        #else
+            220
+        #endif
+    }
+
+    private var bannerSummaryLines: Int {
+        #if os(tvOS)
+            3
+        #else
+            2
+        #endif
     }
 }

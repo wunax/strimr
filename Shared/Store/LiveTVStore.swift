@@ -22,6 +22,9 @@ final class LiveTVStore {
     private(set) var guideStart = Date()
     private(set) var guideEnd = Date()
     private(set) var recentChannelKeys: [String] = []
+    /// The channel the player last left, and when, so the guide can bring it back into view.
+    private(set) var lastPlayedChannel: LiveTVChannelIdentity?
+    private(set) var playbackEndedAt: Date?
 
     @ObservationIgnored let service: any MediaLiveTVService
     @ObservationIgnored private let recentChannels: LiveTVRecentChannels?
@@ -29,6 +32,7 @@ final class LiveTVStore {
     @ObservationIgnored private var contentTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var didReportAvailabilityError = false
+    @ObservationIgnored private var isExtendingGuide = false
 
     init(service: any MediaLiveTVService, recentChannels: LiveTVRecentChannels? = nil) {
         self.service = service
@@ -59,6 +63,11 @@ final class LiveTVStore {
         programs
             .filter { $0.channelIdentity == channel && $0.startDate >= date }
             .min { $0.startDate < $1.startDate }
+    }
+
+    func notePlaybackEnded(on channel: LiveTVChannelIdentity) {
+        lastPlayedChannel = channel
+        playbackEndedAt = Date()
     }
 
     func recordWatched(_ channel: LiveTVChannelIdentity) {
@@ -160,6 +169,47 @@ final class LiveTVStore {
     func shiftGuide(hours: Int) async {
         await load(start: guideStart.addingTimeInterval(TimeInterval(hours * 3600)), force: true)
     }
+
+    /// Loads the next block of the guide past one of its edges and keeps what is already loaded.
+    func extendGuide(forward: Bool) async {
+        guard !isExtendingGuide, !channels.isEmpty else { return }
+        isExtendingGuide = true
+        defer { isExtendingGuide = false }
+        let loadGeneration = generation
+        let start = forward ? guideEnd : guideStart.addingTimeInterval(-Self.guideBlock)
+        let end = forward ? guideEnd.addingTimeInterval(Self.guideBlock) : guideStart
+        do {
+            let loaded = try await service.programs(from: start, to: end)
+            guard !Task.isCancelled, loadGeneration == generation else { return }
+            programs = Self.merging(programs, loaded)
+            if forward {
+                guideEnd = end
+            } else {
+                guideStart = start
+            }
+            applyRecordingState(upcomingRecordings)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            LiveTVErrorReporting.capture(error)
+        }
+    }
+
+    static func merging(_ current: [LiveTVProgram], _ loaded: [LiveTVProgram]) -> [LiveTVProgram] {
+        var seen = Set(current.map(\.identity))
+        return (current + loaded.filter { seen.insert($0.identity).inserted })
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    /// Start of the guide for a day: now for today, the morning for the days after.
+    static func guideStart(forDay day: Date, now: Date = Date(), calendar: Calendar = .current) -> Date {
+        if calendar.isDate(day, inSameDayAs: now) {
+            return now
+        }
+        let startOfDay = calendar.startOfDay(for: day)
+        return calendar.date(byAdding: .hour, value: 6, to: startOfDay) ?? startOfDay
+    }
+
+    private static let guideBlock: TimeInterval = 6 * 3600
 
     func jumpToNow() async {
         await load(start: Date(), force: true)

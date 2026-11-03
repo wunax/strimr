@@ -68,3 +68,16 @@ extension ShapeStyle where Self == Color {
         Color(red: 1, green: 0.76, blue: 0.28).opacity(0.7)
     }
 }
+
+extension LiveTVCategory {
+    /// Faint wash behind guide cells, so a category reads at a glance without competing with the titles.
+    var guideTint: Color {
+        switch self {
+        case .sports: Color(red: 0.2, green: 0.75, blue: 0.4)
+        case .movie: Color(red: 0.6, green: 0.4, blue: 0.95)
+        case .series: Color(red: 0.3, green: 0.55, blue: 1)
+        case .news: Color(red: 1, green: 0.6, blue: 0.2)
+        case .kids: Color(red: 1, green: 0.85, blue: 0.3)
+        }
+    }
+}
