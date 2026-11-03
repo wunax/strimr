@@ -19,6 +19,7 @@ struct HomeView: View {
     @State private var currentSlideID: MediaIdentity?
     @State private var heroFocusChangedAt = Date.distantPast
     @State private var autoAdvanceRestart = 0
+    @State private var autoAdvanceStartedAt: Date?
     @State private var isZoomedIn = false
     @FocusState private var focusedHeroButton: HomeHeroButton?
 
@@ -183,7 +184,13 @@ struct HomeView: View {
             .onMoveCommand(perform: handleHeroMove)
 
             if slides.count > 1 {
-                HomeShowcasePageIndicator(index: currentIndex, count: slides.count)
+                HomeShowcasePageIndicator(
+                    index: currentIndex,
+                    count: slides.count,
+                    autoAdvanceStartedAt: autoAdvanceStartedAt,
+                    autoAdvanceInterval: Self.autoAdvanceInterval,
+                )
+                .frame(maxWidth: .infinity)
             }
         }
         .focusSection()
@@ -241,7 +248,11 @@ struct HomeView: View {
     }
 
     private func autoAdvance() async {
-        guard autoAdvanceKey.isActive, heroMode == .showcase, slides.count > 1 else { return }
+        guard autoAdvanceKey.isActive, heroMode == .showcase, slides.count > 1 else {
+            autoAdvanceStartedAt = nil
+            return
+        }
+        autoAdvanceStartedAt = Date()
         try? await Task.sleep(for: Self.autoAdvanceInterval)
         guard !Task.isCancelled else { return }
         showSlide(at: currentIndex + 1)

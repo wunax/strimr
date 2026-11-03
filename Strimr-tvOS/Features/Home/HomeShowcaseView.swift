@@ -69,13 +69,21 @@ struct HomeShowcaseActions: View {
 struct HomeShowcasePageIndicator: View {
     let index: Int
     let count: Int
+    /// When the current page's auto-advance started; nil while it is paused or off.
+    let autoAdvanceStartedAt: Date?
+    let autoAdvanceInterval: Duration
 
     var body: some View {
         HStack(spacing: 12) {
             ForEach(0 ..< count, id: \.self) { page in
-                Capsule()
-                    .fill(page == index ? AnyShapeStyle(.selectionAccent) : AnyShapeStyle(.textTertiary))
-                    .frame(width: page == index ? 32 : 12, height: 12)
+                if page == index {
+                    AutoAdvanceProgressCapsule(startedAt: autoAdvanceStartedAt, interval: autoAdvanceInterval)
+                        .frame(width: 48, height: 12)
+                } else {
+                    Capsule()
+                        .fill(.textTertiary)
+                        .frame(width: 12, height: 12)
+                }
             }
         }
         .accessibilityElement()

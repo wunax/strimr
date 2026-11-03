@@ -16,6 +16,7 @@
         @State private var selection: MediaIdentity?
         @State private var restart = 0
         @State private var isVisible = true
+        @State private var autoAdvanceStartedAt: Date?
 
         private static let autoAdvanceInterval: Duration = .seconds(8)
 
@@ -31,7 +32,7 @@
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $selection)
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.never)
             .scrollClipDisabled()
             .onScrollPhaseChange { _, phase in
                 if phase != .idle {
@@ -49,6 +50,7 @@
                 }
             }
             #if os(macOS)
+            .simultaneousGesture(pageDrag)
             .overlay {
                 if slides.count > 1 {
                     pageArrows
@@ -94,14 +96,16 @@
         private var pageIndicator: some View {
             HStack(spacing: 8) {
                 ForEach(slides.indices, id: \.self) { index in
-                    Capsule()
-                        .fill(index == currentIndex ? AnyShapeStyle(.selectionAccent) : AnyShapeStyle(.textTertiary))
-                        .frame(width: index == currentIndex ? 18 : 7, height: 7)
+                    if index == currentIndex {
+                        AutoAdvanceProgressCapsule(startedAt: autoAdvanceStartedAt, interval: Self.autoAdvanceInterval)
+                            .frame(width: 28, height: 7)
+                    } else {
+                        Capsule()
+                            .fill(.textTertiary)
+                            .frame(width: 7, height: 7)
+                    }
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .glassSurface()
             .accessibilityElement()
             .accessibilityLabel(Text("home.hero.page \(currentIndex + 1) \(slides.count)"))
             .accessibilityAdjustableAction { direction in
@@ -121,6 +125,19 @@
                     arrow("chevron.right", label: "home.hero.next") { show(currentIndex + 1) }
                 }
                 .padding(.horizontal, 16)
+            }
+
+            /// A click-drag turns the page on release, as a swipe does on a trackpad.
+            private var pageDrag: some Gesture {
+                DragGesture(minimumDistance: 10)
+                    .onEnded { value in
+                        let distance = value.predictedEndTranslation.width
+                        if distance < -80 {
+                            show(currentIndex + 1)
+                        } else if distance > 80 {
+                            show(currentIndex - 1)
+                        }
+                    }
             }
 
             private func arrow(_ symbol: String, label: LocalizedStringKey, action: @escaping () -> Void)
@@ -155,8 +172,10 @@
 
         private func autoAdvance() async {
             guard isVisible, scenePhase == .active, !reduceMotion, !isVoiceOverEnabled, slides.count > 1 else {
+                autoAdvanceStartedAt = nil
                 return
             }
+            autoAdvanceStartedAt = Date()
             try? await Task.sleep(for: Self.autoAdvanceInterval)
             guard !Task.isCancelled else { return }
             show(currentIndex + 1)
