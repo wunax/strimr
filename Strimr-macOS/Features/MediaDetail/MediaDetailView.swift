@@ -75,7 +75,7 @@ struct MediaDetailView: View {
             }
         }
         .navigationTitle(viewModel.detailPrimaryLabel)
-        .task { await viewModel.loadDetails() }
+        .task { await viewModel.loadDetailsIfNeeded() }
         .onChange(of: mediaServices.mediaRevision) {
             guard !viewModel.wasDeleted else {
                 dismiss()
