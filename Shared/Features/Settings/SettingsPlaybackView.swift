@@ -27,6 +27,22 @@ struct SettingsPlaybackView: View {
                         Text("settings.playback.autoRotateVideo.description")
                     }
                 }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.pictureInPicture", isOn: viewModel.pictureInPictureBinding)
+                        Text("settings.playback.pictureInPicture.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.backgroundAudio", isOn: viewModel.backgroundAudioBinding)
+                        Text("settings.playback.backgroundAudio.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             #endif
 
             Section {

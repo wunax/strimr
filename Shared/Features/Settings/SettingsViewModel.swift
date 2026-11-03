@@ -58,6 +58,20 @@ final class SettingsViewModel {
         )
     }
 
+    var pictureInPictureBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.pictureInPicture },
+            set: { self.settingsManager.setPictureInPicture($0) },
+        )
+    }
+
+    var backgroundAudioBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.backgroundAudio },
+            set: { self.settingsManager.setBackgroundAudio($0) },
+        )
+    }
+
     var autoSkipIntrosBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.autoSkipIntros },

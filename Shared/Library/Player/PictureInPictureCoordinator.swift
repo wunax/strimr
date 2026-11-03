@@ -36,6 +36,13 @@
         private var needsSourceRebuildAfterStop = false
         private var isTransitioning = false
 
+        var isEnabled = true {
+            didSet {
+                guard isEnabled != oldValue else { return }
+                rebuildSource()
+            }
+        }
+
         init(engine: AetherEngine) {
             self.engine = engine
             super.init()
@@ -81,7 +88,9 @@
         }
 
         private func rebuildSource() {
-            let nextSource: PlaybackSource? = if let softwareSource = engine.softwarePiPSource {
+            let nextSource: PlaybackSource? = if !isEnabled {
+                nil
+            } else if let softwareSource = engine.softwarePiPSource {
                 .software(softwareSource)
             } else if let playerLayer = engine.nativePlayerLayer {
                 .native(playerLayer)

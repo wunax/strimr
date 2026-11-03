@@ -194,6 +194,16 @@ struct AppSettingsTests {
         #expect(playback.audioShaping.maxChannels == nil)
     }
 
+    @Test func `picture in picture and background audio stay on unless turned off`() throws {
+        let defaults = try decode(#"{"playback":{}}"#).playback
+        #expect(defaults.pictureInPicture)
+        #expect(defaults.backgroundAudio)
+
+        let disabled = try decode(#"{"playback":{"pictureInPicture":false,"backgroundAudio":false}}"#).playback
+        #expect(!disabled.pictureInPicture)
+        #expect(!disabled.backgroundAudio)
+    }
+
     @Test func `subtitle brightness is full unless chosen`() throws {
         #expect(try decode(#"{"playback":{}}"#).playback.subtitleBrightness == .full)
         #expect(try decode(#"{"playback":{"subtitleBrightness":"medium"}}"#).playback.subtitleBrightness == .medium)

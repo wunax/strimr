@@ -58,6 +58,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setPictureInPicture(_ enabled: Bool) {
+        settings.playback.pictureInPicture = enabled
+        persist()
+    }
+
+    func setBackgroundAudio(_ enabled: Bool) {
+        settings.playback.backgroundAudio = enabled
+        persist()
+    }
+
     func setAutoSkipIntros(_ enabled: Bool) {
         settings.playback.autoSkipIntros = enabled
         persist()

@@ -23505,6 +23505,50 @@
         }
       }
     },
+    "settings.playback.backgroundAudio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio en arrière-plan"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后台音频"
+          }
+        }
+      }
+    },
+    "settings.playback.backgroundAudio.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the audio playing when you leave the app, with controls in Control Center and on the Lock Screen. Turn off to pause playback instead, unless Picture in Picture or SharePlay is active."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuez l'écoute en quittant l'app, avec les commandes dans le Centre de contrôle et sur l'écran verrouillé. Désactivez pour mettre la lecture en pause, sauf en Picture-in-picture ou en SharePlay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开应用时继续播放音频，并可在控制中心和锁定屏幕中控制。关闭后将改为暂停播放（画中画或同播共享期间除外）。"
+          }
+        }
+      }
+    },
     "settings.playback.defaultSleepTimer" : {
       "localizations" : {
         "en" : {
@@ -24337,6 +24381,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放器叠层"
+          }
+        }
+      }
+    },
+    "settings.playback.pictureInPicture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture in Picture"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture-in-picture"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画中画"
+          }
+        }
+      }
+    },
+    "settings.playback.pictureInPicture.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep watching in a floating window when you leave the app. Turn off to hide the Picture in Picture button."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuez à regarder dans une fenêtre flottante en quittant l'app. Désactivez pour masquer le bouton Picture-in-picture."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开应用时在浮动窗口中继续观看。关闭后将隐藏画中画按钮。"
           }
         }
       }
