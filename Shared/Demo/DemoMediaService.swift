@@ -79,6 +79,10 @@
             page(hub.items, startIndex: startIndex, limit: limit)
         }
 
+        func loadFeaturedCandidates(hiddenLibraryIDs _: Set<String>) async throws -> [FeaturedCandidate] {
+            catalog.featuredCandidates
+        }
+
         // MARK: - Library
 
         func libraries() async throws -> [Library] {

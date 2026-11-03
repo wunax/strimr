@@ -88,9 +88,17 @@
             let pauseAt: TimeInterval?
         }
 
+        struct FeaturedEntry: Decodable {
+            let item: String
+            let reason: String
+            let season: Int?
+        }
+
         let server: Server
         let libraries: [LibraryEntry]
         let rows: [Row]
+        /// Titles of the home hero, in order; missing from catalogs built before the hero existed.
+        let featured: [FeaturedEntry]?
         let items: [Item]
         let people: [PersonEntry]
         let player: Player?
@@ -101,6 +109,7 @@
         let serverName: String
         let libraries: [Library]
         let homeRows: [HomeRow]
+        let featuredCandidates: [FeaturedCandidate]
         let player: DemoCatalogFile.Player?
         private let file: DemoCatalogFile
         private let server: ServerIdentity
@@ -170,6 +179,25 @@
             self.seasonsBySeries = seasonsBySeries
             self.episodesBySeason = episodesBySeason
             self.items = items
+
+            // Dated a day apart in their order, so the hero keeps the order of the catalog.
+            let now = Date()
+            featuredCandidates = (file.featured ?? []).enumerated().compactMap { index, entry in
+                guard let item = titles[entry.item] else { return nil }
+                let reason: FeaturedReason = switch entry.reason {
+                case "curated": .curated
+                case "newSeason": .newSeason
+                case "trending": .trending
+                case "rediscover": .rediscover
+                default: .recentlyAdded
+                }
+                return FeaturedCandidate(
+                    item: item,
+                    reason: reason,
+                    addedAt: now.addingTimeInterval(-Double(index) * 86400),
+                    newSeasonNumber: entry.season,
+                )
+            }
 
             homeRows = file.rows.compactMap { row in
                 let hub = Self.hub(row, server: server, items: row.items.compactMap { id in
