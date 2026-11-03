@@ -224,8 +224,7 @@
                         .foregroundStyle(.textSecondary)
                 }
 
-                TitleLogoView(media: slide.media, maxSize: logoSize)
-                    .frame(height: logoSize.height, alignment: .bottomLeading)
+                TitleLogoView(media: slide.media, maxSize: logoSize, hugsLogo: true)
 
                 MediaFactsLine(
                     facts: MediaFactsFormatter.facts(for: slide.media, namesStandardEdition: false),
@@ -254,6 +253,7 @@
                     .actionButtonStyle(.secondary)
                 }
                 .padding(.top, 4)
+                .controlSize(horizontalSizeClass == .compact ? .small : .regular)
             }
             .frame(maxWidth: 520, alignment: .leading)
             .accessibilityElement(children: .contain)

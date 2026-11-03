@@ -20,13 +20,7 @@ struct HomeShowcaseContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            if let eyebrow = slide.eyebrow {
-                Text(eyebrow)
-                    .eyebrowStyle()
-                    .foregroundStyle(.textSecondary)
-            }
-
-            MediaHeroContentView(media: slide.media)
+            MediaHeroContentView(media: slide.media, eyebrow: slide.eyebrow)
 
             if slide.isResume, let progress = slide.media.viewProgressPercentage {
                 ProgressView(value: progress, total: 100)

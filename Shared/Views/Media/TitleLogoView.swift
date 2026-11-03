@@ -13,6 +13,8 @@ struct TitleLogoView: View {
     let logoPath: String?
     let maxSize: CGSize
     let alignment: Alignment
+    /// Sizes the view to the logo itself rather than to `maxSize`, so a wide, short logo leaves no empty band.
+    let hugsLogo: Bool
 
     @State private var loaded: (key: String, image: Image)?
 
@@ -22,21 +24,20 @@ struct TitleLogoView: View {
         logoPath: String? = nil,
         maxSize: CGSize,
         alignment: Alignment = .bottomLeading,
+        hugsLogo: Bool = false,
     ) {
         self.media = media
         self.title = title ?? media.primaryLabel
         self.logoPath = logoPath ?? media.preferredLogoPath
         self.maxSize = maxSize
         self.alignment = alignment
+        self.hugsLogo = hugsLogo
     }
 
     var body: some View {
         ZStack(alignment: alignment) {
             if let image = currentImage {
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: maxSize.width, maxHeight: maxSize.height, alignment: alignment)
+                logo(image)
                     // Some logos are dark; a soft shadow keeps them readable on dark artwork without tinting them.
                     .shadow(color: .black.opacity(0.4), radius: 8)
                     .transition(.opacity)
@@ -57,6 +58,16 @@ struct TitleLogoView: View {
         .accessibilityLabel(Text(title))
         .accessibilityAddTraits(.isHeader)
         .task(id: cacheKey) { await load() }
+    }
+
+    @ViewBuilder
+    private func logo(_ image: Image) -> some View {
+        let fitted = image.resizable().scaledToFit()
+        if hugsLogo {
+            FittedLogoLayout(maxSize: maxSize) { fitted }
+        } else {
+            fitted.frame(maxWidth: maxSize.width, maxHeight: maxSize.height, alignment: alignment)
+        }
     }
 
     private var services: MediaServices? {
@@ -128,5 +139,22 @@ struct TitleLogoView: View {
         }
         cache[key] = image
         return image
+    }
+}
+
+/// Offers the logo its whole box and takes only the size it fits to, where a flexible frame would take the box.
+private struct FittedLogoLayout: Layout {
+    let maxSize: CGSize
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+        subviews.first?.sizeThatFits(fittingProposal(proposal)) ?? .zero
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: fittingProposal(proposal))
+    }
+
+    private func fittingProposal(_ proposal: ProposedViewSize) -> ProposedViewSize {
+        ProposedViewSize(width: min(proposal.width ?? maxSize.width, maxSize.width), height: maxSize.height)
     }
 }
