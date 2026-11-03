@@ -39,21 +39,9 @@ struct HomeView: View {
             Color("Background")
                 .ignoresSafeArea()
 
-            if let slide = currentSlide {
-                heroLayout(slide: slide)
-            } else if let heroMedia = displayedHeroMedia {
-                GeometryReader { proxy in
-                    ZStack(alignment: .bottom) {
-                        ZStack(alignment: .topLeading) {
-                            MediaHeroBackgroundView(media: heroMedia)
-                            MediaHeroContentView(media: heroMedia)
-                                .frame(maxWidth: proxy.size.width * 0.60, maxHeight: .infinity, alignment: .topLeading)
-                        }
-
-                        homeContent
-                            .frame(height: proxy.size.height * 0.60)
-                    }
-                }
+            // One layout with or without the showcase, so the rows keep their focus when the hero comes or goes.
+            if currentSlide != nil || displayedHeroMedia != nil {
+                heroLayout(slide: currentSlide)
             } else {
                 emptyState
             }
@@ -125,17 +113,20 @@ struct HomeView: View {
         slides.isEmpty ? nil : slides[currentIndex]
     }
 
-    private func heroLayout(slide: HomeHeroSlide) -> some View {
+    private func heroLayout(slide: HomeHeroSlide?) -> some View {
         GeometryReader { proxy in
-            let isShowcase = heroMode == .showcase
+            let showcased = heroMode == .showcase ? slide : nil
+            let isShowcase = showcased != nil
             ZStack(alignment: .topLeading) {
-                // Drifts slowly in then out from one page to the next, so a new page never snaps the zoom back.
-                MediaHeroBackgroundView(media: isShowcase ? slide.media : displayedHeroMedia ?? slide.media)
-                    .scaleEffect(isShowcase && isZoomedIn && !reduceMotion ? 1.04 : 1, anchor: .topTrailing)
+                if let media = showcased?.media ?? displayedHeroMedia ?? slide?.media {
+                    // Drifts slowly in then out from one page to the next, so a new page never snaps the zoom back.
+                    MediaHeroBackgroundView(media: media)
+                        .scaleEffect(isShowcase && isZoomedIn && !reduceMotion ? 1.04 : 1, anchor: .topTrailing)
+                }
 
                 Group {
-                    if isShowcase {
-                        HomeShowcaseContentView(slide: slide, index: currentIndex, count: slides.count)
+                    if let showcased {
+                        HomeShowcaseContentView(slide: showcased, index: currentIndex, count: slides.count)
                             .transition(.opacity.combined(with: .offset(y: -40)))
                     } else if let media = displayedHeroMedia {
                         MediaHeroContentView(media: media)
@@ -144,10 +135,12 @@ struct HomeView: View {
                 }
                 .frame(maxWidth: proxy.size.width * 0.60, alignment: .topLeading)
 
-                // Padding rather than offset: focus moves by the laid out frames.
-                heroActions(slide: slide, isShowcase: isShowcase)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase) - Self.actionsHeight)
+                if let slide {
+                    // Padding rather than offset: focus moves by the laid out frames.
+                    heroActions(slide: slide, isShowcase: isShowcase)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase) - Self.actionsHeight)
+                }
 
                 homeContent
                     .frame(height: proxy.size.height * 0.60)
@@ -155,7 +148,7 @@ struct HomeView: View {
                     .focusSection()
             }
         }
-        .onChange(of: slide.id, initial: true) {
+        .onChange(of: slide?.id, initial: true) {
             guard !reduceMotion else { return }
             withAnimation(.linear(duration: 8)) {
                 isZoomedIn.toggle()

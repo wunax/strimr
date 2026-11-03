@@ -21,8 +21,21 @@ final class HomeViewModel {
     @ObservationIgnored private var featuredByServer: [ServerIdentity: [FeaturedCandidate]] = [:]
     @ObservationIgnored private var trendingCandidates: [FeaturedCandidate] = []
     @ObservationIgnored private var trendingTask: Task<Void, Never>?
+    /// The day's selection is only saved once trending titles are in, or they could never take a place in it.
+    @ObservationIgnored private var isTrendingPending = false
+    @ObservationIgnored private var hasLoadedTrending = false
     /// Set by the home while the user is signed in to Seerr, whose trending titles the hero can show.
-    @ObservationIgnored var seerrBaseURL: URL?
+    @ObservationIgnored var seerrBaseURL: URL? {
+        didSet {
+            guard seerrBaseURL != oldValue else { return }
+            trendingCandidates = []
+            hasLoadedTrending = false
+            guard heroSource == .discover, refreshGate.hasStartedInitialLoad else { return }
+            loadTrending()
+            rebuildHero()
+        }
+    }
+
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var loadedShownRowIDs: Set<String> = []
 
@@ -444,10 +457,10 @@ final class HomeViewModel {
             }
         #endif
 
-        rebuild()
-        if loadsFeatured, servers == nil || trendingCandidates.isEmpty {
+        if loadsFeatured, servers == nil || !hasLoadedTrending {
             loadTrending()
         }
+        rebuild()
         if !hasContent, !result.failed.isEmpty, result.succeeded.isEmpty, !preservingExistingContent {
             errorMessage = String(localized: "home.error.unavailable")
         }
@@ -515,7 +528,7 @@ final class HomeViewModel {
         let missing = loadedServers.subtracting(featuredByServer.keys)
         if !missing.isEmpty {
             Task { await reload(servers: missing, preservingExistingContent: true) }
-        } else if settingsManager.interface.homeHeroIncludesTrending, trendingCandidates.isEmpty {
+        } else if settingsManager.interface.homeHeroIncludesTrending, !hasLoadedTrending, !isTrendingPending {
             loadTrending()
         }
     }
@@ -534,8 +547,12 @@ final class HomeViewModel {
 
     /// Trending titles load after the home, as they take a search per title on every server.
     private func loadTrending() {
-        guard settingsManager.interface.homeHeroIncludesTrending, let seerrBaseURL else { return }
         trendingTask?.cancel()
+        guard settingsManager.interface.homeHeroIncludesTrending, let seerrBaseURL else {
+            isTrendingPending = false
+            return
+        }
+        isTrendingPending = true
         let sessions = registry.sessions
         let hidden = settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries
         let hiddenByServer = Dictionary(grouping: hidden, by: \.server).mapValues { Set($0.map(\.libraryID)) }
@@ -544,6 +561,8 @@ final class HomeViewModel {
             let candidates = await loader.candidates(sessions: sessions, hiddenLibraryIDs: hiddenByServer)
             guard let self, !Task.isCancelled else { return }
             trendingCandidates = candidates
+            isTrendingPending = false
+            hasLoadedTrending = true
             rebuildHero()
         }
     }
@@ -592,7 +611,7 @@ final class HomeViewModel {
             previous: stored?.candidates.map(\.id) ?? [],
             seed: seed,
         )
-        if selection != stored?.candidates {
+        if !isTrendingPending, selection != stored?.candidates {
             settingsManager.setFeaturedSelection(
                 FeaturedSelection(day: seed.day, candidates: selection),
                 profileID: profileID,

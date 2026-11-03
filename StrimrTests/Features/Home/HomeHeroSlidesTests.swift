@@ -13,7 +13,7 @@ struct HomeHeroSlidesTests {
         let slides = HomeHeroSlides.resume(from: rows)
 
         #expect(slides.map(\.media.id) == items.prefix(10).map(\.id))
-        #expect(slides.allSatisfy(\.isResume))
+        #expect(slides.filter(\.isResume).count == slides.count)
     }
 
     @Test func `a single item to resume is enough`() {
