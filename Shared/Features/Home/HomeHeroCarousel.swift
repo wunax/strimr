@@ -75,7 +75,9 @@
         /// A large share of an iPhone in portrait, capped where the screen is tall or wide.
         private static func height(for available: CGFloat) -> CGFloat {
             #if os(iOS)
-                min(available * 0.6, UIDevice.current.userInterfaceIdiom == .pad ? 560 : 520)
+                UIDevice.current.userInterfaceIdiom == .pad
+                    ? min(available * 0.6, 560)
+                    : min(available * 0.7, 620)
             #else
                 min(available * 0.6, 560)
             #endif
@@ -171,6 +173,9 @@
         var body: some View {
             ZStack(alignment: .bottomLeading) {
                 HomeHeroArtwork(media: slide.media)
+                    // Fades the artwork out rather than painting a color over it, so it melts into
+                    // whatever background the home has.
+                    .mask(Self.fadeMask)
                     // Stretches when the home is pulled down.
                     .visualEffect { content, proxy in
                         let pull = max(0, proxy.frame(in: .scrollView(axis: .vertical)).minY)
@@ -179,16 +184,6 @@
                             anchor: .bottom,
                         )
                     }
-
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.35),
-                        .init(color: Color("Background").opacity(0.85), location: 0.8),
-                        .init(color: Color("Background"), location: 1),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom,
-                )
 
                 details
                     .padding(.horizontal, LayoutMetrics.pageMargin)
@@ -243,6 +238,21 @@
             .accessibilityElement(children: .contain)
             .accessibilityLabel(slide.accessibilityLabel)
         }
+
+        /// A smoothstep from 40% of the height down to the bottom edge, so the fade has no visible start or end.
+        private static let fadeMask = LinearGradient(
+            stops: [
+                .init(color: .white, location: 0.4),
+                .init(color: .white.opacity(0.93), location: 0.5),
+                .init(color: .white.opacity(0.74), location: 0.6),
+                .init(color: .white.opacity(0.5), location: 0.7),
+                .init(color: .white.opacity(0.26), location: 0.8),
+                .init(color: .white.opacity(0.07), location: 0.9),
+                .init(color: .clear, location: 1),
+            ],
+            startPoint: .top,
+            endPoint: .bottom,
+        )
 
         private var logoSize: CGSize {
             horizontalSizeClass == .compact ? CGSize(width: 260, height: 90) : CGSize(width: 360, height: 120)

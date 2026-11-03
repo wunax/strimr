@@ -60,6 +60,11 @@ struct HomeView: View {
                 scrollInteractionCount += 1
             }
         }
+        #if os(iOS)
+        // The hero artwork runs up behind the status and navigation bars.
+        .ignoresSafeArea(edges: viewModel.heroSlides.isEmpty ? [] : .top)
+        .softTopScrollEdge()
+        #endif
         .navigationTitle("tabs.home")
         .tabRootChrome()
         .environment(\.reloadAfterPlaylistChange) { server in
@@ -116,3 +121,16 @@ struct HomeView: View {
         }
     }
 }
+
+#if os(iOS)
+    private extension View {
+        @ViewBuilder
+        func softTopScrollEdge() -> some View {
+            if #available(iOS 26.0, *) {
+                scrollEdgeEffectStyle(.soft, for: .top)
+            } else {
+                self
+            }
+        }
+    }
+#endif
