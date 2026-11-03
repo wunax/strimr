@@ -28,6 +28,7 @@ final class MediaDetailViewModel {
     private(set) var otherEditions: [MediaItem] = []
     @ObservationIgnored private var backdropSourcePath: String?
     @ObservationIgnored private let requestedEpisodeID: String?
+    @ObservationIgnored private var prefersOnDeckSeason = false
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -176,6 +177,13 @@ final class MediaDetailViewModel {
         await loadDetails(preservingExistingContent: true)
     }
 
+    /// Follows the next episode into its season, since playback may have finished the current one.
+    func reloadAfterPlayback() async {
+        prefersOnDeckSeason = true
+        defer { prefersOnDeckSeason = false }
+        await loadDetails()
+    }
+
     func refreshIfNeeded(now: Date = Date()) async {
         guard refreshGate.shouldRefresh(now: now, isLoading: isLoading) else { return }
         await loadDetails(preservingExistingContent: true)
@@ -192,6 +200,7 @@ final class MediaDetailViewModel {
 
     func selectSeason(id: String) async {
         guard selectedSeasonId != id else { return }
+        prefersOnDeckSeason = false
         selectedSeasonId = id
         episodes = []
         episodesErrorMessage = nil
@@ -1054,20 +1063,31 @@ final class MediaDetailViewModel {
     }
 
     private func preferredSeasonId(in fetchedSeasons: [MediaItem]) -> String? {
-        if let selectedSeasonId,
-           fetchedSeasons.contains(where: { $0.id == selectedSeasonId })
-        {
-            return selectedSeasonId
-        }
+        Self.preferredSeasonID(
+            in: fetchedSeasons,
+            selected: selectedSeasonId,
+            onDeck: onDeckItem,
+            prefersOnDeckSeason: prefersOnDeckSeason,
+        )
+    }
 
-        if let onDeckSeasonIndex = onDeckItem?.parentIndex,
-           let onDeckSeason = fetchedSeasons.first(where: { $0.index == onDeckSeasonIndex })
-        {
+    static func preferredSeasonID(
+        in seasons: [MediaItem],
+        selected: String?,
+        onDeck: MediaItem?,
+        prefersOnDeckSeason: Bool,
+    ) -> String? {
+        let selectedSeason = selected.flatMap { id in seasons.first(where: { $0.id == id }) }
+        let onDeckSeason = onDeck?.parentIndex.flatMap { index in seasons.first(where: { $0.index == index }) }
+
+        if prefersOnDeckSeason, let onDeckSeason {
             return onDeckSeason.id
         }
 
-        return fetchedSeasons.first(where: { ($0.index ?? 0) > 0 })?.id
-            ?? fetchedSeasons.first?.id
+        return selectedSeason?.id
+            ?? onDeckSeason?.id
+            ?? seasons.first(where: { ($0.index ?? 0) > 0 })?.id
+            ?? seasons.first?.id
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
