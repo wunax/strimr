@@ -301,6 +301,9 @@ struct PlayerView: View {
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
                     switch sheet {
+                    case .tracks:
+                        playbackTracksSheet
+                            .presentationDetents([.medium, .large])
                     case .settings:
                         playbackSettingsSheet
                             .presentationDetents([.medium])
@@ -606,6 +609,7 @@ struct PlayerView: View {
             showsEndsAtTime: settingsManager.playback.showEndsAtTime,
             isScrubbing: isScrubbing,
             onDismiss: { dismissPlayer() },
+            onShowTracks: showTracks,
             onShowSettings: showSettings,
             chapters: viewModel.chapters,
             showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
@@ -638,7 +642,7 @@ struct PlayerView: View {
             canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
             onPreviousChannel: { switchLiveChannel(by: -1) },
             onNextChannel: { switchLiveChannel(by: 1) },
-            showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
+            showsTracksIndicator: playerController.subtitleDelayMilliseconds != 0,
             sleepTimer: sleepTimer,
         )
     }
@@ -779,7 +783,7 @@ struct PlayerView: View {
             isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
                 && !playerController.isPictureInPictureActive
                 && !playerController.isPictureInPictureTransitioning,
-            showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
+            showsTracksIndicator: playerController.subtitleDelayMilliseconds != 0,
             canShowInfo: canShowInfoPanel,
             canPlayNext: nextQueueIndex != nil,
             isLive: viewModel.isLivePlayback,
@@ -791,6 +795,7 @@ struct PlayerView: View {
                 onInteraction: { showControls(temporarily: true) },
                 onDismiss: { dismissPlayer() },
                 onShowInfo: showInfoPanel,
+                onShowTracks: showTracks,
                 onShowSettings: showSettings,
                 onStartPictureInPicture: playerController.startPictureInPicture,
                 onToggleLock: toggleTabletopLock,
@@ -891,17 +896,12 @@ struct PlayerView: View {
         .padding(.bottom, 20)
     }
 
-    private var playbackSettingsSheet: some View {
-        PlaybackSettingsView(
+    private var playbackTracksSheet: some View {
+        PlaybackTracksView(
             audioTracks: settingsAudioTracks,
             subtitleTracks: settingsSubtitleTracks,
             selectedAudioTrackID: selectedAudioTrackID,
             selectedSubtitleTrackID: selectedSubtitleTrackID,
-            playbackRate: playbackRate,
-            quality: viewModel.selectedQuality,
-            showsQualitySelection: !viewModel.isLocalPlayback,
-            versions: viewModel.versionOptions,
-            onSelectVersion: { selectVersion($0) },
             onSelectAudio: selectAudioTrack(_:),
             onSelectSubtitle: selectSubtitleTrack(_:),
             nightMode: settingsManager.playback.nightMode,
@@ -915,13 +915,24 @@ struct PlayerView: View {
             onResetTrackSelections: viewModel.canResetRememberedTrackSelections
                 ? { viewModel.resetRememberedTrackSelections() }
                 : nil,
+            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+            onSelectSync: openOffsetBar(_:),
+            onClose: { sheetPresentation.item = nil },
+        )
+    }
+
+    private var playbackSettingsSheet: some View {
+        PlaybackSettingsView(
+            playbackRate: playbackRate,
+            quality: viewModel.selectedQuality,
+            showsQualitySelection: !viewModel.isLocalPlayback,
+            versions: viewModel.versionOptions,
+            onSelectVersion: { selectVersion($0) },
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onSelectQuality: { selectQuality($0) },
             videoZoom: playerController.videoZoom,
             videoFillScale: videoFillScale,
             onSelectVideoScaleMode: selectVideoScaleMode(_:),
-            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
-            onSelectSync: openOffsetBar(_:),
             sleepTimer: sleepTimer,
             sleepTimerModes: SleepTimerMode.available(
                 isLive: viewModel.isLivePlayback,
@@ -963,8 +974,13 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func showSettings() {
+    private func showTracks() {
         refreshTracks()
+        sheetPresentation.item = .tracks
+        hideControlsWorkItem?.cancel()
+    }
+
+    private func showSettings() {
         sheetPresentation.item = .settings
         hideControlsWorkItem?.cancel()
     }
@@ -1959,6 +1975,7 @@ private struct PlayerSheetRefreshID: Hashable {
 }
 
 private enum PlayerSheet: String, Identifiable {
+    case tracks
     case settings
     case subtitleSearch
 

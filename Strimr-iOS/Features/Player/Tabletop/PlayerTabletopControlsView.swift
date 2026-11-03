@@ -24,7 +24,7 @@ struct PlayerTabletopControlsView: View {
     var sleepTimer: SleepTimer?
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
-    var showsSettingsIndicator: Bool
+    var showsTracksIndicator: Bool
     var canShowInfo: Bool
     var canPlayNext: Bool
     var isLive: Bool
@@ -109,16 +109,22 @@ struct PlayerTabletopControlsView: View {
             )
 
             iconTile(
-                systemName: "gearshape",
-                accessibilityLabel: String(localized: "settings.title"),
-                action: actions.onShowSettings,
+                systemName: "text.bubble",
+                accessibilityLabel: String(localized: "player.tracks.title"),
+                action: actions.onShowTracks,
             )
             .overlay(alignment: .topTrailing) {
-                if showsSettingsIndicator {
+                if showsTracksIndicator {
                     PlaybackOffsetIndicator()
                         .padding(8)
                 }
             }
+
+            iconTile(
+                systemName: "gearshape",
+                accessibilityLabel: String(localized: "settings.title"),
+                action: actions.onShowSettings,
+            )
         }
     }
 
@@ -331,6 +337,7 @@ struct PlayerTabletopActions {
     var onInteraction: () -> Void
     var onDismiss: () -> Void
     var onShowInfo: () -> Void
+    var onShowTracks: () -> Void
     var onShowSettings: () -> Void
     var onStartPictureInPicture: () -> Void
     var onToggleLock: () -> Void

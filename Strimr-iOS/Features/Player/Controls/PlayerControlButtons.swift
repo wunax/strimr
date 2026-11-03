@@ -18,13 +18,26 @@ struct SkipMarkerButton: View {
 }
 
 struct PlayerSettingsButton: View {
-    var showsIndicator = false
     let action: () -> Void
 
     var body: some View {
         PlayerIconButton(
             systemName: "gearshape",
             accessibilityLabel: String(localized: "settings.title"),
+            size: .small,
+            action: action,
+        )
+    }
+}
+
+struct PlayerTracksButton: View {
+    var showsIndicator = false
+    let action: () -> Void
+
+    var body: some View {
+        PlayerIconButton(
+            systemName: "text.bubble",
+            accessibilityLabel: String(localized: "player.tracks.title"),
             size: .small,
             action: action,
         )

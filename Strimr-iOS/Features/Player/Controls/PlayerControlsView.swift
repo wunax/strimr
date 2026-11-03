@@ -14,6 +14,7 @@ struct PlayerControlsView: View {
     var showsEndsAtTime: Bool
     var isScrubbing: Bool
     var onDismiss: () -> Void
+    var onShowTracks: () -> Void
     var onShowSettings: () -> Void
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
@@ -42,7 +43,7 @@ struct PlayerControlsView: View {
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
-    var showsSettingsIndicator = false
+    var showsTracksIndicator = false
     var sleepTimer: SleepTimer?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -76,8 +77,9 @@ struct PlayerControlsView: View {
                 PlayerControlsHeader(
                     media: media,
                     onDismiss: onDismiss,
+                    onShowTracks: onShowTracks,
                     onShowSettings: onShowSettings,
-                    showsSettingsIndicator: showsSettingsIndicator,
+                    showsTracksIndicator: showsTracksIndicator,
                     sleepTimer: sleepTimer,
                     isSharePlay: isSharePlay,
                     showsPictureInPicture: showsPictureInPicture,
@@ -236,8 +238,9 @@ private struct PlayerAuxiliaryControlsRow: View {
 private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
+    var onShowTracks: () -> Void
     var onShowSettings: () -> Void
-    var showsSettingsIndicator: Bool
+    var showsTracksIndicator: Bool
     var sleepTimer: SleepTimer?
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
@@ -287,7 +290,9 @@ private struct PlayerControlsHeader: View {
                     .disabled(!isPictureInPictureEnabled)
             }
 
-            PlayerSettingsButton(showsIndicator: showsSettingsIndicator, action: onShowSettings)
+            PlayerTracksButton(showsIndicator: showsTracksIndicator, action: onShowTracks)
+
+            PlayerSettingsButton(action: onShowSettings)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
