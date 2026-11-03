@@ -1,5 +1,5 @@
-import Foundation
 import AetherEngine
+import Foundation
 @testable import Strimr
 import Testing
 
@@ -78,7 +78,11 @@ struct LiveLoadOptionsTests {
     }
 
     @Test func `only demux failures move to the server transcode`() {
-        let demux = NSError(domain: "AetherEngine.DemuxerError", code: 1, userInfo: ["AetherFFmpegErrorCode": -1_094_995_529])
+        let demux = NSError(
+            domain: "AetherEngine.DemuxerError",
+            code: 1,
+            userInfo: ["AetherFFmpegErrorCode": -1_094_995_529],
+        )
         let network = NSError(domain: "AetherEngine.DemuxerError", code: 2, userInfo: ["AetherFFmpegErrorCode": -60])
 
         #expect(LiveLoadOptions.isDemuxFailure(demux))
