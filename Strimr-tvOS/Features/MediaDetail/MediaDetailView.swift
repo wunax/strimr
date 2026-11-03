@@ -707,18 +707,9 @@ private struct EpisodeArtworkCard: View {
         return String(localized: "media.detail.episodeNumber \(index)")
     }
 
-    @ViewBuilder
-    private var onDeckBadge: some View {
-        if isOnDeck {
-            Text(progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext")
-                .font(.badge)
-                .textCase(.uppercase)
-                .foregroundStyle(.textPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.badgeBackground, in: Capsule(style: .continuous))
-                .padding(12)
-        }
+    private var onDeckBadge: LocalizedStringKey? {
+        guard isOnDeck else { return nil }
+        return progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext"
     }
 
     private var artwork: some View {
@@ -726,12 +717,9 @@ private struct EpisodeArtworkCard: View {
             episode: episode,
             artworkPath: artworkPath,
             width: width,
-            runtime: nil,
             progress: progress,
+            leadingBadge: onDeckBadge,
         )
-        .overlay(alignment: .topLeading) {
-            onDeckBadge
-        }
         .focusable()
         .focused($isFocused)
         .overlay(alignment: .trailing) {

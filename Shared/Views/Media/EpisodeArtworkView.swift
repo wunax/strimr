@@ -5,8 +5,8 @@ struct EpisodeArtworkView: View {
     let episode: MediaItem
     let artworkPath: String?
     let width: CGFloat
-    let runtime: String?
     let progress: Double?
+    var leadingBadge: LocalizedStringKey?
     private let aspectRatio: CGFloat = 16 / 9
 
     private var isSpoilerProtected: Bool {
@@ -14,29 +14,14 @@ struct EpisodeArtworkView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ArtworkPathView(
-                path: artworkPath,
-                width: Int(width),
-                height: Int(width / aspectRatio),
-            )
-            .id(artworkPath)
-            .frame(width: width, height: width / aspectRatio)
-            .background(Color.black)
-
-            if let runtime {
-                Label {
-                    Text(runtime)
-                } icon: {
-                    Image(systemName: "clock")
-                }
-                .font(.badge)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .glassSurface(in: Capsule())
-                .padding(10)
-            }
-        }
+        ArtworkPathView(
+            path: artworkPath,
+            width: Int(width),
+            height: Int(width / aspectRatio),
+        )
+        .id(artworkPath)
+        .frame(width: width, height: width / aspectRatio)
+        .background(Color.black)
         .overlay(alignment: .bottomLeading) {
             if let progress {
                 CardProgressBar(progress: progress)
@@ -52,9 +37,22 @@ struct EpisodeArtworkView: View {
         }
         .downloadStatusOverlay(.playable(episode))
         .overlay(alignment: .topLeading) {
-            if isSpoilerProtected {
-                SpoilerProtectionIndicator()
-                    .padding(8)
+            if isSpoilerProtected || leadingBadge != nil {
+                HStack(spacing: 8) {
+                    if isSpoilerProtected {
+                        SpoilerProtectionIndicator()
+                    }
+                    if let leadingBadge {
+                        Text(leadingBadge)
+                            .font(.badge)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.textPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(.badgeBackground, in: Capsule(style: .continuous))
+                    }
+                }
+                .padding(8)
             }
         }
     }

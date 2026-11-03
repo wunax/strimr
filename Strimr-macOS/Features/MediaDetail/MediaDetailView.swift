@@ -688,7 +688,6 @@ struct MediaDetailView: View {
                         spoilerProtection: settingsManager.interface.spoilerProtection,
                     ),
                     width: 200,
-                    runtime: nil,
                     progress: viewModel.progressFraction(for: episode),
                 )
 

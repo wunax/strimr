@@ -28,7 +28,6 @@ struct EpisodeCardView: View {
                                 episode: episode,
                                 artworkPath: artworkPath,
                                 width: regularImageWidth,
-                                runtime: nil,
                                 progress: progress,
                             )
                         }
@@ -41,7 +40,6 @@ struct EpisodeCardView: View {
                                 episode: episode,
                                 artworkPath: artworkPath,
                                 width: proxy.size.width,
-                                runtime: nil,
                                 progress: progress,
                             )
                         }
