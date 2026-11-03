@@ -13,29 +13,29 @@ struct JellyfinFeaturedService {
             let type = $0.collectionType?.lowercased()
             return !hiddenLibraryIDs.contains($0.id) && (type == "movies" || type == "tvshows")
         }
-        let byLibrary = await withTaskGroup(of: (Int, [FeaturedCandidate]).self) { group in
+        let results = await withTaskGroup(of: (Int, Result<[FeaturedCandidate], Error>).self) { group in
             for (index, library) in libraries.enumerated() {
                 group.addTask { @MainActor in
                     do {
                         let isSeries = library.collectionType?.lowercased() == "tvshows"
-                        return try await (index, libraryCandidates(library.id, isSeries: isSeries, now: now))
+                        return try await (index, .success(libraryCandidates(library.id, isSeries: isSeries, now: now)))
                     } catch {
                         // A library that fails is left out so it does not take the hero down.
                         if !Task.isCancelled, !error.isCancellation {
                             ErrorReporter.capture(error)
                         }
-                        return (index, [])
+                        return (index, .failure(error))
                     }
                 }
             }
-            var values: [(Int, [FeaturedCandidate])] = []
+            var values: [(Int, Result<[FeaturedCandidate], Error>)] = []
             for await value in group {
                 values.append(value)
             }
-            return values.sorted { $0.0 < $1.0 }.flatMap(\.1)
+            return values.sorted { $0.0 < $1.0 }.map(\.1)
         }
         try Task.checkCancellation()
-        return byLibrary
+        return try FeaturedAggregation.merge(results)
     }
 
     private func libraryCandidates(_ libraryID: String, isSeries: Bool, now: Date) async throws -> [FeaturedCandidate] {

@@ -8,6 +8,23 @@ struct FeaturedAggregationTests {
     private let jellyfin = ServerIdentity(provider: .jellyfin, id: "jf-b")
     private let seed = FeaturedSeed(profileID: "profile", day: 100)
 
+    @Test func `libraries that fail are left out while one answers`() throws {
+        let merged = try FeaturedAggregation.merge([
+            .failure(URLError(.timedOut)),
+            .success([candidate("r1", .recentlyAdded)]),
+            .success([]),
+        ])
+
+        #expect(merged.map(\.item.id) == ["r1"])
+    }
+
+    @Test func `a server whose libraries all fail throws instead of returning no candidates`() throws {
+        #expect(throws: URLError.self) {
+            try FeaturedAggregation.merge([.failure(URLError(.timedOut)), .failure(URLError(.notConnectedToInternet))])
+        }
+        #expect(try FeaturedAggregation.merge([.success([])]).isEmpty)
+    }
+
     @Test func `a single server fills the quotas by reason`() {
         let candidates = (1 ... 5).map { candidate("r\($0)", .recentlyAdded, addedAt: Double(10 - $0)) }
             + (1 ... 4).map { candidate("d\($0)", .rediscover) }

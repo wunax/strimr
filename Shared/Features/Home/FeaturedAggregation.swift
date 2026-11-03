@@ -17,6 +17,16 @@ enum FeaturedAggregation {
     /// Reasons that take the slots others could not fill.
     static let fallbackOrder: [FeaturedReason] = [.recentlyAdded, .rediscover, .newSeason, .trending, .curated]
 
+    /// Joins the candidates of a server's libraries. When every library failed, the error is thrown so the server
+    /// counts as unanswered and the home keeps its saved selection instead of an empty one.
+    static func merge(_ libraries: [Result<[FeaturedCandidate], Error>]) throws -> [FeaturedCandidate] {
+        let succeeded = libraries.compactMap { try? $0.get() }
+        if succeeded.isEmpty, case let .failure(error)? = libraries.first {
+            throw error
+        }
+        return succeeded.flatMap(\.self)
+    }
+
     /// - Parameters:
     ///   - servers: each server's candidates, in the profile's server order.
     ///   - watching: items of the merged Continue Watching and Next Up rows, which the hero never repeats.

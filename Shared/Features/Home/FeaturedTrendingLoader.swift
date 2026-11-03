@@ -130,7 +130,8 @@ struct FeaturedTrendingLoader {
         }
     }
 
-    /// Jellyfin items do not carry their library, so it is looked up for the matching copies only.
+    /// Jellyfin items do not carry their library, so it is looked up for the matching copies only. A copy whose
+    /// library cannot be resolved is treated as hidden.
     private static func isInHiddenLibrary(
         _ item: MediaItem,
         hidden: Set<String>,
@@ -141,12 +142,12 @@ struct FeaturedTrendingLoader {
             return hidden.contains(libraryID)
         }
         do {
-            return try await services.detail.libraryID(for: item).map(hidden.contains) ?? false
+            return try await services.detail.libraryID(for: item).map(hidden.contains) ?? true
         } catch {
             if Task.isCancelled || error.isCancellation {
                 throw error
             }
-            return false
+            return true
         }
     }
 

@@ -283,6 +283,7 @@
     /// The backdrop of a hero page; an episode shows its series backdrop.
     private struct HomeHeroArtwork: View {
         @Environment(ServerRegistry.self) private var registry
+        @Environment(SettingsManager.self) private var settingsManager
 
         let media: MediaItem
 
@@ -297,15 +298,29 @@
                     }
                 }
                 .clipped()
-                .task(id: media.id) {
-                    guard let path = media.grandparentArtPath ?? media.artPath,
+                .task(id: "\(media.id)-\(spoilerProtection.rawValue)") {
+                    resource = nil
+                    guard let path = artworkPath,
                           let services = registry.services(for: media.identity.server),
-                          let loaded = try? await services.artwork.artwork(path: path, width: 1920, height: 1080)
+                          let loaded = try? await services.artwork.artwork(path: path, width: 1920, height: 1080),
+                          !Task.isCancelled
                     else { return }
                     withAnimation(Motion.crossfade) {
                         resource = loaded
                     }
                 }
+        }
+
+        private var spoilerProtection: SpoilerProtectionLevel {
+            settingsManager.interface.spoilerProtection
+        }
+
+        /// A protected episode never falls back to its own artwork.
+        private var artworkPath: String? {
+            if media.isSpoilerProtected(at: spoilerProtection) {
+                return media.spoilerProtectedArtworkPath(at: spoilerProtection)
+            }
+            return media.grandparentArtPath ?? media.artPath
         }
     }
 #endif

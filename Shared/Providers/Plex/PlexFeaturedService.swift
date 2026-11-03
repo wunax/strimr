@@ -14,28 +14,33 @@ struct PlexFeaturedService {
         guard !visible.isEmpty else { return [] }
 
         async let curated = curatedCandidates(sections: visible, hidesSome: !hiddenLibraryIDs.isEmpty)
-        let bySection = await withTaskGroup(of: (Int, [FeaturedCandidate]).self) { group in
+        let results = await withTaskGroup(of: (Int, Result<[FeaturedCandidate], Error>).self) { group in
             for (index, section) in visible.enumerated() {
                 group.addTask { @MainActor in
                     do {
-                        return try await (index, sectionCandidates(section, now: now))
+                        return try await (index, .success(sectionCandidates(section, now: now)))
                     } catch {
                         // A library that fails is left out so it does not take the hero down.
                         if !Task.isCancelled, !error.isCancellation {
                             ErrorReporter.capture(error)
                         }
-                        return (index, [])
+                        return (index, .failure(error))
                     }
                 }
             }
-            var values: [(Int, [FeaturedCandidate])] = []
+            var values: [(Int, Result<[FeaturedCandidate], Error>)] = []
             for await value in group {
                 values.append(value)
             }
-            return values.sorted { $0.0 < $1.0 }.flatMap(\.1)
+            return values.sorted { $0.0 < $1.0 }.map(\.1)
         }
         try Task.checkCancellation()
-        return await curated + bySection
+        let curatedCandidates = await curated
+        do {
+            return try curatedCandidates + FeaturedAggregation.merge(results)
+        } catch where !curatedCandidates.isEmpty {
+            return curatedCandidates
+        }
     }
 
     private func sectionCandidates(_ section: PlexSection, now: Date) async throws -> [FeaturedCandidate] {
