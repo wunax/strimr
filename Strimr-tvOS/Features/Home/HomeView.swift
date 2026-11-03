@@ -127,8 +127,16 @@ struct HomeView: View {
 
                 Group {
                     if let showcased {
-                        HomeShowcaseContentView(slide: showcased, index: currentIndex, count: slides.count)
-                            .transition(.opacity.combined(with: .offset(y: -40)))
+                        // Sits a little below the middle of the room above the buttons: off the tab bar, and close
+                        // enough to the buttons that they read as its own.
+                        VStack(alignment: .leading, spacing: 0) {
+                            Spacer(minLength: 0)
+                            HomeShowcaseContentView(slide: showcased, index: currentIndex, count: slides.count)
+                            Spacer(minLength: 80)
+                                .frame(maxHeight: 130)
+                        }
+                        .frame(height: rowsTop(in: proxy, isShowcase: true) - Self.actionsHeight)
+                        .transition(.opacity.combined(with: .offset(y: -40)))
                     } else if let media = displayedHeroMedia {
                         MediaHeroContentView(media: media)
                             .transition(.opacity)
@@ -139,7 +147,6 @@ struct HomeView: View {
                 if let slide {
                     // Padding rather than offset: focus moves by the laid out frames.
                     heroActions(slide: slide, isShowcase: isShowcase)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase) - Self.actionsHeight)
                 }
 
@@ -193,6 +200,8 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        // Full width, so moving up from any card of the first row lands on the buttons rather than the tab bar.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .focusSection()
         // Just above the 0.01 alpha under which tvOS stops giving focus to a view.
         .opacity(isShowcase ? 1 : 0.02)
