@@ -96,7 +96,7 @@ struct MediaDetailView: View {
             }
         }
         .task {
-            await bindableViewModel.loadDetails()
+            await bindableViewModel.loadDetailsIfNeeded()
         }
         .onChange(of: mediaServices.mediaRevision) {
             guard !bindableViewModel.wasDeleted else {
