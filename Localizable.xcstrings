@@ -6350,6 +6350,38 @@
         }
       }
     },
+    "livetv.hero.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiche"
+          }
+        }
+      }
+    },
+    "livetv.hero.watch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regarder"
+          }
+        }
+      }
+    },
     "livetv.onNow" : {
       "localizations" : {
         "en" : {
@@ -6576,6 +6608,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chaînes"
+          }
+        }
+      }
+    },
+    "livetv.player.currentChannel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now Playing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours de lecture"
           }
         }
       }

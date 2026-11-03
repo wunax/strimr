@@ -55,6 +55,7 @@ struct PlayerView: View {
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var isShowingInfoPanel = false
+    @State private var isShowingLiveChannels = false
     @State private var infoPanelTab = PlayerInfoTab.info
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
@@ -152,7 +153,8 @@ struct PlayerView: View {
                 }
                 .task {
                     guard activePlaybackURL == nil else { return }
-                    viewModel.liveRoutePreference = settingsManager.playback.transcodeLiveTV ? .serverTranscode : .automatic
+                    viewModel.liveRoutePreference = settingsManager.playback
+                        .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                 },
         )
@@ -402,6 +404,8 @@ struct PlayerView: View {
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+
+            LiveTVPlayerBackdrop(viewModel: viewModel, hidesBanner: isShowingLiveChannels || controlsVisible)
         }
         .onChange(of: viewModel.media?.metadataRatingKey, initial: true) { _, context in
             playerController.prepareVideoZoom(for: context, persistedMode: settingsManager.playback.videoScaleMode)
@@ -439,7 +443,9 @@ struct PlayerView: View {
         let hasSkipOverlay = activeMarker != nil
 
         return ZStack {
-            if !controlsVisible, !isShowingInfoPanel, !hasSkipOverlay, !sleepTimer.isPromptPresented {
+            if !controlsVisible, !isShowingInfoPanel, !isShowingLiveChannels, !hasSkipOverlay,
+               !sleepTimer.isPromptPresented
+            {
                 Color.clear
                     .contentShape(Rectangle())
                     .focusable()
@@ -503,7 +509,14 @@ struct PlayerView: View {
                     onShowInfoPanel: showInfoPanel,
                     isLive: viewModel.isLivePlayback,
                     behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                    lastLiveChannel: viewModel.lastLiveChannel,
                     onGoLive: playerController.seekToLiveEdge,
+                    onShowLiveChannels: {
+                        controlsVisible = false
+                        isShowingLiveChannels = true
+                    },
+                    onLastLiveChannel: switchToLastLiveChannel,
                     canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
                     canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
                     onPreviousChannel: { switchLiveChannel(by: -1) },
@@ -563,6 +576,12 @@ struct PlayerView: View {
             if sleepTimer.isPromptPresented {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
+
+            LiveTVChannelPanelOverlay(
+                viewModel: viewModel,
+                isPresented: $isShowingLiveChannels,
+                onSelectChannel: switchLiveChannel(to:),
+            )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
@@ -1326,9 +1345,21 @@ struct PlayerView: View {
     }
 
     private func switchLiveChannel(by offset: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(by: offset) }
+    }
+
+    private func switchLiveChannel(to index: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
+    }
+
+    private func switchToLastLiveChannel() {
+        performLiveSwitch { try await viewModel.switchToLastLiveChannel() }
+    }
+
+    private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {
         Task {
             do {
-                let url = try await viewModel.switchLiveChannel(by: offset)
+                let url = try await switching()
                 playerController.stop()
                 startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
             } catch {

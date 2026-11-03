@@ -73,4 +73,43 @@
             }
         }
     }
+
+    /// Plays the demo clip for any channel, so the live player can be shown without a tuner.
+    @MainActor
+    final class DemoLiveTVPlaybackSession: LiveTVPlaybackSession {
+        let channel: LiveTVChannel
+        let backgroundPolicy = LiveTVBackgroundPolicy.stopAndExit
+        let captureRange: LiveTVCaptureRange? = nil
+        private let clip: URL
+
+        init(channel: LiveTVChannel, clip: URL) {
+            self.channel = channel
+            self.clip = clip
+        }
+
+        func source(offsetFromCaptureStart _: TimeInterval?) async throws -> LiveTVPlaybackSource {
+            LiveTVPlaybackSource(
+                url: clip,
+                httpHeaders: [:],
+                program: nil,
+                captureRange: nil,
+                nativeRemoteHLS: false,
+                route: .directPlay,
+            )
+        }
+
+        func report(position _: TimeInterval, isPaused _: Bool) async throws -> LiveTVCaptureRange? {
+            nil
+        }
+
+        func recover() async throws -> any LiveTVPlaybackSession {
+            self
+        }
+
+        func fallback() async throws -> (any LiveTVPlaybackSession)? {
+            nil
+        }
+
+        func stop() async {}
+    }
 #endif

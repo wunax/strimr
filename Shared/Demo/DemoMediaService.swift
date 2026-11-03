@@ -534,10 +534,14 @@
         func reorderFavorites(_: [LiveTVChannel]) async throws {}
 
         func startPlayback(
-            channel _: LiveTVChannel,
+            channel: LiveTVChannel,
             route _: LiveTVRoutePreference,
         ) async throws -> any LiveTVPlaybackSession {
-            throw DemoMediaError.unsupported
+            let clip = contentDirectory.appending(path: "clip.mp4")
+            guard liveTV != nil, FileManager.default.fileExists(atPath: clip.path()) else {
+                throw DemoMediaError.unsupported
+            }
+            return DemoLiveTVPlaybackSession(channel: channel, clip: clip)
         }
 
         // MARK: - Downloads

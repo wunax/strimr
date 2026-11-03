@@ -89,6 +89,7 @@ struct PlayerView: View {
     @State private var isShowingChapterPopover = false
     @State private var isShowingInfoPopover = false
     @State private var isShowingPlayQueue = false
+    @State private var isShowingLiveChannels = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
@@ -137,6 +138,8 @@ struct PlayerView: View {
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+
+            LiveTVPlayerBackdrop(viewModel: viewModel, hidesBanner: isShowingLiveChannels || controlsVisible)
 
             Color.clear
                 .contentShape(Rectangle())
@@ -248,6 +251,12 @@ struct PlayerView: View {
             if sleepTimer.isPromptPresented {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
+
+            LiveTVChannelPanelOverlay(
+                viewModel: viewModel,
+                isPresented: $isShowingLiveChannels,
+                onSelectChannel: switchLiveChannel(to:),
+            )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
         .simultaneousGesture(
@@ -283,7 +292,8 @@ struct PlayerView: View {
                             isSharePlay: sharePlayCoordinator.isInSession,
                         )
                     }
-                    viewModel.liveRoutePreference = settingsManager.playback.transcodeLiveTV ? .serverTranscode : .automatic
+                    viewModel.liveRoutePreference = settingsManager.playback
+                        .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
@@ -666,18 +676,34 @@ struct PlayerView: View {
             volumeControl
 
             if viewModel.isLivePlayback {
-                Button {
-                    playerController.seekToLiveEdge()
-                } label: {
-                    Label(
-                        playerController.behindLiveSeconds < 2
-                            ? String(localized: "livetv.player.live")
-                            : String(localized: "livetv.player.goLive"),
-                        systemImage: "dot.radiowaves.left.and.right",
+                LiveTVLiveBadge(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                )
+                if !LiveTVLiveBadge.isLive(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                ) {
+                    Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right") {
+                        playerController.seekToLiveEdge()
+                    }
+                    .actionButtonStyle(.primary)
+                }
+                PlayerIconButton(
+                    systemName: "list.bullet.rectangle",
+                    accessibilityLabel: String(localized: "livetv.player.channels"),
+                    size: .small,
+                ) {
+                    isShowingLiveChannels = true
+                }
+                if viewModel.lastLiveChannel != nil {
+                    PlayerIconButton(
+                        systemName: "arrow.uturn.backward",
+                        accessibilityLabel: String(localized: "livetv.player.lastChannel"),
+                        size: .small,
+                        action: switchToLastLiveChannel,
                     )
                 }
-                .actionButtonStyle(.primary)
-                .disabled(playerController.behindLiveSeconds < 2)
             }
 
             if viewModel.hasNavigableChapters {
@@ -1661,9 +1687,21 @@ struct PlayerView: View {
     }
 
     private func switchLiveChannel(by offset: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(by: offset) }
+    }
+
+    private func switchLiveChannel(to index: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
+    }
+
+    private func switchToLastLiveChannel() {
+        performLiveSwitch { try await viewModel.switchToLastLiveChannel() }
+    }
+
+    private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {
         Task {
             do {
-                let url = try await viewModel.switchLiveChannel(by: offset)
+                let url = try await switching()
                 playerController.stop()
                 loadedURL = nil
                 startPlaybackIfNeeded(url)

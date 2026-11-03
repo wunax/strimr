@@ -38,7 +38,11 @@ struct PlayerControlsView: View {
     var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
+    var isAtLiveEdge: Bool
+    var lastLiveChannel: LiveTVChannel?
     var onGoLive: () -> Void
+    var onShowLiveChannels: () -> Void
+    var onLastLiveChannel: () -> Void
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
@@ -104,23 +108,15 @@ struct PlayerControlsView: View {
 
                     Group {
                         if isLive {
-                            HStack {
-                                if behindLiveSeconds < 2 {
-                                    Text("livetv.player.live").font(.headline.monospacedDigit())
-                                } else {
-                                    Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
-                                        .font(.headline.monospacedDigit())
-                                }
-                                Spacer()
-                                Button(
-                                    "livetv.player.goLive",
-                                    systemImage: "dot.radiowaves.left.and.right",
-                                    action: onGoLive,
-                                )
-                                .actionButtonStyle(.primary)
-                                .disabled(behindLiveSeconds < 2)
-                            }
-                            .foregroundStyle(.white)
+                            LiveTVPlayerStatusRow(
+                                behindLiveSeconds: behindLiveSeconds,
+                                isAtLiveEdge: isAtLiveEdge,
+                                lastChannel: lastLiveChannel,
+                                onGoLive: onGoLive,
+                                onShowChannels: onShowLiveChannels,
+                                onLastChannel: onLastLiveChannel,
+                            )
+                            .controlSize(.small)
                             .padding(.horizontal, 12)
                         } else {
                             ZStack(alignment: .bottom) {
