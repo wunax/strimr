@@ -35,54 +35,67 @@ struct LiveTVGuideSearchView: View {
 
     var body: some View {
         TaskModalNavigationView {
-            List {
-                #if os(tvOS)
-                    TextField("livetv.search.prompt", text: $query)
-                #endif
-                if !channels.isEmpty {
-                    Section("livetv.search.channels") {
-                        ForEach(channels) { channel in
-                            Button {
-                                dismiss()
-                                onSelectChannel(channel)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    LiveTVChannelLogo(channel: channel)
-                                        .frame(width: 56, height: 32)
-                                    Text(channel.displayTitle)
-                                }
+            content
+            #if !os(tvOS)
+                .searchable(text: $query, prompt: Text("livetv.search.prompt"))
+            #endif
+                .taskModalTitle("livetv.search.title")
+                .taskModalActions {
+                    Button("common.done") { dismiss() }
+                }
+        }
+    }
+
+    private var content: some View {
+        #if os(tvOS)
+            // Outside the list: a list row is rebuilt whenever the results change, which closes the keyboard.
+            VStack(spacing: 24) {
+                TextField("livetv.search.prompt", text: $query)
+                results
+            }
+        #else
+            results
+        #endif
+    }
+
+    private var results: some View {
+        List {
+            if !channels.isEmpty {
+                Section("livetv.search.channels") {
+                    ForEach(channels) { channel in
+                        Button {
+                            dismiss()
+                            onSelectChannel(channel)
+                        } label: {
+                            HStack(spacing: 12) {
+                                LiveTVChannelLogo(channel: channel)
+                                    .frame(width: 56, height: 32)
+                                Text(channel.displayTitle)
                             }
                         }
                     }
-                }
-                if !programs.isEmpty {
-                    Section("livetv.search.programs") {
-                        ForEach(programs) { program in
-                            Button {
-                                dismiss()
-                                onSelectProgram(program)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(program.title)
-                                    Text(subtitle(program))
-                                        .font(.cardMetadata)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-                if !trimmedQuery.isEmpty, channels.isEmpty, programs.isEmpty {
-                    Text("livetv.search.empty")
-                        .foregroundStyle(.secondary)
                 }
             }
-            #if !os(tvOS)
-            .searchable(text: $query, prompt: Text("livetv.search.prompt"))
-            #endif
-            .taskModalTitle("livetv.search.title")
-            .taskModalActions {
-                Button("common.done") { dismiss() }
+            if !programs.isEmpty {
+                Section("livetv.search.programs") {
+                    ForEach(programs) { program in
+                        Button {
+                            dismiss()
+                            onSelectProgram(program)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(program.title)
+                                Text(subtitle(program))
+                                    .font(.cardMetadata)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            if !trimmedQuery.isEmpty, channels.isEmpty, programs.isEmpty {
+                Text("livetv.search.empty")
+                    .foregroundStyle(.secondary)
             }
         }
     }
