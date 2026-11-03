@@ -5754,6 +5754,22 @@
         }
       }
     },
+    "livetv.dvr.inProgress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Now"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours"
+          }
+        }
+      }
+    },
     "livetv.dvr.noEditableOptions" : {
       "localizations" : {
         "en" : {
@@ -5860,6 +5876,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重复录制规则"
+          }
+        }
+      }
+    },
+    "livetv.dvr.scheduled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À venir"
           }
         }
       }

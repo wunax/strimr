@@ -67,6 +67,7 @@ struct LiveTVView: View {
                         store: store,
                         onPlayRecording: onPlayRecording,
                         onOpenLibrary: onOpenLibrary,
+                        onShowProgram: { selectedProgram = $0 },
                     )
                 }
             }
