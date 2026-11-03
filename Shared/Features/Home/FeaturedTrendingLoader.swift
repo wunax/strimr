@@ -88,30 +88,65 @@ struct FeaturedTrendingLoader {
         let descriptor = Self.descriptor(of: media)
         let kind: MediaKind = media.mediaType == .movie ? .movie : .series
         let linked = linkedServer(of: media, sessions: sessions)
-        let result = await aggregation.fanOut(servers: sessions) { services in
-            if services.identity == linked?.server, let id = linked?.itemID {
-                do {
-                    return try await [services.detail.mediaItem(id: id)]
-                } catch {
-                    // A stale id falls back to the search below.
-                    if Task.isCancelled || error.isCancellation {
-                        throw error
-                    }
+        let linkedIdentity = linked.map { MediaIdentity(server: $0.server, itemID: $0.itemID) }
+        let result = await aggregation.fanOut(servers: sessions) { services -> MediaItem? in
+            let items: [MediaItem]
+            if services.identity == linked?.server, let id = linked?.itemID,
+               let item = try await Self.linkedItem(id: id, services: services)
+            {
+                items = [item]
+            } else {
+                let title = media.title ?? media.name ?? ""
+                guard !title.isEmpty else { return nil }
+                items = try await services.search.search(query: title, kinds: [kind]).compactMap(\.playableItem)
+            }
+            let hidden = hiddenLibraryIDs[services.identity] ?? []
+            let matches = items.filter { item in
+                item.type == kind
+                    && (item.identity == linkedIdentity || MediaMatching.matches(item.matchDescriptor, descriptor))
+            }
+            for item in matches {
+                if try await !Self.isInHiddenLibrary(item, hidden: hidden, services: services) {
+                    return item
                 }
             }
-            let title = media.title ?? media.name ?? ""
-            guard !title.isEmpty else { return [] }
-            return try await services.search.search(query: title, kinds: [kind]).compactMap(\.playableItem)
+            return nil
         }
         return sessions.compactMap { session -> FeaturedCandidate? in
-            let hidden = hiddenLibraryIDs[session.identity] ?? []
-            let item = (result.value[session.identity] ?? []).first { item in
-                item.type == kind
-                    && (item.identity == linked.map { MediaIdentity(server: $0.server, itemID: $0.itemID) }
-                        || MediaMatching.matches(item.matchDescriptor, descriptor))
-                    && !(item.librarySectionID.map(hidden.contains) ?? false)
+            guard case let item?? = result.value[session.identity] else { return nil }
+            return FeaturedCandidate(item: item, reason: .trending)
+        }
+    }
+
+    /// A stale id returns nil so the title is searched instead.
+    private static func linkedItem(id: String, services: MediaServices) async throws -> MediaItem? {
+        do {
+            return try await services.detail.mediaItem(id: id)
+        } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
             }
-            return item.map { FeaturedCandidate(item: $0, reason: .trending) }
+            return nil
+        }
+    }
+
+    /// Jellyfin items do not carry their library, so it is looked up for the matching copies only.
+    private static func isInHiddenLibrary(
+        _ item: MediaItem,
+        hidden: Set<String>,
+        services: MediaServices,
+    ) async throws -> Bool {
+        guard !hidden.isEmpty else { return false }
+        if let libraryID = item.librarySectionID {
+            return hidden.contains(libraryID)
+        }
+        do {
+            return try await services.detail.libraryID(for: item).map(hidden.contains) ?? false
+        } catch {
+            if Task.isCancelled || error.isCancellation {
+                throw error
+            }
+            return false
         }
     }
 

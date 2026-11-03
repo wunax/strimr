@@ -16,8 +16,12 @@ struct MediaHeroBackgroundView: View {
     }
 
     private var artworkPath: String? {
-        if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
-            return media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
+        Self.artworkPath(for: media, spoilerProtection: settingsManager.interface.spoilerProtection)
+    }
+
+    static func artworkPath(for media: MediaItem, spoilerProtection: SpoilerProtectionLevel) -> String? {
+        if media.isSpoilerProtected(at: spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: spoilerProtection)
         }
         return media.grandparentArtPath
             ?? media.artPath

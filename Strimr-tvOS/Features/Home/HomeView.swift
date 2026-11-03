@@ -296,7 +296,10 @@ struct HomeView: View {
     private func prefetchNextBackdrop() async {
         guard slides.count > 1 else { return }
         let next = slides[(currentIndex + 1) % slides.count].media
-        guard let path = next.grandparentArtPath ?? next.artPath,
+        guard let path = MediaHeroBackgroundView.artworkPath(
+                  for: next,
+                  spoilerProtection: settingsManager.interface.spoilerProtection,
+              ),
               let services = registry.services(for: next.identity.server),
               let resource = try? await services.artwork.artwork(path: path, width: 3840, height: 2160)
         else { return }

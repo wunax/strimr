@@ -45,6 +45,19 @@ struct PlexFeaturedMappingTests {
         #expect(candidates.allSatisfy { $0.reason == .newSeason })
     }
 
+    @Test func `new season lookups keep the series with the newest additions`() {
+        let additions = (0 ..< 40).reduce(into: [String: PlexFeaturedMapping.Addition]()) { additions, index in
+            additions["\(index)"] = PlexFeaturedMapping.Addition(
+                addedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                seasonNumber: nil,
+            )
+        }
+
+        let keys = PlexFeaturedMapping.newestSeriesKeys(additions, limit: 3)
+
+        #expect(keys == ["39", "38", "37"])
+    }
+
     @Test func `only promoted collections are curated`() throws {
         let hubs = try Fixtures.decode(PlexHubMediaContainer.self, from: "plex-featured-promoted").mediaContainer.hub
 

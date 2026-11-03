@@ -55,7 +55,7 @@ struct PlexFeaturedService {
         let episodes = try await unwatched(sectionID: sectionID, type: 4, sort: "addedAt:desc", size: 100)
         let additions = PlexFeaturedMapping.recentAdditions(episodes: episodes, now: now)
         guard !additions.isEmpty else { return [] }
-        let keys = Array(additions.keys.prefix(Self.poolSize))
+        let keys = PlexFeaturedMapping.newestSeriesKeys(additions, limit: Self.poolSize)
         let shows = try await MetadataRepository(context: context).getGuids(ratingKeys: keys)
             .mediaContainer.metadata ?? []
         return PlexFeaturedMapping.newSeasons(shows: shows, additions: additions, server: server)
@@ -148,7 +148,7 @@ enum PlexFeaturedMapping {
         let seasonNumber: Int?
     }
 
-    /// Series with unwatched episodes added lately, by series key, newest first in insertion order.
+    /// Series with unwatched episodes added lately, by series key.
     static func recentAdditions(episodes: [PlexItem], now: Date) -> [String: Addition] {
         var additions: [String: Addition] = [:]
         for episode in episodes where episode.type == .episode {
@@ -163,6 +163,10 @@ enum PlexFeaturedMapping {
             )
         }
         return additions
+    }
+
+    static func newestSeriesKeys(_ additions: [String: Addition], limit: Int) -> [String] {
+        additions.sorted { $0.value.addedAt > $1.value.addedAt }.prefix(limit).map(\.key)
     }
 
     /// Series the user started and has not finished, which got new episodes.

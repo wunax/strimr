@@ -22558,19 +22558,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Applies to episode and season cards. Choose landscape or portrait for each row in Customize home rows."
+            "value" : "Applies to episode and season cards. Choose landscape or portrait for each row in Customize home."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S’applique aux cartes d’épisodes et de saisons. Choisissez le paysage ou le portrait pour chaque rangée dans Personnaliser les rangées de l’écran d’accueil."
+            "value" : "S’applique aux cartes d’épisodes et de saisons. Choisissez le paysage ou le portrait pour chaque rangée dans Personnaliser l’accueil."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "适用于单集和季卡片。可在“自定义主页行”中为每一行选择横向或纵向。"
+            "value" : "适用于单集和季卡片。可在“自定义主页”中为每一行选择横向或纵向。"
           }
         }
       }

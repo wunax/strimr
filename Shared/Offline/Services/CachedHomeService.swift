@@ -70,8 +70,9 @@ final class CachedHomeService: MediaHomeService {
 
     /// Not cached: the home keeps its last selection of the day while offline.
     func loadFeaturedCandidates(hiddenLibraryIDs: Set<String>) async throws -> [FeaturedCandidate] {
-        guard !policy.isUnreachable else { return [] }
-        return try await base.loadFeaturedCandidates(hiddenLibraryIDs: hiddenLibraryIDs)
+        try await policy.online {
+            try await base.loadFeaturedCandidates(hiddenLibraryIDs: hiddenLibraryIDs)
+        }
     }
 
     var supportsContinueWatchingRemoval: Bool {
