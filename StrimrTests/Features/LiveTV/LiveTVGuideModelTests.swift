@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 @testable import Strimr
 import Testing
@@ -78,6 +79,19 @@ struct LiveTVGuideModelTests {
         #expect(frame.x == LiveTVGuideMetrics.channelColumnWidth)
         #expect(frame.width == LiveTVGuideMetrics.width(of: 1800))
         #expect(geometry.date(atX: geometry.x(for: start.addingTimeInterval(900))) == start.addingTimeInterval(900))
+    }
+
+    @Test func `pins a program running past the channel column to its edge`() {
+        let column = LiveTVGuideMetrics.channelColumnWidth
+        let running = CGRect(x: column + 2, y: 0, width: 300, height: 10)
+        let pinned = LiveTVGuideGeometry.visibleCellFrame(running, scrollX: 100)
+
+        #expect(pinned.minX == 100 + column + 2)
+        #expect(pinned.maxX == running.maxX)
+        #expect(LiveTVGuideGeometry.visibleCellFrame(running, scrollX: 0) == running)
+
+        let hidden = CGRect(x: column + 2, y: 0, width: 50, height: 10)
+        #expect(LiveTVGuideGeometry.visibleCellFrame(hidden, scrollX: 100) == hidden)
     }
 
     @Test func `marks the ruler every half hour`() throws {

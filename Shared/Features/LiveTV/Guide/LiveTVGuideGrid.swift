@@ -441,7 +441,7 @@ struct LiveTVGuideGridActions {
                             item: index + 1,
                             section: row,
                         ))
-                        attributes.frame = visibleFrame(frame, bounds: bounds)
+                        attributes.frame = LiveTVGuideGeometry.visibleCellFrame(frame, scrollX: bounds.minX)
                         attributes.zIndex = 1
                         result.append(attributes)
                     }
@@ -470,7 +470,10 @@ struct LiveTVGuideGridActions {
             let row = frames[indexPath.section]
             guard row.indices.contains(indexPath.item - 1) else { return nil }
             let attributes = UICollectionViewLayoutAttributes(forCellWith: indexPath)
-            attributes.frame = visibleFrame(row[indexPath.item - 1], bounds: collectionView.bounds)
+            attributes.frame = LiveTVGuideGeometry.visibleCellFrame(
+                row[indexPath.item - 1],
+                scrollX: collectionView.bounds.minX,
+            )
             attributes.zIndex = 1
             return attributes
         }
@@ -486,14 +489,6 @@ struct LiveTVGuideGridActions {
             case LiveTVGuideGridController.cornerKind: return cornerAttributes(bounds: bounds)
             default: return nowAttributes(bounds: bounds)
             }
-        }
-
-        /// A program running past the channel column starts at its edge, so its title stays readable and its focus
-        /// highlight never covers the column.
-        private func visibleFrame(_ frame: CGRect, bounds: CGRect) -> CGRect {
-            let leading = bounds.minX + LiveTVGuideMetrics.channelColumnWidth + 2
-            guard frame.minX < leading, frame.maxX > leading + 2 else { return frame }
-            return CGRect(x: leading, y: frame.minY, width: frame.maxX - leading, height: frame.height)
         }
 
         private func channelAttributes(row: Int, bounds: CGRect) -> UICollectionViewLayoutAttributes {

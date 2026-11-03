@@ -72,7 +72,16 @@ import SwiftUI
         private func rowView(row: Int, channel: LiveTVChannel, now: Date) -> some View {
             ZStack(alignment: .topLeading) {
                 ForEach(model.rows[row], id: \.identity) { program in
-                    let frame = geometry.frame(of: program)
+                    let span = geometry.frame(of: program)
+                    let frame = LiveTVGuideGeometry.visibleCellFrame(
+                        CGRect(
+                            x: span.x + 2,
+                            y: 0,
+                            width: max(span.width - 4, 2),
+                            height: LiveTVGuideMetrics.rowHeight,
+                        ),
+                        scrollX: offset.x,
+                    )
                     Button { actions.openProgram(program) } label: {
                         LiveTVGuideProgramCell(
                             program: program,
@@ -83,8 +92,8 @@ import SwiftUI
                         )
                     }
                     .buttonStyle(.plain)
-                    .frame(width: max(frame.width - 4, 2), height: LiveTVGuideMetrics.rowHeight)
-                    .offset(x: frame.x + 2)
+                    .frame(width: frame.width, height: frame.height)
+                    .offset(x: frame.minX)
                     .onHover { hovering in
                         if hovering {
                             hoveredProgram = program.identity

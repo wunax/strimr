@@ -77,6 +77,14 @@ struct LiveTVGuideGeometry: Equatable {
         return (x, max(LiveTVGuideMetrics.width(of: visibleEnd.timeIntervalSince(visibleStart)), 4))
     }
 
+    /// A program cell running past the channel column starts at its edge, so its title stays readable and its
+    /// focus or hover highlight never covers the column. `scrollX` is the horizontal scroll offset.
+    static func visibleCellFrame(_ frame: CGRect, scrollX: CGFloat) -> CGRect {
+        let leading = scrollX + LiveTVGuideMetrics.channelColumnWidth + 2
+        guard frame.minX < leading, frame.maxX > leading + 2 else { return frame }
+        return CGRect(x: leading, y: frame.minY, width: frame.maxX - leading, height: frame.height)
+    }
+
     /// Half-hour marks of the time ruler.
     var slots: [Date] {
         let calendar = Calendar.current
