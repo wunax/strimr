@@ -53,6 +53,16 @@ extension ShapeStyle where Self == Color {
         .white
     }
 
+    /// Marks what is on air right now: the guide's current time line and the live badge.
+    static var liveIndicator: Color {
+        Color(red: 1, green: 0.27, blue: 0.23)
+    }
+
+    /// Marks a program that records or will record.
+    static var recordingIndicator: Color {
+        Color(red: 1, green: 0.27, blue: 0.23)
+    }
+
     /// Intro, credits and commercial spans on a playback timeline, translucent so the played fill still shows through.
     static var progressSegment: Color {
         Color(red: 1, green: 0.76, blue: 0.28).opacity(0.7)
