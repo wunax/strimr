@@ -96,6 +96,17 @@ struct SettingsPlaybackView: View {
                 }
             }
 
+            if hasLiveTV {
+                Section {
+                    Toggle("settings.playback.transcodeLiveTV", isOn: viewModel.transcodeLiveTVBinding)
+                        .settingsFocus("settings.playback.transcodeLiveTV")
+                } header: {
+                    Text("settings.playback.liveTV.title")
+                } footer: {
+                    Text("settings.playback.transcodeLiveTV.footer")
+                }
+            }
+
             Section("settings.playback.timeline.title") {
                 Toggle(
                     "settings.playback.showChaptersOnTimeline",

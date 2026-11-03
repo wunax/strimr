@@ -1,4 +1,5 @@
 import Foundation
+import VideoToolbox
 
 @MainActor
 final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
@@ -157,15 +158,28 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         try await writeFavorites(channels)
     }
 
-    func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
+    func startPlayback(
+        channel: LiveTVChannel,
+        route: LiveTVRoutePreference,
+    ) async throws -> any LiveTVPlaybackSession {
         guard let dvrID = channel.dvrID else {
             throw PlexAPIError.invalidResponse
         }
         do {
-            return try await PlexLiveTVPlaybackSession.start(channel: channel, dvrID: dvrID, context: context)
+            return try await PlexLiveTVPlaybackSession.start(
+                channel: channel,
+                dvrID: dvrID,
+                context: context,
+                preference: route,
+            )
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { throw error }
-            return try await PlexLiveTVPlaybackSession.start(channel: channel, dvrID: dvrID, context: context)
+            return try await PlexLiveTVPlaybackSession.start(
+                channel: channel,
+                dvrID: dvrID,
+                context: context,
+                preference: route,
+            )
         }
     }
 
@@ -517,10 +531,13 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
     private let dvrID: String
     private let sessionPath: String
     private let sessionIdentifier: String
-    private let transcodeIdentifier: String
+    private var transcodeIdentifier: String
     private let ratingKey: String
     private let program: LiveTVProgram?
     private let burnsBitmapSubtitles: Bool
+    private let isInterlaced: Bool
+    private var preference: LiveTVRoutePreference
+    private var usesTranscoder = false
 
     private init(
         channel: LiveTVChannel,
@@ -531,7 +548,9 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
         ratingKey: String,
         program: LiveTVProgram?,
         burnsBitmapSubtitles: Bool,
+        isInterlaced: Bool,
         captureRange: LiveTVCaptureRange?,
+        preference: LiveTVRoutePreference,
     ) {
         self.channel = channel
         self.dvrID = dvrID
@@ -543,13 +562,16 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
         self.ratingKey = ratingKey
         self.program = program
         self.burnsBitmapSubtitles = burnsBitmapSubtitles
+        self.isInterlaced = isInterlaced
         self.captureRange = captureRange
+        self.preference = preference
     }
 
     static func start(
         channel: LiveTVChannel,
         dvrID: String,
         context: PlexAPIContext,
+        preference: LiveTVRoutePreference,
     ) async throws -> PlexLiveTVPlaybackSession {
         let sessionIdentifier = UUID().uuidString
         let network = PlexServerNetworkClient(context: context)
@@ -588,43 +610,41 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
             ratingKey: ratingKey,
             program: nil,
             burnsBitmapSubtitles: burnsBitmapSubtitles,
+            isInterlaced: PlexLiveTVQuery.isInterlaced(tuneMetadata: metadata),
             captureRange: capture,
+            preference: preference,
         )
     }
 
     func source(offsetFromCaptureStart: TimeInterval?) async throws -> LiveTVPlaybackSource {
         let snapshot = try context.serverAccessSnapshot()
-        // AVPlayer cannot decode broadcast MPEG-2, so only h264 is offered and the server transcodes it.
-        let profile = [
-            "add-settings(DirectPlayStreamSelection=true)",
-            "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,ac3,eac3,mp3)",
-            "add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)",
-        ].joined(separator: "+")
-        var query: [URLQueryItem] = [
-            .init(name: "hasMDE", value: "1"), .init(name: "path", value: sessionPath),
-            .init(name: "mediaIndex", value: "0"), .init(name: "partIndex", value: "0"),
-            .init(name: "protocol", value: "hls"), .init(name: "fastSeek", value: "1"),
-            .init(name: "directPlay", value: "0"), .init(name: "directStream", value: "1"),
-            .init(name: "directStreamAudio", value: "1"),
-            .init(name: "subtitles", value: burnsBitmapSubtitles ? "burn" : "none"),
-            .init(name: "session", value: transcodeIdentifier),
-            .init(name: "X-Plex-Session-Identifier", value: sessionIdentifier),
-            .init(name: "X-Plex-Client-Identifier", value: snapshot.clientIdentifier),
-            .init(name: "X-Plex-Product", value: "Strimr"),
-            .init(name: "X-Plex-Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String),
-            .init(name: "X-Plex-Platform", value: "Generic"),
-            .init(name: "X-Plex-Client-Profile-Name", value: "Generic"),
-            .init(name: "X-Plex-Client-Profile-Extra", value: profile),
-            .init(name: "X-Plex-Incomplete-Segments", value: "1"),
-        ]
-        if let offsetFromCaptureStart {
-            query.append(.init(name: "offset", value: String(Int(offsetFromCaptureStart))))
-        }
+        let client = PlexLiveTVQuery.Client(
+            clientIdentifier: snapshot.clientIdentifier,
+            productVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+            supportsHEVC: VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC),
+        )
+        let transcodes = preference == .serverTranscode
+        let attemptsDirectPlay = !transcodes && offsetFromCaptureStart == nil
+        var query = PlexLiveTVQuery.items(
+            sessionPath: sessionPath,
+            sessionIdentifier: sessionIdentifier,
+            transcodeSessionID: transcodeIdentifier,
+            directPlay: attemptsDirectPlay,
+            offset: offsetFromCaptureStart,
+            client: client,
+            profile: transcodes
+                ? PlexLiveTVQuery.transcodeProfile
+                : PlexLiveTVQuery.profile(supportsHEVC: client.supportsHEVC),
+            // The engine renders bitmap subtitles itself; only AVPlayer's route needs them burned in.
+            burnsSubtitles: transcodes && burnsBitmapSubtitles,
+        )
+
         // start.m3u8 runs its own decision, so a failed one here only gets reported.
+        var decision: [String: Any]?
         do {
-            try await network.send(
+            decision = try await network.json(
                 path: "/video/:/transcode/universal/decision",
-                queryItems: query,
+                percentEncodedQuery: PlexLiveTVQuery.percentEncodedQuery(query),
                 headers: ["Accept-Language": "en", "X-Plex-Platform": "Generic"],
             )
         } catch {
@@ -633,19 +653,46 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
             }
             LiveTVErrorReporting.capture(error)
         }
+
+        if attemptsDirectPlay,
+           let decision,
+           let partKey = PlexLiveTVQuery.directPlayPartKey(fromDecision: decision),
+           let url = PlexLiveTVQuery.directPlayURL(
+               baseURL: snapshot.baseURL,
+               partKey: partKey,
+               sessionIdentifier: sessionIdentifier,
+               token: snapshot.authToken,
+           )
+        {
+            usesTranscoder = false
+            return LiveTVPlaybackSource(
+                url: url,
+                httpHeaders: [:],
+                program: program,
+                captureRange: captureRange,
+                nativeRemoteHLS: false,
+                route: .directPlay,
+                isInterlaced: isInterlaced,
+            )
+        }
+
         query.append(.init(name: "X-Plex-Token", value: snapshot.authToken))
         var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent("/video/:/transcode/universal/start.m3u8"),
             resolvingAgainstBaseURL: false,
         )!
-        components.queryItems = query
+        components.percentEncodedQuery = PlexLiveTVQuery.percentEncodedQuery(query)
         guard let url = components.url else { throw PlexAPIError.invalidURL }
+        usesTranscoder = true
         return LiveTVPlaybackSource(
             url: url,
             httpHeaders: [:],
             program: program,
             captureRange: captureRange,
-            nativeRemoteHLS: true,
+            // A remux can carry MPEG-2 or HEVC in TS, which AVPlayer does not read.
+            nativeRemoteHLS: transcodes,
+            route: transcodes ? .transcode : .remux,
+            isInterlaced: isInterlaced,
         )
     }
 
@@ -668,15 +715,33 @@ private final class PlexLiveTVPlaybackSession: LiveTVPlaybackSession {
     }
 
     func recover() async throws -> any LiveTVPlaybackSession {
-        try await Self.start(channel: channel, dvrID: dvrID, context: context)
+        try await Self.start(channel: channel, dvrID: dvrID, context: context, preference: preference)
+    }
+
+    /// The tuned session stays; only the next `source` asks for the transcoded stream.
+    func fallback() async throws -> (any LiveTVPlaybackSession)? {
+        guard preference == .automatic else { return nil }
+        if usesTranscoder {
+            await stopTranscoder()
+            transcodeIdentifier = UUID().uuidString
+        }
+        preference = .serverTranscode
+        return self
     }
 
     func stop() async {
+        // PMS releases the capture only once the timeline says the session stopped.
         do {
             _ = try await report(position: 0, isPaused: true)
         } catch {
             LiveTVErrorReporting.capture(error)
         }
+        if usesTranscoder {
+            await stopTranscoder()
+        }
+    }
+
+    private func stopTranscoder() async {
         do {
             try await PlaybackRepository(context: context).stopTranscode(sessionIdentifier: transcodeIdentifier)
         } catch {

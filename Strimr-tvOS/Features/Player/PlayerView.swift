@@ -112,6 +112,7 @@ struct PlayerView: View {
                 .onAppear {
                     guard activePlaybackURL == nil else { return }
                     playerController.onMediaLoaded = handleMediaLoaded
+                    playerController.onLiveDemuxFailure = fallBackToServerTranscode
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     configureSleepTimer()
                     showControls(temporarily: true)
@@ -151,6 +152,7 @@ struct PlayerView: View {
                 }
                 .task {
                     guard activePlaybackURL == nil else { return }
+                    viewModel.liveRoutePreference = settingsManager.playback.transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                 },
         )
@@ -1293,9 +1295,7 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             audioShaping: settingsManager.playback.audioShaping,
             autoplay: !sharePlayCoordinator.isInSession,
@@ -1305,6 +1305,24 @@ struct PlayerView: View {
         shouldResumeAfterMediaLoad = shouldResumeAfterLoad
         shouldPauseAfterMediaLoad = shouldPauseAfterLoad
         showControls(temporarily: true)
+    }
+
+    private func fallBackToServerTranscode(after error: Error) {
+        LiveTVErrorReporting.capture(error, route: viewModel.liveRoute)
+        Task {
+            do {
+                guard let url = try await viewModel.fallBackToServerTranscode() else {
+                    showPlaybackError(String(localized: "livetv.playback.error"))
+                    return
+                }
+                playerController.stop()
+                startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showPlaybackError(String(localized: "livetv.playback.error"))
+            }
+        }
     }
 
     private func switchLiveChannel(by offset: Int) {

@@ -24143,6 +24143,22 @@
         }
       }
     },
+    "settings.playback.liveTV.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live TV"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV en direct"
+          }
+        }
+      }
+    },
     "settings.playback.losslessAudio" : {
       "localizations" : {
         "en" : {
@@ -25789,6 +25805,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放"
+          }
+        }
+      }
+    },
+    "settings.playback.transcodeLiveTV" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcode Live TV on the server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcoder la TV en direct sur le serveur"
+          }
+        }
+      }
+    },
+    "settings.playback.transcodeLiveTV.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this only if a channel does not play. The server converts the stream, which takes longer to start and uses more of its resources."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À n’activer que si une chaîne ne se lit pas. Le serveur convertit le flux, ce qui allonge le démarrage et sollicite davantage le serveur."
           }
         }
       }

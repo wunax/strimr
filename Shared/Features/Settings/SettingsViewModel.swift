@@ -93,6 +93,20 @@ final class SettingsViewModel {
         )
     }
 
+    var transcodeLiveTVBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.transcodeLiveTV },
+            set: { self.settingsManager.setTranscodeLiveTV($0) },
+        )
+    }
+
+    var tintsLiveTVGuideCategoriesBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.interface.tintsLiveTVGuideCategories },
+            set: { self.settingsManager.setTintsLiveTVGuideCategories($0) },
+        )
+    }
+
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },

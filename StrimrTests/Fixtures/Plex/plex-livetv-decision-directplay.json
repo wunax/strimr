@@ -1,0 +1,35 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "directPlayDecisionCode": 1000,
+    "generalDecisionCode": 1000,
+    "mdeDecisionCode": 1000,
+    "mdeDecisionText": "Direct play OK.",
+    "Metadata": [
+      {
+        "ratingKey": "1000",
+        "key": "/livetv/sessions/session-1",
+        "type": "episode",
+        "title": "Example Programme",
+        "live": 1,
+        "Media": [
+          {
+            "id": "1",
+            "container": "mpegts",
+            "videoCodec": "mpeg2video",
+            "audioCodec": "mp2",
+            "Part": [
+              {
+                "id": "1",
+                "key": "/livetv/sessions/session-1/client-1/index.m3u8",
+                "decision": "directplay",
+                "protocol": "hls",
+                "container": "mpegts"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

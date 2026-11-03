@@ -386,7 +386,10 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
         throw NotStubbed(function: #function)
     }
 
-    func startPlayback(channel _: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
+    func startPlayback(
+        channel _: LiveTVChannel,
+        route _: LiveTVRoutePreference,
+    ) async throws -> any LiveTVPlaybackSession {
         throw NotStubbed(function: #function)
     }
 

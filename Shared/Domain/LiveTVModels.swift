@@ -2,17 +2,20 @@ import Foundation
 
 @MainActor
 enum LiveTVErrorReporting {
-    static func capture(_ error: Error) {
+    static func capture(_ error: Error, route: LiveTVPlaybackRoute? = nil) {
         guard !error.isCancellation else { return }
-        ErrorReporter.capture(normalizedError(from: error))
+        ErrorReporter.capture(normalizedError(from: error, route: route))
     }
 
-    private static func normalizedError(from error: Error) -> NSError {
+    private static func normalizedError(from error: Error, route: LiveTVPlaybackRoute?) -> NSError {
         let underlying = error as NSError
         var userInfo: [String: Any] = [
             "underlying_domain": underlying.domain,
             "underlying_code": underlying.code,
         ]
+        if let route {
+            userInfo["route"] = route.rawValue
+        }
 
         let provider: String
         let code: Int
@@ -187,12 +190,29 @@ enum LiveTVBackgroundPolicy: Equatable, Sendable {
     case stopAndExit
 }
 
+/// How the server delivers a live channel. The raw value is what error reports carry.
+enum LiveTVPlaybackRoute: String, Sendable {
+    case directPlay = "direct_play"
+    case remux
+    case directStream = "direct_stream"
+    case transcode
+}
+
+enum LiveTVRoutePreference: Sendable {
+    case automatic
+    /// The server transcodes and AVPlayer reads its HLS directly, the route used before the engine played
+    /// broadcast streams.
+    case serverTranscode
+}
+
 struct LiveTVPlaybackSource: Sendable {
     let url: URL
     let httpHeaders: [String: String]
     let program: LiveTVProgram?
     let captureRange: LiveTVCaptureRange?
     let nativeRemoteHLS: Bool
+    let route: LiveTVPlaybackRoute
+    var isInterlaced = false
 }
 
 struct LiveTVLaunchContext: Sendable {

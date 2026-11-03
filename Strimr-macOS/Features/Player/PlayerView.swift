@@ -283,6 +283,7 @@ struct PlayerView: View {
                             isSharePlay: sharePlayCoordinator.isInSession,
                         )
                     }
+                    viewModel.liveRoutePreference = settingsManager.playback.transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
@@ -1232,9 +1233,7 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             audioShaping: settingsManager.playback.audioShaping,
             autoplay: !wasPaused,
@@ -1422,6 +1421,9 @@ struct PlayerView: View {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: AppModel.playerWindowID)
         }
+        playerController.onLiveDemuxFailure = { error in
+            fallBackToServerTranscode(after: error)
+        }
         playerController.onMediaLoaded = {
             viewModel.confirmLiveChannelSwitch()
             let tracks = playerController.trackList()
@@ -1509,9 +1511,7 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
             audioShaping: settingsManager.playback.audioShaping,
             autoplay: !isSharePlayPlayback,
@@ -1641,6 +1641,25 @@ struct PlayerView: View {
         playerController.pause()
     }
 
+    private func fallBackToServerTranscode(after error: Error) {
+        LiveTVErrorReporting.capture(error, route: viewModel.liveRoute)
+        Task {
+            do {
+                guard let url = try await viewModel.fallBackToServerTranscode() else {
+                    showError(String(localized: "livetv.playback.error"))
+                    return
+                }
+                playerController.stop()
+                loadedURL = nil
+                startPlaybackIfNeeded(url)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showError(String(localized: "livetv.playback.error"))
+            }
+        }
+    }
+
     private func switchLiveChannel(by offset: Int) {
         Task {
             do {
@@ -1729,9 +1748,7 @@ struct PlayerView: View {
                 settingsManager.playback.generateMissingScrubThumbnailPreviews,
                 showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                     && !viewModel.isTranscoding,
-                isLive: viewModel.isLivePlayback,
-                nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-                dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+                live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
                 audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
                 audioShaping: settingsManager.playback.audioShaping,
                 autoplay: !isSharePlay,

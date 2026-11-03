@@ -83,6 +83,27 @@ final class SettingsManager {
         persist()
     }
 
+    func setTranscodeLiveTV(_ enabled: Bool) {
+        settings.playback.transcodeLiveTV = enabled
+        persist()
+    }
+
+    func setTintsLiveTVGuideCategories(_ enabled: Bool) {
+        settings.interface.tintsLiveTVGuideCategories = enabled
+        persist()
+    }
+
+    func setLiveTVSection(_ section: String, server: ServerIdentity) {
+        let key = "\(server.provider.rawValue):\(server.id)"
+        guard settings.interface.liveTVSectionByServer[key] != section else { return }
+        settings.interface.liveTVSectionByServer[key] = section
+        persist()
+    }
+
+    func liveTVSection(server: ServerIdentity) -> String? {
+        settings.interface.liveTVSectionByServer["\(server.provider.rawValue):\(server.id)"]
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()

@@ -530,7 +530,10 @@
 
         func reorderFavorites(_: [LiveTVChannel]) async throws {}
 
-        func startPlayback(channel _: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
+        func startPlayback(
+        channel _: LiveTVChannel,
+        route _: LiveTVRoutePreference,
+    ) async throws -> any LiveTVPlaybackSession {
             throw DemoMediaError.unsupported
         }
 
