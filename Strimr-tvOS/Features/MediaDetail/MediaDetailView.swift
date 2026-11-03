@@ -127,6 +127,8 @@ struct MediaDetailView: View {
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
+            hasHandledInitialEpisodePosition = false
+            hasUserSelectedSeason = false
             Task { await bindableViewModel.loadDetails() }
         }
         .onChange(of: scenePhase) { _, newValue in
@@ -556,7 +558,11 @@ struct MediaDetailView: View {
                     .padding(.vertical, 12)
                     .padding(.vertical, 4)
                 }
-                .task(id: viewModel.episodes.map(\.id)) {
+                .task(id: EpisodePositionTrigger(
+                    episodeIDs: viewModel.episodes.map(\.id),
+                    primaryEpisodeID: viewModel.primaryActionItem?.id,
+                    isLoading: viewModel.isLoading,
+                )) {
                     await positionOnDeckEpisodeIfNeeded(using: scrollProxy)
                 }
                 .focusSection()
@@ -564,12 +570,19 @@ struct MediaDetailView: View {
         }
     }
 
+    private struct EpisodePositionTrigger: Equatable {
+        let episodeIDs: [String]
+        let primaryEpisodeID: String?
+        let isLoading: Bool
+    }
+
     private let episodeWidth: CGFloat = 460
     private let episodeSpacing: CGFloat = 36
 
     @MainActor
     private func positionOnDeckEpisodeIfNeeded(using scrollProxy: ScrollViewProxy) async {
-        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
+        // Waits for the whole load, since the next episode is resolved after the episodes are shown.
+        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason, !viewModel.isLoading else { return }
         hasHandledInitialEpisodePosition = true
 
         guard let primaryEpisodeID = viewModel.primaryActionItem?.id,
