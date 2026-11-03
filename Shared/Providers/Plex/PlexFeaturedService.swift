@@ -35,12 +35,7 @@ struct PlexFeaturedService {
             return values.sorted { $0.0 < $1.0 }.map(\.1)
         }
         try Task.checkCancellation()
-        let curatedCandidates = await curated
-        do {
-            return try curatedCandidates + FeaturedAggregation.merge(results)
-        } catch where !curatedCandidates.isEmpty {
-            return curatedCandidates
-        }
+        return try await curated + FeaturedAggregation.merge(results)
     }
 
     private func sectionCandidates(_ section: PlexSection, now: Date) async throws -> [FeaturedCandidate] {
