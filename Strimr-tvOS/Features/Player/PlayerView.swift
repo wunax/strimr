@@ -510,13 +510,11 @@ struct PlayerView: View {
                     isLive: viewModel.isLivePlayback,
                     behindLiveSeconds: playerController.behindLiveSeconds,
                     isAtLiveEdge: playerController.isAtLiveEdge,
-                    lastLiveChannel: viewModel.lastLiveChannel,
                     onGoLive: playerController.seekToLiveEdge,
                     onShowLiveChannels: {
                         controlsVisible = false
                         isShowingLiveChannels = true
                     },
-                    onLastLiveChannel: switchToLastLiveChannel,
                     canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
                     canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
                     onPreviousChannel: { switchLiveChannel(by: -1) },
@@ -1350,10 +1348,6 @@ struct PlayerView: View {
 
     private func switchLiveChannel(to index: Int) {
         performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
-    }
-
-    private func switchToLastLiveChannel() {
-        performLiveSwitch { try await viewModel.switchToLastLiveChannel() }
     }
 
     private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {

@@ -111,8 +111,8 @@ struct PlayerControlsView: View {
                             LiveTVPlayerStatusRow(
                                 behindLiveSeconds: behindLiveSeconds,
                                 isAtLiveEdge: isAtLiveEdge,
-                                lastChannel: lastLiveChannel,
                                 onGoLive: onGoLive,
+                                lastChannel: lastLiveChannel,
                                 onShowChannels: onShowLiveChannels,
                                 onLastChannel: onLastLiveChannel,
                             )

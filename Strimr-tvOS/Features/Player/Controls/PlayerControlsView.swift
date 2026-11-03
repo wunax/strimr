@@ -37,10 +37,8 @@ struct PlayerControlsView: View {
     var isLive: Bool
     var behindLiveSeconds: Double
     var isAtLiveEdge: Bool
-    var lastLiveChannel: LiveTVChannel?
     var onGoLive: () -> Void
     var onShowLiveChannels: () -> Void
-    var onLastLiveChannel: () -> Void
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
@@ -131,10 +129,7 @@ struct PlayerControlsView: View {
                 LiveTVPlayerStatusRow(
                     behindLiveSeconds: behindLiveSeconds,
                     isAtLiveEdge: isAtLiveEdge,
-                    lastChannel: lastLiveChannel,
                     onGoLive: onGoLive,
-                    onShowChannels: onShowLiveChannels,
-                    onLastChannel: onLastLiveChannel,
                 )
             } else {
                 PlayerTimelineView(
@@ -173,14 +168,6 @@ struct PlayerControlsView: View {
                         }
                     }
                     .focused($focusedControl, equals: .subtitle)
-
-                    if isLive, lastLiveChannel != nil {
-                        PlayerSettingButton(
-                            systemImage: "arrow.uturn.backward",
-                            accessibilityLabel: String(localized: "livetv.player.lastChannel"),
-                            action: onLastLiveChannel,
-                        )
-                    }
 
                     Spacer()
                 }

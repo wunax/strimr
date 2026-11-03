@@ -32,10 +32,12 @@ struct LiveTVLiveBadge: View {
 struct LiveTVPlayerStatusRow: View {
     let behindLiveSeconds: Double
     let isAtLiveEdge: Bool
-    let lastChannel: LiveTVChannel?
     let onGoLive: () -> Void
-    let onShowChannels: () -> Void
-    let onLastChannel: () -> Void
+    #if !os(tvOS)
+        let lastChannel: LiveTVChannel?
+        let onShowChannels: () -> Void
+        let onLastChannel: () -> Void
+    #endif
 
     private var isLive: Bool {
         LiveTVLiveBadge.isLive(behindLiveSeconds: behindLiveSeconds, isAtLiveEdge: isAtLiveEdge)
