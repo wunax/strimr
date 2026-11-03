@@ -59,6 +59,29 @@ final class PlayerViewModel {
         )
     }
 
+    /// The channel is tuning: the player shows the program's artwork instead of black.
+    private(set) var isJoiningLive = false
+    /// Changes each time a channel comes on screen, which shows the zap banner.
+    private(set) var liveChannelArrivals = 0
+    @ObservationIgnored private var lastLiveChannelIndex: Int?
+
+    var liveChannels: [LiveTVChannel] {
+        liveContext?.channels ?? []
+    }
+
+    var liveChannelIndex: Int? {
+        liveContext?.selectedIndex
+    }
+
+    var liveStore: LiveTVStore? {
+        isLivePlayback ? mediaServices?.liveTVStore : nil
+    }
+
+    var lastLiveChannel: LiveTVChannel? {
+        guard let lastLiveChannelIndex, liveChannels.indices.contains(lastLiveChannelIndex) else { return nil }
+        return liveChannels[lastLiveChannelIndex]
+    }
+
     var canSwitchToPreviousLiveChannel: Bool {
         guard let liveContext else { return false }
         return liveContext.selectedIndex > 0
@@ -457,6 +480,7 @@ final class PlayerViewModel {
 
         do {
             if let liveContext {
+                isJoiningLive = true
                 let session = try await mediaServices.liveTV.startPlayback(
                     channel: liveContext.channel,
                     route: liveRoutePreference,
@@ -487,6 +511,7 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
             if isLivePlayback {
+                isJoiningLive = false
                 LiveTVErrorReporting.capture(error, route: liveRoute)
                 errorMessage = String(localized: "livetv.playback.error")
             } else {
@@ -951,30 +976,46 @@ final class PlayerViewModel {
     }
 
     func switchLiveChannel(by offset: Int) async throws -> URL {
-        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices else {
-            throw PlayerPlaybackError.missingPlaybackURL
-        }
-        let index = context.selectedIndex + offset
-        guard context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard let context = liveContext else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: context.selectedIndex + offset)
+    }
+
+    /// Goes back to the channel watched before this one.
+    func switchToLastLiveChannel() async throws -> URL {
+        guard let lastLiveChannelIndex else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: lastLiveChannelIndex)
+    }
+
+    func switchLiveChannel(to index: Int) async throws -> URL {
+        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices,
+              index != context.selectedIndex,
+              context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
         isSwitchingLiveChannel = true
+        isJoiningLive = true
         defer { isSwitchingLiveChannel = false }
 
         let replacementContext = LiveTVLaunchContext(channels: context.channels, selectedIndex: index)
-        let replacement = try await mediaServices.liveTV.startPlayback(
-            channel: replacementContext.channel,
-            route: liveRoutePreference,
-        )
         do {
-            let source = try await replacement.source(offsetFromCaptureStart: nil)
-            let previous = liveSession
-            liveContext = replacementContext
-            adoptLiveSession(replacement)
-            pendingLiveSessionToStop = previous
-            media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
-            apply(liveSource: source)
-            return source.url
+            let replacement = try await mediaServices.liveTV.startPlayback(
+                channel: replacementContext.channel,
+                route: liveRoutePreference,
+            )
+            do {
+                let source = try await replacement.source(offsetFromCaptureStart: nil)
+                let previous = liveSession
+                lastLiveChannelIndex = context.selectedIndex
+                liveContext = replacementContext
+                adoptLiveSession(replacement)
+                pendingLiveSessionToStop = previous
+                media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
+                apply(liveSource: source)
+                return source.url
+            } catch {
+                await replacement.stop()
+                throw error
+            }
         } catch {
-            await replacement.stop()
+            isJoiningLive = false
             throw error
         }
     }
@@ -992,6 +1033,10 @@ final class PlayerViewModel {
     }
 
     func confirmLiveChannelSwitch() {
+        if isJoiningLive {
+            isJoiningLive = false
+            liveChannelArrivals += 1
+        }
         guard let pendingLiveSessionToStop else { return }
         self.pendingLiveSessionToStop = nil
         Task { await pendingLiveSessionToStop.stop() }

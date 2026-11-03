@@ -26,6 +26,7 @@ final class PlayerController {
     var isLive = false
     var liveEdgeTime = 0.0
     var behindLiveSeconds = 0.0
+    var isAtLiveEdge = true
     var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
     private(set) var displayVideoSize: CGSize?
@@ -1255,6 +1256,11 @@ final class PlayerController {
         engine.clock.$behindLiveSeconds
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.behindLiveSeconds = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$isAtLiveEdge
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.isAtLiveEdge = $0 }
             .store(in: &cancellables)
 
         engine.clock.$seekableLiveRange

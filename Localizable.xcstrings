@@ -6548,6 +6548,38 @@
         }
       }
     },
+    "livetv.player.behindShort %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%lld min"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%lld min"
+          }
+        }
+      }
+    },
+    "livetv.player.channels" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaînes"
+          }
+        }
+      }
+    },
     "livetv.player.goLive" : {
       "localizations" : {
         "en" : {
@@ -6566,6 +6598,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "回到直播"
+          }
+        }
+      }
+    },
+    "livetv.player.lastChannel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Channel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaîne précédente"
           }
         }
       }
