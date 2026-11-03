@@ -1,100 +1,154 @@
 import SwiftUI
 
+/// Entry screen of Live TV: what is on air now and soon, in rails, under the program in focus.
 struct LiveTVWhatsOnView: View {
     @Bindable var store: LiveTVStore
-    let onOpenProgram: (LiveTVProgram) -> Void
+    let actions: LiveTVCardActions
+    let onOpenRecording: (DVRRecording) -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    #if os(tvOS)
-        @FocusState private var focusedProgram: LiveTVProgramIdentity?
-    #endif
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var focusedItem: LiveTVShelfItem?
+    @State private var focusTask: Task<Void, Never>?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
-                if store.onNowSections.isEmpty {
-                    LiveTVEmptyState("livetv.empty.onNow", systemImage: "clock", message: store.errorMessage)
-                }
-                ForEach(store.onNowSections) { row in
-                    VStack(alignment: .leading) {
-                        Text(row.title)
-                            .font(.sectionTitle)
-                            .foregroundStyle(.textPrimary)
-                        ScrollView(.horizontal) {
-                            LazyHStack {
-                                ForEach(row.programs, id: \.identity) { program in
-                                    #if os(tvOS)
-                                        let isFocused = focusedProgram == program.identity
-                                    #else
-                                        let isFocused = false
-                                    #endif
-                                    Group {
-                                        #if os(tvOS)
-                                            onNowProgramCard(program, isFocused: isFocused)
-                                                .focusable()
-                                                .focused($focusedProgram, equals: program.identity)
-                                                .onTapGesture { onOpenProgram(program) }
-                                                .accessibilityAddTraits(.isButton)
-                                        #else
-                                            Button { onOpenProgram(program) } label: {
-                                                onNowProgramCard(program, isFocused: false)
-                                            }
-                                            .buttonStyle(.cardLift)
-                                        #endif
-                                    }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityLabel(
-                                        Text(
-                                            "livetv.onNow.program.accessibility \(program.title) \(channelName(program.channelIdentity))",
-                                        ),
-                                    )
-                                }
-                            }
-                        }
-                        .scrollClipDisabled()
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let shelves = store.shelves(now: context.date)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    if let hero = heroItem(in: shelves) {
+                        LiveTVHeroView(
+                            item: hero,
+                            onWatch: { actions.watch(hero.channel, hero.program) },
+                            onDetails: { hero.program.map { actions.details?($0) } },
+                        )
+                    }
+                    if shelves.shelves.isEmpty, shelves.recordings.isEmpty {
+                        LiveTVEmptyState("livetv.empty.onNow", systemImage: "clock", message: store.errorMessage)
+                    }
+                    ForEach(shelves.shelves) { shelf in
+                        rail(shelf)
+                    }
+                    if !shelves.recordings.isEmpty {
+                        recordingsRail(shelves.recordings)
                     }
                 }
+                .padding(.horizontal, LayoutMetrics.pageMargin)
+                .padding(.bottom, 24)
             }
-            .padding()
         }
     }
 
-    private func onNowProgramCard(_ program: LiveTVProgram, isFocused: Bool) -> some View {
-        VStack(alignment: .leading, spacing: LayoutMetrics.cardLabelSpacing) {
-            Group {
-                if let artworkPath = program.artPath ?? program.thumbPath {
-                    ArtworkPathView(
-                        path: artworkPath,
-                        width: 480,
-                        height: 270,
-                    )
-                } else {
-                    MediaArtworkPlaceholder(mediaKind: .episode)
+    private var cardSize: CGSize {
+        LayoutMetrics.cardSize(
+            for: .landscape,
+            sizeClass: sizeClass,
+            posterScale: settingsManager.interface.posterSize.scale,
+        )
+    }
+
+    private func heroItem(in shelves: LiveTVShelves) -> LiveTVShelfItem? {
+        #if os(tvOS)
+            if let focusedItem {
+                return focusedItem
+            }
+        #endif
+        return shelves.shelves.first { $0.kind == .onNow }?.items.first
+            ?? shelves.shelves.first?.items.first
+    }
+
+    private func rail(_ shelf: LiveTVShelf) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(shelf.kind.title)
+                .font(.sectionTitle)
+                .foregroundStyle(.textPrimary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: .landscape)) {
+                    ForEach(shelf.items) { item in
+                        LiveTVProgramCard(
+                            item: item,
+                            size: cardSize,
+                            showsStartTime: shelf.kind == .upcoming,
+                            onOpen: { open(item) },
+                            onFocus: { focus(item) },
+                            contextActions: actions,
+                        )
+                    }
                 }
+                .padding(.vertical, LayoutMetrics.railVerticalInset)
             }
-            .frame(width: 240, height: 135)
-            .mediaArtworkStyle(.compact)
-            .cardFocusStyle(isFocused: isFocused)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(program.title)
-                    .font(.cardTitle)
-                    .foregroundStyle(.textPrimary)
-                    .lineLimit(1)
-                Text(channelName(program.channelIdentity))
-                    .font(.cardMetadata)
-                    .foregroundStyle(.textSecondary)
-                    .lineLimit(1)
-            }
-            // Follows the bottom edge of the focused artwork so the lifted card does not cover its caption.
-            .offset(y: isFocused && !reduceMotion ? 135 * (CardFocusStyle.focusedScale - 1) / 2 : 0)
-            .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isFocused)
+            .scrollClipDisabled()
+            .railBleed(pageMargin: LayoutMetrics.pageMargin)
         }
-        .frame(width: 240, alignment: .leading)
-        .contentShape(Rectangle())
+        #if os(tvOS)
+        .focusSection()
+        #endif
     }
 
-    private func channelName(_ identity: LiveTVChannelIdentity) -> String {
-        store.channels.first { $0.identity == identity }?.displayTitle ?? ""
+    private func recordingsRail(_ recordings: [DVRRecording]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("livetv.dvr.upcoming")
+                .font(.sectionTitle)
+                .foregroundStyle(.textPrimary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: LayoutMetrics.railSpacing(for: .landscape)) {
+                    ForEach(recordings) { recording in
+                        LiveTVRecordingCard(
+                            recording: recording,
+                            program: recording.programID.flatMap { id in store.programs.first { $0.id == id } },
+                            size: cardSize,
+                            onOpen: { onOpenRecording(recording) },
+                        )
+                    }
+                }
+                .padding(.vertical, LayoutMetrics.railVerticalInset)
+            }
+            .scrollClipDisabled()
+            .railBleed(pageMargin: LayoutMetrics.pageMargin)
+        }
+        #if os(tvOS)
+        .focusSection()
+        #endif
+    }
+
+    private func open(_ item: LiveTVShelfItem) {
+        guard let program = item.program, !program.isCurrentlyAiring else {
+            actions.watch(item.channel, item.program)
+            return
+        }
+        actions.details?(program)
+    }
+
+    private func focus(_ item: LiveTVShelfItem) {
+        focusTask?.cancel()
+        focusTask = Task {
+            try? await Task.sleep(for: Motion.heroFocusDelay)
+            guard !Task.isCancelled else { return }
+            focusedItem = item
+        }
+    }
+}
+
+extension LiveTVShelf.Kind {
+    var title: LocalizedStringKey {
+        switch self {
+        case .recent: "livetv.shelf.recent"
+        case .favorites: "livetv.shelf.favorites"
+        case .onNow: "livetv.shelf.onNow"
+        case .upcoming: "livetv.shelf.upcoming"
+        case let .category(category): category.title
+        }
+    }
+}
+
+extension LiveTVCategory {
+    var title: LocalizedStringKey {
+        switch self {
+        case .sports: "livetv.category.sports"
+        case .movie: "livetv.category.movies"
+        case .series: "livetv.category.series"
+        case .news: "livetv.category.news"
+        case .kids: "livetv.category.kids"
+        }
     }
 }

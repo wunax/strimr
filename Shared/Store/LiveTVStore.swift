@@ -21,15 +21,50 @@ final class LiveTVStore {
     private(set) var errorMessage: String?
     private(set) var guideStart = Date()
     private(set) var guideEnd = Date()
+    private(set) var recentChannelKeys: [String] = []
 
     @ObservationIgnored let service: any MediaLiveTVService
+    @ObservationIgnored private let recentChannels: LiveTVRecentChannels?
     @ObservationIgnored private var availabilityTask: Task<Bool, Never>?
     @ObservationIgnored private var contentTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var didReportAvailabilityError = false
 
-    init(service: any MediaLiveTVService) {
+    init(service: any MediaLiveTVService, recentChannels: LiveTVRecentChannels? = nil) {
         self.service = service
+        self.recentChannels = recentChannels
+        recentChannelKeys = recentChannels?.channelKeys ?? []
+    }
+
+    func shelves(now: Date = Date()) -> LiveTVShelves {
+        LiveTVShelves(
+            channels: channels,
+            programs: programs,
+            onNowSections: onNowSections,
+            recordings: upcomingRecordings,
+            recentChannelKeys: recentChannelKeys,
+            now: now,
+        )
+    }
+
+    func channel(for identity: LiveTVChannelIdentity) -> LiveTVChannel? {
+        channels.first { $0.identity == identity }
+    }
+
+    func currentProgram(on channel: LiveTVChannelIdentity, at date: Date = Date()) -> LiveTVProgram? {
+        programs.first { $0.channelIdentity == channel && $0.isAiring(at: date) }
+    }
+
+    func nextProgram(on channel: LiveTVChannelIdentity, after date: Date = Date()) -> LiveTVProgram? {
+        programs
+            .filter { $0.channelIdentity == channel && $0.startDate >= date }
+            .min { $0.startDate < $1.startDate }
+    }
+
+    func recordWatched(_ channel: LiveTVChannelIdentity) {
+        guard let recentChannels else { return }
+        recentChannels.record(channel)
+        recentChannelKeys = recentChannels.channelKeys
     }
 
     var isAvailable: Bool {
@@ -158,6 +193,46 @@ final class LiveTVStore {
             case (nil, nil): lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
             }
         }
+    }
+
+    /// Schedules a recording; without explicit values it takes the server's defaults for the program.
+    func record(
+        _ program: LiveTVProgram,
+        series: Bool,
+        libraryID: String? = nil,
+        options: [String: String]? = nil,
+    ) async throws {
+        guard let dvr else { return }
+        var libraryID = libraryID
+        var options = options
+        if options == nil {
+            let template = try await dvr.recordingTemplate(for: program)
+            let mode = template.template(for: series ? .series : .single)
+            libraryID = libraryID ?? mode?.defaultLibraryID
+            options = Dictionary(
+                (mode?.options ?? []).map { ($0.id, $0.defaultValue) },
+                uniquingKeysWith: { first, _ in first },
+            )
+        }
+        try await dvr.schedule(DVRRecordingRequest(
+            program: program,
+            recordsSeries: series,
+            targetLibraryID: libraryID,
+            options: options ?? [:],
+        ))
+        await refreshDVR()
+    }
+
+    func cancelRecording(id: String) async throws {
+        guard let dvr, !id.isEmpty else { return }
+        try await dvr.cancel(recordingID: id)
+        await refreshDVR()
+    }
+
+    func deleteRule(id: String) async throws {
+        guard let dvr, !id.isEmpty else { return }
+        try await dvr.delete(ruleID: id)
+        await refreshDVR()
     }
 
     func refreshDVR() async {

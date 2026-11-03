@@ -437,6 +437,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 seriesRecordingID: string(metadata["grandparentSubscriptionID"]),
                 recordingStatus: Self.recordingStatus(from: string(metadata["status"])),
                 providerGUID: string(metadata["guid"]) ?? "plex://\(provider)/\(ratingKey)",
+                categories: PlexLiveTVQuery.categories(metadataType: string(metadata["type"])),
             )
         }
     }

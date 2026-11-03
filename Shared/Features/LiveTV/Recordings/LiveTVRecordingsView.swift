@@ -197,16 +197,3 @@ struct LiveTVRecordingsView: View {
         }
     }
 }
-
-private extension DVRRecordingStatus {
-    var localizedTitle: LocalizedStringKey {
-        switch self {
-        case .scheduled: "livetv.recording.status.scheduled"
-        case .recording: "livetv.recording.status.recording"
-        case .completed: "livetv.recording.status.completed"
-        case .cancelled: "livetv.recording.status.cancelled"
-        case .error: "livetv.recording.status.error"
-        case .unknown: "livetv.recording.status.unknown"
-        }
-    }
-}

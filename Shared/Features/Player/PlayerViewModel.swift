@@ -220,6 +220,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var pendingLiveSessionToStop: (any LiveTVPlaybackSession)?
     @ObservationIgnored private var liveSessionGeneration = 0
     @ObservationIgnored private var liveTimelineTask: Task<Void, Never>?
+    @ObservationIgnored private var liveWatchTask: Task<Void, Never>?
     @ObservationIgnored private var pendingLiveTimelineState: TimelineState?
     #if !os(tvOS)
         @ObservationIgnored private var progressRecorder: PlaybackProgressRecorder?
@@ -1113,6 +1114,18 @@ final class PlayerViewModel {
     private func adoptLiveSession(_ session: any LiveTVPlaybackSession) {
         invalidateLiveReporting()
         liveSession = session
+        recordWatchedChannel(session.channel)
+    }
+
+    private func recordWatchedChannel(_ channel: LiveTVChannel) {
+        liveWatchTask?.cancel()
+        let store = mediaServices?.liveTVStore
+        liveWatchTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(LiveTVRecentChannels.watchThreshold))
+            guard !Task.isCancelled, let self, liveChannel?.identity == channel.identity, liveSession != nil
+            else { return }
+            store?.recordWatched(channel.identity)
+        }
     }
 
     private func invalidateLiveReporting() {

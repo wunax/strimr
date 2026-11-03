@@ -84,8 +84,9 @@ struct PlexLiveTVQueryTests {
     }
 
     @Test func `builds the direct play URL with the session and token`() throws {
+        let baseURL = try #require(URL(string: "https://plex.example.invalid:32400"))
         let url = try #require(PlexLiveTVQuery.directPlayURL(
-            baseURL: URL(string: "https://plex.example.invalid:32400")!,
+            baseURL: baseURL,
             partKey: "/livetv/sessions/session-1/client-1/index.m3u8",
             sessionIdentifier: "session-identifier",
             token: "token",

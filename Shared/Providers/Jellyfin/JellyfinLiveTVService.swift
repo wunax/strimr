@@ -331,6 +331,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             seriesRecordingID: item.timerID?.isEmpty == false ? item.seriesTimerID : nil,
             recordingStatus: item.timerID?.isEmpty == false ? Self.recordingStatus(from: item.status) : nil,
             providerGUID: nil,
+            categories: item.categories,
         )
     }
 
@@ -836,7 +837,7 @@ private nonisolated struct JellyfinLiveChannelDTO: Decodable, Sendable {
     }
 }
 
-private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
+nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let id: String
     let name: String
     let overview: String?
@@ -851,6 +852,10 @@ private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let isLive: Bool?
     let isPremiere: Bool?
     let isSeries: Bool?
+    let isSports: Bool?
+    let isMovie: Bool?
+    let isNews: Bool?
+    let isKids: Bool?
     let timerID: String?
     let seriesTimerID: String?
     let status: String?
@@ -861,6 +866,27 @@ private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
         case imageTags = "ImageTags"; case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
         case isLive = "IsLive"; case isPremiere = "IsPremiere"; case isSeries = "IsSeries"; case timerID =
             "TimerId"; case seriesTimerID = "SeriesTimerId"; case status = "Status"
+        case isSports = "IsSports"; case isMovie = "IsMovie"; case isNews = "IsNews"; case isKids = "IsKids"
+    }
+
+    var categories: Set<LiveTVCategory> {
+        var categories: Set<LiveTVCategory> = []
+        if isSports == true {
+            categories.insert(.sports)
+        }
+        if isMovie == true {
+            categories.insert(.movie)
+        }
+        if isSeries == true {
+            categories.insert(.series)
+        }
+        if isNews == true {
+            categories.insert(.news)
+        }
+        if isKids == true {
+            categories.insert(.kids)
+        }
+        return categories
     }
 }
 

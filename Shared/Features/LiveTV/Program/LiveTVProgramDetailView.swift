@@ -1,269 +1,291 @@
 import SwiftUI
 
-enum LiveTVProgramRecordingAction {
+enum LiveTVProgramRecordingAction: Equatable {
     case cancelRecording(String)
     case deleteSeriesRule(String)
 }
 
+/// A program's page: what it is, when and where it airs, how to watch or record it, and its other airings.
 struct LiveTVProgramDetailView: View {
     let program: LiveTVProgram
-    let channel: LiveTVChannel?
-    let dvr: (any MediaDVRService)?
-    let supportsWatchFromStart: Bool
-    let onWatch: () -> Void
-    let onWatchFromStart: () -> Void
-    let onChanged: () async -> Void
+    @Bindable var store: LiveTVStore
+    let onWatch: (LiveTVProgram) -> Void
+    let onWatchFromStart: (LiveTVProgram) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var template: DVRRecordingTemplate?
-    @State private var recordsSeries = false
-    @State private var optionValues: [String: String] = [:]
-    @State private var targetLibraryID: String?
     @State private var errorMessage: String?
-    @State private var isSubmittingRecording = false
-    @State private var pendingProgramRecordingAction: LiveTVProgramRecordingAction?
+    @State private var isSubmitting = false
+    @State private var pendingAction: LiveTVProgramRecordingAction?
+    @State private var isShowingRecordOptions = false
 
-    private var selectedRecordingMode: DVRRecordingMode {
-        recordsSeries ? .series : .single
+    private var current: LiveTVProgram {
+        store.programs.first { $0.identity == program.identity } ?? program
     }
 
-    private var selectedRecordingTemplate: DVRRecordingModeTemplate? {
-        template?.template(for: selectedRecordingMode)
+    private var channel: LiveTVChannel? {
+        store.channel(for: program.channelIdentity)
     }
 
-    private var recordingActionConfirmationTitle: LocalizedStringKey {
-        switch pendingProgramRecordingAction {
-        case .deleteSeriesRule:
-            "livetv.recording.stopSeries.confirm"
-        case .cancelRecording, nil:
-            "livetv.recording.cancel.confirm"
-        }
+    private var canManageRecordings: Bool {
+        store.dvr?.canManageRecordings == true
     }
 
     var body: some View {
         TaskModalNavigationView {
-            Form {
-                Section {
-                    Text(program.title)
-                        .font(.tileTitle)
-                        .foregroundStyle(.textPrimary)
-                    if let channel {
-                        Text(channel.displayTitle)
-                            .font(.facts)
-                            .foregroundStyle(.textSecondary)
-                    }
-                    Text(program.startDate.formatted(date: .abbreviated, time: .shortened) + " – " + program.endDate
-                        .formatted(
-                            date: .omitted,
-                            time: .shortened,
-                        ))
-                    if let summary = program.summary {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    if let summary = current.summary, !summary.isEmpty {
                         Text(summary)
+                            .font(.bodyText)
+                            .foregroundStyle(.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         #if os(tvOS)
                             .padding(16)
                             .modifier(TVModalReadingFocus())
                         #endif
                     }
-                    if program.isCurrentlyAiring {
-                        ProgressView(value: program.progress)
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.facts)
+                            .foregroundStyle(.red)
                     }
+                    otherAirings
                 }
-                if let template, let modeTemplate = selectedRecordingTemplate, !program.isScheduledForRecording {
-                    if !template.libraries.isEmpty {
-                        Picker("livetv.recording.library", selection: $targetLibraryID) {
-                            ForEach(template.libraries) { Text($0.title).tag(Optional($0.id)) }
-                        }
-                    }
-                    if template.supportsSingle, template.supportsSeries {
-                        Picker("livetv.recording.mode", selection: Binding(
-                            get: { recordsSeries },
-                            set: { selectRecordingMode(series: $0) },
-                        )) {
-                            Text("livetv.record").tag(false)
-                            Text("livetv.recordSeries").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    ForEach(modeTemplate.options) { option in
-                        optionEditor(option)
-                    }
-                }
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
-                }
+                .padding(LayoutMetrics.pageMargin)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .taskModalTitle("livetv.program.details")
+            .taskModalTitle(verbatim: current.title)
             .taskModalActions(grouped: true) {
-                if program.isCurrentlyAiring {
-                    Button("livetv.watchLive", action: onWatch)
+                if current.isCurrentlyAiring {
+                    Button("livetv.watchLive", systemImage: "play.fill") { onWatch(current) }
                 }
             } actions: {
-                if program.isCurrentlyAiring, supportsWatchFromStart {
-                    Button("livetv.watchFromStart", action: onWatchFromStart)
-                }
-                if dvr?.canManageRecordings == true {
-                    if let recordingID = program.recordingID {
-                        Button("livetv.stopRecord", role: .destructive) {
-                            pendingProgramRecordingAction = .cancelRecording(recordingID)
-                        }
-                        .disabled(isSubmittingRecording)
-                    }
-                    if let seriesRecordingID = program.seriesRecordingID {
-                        Button("livetv.recording.stopSeries", role: .destructive) {
-                            pendingProgramRecordingAction = .deleteSeriesRule(seriesRecordingID)
-                        }
-                        .disabled(isSubmittingRecording)
-                    }
-                    if !program.isScheduledForRecording, selectedRecordingTemplate != nil {
-                        Button {
-                            schedule(series: recordsSeries)
-                        } label: {
-                            Text(recordsSeries ? "livetv.recordSeries" : "livetv.record")
-                        }
-                        .disabled(isSubmittingRecording)
-                    }
-                }
-                Button("common.done") { dismiss() }
+                actionButtons
             }
             .confirmationDialog(
-                recordingActionConfirmationTitle,
+                confirmationTitle,
                 isPresented: Binding(
-                    get: { pendingProgramRecordingAction != nil },
+                    get: { pendingAction != nil },
                     set: {
                         if !$0 {
-                            pendingProgramRecordingAction = nil
+                            pendingAction = nil
                         }
                     },
                 ),
                 titleVisibility: .visible,
             ) {
-                switch pendingProgramRecordingAction {
-                case let .cancelRecording(recordingID):
-                    Button("livetv.recording.cancel", role: .destructive) {
-                        submitRecordingAction(.cancelRecording(recordingID))
-                    }
-                case let .deleteSeriesRule(ruleID):
-                    Button("livetv.recording.stopSeries", role: .destructive) {
-                        submitRecordingAction(.deleteSeriesRule(ruleID))
-                    }
+                switch pendingAction {
+                case let .cancelRecording(id):
+                    Button("livetv.recording.cancel", role: .destructive) { submit(.cancelRecording(id)) }
+                case let .deleteSeriesRule(id):
+                    Button("livetv.recording.stopSeries", role: .destructive) { submit(.deleteSeriesRule(id)) }
                 case nil:
                     EmptyView()
                 }
             } message: {
-                Text(program.title)
+                Text(current.title)
             }
-            .task {
-                guard !program.isScheduledForRecording, let dvr, dvr.canManageRecordings else { return }
-                do {
-                    let value = try await dvr.recordingTemplate(for: program)
-                    template = value
-                    let initialMode = value.preferredMode ?? (value.supportsSingle ? .single : .series)
-                    selectRecordingMode(series: initialMode == .series)
-                } catch {
-                    guard !Task.isCancelled, !error.isCancellation else { return }
-                    LiveTVErrorReporting.capture(error)
-                    errorMessage = error.localizedDescription
+            .taskPresentation(isPresented: $isShowingRecordOptions, style: .compactModal) {
+                if let template {
+                    LiveTVRecordOptionsView(program: current, template: template, store: store)
                 }
             }
+            .task { await loadTemplate() }
         }
     }
 
-    private func selectRecordingMode(series: Bool) {
-        recordsSeries = series
-        guard let modeTemplate = selectedRecordingTemplate else {
-            optionValues = [:]
-            targetLibraryID = nil
-            return
-        }
-        optionValues = Dictionary(uniqueKeysWithValues: modeTemplate.options.map { ($0.id, $0.defaultValue) })
-        targetLibraryID = modeTemplate.defaultLibraryID
-    }
-
-    @ViewBuilder private func optionEditor(_ option: DVRRecordingOption) -> some View {
-        switch option.kind {
-        case .toggle:
-            Toggle(option.title, isOn: Binding(
-                get: { optionValues[option.id] == "true" },
-                set: { optionValues[option.id] = String($0) },
-            ))
-        case let .choice(choices):
-            Picker(option.title, selection: valueBinding(option)) {
-                ForEach(choices) { Text($0.title).tag($0.id) }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let path = current.artPath ?? current.thumbPath {
+                ArtworkPathView(path: path, width: 1280, height: 720)
+                    .aspectRatio(16 / 9, contentMode: .fill)
+                    .frame(maxWidth: 640)
+                    .clipped()
+                    .mediaArtworkStyle()
+                    .accessibilityHidden(true)
             }
-        case .integer, .text:
-            VStack(alignment: .leading, spacing: 6) {
-                Text(option.title)
+            if let episode = current.episodeLabel {
+                Text(episode)
                     .font(.facts)
                     .foregroundStyle(.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                TextField(text: valueBinding(option)) {
-                    Text(option.title)
+            }
+            HStack(spacing: 12) {
+                if let channel {
+                    LiveTVChannelLogo(channel: channel)
+                        .frame(width: 72, height: 40)
+                    Text(channel.displayTitle)
+                        .font(.facts)
+                        .foregroundStyle(.textSecondary)
                 }
-                .multilineTextAlignment(.leading)
+            }
+            Text(timeRange(current))
+                .font(.facts)
+                .foregroundStyle(.textSecondary)
+            badges
+            if current.isCurrentlyAiring {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    CardProgressBar(progress: current.progress(at: context.date))
+                        .frame(maxWidth: 640)
+                }
             }
         }
     }
 
-    private func valueBinding(_ option: DVRRecordingOption) -> Binding<String> {
-        Binding(get: { optionValues[option.id] ?? option.defaultValue }, set: { optionValues[option.id] = $0 })
+    private var badges: some View {
+        HStack(spacing: 8) {
+            if current.isLive {
+                badge("livetv.badge.live", color: .liveIndicator)
+            }
+            if current.isPremiere {
+                badge("livetv.badge.new", color: .textPrimary)
+            }
+            if current.isRecording {
+                badge("livetv.recording.status.recording", color: .recordingIndicator)
+            } else if current.isScheduledForRecording {
+                badge("livetv.badge.scheduled", color: .textPrimary)
+            }
+        }
     }
 
-    private func schedule(series: Bool) {
-        guard let dvr else { return }
-        recordsSeries = series
-        isSubmittingRecording = true
+    private func badge(_ title: LocalizedStringKey, color: Color) -> some View {
+        Text(title)
+            .font(.badge)
+            .foregroundStyle(color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.surfaceRaised, in: Capsule(style: .continuous))
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        if current.isCurrentlyAiring, store.service.supportsServerCaptureBuffer {
+            Button("livetv.watchFromStart", systemImage: "backward.end.fill") { onWatchFromStart(current) }
+        }
+        if canManageRecordings {
+            if let recordingID = current.recordingID {
+                Button("livetv.stopRecord", systemImage: "stop.circle", role: .destructive) {
+                    pendingAction = .cancelRecording(recordingID)
+                }
+                .disabled(isSubmitting)
+            }
+            if let ruleID = current.seriesRecordingID {
+                Button("livetv.recording.stopSeries", systemImage: "stop.circle", role: .destructive) {
+                    pendingAction = .deleteSeriesRule(ruleID)
+                }
+                .disabled(isSubmitting)
+            }
+            if !current.isScheduledForRecording, let template {
+                if template.supportsSingle {
+                    Button("livetv.record", systemImage: "record.circle") { record(current, series: false) }
+                        .disabled(isSubmitting)
+                }
+                if template.supportsSeries {
+                    Button("livetv.recordSeries", systemImage: "square.stack") { record(current, series: true) }
+                        .disabled(isSubmitting)
+                }
+                Button("livetv.recording.options", systemImage: "slider.horizontal.3") {
+                    isShowingRecordOptions = true
+                }
+            }
+        }
+        Button("common.done") { dismiss() }
+    }
+
+    @ViewBuilder
+    private var otherAirings: some View {
+        let airings = LiveTVShelves.otherAirings(of: current, in: store.programs, now: Date())
+        if !airings.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("livetv.program.otherAirings")
+                    .font(.sectionTitle)
+                    .foregroundStyle(.textPrimary)
+                ForEach(airings) { airing in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(timeRange(airing))
+                                .font(.rowTitle)
+                            Text(store.channel(for: airing.channelIdentity)?.displayTitle ?? "")
+                                .font(.cardMetadata)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        if airing.isScheduledForRecording {
+                            Image(systemName: "record.circle.fill")
+                                .foregroundStyle(.recordingIndicator)
+                                .accessibilityLabel(Text("livetv.badge.scheduled"))
+                        } else if canManageRecordings {
+                            Button("livetv.record", systemImage: "record.circle") { record(airing, series: false) }
+                                .labelStyle(.iconOnly)
+                                .disabled(isSubmitting)
+                        }
+                    }
+                    .padding(12)
+                    .background(.surfaceSubtle, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+            #if os(tvOS)
+            .focusSection()
+            #endif
+        }
+    }
+
+    private var confirmationTitle: LocalizedStringKey {
+        switch pendingAction {
+        case .deleteSeriesRule: "livetv.recording.stopSeries.confirm"
+        case .cancelRecording, nil: "livetv.recording.cancel.confirm"
+        }
+    }
+
+    private func timeRange(_ program: LiveTVProgram) -> String {
+        program.startDate.formatted(.dateTime.weekday().day().month().hour().minute())
+            + " – " + program.endDate.formatted(date: .omitted, time: .shortened)
+    }
+
+    private func loadTemplate() async {
+        guard !current.isScheduledForRecording, let dvr = store.dvr, dvr.canManageRecordings else { return }
+        do {
+            template = try await dvr.recordingTemplate(for: current)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            LiveTVErrorReporting.capture(error)
+        }
+    }
+
+    private func record(_ program: LiveTVProgram, series: Bool) {
+        isSubmitting = true
+        errorMessage = nil
         Task {
             do {
-                try await dvr.schedule(.init(
-                    program: program,
-                    recordsSeries: series,
-                    targetLibraryID: targetLibraryID,
-                    options: optionValues,
-                ))
-                await onChanged()
-                dismiss()
+                try await store.record(program, series: series)
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
-                switch error {
-                case let error as JellyfinAPIError where error == .recordingConflict:
-                    break
-                default:
+                if (error as? JellyfinAPIError) != .recordingConflict {
                     LiveTVErrorReporting.capture(error)
                 }
                 errorMessage = error.localizedDescription
-                isSubmittingRecording = false
             }
+            isSubmitting = false
         }
     }
 
-    private func submitRecordingAction(_ action: LiveTVProgramRecordingAction) {
-        guard let dvr else { return }
-        pendingProgramRecordingAction = nil
-        isSubmittingRecording = true
+    private func submit(_ action: LiveTVProgramRecordingAction) {
+        pendingAction = nil
+        isSubmitting = true
         Task {
             do {
                 switch action {
-                case let .cancelRecording(recordingID):
-                    guard !recordingID.isEmpty else {
-                        isSubmittingRecording = false
-                        return
-                    }
-                    try await dvr.cancel(recordingID: recordingID)
-                case let .deleteSeriesRule(ruleID):
-                    guard !ruleID.isEmpty else {
-                        isSubmittingRecording = false
-                        return
-                    }
-                    try await dvr.delete(ruleID: ruleID)
+                case let .cancelRecording(id): try await store.cancelRecording(id: id)
+                case let .deleteSeriesRule(id): try await store.deleteRule(id: id)
                 }
-                await onChanged()
                 dismiss()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 LiveTVErrorReporting.capture(error)
                 errorMessage = error.localizedDescription
-                isSubmittingRecording = false
             }
+            isSubmitting = false
         }
     }
 }

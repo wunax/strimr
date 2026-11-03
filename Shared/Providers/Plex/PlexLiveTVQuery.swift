@@ -103,6 +103,15 @@ enum PlexLiveTVQuery {
         return (video?["scanType"] as? String)?.lowercased() == "interlaced"
     }
 
+    /// Plex guide entries only say whether they are films or episodes; the server's hubs add the rest.
+    static func categories(metadataType: String?) -> Set<LiveTVCategory> {
+        switch metadataType?.lowercased() {
+        case "movie": [.movie]
+        case "episode", "show": [.series]
+        default: []
+        }
+    }
+
     static func directPlayURL(
         baseURL: URL,
         partKey: String,
@@ -122,7 +131,8 @@ enum PlexLiveTVQuery {
         return components.url
     }
 
-    private static let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+    private static let unreserved =
+        CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
 
     private static func encode(_ value: String) -> String {
         value.addingPercentEncoding(withAllowedCharacters: unreserved) ?? value

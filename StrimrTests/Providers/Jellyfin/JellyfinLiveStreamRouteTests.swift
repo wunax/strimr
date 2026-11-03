@@ -64,8 +64,8 @@ struct JellyfinLiveStreamRouteTests {
     }
 
     @Test func `a forced transcode skips the direct stream`() throws {
-        let route = JellyfinLiveStreamRoute.resolve(
-            source: try source("jellyfin-live-playbackinfo-directstream"),
+        let route = try JellyfinLiveStreamRoute.resolve(
+            source: source("jellyfin-live-playbackinfo-directstream"),
             itemID: "channel-1",
             playSessionID: "play-session-1",
             baseURL: baseURL,
