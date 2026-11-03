@@ -86,6 +86,7 @@ final class MediaDetailViewModel {
     private var updatingFavoriteStatusIDs: Set<String> = []
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
     @ObservationIgnored private var hasLoadedDetails = false
+    @ObservationIgnored private var hasAppliedDetails = false
     @ObservationIgnored private var extrasTask: Task<Void, Never>?
     @ObservationIgnored private var extrasLoadedFor: MediaIdentity?
 
@@ -162,7 +163,12 @@ final class MediaDetailViewModel {
     /// and lose the scroll position.
     func loadDetailsIfNeeded() async {
         guard !hasLoadedDetails else { return }
-        await loadDetails()
+        // A previous load cancelled midway left content on screen: finish it without clearing.
+        if hasAppliedDetails {
+            await refreshSilently()
+        } else {
+            await loadDetails()
+        }
     }
 
     /// Reloads without clearing what is on screen, e.g. after the server became reachable again.
@@ -1311,7 +1317,7 @@ final class MediaDetailViewModel {
             let content = try await services.detail.details(for: target)
             let onDeck = await Self.playbackEpisode(requested: requestedEpisode, onDeck: content.onDeck)
             guard !Task.isCancelled else { return }
-            hasLoadedDetails = true
+            hasAppliedDetails = true
             if let mapped = PlayableMediaItem(mediaItem: content.media) {
                 media = mapped
             }
@@ -1349,6 +1355,8 @@ final class MediaDetailViewModel {
             await loadFavoriteStatus()
             let artworkPath = resolveArtwork()
             await loadBackdropGradient(path: artworkPath)
+            guard !Task.isCancelled else { return }
+            hasLoadedDetails = true
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
