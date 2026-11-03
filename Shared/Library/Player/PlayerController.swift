@@ -846,6 +846,10 @@ final class PlayerController {
             pictureInPictureCoordinator.start()
         }
 
+        func setPictureInPictureEnabled(_ enabled: Bool) {
+            pictureInPictureCoordinator.isEnabled = enabled
+        }
+
         private func configurePictureInPicture() {
             pictureInPictureCoordinator.onAvailabilityChanged = { [weak self] showsControl, isAvailable in
                 self?.showsPictureInPictureControl = showsControl

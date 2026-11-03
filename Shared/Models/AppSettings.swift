@@ -337,6 +337,8 @@ struct PlaybackSettings: Codable, Equatable {
     var defaultSleepTimer: SleepTimerMode?
     var videoScaleMode = PlayerVideoScaleMode.fit
     var autoRotateVideo = true
+    var pictureInPicture = true
+    var backgroundAudio = true
     var autoSkipIntros = false
     var autoSkipCredits = false
     var autoSkipCommercials = false
@@ -388,6 +390,8 @@ struct PlaybackSettings: Codable, Equatable {
         defaultSleepTimer = try? container.decodeIfPresent(SleepTimerMode.self, forKey: .defaultSleepTimer)
         videoScaleMode = (try? container.decodeIfPresent(PlayerVideoScaleMode.self, forKey: .videoScaleMode)) ?? .fit
         autoRotateVideo = try container.decodeIfPresent(Bool.self, forKey: .autoRotateVideo) ?? true
+        pictureInPicture = (try? container.decodeIfPresent(Bool.self, forKey: .pictureInPicture)) ?? true
+        backgroundAudio = (try? container.decodeIfPresent(Bool.self, forKey: .backgroundAudio)) ?? true
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         autoSkipCommercials = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCommercials) ?? false

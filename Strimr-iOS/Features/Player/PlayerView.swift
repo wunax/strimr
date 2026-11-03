@@ -135,8 +135,10 @@ struct PlayerView: View {
                     doubleTapSeek.onCommit = commitDoubleTapSeek
                     playerController.onPictureInPictureStartFailed = {
                         guard scenePhase == .background else { return }
+                        pauseForBackgroundIfNeeded()
                         preparePlaybackForBackground()
                     }
+                    playerController.setPictureInPictureEnabled(settingsManager.playback.pictureInPicture)
                     didConsiderAutomaticRotation = false
                     rotateAutomaticallyIfNeeded()
                     configureSleepTimer()
@@ -1528,6 +1530,7 @@ struct PlayerView: View {
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
         switch scenePhase {
         case .background:
+            pauseForBackgroundIfNeeded()
             preparePlaybackForBackground()
         case .active:
             reloadPlaybackAfterBackgroundIfNeeded()
@@ -1536,6 +1539,16 @@ struct PlayerView: View {
         @unknown default:
             break
         }
+    }
+
+    /// A picture in picture window keeps playing: it is on screen, so the audio still belongs to it.
+    private func pauseForBackgroundIfNeeded() {
+        guard !settingsManager.playback.backgroundAudio,
+              !viewModel.isLivePlayback,
+              !playerController.isPictureInPictureActive,
+              !playerController.isPictureInPictureTransitioning
+        else { return }
+        playerController.pause()
     }
 
     /// On-demand playback stays loaded in the background so it keeps its Now Playing card: the engine keeps playing
