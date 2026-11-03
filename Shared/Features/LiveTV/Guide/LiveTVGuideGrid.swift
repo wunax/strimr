@@ -214,6 +214,7 @@ struct LiveTVGuideGridActions {
                     cell.contentConfiguration = UIHostingConfiguration {
                         LiveTVGuideChannelCell(channel: channel, isPlaying: isPlaying, isFocused: state.isFocused)
                             .environment(services)
+                            .padding(.trailing, LiveTVGuideMetrics.channelColumnGap)
                             // Programs scroll under the fixed column.
                             .background(Color("Background"))
                     }
@@ -440,7 +441,7 @@ struct LiveTVGuideGridActions {
                             item: index + 1,
                             section: row,
                         ))
-                        attributes.frame = frame
+                        attributes.frame = visibleFrame(frame, bounds: bounds)
                         attributes.zIndex = 1
                         result.append(attributes)
                     }
@@ -469,7 +470,7 @@ struct LiveTVGuideGridActions {
             let row = frames[indexPath.section]
             guard row.indices.contains(indexPath.item - 1) else { return nil }
             let attributes = UICollectionViewLayoutAttributes(forCellWith: indexPath)
-            attributes.frame = row[indexPath.item - 1]
+            attributes.frame = visibleFrame(row[indexPath.item - 1], bounds: collectionView.bounds)
             attributes.zIndex = 1
             return attributes
         }
@@ -487,12 +488,20 @@ struct LiveTVGuideGridActions {
             }
         }
 
+        /// A program running past the channel column starts at its edge, so its title stays readable and its focus
+        /// highlight never covers the column.
+        private func visibleFrame(_ frame: CGRect, bounds: CGRect) -> CGRect {
+            let leading = bounds.minX + LiveTVGuideMetrics.channelColumnWidth + 2
+            guard frame.minX < leading, frame.maxX > leading + 2 else { return frame }
+            return CGRect(x: leading, y: frame.minY, width: frame.maxX - leading, height: frame.height)
+        }
+
         private func channelAttributes(row: Int, bounds: CGRect) -> UICollectionViewLayoutAttributes {
             let attributes = UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: 0, section: row))
             attributes.frame = CGRect(
                 x: bounds.minX,
                 y: rowY(row),
-                width: LiveTVGuideMetrics.channelColumnWidth - LiveTVGuideMetrics.rowSpacing,
+                width: LiveTVGuideMetrics.channelColumnWidth,
                 height: LiveTVGuideMetrics.rowHeight,
             )
             attributes.zIndex = 10

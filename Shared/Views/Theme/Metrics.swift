@@ -221,6 +221,15 @@ enum LiveTVGuideMetrics {
         #endif
     }
 
+    /// Space between the channel column and the programs, kept opaque so scrolled programs do not fill it.
+    static var channelColumnGap: CGFloat {
+        #if os(tvOS)
+            16
+        #else
+            8
+        #endif
+    }
+
     static var rulerHeight: CGFloat {
         #if os(tvOS)
             40

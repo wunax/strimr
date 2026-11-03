@@ -107,13 +107,15 @@ import SwiftUI
                         isPlaying: channel.identity == model.playingChannel,
                         isFocused: false,
                     )
-                    .background(Color("Background"))
                 }
                 .buttonStyle(.plain)
                 .frame(
-                    width: LiveTVGuideMetrics.channelColumnWidth - LiveTVGuideMetrics.rowSpacing,
+                    width: LiveTVGuideMetrics.channelColumnWidth - LiveTVGuideMetrics.channelColumnGap,
                     height: LiveTVGuideMetrics.rowHeight,
                 )
+                .frame(width: LiveTVGuideMetrics.channelColumnWidth, alignment: .leading)
+                // Programs scroll under the fixed column.
+                .background(Color("Background"))
                 .offset(x: offset.x)
                 .contextMenu {
                     Button("livetv.watchLive", systemImage: "play.fill") { actions.tuneChannel(channel) }
