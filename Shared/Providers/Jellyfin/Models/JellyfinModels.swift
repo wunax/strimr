@@ -282,6 +282,9 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let runTimeTicks: Int64?
     let productionYear: Int?
     let premiereDate: String?
+    let dateCreated: String?
+    /// Of a series: when its newest episode was added. Its `DateCreated` is often unset (`0001-01-01`).
+    let dateLastMediaAdded: String?
     let communityRating: Double?
     let criticRating: Double?
     let officialRating: String?
@@ -330,6 +333,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case runTimeTicks = "RunTimeTicks"
         case productionYear = "ProductionYear"
         case premiereDate = "PremiereDate"
+        case dateCreated = "DateCreated"
+        case dateLastMediaAdded = "DateLastMediaAdded"
         case communityRating = "CommunityRating"
         case criticRating = "CriticRating"
         case officialRating = "OfficialRating"
@@ -511,6 +516,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
     let unplayedItemCount: Int?
     let isFavorite: Bool?
     let lastPlayedDate: Date?
+    let playedPercentage: Double?
 
     private enum CodingKeys: String, CodingKey {
         case played = "Played"
@@ -519,6 +525,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
         case unplayedItemCount = "UnplayedItemCount"
         case isFavorite = "IsFavorite"
         case lastPlayedDate = "LastPlayedDate"
+        case playedPercentage = "PlayedPercentage"
     }
 
     init(from decoder: Decoder) throws {
@@ -530,6 +537,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
         isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite)
         lastPlayedDate = try container.decodeIfPresent(String.self, forKey: .lastPlayedDate)
             .flatMap(JellyfinDate.date(from:))
+        playedPercentage = try container.decodeIfPresent(Double.self, forKey: .playedPercentage)
     }
 }
 

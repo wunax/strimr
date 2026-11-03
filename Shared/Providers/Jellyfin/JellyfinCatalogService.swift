@@ -321,6 +321,42 @@ struct JellyfinCatalogService {
         return try await context.get(path: ["Users", userID, "Items"], query: query)
     }
 
+    /// Items for the home hero, with the dates and ratings its rules need.
+    func featuredItems(
+        parentID: String? = nil,
+        includeTypes: String,
+        sortBy: String? = nil,
+        limit: Int,
+        extraQuery: [URLQueryItem] = [],
+    ) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        var query = [
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
+            URLQueryItem(name: "Limit", value: String(limit)),
+            URLQueryItem(name: "Fields", value: Self.featuredFields),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+            URLQueryItem(name: "EnableImages", value: "true"),
+        ]
+        if let sortBy {
+            query.append(URLQueryItem(name: "SortBy", value: sortBy))
+            query.append(URLQueryItem(name: "SortOrder", value: "Descending"))
+        }
+        if let parentID {
+            query.append(URLQueryItem(name: "ParentId", value: parentID))
+        }
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items"],
+            query: query + extraQuery,
+        )
+        return response.items
+    }
+
+    static let featuredFields = [cardFields, "DateCreated", "DateLastMediaAdded", "CommunityRating"]
+        .joined(separator: ",")
+
     func browseFilterOptions(parentID: String, includeTypes: String) async throws -> LibraryBrowseFilterOptions {
         let query = commonUserQuery + [
             URLQueryItem(name: "ParentId", value: parentID),

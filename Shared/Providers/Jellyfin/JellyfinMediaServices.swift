@@ -175,6 +175,11 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return HomeContent(rows: rows)
     }
 
+    func loadFeaturedCandidates(hiddenLibraryIDs: Set<String>) async throws -> [FeaturedCandidate] {
+        try await JellyfinFeaturedService(catalog: catalog, server: server)
+            .candidates(hiddenLibraryIDs: hiddenLibraryIDs)
+    }
+
     func loadWatchingRows(hiddenLibraryIDs _: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
         if mergesNextUp {
             let continueHub = try await hub(

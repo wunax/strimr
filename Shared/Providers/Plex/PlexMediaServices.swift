@@ -256,6 +256,10 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         return [.continueWatching(server: server, hub: continueHub)]
     }
 
+    func loadFeaturedCandidates(hiddenLibraryIDs: Set<String>) async throws -> [FeaturedCandidate] {
+        try await PlexFeaturedService(context: context, server: server).candidates(hiddenLibraryIDs: hiddenLibraryIDs)
+    }
+
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
         let sections = try await SectionRepository(context: context).getSections().mediaContainer.directory ?? []
         var rowIDs = Set<String>()

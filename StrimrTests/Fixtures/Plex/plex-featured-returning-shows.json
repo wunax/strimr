@@ -1,0 +1,10 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "Metadata": [
+      {"ratingKey": "201", "key": "/library/metadata/201/children", "guid": "plex://show/bbb201", "type": "show", "title": "Returning Show", "art": "/library/metadata/201/art/1", "leafCount": 30, "viewedLeafCount": 22},
+      {"ratingKey": "202", "key": "/library/metadata/202/children", "guid": "plex://show/bbb202", "type": "show", "title": "Weekly Show", "art": "/library/metadata/202/art/1", "leafCount": 14, "viewedLeafCount": 13},
+      {"ratingKey": "204", "key": "/library/metadata/204/children", "guid": "plex://show/bbb204", "type": "show", "title": "Never Started", "art": "/library/metadata/204/art/1", "leafCount": 8, "viewedLeafCount": 0}
+    ]
+  }
+}
