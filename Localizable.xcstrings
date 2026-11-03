@@ -16172,6 +16172,28 @@
         }
       }
     },
+    "player.tracks.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio & Subtitles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio et sous-titres"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频和字幕"
+          }
+        }
+      }
+    },
     "player.window.title" : {
       "localizations" : {
         "en" : {
