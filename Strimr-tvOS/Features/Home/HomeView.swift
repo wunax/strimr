@@ -80,7 +80,15 @@ struct HomeView: View {
         .onChange(of: focusModel.cardFocusCount) {
             setHeroMode(.browsing)
         }
-        .onChange(of: focusedHeroButton) { _, button in
+        .onChange(of: focusedHeroButton) { previous, button in
+            if button == .pageBack {
+                // Only a press left from Play pages back; focus coming up from the rows just lands on Play.
+                if previous == .play {
+                    showSlide(at: currentIndex - 1)
+                }
+                focusedHeroButton = .play
+                return
+            }
             heroFocusChangedAt = Date()
             autoAdvanceRestart += 1
             if button != nil {
@@ -182,13 +190,18 @@ struct HomeView: View {
     /// Kept in the hierarchy while browsing, transparent, so moving up from the first row comes back to the hero.
     private func heroActions(slide: HomeHeroSlide, isShowcase: Bool) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            HomeShowcaseActions(
-                slide: slide,
-                focusedButton: $focusedHeroButton,
-                onPlay: { mediaCardActions?.play(slide.media, false) },
-                onDetails: { onSelectMedia(.playable(slide.media)) },
-            )
-            .onMoveCommand(perform: handleHeroMove)
+            HStack(spacing: 0) {
+                if settingsManager.interface.tabBarPlacement == .sidebar, slides.count > 1 {
+                    pageBackStop
+                }
+                HomeShowcaseActions(
+                    slide: slide,
+                    focusedButton: $focusedHeroButton,
+                    onPlay: { mediaCardActions?.play(slide.media, false) },
+                    onDetails: { onSelectMedia(.playable(slide.media)) },
+                )
+                .onMoveCommand(perform: handleHeroMove)
+            }
 
             if slides.count > 1 {
                 HomeShowcasePageIndicator(
@@ -206,6 +219,19 @@ struct HomeView: View {
         // Just above the 0.01 alpha under which tvOS stops giving focus to a view.
         .opacity(isShowcase ? 1 : 0.02)
         .accessibilityHidden(!isShowcase)
+    }
+
+    /// Sits between Play and the sidebar so that left from Play reaches it instead of opening the sidebar. The sidebar
+    /// stays a press of Menu, or left from the first card of a row, away.
+    private var pageBackStop: some View {
+        Button {} label: {
+            Color.clear.frame(width: 1, height: 1)
+        }
+        .buttonStyle(.plain)
+        // Just above the 0.01 alpha under which tvOS stops giving focus to a view.
+        .opacity(0.02)
+        .focused($focusedHeroButton, equals: .pageBack)
+        .accessibilityHidden(true)
     }
 
     /// Right from the last button pages forward; left from the first one pages back, unless the sidebar is there

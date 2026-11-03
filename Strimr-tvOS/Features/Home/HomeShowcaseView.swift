@@ -10,6 +10,8 @@ enum HomeHeroMode {
 enum HomeHeroButton: Hashable {
     case play
     case details
+    /// Invisible stop left of Play that pages back where the sidebar would otherwise take the focus.
+    case pageBack
 }
 
 /// Text, actions and pagination of the home hero's current page.
