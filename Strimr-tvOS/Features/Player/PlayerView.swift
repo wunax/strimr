@@ -961,6 +961,14 @@ struct PlayerView: View {
             return
         }
 
+        if controlsVisible, !isScrubbing {
+            hideControlsWorkItem?.cancel()
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
+                controlsVisible = false
+            }
+            return
+        }
+
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.leave()
         }
