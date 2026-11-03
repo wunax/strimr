@@ -1541,13 +1541,20 @@ struct PlayerView: View {
         }
     }
 
-    /// A picture in picture window keeps playing: it is on screen, so the audio still belongs to it.
+    /// A picture in picture window keeps playing: it is on screen, so the audio still belongs to it. A SharePlay
+    /// session keeps playing too, since pausing here would pause every participant.
     private func pauseForBackgroundIfNeeded() {
         guard !settingsManager.playback.backgroundAudio,
               !viewModel.isLivePlayback,
+              !sharePlayCoordinator.isInSession,
               !playerController.isPictureInPictureActive,
               !playerController.isPictureInPictureTransitioning
         else { return }
+        // The engine only keeps a pause sent during a reload, so a first load would still autoplay.
+        if awaitingMediaLoad {
+            shouldPauseAfterMediaLoad = true
+            shouldResumeAfterMediaLoad = false
+        }
         playerController.pause()
     }
 
