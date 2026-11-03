@@ -142,10 +142,12 @@ struct HomeView: View {
                         .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase) - Self.actionsHeight)
                 }
 
+                // The section stops at the rows: after the padding it would cover the hero's buttons and take
+                // every move towards them.
                 homeContent
                     .frame(height: proxy.size.height * 0.60)
-                    .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase))
                     .focusSection()
+                    .padding(.top, rowsTop(in: proxy, isShowcase: isShowcase))
             }
         }
         .onChange(of: slide?.id, initial: true) {
@@ -185,7 +187,8 @@ struct HomeView: View {
             }
         }
         .focusSection()
-        .opacity(isShowcase ? 1 : 0.001)
+        // Just above the 0.01 alpha under which tvOS stops giving focus to a view.
+        .opacity(isShowcase ? 1 : 0.02)
         .accessibilityHidden(!isShowcase)
     }
 
