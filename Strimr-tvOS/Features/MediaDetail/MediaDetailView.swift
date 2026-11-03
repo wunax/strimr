@@ -129,7 +129,7 @@ struct MediaDetailView: View {
             guard !isPresenting else { return }
             hasHandledInitialEpisodePosition = false
             hasUserSelectedSeason = false
-            Task { await bindableViewModel.loadDetails() }
+            Task { await bindableViewModel.reloadAfterPlayback() }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
