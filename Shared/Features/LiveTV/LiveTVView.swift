@@ -72,22 +72,15 @@ struct LiveTVView: View {
                 }
             }
         }
+        #if !os(tvOS)
         .navigationTitle("livetv.title")
         .toolbar {
             ToolbarItemGroup {
-                Button { isSearching = true } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .accessibilityLabel(Text("livetv.search.title"))
-                .disabled(store.channels.isEmpty)
-                Button {
-                    Task { await store.load(start: store.guideStart, force: true) }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .accessibilityLabel(Text("common.refresh"))
+                searchButton
+                refreshButton
             }
         }
+        #endif
         .task { await store.load() }
         .onAppear {
             #if DEBUG
@@ -139,22 +132,56 @@ struct LiveTVView: View {
         }
     }
 
+    private var searchButton: some View {
+        Button { isSearching = true } label: {
+            Image(systemName: "magnifyingglass")
+        }
+        .accessibilityLabel(Text("livetv.search.title"))
+        .disabled(store.channels.isEmpty)
+    }
+
+    private var refreshButton: some View {
+        Button {
+            Task { await store.load(start: store.guideStart, force: true) }
+        } label: {
+            Image(systemName: "arrow.clockwise")
+        }
+        .accessibilityLabel(Text("common.refresh"))
+    }
+
+    private var sectionChipButtons: some View {
+        ForEach(sections) { item in
+            Button { section = item } label: {
+                Text(item.title)
+            }
+            .buttonStyle(.chip(isSelected: section == item))
+        }
+    }
+
     private var sectionChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        #if os(tvOS)
+            // No navigation bar on tvOS: its actions sit at the end of the chip row to save vertical space.
             HStack(spacing: LayoutMetrics.chipSpacing) {
-                ForEach(sections) { item in
-                    Button { section = item } label: {
-                        Text(item.title)
-                    }
-                    .buttonStyle(.chip(isSelected: section == item))
+                sectionChipButtons
+                Spacer()
+                Group {
+                    searchButton
+                    refreshButton
                 }
+                .buttonStyle(.chip(isSelected: false))
             }
             .padding(.horizontal, LayoutMetrics.pageMargin)
             .padding(.vertical, 8)
-        }
-        .scrollClipDisabled()
-        #if os(tvOS)
             .focusSection()
+        #else
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
+                    sectionChipButtons
+                }
+                .padding(.horizontal, LayoutMetrics.pageMargin)
+                .padding(.vertical, 8)
+            }
+            .scrollClipDisabled()
         #endif
     }
 
