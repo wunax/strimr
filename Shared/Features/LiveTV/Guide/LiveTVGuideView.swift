@@ -28,7 +28,7 @@ struct LiveTVGuideView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var filter = LiveTVGuideFilter.all
-    @State private var focusedProgram: LiveTVProgram?
+    @State private var focus = LiveTVGuideFocus()
     @State private var lastSeen: Date?
 
     /// After this long away, the guide comes back on the current time rather than where it was left.
@@ -67,9 +67,8 @@ struct LiveTVGuideView: View {
             } else {
                 GeometryReader { proxy in
                     VStack(alignment: .leading, spacing: 12) {
-                        if showsBanner(in: proxy.size), let program = bannerProgram {
-                            LiveTVGuideBanner(program: program, channel: store.channel(for: program.channelIdentity))
-                                .padding(.horizontal, LayoutMetrics.pageMargin)
+                        if showsBanner(in: proxy.size) {
+                            LiveTVGuideFocusedBanner(store: store, channels: channels, focus: focus)
                         }
                         filterBar
                         grid
@@ -113,7 +112,7 @@ struct LiveTVGuideView: View {
                     showDetails: onShowDetails,
                     tuneChannel: onTuneChannel,
                     toggleFavorite: { channel in Task { await store.toggleFavorite(channel) } },
-                    focusProgram: { focusedProgram = $0 },
+                    focusProgram: { [focus] in focus.program = $0 },
                     reachEdge: { forward in Task { await store.extendGuide(forward: forward) } },
                 ),
             )
@@ -123,13 +122,6 @@ struct LiveTVGuideView: View {
                 }
             }
         }
-    }
-
-    private var bannerProgram: LiveTVProgram? {
-        if let focusedProgram {
-            return store.programs.first { $0.identity == focusedProgram.identity } ?? focusedProgram
-        }
-        return channels.lazy.compactMap { store.currentProgram(on: $0.identity) }.first
     }
 
     private func showsBanner(in size: CGSize) -> Bool {
@@ -228,6 +220,33 @@ struct LiveTVGuideView: View {
 }
 
 /// The focused or hovered program above the grid: what it is, when, and a picture.
+/// The program under focus or the pointer. Kept out of the guide's state so that moving over the grid only
+/// redraws the banner, not the whole grid.
+@Observable
+final class LiveTVGuideFocus {
+    var program: LiveTVProgram?
+}
+
+private struct LiveTVGuideFocusedBanner: View {
+    let store: LiveTVStore
+    let channels: [LiveTVChannel]
+    let focus: LiveTVGuideFocus
+
+    private var program: LiveTVProgram? {
+        if let focused = focus.program {
+            return store.programs.first { $0.identity == focused.identity } ?? focused
+        }
+        return channels.lazy.compactMap { store.currentProgram(on: $0.identity) }.first
+    }
+
+    var body: some View {
+        if let program {
+            LiveTVGuideBanner(program: program, channel: store.channel(for: program.channelIdentity))
+                .padding(.horizontal, LayoutMetrics.pageMargin)
+        }
+    }
+}
+
 struct LiveTVGuideBanner: View {
     let program: LiveTVProgram
     let channel: LiveTVChannel?

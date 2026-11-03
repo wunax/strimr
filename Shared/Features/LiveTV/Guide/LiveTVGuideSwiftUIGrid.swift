@@ -71,7 +71,7 @@ import SwiftUI
 
         private func rowView(row: Int, channel: LiveTVChannel, now: Date) -> some View {
             ZStack(alignment: .topLeading) {
-                ForEach(model.rows[row], id: \.identity) { program in
+                ForEach(visiblePrograms(in: row), id: \.identity) { program in
                     let span = geometry.frame(of: program)
                     let frame = LiveTVGuideGeometry.visibleCellFrame(
                         CGRect(
@@ -136,6 +136,19 @@ import SwiftUI
                 .zIndex(1)
             }
             .frame(width: geometry.contentWidth, height: LiveTVGuideMetrics.rowHeight, alignment: .topLeading)
+        }
+
+        /// Rows only build the programs near the viewport: the loaded window can span a day of programs per channel.
+        private func visiblePrograms(in row: Int) -> [LiveTVProgram] {
+            let programs = model.rows[row]
+            guard viewportSize.width > 0 else { return programs }
+            let margin = viewportSize.width / 2
+            let minX = offset.x - margin
+            let maxX = offset.x + viewportSize.width + margin
+            return programs.filter { program in
+                let span = geometry.frame(of: program)
+                return span.x + span.width >= minX && span.x <= maxX
+            }
         }
 
         private var ruler: some View {
