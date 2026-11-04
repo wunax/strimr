@@ -231,6 +231,7 @@ struct SettingsView: View {
         case .playback: SettingsPlaybackView()
         case .audio: SettingsAudioView()
         case .subtitles: SettingsSubtitlesView()
+        case .accountPreferences: AccountPreferencesView()
         case .interface:
             SettingsInterfaceView(settingsManager: settingsManager, libraryStore: libraryStore)
         case .integrations: IntegrationsView()

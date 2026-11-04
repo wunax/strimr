@@ -40,9 +40,24 @@ final class SettingsNavigation {
     var pendingDetailFocus: String?
     var focusedControls: [String: String] = [:]
     var scrollOffsets: [String: CGFloat] = [:]
+    /// A page loses its state when a picker page replaces it, and the picker's write must outlive that.
+    @ObservationIgnored private var accountPreferencesViewModels: [String: AccountPreferencesViewModel] = [:]
 
     init(category: SettingsCategory) {
         self.category = category
+    }
+
+    func accountPreferencesViewModel(
+        for target: AccountPreferencesTarget,
+        generation: Int,
+    ) -> AccountPreferencesViewModel {
+        let key = "\(generation).\(target.id)"
+        if let viewModel = accountPreferencesViewModels[key] {
+            return viewModel
+        }
+        let viewModel = AccountPreferencesViewModel(service: target.service)
+        accountPreferencesViewModels[key] = viewModel
+        return viewModel
     }
 
     var currentPages: [Page] {
@@ -103,7 +118,7 @@ final class SettingsNavigation {
 }
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case accounts, profiles, playback, audio, subtitles, interface, integrations, privacy, about
+    case accounts, profiles, playback, audio, subtitles, accountPreferences, interface, integrations, privacy, about
 
     /// Restricted Plex profiles cannot manage accounts nor profiles.
     static func visible(canManageAccounts: Bool) -> [SettingsCategory] {
@@ -121,6 +136,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .playback: "settings.playback.title"
         case .audio: "settings.playback.audio.title"
         case .subtitles: "settings.playback.subtitles.title"
+        case .accountPreferences: "settings.accountPreferences.title"
         case .interface: "settings.interface.title"
         case .integrations: "settings.integrations.title"
         case .privacy: "settings.privacy.title"
@@ -135,6 +151,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .playback: "play.rectangle"
         case .audio: "speaker.wave.2"
         case .subtitles: "captions.bubble"
+        case .accountPreferences: "person.text.rectangle"
         case .interface: "rectangle.grid.2x2"
         case .integrations: "square.stack.3d.up"
         case .privacy: "hand.raised"

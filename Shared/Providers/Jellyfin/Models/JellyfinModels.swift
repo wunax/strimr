@@ -688,6 +688,14 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
     }
 }
 
+extension JellyfinMediaSource {
+    /// The server already weighs the user's subtitle mode and language: no index (or -1) means subtitles stay off,
+    /// even when the file flags a track as default.
+    nonisolated func serverSubtitleIndex(validIndices: Set<Int>) -> Int? {
+        defaultSubtitleStreamIndex.flatMap { validIndices.contains($0) ? $0 : nil }
+    }
+}
+
 nonisolated struct JellyfinMediaStream: Decodable, Hashable, Sendable {
     let index: Int
     let type: String

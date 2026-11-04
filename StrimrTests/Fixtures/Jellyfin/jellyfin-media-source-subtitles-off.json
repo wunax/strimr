@@ -1,0 +1,11 @@
+{
+  "Id": "source-1",
+  "DefaultAudioStreamIndex": 1,
+  "DefaultSubtitleStreamIndex": -1,
+  "MediaStreams": [
+    { "Index": 0, "Type": "Video", "Codec": "h264" },
+    { "Index": 1, "Type": "Audio", "Codec": "aac", "Language": "eng", "IsDefault": true },
+    { "Index": 2, "Type": "Subtitle", "Codec": "subrip", "Language": "eng", "IsDefault": true },
+    { "Index": 3, "Type": "Subtitle", "Codec": "subrip", "Language": "fre", "IsDefault": false }
+  ]
+}

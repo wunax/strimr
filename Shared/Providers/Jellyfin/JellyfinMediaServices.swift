@@ -638,9 +638,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let defaultAudioTrackID = source?.defaultAudioStreamIndex.flatMap { index in
             validAudioIndices.contains(index) ? index : nil
         }
-        let defaultSubtitleTrackID = source?.defaultSubtitleStreamIndex.flatMap { index in
-            validSubtitleIndices.contains(index) ? index : nil
-        }
+        let defaultSubtitleTrackID = source?.serverSubtitleIndex(validIndices: validSubtitleIndices)
         let selectedAudioTrackID = selectionOverride?.audioStreamIndex
             ?? defaultAudioTrackID
             ?? audioTracks.first(where: \.isDefault)?.id
@@ -651,7 +649,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         case let .stream(index):
             index
         case .serverDefault, nil:
-            defaultSubtitleTrackID ?? subtitleTracks.first(where: \.isDefault)?.id
+            defaultSubtitleTrackID
         }
 
         return MediaTrackSelection(
