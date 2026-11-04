@@ -26,6 +26,9 @@ struct PlayerView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    /// Set once the media is loaded, and changes with each new media, which starts the automatic subtitle search.
+    @State private var automaticSubtitleSearchKey: String?
+    @State private var automaticSubtitleToast: Toast?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var pendingRecoveryAudioTrackID: Int?
@@ -184,7 +187,11 @@ struct PlayerView: View {
                     viewModel.liveRoutePreference = settingsManager.playback
                         .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
-                },
+                }
+                .task(id: automaticSubtitleSearchKey) {
+                    await searchMissingSubtitle()
+                }
+                .toast($automaticSubtitleToast),
         )
 
         let playbackObservers = AnyView(
@@ -1465,16 +1472,40 @@ struct PlayerView: View {
         }
     }
 
+    private func activateExternalSubtitle(_ subtitle: PlayerExternalSubtitle) throws {
+        let id = try playerController.registerExternalSubtitleIfNeeded(
+            subtitle,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
+        playerController.setSubtitleDelay(milliseconds: 0)
+        selectedSubtitleTrackID = id
+        refreshTracks()
+    }
+
+    private func searchMissingSubtitle() async {
+        guard automaticSubtitleSearchKey != nil, !sharePlayCoordinator.isInSession else { return }
+        let searchingViewModel = viewModel
+        guard let outcome = await searchingViewModel.searchMissingSubtitle(settings: settingsManager.playback),
+              searchingViewModel === viewModel,
+              !Task.isCancelled
+        else { return }
+
+        if case let .attached(subtitle, language) = outcome {
+            do {
+                try activateExternalSubtitle(subtitle)
+            } catch {
+                ErrorReporter.capture(error)
+                automaticSubtitleToast = AutomaticSubtitleSearchOutcome.failed(language: language).toast
+                return
+            }
+        }
+        automaticSubtitleToast = outcome.toast
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
-            let id = try playerController.registerExternalSubtitleIfNeeded(
-                subtitle,
-                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-            )
-            playerController.setSubtitleDelay(milliseconds: 0)
-            selectedSubtitleTrackID = id
-            refreshTracks()
+            try activateExternalSubtitle(subtitle)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -1526,6 +1557,7 @@ struct PlayerView: View {
         awaitingMediaLoad = false
         viewModel.confirmLiveChannelSwitch()
         refreshTracks()
+        automaticSubtitleSearchKey = viewModel.currentRatingKey
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
         }

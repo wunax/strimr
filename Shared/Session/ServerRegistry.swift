@@ -607,6 +607,11 @@ final class ServerRegistry {
                 trackSelectionCoordinator: trackSelectionCoordinator,
                 versionSelectionStore: versionSelectionStore,
             )
+            services?.accountPreferences = plexPreferencesTarget(
+                link: entry.link,
+                account: account,
+                userUUID: userUUID,
+            ).service
             markReady(server, services: services) { $0.plexContext = context }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -684,6 +689,7 @@ final class ServerRegistry {
             trackSelectionCoordinator: trackSelectionCoordinator,
             versionSelectionStore: versionSelectionStore,
         )
+        services?.accountPreferences = jellyfinPreferencesTarget(link: entry.link, account: account).service
         markReady(server, services: services) { $0.jellyfinContext = context }
     }
 

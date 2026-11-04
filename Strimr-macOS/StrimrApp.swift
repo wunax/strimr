@@ -71,6 +71,7 @@ struct StrimrApp: App {
         Window("player.window.title", id: AppModel.playerWindowID) {
             configured(PlayerWindowView())
                 .frame(minWidth: 720, minHeight: 405)
+                .toastHost()
                 .preferredColorScheme(.dark)
         }
         .defaultSize(width: 1120, height: 630)

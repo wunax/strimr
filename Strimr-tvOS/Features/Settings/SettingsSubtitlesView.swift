@@ -22,6 +22,16 @@ struct SettingsSubtitlesView: View {
 
             Section {
                 Toggle(
+                    "settings.playback.subtitles.automaticSearch",
+                    isOn: viewModel.automaticSubtitleSearchBinding,
+                )
+                .settingsFocus("settings.playback.subtitles.automaticSearch")
+            } footer: {
+                Text("settings.playback.subtitles.automaticSearch.description")
+            }
+
+            Section {
+                Toggle(
                     "settings.playback.subtitles.showOnSkipBack",
                     isOn: viewModel.showSubtitlesOnSkipBackBinding,
                 )

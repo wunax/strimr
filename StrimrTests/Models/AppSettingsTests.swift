@@ -334,6 +334,11 @@ struct AppSettingsTests {
         #expect(try !decode(#"{"playback":{"showSubtitlesOnSkipBack":false}}"#).playback.showSubtitlesOnSkipBack)
     }
 
+    @Test func `automatic subtitle search stays off unless turned on`() throws {
+        #expect(try !decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.automaticSubtitleSearch)
+        #expect(try decode(#"{"playback":{"automaticSubtitleSearch":true}}"#).playback.automaticSubtitleSearch)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

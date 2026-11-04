@@ -174,6 +174,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutomaticSubtitleSearch(_ enabled: Bool) {
+        settings.playback.automaticSubtitleSearch = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()

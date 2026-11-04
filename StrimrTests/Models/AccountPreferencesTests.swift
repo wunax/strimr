@@ -34,6 +34,17 @@ struct AccountPreferencesTests {
         ))
     }
 
+    @Test func `track languages resolve from codes and names`() {
+        let expected: [(String?, String?)] = [
+            ("fre", "fr"), ("fra", "fr"), ("fr-CA", "fr"), ("French", "fr"), ("français", "fr"),
+            ("French (Canada)", "fr"), ("eng", "en"), ("English", "en"),
+            (nil, nil), ("", nil), ("und", nil), ("Unknown", nil),
+        ]
+        for (value, code) in expected {
+            #expect(AccountLanguageCode.code(fromTrackLanguage: value) == code, "\(value ?? "nil")")
+        }
+    }
+
     @Test func `an unset Jellyfin configuration follows the file`() {
         #expect(AccountPreferences(jellyfinConfiguration: [:]) == .empty)
     }

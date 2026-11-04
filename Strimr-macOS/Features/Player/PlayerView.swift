@@ -74,6 +74,9 @@ struct PlayerView: View {
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    /// Set once the media is loaded, and changes with each new media, which starts the automatic subtitle search.
+    @State private var automaticSubtitleSearchKey: String?
+    @State private var automaticSubtitleToast: Toast?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
@@ -299,6 +302,10 @@ struct PlayerView: View {
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
+                .task(id: automaticSubtitleSearchKey) {
+                    await searchMissingSubtitle()
+                }
+                .toast($automaticSubtitleToast)
                 .onDisappear {
                     nextEpisodePresentation.cancel()
                     sleepTimer.cancel()
@@ -1294,20 +1301,44 @@ struct PlayerView: View {
         playerController.setPlaybackRate(playbackRate)
     }
 
+    private func activateExternalSubtitle(_ subtitle: PlayerExternalSubtitle) throws {
+        let id = try playerController.registerExternalSubtitleIfNeeded(
+            subtitle,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
+        playerController.setSubtitleDelay(milliseconds: 0)
+        selectedSubtitleTrackID = id
+        let tracks = viewModel.isTranscoding
+            ? viewModel.sourcePlayerTracks()
+            : playerController.trackList()
+        audioTracks = tracks.filter { $0.type == .audio }
+        subtitleTracks = tracks.filter { $0.type == .subtitle }
+    }
+
+    private func searchMissingSubtitle() async {
+        guard automaticSubtitleSearchKey != nil, !isSharePlayPlayback else { return }
+        let searchingViewModel = viewModel
+        guard let outcome = await searchingViewModel.searchMissingSubtitle(settings: settingsManager.playback),
+              searchingViewModel === viewModel,
+              !Task.isCancelled
+        else { return }
+
+        if case let .attached(subtitle, language) = outcome {
+            do {
+                try activateExternalSubtitle(subtitle)
+            } catch {
+                ErrorReporter.capture(error)
+                automaticSubtitleToast = AutomaticSubtitleSearchOutcome.failed(language: language).toast
+                return
+            }
+        }
+        automaticSubtitleToast = outcome.toast
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
-            let id = try playerController.registerExternalSubtitleIfNeeded(
-                subtitle,
-                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-            )
-            playerController.setSubtitleDelay(milliseconds: 0)
-            selectedSubtitleTrackID = id
-            let tracks = viewModel.isTranscoding
-                ? viewModel.sourcePlayerTracks()
-                : playerController.trackList()
-            audioTracks = tracks.filter { $0.type == .audio }
-            subtitleTracks = tracks.filter { $0.type == .subtitle }
+            try activateExternalSubtitle(subtitle)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -1478,6 +1509,7 @@ struct PlayerView: View {
         }
         playerController.onMediaLoaded = {
             viewModel.confirmLiveChannelSwitch()
+            automaticSubtitleSearchKey = viewModel.currentRatingKey
             let tracks = playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }

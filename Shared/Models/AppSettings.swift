@@ -396,6 +396,7 @@ struct PlaybackSettings: Codable, Equatable {
     var subtitleVerticalPosition = SubtitleVerticalPosition.bottom
     var subtitleBottomMargin = SubtitleBottomMargin.automatic
     var subtitleSearch = SubtitleSearchPreferences()
+    var automaticSubtitleSearch = false
     /// Nil plays in Strimr's built-in player.
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
@@ -461,6 +462,10 @@ struct PlaybackSettings: Codable, Equatable {
             Bool.self,
             forKey: .showSubtitlesOnSkipBack,
         ) ?? true
+        automaticSubtitleSearch = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .automaticSubtitleSearch,
+        ) ?? false
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
         doubleTapToSeek = try container.decodeIfPresent(Bool.self, forKey: .doubleTapToSeek) ?? true
