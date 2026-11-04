@@ -51,7 +51,7 @@ nonisolated enum AutomaticSubtitleSearch {
         language: String,
     ) -> PlayerExternalSubtitle? {
         refreshed.first { subtitle in
-            guard !previousURLs.contains(subtitle.track.url) else { return false }
+            guard !previousURLs.contains(subtitle.track.url), !subtitle.track.isForced else { return false }
             guard let trackLanguage = AccountLanguageCode.code(fromTrackLanguage: subtitle.track.language) else {
                 return true
             }

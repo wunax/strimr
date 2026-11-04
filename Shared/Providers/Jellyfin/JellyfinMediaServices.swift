@@ -122,6 +122,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 providerTitle: value.providerName,
                 isExactMatch: value.isHashMatch == true,
                 matchScore: value.downloadCount.map(Double.init),
+                isForced: value.isForced == true,
             )
         }
     }

@@ -149,6 +149,19 @@ struct AutomaticSubtitleSearchTests {
         #expect(try #require(found).track.url == new.track.url)
     }
 
+    @Test func `rejects a new forced track`() throws {
+        let forced = try PlayerExternalSubtitle(
+            track: ExternalSubtitleTrack(
+                url: #require(URL(string: "https://server.test/forced.srt")),
+                language: "fre",
+                isForced: true,
+            ),
+            providerStreamID: 1,
+        )
+        let found = AutomaticSubtitleSearch.installedSubtitle(in: [forced], previousURLs: [], language: "fr")
+        #expect(found == nil)
+    }
+
     @Test func `does not fall back on a track already there`() {
         let old = subtitle("https://server.test/old.srt", language: "fre")
         let found = AutomaticSubtitleSearch.installedSubtitle(
@@ -173,7 +186,8 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
         var results: [RemoteSubtitleResult] = []
         var searchedLanguages: [String] = []
         var installedIDs: [String] = []
-        var refreshed: [PlayerExternalSubtitle] = []
+        var subtitlesOnServer: [PlayerExternalSubtitle] = []
+        var subtitlesAddedByInstall: [PlayerExternalSubtitle] = []
         var audioLanguage = "eng"
         var onSearch: () async -> Void = {}
 
@@ -243,10 +257,11 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
 
         override func installSubtitle(itemID _: String, result: RemoteSubtitleResult) async throws {
             installedIDs.append(result.id)
+            subtitlesOnServer += subtitlesAddedByInstall
         }
 
         override func externalSubtitles(media _: MediaItem) async throws -> [PlayerExternalSubtitle] {
-            refreshed
+            subtitlesOnServer
         }
 
         override func selectSubtitleTrack(id _: Int?, itemID _: String, versionID _: String?) async throws {}
@@ -260,12 +275,17 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
             subtitleMode: .fromFile,
         )
 
+        var failsToLoad = false
+
         var subtitleModes: [AccountSubtitleMode] {
             []
         }
 
         func load() async throws -> AccountPreferences {
-            preferences
+            if failsToLoad {
+                throw URLError(.notConnectedToInternet)
+            }
+            return preferences
         }
 
         func apply(_: AccountPreferenceChange) async throws -> AccountPreferences {
@@ -283,10 +303,24 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
         RemoteSubtitleResult(id: id, title: id, language: "fre", codec: "srt", providerTitle: nil, matchScore: score)
     }
 
+    private func subtitle(_ url: String, language: String?, streamID: Int) -> PlayerExternalSubtitle {
+        PlayerExternalSubtitle(
+            track: ExternalSubtitleTrack(url: URL(string: url)!, language: language),
+            providerStreamID: streamID,
+        )
+    }
+
     private func loadedViewModel(_ service: Service) async -> PlayerViewModel {
+        await loadedViewModel(service, account: AccountPreferencesStub())
+    }
+
+    private func loadedViewModel(
+        _ service: Service,
+        account: (any AccountPreferencesService)?,
+    ) async -> PlayerViewModel {
         let server = ServerIdentity(provider: .jellyfin, id: "server-1")
         let services = MediaServices.fake(service, server: server)
-        services.accountPreferences = AccountPreferencesStub()
+        services.accountPreferences = account
         let media = MediaItem.make(id: "item-1", server: server)
         let queue = PlaybackQueue(
             id: UUID(),
@@ -299,17 +333,10 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
         return viewModel
     }
 
-    @Test func `installs and returns the best ranked result`() async throws {
+    @Test func `installs and returns the best ranked result`() async {
         let service = Service()
         service.results = [result("low", score: 1), result("high", score: 9)]
-        let installed = try PlayerExternalSubtitle(
-            track: ExternalSubtitleTrack(
-                url: #require(URL(string: "https://server.test/new.srt")),
-                language: "fre",
-            ),
-            providerStreamID: 5,
-        )
-        service.refreshed = [installed]
+        service.subtitlesAddedByInstall = [subtitle("https://server.test/new.srt", language: "fre", streamID: 5)]
         let viewModel = await loadedViewModel(service)
 
         let outcome = await viewModel.searchMissingSubtitle(settings: enabledSettings)
@@ -367,6 +394,68 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
 
         #expect(outcome == nil)
         #expect(service.installedIDs.isEmpty)
+    }
+
+    @Test func `a failed account load stops before any search`() async {
+        let service = Service()
+        service.results = [result("only", score: 1)]
+        let viewModel = await loadedViewModel(service, account: AccountPreferencesStub(failsToLoad: true))
+
+        let outcome = await viewModel.searchMissingSubtitle(settings: enabledSettings)
+
+        #expect(outcome == nil)
+        #expect(service.searchedLanguages.isEmpty)
+        #expect(service.installedIDs.isEmpty)
+    }
+
+    @Test func `without an account service the device language is used`() async {
+        let service = Service()
+        let viewModel = await loadedViewModel(service, account: nil)
+
+        _ = await viewModel.searchMissingSubtitle(settings: enabledSettings)
+
+        #expect(service.searchedLanguages.count == 1)
+    }
+
+    @Test func `a forced result is never installed`() async {
+        let service = Service()
+        var forced = result("forced", score: 9)
+        forced.isForced = true
+        service.results = [forced, result("full", score: 1)]
+        service.subtitlesAddedByInstall = [subtitle("https://server.test/new.srt", language: "fre", streamID: 5)]
+        let viewModel = await loadedViewModel(service)
+
+        _ = await viewModel.searchMissingSubtitle(settings: enabledSettings)
+
+        #expect(service.installedIDs == ["full"])
+    }
+
+    @Test func `only forced results count as not found`() async {
+        let service = Service()
+        var forced = result("forced", score: 9)
+        forced.isForced = true
+        service.results = [forced]
+        let viewModel = await loadedViewModel(service)
+
+        guard case .notFound = await viewModel.searchMissingSubtitle(settings: enabledSettings) else {
+            Issue.record("Expected no usable result")
+            return
+        }
+        #expect(service.installedIDs.isEmpty)
+    }
+
+    @Test func `a subtitle of another version is not taken for the download`() async {
+        let service = Service()
+        service.results = [result("only", score: 1)]
+        service.subtitlesOnServer = [subtitle("https://server.test/other-version.srt", language: "fre", streamID: 3)]
+        service.subtitlesAddedByInstall = [subtitle("https://server.test/new.srt", language: "fre", streamID: 5)]
+        let viewModel = await loadedViewModel(service)
+
+        guard case let .attached(attached, _) = await viewModel.searchMissingSubtitle(settings: enabledSettings) else {
+            Issue.record("Expected an attached subtitle")
+            return
+        }
+        #expect(attached.providerStreamID == 5)
     }
 
     @Test func `a track the server did not add is a failure`() async {

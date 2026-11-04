@@ -170,6 +170,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                 codec: value.codec,
                 providerTitle: value.providerTitle,
                 matchScore: value.score.flatMap(Double.init),
+                isForced: value.forced == true,
             )
         }
     }

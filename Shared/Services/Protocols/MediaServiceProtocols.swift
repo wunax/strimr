@@ -164,6 +164,7 @@ struct RemoteSubtitleResult: Hashable, Identifiable {
     var isExactMatch = false
     /// Only comparable between results of the same search.
     var matchScore: Double?
+    var isForced = false
 }
 
 extension [RemoteSubtitleResult] {

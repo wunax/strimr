@@ -701,7 +701,16 @@ final class PlayerViewModel {
             !Task.isCancelled && manualSubtitleChanges == changesAtStart
         }
 
-        let account = await accountPreferencesForSubtitleSearch(mediaServices)
+        let account: AccountPreferences?
+        do {
+            account = try await mediaServices.accountPreferences?.load()
+        } catch {
+            // The account may have refused subtitles or want another language, and a download stays on the server.
+            if !Task.isCancelled, !error.isCancellation {
+                ErrorReporter.capture(error)
+            }
+            return nil
+        }
         guard isStillWanted,
               let language = AutomaticSubtitleSearch.language(
                   remembered: rememberedTrackPreference?.subtitle,
@@ -725,8 +734,12 @@ final class PlayerViewModel {
                 title: nil,
             ).rankedByMatch()
             guard isStillWanted else { return nil }
-            guard let result = results.first else { return .notFound(language: language) }
+            // Servers can return forced results in a search for full subtitles.
+            guard let result = results.first(where: { !$0.isForced }) else { return .notFound(language: language) }
 
+            // The plan only lists the played version, while the refresh below can cover all of them.
+            let previous = try await mediaServices.playback.externalSubtitles(media: media)
+            guard isStillWanted else { return nil }
             try await mediaServices.detail.installSubtitle(itemID: media.id, result: result)
             guard isStillWanted else { return nil }
 
@@ -734,7 +747,7 @@ final class PlayerViewModel {
             guard isStillWanted else { return nil }
             guard let subtitle = AutomaticSubtitleSearch.installedSubtitle(
                 in: refreshed,
-                previousURLs: Set(playbackPlan.externalSubtitles.map(\.track.url)),
+                previousURLs: Set(previous.map(\.track.url)),
                 language: language,
             ) else { throw PlayerPlaybackError.missingExternalSubtitle }
             return .attached(subtitle, language: language)
@@ -742,18 +755,6 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return nil }
             ErrorReporter.capture(error)
             return .failed(language: language)
-        }
-    }
-
-    /// Without the account's values the search still works from the device language.
-    private func accountPreferencesForSubtitleSearch(_ services: MediaServices) async -> AccountPreferences? {
-        do {
-            return try await services.accountPreferences?.load()
-        } catch {
-            if !Task.isCancelled, !error.isCancellation {
-                ErrorReporter.capture(error)
-            }
-            return nil
         }
     }
 
