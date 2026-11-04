@@ -91,6 +91,15 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayLiveTVTab($0) },
                     ),
                 )
+                if settingsManager.interface.displayLiveTVTab {
+                    Toggle(
+                        "settings.interface.liveTVGuideCategoryTint",
+                        isOn: Binding(
+                            get: { settingsManager.interface.tintsLiveTVGuideCategories },
+                            set: { settingsManager.setTintsLiveTVGuideCategories($0) },
+                        ),
+                    )
+                }
             } header: {
                 Text("settings.interface.tabs.section")
             }

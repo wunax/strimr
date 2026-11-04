@@ -26,6 +26,7 @@ final class PlayerController {
     var isLive = false
     var liveEdgeTime = 0.0
     var behindLiveSeconds = 0.0
+    var isAtLiveEdge = true
     var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
     private(set) var displayVideoSize: CGSize?
@@ -101,6 +102,8 @@ final class PlayerController {
     }
 
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
+    /// The engine could not demux a live stream it read itself; the server-transcoded route may still play it.
+    @ObservationIgnored var onLiveDemuxFailure: ((Error) -> Void)?
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
 
     @ObservationIgnored private var cancellables: Set<AnyCancellable> = []
@@ -193,9 +196,7 @@ final class PlayerController {
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
         showsSubtitlesOnSkipBack: Bool = false,
-        isLive: Bool = false,
-        nativeRemoteHLS: Bool = false,
-        dvrWindowSeconds: TimeInterval? = nil,
+        live: LiveLoadOptions? = nil,
         audioDelayMilliseconds: Int = 0,
         audioShaping: AudioShaping = AudioShaping(),
         autoplay: Bool = true,
@@ -230,7 +231,8 @@ final class PlayerController {
             setSubtitleDelay(milliseconds: 0)
         }
         self.mediaIdentifier = mediaIdentifier
-        hasLiveDVRWindow = (dvrWindowSeconds ?? 0) > 0
+        let isLive = live != nil
+        hasLiveDVRWindow = (live?.dvrWindowSeconds ?? 0) > 0
         cancelPendingAudioDelay()
         self.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(audioDelayMilliseconds)
         let audioDelaySeconds = PlaybackOffset(milliseconds: self.audioDelayMilliseconds).seconds
@@ -251,18 +253,26 @@ final class PlayerController {
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
                         objectAudioRendering: spatialAudioLayout.map { .apac($0) } ?? .off,
                         isLive: isLive,
-                        dvrWindowSeconds: dvrWindowSeconds,
+                        dvrWindowSeconds: live?.dvrWindowSeconds,
                         liveJoinProfile: .fastZap,
-                        nativeRemoteHLS: nativeRemoteHLS,
+                        liveJoinStartsImmediately: live?.startsImmediately ?? true,
+                        nativeRemoteHLS: live?.nativeRemoteHLS ?? false,
                         preserveASSMarkup: true,
                         prepareNativeSubtitles: Self.preparesNativeSubtitles,
+                        probesize: live?.probesize,
+                        maxAnalyzeDuration: live?.maxAnalyzeDuration,
+                        preferredAudioLanguages: live?.preferredAudioLanguages ?? [],
                         externalSubtitles: externalSubtitles.map(\.track),
-                        autoplay: autoplay,
+                        autoplay: autoplay && (live?.autoplay ?? true),
                         audioDelaySeconds: audioDelaySeconds,
                         audioShaping: audioShaping,
+                        preferredDecodePath: live?.preferredDecodePath ?? .automatic,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
+                if autoplay, live?.autoplay == false {
+                    engine.play()
+                }
                 if let sourceProbe,
                    sourceProbe.videoWidth > 0,
                    sourceProbe.videoHeight > 0
@@ -295,8 +305,14 @@ final class PlayerController {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 deactivateASSRendering()
+                if let live, !live.nativeRemoteHLS, LiveLoadOptions.isDemuxFailure(error),
+                   let onLiveDemuxFailure
+                {
+                    onLiveDemuxFailure(error)
+                    return
+                }
                 if isLive {
-                    LiveTVErrorReporting.capture(error)
+                    LiveTVErrorReporting.capture(error, route: live?.route)
                 } else {
                     ErrorReporter.capture(error)
                 }
@@ -1240,6 +1256,11 @@ final class PlayerController {
         engine.clock.$behindLiveSeconds
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.behindLiveSeconds = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$isAtLiveEdge
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.isAtLiveEdge = $0 }
             .store(in: &cancellables)
 
         engine.clock.$seekableLiveRange

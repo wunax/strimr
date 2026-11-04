@@ -394,6 +394,9 @@ protocol LiveTVPlaybackSession: AnyObject {
     func source(offsetFromCaptureStart: TimeInterval?) async throws -> LiveTVPlaybackSource
     func report(position: TimeInterval, isPaused: Bool) async throws -> LiveTVCaptureRange?
     func recover() async throws -> any LiveTVPlaybackSession
+    /// A session on the server-transcoded route, for a stream the engine could not demux. Nil when this session
+    /// already uses it.
+    func fallback() async throws -> (any LiveTVPlaybackSession)?
     func stop() async
 }
 
@@ -424,7 +427,10 @@ protocol MediaLiveTVService: AnyObject {
     func onNow() async throws -> [LiveTVOnNowSection]
     func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws
     func reorderFavorites(_ channels: [LiveTVChannel]) async throws
-    func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession
+    func startPlayback(
+        channel: LiveTVChannel,
+        route: LiveTVRoutePreference,
+    ) async throws -> any LiveTVPlaybackSession
 }
 
 @MainActor

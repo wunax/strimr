@@ -2,17 +2,20 @@ import Foundation
 
 @MainActor
 enum LiveTVErrorReporting {
-    static func capture(_ error: Error) {
+    static func capture(_ error: Error, route: LiveTVPlaybackRoute? = nil) {
         guard !error.isCancellation else { return }
-        ErrorReporter.capture(normalizedError(from: error))
+        ErrorReporter.capture(normalizedError(from: error, route: route))
     }
 
-    private static func normalizedError(from error: Error) -> NSError {
+    private static func normalizedError(from error: Error, route: LiveTVPlaybackRoute?) -> NSError {
         let underlying = error as NSError
         var userInfo: [String: Any] = [
             "underlying_domain": underlying.domain,
             "underlying_code": underlying.code,
         ]
+        if let route {
+            userInfo["route"] = route.rawValue
+        }
 
         let provider: String
         let code: Int
@@ -89,6 +92,11 @@ struct LiveTVChannelIdentity: Hashable, Sendable {
     let providerID: String
     let lineupID: String?
     let dvrID: String?
+
+    /// Stable text form, for storing a channel locally.
+    var storageKey: String {
+        [providerID, lineupID ?? "", dvrID ?? ""].joined(separator: "|")
+    }
 }
 
 struct LiveTVProgramIdentity: Hashable, Sendable {
@@ -123,6 +131,26 @@ struct LiveTVChannel: Identifiable, Hashable, Sendable {
     }
 }
 
+enum LiveTVCategory: String, CaseIterable, Hashable, Sendable {
+    case sports
+    case movie
+    case series
+    case news
+    case kids
+
+    /// The server's own "on now" hubs, used when a program carries no category of its own.
+    init?(sectionID: String) {
+        switch sectionID.lowercased() {
+        case "sports", "sport": self = .sports
+        case "movies", "movie": self = .movie
+        case "series", "shows", "tv": self = .series
+        case "news": self = .news
+        case "kids", "children": self = .kids
+        default: return nil
+        }
+    }
+}
+
 struct LiveTVProgram: Identifiable, Hashable, Sendable {
     let id: String
     let channelID: String
@@ -142,6 +170,7 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
     let seriesRecordingID: String?
     var recordingStatus: DVRRecordingStatus?
     let providerGUID: String?
+    var categories: Set<LiveTVCategory> = []
 
     var identity: LiveTVProgramIdentity {
         LiveTVProgramIdentity(providerID: id, channel: channelIdentity)
@@ -156,14 +185,34 @@ struct LiveTVProgram: Identifiable, Hashable, Sendable {
     }
 
     var isCurrentlyAiring: Bool {
-        let now = Date()
-        return startDate <= now && now < endDate
+        isAiring(at: Date())
     }
 
     var progress: Double {
+        progress(at: Date())
+    }
+
+    func isAiring(at date: Date) -> Bool {
+        startDate <= date && date < endDate
+    }
+
+    func progress(at date: Date) -> Double {
         let duration = endDate.timeIntervalSince(startDate)
         guard duration > 0 else { return 0 }
-        return min(1, max(0, Date().timeIntervalSince(startDate) / duration))
+        return min(1, max(0, date.timeIntervalSince(startDate) / duration))
+    }
+
+    /// "S2 E5 · Title" for an episode, nil for a program without episode numbers.
+    var episodeLabel: String? {
+        guard let episodeNumber else { return nil }
+        let number = seasonNumber.map { "S\($0) E\(episodeNumber)" } ?? "E\(episodeNumber)"
+        guard let seriesTitle, !seriesTitle.isEmpty, seriesTitle != title else { return number }
+        return "\(number) · \(title)"
+    }
+
+    /// Title shared by every airing of the same show.
+    var showTitle: String {
+        seriesTitle?.nilIfEmpty ?? title
     }
 }
 
@@ -187,12 +236,29 @@ enum LiveTVBackgroundPolicy: Equatable, Sendable {
     case stopAndExit
 }
 
+/// How the server delivers a live channel. The raw value is what error reports carry.
+enum LiveTVPlaybackRoute: String, Sendable {
+    case directPlay = "direct_play"
+    case remux
+    case directStream = "direct_stream"
+    case transcode
+}
+
+enum LiveTVRoutePreference: Sendable {
+    case automatic
+    /// The server transcodes and AVPlayer reads its HLS directly, the route used before the engine played
+    /// broadcast streams.
+    case serverTranscode
+}
+
 struct LiveTVPlaybackSource: Sendable {
     let url: URL
     let httpHeaders: [String: String]
     let program: LiveTVProgram?
     let captureRange: LiveTVCaptureRange?
     let nativeRemoteHLS: Bool
+    let route: LiveTVPlaybackRoute
+    var isInterlaced = false
 }
 
 struct LiveTVLaunchContext: Sendable {

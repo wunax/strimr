@@ -5500,24 +5500,146 @@
         }
       }
     },
-    "livetv.channel" : {
+    "livetv.badge.live" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Channel"
+            "value" : "Live"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaîne"
+            "value" : "Direct"
           }
-        },
-        "zh-Hans" : {
+        }
+      }
+    },
+    "livetv.badge.new" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "频道"
+            "value" : "New"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau"
+          }
+        }
+      }
+    },
+    "livetv.badge.recorded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistré"
+          }
+        }
+      }
+    },
+    "livetv.badge.scheduled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Scheduled"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement prévu"
+          }
+        }
+      }
+    },
+    "livetv.category.kids" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kids"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeunesse"
+          }
+        }
+      }
+    },
+    "livetv.category.movies" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movies"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Films"
+          }
+        }
+      }
+    },
+    "livetv.category.news" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "News"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info"
+          }
+        }
+      }
+    },
+    "livetv.category.series" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Séries"
+          }
+        }
+      }
+    },
+    "livetv.category.sports" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sports"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sport"
           }
         }
       }
@@ -5606,6 +5728,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑录制规则"
+          }
+        }
+      }
+    },
+    "livetv.dvr.inProgress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Now"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours"
           }
         }
       }
@@ -5720,24 +5858,18 @@
         }
       }
     },
-    "livetv.dvr.unsupported" : {
+    "livetv.dvr.scheduled" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DVR is not configured for this server."
+            "value" : "Upcoming"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le DVR n’est pas configuré sur ce serveur."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此服务器尚未配置 DVR。"
+            "value" : "À venir"
           }
         }
       }
@@ -5984,68 +6116,82 @@
         }
       }
     },
-    "livetv.favoritesOnly" : {
+    "livetv.guide.channelSchedule" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Favorites Only"
+            "value" : "Channel Schedule"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Favoris uniquement"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅显示收藏"
+            "value" : "Programme de la chaîne"
           }
         }
       }
     },
-    "livetv.guide.next" : {
+    "livetv.guide.day" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Next 6 Hours"
+            "value" : "Day"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6 heures suivantes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "后6小时"
+            "value" : "Jour"
           }
         }
       }
     },
-    "livetv.guide.noData" : {
+    "livetv.guide.filter.all" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No guide data"
+            "value" : "All"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune donnée de guide"
+            "value" : "Tout"
           }
-        },
-        "zh-Hans" : {
+        }
+      }
+    },
+    "livetv.guide.loadMore" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无节目指南数据"
+            "value" : "Show Later Programs"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la suite"
+          }
+        }
+      }
+    },
+    "livetv.guide.next %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next: %1$@ %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ensuite : %1$@ %2$@"
           }
         }
       }
@@ -6072,24 +6218,66 @@
         }
       }
     },
-    "livetv.guide.previous" : {
+    "livetv.guide.today" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Previous 6 Hours"
+            "value" : "Today"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6 heures précédentes"
+            "value" : "Aujourd’hui"
           }
-        },
-        "zh-Hans" : {
+        }
+      }
+    },
+    "livetv.guide.tomorrow" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "前6小时"
+            "value" : "Tomorrow"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demain"
+          }
+        }
+      }
+    },
+    "livetv.hero.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiche"
+          }
+        }
+      }
+    },
+    "livetv.hero.watch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regarder"
           }
         }
       }
@@ -6270,24 +6458,50 @@
         }
       }
     },
-    "livetv.player.behind %lld" : {
+    "livetv.player.behindShort %lld" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld min behind"
+            "value" : "−%lld min"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld min de retard"
+            "value" : "−%lld min"
           }
-        },
-        "zh-Hans" : {
+        }
+      }
+    },
+    "livetv.player.channels" : {
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "落后直播 %lld 分钟"
+            "value" : "Channels"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaînes"
+          }
+        }
+      }
+    },
+    "livetv.player.currentChannel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now Playing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours de lecture"
           }
         }
       }
@@ -6310,6 +6524,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "回到直播"
+          }
+        }
+      }
+    },
+    "livetv.player.lastChannel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Channel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaîne précédente"
           }
         }
       }
@@ -6398,6 +6628,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "节目详情"
+          }
+        }
+      }
+    },
+    "livetv.program.otherAirings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Airings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres diffusions"
           }
         }
       }
@@ -6776,6 +7022,22 @@
         }
       }
     },
+    "livetv.recording.options" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording Options"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options d’enregistrement"
+          }
+        }
+      }
+    },
     "livetv.recording.postPadding" : {
       "localizations" : {
         "en" : {
@@ -7106,18 +7368,98 @@
         }
       }
     },
-    "livetv.section.dvr" : {
+    "livetv.search.channels" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DVR"
+            "value" : "Channels"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DVR"
+            "value" : "Chaînes"
+          }
+        }
+      }
+    },
+    "livetv.search.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No channel or program matches."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune chaîne ni aucun programme ne correspond."
+          }
+        }
+      }
+    },
+    "livetv.search.programs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next 24 Hours"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaines 24 heures"
+          }
+        }
+      }
+    },
+    "livetv.search.prompt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels and programs"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaînes et programmes"
+          }
+        }
+      }
+    },
+    "livetv.search.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        }
+      }
+    },
+    "livetv.section.dvr" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recordings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrements"
           }
         },
         "zh-Hans" : {
@@ -7155,13 +7497,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On Now"
+            "value" : "On Air"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En ce moment"
+            "value" : "À l’antenne"
           }
         },
         "zh-Hans" : {
@@ -7190,6 +7532,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务器"
+          }
+        }
+      }
+    },
+    "livetv.shelf.favorites" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoris"
+          }
+        }
+      }
+    },
+    "livetv.shelf.onNow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On Now"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En ce moment"
+          }
+        }
+      }
+    },
+    "livetv.shelf.recent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Channels"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaînes récentes"
+          }
+        }
+      }
+    },
+    "livetv.shelf.upcoming" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming Up"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bientôt"
           }
         }
       }
@@ -22377,6 +22783,22 @@
         }
       }
     },
+    "settings.interface.liveTVGuideCategoryTint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tint Guide by Category"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teinter le guide par catégorie"
+          }
+        }
+      }
+    },
     "settings.interface.manageLibraries" : {
       "localizations" : {
         "en" : {
@@ -24143,6 +24565,22 @@
         }
       }
     },
+    "settings.playback.liveTV.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live TV"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV en direct"
+          }
+        }
+      }
+    },
     "settings.playback.losslessAudio" : {
       "localizations" : {
         "en" : {
@@ -25789,6 +26227,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放"
+          }
+        }
+      }
+    },
+    "settings.playback.transcodeLiveTV" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcode Live TV on the server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcoder la TV en direct sur le serveur"
+          }
+        }
+      }
+    },
+    "settings.playback.transcodeLiveTV.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this only if a channel does not play. The server converts the stream, which takes longer to start and uses more of its resources."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À n’activer que si une chaîne ne se lit pas. Le serveur convertit le flux, ce qui allonge le démarrage et sollicite davantage le serveur."
           }
         }
       }

@@ -24,6 +24,9 @@
         private let contentDirectory: URL
         private var selectedAudioTrackIDs: [String: Int] = [:]
         private var selectedSubtitleTrackIDs: [String: Int?] = [:]
+        private lazy var liveTV: DemoLiveTV? = DemoLiveTV.channelCount > 0
+            ? DemoLiveTV(channelCount: DemoLiveTV.channelCount, titles: catalog.allTitles)
+            : nil
 
         init(catalog: DemoCatalog, contentDirectory: URL) {
             self.catalog = catalog
@@ -511,15 +514,15 @@
         }
 
         func isAvailable() async throws -> Bool {
-            false
+            liveTV != nil
         }
 
         func channels() async throws -> [LiveTVChannel] {
-            []
+            liveTV?.channels ?? []
         }
 
-        func programs(from _: Date, to _: Date) async throws -> [LiveTVProgram] {
-            []
+        func programs(from start: Date, to end: Date) async throws -> [LiveTVProgram] {
+            liveTV?.programs(from: start, to: end) ?? []
         }
 
         func onNow() async throws -> [LiveTVOnNowSection] {
@@ -530,8 +533,15 @@
 
         func reorderFavorites(_: [LiveTVChannel]) async throws {}
 
-        func startPlayback(channel _: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
-            throw DemoMediaError.unsupported
+        func startPlayback(
+            channel: LiveTVChannel,
+            route _: LiveTVRoutePreference,
+        ) async throws -> any LiveTVPlaybackSession {
+            let clip = contentDirectory.appending(path: "clip.mp4")
+            guard liveTV != nil, FileManager.default.fileExists(atPath: clip.path()) else {
+                throw DemoMediaError.unsupported
+            }
+            return DemoLiveTVPlaybackSession(channel: channel, clip: clip)
         }
 
         // MARK: - Downloads

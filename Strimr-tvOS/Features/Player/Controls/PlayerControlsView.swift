@@ -36,7 +36,9 @@ struct PlayerControlsView: View {
     var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
+    var isAtLiveEdge: Bool
     var onGoLive: () -> Void
+    var onShowLiveChannels: () -> Void
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
@@ -124,17 +126,11 @@ struct PlayerControlsView: View {
             }
 
             if isLive {
-                HStack {
-                    if behindLiveSeconds < 2 {
-                        Text("livetv.player.live").font(.headline.monospacedDigit())
-                    } else {
-                        Text("livetv.player.behind \(Int(behindLiveSeconds / 60))").font(.headline.monospacedDigit())
-                    }
-                    Spacer()
-                    Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: onGoLive)
-                        .actionButtonStyle(.primary)
-                        .disabled(behindLiveSeconds < 2)
-                }
+                LiveTVPlayerStatusRow(
+                    behindLiveSeconds: behindLiveSeconds,
+                    isAtLiveEdge: isAtLiveEdge,
+                    onGoLive: onGoLive,
+                )
             } else {
                 PlayerTimelineView(
                     position: $position,
@@ -215,6 +211,14 @@ struct PlayerControlsView: View {
 
                 HStack(spacing: 42) {
                     Spacer()
+
+                    if isLive {
+                        PlayerSettingButton(
+                            systemImage: "list.bullet.rectangle",
+                            accessibilityLabel: String(localized: "livetv.player.channels"),
+                            action: onShowLiveChannels,
+                        )
+                    }
 
                     if !isLive {
                         PlayerSettingButton(

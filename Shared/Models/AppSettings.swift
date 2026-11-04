@@ -392,6 +392,8 @@ struct PlaybackSettings: Codable, Equatable {
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
     var customExternalPlayer: CustomExternalPlayer?
+    /// Forces the server-side transcode for Live TV, the route used before the engine played broadcast streams.
+    var transcodeLiveTV = false
 
     init() {}
 
@@ -486,6 +488,7 @@ struct PlaybackSettings: Codable, Equatable {
             CustomExternalPlayer.self,
             forKey: .customExternalPlayer,
         )
+        transcodeLiveTV = (try? container.decodeIfPresent(Bool.self, forKey: .transcodeLiveTV)) ?? false
     }
 
     var audioShaping: AudioShaping {
@@ -561,6 +564,8 @@ struct InterfaceSettings: Codable, Equatable {
     var homeHeroIncludesTrending = true
     var tabBarPlacement = TabBarPlacement.top
     var startupScreen = StartupScreen.home
+    var tintsLiveTVGuideCategories = true
+    var liveTVSectionByServer: [String: String] = [:]
 
     init() {}
 
@@ -622,6 +627,14 @@ struct InterfaceSettings: Codable, Equatable {
         homeHeroIncludesTrending = try container.decodeIfPresent(Bool.self, forKey: .homeHeroIncludesTrending) ?? true
         tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
         startupScreen = (try? container.decode(StartupScreen.self, forKey: .startupScreen)) ?? .home
+        tintsLiveTVGuideCategories = (try? container.decodeIfPresent(
+            Bool.self,
+            forKey: .tintsLiveTVGuideCategories,
+        )) ?? true
+        liveTVSectionByServer = (try? container.decodeIfPresent(
+            [String: String].self,
+            forKey: .liveTVSectionByServer,
+        )) ?? [:]
     }
 }
 

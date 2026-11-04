@@ -185,6 +185,68 @@ enum LayoutMetrics {
     }
 }
 
+/// Sizes of the Live TV guide grid.
+enum LiveTVGuideMetrics {
+    static var pointsPerMinute: CGFloat {
+        #if os(tvOS)
+            8
+        #else
+            4
+        #endif
+    }
+
+    static var channelColumnWidth: CGFloat {
+        #if os(tvOS)
+            220
+        #elseif os(macOS)
+            180
+        #else
+            150
+        #endif
+    }
+
+    static var rowHeight: CGFloat {
+        #if os(tvOS)
+            96
+        #else
+            64
+        #endif
+    }
+
+    static var rowSpacing: CGFloat {
+        #if os(tvOS)
+            8
+        #else
+            4
+        #endif
+    }
+
+    /// Space between the channel column and the programs, kept opaque so scrolled programs do not fill it.
+    static var channelColumnGap: CGFloat {
+        #if os(tvOS)
+            16
+        #else
+            8
+        #endif
+    }
+
+    static var rulerHeight: CGFloat {
+        #if os(tvOS)
+            40
+        #else
+            28
+        #endif
+    }
+
+    static var cellCornerRadius: CGFloat {
+        MediaArtworkMetrics.compactCornerRadius
+    }
+
+    static func width(of interval: TimeInterval) -> CGFloat {
+        CGFloat(interval / 60) * pointsPerMinute
+    }
+}
+
 extension EnvironmentValues {
     /// Horizontal padding of the page around a rail, which the rail scrolls under.
     @Entry var railPageMargin: CGFloat = LayoutMetrics.pageMargin

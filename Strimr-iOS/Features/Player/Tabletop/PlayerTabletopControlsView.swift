@@ -29,6 +29,7 @@ struct PlayerTabletopControlsView: View {
     var canPlayNext: Bool
     var isLive: Bool
     var behindLiveSeconds: Double
+    var isAtLiveEdge: Bool
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var actions: PlayerTabletopActions
@@ -217,15 +218,7 @@ struct PlayerTabletopControlsView: View {
     private var progressTile: some View {
         if isLive {
             HStack {
-                Group {
-                    if behindLiveSeconds < 2 {
-                        Text("livetv.player.live")
-                    } else {
-                        Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
-                    }
-                }
-                .font(.rowTitle.monospacedDigit())
-                .foregroundStyle(.textPrimary)
+                LiveTVLiveBadge(behindLiveSeconds: behindLiveSeconds, isAtLiveEdge: isAtLiveEdge)
 
                 Spacer()
 
@@ -235,7 +228,7 @@ struct PlayerTabletopControlsView: View {
                     action: interacting(actions.onGoLive),
                 )
                 .actionButtonStyle(.primary)
-                .disabled(behindLiveSeconds < 2)
+                .disabled(LiveTVLiveBadge.isLive(behindLiveSeconds: behindLiveSeconds, isAtLiveEdge: isAtLiveEdge))
             }
             .padding(12)
             .background(.surfaceRaised, in: tileShape)

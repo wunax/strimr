@@ -215,10 +215,11 @@ struct ArtworkPathView: View {
     let path: String?
     let width: Int?
     let height: Int?
+    var contentMode: ContentMode = .fill
     @State private var resource: ArtworkResource?
 
     var body: some View {
-        ArtworkResourceView(resource: resource)
+        ArtworkResourceView(resource: resource, contentMode: contentMode)
             .task(id: path) {
                 guard let path else {
                     resource = nil

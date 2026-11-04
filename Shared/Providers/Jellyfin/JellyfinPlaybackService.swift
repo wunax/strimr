@@ -648,7 +648,7 @@ struct JellyfinDeviceProfile: Encodable {
                 TranscodingProfile(
                     container: "ts",
                     type: "Video",
-                    videoCodec: "hevc,h264",
+                    videoCodec: "h264",
                     audioCodec: "aac,mp3,mp2,ac3,eac3,flac,opus",
                     protocolName: "hls",
                 ),

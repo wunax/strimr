@@ -40,9 +40,46 @@ final class PlayerViewModel {
 
     var liveProgram: LiveTVProgram?
     var liveCaptureRange: LiveTVCaptureRange?
-    var liveNativeRemoteHLS = false
-    var liveDVRWindowSeconds: TimeInterval? {
-        liveCaptureRange?.duration
+    var liveRoutePreference = LiveTVRoutePreference.automatic
+    private(set) var liveSource: LiveTVPlaybackSource?
+
+    var liveRoute: LiveTVPlaybackRoute? {
+        liveSource?.route
+    }
+
+    func liveLoadOptions(routesAudioToAirPlay: Bool) -> LiveLoadOptions? {
+        guard isLivePlayback, let liveSource else { return nil }
+        return LiveLoadOptions.make(
+            route: liveSource.route,
+            nativeRemoteHLS: liveSource.nativeRemoteHLS,
+            captureDuration: liveCaptureRange?.duration,
+            isInterlaced: liveSource.isInterlaced,
+            routesAudioToAirPlay: routesAudioToAirPlay,
+            preferredLanguages: Locale.preferredLanguages,
+        )
+    }
+
+    /// The channel is tuning: the player shows the program's artwork instead of black.
+    private(set) var isJoiningLive = false
+    /// Changes each time a channel comes on screen, which shows the zap banner.
+    private(set) var liveChannelArrivals = 0
+    @ObservationIgnored private var lastLiveChannelIndex: Int?
+
+    var liveChannels: [LiveTVChannel] {
+        liveContext?.channels ?? []
+    }
+
+    var liveChannelIndex: Int? {
+        liveContext?.selectedIndex
+    }
+
+    var liveStore: LiveTVStore? {
+        isLivePlayback ? mediaServices?.liveTVStore : nil
+    }
+
+    var lastLiveChannel: LiveTVChannel? {
+        guard let lastLiveChannelIndex, liveChannels.indices.contains(lastLiveChannelIndex) else { return nil }
+        return liveChannels[lastLiveChannelIndex]
     }
 
     var canSwitchToPreviousLiveChannel: Bool {
@@ -206,6 +243,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var pendingLiveSessionToStop: (any LiveTVPlaybackSession)?
     @ObservationIgnored private var liveSessionGeneration = 0
     @ObservationIgnored private var liveTimelineTask: Task<Void, Never>?
+    @ObservationIgnored private var liveWatchTask: Task<Void, Never>?
     @ObservationIgnored private var pendingLiveTimelineState: TimelineState?
     #if !os(tvOS)
         @ObservationIgnored private var progressRecorder: PlaybackProgressRecorder?
@@ -442,7 +480,11 @@ final class PlayerViewModel {
 
         do {
             if let liveContext {
-                let session = try await mediaServices.liveTV.startPlayback(channel: liveContext.channel)
+                isJoiningLive = true
+                let session = try await mediaServices.liveTV.startPlayback(
+                    channel: liveContext.channel,
+                    route: liveRoutePreference,
+                )
                 let offset = liveContext.startsFromBeginning
                     ? session.captureRange.flatMap { range in
                         liveContext.program.map { max(0, $0.startDate.timeIntervalSince(range.startDate)) }
@@ -469,7 +511,8 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
             if isLivePlayback {
-                LiveTVErrorReporting.capture(error)
+                isJoiningLive = false
+                LiveTVErrorReporting.capture(error, route: liveRoute)
                 errorMessage = String(localized: "livetv.playback.error")
             } else {
                 ErrorReporter.capture(error)
@@ -717,6 +760,8 @@ final class PlayerViewModel {
         if let liveSession {
             self.liveSession = nil
             invalidateLiveReporting()
+            liveWatchTask?.cancel()
+            mediaServices?.liveTVStore.notePlaybackEnded(on: liveSession.channel.identity)
             let pending = pendingLiveSessionToStop
             pendingLiveSessionToStop = nil
             Task {
@@ -931,32 +976,67 @@ final class PlayerViewModel {
     }
 
     func switchLiveChannel(by offset: Int) async throws -> URL {
-        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices else {
-            throw PlayerPlaybackError.missingPlaybackURL
-        }
-        let index = context.selectedIndex + offset
-        guard context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard let context = liveContext else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: context.selectedIndex + offset)
+    }
+
+    /// Goes back to the channel watched before this one.
+    func switchToLastLiveChannel() async throws -> URL {
+        guard let lastLiveChannelIndex else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: lastLiveChannelIndex)
+    }
+
+    func switchLiveChannel(to index: Int) async throws -> URL {
+        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices,
+              index != context.selectedIndex,
+              context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
         isSwitchingLiveChannel = true
+        isJoiningLive = true
         defer { isSwitchingLiveChannel = false }
 
         let replacementContext = LiveTVLaunchContext(channels: context.channels, selectedIndex: index)
-        let replacement = try await mediaServices.liveTV.startPlayback(channel: replacementContext.channel)
         do {
-            let source = try await replacement.source(offsetFromCaptureStart: nil)
-            let previous = liveSession
-            liveContext = replacementContext
-            adoptLiveSession(replacement)
-            pendingLiveSessionToStop = previous
-            media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
-            apply(liveSource: source)
-            return source.url
+            let replacement = try await mediaServices.liveTV.startPlayback(
+                channel: replacementContext.channel,
+                route: liveRoutePreference,
+            )
+            do {
+                let source = try await replacement.source(offsetFromCaptureStart: nil)
+                let previous = liveSession
+                lastLiveChannelIndex = context.selectedIndex
+                liveContext = replacementContext
+                adoptLiveSession(replacement)
+                pendingLiveSessionToStop = previous
+                media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
+                apply(liveSource: source)
+                return source.url
+            } catch {
+                await replacement.stop()
+                throw error
+            }
         } catch {
-            await replacement.stop()
+            isJoiningLive = false
             throw error
         }
     }
 
+    /// Moves the current channel to the server-transcoded route once, after the engine failed to demux it.
+    func fallBackToServerTranscode() async throws -> URL? {
+        guard let liveSession, let replacement = try await liveSession.fallback() else { return nil }
+        let source = try await replacement.source(offsetFromCaptureStart: nil)
+        if replacement !== liveSession {
+            adoptLiveSession(replacement)
+            await liveSession.stop()
+        }
+        apply(liveSource: source)
+        return source.url
+    }
+
     func confirmLiveChannelSwitch() {
+        if isJoiningLive {
+            isJoiningLive = false
+            liveChannelArrivals += 1
+        }
         guard let pendingLiveSessionToStop else { return }
         self.pendingLiveSessionToStop = nil
         Task { await pendingLiveSessionToStop.stop() }
@@ -967,8 +1047,8 @@ final class PlayerViewModel {
         playbackHTTPHeaders = source.httpHeaders
         liveProgram = source.program
         liveCaptureRange = source.captureRange
-        liveNativeRemoteHLS = source.nativeRemoteHLS
-        duration = source.captureRange?.duration
+        liveSource = source
+        duration = source.nativeRemoteHLS ? source.captureRange?.duration : nil
         markers = []
         chapters = []
         scrubThumbnailSource = nil
@@ -1081,6 +1161,18 @@ final class PlayerViewModel {
     private func adoptLiveSession(_ session: any LiveTVPlaybackSession) {
         invalidateLiveReporting()
         liveSession = session
+        recordWatchedChannel(session.channel)
+    }
+
+    private func recordWatchedChannel(_ channel: LiveTVChannel) {
+        liveWatchTask?.cancel()
+        let store = mediaServices?.liveTVStore
+        liveWatchTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(LiveTVRecentChannels.watchThreshold))
+            guard !Task.isCancelled, let self, liveChannel?.identity == channel.identity, liveSession != nil
+            else { return }
+            store?.recordWatched(channel.identity)
+        }
     }
 
     private func invalidateLiveReporting() {
