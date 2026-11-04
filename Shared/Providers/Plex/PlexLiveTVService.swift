@@ -266,10 +266,11 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     }
 
     private func recordingOptions(from settings: [[String: Any]]) -> [DVRRecordingOption] {
-        settings
+        var seenIDs = Set<String>()
+        return settings
             .filter { bool($0["hidden"]) != true && bool($0["advanced"]) != true }
             .compactMap { setting -> DVRRecordingOption? in
-                guard let id = string(setting["id"]) else { return nil }
+                guard let id = string(setting["id"]), seenIDs.insert(id).inserted else { return nil }
                 let title = string(setting["label"]) ?? id
                 let enumValues = string(setting["enumValues"])
                 let kind: DVRRecordingOptionKind = if let enumValues, !enumValues.isEmpty {
@@ -462,10 +463,13 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
             isSeries: int(item["type"]) == 2,
             targetLibraryID: string(item["targetLibrarySectionID"]),
             targetLibraryTitle: string(item["librarySectionTitle"]),
-            optionValues: Dictionary(uniqueKeysWithValues: settings.compactMap { setting in
-                guard let id = string(setting["id"]), let value = string(setting["value"]) else { return nil }
-                return (id, value)
-            }),
+            optionValues: Dictionary(
+                settings.compactMap { setting -> (String, String)? in
+                    guard let id = string(setting["id"]), let value = string(setting["value"]) else { return nil }
+                    return (id, value)
+                },
+                uniquingKeysWith: { first, _ in first },
+            ),
             options: recordingOptions(from: settings),
         )
     }

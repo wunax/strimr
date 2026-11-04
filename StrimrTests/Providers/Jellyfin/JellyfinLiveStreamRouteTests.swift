@@ -60,7 +60,21 @@ struct JellyfinLiveStreamRouteTests {
         #expect(route.playMethod == "Transcode")
         #expect(route.nativeRemoteHLS)
         #expect(route.url.host == "jellyfin.example.invalid")
-        #expect(route.url.path == "/videos/channel-3/live.m3u8")
+        #expect(route.url.path == "/jf/videos/channel-3/live.m3u8")
+    }
+
+    @Test func `resolves the server transcode on a server at the root`() throws {
+        for root in ["https://jellyfin.example.invalid", "https://jellyfin.example.invalid/"] {
+            let rootURL = try #require(URL(string: root))
+            let route = try #require(JellyfinLiveStreamRoute.resolve(
+                source: source("jellyfin-live-playbackinfo-transcode"),
+                itemID: "channel-3",
+                playSessionID: "play-session-3",
+                baseURL: rootURL,
+            ))
+
+            #expect(route.url.path == "/videos/channel-3/live.m3u8")
+        }
     }
 
     @Test func `a forced transcode skips the direct stream`() throws {

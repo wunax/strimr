@@ -167,7 +167,10 @@ final class MediaServices {
         self.playlists = playlists
         self.playback = playback
         self.liveTV = liveTV
-        liveTVStore = LiveTVStore(service: liveTV, recentChannels: LiveTVRecentChannels(server: identity))
+        liveTVStore = LiveTVStore(
+            service: liveTV,
+            recentChannels: LiveTVRecentChannels(server: identity, userID: trackSelectionAccountIdentifier),
+        )
         self.downloads = downloads
         self.management = management ?? UnsupportedMediaManagementService()
         self.trackSelectionCoordinator = trackSelectionCoordinator

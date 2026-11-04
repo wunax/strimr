@@ -60,6 +60,7 @@ struct LiveTVView: View {
                         onOpenProgram: open,
                         onShowDetails: { selectedProgram = $0 },
                         onTuneChannel: tune,
+                        onTuneProgram: { tune($0, fromStart: $1) },
                         onManageFavorites: { isManagingFavorites = true },
                     )
                 case .recordings:
@@ -97,6 +98,10 @@ struct LiveTVView: View {
         }
         .onChange(of: section) { _, newValue in
             settingsManager.setLiveTVSection(newValue.rawValue, server: services.identity)
+            // Leaving the section destroys the grid, and a new grid would replay the request.
+            if newValue != .guide {
+                guideScrollRequest = nil
+            }
         }
         .taskPresentation(item: $selectedProgram) { program in
             LiveTVProgramDetailView(

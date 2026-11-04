@@ -276,18 +276,37 @@ final class LiveTVStore {
     func cancelRecording(id: String) async throws {
         guard let dvr, !id.isEmpty else { return }
         try await dvr.cancel(recordingID: id)
-        await refreshDVR()
+        await refreshAfterRecordingRemoval()
     }
 
     func deleteRule(id: String) async throws {
         guard let dvr, !id.isEmpty else { return }
         try await dvr.delete(ruleID: id)
-        await refreshDVR()
+        await refreshAfterRecordingRemoval()
     }
 
     func refreshDVR() async {
         generation += 1
         await loadDVR(generation: generation)
+    }
+
+    /// Only the server knows which programs a removal affects: a rule covers many, and a program can carry a
+    /// recording that is missing from the upcoming list. The loaded range is kept, including what the guide extended.
+    private func refreshAfterRecordingRemoval() async {
+        generation += 1
+        let loadGeneration = generation
+        do {
+            async let loadedPrograms = service.programs(from: guideStart, to: guideEnd)
+            async let loadedOnNow = service.onNow()
+            let values = try await (loadedPrograms, loadedOnNow)
+            guard !Task.isCancelled, loadGeneration == generation else { return }
+            programs = values.0
+            onNowSections = values.1
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            LiveTVErrorReporting.capture(error)
+        }
+        await loadDVR(generation: loadGeneration)
     }
 
     private func loadDVR(generation loadGeneration: Int) async {

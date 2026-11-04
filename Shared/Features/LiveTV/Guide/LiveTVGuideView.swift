@@ -21,6 +21,8 @@ struct LiveTVGuideView: View {
     let onOpenProgram: (LiveTVProgram) -> Void
     let onShowDetails: (LiveTVProgram) -> Void
     let onTuneChannel: (LiveTVChannel) -> Void
+    /// Plays a program, from its beginning when the flag is set.
+    let onTuneProgram: (LiveTVProgram, Bool) -> Void
     let onManageFavorites: () -> Void
 
     @Environment(MediaServices.self) private var services
@@ -63,7 +65,12 @@ struct LiveTVGuideView: View {
         VStack(alignment: .leading, spacing: 12) {
             if usesChannelList {
                 filterBar
-                LiveTVChannelListView(store: store, channels: channels, onTuneChannel: onTuneChannel)
+                LiveTVChannelListView(
+                    store: store,
+                    channels: channels,
+                    onTuneChannel: onTuneChannel,
+                    onTuneProgram: onTuneProgram,
+                )
             } else {
                 GeometryReader { proxy in
                     VStack(alignment: .leading, spacing: 12) {
@@ -233,7 +240,7 @@ private struct LiveTVGuideFocusedBanner: View {
     let focus: LiveTVGuideFocus
 
     private var program: LiveTVProgram? {
-        if let focused = focus.program {
+        if let focused = focus.program, channels.contains(where: { $0.identity == focused.channelIdentity }) {
             return store.programs.first { $0.identity == focused.identity } ?? focused
         }
         return channels.lazy.compactMap { store.currentProgram(on: $0.identity) }.first

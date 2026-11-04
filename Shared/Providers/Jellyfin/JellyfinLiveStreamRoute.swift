@@ -55,12 +55,17 @@ struct JellyfinLiveStreamRoute: Equatable, Sendable {
                 return JellyfinLiveStreamRoute(kind: .remoteHLS, url: url)
             }
         }
-        if let rawURL = source.transcodingURL,
-           let url = URL(string: rawURL, relativeTo: baseURL)?.absoluteURL
-        {
+        if let rawURL = source.transcodingURL, let url = transcodingURL(rawURL, baseURL: baseURL) {
             return JellyfinLiveStreamRoute(kind: .transcode, url: url)
         }
         return nil
+    }
+
+    /// The server returns this path from its root, without the base path it may be installed under.
+    private static func transcodingURL(_ rawURL: String, baseURL: URL) -> URL? {
+        guard rawURL.hasPrefix("/") else { return URL(string: rawURL, relativeTo: baseURL)?.absoluteURL }
+        let base = baseURL.absoluteString
+        return URL(string: (base.hasSuffix("/") ? String(base.dropLast()) : base) + rawURL)
     }
 
     private static func directStreamURL(

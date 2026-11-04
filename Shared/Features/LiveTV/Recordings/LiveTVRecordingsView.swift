@@ -13,6 +13,7 @@ struct LiveTVRecordingsView: View {
     @State private var pendingRecordingDeletion: DVRRecording?
     @State private var pendingRuleDeletion: DVRRecordingRule?
     @State private var selectedRule: DVRRecordingRule?
+    @State private var errorMessage: String?
 
     private var canManage: Bool {
         store.dvr?.canManageRecordings == true
@@ -103,6 +104,13 @@ struct LiveTVRecordingsView: View {
         } message: {
             if let rule = pendingRuleDeletion {
                 Text(rule.title)
+            }
+        }
+        .alert("livetv.recording.status.error", isPresented: isPresented($errorMessage)) {
+            Button("common.done") {}
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
             }
         }
     }
@@ -221,6 +229,7 @@ struct LiveTVRecordingsView: View {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 LiveTVErrorReporting.capture(error)
+                errorMessage = error.localizedDescription
             }
         }
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// The channels last watched on one server, most recent first, kept on this device only.
+/// The channels a user last watched on one server, most recent first, kept on this device only.
 struct LiveTVRecentChannels {
     static let limit = 10
     /// A channel counts as watched once it has played this long in the player.
@@ -9,9 +9,9 @@ struct LiveTVRecentChannels {
     private let defaults: UserDefaults
     private let key: String
 
-    init(server: ServerIdentity, defaults: UserDefaults = .standard) {
+    init(server: ServerIdentity, userID: String?, defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        key = "strimr.liveTV.recentChannels.\(server.provider.rawValue).\(server.id)"
+        key = "strimr.liveTV.recentChannels.\(server.provider.rawValue).\(server.id).\(userID ?? "default")"
     }
 
     var channelKeys: [String] {

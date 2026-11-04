@@ -5,6 +5,7 @@ struct LiveTVChannelListView: View {
     @Bindable var store: LiveTVStore
     let channels: [LiveTVChannel]
     let onTuneChannel: (LiveTVChannel) -> Void
+    let onTuneProgram: (LiveTVProgram, Bool) -> Void
 
     @State private var scheduleChannel: LiveTVChannel?
 
@@ -35,7 +36,12 @@ struct LiveTVChannelListView: View {
             .listStyle(.plain)
         }
         .taskPresentation(item: $scheduleChannel) { channel in
-            LiveTVChannelScheduleView(store: store, channel: channel, onTuneChannel: onTuneChannel)
+            LiveTVChannelScheduleView(
+                store: store,
+                channel: channel,
+                onTuneChannel: onTuneChannel,
+                onTuneProgram: onTuneProgram,
+            )
         }
     }
 
@@ -82,6 +88,7 @@ struct LiveTVChannelScheduleView: View {
     @Bindable var store: LiveTVStore
     let channel: LiveTVChannel
     let onTuneChannel: (LiveTVChannel) -> Void
+    let onTuneProgram: (LiveTVProgram, Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProgram: LiveTVProgram?
@@ -146,14 +153,16 @@ struct LiveTVChannelScheduleView: View {
                 LiveTVProgramDetailView(
                     program: program,
                     store: store,
-                    onWatch: { _ in
-                        selectedProgram = nil
-                        dismiss()
-                        onTuneChannel(channel)
-                    },
-                    onWatchFromStart: { _ in },
+                    onWatch: { watch($0, fromStart: false) },
+                    onWatchFromStart: { watch($0, fromStart: true) },
                 )
             }
         }
+    }
+
+    private func watch(_ program: LiveTVProgram, fromStart: Bool) {
+        selectedProgram = nil
+        dismiss()
+        onTuneProgram(program, fromStart)
     }
 }

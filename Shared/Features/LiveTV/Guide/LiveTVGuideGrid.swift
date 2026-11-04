@@ -48,6 +48,9 @@ struct LiveTVGuideGridActions {
         private var preferredFocusIndexPath: IndexPath?
         /// The time focus keeps while it moves between channels.
         private var focusAnchorDate: Date?
+        /// Stands in for `remembersLastFocusedIndexPath`, which would take precedence over the preferred index path.
+        /// A program rather than an index path, since reloads and filters move programs in the grid.
+        private var lastFocusedProgram: LiveTVProgram?
         private var clockTimer: Timer?
 
         init(services: MediaServices) {
@@ -71,8 +74,6 @@ struct LiveTVGuideGridActions {
             #if os(iOS)
                 collectionView.isDirectionalLockEnabled = true
                 collectionView.bounces = false
-            #else
-                collectionView.remembersLastFocusedIndexPath = true
             #endif
             collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "program")
             collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "channel")
@@ -336,7 +337,15 @@ struct LiveTVGuideGridActions {
 
             func indexPathForPreferredFocusedView(in _: UICollectionView) -> IndexPath? {
                 defer { preferredFocusIndexPath = nil }
-                return preferredFocusIndexPath
+                return preferredFocusIndexPath ?? lastFocusedIndexPath
+            }
+
+            private var lastFocusedIndexPath: IndexPath? {
+                guard let model, let program = lastFocusedProgram,
+                      let row = model.row(of: program.channelIdentity),
+                      let match = model.program(at: program.startDate, row: row)
+                else { return nil }
+                return IndexPath(item: match.index + 1, section: row)
             }
 
             func collectionView(
@@ -358,10 +367,12 @@ struct LiveTVGuideGridActions {
                         collectionView.updateFocusIfNeeded()
                         return
                     }
-                } else {
+                } else if !heading.isEmpty || focusAnchorDate == nil {
+                    // A move without a heading was requested by the grid, and keeps the anchor it set.
                     let visibleStart = layout.visibleDate(in: collectionView.bounds) ?? model.start
                     focusAnchorDate = max(program.startDate, visibleStart)
                 }
+                lastFocusedProgram = program
                 actions?.focusProgram(program)
             }
         #endif
