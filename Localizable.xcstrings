@@ -12990,6 +12990,94 @@
         }
       }
     },
+    "player.automaticSubtitles.added %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ subtitles added"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sous-titres en %@ ajoutés"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已添加%@字幕"
+          }
+        }
+      }
+    },
+    "player.automaticSubtitles.added.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can change them in the subtitle menu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifiables dans le menu des sous-titres."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可在字幕菜单中更改。"
+          }
+        }
+      }
+    },
+    "player.automaticSubtitles.failed %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't add %@ subtitles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ajouter des sous-titres en %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法添加%@字幕"
+          }
+        }
+      }
+    },
+    "player.automaticSubtitles.notFound %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No %@ subtitles found"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun sous-titre en %@ trouvé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到%@字幕"
+          }
+        }
+      }
+    },
     "player.badge.dolbyVision" : {
       "localizations" : {
         "en" : {
@@ -25743,6 +25831,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字幕大小"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.automaticSearch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find missing subtitles automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher automatiquement les sous-titres manquants"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动查找缺失的字幕"
+          }
+        }
+      }
+    },
+    "settings.playback.subtitles.automaticSearch.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the audio is in another language and the media has no subtitles in yours, the best result is downloaded and turned on. The language comes from your choice for this media, then your account, then this device. The file is saved on the server, where other users can see it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si l’audio est dans une autre langue et que le média n’a aucun sous-titre dans la vôtre, le meilleur résultat est téléchargé et activé. La langue vient de votre choix pour ce média, puis de votre compte, puis de cet appareil. Le fichier est enregistré sur le serveur, où les autres utilisateurs peuvent le voir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当音频为其他语言且媒体没有您所用语言的字幕时，将下载并启用最佳结果。语言依次取自您对此媒体的选择、您的账户和此设备。文件会保存到服务器，其他用户也能看到。"
           }
         }
       }

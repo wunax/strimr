@@ -237,6 +237,13 @@ final class SettingsViewModel {
         )
     }
 
+    var automaticSubtitleSearchBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.automaticSubtitleSearch },
+            set: { self.settingsManager.setAutomaticSubtitleSearch($0) },
+        )
+    }
+
     var showSubtitlesOnSkipBackBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.showSubtitlesOnSkipBack },

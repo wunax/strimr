@@ -92,6 +92,29 @@ nonisolated enum AccountLanguageCode {
         return alpha2ByBibliographic[code] ?? Locale.LanguageCode(code).identifier(.alpha2) ?? code
     }
 
+    private static let undeterminedCodes: Set<String> = ["und", "mis", "mul", "zxx"]
+
+    private static let codesByLanguageName: [String: String] = {
+        var codes: [String: String] = [:]
+        for code in Locale.LanguageCode.isoLanguageCodes.map(\.identifier) where code.count == 2 {
+            let locales = [Locale(identifier: "en"), Locale.current, Locale(identifier: code)]
+            for locale in locales {
+                if let name = locale.localizedString(forLanguageCode: code)?.lowercased(), codes[name] == nil {
+                    codes[name] = code
+                }
+            }
+        }
+        return codes
+    }()
+
+    /// The ISO 639-1 code of a track's language, which Plex often gives as a name (`French`, `Français (Canada)`).
+    /// Nil when it is empty, undetermined or not a known language.
+    static func code(fromTrackLanguage value: String?) -> String? {
+        let base = value?.split(separator: "(").first.map(String.init)
+        guard let code = normalized(base), !undeterminedCodes.contains(code) else { return nil }
+        return Locale.LanguageCode(code).isISOLanguage ? code : codesByLanguageName[code]
+    }
+
     /// Jellyfin stores ISO 639-2 codes, the bibliographic ones in its own language list.
     static func jellyfinCode(_ code: String) -> String {
         bibliographicByAlpha2[code] ?? Locale.LanguageCode(code).identifier(.alpha3) ?? code

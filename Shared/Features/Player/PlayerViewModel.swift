@@ -236,6 +236,8 @@ final class PlayerViewModel {
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
     @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
+    /// Bumped by each subtitle choice made by hand, which an automatic search in progress must not override.
+    @ObservationIgnored private var manualSubtitleChanges = 0
     @ObservationIgnored private var liveContext: LiveTVLaunchContext?
     @ObservationIgnored private var liveSession: (any LiveTVPlaybackSession)?
     @ObservationIgnored private var isSwitchingLiveChannel = false
@@ -683,7 +685,80 @@ final class PlayerViewModel {
         return services.versionRequest(for: media)
     }
 
+    /// Downloads a subtitle when the media has none in the wanted language. Nil when there is nothing to tell the user.
+    func searchMissingSubtitle(settings: PlaybackSettings) async -> AutomaticSubtitleSearchOutcome? {
+        guard settings.automaticSubtitleSearch,
+              canSearchSubtitles,
+              !isLivePlayback,
+              let mediaServices,
+              let media,
+              media.type == .movie || media.type == .episode,
+              let playbackPlan
+        else { return nil }
+
+        let changesAtStart = manualSubtitleChanges
+        var isStillWanted: Bool {
+            !Task.isCancelled && manualSubtitleChanges == changesAtStart
+        }
+
+        let account = await accountPreferencesForSubtitleSearch(mediaServices)
+        guard isStillWanted,
+              let language = AutomaticSubtitleSearch.language(
+                  remembered: rememberedTrackPreference?.subtitle,
+                  account: account,
+                  deviceLanguage: Locale.preferredLanguages.first ?? "en",
+              ),
+              AutomaticSubtitleSearch.isMissing(
+                  language: language,
+                  audioLanguage: playbackPlan.audioLanguage(sourceIndex: preferredAudioStreamFFIndex),
+                  subtitles: playbackPlan.existingSubtitles,
+              )
+        else { return nil }
+
+        do {
+            let results = try await mediaServices.detail.searchSubtitles(
+                itemID: media.id,
+                language: language,
+                hearingImpaired: mediaServices.detail.supportsAdvancedSubtitleSearch
+                    && settings.subtitleSearch.hearingImpaired,
+                forced: false,
+                title: nil,
+            ).rankedByMatch()
+            guard isStillWanted else { return nil }
+            guard let result = results.first else { return .notFound(language: language) }
+
+            try await mediaServices.detail.installSubtitle(itemID: media.id, result: result)
+            guard isStillWanted else { return nil }
+
+            let refreshed = try await mediaServices.playback.externalSubtitles(media: media)
+            guard isStillWanted else { return nil }
+            guard let subtitle = AutomaticSubtitleSearch.installedSubtitle(
+                in: refreshed,
+                previousURLs: Set(playbackPlan.externalSubtitles.map(\.track.url)),
+                language: language,
+            ) else { throw PlayerPlaybackError.missingExternalSubtitle }
+            return .attached(subtitle, language: language)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return nil }
+            ErrorReporter.capture(error)
+            return .failed(language: language)
+        }
+    }
+
+    /// Without the account's values the search still works from the device language.
+    private func accountPreferencesForSubtitleSearch(_ services: MediaServices) async -> AccountPreferences? {
+        do {
+            return try await services.accountPreferences?.load()
+        } catch {
+            if !Task.isCancelled, !error.isCancellation {
+                ErrorReporter.capture(error)
+            }
+            return nil
+        }
+    }
+
     func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
+        manualSubtitleChanges += 1
         guard !isLocalPlayback,
               let mediaServices,
               let media
@@ -910,6 +985,7 @@ final class PlayerViewModel {
     }
 
     func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
+        manualSubtitleChanges += 1
         guard let mediaServices, let itemID = media?.id else { return }
         let streamID = track?.providerStreamID
         do {

@@ -244,6 +244,21 @@ struct PlaybackPlan: Sendable {
     let versionID: String?
     /// The server draws the selected subtitle into the transcoded picture.
     var burnsSubtitles = false
+
+    /// Servers do not always name the track they picked: the player then starts on the default or the first one.
+    func audioLanguage(sourceIndex: Int?) -> String? {
+        let audio = tracks.filter { $0.kind == .audio }
+        let track = audio.first { $0.sourceIndex == sourceIndex } ?? audio.first(where: \.isDefault) ?? audio.first
+        return track?.language
+    }
+
+    var existingSubtitles: [AutomaticSubtitleSearch.ExistingSubtitle] {
+        tracks.filter { $0.kind == .subtitle }.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.language, isForced: $0.isForced)
+        } + externalSubtitles.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.track.language, isForced: $0.track.isForced)
+        }
+    }
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {

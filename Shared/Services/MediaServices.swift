@@ -71,6 +71,7 @@ final class MediaServices {
     @ObservationIgnored private let authorizationService: any MediaAuthorizationService
     /// URL of an unauthenticated endpoint used to probe the server's reachability.
     @ObservationIgnored var availabilityProbeURL: (() -> URL?)?
+    @ObservationIgnored var accountPreferences: (any AccountPreferencesService)?
 
     /// Bumped after any playlist change, so screens listing playlists reload.
     private(set) var playlistsRevision = 0
