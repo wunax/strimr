@@ -498,7 +498,7 @@ nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
         case providerName = "ProviderName"
         case format = "Format"
         case threeLetterISOLanguageName = "ThreeLetterISOLanguageName"
-        case isForced = "IsForced"
+        case isForced = "Forced"
         case hearingImpaired = "HearingImpaired"
         case isHashMatch = "IsHashMatch"
         case downloadCount = "DownloadCount"
