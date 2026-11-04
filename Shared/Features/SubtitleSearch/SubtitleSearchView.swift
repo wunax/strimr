@@ -83,7 +83,7 @@ final class SubtitleSearchViewModel {
 
     /// Reappearing after the language list was pushed must not repeat a search that already completed.
     func searchIfNeeded() async {
-        guard completedOptions != searchOptions else { return }
+        guard completedOptions != searchOptions || !hasSearched else { return }
         await search()
     }
 

@@ -146,6 +146,30 @@ struct SubtitleSearchViewModelTests {
         #expect(!model.isSearching)
     }
 
+    @Test func `reverting an option during a search restores the cleared results`() async {
+        let service = SubtitleService()
+        let model = viewModel(service, preferences: SubtitleSearchPreferences(language: "fr"))
+        await model.searchIfNeeded()
+
+        service.holdsSearches = true
+        model.selectedLanguage = "de"
+        let cancelled = Task { await model.searchIfNeeded() }
+        while service.heldCount < 1 {
+            await Task.yield()
+        }
+        cancelled.cancel()
+
+        service.holdsSearches = false
+        model.selectedLanguage = "fr"
+        await model.searchIfNeeded()
+        service.release(0)
+        await cancelled.value
+
+        #expect(model.results.map(\.id) == ["fr"])
+        #expect(model.hasSearched)
+        #expect(!model.isSearching)
+    }
+
     @Test func `exact matches rank first, then scores, then provider order`() {
         let ranked = [
             result("none-1"),
