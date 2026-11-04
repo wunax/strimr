@@ -7,6 +7,8 @@ struct LiveTVGuideProgramCell: View {
     let tintsCategory: Bool
     let isFocused: Bool
     let now: Date
+    /// Where the title stops scrolling, in the scroll view's coordinates, for grids that do not resize their cells.
+    var stickyTitleEdge: CGFloat?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -46,6 +48,7 @@ struct LiveTVGuideProgramCell: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .modifier(StickyGuideTitle(edge: stickyTitleEdge))
         .background(background, in: shape)
         .overlay(alignment: .bottomLeading) {
             if isAiring {
@@ -63,7 +66,7 @@ struct LiveTVGuideProgramCell: View {
             shape.stroke(.textPrimary, lineWidth: isFocused ? 3 : 0)
         }
         .scaleEffect(isFocused && !reduceMotion ? 1.03 : 1)
-        .shadow(color: .black.opacity(isFocused ? 0.4 : 0), radius: 10, y: 5)
+        .shadow(color: .black.opacity(isFocused ? 0.4 : 0), radius: isFocused ? 10 : 0, y: isFocused ? 5 : 0)
         .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
         .accessibilityElement(children: .combine)
     }
@@ -80,6 +83,26 @@ struct LiveTVGuideProgramCell: View {
         guard tintsCategory, let category = LiveTVShelves.categoryOrder.first(where: program.categories.contains)
         else { return AnyShapeStyle(base) }
         return AnyShapeStyle(base.mix(with: category.guideTint, by: 0.18))
+    }
+}
+
+private struct StickyGuideTitle: ViewModifier {
+    /// Width kept for the title when the end of the cell reaches the edge.
+    private static let minimumTitleWidth: CGFloat = 80
+
+    let edge: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let edge {
+            content
+                .visualEffect { content, proxy in
+                    let shift = max(0, edge - proxy.frame(in: .scrollView).minX)
+                    return content.offset(x: min(shift, max(0, proxy.size.width - Self.minimumTitleWidth)))
+                }
+                .clipped()
+        } else {
+            content
+        }
     }
 }
 

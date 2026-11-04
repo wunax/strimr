@@ -125,4 +125,26 @@ struct LiveTVGuideModelTests {
         #expect(calendar
             .component(.hour, from: LiveTVStore.guideStart(forDay: tomorrow, now: now, calendar: calendar)) == 6)
     }
+
+    #if os(macOS)
+        @Test func `the visible window stays put within half a viewport`() {
+            let first = LiveTVGuideVisibleWindow(visibleRect: CGRect(x: 1000, y: 0, width: 800, height: 600))
+            let near = LiveTVGuideVisibleWindow(visibleRect: CGRect(x: 1199, y: 500, width: 800, height: 600))
+            let far = LiveTVGuideVisibleWindow(visibleRect: CGRect(x: 1200, y: 0, width: 800, height: 600))
+
+            #expect(first == near)
+            #expect(first != far)
+        }
+
+        @Test func `the visible window covers the viewport and half of it on each side`() {
+            for x in stride(from: -100.0, through: 3000, by: 37) {
+                let window = LiveTVGuideVisibleWindow(visibleRect: CGRect(x: x, y: 0, width: 800, height: 600))
+
+                #expect(window.contains(x: x - 400, width: 1))
+                #expect(window.contains(x: x + 1200, width: 1))
+                #expect(!window.contains(x: x - 2000, width: 1))
+                #expect(!window.contains(x: x + 3000, width: 1))
+            }
+        }
+    #endif
 }

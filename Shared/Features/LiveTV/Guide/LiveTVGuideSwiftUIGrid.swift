@@ -1,8 +1,26 @@
 import SwiftUI
 
 #if os(macOS)
+    /// The stretch of the guide that rows build, which only moves every half viewport so that scrolling does not
+    /// rebuild them. It always reaches at least half a viewport past the visible part.
+    struct LiveTVGuideVisibleWindow: Equatable {
+        let bucket: Int
+        let viewportWidth: CGFloat
+
+        init(visibleRect: CGRect) {
+            viewportWidth = visibleRect.width
+            bucket = Int((visibleRect.minX / (visibleRect.width / 2)).rounded(.down))
+        }
+
+        func contains(x: CGFloat, width: CGFloat) -> Bool {
+            let step = viewportWidth / 2
+            return x + width >= CGFloat(bucket - 1) * step && x <= CGFloat(bucket + 4) * step
+        }
+    }
+
     /// The guide grid in SwiftUI, for the Mac: rows build lazily and the pointer is forgiving enough without a custom
-    /// focus engine.
+    /// focus engine. The scroll position stays out of the view's state: what follows it is drawn by `visualEffect`,
+    /// so a scroll tick does not run any body.
     struct LiveTVGuideSwiftUIGrid: View {
         let model: LiveTVGuideGridModel
         let services: MediaServices
@@ -10,10 +28,10 @@ import SwiftUI
         let actions: LiveTVGuideGridActions
 
         @State private var position = ScrollPosition()
-        @State private var offset = CGPoint.zero
-        @State private var viewportSize = CGSize.zero
+        @State private var tracker = ScrollTracker()
+        @State private var visibleWindow: LiveTVGuideVisibleWindow?
+        @State private var visibleDay: Date?
         @State private var contentInsets = EdgeInsets()
-        @State private var hoveredProgram: LiveTVProgramIdentity?
 
         private var geometry: LiveTVGuideGeometry {
             model.geometry
@@ -53,8 +71,18 @@ import SwiftUI
                         height: geometry.containerSize.height - geometry.contentInsets.top,
                     )
                 }) { _, rect in
-                    offset = rect.origin
-                    viewportSize = rect.size
+                    tracker.visibleRect = rect
+                    guard rect.width > 0 else { return }
+                    let window = LiveTVGuideVisibleWindow(visibleRect: rect)
+                    if window != visibleWindow {
+                        visibleWindow = window
+                    }
+                    let day = Calendar.current.startOfDay(
+                        for: geometry.date(atX: rect.minX + LiveTVGuideMetrics.channelColumnWidth),
+                    )
+                    if day != visibleDay {
+                        visibleDay = day
+                    }
                     reportEdges(rect)
                 }
                 .onChange(of: model.start) { previous, start in
@@ -62,8 +90,8 @@ import SwiftUI
                     // Earlier hours were added on the left: keep the same times on screen.
                     let shift = LiveTVGuideMetrics.width(of: previous.timeIntervalSince(start))
                     position.scrollTo(point: CGPoint(
-                        x: offset.x + shift - contentInsets.leading,
-                        y: offset.y - contentInsets.top,
+                        x: tracker.visibleRect.minX + shift - contentInsets.leading,
+                        y: tracker.visibleRect.minY - contentInsets.top,
                     ))
                 }
                 .onChange(of: scrollRequest) { _, request in
@@ -81,42 +109,14 @@ import SwiftUI
         private func rowView(row: Int, channel: LiveTVChannel, now: Date) -> some View {
             ZStack(alignment: .topLeading) {
                 ForEach(visiblePrograms(in: row), id: \.identity) { program in
-                    let span = geometry.frame(of: program)
-                    let frame = LiveTVGuideGeometry.visibleCellFrame(
-                        CGRect(
-                            x: span.x + 2,
-                            y: 0,
-                            width: max(span.width - 4, 2),
-                            height: LiveTVGuideMetrics.rowHeight,
-                        ),
-                        scrollX: offset.x,
+                    LiveTVGuideSwiftUIProgramButton(
+                        program: program,
+                        geometry: geometry,
+                        tintsCategory: model.tintsCategories,
+                        tracker: tracker,
+                        now: now,
+                        actions: actions,
                     )
-                    Button { actions.openProgram(program) } label: {
-                        LiveTVGuideProgramCell(
-                            program: program,
-                            geometry: geometry,
-                            tintsCategory: model.tintsCategories,
-                            isFocused: hoveredProgram == program.identity,
-                            now: now,
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: frame.width, height: frame.height)
-                    .offset(x: frame.minX)
-                    .onHover { hovering in
-                        if hovering {
-                            hoveredProgram = program.identity
-                            actions.focusProgram(program)
-                        } else if hoveredProgram == program.identity {
-                            hoveredProgram = nil
-                        }
-                    }
-                    .contextMenu {
-                        if program.isAiring(at: now) {
-                            Button("livetv.watchLive", systemImage: "play.fill") { actions.openProgram(program) }
-                        }
-                        Button("livetv.program.details", systemImage: "info.circle") { actions.showDetails(program) }
-                    }
                 }
 
                 Button { actions.tuneChannel(channel) } label: {
@@ -134,7 +134,7 @@ import SwiftUI
                 .frame(width: LiveTVGuideMetrics.channelColumnWidth, alignment: .leading)
                 // Programs scroll under the fixed column.
                 .background(Color("Background"))
-                .offset(x: offset.x)
+                .pinnedToLeadingEdge()
                 .contextMenu {
                     Button("livetv.watchLive", systemImage: "play.fill") { actions.tuneChannel(channel) }
                     Button(
@@ -150,66 +150,145 @@ import SwiftUI
         /// Rows only build the programs near the viewport: the loaded window can span a day of programs per channel.
         private func visiblePrograms(in row: Int) -> [LiveTVProgram] {
             let programs = model.rows[row]
-            guard viewportSize.width > 0 else { return programs }
-            let margin = viewportSize.width / 2
-            let minX = offset.x - margin
-            let maxX = offset.x + viewportSize.width + margin
+            guard let visibleWindow else { return programs }
             return programs.filter { program in
                 let span = geometry.frame(of: program)
-                return span.x + span.width >= minX && span.x <= maxX
+                return visibleWindow.contains(x: span.x, width: span.width)
             }
         }
 
         private var ruler: some View {
             ZStack(alignment: .topLeading) {
-                ForEach(geometry.slots, id: \.self) { slot in
+                ForEach(visibleSlots, id: \.self) { slot in
                     LiveTVGuideRulerCell(date: slot)
                         .frame(width: LiveTVGuideMetrics.width(of: 1800), height: LiveTVGuideMetrics.rulerHeight)
                         .offset(x: geometry.x(for: slot))
                 }
-                LiveTVGuideCornerCell(date: geometry.date(atX: offset.x + LiveTVGuideMetrics.channelColumnWidth))
+                LiveTVGuideCornerCell(date: visibleDay ?? model.start)
                     .frame(width: LiveTVGuideMetrics.channelColumnWidth, height: LiveTVGuideMetrics.rulerHeight)
                     .background(Color("Background"))
-                    .offset(x: offset.x)
+                    .pinnedToLeadingEdge()
                     .zIndex(1)
             }
             .frame(width: geometry.contentWidth, height: LiveTVGuideMetrics.rulerHeight, alignment: .topLeading)
             .background(Color("Background"))
         }
 
+        private var visibleSlots: [Date] {
+            let slots = geometry.slots
+            guard let visibleWindow else { return slots }
+            let width = LiveTVGuideMetrics.width(of: 1800)
+            return slots.filter { visibleWindow.contains(x: geometry.x(for: $0), width: width) }
+        }
+
         @ViewBuilder
         private func nowLine(now: Date) -> some View {
-            let x = geometry.x(for: now)
-            if now >= model.start, now < model.end, x >= offset.x + LiveTVGuideMetrics.channelColumnWidth {
+            if now >= model.start, now < model.end {
+                let columnEdge = LiveTVGuideMetrics.channelColumnWidth
                 Rectangle()
                     .fill(.liveIndicator)
-                    .frame(width: 2, height: max(viewportSize.height, 0))
-                    .offset(x: x - 1, y: offset.y)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+                    // Hidden once scrolled behind the fixed column.
+                    .visualEffect { content, proxy in
+                        content.opacity(proxy.frame(in: .scrollView).minX >= columnEdge ? 1 : 0)
+                    }
+                    .offset(x: geometry.x(for: now) - 1)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
         }
 
         private func scroll(to request: LiveTVGuideScrollRequest) {
-            let visibleWidth = max(viewportSize.width - LiveTVGuideMetrics.channelColumnWidth, 0)
+            let visible = tracker.visibleRect
+            let visibleWidth = max(visible.width - LiveTVGuideMetrics.channelColumnWidth, 0)
             let x = max(0, geometry.x(for: request.date) - LiveTVGuideMetrics.channelColumnWidth - visibleWidth * 0.1)
-            var y = offset.y
+            var y = visible.minY
             if let channel = request.channel, let row = model.row(of: channel) {
                 y = max(
                     0,
-                    CGFloat(row) * (LiveTVGuideMetrics.rowHeight + LiveTVGuideMetrics.rowSpacing) - viewportSize
-                        .height / 3,
+                    CGFloat(row) * (LiveTVGuideMetrics.rowHeight + LiveTVGuideMetrics.rowSpacing) - visible.height / 3,
                 )
             }
             position.scrollTo(point: CGPoint(x: x - contentInsets.leading, y: y - contentInsets.top))
         }
 
         private func reportEdges(_ rect: CGRect) {
-            guard rect.width > 0 else { return }
             if rect.maxX > geometry.contentWidth - rect.width {
                 actions.reachEdge(true)
             } else if rect.minX < rect.width / 2, model.start > Date().addingTimeInterval(-6 * 3600) {
                 actions.reachEdge(false)
+            }
+        }
+    }
+
+    /// The last scroll geometry. A view reading it from its body redraws on every scroll tick, so only the hovered
+    /// program does.
+    @Observable
+    private final class ScrollTracker {
+        var visibleRect = CGRect.zero
+    }
+
+    /// A program of the grid. It keeps its hover state to itself, so that moving the pointer only redraws this cell.
+    private struct LiveTVGuideSwiftUIProgramButton: View {
+        let program: LiveTVProgram
+        let geometry: LiveTVGuideGeometry
+        let tintsCategory: Bool
+        let tracker: ScrollTracker
+        let now: Date
+        let actions: LiveTVGuideGridActions
+
+        @State private var isHovered = false
+
+        /// At rest the cell runs under the channel column; hovered, it stops at its edge to keep its highlight whole.
+        private var frame: CGRect {
+            let span = geometry.frame(of: program)
+            let frame = CGRect(
+                x: span.x + 2,
+                y: 0,
+                width: max(span.width - 4, 2),
+                height: LiveTVGuideMetrics.rowHeight,
+            )
+            guard isHovered else { return frame }
+            return LiveTVGuideGeometry.visibleCellFrame(frame, scrollX: tracker.visibleRect.minX)
+        }
+
+        var body: some View {
+            let frame = frame
+            Button { actions.openProgram(program) } label: {
+                LiveTVGuideProgramCell(
+                    program: program,
+                    geometry: geometry,
+                    tintsCategory: tintsCategory,
+                    isFocused: isHovered,
+                    now: now,
+                    stickyTitleEdge: LiveTVGuideMetrics.channelColumnWidth,
+                )
+            }
+            .buttonStyle(.plain)
+            .frame(width: frame.width, height: frame.height)
+            .offset(x: frame.minX)
+            .onHover { hovering in
+                isHovered = hovering
+                if hovering {
+                    actions.focusProgram(program)
+                }
+            }
+            .contextMenu {
+                if program.isAiring(at: now) {
+                    Button("livetv.watchLive", systemImage: "play.fill") { actions.openProgram(program) }
+                }
+                Button("livetv.program.details", systemImage: "info.circle") { actions.showDetails(program) }
+            }
+        }
+    }
+
+    private extension View {
+        /// Keeps a view at the leading edge of the visible part of the scroll view. The scroll view's coordinates
+        /// already start after its content insets, so the floating sidebar needs no correction here.
+        func pinnedToLeadingEdge() -> some View {
+            visualEffect { content, proxy in
+                content.offset(x: -proxy.frame(in: .scrollView).minX)
             }
         }
     }
