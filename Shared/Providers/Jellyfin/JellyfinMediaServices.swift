@@ -120,6 +120,8 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 language: value.threeLetterISOLanguageName,
                 codec: value.format ?? "",
                 providerTitle: value.providerName,
+                isExactMatch: value.isHashMatch == true,
+                matchScore: value.downloadCount.map(Double.init),
             )
         }
     }

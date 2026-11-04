@@ -239,6 +239,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setSubtitleSearchPreferences(_ preferences: SubtitleSearchPreferences) {
+        settings.playback.subtitleSearch = preferences
+        persist()
+    }
+
     func setExternalPlayer(_ selection: ExternalPlayerSelection?) {
         settings.playback.externalPlayer = selection
         persist()

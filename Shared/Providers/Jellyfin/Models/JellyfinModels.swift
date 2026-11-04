@@ -489,6 +489,8 @@ nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
     let threeLetterISOLanguageName: String?
     let isForced: Bool?
     let hearingImpaired: Bool?
+    let isHashMatch: Bool?
+    let downloadCount: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
@@ -496,8 +498,10 @@ nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
         case providerName = "ProviderName"
         case format = "Format"
         case threeLetterISOLanguageName = "ThreeLetterISOLanguageName"
-        case isForced = "IsForced"
+        case isForced = "Forced"
         case hearingImpaired = "HearingImpaired"
+        case isHashMatch = "IsHashMatch"
+        case downloadCount = "DownloadCount"
     }
 }
 
