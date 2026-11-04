@@ -9,6 +9,7 @@ struct PlayerView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -74,6 +75,7 @@ struct PlayerView: View {
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
     @State private var isTracksMenuPresented = false
+    @State private var isShowingSubtitleAppearance = false
     @State private var doubleTapSeek = DoubleTapSeek()
     @State private var tapAreaWidth = 0.0
     @State private var showsPlaybackStatistics = false
@@ -275,6 +277,7 @@ struct PlayerView: View {
                 .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
                     if isPresented {
                         sheetPresentation.item = nil
+                        isShowingSubtitleAppearance = false
                         hideInfoPanel()
                         hideControls()
                     }
@@ -421,6 +424,7 @@ struct PlayerView: View {
             && !playerController.isPictureInPictureTransitioning
             && sheetPresentation.item == nil
             && !isTracksMenuPresented
+            && !isShowingSubtitleAppearance
             && !isShowingInfoPanel
             && activeOffsetBar == nil
             && viewModel.activeSkipMarker == nil
@@ -457,12 +461,14 @@ struct PlayerView: View {
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                controlsInset: areControlsShown && !layoutMode.isTabletop ? 120 : 0,
+                controlsInset: subtitleControlsInset,
                 minimumBottomInset: bottomSafeAreaInset,
                 videoSize: playerController.displayVideoSize ?? playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
                 videoZoomScale: videoZoomScale,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
+                textTrailingInset: subtitleAppearanceTrailingInset,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
@@ -545,13 +551,19 @@ struct PlayerView: View {
                     .transition(.opacity)
             }
 
-            if controlsVisible || (isControlsLocked && isVoiceOverEnabled), !isShowingInfoPanel {
+            if controlsVisible || (isControlsLocked && isVoiceOverEnabled), !isShowingInfoPanel,
+               !isShowingSubtitleAppearance
+            {
                 playerControls
                     .transition(.opacity)
             }
 
             if let activeOffsetBar, !isShowingInfoPanel {
                 offsetBar(activeOffsetBar)
+            }
+
+            if isShowingSubtitleAppearance, !layoutMode.isTabletop {
+                subtitleAppearanceOverlay
             }
 
             if !controlsVisible, !isControlsLocked, let activeMarker, let skipTitle {
@@ -661,6 +673,57 @@ struct PlayerView: View {
         controlsVisible && !isControlsLocked
     }
 
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
+    }
+
+    private var usesSideSubtitleAppearancePanel: Bool {
+        isLandscape || horizontalSizeClass == .regular
+    }
+
+    private var subtitleControlsInset: CGFloat {
+        guard !layoutMode.isTabletop else { return 0 }
+        if isShowingSubtitleAppearance, !usesSideSubtitleAppearancePanel {
+            return PlayerSubtitleAppearancePanel.bottomHeight + 12
+        }
+        return areControlsShown ? 120 : 0
+    }
+
+    private var subtitleAppearanceTrailingInset: CGFloat {
+        guard isShowingSubtitleAppearance, usesSideSubtitleAppearancePanel, !layoutMode.isTabletop else { return 0 }
+        return PlayerSubtitleAppearancePanel.sideWidth + 16
+    }
+
+    private var subtitleAppearancePanel: some View {
+        PlayerSubtitleAppearancePanel(
+            availability: subtitleAppearanceAvailability,
+            onClose: closeSubtitleAppearance,
+        )
+        .equatable()
+    }
+
+    private var subtitleAppearanceOverlay: some View {
+        ZStack(alignment: usesSideSubtitleAppearancePanel ? .trailing : .bottom) {
+            Color.clear
+                .contentShape(Rectangle())
+                .ignoresSafeArea()
+                .onTapGesture(perform: closeSubtitleAppearance)
+
+            if usesSideSubtitleAppearancePanel {
+                subtitleAppearancePanel
+                    .frame(width: PlayerSubtitleAppearancePanel.sideWidth)
+                    .padding(.vertical, 12)
+                    .padding(.trailing, 12)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                subtitleAppearancePanel
+                    .frame(height: PlayerSubtitleAppearancePanel.bottomHeight)
+                    .ignoresSafeArea(edges: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+
     @ViewBuilder
     private var seekFeedbackOverlay: some View {
         if let pending = doubleTapSeek.pending {
@@ -748,6 +811,11 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(Color.black)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if isShowingSubtitleAppearance {
+                Color.black
+                subtitleAppearancePanel
+                    .padding(12)
+                    .transition(.opacity)
             } else if let activeOffsetBar {
                 Color.black
                 PlayerOffsetBar(
@@ -919,6 +987,7 @@ struct PlayerView: View {
             canSearchSubtitles: viewModel.canSearchSubtitles,
             canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
             syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+            subtitleAppearance: subtitleAppearanceAvailability,
         )
     }
 
@@ -932,6 +1001,7 @@ struct PlayerView: View {
             onSearchSubtitles: showSubtitleSearch,
             onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
             onSelectSync: openOffsetBar(_:),
+            onShowSubtitleAppearance: showSubtitleAppearance,
         )
     }
 
@@ -995,9 +1065,25 @@ struct PlayerView: View {
         if isPresented {
             refreshTracks()
             hideControlsWorkItem?.cancel()
-        } else if sheetPresentation.item == nil {
+        } else if sheetPresentation.item == nil, !isShowingSubtitleAppearance {
             showControls(temporarily: true)
         }
+    }
+
+    /// Hides the controls, since they raise the subtitles and would misrepresent their position.
+    private func showSubtitleAppearance() {
+        hideControlsWorkItem?.cancel()
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            isShowingSubtitleAppearance = true
+            controlsVisible = false
+        }
+    }
+
+    private func closeSubtitleAppearance() {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            isShowingSubtitleAppearance = false
+        }
+        showControls(temporarily: true)
     }
 
     private func showSubtitleSearch() {
@@ -1333,6 +1419,7 @@ struct PlayerView: View {
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
         sheetPresentation.item = nil
+        isShowingSubtitleAppearance = false
         Task {
             do {
                 let url = try await viewModel.changeQuality(to: quality, force: force)

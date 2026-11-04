@@ -88,6 +88,7 @@ struct PlayerView: View {
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
     @State private var isShowingInfoPopover = false
+    @State private var isShowingSubtitleAppearance = false
     @State private var isShowingPlayQueue = false
     @State private var isShowingLiveChannels = false
     @State private var isRecoveringServerAccess = false
@@ -135,6 +136,7 @@ struct PlayerView: View {
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
@@ -373,6 +375,13 @@ struct PlayerView: View {
                     }
                 }
                 .onChange(of: isShowingChapterPopover) { _, isShowing in
+                    if isShowing {
+                        hideControlsWorkItem?.cancel()
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
+                .onChange(of: isShowingSubtitleAppearance) { _, isShowing in
                     if isShowing {
                         hideControlsWorkItem?.cancel()
                     } else {
@@ -933,6 +942,10 @@ struct PlayerView: View {
         }
     }
 
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
+    }
+
     private var subtitleMenu: some View {
         Menu {
             menuOption(isSelected: selectedSubtitleTrackID == nil) {
@@ -973,6 +986,16 @@ struct PlayerView: View {
                     playerTrackLabel(track)
                 }
             }
+            Divider()
+            Button {
+                isShowingSubtitleAppearance = true
+            } label: {
+                Text("player.settings.subtitles.appearance")
+                if let message = subtitleAppearanceAvailability.message {
+                    Text(message)
+                }
+            }
+            .disabled(!subtitleAppearanceAvailability.isAvailable)
             if viewModel.canSearchSubtitles {
                 Divider()
                 Button {
@@ -995,6 +1018,9 @@ struct PlayerView: View {
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
                 .labelStyle(.iconOnly)
+        }
+        .popover(isPresented: $isShowingSubtitleAppearance, arrowEdge: .bottom) {
+            PlayerSubtitleAppearancePopover(availability: subtitleAppearanceAvailability)
         }
         .overlay(alignment: .topTrailing) {
             if playerController.subtitleDelayMilliseconds != 0 {
@@ -2026,6 +2052,7 @@ struct PlayerView: View {
             && sheetPresentation.item == nil
             && !isShowingChapterPopover
             && !isShowingInfoPopover
+            && !isShowingSubtitleAppearance
             && !isShowingPlayQueue
             && activeOffsetBar == nil
             && !nextEpisodePresentation.isPresented
@@ -2049,6 +2076,7 @@ struct PlayerView: View {
             !isShowingError,
             !isShowingChapterPopover,
             !isShowingInfoPopover,
+            !isShowingSubtitleAppearance,
             activeOffsetBar == nil
         else {
             return
@@ -2070,6 +2098,7 @@ struct PlayerView: View {
                     && !isShowingError
                     && !isShowingChapterPopover
                     && !isShowingInfoPopover
+                    && !isShowingSubtitleAppearance
                     && activeOffsetBar == nil
             )
         else {

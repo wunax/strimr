@@ -401,6 +401,8 @@ struct PlayerView: View {
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
                 videoZoomScale: videoZoomScale,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
+                textTrailingInset: isShowingSubtitleAppearance ? PlayerSubtitleAppearanceView.coveredWidth : 0,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
@@ -432,8 +434,17 @@ struct PlayerView: View {
         }
     }
 
+    private var isShowingSubtitleAppearance: Bool {
+        sheetPresentation.item == .subtitleAppearance
+    }
+
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
+    }
+
     private var subtitleControlsInset: CGFloat {
-        guard controlsVisible else { return 0 }
+        // The controls are hidden behind the settings panel, and would misrepresent the subtitle position.
+        guard controlsVisible, !isShowingSubtitleAppearance else { return 0 }
         return isShowingInfoPanel ? 440 : 380
     }
 
@@ -667,7 +678,12 @@ struct PlayerView: View {
                     : nil,
                 syncItem: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
+                subtitleAppearance: subtitleAppearanceAvailability,
+                onShowSubtitleAppearance: { sheetPresentation.item = .subtitleAppearance },
+                initialOptionID: settingsMenuFocusID,
             )
+        case .subtitleAppearance:
+            PlayerSubtitleAppearanceView(availability: subtitleAppearanceAvailability)
         case .speed:
             PlayerSpeedSelectionView(
                 selectedRate: playbackRate,
@@ -801,6 +817,7 @@ struct PlayerView: View {
     private func showSubtitleSettings() {
         refreshTracks()
         settingsControl = .subtitle
+        settingsMenuFocusID = nil
         sheetPresentation.item = .subtitle
         showControls(temporarily: true)
     }
@@ -1856,6 +1873,7 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case display
     case sleepTimer
     case dialogueBoost
+    case subtitleAppearance
     case subtitleSearch
 
     var id: String {
@@ -1868,6 +1886,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             .settings
         case .dialogueBoost:
             .audio
+        case .subtitleAppearance:
+            .subtitle
         case .audio, .subtitle, .speed, .settings, .subtitleSearch:
             nil
         }
@@ -1893,6 +1913,8 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.sleepTimer.title"
         case .dialogueBoost:
             "settings.playback.dialogueBoost"
+        case .subtitleAppearance:
+            "player.settings.subtitles.appearance"
         case .subtitleSearch:
             "subtitles.search.title"
         }

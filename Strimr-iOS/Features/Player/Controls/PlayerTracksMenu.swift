@@ -11,6 +11,7 @@ struct PlayerTracksMenuModel: Equatable {
     var canSearchSubtitles: Bool
     var canResetTrackSelections: Bool
     var syncItems: [PlaybackOffsetMenuItem]
+    var subtitleAppearance: SubtitleAppearanceAvailability
 
     var showsIndicator: Bool {
         syncItems.contains { $0.kind == .subtitles && $0.isActive }
@@ -26,6 +27,7 @@ struct PlayerTracksMenuActions {
     var onSearchSubtitles: () -> Void
     var onResetTrackSelections: () -> Void
     var onSelectSync: (PlaybackOffsetKind) -> Void
+    var onShowSubtitleAppearance: () -> Void
 }
 
 /// Compares the model only, so that the playback position refreshing the player does not rebuild an open menu.
@@ -124,8 +126,16 @@ struct PlayerTracksMenu<MenuLabel: View>: View, Equatable {
 
             syncButton(for: .subtitles)
 
-            if model.canSearchSubtitles {
-                Section {
+            Section {
+                Button(action: actions.onShowSubtitleAppearance) {
+                    Text("player.settings.subtitles.appearance")
+                    if let message = model.subtitleAppearance.message {
+                        Text(message)
+                    }
+                }
+                .disabled(!model.subtitleAppearance.isAvailable)
+
+                if model.canSearchSubtitles {
                     Button("subtitles.search.action", action: actions.onSearchSubtitles)
                 }
             }
