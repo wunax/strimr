@@ -54,6 +54,12 @@ final class LibraryStore {
         Set(libraries.map(\.server)).count > 1
     }
 
+    /// Uses saved pins and enabled servers so temporary loading failures do not remove the selection.
+    func isNavigationLibraryEnabled(_ identity: LibraryIdentity) -> Bool {
+        settingsManager.libraryPreferences(profileID: profileID).isPinned(identity)
+            && registry.enabledSessions.contains { $0.identity == identity.server }
+    }
+
     func library(_ identity: LibraryIdentity) -> Library? {
         librariesByServer[identity.server]?.first { $0.id == identity.libraryID }
     }

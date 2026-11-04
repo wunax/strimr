@@ -33,7 +33,9 @@ struct MainView: View {
 
                     sidebarLabel("tabs.search", systemImage: "magnifyingglass", item: .search)
                     sidebarLabel("downloads.title", systemImage: "arrow.down.circle.fill", item: .downloads)
-                    sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
+                    if settingsManager.interface.displayLibrariesTab {
+                        sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
+                    }
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
                     if isLiveTVAvailable {
                         sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
@@ -108,6 +110,18 @@ struct MainView: View {
                 appModel.resetLiveTVNavigation()
             }
         }
+        .onChange(of: settingsManager.interface.displayLibrariesTab) { _, _ in
+            appModel.reconcileLibraryNavigation(libraryStore: libraryStore)
+        }
+        .onChange(of: settingsManager.interface.librariesByProfile) { _, _ in
+            appModel.reconcileLibraryNavigation(libraryStore: libraryStore)
+        }
+        .onChange(of: libraryStore.navigationLibraries.map(\.identity)) { _, _ in
+            appModel.reconcileLibraryNavigation(libraryStore: libraryStore)
+        }
+        .onChange(of: libraryStore.profileID, initial: true) { _, _ in
+            appModel.reconcileLibraryNavigation(libraryStore: libraryStore)
+        }
         .handlesExternalPlaybackCallbacks { server in
             Task { await homeViewModel.refresh(server: server) }
         }
@@ -151,6 +165,11 @@ struct MainView: View {
 
     private var profileMenu: some View {
         Menu {
+            if !settingsManager.interface.displayLibrariesTab {
+                Button("tabs.libraries", systemImage: "rectangle.stack.fill") {
+                    appModel.showLibraryBrowser()
+                }
+            }
             if sessionManager.profiles.count > 1 {
                 Button("common.actions.switchProfile", systemImage: "person.2.circle") {
                     sessionManager.requestProfileSelection()
@@ -184,12 +203,7 @@ struct MainView: View {
         case .downloads:
             DownloadsView()
         case .libraries:
-            LibraryView(viewModel: libraryViewModel, onSelectMedia: appModel.showMedia)
-                .navigationDestination(for: Library.self) { library in
-                    ServerScopedView(server: library.server) { _ in
-                        LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
-                    }
-                }
+            libraryBrowserContent
         case .favorites:
             FavoritesView(sessionManager: sessionManager, onSelectMedia: appModel.showMedia)
                 .unavailableWhenOffline()
@@ -204,7 +218,6 @@ struct MainView: View {
                 },
                 onOpenLibrary: { identity in
                     guard let library = libraryStore.library(identity) else { return }
-                    appModel.selection = .libraries
                     appModel.showLibrary(library)
                 },
             )
@@ -222,10 +235,21 @@ struct MainView: View {
         }
     }
 
+    private var libraryBrowserContent: some View {
+        LibraryView(viewModel: libraryViewModel, onSelectMedia: appModel.showMedia)
+            .navigationDestination(for: Library.self) { library in
+                ServerScopedView(server: library.server) { _ in
+                    LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
+                }
+            }
+    }
+
     /// Server-bound destinations are shown with the services of their own server.
     @ViewBuilder
     private func destination(for route: AppModel.Route) -> some View {
-        if case let .seerr(media) = route {
+        if case .libraryBrowser = route {
+            libraryBrowserContent
+        } else if case let .seerr(media) = route {
             SeerrMediaDetailView(
                 viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
                 onSelectMedia: appModel.showSeerr,
@@ -301,7 +325,7 @@ struct MainView: View {
             )
         case let .library(library):
             LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
-        case .seerr, .seerrRequests:
+        case .seerr, .seerrRequests, .libraryBrowser:
             EmptyView()
         }
     }

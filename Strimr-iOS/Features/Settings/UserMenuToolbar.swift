@@ -2,7 +2,9 @@ import SwiftUI
 
 struct UserMenuToolbarButton: View {
     @Environment(SessionManager.self) private var sessionManager
+    @EnvironmentObject private var coordinator: MainCoordinator
     @State private var isPresentingMenu = false
+    @State private var shouldShowLibraries = false
 
     var body: some View {
         Button {
@@ -11,9 +13,16 @@ struct UserMenuToolbarButton: View {
             avatarView
         }
         .accessibilityLabel(Text("tabs.more"))
-        .sheet(isPresented: $isPresentingMenu) {
+        .sheet(isPresented: $isPresentingMenu, onDismiss: {
+            guard shouldShowLibraries else { return }
+            shouldShowLibraries = false
+            coordinator.showLibraryBrowser()
+        }) {
             NavigationStack {
-                UserMenuView()
+                UserMenuView(onShowLibraries: {
+                    shouldShowLibraries = true
+                    isPresentingMenu = false
+                })
             }
         }
     }
