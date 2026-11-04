@@ -32,6 +32,15 @@ struct AppSettingsTests {
         #expect(chosen.interface.portraitEpisodeArtwork == .season)
     }
 
+    @Test func `subtitle search follows the device language until chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.subtitleSearch == SubtitleSearchPreferences())
+
+        var settings = AppSettings()
+        settings.playback.subtitleSearch = SubtitleSearchPreferences(language: "fr", hearingImpaired: true)
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.playback.subtitleSearch == settings.playback.subtitleSearch)
+    }
+
     @Test func `title logo is shown unless turned off`() throws {
         #expect(try decode(#"{"interface":{"displayPlaylists":false}}"#).interface.showsTitleLogo)
         #expect(try !decode(#"{"interface":{"showsTitleLogo":false}}"#).interface.showsTitleLogo)

@@ -161,6 +161,40 @@ struct RemoteSubtitleResult: Hashable, Identifiable {
     let language: String?
     let codec: String
     let providerTitle: String?
+    var isExactMatch = false
+    /// Only comparable between results of the same search.
+    var matchScore: Double?
+}
+
+extension [RemoteSubtitleResult] {
+    /// Results without a signal stay in the provider's order, after those that have one.
+    func rankedByMatch() -> [RemoteSubtitleResult] {
+        enumerated().sorted { lhs, rhs in
+            if lhs.element.isExactMatch != rhs.element.isExactMatch {
+                return lhs.element.isExactMatch
+            }
+            switch (lhs.element.matchScore, rhs.element.matchScore) {
+            case let (left?, right?) where left != right:
+                return left > right
+            case (.some, nil):
+                return true
+            case (nil, .some):
+                return false
+            default:
+                return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
+    /// Expects ranked results. Nil when nothing sets the first result apart from the next one.
+    var bestMatch: RemoteSubtitleResult? {
+        guard count > 1 else { return nil }
+        let first = self[0]
+        let second = self[1]
+        let standsOut = first.isExactMatch != second.isExactMatch
+            || (first.matchScore != nil && first.matchScore != second.matchScore)
+        return standsOut ? first : nil
+    }
 }
 
 @MainActor

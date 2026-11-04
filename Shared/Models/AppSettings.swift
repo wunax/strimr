@@ -348,6 +348,13 @@ enum DialogueBoost: String, Codable, CaseIterable, Hashable, Identifiable {
     }
 }
 
+struct SubtitleSearchPreferences: Codable, Equatable {
+    /// Nil follows the device language until another one is chosen.
+    var language: String?
+    var hearingImpaired = false
+    var forced = false
+}
+
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
@@ -388,6 +395,7 @@ struct PlaybackSettings: Codable, Equatable {
     var subtitleEdgeStyle = SubtitleEdgeStyle.shadow
     var subtitleVerticalPosition = SubtitleVerticalPosition.bottom
     var subtitleBottomMargin = SubtitleBottomMargin.automatic
+    var subtitleSearch = SubtitleSearchPreferences()
     /// Nil plays in Strimr's built-in player.
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
@@ -483,6 +491,8 @@ struct PlaybackSettings: Codable, Equatable {
             try? container.decode(SubtitleBottomMargin.self, forKey: .subtitleBottomMargin),
         )
             ?? .automatic
+        subtitleSearch = (try? container.decode(SubtitleSearchPreferences.self, forKey: .subtitleSearch))
+            ?? SubtitleSearchPreferences()
         externalPlayer = try? container.decodeIfPresent(ExternalPlayerSelection.self, forKey: .externalPlayer)
         customExternalPlayer = try? container.decodeIfPresent(
             CustomExternalPlayer.self,

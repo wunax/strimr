@@ -27542,6 +27542,28 @@
         }
       }
     },
+    "subtitles.search.bestMatch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best match"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meilleur résultat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最佳匹配"
+          }
+        }
+      }
+    },
     "subtitles.search.empty" : {
       "localizations" : {
         "en" : {
