@@ -111,6 +111,7 @@
 				Features/Seerr/SeerrManageRequestsSheetView.swift,
 				Features/Seerr/SeerrMediaDetailView.swift,
 				Features/Seerr/SeerrMediaRequestSheetView.swift,
+				Features/Settings/AccountPreferencesView.swift,
 				Features/Settings/IntegrationsView.swift,
 				Features/Settings/SeerrView.swift,
 				Features/Settings/SettingsAboutView.swift,

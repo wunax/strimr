@@ -53,6 +53,7 @@ final class JellyfinAPIContext {
     @ObservationIgnored private let deviceID: String
     @ObservationIgnored private let clientVersion: String
     @ObservationIgnored private var authenticationRequiredHandler: (() -> Void)?
+    @ObservationIgnored private var configurationWrite: Task<Void, any Error>?
 
     init(session: URLSession? = nil) {
         if let session {
@@ -372,22 +373,46 @@ final class JellyfinAPIContext {
     }
 
     func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws {
-        guard let connection else { throw JellyfinAPIError.authenticationRequired }
         let key = kind == .audio ? "RememberAudioSelections" : "RememberSubtitleSelections"
-        let data = try await rawData(path: ["Users", connection.userID])
-        var user = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        var configuration = user["Configuration"] as? [String: Any] ?? [:]
-        if (configuration[key] as? NSNumber)?.boolValue == true || configuration[key] as? Bool == true {
-            return
+        try await updateUserConfiguration { configuration in
+            if configuration[key] as? Bool == true {
+                return false
+            }
+            configuration[key] = true
+            return true
         }
-        configuration[key] = true
-        user["Configuration"] = configuration
-        let configurationData = try JSONSerialization.data(withJSONObject: configuration)
+    }
+
+    /// The raw JSON: the server replaces the whole configuration on write, and `JellyfinUserConfiguration` only decodes
+    /// the fields the app reads.
+    func userConfiguration() async throws -> [String: Any] {
+        guard let connection else { throw JellyfinAPIError.authenticationRequired }
+        let data = try await rawData(path: ["Users", connection.userID])
+        let user = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return user["Configuration"] as? [String: Any] ?? [:]
+    }
+
+    /// Writes run one after the other, otherwise a write started from an older read would undo the previous one.
+    /// `update` returns false when there is nothing to send.
+    func updateUserConfiguration(_ update: @escaping (inout [String: Any]) -> Bool) async throws {
+        let previous = configurationWrite
+        let write = Task {
+            _ = await previous?.result
+            try await performConfigurationWrite(update)
+        }
+        configurationWrite = write
+        try await write.value
+    }
+
+    private func performConfigurationWrite(_ update: (inout [String: Any]) -> Bool) async throws {
+        guard let connection else { throw JellyfinAPIError.authenticationRequired }
+        var configuration = try await userConfiguration()
+        guard update(&configuration) else { return }
         try await send(
             path: ["Users", "Configuration"],
             method: "POST",
             query: [URLQueryItem(name: "UserId", value: connection.userID)],
-            body: configurationData,
+            body: JSONSerialization.data(withJSONObject: configuration),
         )
         _ = try? await refreshCurrentUser()
     }

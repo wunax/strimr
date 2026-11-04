@@ -1,0 +1,9 @@
+{
+  "profile": {
+    "defaultAudioLanguage": "fr",
+    "autoSelectAudio": true,
+    "defaultSubtitleLanguage": "en,de",
+    "autoSelectSubtitle": 2,
+    "watchedIndicator": 1
+  }
+}

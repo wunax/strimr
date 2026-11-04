@@ -333,9 +333,7 @@ struct JellyfinPlaybackService {
         source: JellyfinMediaSource,
         streams: [JellyfinMediaStream],
     ) -> Int? {
-        source.defaultSubtitleStreamIndex.flatMap { defaultIndex in
-            streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
-        } ?? streams.first(where: { $0.isDefault == true })?.index
+        source.serverSubtitleIndex(validIndices: Set(streams.map(\.index)))
     }
 
     private func defaultAudioStreamIndex(
