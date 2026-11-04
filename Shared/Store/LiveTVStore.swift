@@ -166,6 +166,10 @@ final class LiveTVStore {
         }
     }
 
+    func guideCovers(_ date: Date) -> Bool {
+        date >= guideStart && date < guideEnd
+    }
+
     func shiftGuide(hours: Int) async {
         await load(start: guideStart.addingTimeInterval(TimeInterval(hours * 3600)), force: true)
     }

@@ -125,14 +125,7 @@ struct LiveTVView: View {
                         movesFocus: true,
                     )
                 },
-                onSelectProgram: { program in
-                    section = .guide
-                    guideScrollRequest = LiveTVGuideScrollRequest(
-                        date: max(program.startDate, Date()),
-                        channel: program.channelIdentity,
-                        movesFocus: true,
-                    )
-                },
+                onSelectProgram: showInGuide,
             )
         }
     }
@@ -222,6 +215,21 @@ struct LiveTVView: View {
             tune(program)
         } else {
             selectedProgram = program
+        }
+    }
+
+    /// A search result can air past what the guide has loaded.
+    private func showInGuide(_ program: LiveTVProgram) {
+        section = .guide
+        let date = max(program.startDate, Date())
+        let request = LiveTVGuideScrollRequest(date: date, channel: program.channelIdentity, movesFocus: true)
+        if store.guideCovers(date) {
+            guideScrollRequest = request
+        } else {
+            Task {
+                await store.load(start: date, force: true)
+                guideScrollRequest = request
+            }
         }
     }
 

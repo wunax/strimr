@@ -1,13 +1,17 @@
 import SwiftUI
 
-/// Finds channels and the programs of the next 24 hours among what the guide has loaded.
+/// Finds channels and the programs of the next 24 hours, which it loads apart from the range the guide shows.
 struct LiveTVGuideSearchView: View {
+    private static let window: TimeInterval = 24 * 3600
+
     @Bindable var store: LiveTVStore
     let onSelectChannel: (LiveTVChannel) -> Void
     let onSelectProgram: (LiveTVProgram) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
+    @State private var loadedPrograms: [LiveTVProgram]?
+    @State private var isLoadingPrograms = true
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -21,14 +25,17 @@ struct LiveTVGuideSearchView: View {
     }
 
     private var programs: [LiveTVProgram] {
-        guard !trimmedQuery.isEmpty else { return [] }
-        let now = Date()
-        let limit = now.addingTimeInterval(24 * 3600)
-        return store.programs
+        Self.matchingPrograms(loadedPrograms ?? store.programs, query: trimmedQuery, now: Date())
+    }
+
+    static func matchingPrograms(_ programs: [LiveTVProgram], query: String, now: Date) -> [LiveTVProgram] {
+        guard !query.isEmpty else { return [] }
+        let limit = now.addingTimeInterval(window)
+        return programs
             .filter { $0.endDate > now && $0.startDate < limit }
             .filter {
-                $0.title.localizedStandardContains(trimmedQuery)
-                    || ($0.seriesTitle?.localizedStandardContains(trimmedQuery) ?? false)
+                $0.title.localizedStandardContains(query)
+                    || ($0.seriesTitle?.localizedStandardContains(query) ?? false)
             }
             .sorted { $0.startDate < $1.startDate }
     }
@@ -44,6 +51,18 @@ struct LiveTVGuideSearchView: View {
                     Button("common.done") { dismiss() }
                 }
         }
+        .task { await loadPrograms() }
+    }
+
+    private func loadPrograms() async {
+        let now = Date()
+        do {
+            loadedPrograms = try await store.service.programs(from: now, to: now.addingTimeInterval(Self.window))
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            LiveTVErrorReporting.capture(error)
+        }
+        isLoadingPrograms = false
     }
 
     private var content: some View {
@@ -59,7 +78,10 @@ struct LiveTVGuideSearchView: View {
     }
 
     private var results: some View {
-        List {
+        // The filters read a day of programs: once per update, not once per use.
+        let channels = channels
+        let programs = programs
+        return List {
             if !channels.isEmpty {
                 Section("livetv.search.channels") {
                     ForEach(channels) { channel in
@@ -93,9 +115,14 @@ struct LiveTVGuideSearchView: View {
                     }
                 }
             }
-            if !trimmedQuery.isEmpty, channels.isEmpty, programs.isEmpty {
-                Text("livetv.search.empty")
-                    .foregroundStyle(.secondary)
+            if !trimmedQuery.isEmpty {
+                if isLoadingPrograms {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else if channels.isEmpty, programs.isEmpty {
+                    Text("livetv.search.empty")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

@@ -35,6 +35,15 @@ struct LiveTVStoreTests {
         return store
     }
 
+    @Test func `the guide covers the loaded range only`() async {
+        let store = await loadedStore(service: StubLiveTVService())
+
+        #expect(store.guideCovers(Date()))
+        #expect(store.guideCovers(store.guideStart))
+        #expect(!store.guideCovers(store.guideEnd))
+        #expect(!store.guideCovers(Date().addingTimeInterval(12 * 3600)))
+    }
+
     @Test func `cancelling a recording clears it from the cached programs`() async throws {
         let service = StubLiveTVService()
         service.loadedPrograms = [program(id: "a", recordingID: "recording")]
