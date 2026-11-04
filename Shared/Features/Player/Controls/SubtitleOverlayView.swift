@@ -21,6 +21,10 @@ struct SubtitleOverlayView: View {
     let assRenderer: AssSubtitlesRenderer?
     let activeSubtitleCodec: String?
     var videoZoomScale = 1.0
+    /// Shown while no cue is on screen, so the appearance settings can be judged between two lines of dialogue.
+    var samplePreviewText: String?
+    /// Width a panel covers on the trailing side, which text subtitles stay clear of.
+    var textTrailingInset: CGFloat = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -80,14 +84,15 @@ struct SubtitleOverlayView: View {
                 )
                 Color.clear
                     .overlay(alignment: appearance.verticalPosition.alignment) {
-                        let lines = activeTextLines
+                        let lines = displayedTextLines
                         if !lines.isEmpty {
                             VStack(spacing: 8) {
                                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                                     SubtitleTextView(text: line, appearance: appearance)
                                 }
                             }
-                            .frame(maxWidth: max(0, geometry.size.width - 48))
+                            .frame(maxWidth: max(0, geometry.size.width - textTrailingInset - 48))
+                            .padding(.trailing, textTrailingInset)
                             .padding(.top, appearance.verticalPosition == .top ? 48 : 0)
                             .padding(.bottom, appearance.verticalPosition == .bottom ? bottomInset : 0)
                             .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomInset)
@@ -96,6 +101,12 @@ struct SubtitleOverlayView: View {
             }
         }
         .allowsHitTesting(false)
+    }
+
+    private var displayedTextLines: [AttributedString] {
+        let lines = activeTextLines
+        guard lines.isEmpty, activeImages.isEmpty, let samplePreviewText else { return lines }
+        return [AttributedString(samplePreviewText)]
     }
 
     private var activeTextLines: [AttributedString] {

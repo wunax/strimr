@@ -14156,6 +14156,50 @@
         }
       }
     },
+    "player.settings.subtitles.appearance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
+    "player.settings.subtitles.appearance.styledASS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn off styled ASS/SSA subtitles in Settings to customize this track."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivez les styles ASS/SSA dans les réglages pour personnaliser cette piste."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置中关闭 ASS/SSA 样式字幕后即可自定义此轨道。"
+          }
+        }
+      }
+    },
     "player.settings.subtitles.off" : {
       "localizations" : {
         "en" : {

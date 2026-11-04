@@ -11,6 +11,8 @@ struct PlayerTrackSelectionView: View {
     var syncItem: PlaybackOffsetMenuItem?
     var onSelectSync: (PlaybackOffsetKind) -> Void = { _ in }
     var audioEnhancements: PlayerAudioEnhancements?
+    var subtitleAppearance: SubtitleAppearanceAvailability?
+    var onShowSubtitleAppearance: () -> Void = {}
     var initialOptionID: String?
 
     var body: some View {
@@ -71,6 +73,17 @@ struct PlayerTrackSelectionView: View {
         }
         if let audioEnhancements {
             result += audioEnhancements.options
+        }
+        if let subtitleAppearance {
+            result.append(PlayerSettingsOption(
+                id: "subtitleAppearance",
+                title: String(localized: "player.settings.subtitles.appearance"),
+                subtitle: subtitleAppearance.message,
+                systemImage: "textformat.size",
+                isDisabled: !subtitleAppearance.isAvailable,
+                opensSubmenu: true,
+                action: onShowSubtitleAppearance,
+            ))
         }
         return result
     }

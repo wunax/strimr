@@ -30,21 +30,23 @@ struct PlayerSettingsButton: View {
     }
 }
 
-struct PlayerTracksButton: View {
-    var showsIndicator = false
-    let action: () -> Void
+struct PlayerTracksMenuButton: View {
+    let model: PlayerTracksMenuModel
+    let actions: PlayerTracksMenuActions
 
     var body: some View {
-        PlayerIconButton(
-            systemName: "text.bubble",
-            accessibilityLabel: String(localized: "player.tracks.title"),
-            size: .small,
-            action: action,
-        )
+        PlayerTracksMenu(model: model, actions: actions) {
+            Image(systemName: "text.bubble")
+                .font(PlayerIconButton.Size.small.font)
+        }
+        .equatable()
+        .buttonStyle(.playerControl(diameter: PlayerIconButton.Size.small.diameter))
+        .accessibilityLabel(Text("player.tracks.title"))
         .overlay(alignment: .topTrailing) {
-            if showsIndicator {
+            if model.showsIndicator {
                 PlaybackOffsetIndicator()
                     .offset(x: 2, y: -2)
+                    .allowsHitTesting(false)
             }
         }
     }

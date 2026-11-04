@@ -34,7 +34,30 @@ struct SettingsSubtitlesView: View {
                     .listRowInsets(EdgeInsets())
             }
 
-            Section {
+            SubtitleAppearanceSections()
+        }
+        .insetListStyle()
+        .navigationTitle("settings.playback.subtitles.title")
+    }
+}
+
+/// The appearance settings, shared by the settings screen and the player.
+@MainActor
+struct SubtitleAppearanceSections: View {
+    var availability = SubtitleAppearanceAvailability.available
+    var showsDescriptions = true
+
+    @Environment(SettingsManager.self) private var settingsManager
+
+    private var viewModel: SettingsViewModel {
+        SettingsViewModel(settingsManager: settingsManager)
+    }
+
+    var body: some View {
+        let viewModel = viewModel
+
+        Section {
+            Group {
                 Picker("settings.playback.subtitleFontSize", selection: viewModel.subtitleFontSizeBinding) {
                     ForEach(viewModel.subtitleFontSizeOptions, id: \.self) { fontSize in
                         Text("settings.playback.fontSize \(fontSize)").tag(fontSize)
@@ -76,42 +99,47 @@ struct SettingsSubtitlesView: View {
                         Text(position.localizedName).tag(position)
                     }
                 }
-            } footer: {
+            }
+            .disabled(!availability.allowsTextStyling)
+        } footer: {
+            if showsDescriptions || !availability.allowsTextStyling {
                 Text("settings.playback.subtitles.footer")
             }
+        }
 
-            if viewModel.showsSubtitleBottomMargin {
-                Section {
-                    Picker(
-                        "settings.playback.subtitles.bottomMargin",
-                        selection: viewModel.subtitleBottomMarginBinding,
-                    ) {
-                        ForEach(viewModel.subtitleBottomMarginOptions, id: \.self) { margin in
-                            Text(margin.localizedName).tag(margin)
-                        }
+        if viewModel.showsSubtitleBottomMargin {
+            Section {
+                Picker(
+                    "settings.playback.subtitles.bottomMargin",
+                    selection: viewModel.subtitleBottomMarginBinding,
+                ) {
+                    ForEach(viewModel.subtitleBottomMarginOptions, id: \.self) { margin in
+                        Text(margin.localizedName).tag(margin)
                     }
-                } footer: {
+                }
+            } footer: {
+                if showsDescriptions {
                     Text("settings.playback.subtitles.bottomMargin.description")
                 }
             }
+        }
 
-            Section {
-                Picker("settings.playback.subtitles.brightness", selection: viewModel.subtitleBrightnessBinding) {
-                    ForEach(viewModel.subtitleBrightnessOptions, id: \.self) { brightness in
-                        Text(brightness.localizedName).tag(brightness)
-                    }
+        Section {
+            Picker("settings.playback.subtitles.brightness", selection: viewModel.subtitleBrightnessBinding) {
+                ForEach(viewModel.subtitleBrightnessOptions, id: \.self) { brightness in
+                    Text(brightness.localizedName).tag(brightness)
                 }
-            } footer: {
+            }
+        } footer: {
+            if showsDescriptions {
                 Text("settings.playback.subtitles.brightness.description")
             }
+        }
 
-            Section {
-                Button("settings.playback.subtitles.reset") {
-                    viewModel.resetSubtitleAppearance()
-                }
+        Section {
+            Button("settings.playback.subtitles.reset") {
+                viewModel.resetSubtitleAppearance()
             }
         }
-        .insetListStyle()
-        .navigationTitle("settings.playback.subtitles.title")
     }
 }
