@@ -73,6 +73,7 @@ struct PlayerView: View {
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var isTracksMenuPresented = false
     @State private var doubleTapSeek = DoubleTapSeek()
     @State private var tapAreaWidth = 0.0
     @State private var showsPlaybackStatistics = false
@@ -291,23 +292,12 @@ struct PlayerView: View {
                 IsolatedSheetPresentationHost(
                     presentation: sheetPresentation,
                     refreshID: PlayerSheetRefreshID(
-                        settingsAudioTracks: settingsAudioTracks,
-                        settingsSubtitleTracks: settingsSubtitleTracks,
-                        selectedAudioTrackID: selectedAudioTrackID,
-                        selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
                         videoZoom: playerController.videoZoom,
-                        syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
-                        nightMode: settingsManager.playback.nightMode,
-                        dialogueBoost: settingsManager.playback.dialogueBoost,
-                        isAudioShapingAvailable: playerController.isAudioShapingAvailable,
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
                     switch sheet {
-                    case .tracks:
-                        playbackTracksSheet
-                            .presentationDetents([.medium, .large])
                     case .settings:
                         playbackSettingsSheet
                             .presentationDetents([.medium])
@@ -430,6 +420,7 @@ struct PlayerView: View {
             && !playerController.isPictureInPictureActive
             && !playerController.isPictureInPictureTransitioning
             && sheetPresentation.item == nil
+            && !isTracksMenuPresented
             && !isShowingInfoPanel
             && activeOffsetBar == nil
             && viewModel.activeSkipMarker == nil
@@ -621,7 +612,8 @@ struct PlayerView: View {
             showsEndsAtTime: settingsManager.playback.showEndsAtTime,
             isScrubbing: isScrubbing,
             onDismiss: { dismissPlayer() },
-            onShowTracks: showTracks,
+            tracksMenu: tracksMenuModel,
+            tracksMenuActions: tracksMenuActions,
             onShowSettings: showSettings,
             chapters: viewModel.chapters,
             showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
@@ -661,7 +653,6 @@ struct PlayerView: View {
             canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
             onPreviousChannel: { switchLiveChannel(by: -1) },
             onNextChannel: { switchLiveChannel(by: 1) },
-            showsTracksIndicator: playerController.subtitleDelayMilliseconds != 0,
             sleepTimer: sleepTimer,
         )
     }
@@ -802,7 +793,8 @@ struct PlayerView: View {
             isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
                 && !playerController.isPictureInPictureActive
                 && !playerController.isPictureInPictureTransitioning,
-            showsTracksIndicator: playerController.subtitleDelayMilliseconds != 0,
+            tracksMenu: tracksMenuModel,
+            tracksMenuActions: tracksMenuActions,
             canShowInfo: canShowInfoPanel,
             canPlayNext: nextQueueIndex != nil,
             isLive: viewModel.isLivePlayback,
@@ -815,7 +807,6 @@ struct PlayerView: View {
                 onInteraction: { showControls(temporarily: true) },
                 onDismiss: { dismissPlayer() },
                 onShowInfo: showInfoPanel,
-                onShowTracks: showTracks,
                 onShowSettings: showSettings,
                 onStartPictureInPicture: playerController.startPictureInPicture,
                 onToggleLock: toggleTabletopLock,
@@ -916,28 +907,31 @@ struct PlayerView: View {
         .padding(.bottom, 20)
     }
 
-    private var playbackTracksSheet: some View {
-        PlaybackTracksView(
+    private var tracksMenuModel: PlayerTracksMenuModel {
+        PlayerTracksMenuModel(
             audioTracks: settingsAudioTracks,
             subtitleTracks: settingsSubtitleTracks,
             selectedAudioTrackID: selectedAudioTrackID,
             selectedSubtitleTrackID: selectedSubtitleTrackID,
-            onSelectAudio: selectAudioTrack(_:),
-            onSelectSubtitle: selectSubtitleTrack(_:),
             nightMode: settingsManager.playback.nightMode,
             dialogueBoost: settingsManager.playback.dialogueBoost,
             isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+            canSearchSubtitles: viewModel.canSearchSubtitles,
+            canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
+            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+        )
+    }
+
+    private var tracksMenuActions: PlayerTracksMenuActions {
+        PlayerTracksMenuActions(
+            onPresentationChanged: setTracksMenuPresented(_:),
+            onSelectAudio: selectAudioTrack(_:),
+            onSelectSubtitle: selectSubtitleTrack(_:),
             onSetNightMode: setNightMode(_:),
             onSelectDialogueBoost: selectDialogueBoost(_:),
-            onSearchSubtitles: viewModel.canSearchSubtitles
-                ? { sheetPresentation.item = .subtitleSearch }
-                : nil,
-            onResetTrackSelections: viewModel.canResetRememberedTrackSelections
-                ? { viewModel.resetRememberedTrackSelections() }
-                : nil,
-            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+            onSearchSubtitles: showSubtitleSearch,
+            onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
             onSelectSync: openOffsetBar(_:),
-            onClose: { sheetPresentation.item = nil },
         )
     }
 
@@ -994,9 +988,20 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func showTracks() {
-        refreshTracks()
-        sheetPresentation.item = .tracks
+    private func setTracksMenuPresented(_ isPresented: Bool) {
+        guard isTracksMenuPresented != isPresented else { return }
+        isTracksMenuPresented = isPresented
+
+        if isPresented {
+            refreshTracks()
+            hideControlsWorkItem?.cancel()
+        } else if sheetPresentation.item == nil {
+            showControls(temporarily: true)
+        }
+    }
+
+    private func showSubtitleSearch() {
+        sheetPresentation.item = .subtitleSearch
         hideControlsWorkItem?.cancel()
     }
 
@@ -1696,7 +1701,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard activeOffsetBar == nil else { return }
+        guard activeOffsetBar == nil, !isTracksMenuPresented else { return }
 
         let workItem = DispatchWorkItem {
             // Paused, the tiles stand in for the pause screen, which the tabletop layout does not show.
@@ -2010,20 +2015,11 @@ struct PlayerView: View {
 }
 
 private struct PlayerSheetRefreshID: Hashable {
-    let settingsAudioTracks: [PlaybackSettingsTrack]
-    let settingsSubtitleTracks: [PlaybackSettingsTrack]
-    let selectedAudioTrackID: Int?
-    let selectedSubtitleTrackID: Int?
     let playbackRate: Float
     let videoZoom: VideoZoom
-    let syncItems: [PlaybackOffsetMenuItem]
-    let nightMode: Bool
-    let dialogueBoost: DialogueBoost
-    let isAudioShapingAvailable: Bool
 }
 
 private enum PlayerSheet: String, Identifiable {
-    case tracks
     case settings
     case subtitleSearch
 

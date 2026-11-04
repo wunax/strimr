@@ -14,7 +14,8 @@ struct PlayerControlsView: View {
     var showsEndsAtTime: Bool
     var isScrubbing: Bool
     var onDismiss: () -> Void
-    var onShowTracks: () -> Void
+    var tracksMenu: PlayerTracksMenuModel
+    var tracksMenuActions: PlayerTracksMenuActions
     var onShowSettings: () -> Void
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
@@ -47,7 +48,6 @@ struct PlayerControlsView: View {
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
-    var showsTracksIndicator = false
     var sleepTimer: SleepTimer?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -81,9 +81,9 @@ struct PlayerControlsView: View {
                 PlayerControlsHeader(
                     media: media,
                     onDismiss: onDismiss,
-                    onShowTracks: onShowTracks,
+                    tracksMenu: tracksMenu,
+                    tracksMenuActions: tracksMenuActions,
                     onShowSettings: onShowSettings,
-                    showsTracksIndicator: showsTracksIndicator,
                     sleepTimer: sleepTimer,
                     isSharePlay: isSharePlay,
                     showsPictureInPicture: showsPictureInPicture,
@@ -234,9 +234,9 @@ private struct PlayerAuxiliaryControlsRow: View {
 private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
-    var onShowTracks: () -> Void
+    var tracksMenu: PlayerTracksMenuModel
+    var tracksMenuActions: PlayerTracksMenuActions
     var onShowSettings: () -> Void
-    var showsTracksIndicator: Bool
     var sleepTimer: SleepTimer?
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
@@ -286,7 +286,7 @@ private struct PlayerControlsHeader: View {
                     .disabled(!isPictureInPictureEnabled)
             }
 
-            PlayerTracksButton(showsIndicator: showsTracksIndicator, action: onShowTracks)
+            PlayerTracksMenuButton(model: tracksMenu, actions: tracksMenuActions)
 
             PlayerSettingsButton(action: onShowSettings)
         }
