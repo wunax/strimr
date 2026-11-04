@@ -37,8 +37,12 @@ struct LiveTVGuideView: View {
     private static let recenterDelay: TimeInterval = 10 * 60
 
     private var usesChannelList: Bool {
+        Self.usesChannelList(horizontal: horizontalSizeClass, vertical: verticalSizeClass)
+    }
+
+    static func usesChannelList(horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?) -> Bool {
         #if os(iOS)
-            horizontalSizeClass == .compact && verticalSizeClass != .compact
+            horizontal == .compact && vertical != .compact
         #else
             false
         #endif
