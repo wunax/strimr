@@ -57,6 +57,15 @@ import SwiftUI
                     viewportSize = rect.size
                     reportEdges(rect)
                 }
+                .onChange(of: model.start) { previous, start in
+                    guard start < previous else { return }
+                    // Earlier hours were added on the left: keep the same times on screen.
+                    let shift = LiveTVGuideMetrics.width(of: previous.timeIntervalSince(start))
+                    position.scrollTo(point: CGPoint(
+                        x: offset.x + shift - contentInsets.leading,
+                        y: offset.y - contentInsets.top,
+                    ))
+                }
                 .onChange(of: scrollRequest) { _, request in
                     guard let request else { return }
                     scroll(to: request)
