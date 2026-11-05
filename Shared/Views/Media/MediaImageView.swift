@@ -109,6 +109,17 @@ struct MediaArtworkPlaceholder: View {
 }
 
 struct MediaImageView: View {
+    let viewModel: MediaImageViewModel
+
+    var body: some View {
+        // The content keeps its first model in `@State`. Lists keyed by position reuse a cell for another item
+        // when they reorder, which would leave the previous item's artwork next to the new title.
+        MediaImageContent(viewModel: viewModel)
+            .id(viewModel.media.id)
+    }
+}
+
+private struct MediaImageContent: View {
     @Environment(SettingsManager.self) private var settingsManager
     @State private var viewModel: MediaImageViewModel
 
