@@ -12,6 +12,11 @@ struct SettingsPrivacyView: View {
             }
 
             Section {
+                Text("settings.privacy.trackers")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Link(destination: AppInfo.privacyPolicyURL) {
                     Label("settings.privacy.policy", systemImage: "doc.text")
                 }

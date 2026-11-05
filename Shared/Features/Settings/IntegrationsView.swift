@@ -16,6 +16,14 @@ struct IntegrationsView: View {
                     ),
                 )
             }
+
+            ForEach(TrackerService.allCases) { service in
+                NavigationLink {
+                    TrackerSettingsView(service: service)
+                } label: {
+                    LabeledContent(service.displayName, value: TrackerCoordinator.shared.state(for: service).statusText)
+                }
+            }
         }
         .insetListStyle()
         .navigationTitle("settings.integrations.title")

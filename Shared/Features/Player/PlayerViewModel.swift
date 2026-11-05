@@ -224,6 +224,7 @@ final class PlayerViewModel {
     }
 
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
+    @ObservationIgnored private var trackerSession: TrackerPlaybackSession?
     @ObservationIgnored private var lastTimelineSentAt: Date?
     @ObservationIgnored private var lastTimelineState: TimelineState?
     @ObservationIgnored private let ratingKey: String
@@ -800,6 +801,7 @@ final class PlayerViewModel {
 
         if previousState != playbackState {
             reportTimeline(state: playbackState, force: true)
+            reportTrackerState()
         }
     }
 
@@ -827,6 +829,7 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        trackerSession?.stopped(position: position, duration: duration ?? media?.duration)
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.stop(position: position)
@@ -889,6 +892,7 @@ final class PlayerViewModel {
     }
 
     func markPlaybackFinished() async {
+        trackerSession?.finished()
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.finish()
@@ -1135,6 +1139,14 @@ final class PlayerViewModel {
     private func apply(plan: PlaybackPlan) {
         playbackPlan = plan
         media = plan.media
+        // A plan is applied again on a quality change or a recovery, which is still the same playback.
+        if trackerSession == nil, let mediaServices {
+            trackerSession = TrackerCoordinator.shared.beginPlayback(
+                of: plan.media,
+                detail: mediaServices.detail,
+                resumeOffset: shouldResumeFromOffsetFlag ? plan.media.viewOffset : nil,
+            )
+        }
         playbackURL = plan.url
         playbackHTTPHeaders = plan.httpHeaders
         selectedQuality = plan.requestedQuality
@@ -1188,6 +1200,18 @@ final class PlayerViewModel {
         }
 
         Task { await sendTimeline(state: state) }
+    }
+
+    /// Buffering is neither a pause nor a resume for a tracker.
+    private func reportTrackerState() {
+        switch playbackState {
+        case .playing:
+            trackerSession?.playing(position: position, duration: duration ?? media?.duration)
+        case .paused:
+            trackerSession?.paused(position: position, duration: duration ?? media?.duration)
+        case .buffering:
+            break
+        }
     }
 
     private var hasProgressRecorder: Bool {
