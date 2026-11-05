@@ -200,15 +200,13 @@ struct MainTabView: View {
                 }
             }
 
-            TabSection {
-                ForEach(libraryStore.navigationLibraries.filter {
-                    tabLayout.bar.contains(.libraryDetail($0.identity))
-                }, id: \.identity) { library in
-                    Tab(value: MainCoordinator.Tab.libraryDetail(library.identity)) {
-                        libraryDetailTabContent(library)
-                    } label: {
-                        tabLabel(.libraryDetail(library.identity))
-                    }
+            ForEach(libraryStore.navigationLibraries.filter {
+                tabLayout.bar.contains(.libraryDetail($0.identity))
+            }, id: \.identity) { library in
+                Tab(value: MainCoordinator.Tab.libraryDetail(library.identity)) {
+                    libraryDetailTabContent(library)
+                } label: {
+                    tabLabel(.libraryDetail(library.identity))
                 }
             }
 
