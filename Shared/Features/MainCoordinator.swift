@@ -49,6 +49,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             if tab != oldValue {
                 pendingStartupTab = nil
             }
+            if overflowTabs.contains(tab) {
+                showInMore(tab)
+            }
         }
     }
 
@@ -73,6 +76,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
     /// up, unless the user has picked another tab meanwhile.
     private var pendingStartupTab: Tab?
+    private var overflowTabs: [Tab] = []
+    /// The overflow tab at the bottom of `morePath`, since a `NavigationPath` cannot be read back.
+    var moreRootTab: Tab?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -111,6 +117,43 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     func openPendingStartupTab(_ candidate: Tab) {
         guard pendingStartupTab == candidate else { return }
         tab = candidate
+    }
+
+    func updateTabLayout(_ layout: MainTabLayout) {
+        overflowTabs = layout.overflow
+        if overflowTabs.contains(tab) {
+            showInMore(tab)
+            return
+        }
+
+        let root = morePath.isEmpty ? nil : moreRootTab
+        if let root, overflowTabs.contains(root) {
+            return
+        }
+
+        morePath = NavigationPath()
+        moreRootTab = nil
+        pruneMediaRouteEntries(for: .more, maximumDepth: 0)
+        if tab == .more, overflowTabs.isEmpty {
+            tab = root.flatMap { layout.bar.contains($0) ? $0 : nil } ?? .home
+        }
+    }
+
+    private func showInMore(_ overflowTab: Tab) {
+        tab = .more
+        moreRootTab = overflowTab
+        morePath = NavigationPath([overflowTab])
+        pruneMediaRouteEntries(for: .more, maximumDepth: 1)
+        pathBinding(for: overflowTab).wrappedValue = NavigationPath()
+    }
+
+    func showLibrary(_ library: Library) {
+        tab = .library
+        if tab == .more {
+            morePath.append(library)
+        } else {
+            libraryPath = NavigationPath([library])
+        }
     }
 
     @Published var isPresentingPlayer = false {
@@ -373,7 +416,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             searchPath.append(route)
         case .library:
             libraryPath.append(route)
-        case .favorites, .liveTV, .more, .seerrDiscover, .downloads:
+        case .more:
+            morePath.append(route)
+        case .favorites, .liveTV, .seerrDiscover, .downloads:
             break
         case let .libraryDetail(libraryId):
             var path = libraryDetailPaths[libraryId] ?? NavigationPath()

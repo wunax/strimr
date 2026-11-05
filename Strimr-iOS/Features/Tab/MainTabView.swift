@@ -8,6 +8,8 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @StateObject var coordinator: MainCoordinator
     @State var homeViewModel: HomeViewModel
     @State var libraryViewModel: LibraryViewModel
@@ -22,6 +24,9 @@ struct MainTabView: View {
         tabView
             .environmentObject(coordinator)
             .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
+            .onChange(of: tabLayout, initial: true) { _, layout in
+                coordinator.updateTabLayout(layout)
+            }
             .task {
                 sharePlayCoordinator.configurePlaybackPresenter(coordinator)
                 try? await libraryStore.loadLibraries()
@@ -107,13 +112,40 @@ struct MainTabView: View {
         !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
     }
 
+    private var orderedTabs: [MainCoordinator.Tab] {
+        var tabs: [MainCoordinator.Tab] = [.home]
+        if isDiscoverAvailable {
+            tabs.append(.seerrDiscover)
+        }
+        if settingsManager.interface.displayDownloadsTab {
+            tabs.append(.downloads)
+        }
+        tabs.append(.library)
+        if isLiveTVAvailable {
+            tabs.append(.liveTV)
+        }
+        if settingsManager.interface.displayFavoritesTab {
+            tabs.append(.favorites)
+        }
+        tabs += libraryStore.navigationLibraries.map { .libraryDetail($0.identity) }
+        return tabs
+    }
+
+    /// Both size classes count: a large iPhone in landscape is regular in width but keeps a compact tab bar.
+    private var tabLayout: MainTabLayout {
+        MainTabLayout(
+            tabs: orderedTabs,
+            isCompact: horizontalSizeClass == .compact || verticalSizeClass == .compact,
+        )
+    }
+
     private var tabView: some View {
         TabView(selection: $coordinator.tab) {
             Tab("tabs.home", systemImage: "house.fill", value: MainCoordinator.Tab.home) {
                 homeTabContent
             }
 
-            if isDiscoverAvailable {
+            if tabLayout.bar.contains(.seerrDiscover) {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     discoverTabContent
                 }
@@ -136,39 +168,116 @@ struct MainTabView: View {
                 }
             }
 
-            if settingsManager.interface.displayDownloadsTab {
-                Tab("downloads.title", systemImage: "arrow.down.circle.fill", value: MainCoordinator.Tab.downloads) {
+            if tabLayout.bar.contains(.downloads) {
+                Tab(value: MainCoordinator.Tab.downloads) {
                     downloadsTabContent
+                } label: {
+                    tabLabel(.downloads)
                 }
             }
 
-            Tab("tabs.libraries", systemImage: "rectangle.stack.fill", value: MainCoordinator.Tab.library) {
-                libraryTabContent
+            if tabLayout.bar.contains(.library) {
+                Tab(value: MainCoordinator.Tab.library) {
+                    libraryTabContent
+                } label: {
+                    tabLabel(.library)
+                }
             }
 
-            if isLiveTVAvailable {
-                Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
+            if tabLayout.bar.contains(.liveTV) {
+                Tab(value: MainCoordinator.Tab.liveTV) {
                     liveTVTabContent
+                } label: {
+                    tabLabel(.liveTV)
                 }
             }
 
-            if settingsManager.interface.displayFavoritesTab {
-                Tab("tabs.favorites", systemImage: "star.fill", value: MainCoordinator.Tab.favorites) {
+            if tabLayout.bar.contains(.favorites) {
+                Tab(value: MainCoordinator.Tab.favorites) {
                     favoritesTabContent
+                } label: {
+                    tabLabel(.favorites)
                 }
             }
 
-            TabSection {
-                ForEach(libraryStore.navigationLibraries, id: \.identity) { library in
-                    Tab(
-                        library.title,
-                        systemImage: library.iconName,
-                        value: MainCoordinator.Tab.libraryDetail(library.identity),
-                    ) {
-                        libraryDetailTabContent(library)
-                    }
+            ForEach(libraryStore.navigationLibraries.filter {
+                tabLayout.bar.contains(.libraryDetail($0.identity))
+            }, id: \.identity) { library in
+                Tab(value: MainCoordinator.Tab.libraryDetail(library.identity)) {
+                    libraryDetailTabContent(library)
+                } label: {
+                    tabLabel(.libraryDetail(library.identity))
                 }
             }
+
+            if !tabLayout.overflow.isEmpty {
+                Tab("tabs.overflow", systemImage: "ellipsis", value: MainCoordinator.Tab.more) {
+                    moreTabContent
+                }
+            }
+        }
+    }
+
+    /// Home and Discover come first, so they always stay in the bar.
+    @ViewBuilder
+    private func tabLabel(_ tab: MainCoordinator.Tab) -> some View {
+        switch tab {
+        case .downloads:
+            Label("downloads.title", systemImage: "arrow.down.circle.fill")
+        case .library:
+            Label("tabs.libraries", systemImage: "rectangle.stack.fill")
+        case .liveTV:
+            Label("livetv.title", systemImage: "tv")
+        case .favorites:
+            Label("tabs.favorites", systemImage: "star.fill")
+        case let .libraryDetail(identity):
+            if let library = libraryStore.library(identity) {
+                Label(library.title, systemImage: library.iconName)
+            }
+        case .home, .seerrDiscover, .search, .more:
+            EmptyView()
+        }
+    }
+
+    private var moreTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .more)) {
+            List(tabLayout.overflow, id: \.self) { tab in
+                NavigationLink(value: tab) {
+                    tabLabel(tab)
+                }
+            }
+            .navigationTitle("tabs.overflow")
+            .tabRootChrome()
+            .navigationDestination(for: MainCoordinator.Tab.self) { tab in
+                overflowTabRoot(tab)
+                    .onAppear { coordinator.moreRootTab = tab }
+            }
+            .navigationDestination(for: Library.self) {
+                libraryDetailRoot($0)
+            }
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func overflowTabRoot(_ tab: MainCoordinator.Tab) -> some View {
+        switch tab {
+        case .downloads:
+            DownloadsView()
+        case .library:
+            libraryRoot
+        case .liveTV:
+            liveTVRoot
+        case .favorites:
+            favoritesRoot
+        case let .libraryDetail(identity):
+            if let library = libraryStore.library(identity) {
+                libraryDetailRoot(library)
+            }
+        case .home, .seerrDiscover, .search, .more:
+            EmptyView()
         }
     }
 
@@ -222,22 +331,21 @@ struct MainTabView: View {
 
     private var libraryTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .library)) {
-            LibraryView(
-                viewModel: libraryViewModel,
-                onSelectMedia: coordinator.showMediaDetail,
-            )
-            .navigationDestination(for: Library.self) { library in
-                ServerScopedView(server: library.server) { _ in
-                    LibraryDetailView(
-                        library: library,
-                        onSelectMedia: coordinator.showMediaDetail,
-                    )
+            libraryRoot
+                .navigationDestination(for: Library.self) {
+                    libraryDetailRoot($0)
                 }
-            }
-            .navigationDestination(for: MainCoordinator.Route.self) {
-                destination(for: $0)
-            }
+                .navigationDestination(for: MainCoordinator.Route.self) {
+                    destination(for: $0)
+                }
         }
+    }
+
+    private var libraryRoot: some View {
+        LibraryView(
+            viewModel: libraryViewModel,
+            onSelectMedia: coordinator.showMediaDetail,
+        )
     }
 
     private var downloadsTabContent: some View {
@@ -248,48 +356,59 @@ struct MainTabView: View {
 
     private var favoritesTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .favorites)) {
-            FavoritesView(
-                sessionManager: sessionManager,
-                onSelectMedia: coordinator.showMediaDetail,
-            )
-            .unavailableWhenOffline()
-            .navigationDestination(for: MainCoordinator.Route.self) {
-                destination(for: $0)
-            }
+            favoritesRoot
+                .navigationDestination(for: MainCoordinator.Route.self) {
+                    destination(for: $0)
+                }
         }
+    }
+
+    private var favoritesRoot: some View {
+        FavoritesView(
+            sessionManager: sessionManager,
+            onSelectMedia: coordinator.showMediaDetail,
+        )
+        .unavailableWhenOffline()
     }
 
     private var liveTVTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
-            LiveTVServersView(
-                onPlayLive: { coordinator.showLivePlayer(context: $0, services: $1) },
-                onPlayRecording: { media, services in
-                    Task { await PlaybackLauncher(services: services, coordinator: coordinator).play(
-                        ratingKey: media.id,
-                        type: media.type,
-                    ) }
-                },
-                onOpenLibrary: { identity in
-                    guard let library = libraryStore.library(identity) else { return }
-                    coordinator.tab = .library
-                    coordinator.libraryPath = NavigationPath([library])
-                },
-            )
-            .unavailableWhenOffline()
+            liveTVRoot
         }
+    }
+
+    private var liveTVRoot: some View {
+        LiveTVServersView(
+            onPlayLive: { coordinator.showLivePlayer(context: $0, services: $1) },
+            onPlayRecording: { media, services in
+                Task { await PlaybackLauncher(services: services, coordinator: coordinator).play(
+                    ratingKey: media.id,
+                    type: media.type,
+                ) }
+            },
+            onOpenLibrary: { identity in
+                guard let library = libraryStore.library(identity) else { return }
+                coordinator.showLibrary(library)
+            },
+        )
+        .unavailableWhenOffline()
     }
 
     private func libraryDetailTabContent(_ library: Library) -> some View {
         NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.identity))) {
-            ServerScopedView(server: library.server) { _ in
-                LibraryDetailView(
-                    library: library,
-                    onSelectMedia: coordinator.showMediaDetail,
-                )
-            }
-            .navigationDestination(for: MainCoordinator.Route.self) {
-                destination(for: $0)
-            }
+            libraryDetailRoot(library)
+                .navigationDestination(for: MainCoordinator.Route.self) {
+                    destination(for: $0)
+                }
+        }
+    }
+
+    private func libraryDetailRoot(_ library: Library) -> some View {
+        ServerScopedView(server: library.server) { _ in
+            LibraryDetailView(
+                library: library,
+                onSelectMedia: coordinator.showMediaDetail,
+            )
         }
     }
 

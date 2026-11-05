@@ -63,7 +63,7 @@ extension View {
         }
 
         private var isSmall: Bool {
-            controlSize <= .small
+            controlSize == .small || controlSize == .mini
         }
 
         private var foreground: Color {

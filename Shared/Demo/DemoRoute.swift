@@ -25,8 +25,7 @@
             case .home:
                 coordinator.tab = .home
             case let .library(library):
-                coordinator.tab = .library
-                coordinator.libraryPath.append(library)
+                coordinator.showLibrary(library)
             case let .media(media):
                 coordinator.tab = .home
                 coordinator.showMediaDetail(media)

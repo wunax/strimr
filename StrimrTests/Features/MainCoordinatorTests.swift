@@ -73,4 +73,130 @@ struct MainCoordinatorTests {
 
         #expect(coordinator.tab == .home)
     }
+
+    // MARK: More tab
+
+    private let compactLayout = MainTabLayout(
+        tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV],
+        isCompact: true,
+    )
+    private let regularLayout = MainTabLayout(
+        tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV],
+        isCompact: false,
+    )
+    private let library = Library(
+        id: "1",
+        title: "Movies",
+        type: .movie,
+        server: ServerIdentity(provider: .jellyfin, id: "server-1"),
+    )
+
+    @Test func `opens an overflow tab inside More`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+
+        coordinator.tab = .library
+
+        #expect(coordinator.tab == .more)
+        #expect(coordinator.morePath.count == 1)
+    }
+
+    @Test func `leaves a tab of the bar selected`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+
+        coordinator.tab = .downloads
+
+        #expect(coordinator.tab == .downloads)
+        #expect(coordinator.morePath.isEmpty)
+    }
+
+    @Test func `moves the startup tab to More once it overflows`() {
+        let coordinator = coordinator(startupScreen: .libraries)
+
+        coordinator.updateTabLayout(compactLayout)
+
+        #expect(coordinator.tab == .more)
+        #expect(coordinator.morePath.count == 1)
+    }
+
+    @Test func `opens Live TV inside More once it becomes available`() {
+        let coordinator = coordinator(startupScreen: .liveTV)
+        coordinator.updateTabLayout(compactLayout)
+
+        coordinator.openPendingStartupTab(.liveTV)
+
+        #expect(coordinator.tab == .more)
+        #expect(coordinator.morePath.count == 1)
+    }
+
+    @Test func `shows a library in the More stack when the Libraries tab overflows`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+
+        coordinator.showLibrary(library)
+
+        #expect(coordinator.tab == .more)
+        #expect(coordinator.morePath.count == 2)
+        #expect(coordinator.libraryPath.isEmpty)
+    }
+
+    @Test func `shows a library in its own tab when it fits in the bar`() {
+        let coordinator = coordinator(startupScreen: .home)
+
+        coordinator.showLibrary(library)
+
+        #expect(coordinator.tab == .library)
+        #expect(coordinator.libraryPath.count == 1)
+        #expect(coordinator.morePath.isEmpty)
+    }
+
+    @Test func `pushes details on the More stack while in More`() throws {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+        coordinator.tab = .library
+        let server = ServerIdentity(provider: .jellyfin, id: "server-1")
+        let media = try #require(PlayableMediaItem(mediaItem: MediaItem.make(id: "1", server: server, type: .movie)))
+
+        coordinator.showMediaDetail(media)
+
+        #expect(coordinator.morePath.count == 2)
+        #expect(coordinator.homePath.isEmpty)
+    }
+
+    @Test func `returns to the tab shown in More when the bar has room again`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+        coordinator.tab = .library
+
+        coordinator.updateTabLayout(regularLayout)
+
+        #expect(coordinator.tab == .library)
+        #expect(coordinator.morePath.isEmpty)
+    }
+
+    @Test func `leaves More for Home when its tab is gone and the bar has room`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(compactLayout)
+        coordinator.tab = .liveTV
+
+        coordinator.updateTabLayout(MainTabLayout(tabs: [.home, .downloads, .library], isCompact: true))
+
+        #expect(coordinator.tab == .home)
+        #expect(coordinator.morePath.isEmpty)
+    }
+
+    @Test func `closes a tab removed from More`() {
+        let coordinator = coordinator(startupScreen: .home)
+        coordinator.updateTabLayout(MainTabLayout(
+            tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV, .favorites],
+            isCompact: true,
+        ))
+        coordinator.tab = .favorites
+
+        coordinator.updateTabLayout(compactLayout)
+
+        #expect(coordinator.tab == .more)
+        #expect(coordinator.morePath.isEmpty)
+    }
 }
