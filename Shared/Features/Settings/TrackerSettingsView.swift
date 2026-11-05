@@ -122,14 +122,20 @@ struct TrackerSettingsView: View {
                     Text(code.userCode)
                         .font(.heroTitle)
                         .monospaced()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                     Text(code.verificationURL.absoluteString)
                         .font(.facts)
                         .foregroundStyle(.secondary)
                     #if !os(tvOS)
                         // Without a borderless style, a list row fires all of its buttons on any tap.
-                        HStack(spacing: 16) {
-                            Link("integrations.trackers.connect.open", destination: code.scanURL)
-                            copyButton(code)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 16) {
+                                codeActions(code)
+                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                codeActions(code)
+                            }
                         }
                         .buttonStyle(.borderless)
                     #endif
@@ -146,6 +152,12 @@ struct TrackerSettingsView: View {
     }
 
     #if !os(tvOS)
+        @ViewBuilder
+        private func codeActions(_ code: TrackerDeviceCode) -> some View {
+            Link("integrations.trackers.connect.open", destination: code.scanURL)
+            copyButton(code)
+        }
+
         private func copyButton(_ code: TrackerDeviceCode) -> some View {
             Button {
                 Self.copyToPasteboard(code.userCode)
