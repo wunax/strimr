@@ -206,6 +206,7 @@ struct MainTabView: View {
                 )
             }
         }
+        .selectsTab(.seerrDiscover, in: coordinator)
     }
 
     private var searchTabContent: some View {
@@ -238,12 +239,14 @@ struct MainTabView: View {
                 destination(for: $0)
             }
         }
+        .selectsTab(.library, in: coordinator)
     }
 
     private var downloadsTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .downloads)) {
             DownloadsView()
         }
+        .selectsTab(.downloads, in: coordinator)
     }
 
     private var favoritesTabContent: some View {
@@ -257,6 +260,7 @@ struct MainTabView: View {
                 destination(for: $0)
             }
         }
+        .selectsTab(.favorites, in: coordinator)
     }
 
     private var liveTVTabContent: some View {
@@ -277,6 +281,7 @@ struct MainTabView: View {
             )
             .unavailableWhenOffline()
         }
+        .selectsTab(.liveTV, in: coordinator)
     }
 
     private func libraryDetailTabContent(_ library: Library) -> some View {
@@ -291,6 +296,7 @@ struct MainTabView: View {
                 destination(for: $0)
             }
         }
+        .selectsTab(.libraryDetail(library.identity), in: coordinator)
     }
 
     /// Every destination is shown with the services of its own server.
@@ -400,5 +406,13 @@ struct MainTabView: View {
                 onSelectMedia: coordinator.showMediaDetail,
             )
         }
+    }
+}
+
+private extension View {
+    /// A tab opened from the More list does not update the TabView selection, so routes would be pushed on the
+    /// previously selected tab's stack, out of sight.
+    func selectsTab(_ tab: MainCoordinator.Tab, in coordinator: MainCoordinator) -> some View {
+        onAppear { coordinator.tab = tab }
     }
 }
