@@ -63,7 +63,6 @@ struct CollectionDetailView: View {
                 )
             }
         }
-        .toolbar(.hidden, for: .tabBar)
         .task {
             await bindableViewModel.load()
         }

@@ -78,7 +78,6 @@ struct PlaylistDetailView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .tabBar)
         .onChange(of: viewModel.entries.count) { _, count in
             if count < 2 {
                 editMode = .inactive

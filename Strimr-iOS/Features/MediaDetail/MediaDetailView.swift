@@ -83,7 +83,6 @@ struct MediaDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
-        .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $isShowingSubtitleSearch) {
             if let ratingKey = bindableViewModel.trackRatingKey {
                 SubtitleSearchView(
