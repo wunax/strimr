@@ -409,12 +409,15 @@ struct PlayerViewModelAutomaticSubtitleSearchTests {
     }
 
     @Test func `without an account service the device language is used`() async {
+        let deviceLanguage = AccountLanguageCode.normalized(Locale.preferredLanguages.first ?? "en")
         let service = Service()
+        // No search starts when the audio is already in the wanted language.
+        service.audioLanguage = deviceLanguage == "fr" ? "eng" : "fre"
         let viewModel = await loadedViewModel(service, account: nil)
 
         _ = await viewModel.searchMissingSubtitle(settings: enabledSettings)
 
-        #expect(service.searchedLanguages.count == 1)
+        #expect(service.searchedLanguages == [deviceLanguage])
     }
 
     @Test func `a forced result is never installed`() async {
