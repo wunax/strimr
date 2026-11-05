@@ -21846,19 +21846,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex and Jellyfin are trademarks of their respective owners. Strimr is not affiliated with or endorsed by them."
+            "value" : "Plex and Jellyfin are trademarks of their respective owners. Strimr is not affiliated with or endorsed by them. Strimr uses Trakt but is not endorsed or certified by Trakt. Strimr also uses Simkl and is not affiliated with or endorsed by Simkl."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex et Jellyfin sont des marques de leurs propriétaires respectifs. Strimr n'est ni affilié à eux, ni approuvé par eux."
+            "value" : "Plex et Jellyfin sont des marques de leurs propriétaires respectifs. Strimr n'est ni affilié à eux, ni approuvé par eux. Strimr utilise Trakt mais n'est ni approuvé ni certifié par Trakt. Strimr utilise aussi Simkl et n'est ni affilié à Simkl, ni approuvé par Simkl."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex 和 Jellyfin 是其各自所有者的商标。Strimr 与它们没有关联，也未获得其认可。"
+            "value" : "Plex 和 Jellyfin 是其各自所有者的商标。Strimr 与它们没有关联，也未获得其认可。Strimr 使用 Trakt，但未获得 Trakt 的认可或认证。Strimr 还使用 Simkl，但与 Simkl 没有关联，也未获得 Simkl 的认可。"
           }
         }
       }
