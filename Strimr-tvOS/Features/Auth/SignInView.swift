@@ -1,11 +1,7 @@
-import CoreImage.CIFilterBuiltins
 import SwiftUI
-import UIKit
 
 struct SignInView: View {
     @State private var viewModel: SignInViewModel
-
-    private let ciContext = CIContext()
 
     init(viewModel: SignInViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -38,9 +34,9 @@ struct SignInView: View {
                 if let pin = viewModel.pin {
                     VStack(spacing: 20) {
                         if let url = plexAuthURL(pin: pin),
-                           let qrImage = qrImage(from: url.absoluteString)
+                           let qrImage = QRCodeImage.make(url.absoluteString)
                         {
-                            Image(uiImage: qrImage)
+                            qrImage
                                 .resizable()
                                 .interpolation(.none)
                                 .frame(width: 260, height: 260)
@@ -75,20 +71,6 @@ struct SignInView: View {
 }
 
 extension SignInView {
-    private func qrImage(from string: String) -> UIImage? {
-        guard let data = string.data(using: .ascii) else { return nil }
-
-        let filter = CIFilter.qrCodeGenerator()
-        filter.setValue(data, forKey: "inputMessage")
-        filter.correctionLevel = "M"
-
-        guard let outputImage = filter.outputImage else { return nil }
-        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 12, y: 12))
-
-        guard let cgImage = ciContext.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return UIImage(cgImage: cgImage)
-    }
-
     private func plexAuthURL(pin: PlexCloudPin) -> URL? {
         let base = "https://app.plex.tv/auth#?"
         let fragment =

@@ -62,6 +62,7 @@ struct StrimrApp: App {
     var body: some Scene {
         WindowGroup {
             configured(ContentView())
+                .flushesTrackerQueue()
                 .frame(minWidth: 900, minHeight: 620)
                 .toastHost()
                 .preferredColorScheme(.dark)

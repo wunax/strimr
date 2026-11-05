@@ -12,6 +12,11 @@ struct SettingsPrivacyView: View {
                 Text("settings.privacy.errorReports.footer")
             }
 
+            Section {
+                Text("settings.privacy.trackers")
+                    .foregroundStyle(.secondary)
+            }
+
             Section("settings.privacy.policy") {
                 QRCodeLink(url: AppInfo.privacyPolicyURL)
             }
