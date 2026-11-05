@@ -54,7 +54,7 @@ The App only sends this activity and reads your username. It does not import you
 Data sent to a service is then handled under its own policy, and this Privacy Policy does not cover it:
 
 - [Trakt Privacy Policy](https://trakt.tv/privacy)
-- [Simkl Privacy Policy](https://simkl.com/privacy/)
+- [Simkl Privacy Policy](https://simkl.com/about/policies/privacy/)
 
 ## Data Retention
 
