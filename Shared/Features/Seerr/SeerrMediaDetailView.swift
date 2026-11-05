@@ -68,7 +68,6 @@ struct SeerrMediaDetailView: View {
         #if os(iOS)
         .ignoresSafeArea(edges: .top)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
-        .toolbar(.hidden, for: .tabBar)
         #else
         .navigationTitle(bindableViewModel.media.displayTitle)
         #endif
