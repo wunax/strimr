@@ -259,6 +259,20 @@ struct TrackerCoordinatorTests {
         #expect(client.added.count == 1)
     }
 
+    @Test func `repeated network failures never drop the write`() async {
+        let (coordinator, client) = await failingOnce(with: URLError(.notConnectedToInternet))
+
+        for _ in 1 ... TrackerWriteQueue.maxAttempts {
+            client.historyFailures = [URLError(.notConnectedToInternet)]
+            coordinator.flushQueue()
+            await settle(coordinator)
+        }
+        coordinator.flushQueue()
+        await settle(coordinator)
+
+        #expect(client.added.count == 1)
+    }
+
     @Test func `an unknown title leaves the queue`() async {
         let (coordinator, client) = await failingOnce(with: TrackerAPIError.notFound)
 
@@ -423,5 +437,41 @@ struct TrackerCoordinatorTests {
         await settle(coordinator)
 
         #expect(client.reports.isEmpty)
+    }
+
+    @Test func `a playback stops reporting once sending is turned off, and queues nothing`() async throws {
+        let coordinator = await connected()
+        let client = try #require(clients.byService[.trakt])
+        let session = try await playback(coordinator)
+        session.playing(position: 100, duration: 1000)
+        await settle(coordinator)
+
+        coordinator.setEnabled(false, for: .trakt)
+        session.paused(position: 200, duration: 1000)
+        session.playing(position: 200, duration: 1000)
+        session.stopped(position: 850, duration: 1000)
+        await settle(coordinator)
+        #expect(client.reports.map(\.event) == [.start])
+
+        coordinator.setEnabled(true, for: .trakt)
+        await settle(coordinator)
+        #expect(client.added.isEmpty)
+    }
+
+    @Test func `a playback reports again once sending is turned back on`() async throws {
+        let coordinator = await connected()
+        let client = try #require(clients.byService[.trakt])
+        let session = try await playback(coordinator)
+        session.playing(position: 100, duration: 1000)
+        await settle(coordinator)
+
+        coordinator.setEnabled(false, for: .trakt)
+        session.paused(position: 200, duration: 1000)
+        await settle(coordinator)
+        coordinator.setEnabled(true, for: .trakt)
+        session.playing(position: 200, duration: 1000)
+        await settle(coordinator)
+
+        #expect(client.reports.map(\.event) == [.start, .start])
     }
 }

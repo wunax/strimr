@@ -210,7 +210,7 @@ final class TrackerCoordinator {
             client: client,
             isAvailable: { [weak self, weak binding] in
                 guard let self, let binding else { return false }
-                return binding.isActive && !isHeld(binding)
+                return canSend(to: binding)
             },
             onFailure: { [weak self, weak binding] report, error in
                 guard let self, let binding else { return }
@@ -259,7 +259,7 @@ final class TrackerCoordinator {
     }
 
     private func handlePlaybackFailure(_ report: TrackerPlaybackReport, error: Error, binding: TrackerBinding) {
-        guard binding.isActive else { return }
+        guard binding.isActive, isEnabled(binding) else { return }
         let wasWatched = report.event == .stop && report.progress >= binding.client.policy.watchedProgress
         switch classify(error, binding: binding) {
         case .keep, .count:
@@ -377,7 +377,7 @@ final class TrackerCoordinator {
         for action in [TrackerQueuedWrite.Action.remove, .add] {
             let writes = pending.filter { $0.action == action }
             for start in stride(from: 0, to: writes.count, by: Self.batchSize) {
-                guard binding.isActive, !isHeld(binding) else { return }
+                guard canSend(to: binding) else { return }
                 let batch = Array(writes[start ..< min(start + Self.batchSize, writes.count)])
                 let ids = Set(batch.map(\.id))
                 do {
@@ -421,9 +421,8 @@ final class TrackerCoordinator {
             return .keep
         }
         guard let apiError = error as? TrackerAPIError else {
-            if !error.isTrackerTransient {
-                ErrorReporter.capture(error)
-            }
+            guard !error.isTrackerTransient else { return .keep }
+            ErrorReporter.capture(error)
             return .count
         }
         switch apiError {
@@ -464,6 +463,14 @@ final class TrackerCoordinator {
     private func isHeld(_ binding: TrackerBinding) -> Bool {
         guard let holdUntil = binding.holdUntil else { return false }
         return holdUntil > now()
+    }
+
+    private func isEnabled(_ binding: TrackerBinding) -> Bool {
+        store.settings(binding.service, profileID: binding.profileID).isEnabled
+    }
+
+    private func canSend(to binding: TrackerBinding) -> Bool {
+        binding.isActive && !isHeld(binding) && isEnabled(binding)
     }
 
     private func reportResolutionFailure(_ error: Error) {
