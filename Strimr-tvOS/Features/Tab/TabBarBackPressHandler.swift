@@ -38,6 +38,7 @@ struct TabBarBackPressHandler: UIViewRepresentable {
         }
 
         @objc private func handlePress() {
+            guard canGoBack() else { return }
             goBack()
         }
 
