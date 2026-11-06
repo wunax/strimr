@@ -179,6 +179,15 @@ struct MainTabView: View {
             }
         }
         .modifier(TabBarPlacementStyle(placement: settingsManager.interface.tabBarPlacement))
+        .background(
+            TabBarBackPressHandler(
+                canGoBack: {
+                    !coordinator.isPresentingPlayer && !coordinator.pathBinding(for: coordinator.tab).wrappedValue
+                        .isEmpty
+                },
+                goBack: { coordinator.pathBinding(for: coordinator.tab).wrappedValue.removeLast() },
+            ),
+        )
         .environmentObject(coordinator)
         .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
         .task {
