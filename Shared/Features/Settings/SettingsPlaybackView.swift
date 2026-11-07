@@ -105,6 +105,12 @@ struct SettingsPlaybackView: View {
                 if hasLiveTV {
                     Toggle("settings.playback.autoSkipCommercials", isOn: viewModel.autoSkipCommercialsBinding)
                 }
+                Picker("settings.playback.autoSkipCountdown", selection: viewModel.autoSkipCountdownBinding) {
+                    ForEach(PlaybackSettings.autoSkipCountdownOptions, id: \.self) { seconds in
+                        Text(viewModel.autoSkipCountdownTitle(seconds)).tag(seconds)
+                    }
+                }
+                .disabled(!viewModel.isAutoSkipEnabled(includingCommercials: hasLiveTV))
             } header: {
                 Text("settings.playback.skipping.title")
             } footer: {

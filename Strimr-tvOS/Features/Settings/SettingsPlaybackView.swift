@@ -88,6 +88,15 @@ struct SettingsPlaybackView: View {
                     Toggle("settings.playback.autoSkipCommercials", isOn: viewModel.autoSkipCommercialsBinding)
                         .settingsFocus("settings.playback.autoSkipCommercials")
                 }
+                SettingsPicker(
+                    "settings.playback.autoSkipCountdown",
+                    selection: viewModel.autoSkipCountdownBinding,
+                    options: PlaybackSettings.autoSkipCountdownOptions,
+                ) { seconds in
+                    Text(viewModel.autoSkipCountdownTitle(seconds))
+                }
+                .settingsFocus("settings.playback.autoSkipCountdown")
+                .disabled(!viewModel.isAutoSkipEnabled(includingCommercials: hasLiveTV))
             } header: {
                 Text("settings.playback.skipping.title")
             } footer: {

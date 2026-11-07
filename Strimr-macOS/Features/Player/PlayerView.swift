@@ -184,6 +184,15 @@ struct PlayerView: View {
                     .transition(.opacity)
             }
 
+            if !controlsVisible, !isShowingPlayQueue, let marker = viewModel.activeSkipMarker,
+               viewModel.automaticSkipCountdown(for: marker) != nil
+            {
+                skipMarkerButton(for: marker)
+                    .padding(24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .transition(.opacity)
+            }
+
             if let activeOffsetBar, !isShowingPlayQueue {
                 offsetBar(activeOffsetBar)
             }
@@ -567,17 +576,7 @@ struct PlayerView: View {
                 if let marker = viewModel.activeSkipMarker {
                     HStack {
                         Spacer()
-                        Button {
-                            playerController.seek(to: marker.endTime)
-                        } label: {
-                            HStack(spacing: 10) {
-                                Text(marker.skipTitle)
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote.weight(.bold))
-                            }
-                        }
-                        .actionButtonStyle(.primary)
-                        .accessibilityLabel(marker.skipTitle)
+                        skipMarkerButton(for: marker)
                     }
                 }
 
@@ -685,6 +684,23 @@ struct PlayerView: View {
         .background {
             PlayerControlsBackground()
         }
+    }
+
+    private func skipMarkerButton(for marker: SkipSegment) -> some View {
+        let countdown = viewModel.automaticSkipCountdown(for: marker)
+        return Button {
+            playerController.seek(to: marker.endTime)
+        } label: {
+            HStack(spacing: 10) {
+                Text(marker.skipTitle)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.bold))
+            }
+        }
+        .actionButtonStyle(.primary)
+        .skipCountdownOverlay(countdown)
+        .accessibilityLabel(marker.skipTitle)
+        .accessibilityValue(countdown?.accessibilityValue ?? "")
     }
 
     private var leadingControls: some View {
@@ -1605,13 +1621,16 @@ struct PlayerView: View {
     }
 
     private func handleAutomaticMarkerSkipIfNeeded() {
-        guard !isScrubbing, !(participatesInSharePlay && sharePlayCoordinator.isInSession),
-              let marker = viewModel.automaticSkipMarker(
-                  autoSkipIntros: settingsManager.playback.autoSkipIntros,
-                  autoSkipCredits: settingsManager.playback.autoSkipCredits,
-                  autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
-              )
-        else {
+        guard !isScrubbing, !(participatesInSharePlay && sharePlayCoordinator.isInSession) else {
+            viewModel.cancelAutomaticSkipCountdown()
+            return
+        }
+        guard let marker = viewModel.automaticSkipMarker(
+            autoSkipIntros: settingsManager.playback.autoSkipIntros,
+            autoSkipCredits: settingsManager.playback.autoSkipCredits,
+            autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
+            countdownSeconds: settingsManager.playback.autoSkipCountdownSeconds,
+        ) else {
             return
         }
 

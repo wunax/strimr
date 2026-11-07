@@ -236,7 +236,8 @@ final class PlayerViewModel {
     @ObservationIgnored private let localMedia: MediaItem?
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
-    @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
+    @ObservationIgnored private var automaticMarkerSkip = AutomaticMarkerSkip()
+    private(set) var automaticSkipCountdown: AutomaticMarkerSkip.Countdown?
     /// Bumped by each subtitle choice made by hand, which an automatic search in progress must not override.
     @ObservationIgnored private var manualSubtitleChanges = 0
     @ObservationIgnored private var liveContext: LiveTVLaunchContext?
@@ -927,23 +928,41 @@ final class PlayerViewModel {
         autoSkipIntros: Bool,
         autoSkipCredits: Bool,
         autoSkipCommercials: Bool,
+        countdownSeconds: Int,
     ) -> SkipSegment? {
-        if let automaticSkipMarkerInFlight {
-            guard !automaticSkipMarkerInFlight.contains(time: position) else { return nil }
-            self.automaticSkipMarkerInFlight = nil
+        var enabledKinds = Set<SkipSegment.Kind>()
+        if autoSkipIntros {
+            enabledKinds.insert(.intro)
+        }
+        if autoSkipCredits {
+            enabledKinds.insert(.credits)
+        }
+        if autoSkipCommercials {
+            enabledKinds.insert(.commercial)
         }
 
-        guard let marker = markers.first(where: {
-            guard $0.contains(time: position) else { return false }
-            return switch $0.kind {
-            case .intro: autoSkipIntros
-            case .credits: autoSkipCredits
-            case .commercial: autoSkipCommercials
-            }
-        }) else { return nil }
-
-        automaticSkipMarkerInFlight = marker
+        let marker = automaticMarkerSkip.update(
+            position: position,
+            markers: markers,
+            enabledKinds: enabledKinds,
+            countdownSeconds: countdownSeconds,
+        )
+        publishAutomaticSkipCountdown()
         return marker
+    }
+
+    func cancelAutomaticSkipCountdown() {
+        automaticMarkerSkip.cancel()
+        publishAutomaticSkipCountdown()
+    }
+
+    func automaticSkipCountdown(for marker: SkipSegment) -> AutomaticMarkerSkip.Countdown? {
+        automaticSkipCountdown?.marker == marker ? automaticSkipCountdown : nil
+    }
+
+    private func publishAutomaticSkipCountdown() {
+        guard automaticSkipCountdown != automaticMarkerSkip.countdown else { return }
+        automaticSkipCountdown = automaticMarkerSkip.countdown
     }
 
     func persistStreamSelection(for track: PlayerTrack) async {
@@ -1051,7 +1070,8 @@ final class PlayerViewModel {
         preferredSubtitleStreamID = nil
         preferredSubtitleSelectionIsOff = false
         scrubThumbnailSource = nil
-        automaticSkipMarkerInFlight = nil
+        automaticMarkerSkip.reset()
+        automaticSkipCountdown = nil
         markers = []
         chapters = []
     }
