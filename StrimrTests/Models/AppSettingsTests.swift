@@ -130,6 +130,20 @@ struct AppSettingsTests {
         #expect(reloaded.libraryBrowsePreferences(for: "key") == preferences)
     }
 
+    @MainActor
+    @Test func `the live TV channel sort is saved per server`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let plex = ServerIdentity(provider: .plex, id: "server")
+        let jellyfin = ServerIdentity(provider: .jellyfin, id: "server")
+
+        SettingsManager(userDefaults: defaults).setLiveTVChannelSort(.name, server: plex)
+        let reloaded = SettingsManager(userDefaults: defaults)
+
+        #expect(reloaded.liveTVChannelSort(server: plex) == .name)
+        #expect(reloaded.liveTVChannelSort(server: jellyfin) == .number)
+    }
+
     @Test func `missing pause screen setting decodes as enabled`() throws {
         let settings = try decode(#"{"playback":{"showClock":true}}"#)
 
@@ -172,6 +186,23 @@ struct AppSettingsTests {
 
         #expect(settings.playback.audioDelayMilliseconds == 0)
         #expect(settings.playback.losslessAudio)
+    }
+
+    @Test func `read-ahead defaults to standard and survives an unknown value`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.readAhead == .standard)
+        #expect(try decode(#"{"playback":{"readAhead":"maximum"}}"#).playback.readAhead == .maximum)
+
+        let settings = try decode(#"{"playback":{"readAhead":"huge","seekForwardSeconds":30}}"#)
+        #expect(settings.playback.readAhead == .standard)
+        #expect(settings.playback.seekForwardSeconds == 30)
+    }
+
+    @Test func `standard read-ahead keeps the engine default window`() {
+        #expect(PlaybackReadAhead.standard.forwardBufferSegments == nil)
+        #expect(PlaybackReadAhead.extended.forwardBufferSegments == 75)
+        #expect(PlaybackReadAhead.maximum.forwardBufferSegments == .max)
+        #expect(PlaybackReadAhead.standard.softwarePacketCacheStorage == .automatic)
+        #expect(PlaybackReadAhead.maximum.softwarePacketCacheStorage == .disk)
     }
 
     @Test func `out of range audio delay decodes clamped`() throws {

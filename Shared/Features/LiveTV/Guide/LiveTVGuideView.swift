@@ -58,7 +58,7 @@ struct LiveTVGuideView: View {
         case .all:
             return store.channels
         case .favorites:
-            return store.channels.filter(\.isFavorite)
+            return store.favoriteChannels
         case let .category(category):
             let matching = Set(store.programs.filter { $0.categories.contains(category) }.map(\.channelIdentity))
             return store.channels.filter { matching.contains($0.identity) }
@@ -157,6 +157,9 @@ struct LiveTVGuideView: View {
                     }
                     .buttonStyle(.chip(isSelected: false))
                 }
+                if filter != .favorites {
+                    sortMenu
+                }
                 Divider().frame(height: 24)
                 dayMenu
                 Button { jumpToNow(movesFocus: true) } label: {
@@ -171,6 +174,37 @@ struct LiveTVGuideView: View {
         #if os(tvOS)
             .focusSection()
         #endif
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(LiveTVChannelSort.allCases, id: \.self) { sort in
+                Button { select(sort: sort) } label: {
+                    if store.channelSort == sort {
+                        Label(String(localized: sort.title), systemImage: "checkmark")
+                    } else {
+                        Text(sort.title)
+                    }
+                }
+            }
+        } label: {
+            Label {
+                Text(store.channelSort.title)
+            } icon: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+        }
+        #if os(tvOS)
+        .buttonStyle(.chip(isSelected: false))
+        #else
+        .menuStyle(.button)
+        .buttonStyle(.chip(isSelected: false))
+        #endif
+    }
+
+    private func select(sort: LiveTVChannelSort) {
+        store.channelSort = sort
+        settingsManager.setLiveTVChannelSort(sort, server: services.identity)
     }
 
     private var dayMenu: some View {

@@ -124,10 +124,72 @@ struct LiveTVChannel: Identifiable, Hashable, Sendable {
         identity
     }
 
+    var name: String {
+        callSign?.nilIfEmpty ?? title
+    }
+
     var displayTitle: String {
-        let name = callSign?.nilIfEmpty ?? title
         guard let number = number?.nilIfEmpty else { return name }
         return "\(number) · \(name)"
+    }
+}
+
+/// A channel number as servers write it: "7", or an over-the-air subchannel such as "10.1" or "10-1".
+struct LiveTVChannelNumber: Comparable, Hashable, Sendable {
+    let major: Int
+    let minor: Int?
+
+    init(major: Int, minor: Int? = nil) {
+        self.major = major
+        self.minor = minor
+    }
+
+    init?(_ text: String) {
+        let parts = text.trimmingCharacters(in: .whitespaces)
+            .split(maxSplits: 1, omittingEmptySubsequences: false) { $0 == "." || $0 == "-" }
+        guard let major = parts.first.flatMap({ Int($0) }) else { return nil }
+        self.init(major: major, minor: parts.count > 1 ? Int(parts[1]) : nil)
+    }
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        (lhs.major, lhs.minor ?? -1) < (rhs.major, rhs.minor ?? -1)
+    }
+}
+
+enum LiveTVChannelSort: String, Codable, CaseIterable, Sendable {
+    case number
+    case name
+
+    var title: LocalizedStringResource {
+        switch self {
+        case .number: "livetv.guide.sort.number"
+        case .name: "livetv.guide.sort.name"
+        }
+    }
+
+    /// Channels without a number come last when sorting by number.
+    func sorted(_ channels: [LiveTVChannel]) -> [LiveTVChannel] {
+        let numbers = Dictionary(
+            channels.map { ($0.identity, $0.number.flatMap(LiveTVChannelNumber.init)) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        return channels.sorted { lhs, rhs in
+            let left = numbers[lhs.identity] ?? nil
+            let right = numbers[rhs.identity] ?? nil
+            if self == .number, left != right {
+                switch (left, right) {
+                case let (left?, right?): return left < right
+                case (_?, nil): return true
+                case (nil, _?): return false
+                case (nil, nil): break
+                }
+            }
+            let order = lhs.name.localizedStandardCompare(rhs.name)
+            if order != .orderedSame {
+                return order == .orderedAscending
+            }
+            return (left ?? LiveTVChannelNumber(major: .max)) < (right ?? LiveTVChannelNumber(major: .max))
+        }
     }
 }
 

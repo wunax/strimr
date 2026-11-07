@@ -34,6 +34,19 @@ struct SettingsPlaybackView: View {
 
             Section {
                 SettingsPicker(
+                    "settings.playback.readAhead",
+                    selection: viewModel.readAheadBinding,
+                    options: PlaybackReadAhead.allCases,
+                ) { option in
+                    Text(option.title)
+                }
+                .settingsFocus("settings.playback.readAhead")
+            } footer: {
+                Text("settings.playback.readAhead.footer")
+            }
+
+            Section {
+                SettingsPicker(
                     "settings.playback.nextEpisodeAutoplay",
                     selection: viewModel.nextEpisodeAutoplayBinding,
                     options: Array(viewModel.nextEpisodeAutoplayOptions),

@@ -6724,6 +6724,38 @@
         }
       }
     },
+    "livetv.guide.sort.name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom"
+          }
+        }
+      }
+    },
+    "livetv.guide.sort.number" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numéro"
+          }
+        }
+      }
+    },
     "livetv.guide.today" : {
       "localizations" : {
         "en" : {
@@ -26081,6 +26113,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "较低画质会要求媒体服务器在播放时进行转码，以减少带宽使用。"
+          }
+        }
+      }
+    },
+    "settings.playback.readAhead" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffering"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise en mémoire tampon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓冲"
+          }
+        }
+      }
+    },
+    "settings.playback.readAhead.extended" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extended (~5 min)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étendue (~5 min)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扩展（约 5 分钟）"
+          }
+        }
+      }
+    },
+    "settings.playback.readAhead.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loads more of the video ahead of playback so it keeps playing through network drops. Durations are approximate and depend on the video. Larger buffers use more storage and data. Maximum buffers as much as storage allows."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charge davantage la vidéo en avance pour que la lecture continue malgré les coupures réseau. Les durées sont approximatives et dépendent de la vidéo. Une mémoire tampon plus grande utilise plus de stockage et de données. Maximale en charge autant que le stockage le permet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提前加载更多视频，使播放在网络中断时也能继续。时长为近似值，取决于视频本身。缓冲越大，占用的存储空间和流量越多。“最大”会在存储空间允许的范围内尽量缓冲。"
+          }
+        }
+      }
+    },
+    "settings.playback.readAhead.maximum" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大"
+          }
+        }
+      }
+    },
+    "settings.playback.readAhead.standard" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard (~40 s)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard (~40 s)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标准（约 40 秒）"
           }
         }
       }

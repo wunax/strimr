@@ -1351,6 +1351,7 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: preferredAudioTrackID,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
