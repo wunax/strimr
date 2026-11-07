@@ -33,6 +33,13 @@ final class SettingsViewModel {
         )
     }
 
+    var readAheadBinding: Binding<PlaybackReadAhead> {
+        Binding(
+            get: { self.settingsManager.playback.readAhead },
+            set: { self.settingsManager.setReadAhead($0) },
+        )
+    }
+
     var nextEpisodeAutoplayBinding: Binding<NextEpisodeAutoplay> {
         Binding(
             get: { self.settingsManager.playback.nextEpisodeAutoplay },

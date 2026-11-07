@@ -174,6 +174,23 @@ struct AppSettingsTests {
         #expect(settings.playback.losslessAudio)
     }
 
+    @Test func `read-ahead defaults to standard and survives an unknown value`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.readAhead == .standard)
+        #expect(try decode(#"{"playback":{"readAhead":"maximum"}}"#).playback.readAhead == .maximum)
+
+        let settings = try decode(#"{"playback":{"readAhead":"huge","seekForwardSeconds":30}}"#)
+        #expect(settings.playback.readAhead == .standard)
+        #expect(settings.playback.seekForwardSeconds == 30)
+    }
+
+    @Test func `standard read-ahead keeps the engine default window`() {
+        #expect(PlaybackReadAhead.standard.forwardBufferSegments == nil)
+        #expect(PlaybackReadAhead.extended.forwardBufferSegments == 75)
+        #expect(PlaybackReadAhead.maximum.forwardBufferSegments == .max)
+        #expect(PlaybackReadAhead.standard.softwarePacketCacheStorage == .automatic)
+        #expect(PlaybackReadAhead.maximum.softwarePacketCacheStorage == .disk)
+    }
+
     @Test func `out of range audio delay decodes clamped`() throws {
         #expect(try decode(#"{"playback":{"audioDelayMilliseconds":9000}}"#).playback.audioDelayMilliseconds == 2000)
         #expect(try decode(#"{"playback":{"audioDelayMilliseconds":-9000}}"#).playback.audioDelayMilliseconds == -2000)
