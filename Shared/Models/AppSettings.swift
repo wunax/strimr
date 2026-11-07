@@ -618,6 +618,7 @@ struct InterfaceSettings: Codable, Equatable {
     var startupScreen = StartupScreen.home
     var tintsLiveTVGuideCategories = true
     var liveTVSectionByServer: [String: String] = [:]
+    var liveTVChannelSortByServer: [String: LiveTVChannelSort] = [:]
 
     init() {}
 
@@ -686,6 +687,10 @@ struct InterfaceSettings: Codable, Equatable {
         liveTVSectionByServer = (try? container.decodeIfPresent(
             [String: String].self,
             forKey: .liveTVSectionByServer,
+        )) ?? [:]
+        liveTVChannelSortByServer = (try? container.decodeIfPresent(
+            [String: LiveTVChannelSort].self,
+            forKey: .liveTVChannelSortByServer,
         )) ?? [:]
     }
 }

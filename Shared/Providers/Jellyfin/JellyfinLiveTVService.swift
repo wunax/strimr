@@ -67,7 +67,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 providerID: item.id,
                 title: item.name,
                 callSign: item.callSign,
-                number: item.number,
+                number: item.number.flatMap { $0.isEmpty ? nil : $0 } ?? item.channelNumber,
                 thumbPath: JellyfinArtworkPath.make(ownerID: item.id, type: "Primary", tag: item.imageTags?["Primary"]),
                 artPath: nil,
                 lineupID: nil,
@@ -826,13 +826,15 @@ private nonisolated struct JellyfinLiveChannelDTO: Decodable, Sendable {
     let id: String
     let name: String
     let number: String?
+    let channelNumber: String?
     let callSign: String?
     let imageTags: [String: String]?
     let userData: JellyfinUserData?
     let isHD: Bool?
 
     private enum CodingKeys: String, CodingKey {
-        case id = "Id"; case name = "Name"; case number = "Number"; case callSign = "ChannelCallSign"
+        case id = "Id"; case name = "Name"; case number = "Number"; case channelNumber = "ChannelNumber"
+        case callSign = "ChannelCallSign"
         case imageTags = "ImageTags"; case userData = "UserData"; case isHD = "IsHD"
     }
 }

@@ -38,6 +38,7 @@ struct LiveTVShelves: Equatable {
 
     init(
         channels: [LiveTVChannel],
+        favorites favoriteChannels: [LiveTVChannel]? = nil,
         programs: [LiveTVProgram],
         onNowSections: [LiveTVOnNowSection] = [],
         recordings: [DVRRecording] = [],
@@ -60,7 +61,7 @@ struct LiveTVShelves: Equatable {
             uniquingKeysWith: { first, _ in first },
         )
         let recent = recentChannelKeys.compactMap { channelsByKey[$0] }.map(item)
-        let favorites = channels.filter(\.isFavorite).map(item)
+        let favorites = (favoriteChannels ?? channels.filter(\.isFavorite)).map(item)
         let onNow = channels.compactMap { channel in
             current[channel.identity].map { LiveTVShelfItem(channel: channel, program: $0) }
         }
