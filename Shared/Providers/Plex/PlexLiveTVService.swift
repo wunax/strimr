@@ -64,6 +64,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     func channels() async throws -> [LiveTVChannel] {
         try await ensureDiscovered()
         let favorites = await (try? favoriteChannelKeys()) ?? []
+        let favoriteRank = Dictionary(favorites.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
         var result: [LiveTVChannel] = []
         for provider in providers {
             guard let dvrID = matchingDVRID(provider: provider) else { continue }
@@ -94,7 +95,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                         isHD: bool(item["hd"]) ?? false,
                         isFavorite: false,
                     )
-                    channel.isFavorite = favorites.contains(favoriteKey(for: channel))
+                    channel.isFavorite = favoriteRank[favoriteKey(for: channel)] != nil
                     return channel
                 }
                 result.append(contentsOf: parsed)
@@ -103,7 +104,15 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 }
             }
         }
-        return unique(result).sorted(by: channelSort)
+        // Favorites come first in the order saved on Plex, which the store keeps as the favorites order.
+        return unique(result).sorted { lhs, rhs in
+            switch (favoriteRank[favoriteKey(for: lhs)], favoriteRank[favoriteKey(for: rhs)]) {
+            case let (left?, right?): left < right
+            case (_?, nil): true
+            case (nil, _?): false
+            case (nil, nil): channelSort(lhs, rhs)
+            }
+        }
     }
 
     func programs(from: Date, to: Date) async throws -> [LiveTVProgram] {
@@ -145,13 +154,15 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
     func setFavorite(_ favorite: Bool, channel: LiveTVChannel) async throws {
         var keys = try await favoriteChannelKeys()
         let key = favoriteKey(for: channel)
+        keys.removeAll { $0 == key }
         if favorite {
-            keys.insert(key)
-        } else {
-            keys.remove(key)
+            keys.append(key)
         }
-        let allChannels = try await channels()
-        try await writeFavorites(allChannels.filter { keys.contains(favoriteKey(for: $0)) })
+        let channelsByKey = try await Dictionary(
+            channels().map { (favoriteKey(for: $0), $0) },
+            uniquingKeysWith: { first, _ in first },
+        )
+        try await writeFavorites(keys.compactMap { channelsByKey[$0] })
     }
 
     func reorderFavorites(_ channels: [LiveTVChannel]) async throws {
@@ -474,7 +485,7 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         )
     }
 
-    private func favoriteChannelKeys() async throws -> Set<FavoriteChannelKey> {
+    private func favoriteChannelKeys() async throws -> [FavoriteChannelKey] {
         let snapshot = try context.serverAccessSnapshot()
         var request = URLRequest(url: URL(string: "https://epg.provider.plex.tv/settings/favoriteChannels")!)
         request.setValue(context.authTokenCloud ?? snapshot.authToken, forHTTPHeaderField: "X-Plex-Token")
@@ -488,12 +499,14 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
         let root = object as? [String: Any] ?? [:]
         let entries = dictionaries(root["MediaContainer"]).flatMap { dictionaries($0["FavoriteChannel"]) }
             + dictionaries(root["FavoriteChannel"])
-        return Set(entries.compactMap { entry in
+        var seen: Set<FavoriteChannelKey> = []
+        return entries.compactMap { entry in
             guard let providerID = string(entry["id"] ?? entry["key"]),
                   let source = string(entry["source"])
             else { return nil }
-            return FavoriteChannelKey(source: source, providerID: providerID)
-        })
+            let key = FavoriteChannelKey(source: source, providerID: providerID)
+            return seen.insert(key).inserted ? key : nil
+        }
     }
 
     private func favoriteKey(for channel: LiveTVChannel) -> FavoriteChannelKey {

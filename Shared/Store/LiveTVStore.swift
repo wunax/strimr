@@ -12,6 +12,15 @@ final class LiveTVStore {
 
     private(set) var availability: Availability = .unknown
     private(set) var channels: [LiveTVChannel] = []
+    /// The favorites keep the order the server or the viewer gave them, whatever the channel sort.
+    private(set) var favoriteOrder: [LiveTVChannelIdentity] = []
+    var channelSort = LiveTVChannelSort.number {
+        didSet {
+            guard channelSort != oldValue else { return }
+            channels = channelSort.sorted(channels)
+        }
+    }
+
     private(set) var programs: [LiveTVProgram] = []
     private(set) var onNowSections: [LiveTVOnNowSection] = []
     private(set) var upcomingRecordings: [DVRRecording] = []
@@ -40,9 +49,15 @@ final class LiveTVStore {
         recentChannelKeys = recentChannels?.channelKeys ?? []
     }
 
+    var favoriteChannels: [LiveTVChannel] {
+        let channelsByIdentity = Dictionary(channels.map { ($0.identity, $0) }, uniquingKeysWith: { first, _ in first })
+        return favoriteOrder.compactMap { channelsByIdentity[$0] }.filter(\.isFavorite)
+    }
+
     func shelves(now: Date = Date()) -> LiveTVShelves {
         LiveTVShelves(
             channels: channels,
+            favorites: favoriteChannels,
             programs: programs,
             onNowSections: onNowSections,
             recordings: upcomingRecordings,
@@ -142,7 +157,8 @@ final class LiveTVStore {
                 async let loadedOnNow = service.onNow()
                 let values = try await (loadedChannels, loadedPrograms, loadedOnNow)
                 guard !Task.isCancelled, loadGeneration == generation else { return }
-                channels = values.0
+                favoriteOrder = values.0.filter(\.isFavorite).map(\.identity)
+                channels = channelSort.sorted(values.0)
                 if values.0.isEmpty {
                     availability = .unavailable
                 }
@@ -228,6 +244,10 @@ final class LiveTVStore {
                 item.isFavorite.toggle()
                 return item
             }
+            favoriteOrder.removeAll { $0 == channel.identity }
+            if !channel.isFavorite {
+                favoriteOrder.append(channel.identity)
+            }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             LiveTVErrorReporting.capture(error)
@@ -237,16 +257,7 @@ final class LiveTVStore {
 
     func reorderFavorites(_ favorites: [LiveTVChannel]) async throws {
         try await service.reorderFavorites(favorites)
-        let favoriteIDs = favorites.map(\.identity)
-        let order = Dictionary(uniqueKeysWithValues: favoriteIDs.enumerated().map { ($1, $0) })
-        channels.sort { lhs, rhs in
-            switch (order[lhs.id], order[rhs.id]) {
-            case let (a?, b?): a < b
-            case (_?, nil): true
-            case (nil, _?): false
-            case (nil, nil): lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
-            }
-        }
+        favoriteOrder = favorites.map(\.identity)
     }
 
     /// Schedules a recording; without explicit values it takes the server's defaults for the program.

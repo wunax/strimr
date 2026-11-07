@@ -130,6 +130,20 @@ struct AppSettingsTests {
         #expect(reloaded.libraryBrowsePreferences(for: "key") == preferences)
     }
 
+    @MainActor
+    @Test func `the live TV channel sort is saved per server`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let plex = ServerIdentity(provider: .plex, id: "server")
+        let jellyfin = ServerIdentity(provider: .jellyfin, id: "server")
+
+        SettingsManager(userDefaults: defaults).setLiveTVChannelSort(.name, server: plex)
+        let reloaded = SettingsManager(userDefaults: defaults)
+
+        #expect(reloaded.liveTVChannelSort(server: plex) == .name)
+        #expect(reloaded.liveTVChannelSort(server: jellyfin) == .number)
+    }
+
     @Test func `missing pause screen setting decodes as enabled`() throws {
         let settings = try decode(#"{"playback":{"showClock":true}}"#)
 

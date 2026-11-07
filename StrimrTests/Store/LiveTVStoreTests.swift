@@ -70,6 +70,29 @@ struct LiveTVStoreTests {
         #expect(store.programs.first?.isScheduledForRecording == false)
     }
 
+    @Test func `favorites keep their own order whatever the channel sort`() async throws {
+        let service = StubLiveTVService()
+        service.loadedChannels = [
+            channel("a", number: "3", favorite: true),
+            channel("b", number: "1", favorite: true),
+            channel("c", number: "2"),
+        ]
+        let store = await loadedStore(service: service)
+
+        #expect(store.channels.map(\.providerID) == ["b", "c", "a"])
+        #expect(store.favoriteChannels.map(\.providerID) == ["a", "b"])
+
+        try await store.reorderFavorites([store.channels[0], store.channels[2]])
+        store.channelSort = .name
+
+        #expect(store.channels.map(\.providerID) == ["a", "b", "c"])
+        #expect(store.favoriteChannels.map(\.providerID) == ["b", "a"])
+
+        await store.toggleFavorite(store.channels[2])
+
+        #expect(store.favoriteChannels.map(\.providerID) == ["b", "a", "c"])
+    }
+
     @Test func `a removal reloads the whole range the guide has extended to`() async throws {
         let service = StubLiveTVService()
         service.loadedPrograms = [program(id: "a", recordingID: "recording")]
@@ -116,19 +139,10 @@ private final class StubLiveTVService: MediaLiveTVService, MediaDVRService {
         true
     }
 
+    var loadedChannels = [channel("1", number: "1")]
+
     func channels() async throws -> [LiveTVChannel] {
-        [LiveTVChannel(
-            providerID: "1",
-            title: "Channel",
-            callSign: nil,
-            number: "1",
-            thumbPath: nil,
-            artPath: nil,
-            lineupID: nil,
-            dvrID: nil,
-            isHD: true,
-            isFavorite: false,
-        )]
+        loadedChannels
     }
 
     func programs(from start: Date, to end: Date) async throws -> [LiveTVProgram] {
@@ -182,4 +196,19 @@ private final class StubLiveTVService: MediaLiveTVService, MediaDVRService {
     func deleteCompleted(recordingID _: String) async throws {}
 
     func reloadGuide() async throws {}
+}
+
+private func channel(_ id: String, number: String?, favorite: Bool = false) -> LiveTVChannel {
+    LiveTVChannel(
+        providerID: id,
+        title: "Channel \(id)",
+        callSign: nil,
+        number: number,
+        thumbPath: nil,
+        artPath: nil,
+        lineupID: nil,
+        dvrID: nil,
+        isHD: true,
+        isFavorite: favorite,
+    )
 }

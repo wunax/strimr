@@ -94,14 +94,29 @@ final class SettingsManager {
     }
 
     func setLiveTVSection(_ section: String, server: ServerIdentity) {
-        let key = "\(server.provider.rawValue):\(server.id)"
+        let key = liveTVKey(server)
         guard settings.interface.liveTVSectionByServer[key] != section else { return }
         settings.interface.liveTVSectionByServer[key] = section
         persist()
     }
 
     func liveTVSection(server: ServerIdentity) -> String? {
-        settings.interface.liveTVSectionByServer["\(server.provider.rawValue):\(server.id)"]
+        settings.interface.liveTVSectionByServer[liveTVKey(server)]
+    }
+
+    func setLiveTVChannelSort(_ sort: LiveTVChannelSort, server: ServerIdentity) {
+        let key = liveTVKey(server)
+        guard settings.interface.liveTVChannelSortByServer[key] != sort else { return }
+        settings.interface.liveTVChannelSortByServer[key] = sort
+        persist()
+    }
+
+    func liveTVChannelSort(server: ServerIdentity) -> LiveTVChannelSort {
+        settings.interface.liveTVChannelSortByServer[liveTVKey(server)] ?? .number
+    }
+
+    private func liveTVKey(_ server: ServerIdentity) -> String {
+        "\(server.provider.rawValue):\(server.id)"
     }
 
     func setLosslessAudio(_ enabled: Bool) {
