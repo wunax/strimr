@@ -1648,6 +1648,7 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: preferredAudioTrackID,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1997,11 +1998,11 @@ struct PlayerView: View {
         }
     }
 
-    /// The stream is considered lost when there is no network at all, or when its server is unreachable and the
-    /// player stalls; a single failed side request must not interrupt a stream that still plays.
+    /// The stream is considered lost only once its server is unreachable and the player stalls, so a network drop
+    /// plays through what is already buffered and a single failed side request does not interrupt playback.
     private var isStreamingServerUnreachable: Bool {
         guard let server = viewModel.streamingServer, offlineCoordinator.isUnreachable(server) else { return false }
-        return !offlineCoordinator.availability.hasNetworkPath || playerController.isBuffering
+        return playerController.isBuffering
     }
 
     /// Streaming cannot continue without its server: stop cleanly and offer the downloaded copy when there is one.

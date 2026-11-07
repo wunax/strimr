@@ -104,6 +104,11 @@ final class SettingsManager {
         settings.interface.liveTVSectionByServer["\(server.provider.rawValue):\(server.id)"]
     }
 
+    func setReadAhead(_ readAhead: PlaybackReadAhead) {
+        settings.playback.readAhead = readAhead
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()

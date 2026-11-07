@@ -355,6 +355,41 @@ struct SubtitleSearchPreferences: Codable, Equatable {
     var forced = false
 }
 
+enum PlaybackReadAhead: String, Codable, CaseIterable, Hashable, Identifiable {
+    case standard
+    case extended
+    case maximum
+
+    var id: Self {
+        self
+    }
+
+    /// Segments are about 4 s long. The engine stops a larger read-ahead once it fills its disk budget.
+    var forwardBufferSegments: Int? {
+        switch self {
+        case .standard: nil
+        case .extended: 75
+        case .maximum: .max
+        }
+    }
+
+    /// tvOS keeps the software decoder's read-ahead in a fixed 96 MB of memory, which ignores the window.
+    var softwarePacketCacheStorage: SoftwarePacketCacheStorage {
+        self == .standard ? .automatic : .disk
+    }
+
+    var title: String {
+        switch self {
+        case .standard:
+            String(localized: "settings.playback.readAhead.standard")
+        case .extended:
+            String(localized: "settings.playback.readAhead.extended")
+        case .maximum:
+            String(localized: "settings.playback.readAhead.maximum")
+        }
+    }
+}
+
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
@@ -403,6 +438,7 @@ struct PlaybackSettings: Codable, Equatable {
     var customExternalPlayer: CustomExternalPlayer?
     /// Forces the server-side transcode for Live TV, the route used before the engine played broadcast streams.
     var transcodeLiveTV = false
+    var readAhead = PlaybackReadAhead.standard
 
     init() {}
 
@@ -504,6 +540,7 @@ struct PlaybackSettings: Codable, Equatable {
             forKey: .customExternalPlayer,
         )
         transcodeLiveTV = (try? container.decodeIfPresent(Bool.self, forKey: .transcodeLiveTV)) ?? false
+        readAhead = (try? container.decodeIfPresent(PlaybackReadAhead.self, forKey: .readAhead)) ?? .standard
     }
 
     var audioShaping: AudioShaping {
