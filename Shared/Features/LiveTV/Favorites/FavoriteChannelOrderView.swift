@@ -28,7 +28,7 @@ struct FavoriteChannelOrderView: View {
             }
             .taskModalTitle("livetv.favorites.manage")
             .taskModalActions { Button("common.done") { dismiss() } }
-            .onAppear { favorites = store.channels.filter(\.isFavorite) }
+            .onAppear { favorites = store.favoriteChannels }
         }
     }
 
@@ -51,7 +51,7 @@ struct FavoriteChannelOrderView: View {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 LiveTVErrorReporting.capture(error)
-                favorites = store.channels.filter(\.isFavorite)
+                favorites = store.favoriteChannels
             }
         }
     }
