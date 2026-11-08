@@ -186,6 +186,9 @@ final class ContentProvider: TVTopShelfContentProvider {
         item.imageShape = .hdtv
         item.displayAction = TVTopShelfAction(url: displayURL)
         item.playAction = TVTopShelfAction(url: playURL)
+        if let playbackProgress = media.playbackProgress {
+            item.playbackProgress = playbackProgress
+        }
         if let imageURL = imageURL(media: media, session: session) {
             item.setImageURL(imageURL, for: .screenScale1x)
             item.setImageURL(imageURL, for: .screenScale2x)
@@ -318,6 +321,7 @@ private struct TopShelfDisplayItem {
     let matchDescriptor: MediaMatchDescriptor
     let lastViewedAt: Date?
     let addedAt: Date?
+    let playbackProgress: Double?
 
     init(_ item: PlexTopShelfItem, session: TopShelfSession) {
         id = item.ratingKey
@@ -340,6 +344,10 @@ private struct TopShelfDisplayItem {
         )
         lastViewedAt = item.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
         addedAt = item.addedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        playbackProgress = TopShelfSessions.playbackProgress(
+            position: item.viewOffset.map(Double.init),
+            duration: item.duration.map(Double.init),
+        )
     }
 
     init(_ item: JellyfinTopShelfItem, session: TopShelfSession) {
@@ -365,6 +373,10 @@ private struct TopShelfDisplayItem {
         )
         lastViewedAt = item.userData?.lastPlayedDate.flatMap(Self.date)
         addedAt = item.dateCreated.flatMap(Self.date)
+        playbackProgress = TopShelfSessions.playbackProgress(
+            position: item.userData?.playbackPositionTicks.map(Double.init),
+            duration: item.runTimeTicks.map(Double.init),
+        )
     }
 
     /// Editions share the title's artwork, so the edition tells them apart.
@@ -440,11 +452,13 @@ private struct PlexTopShelfItem: Decodable {
     let art: String?
     let lastViewedAt: Int?
     let addedAt: Int?
+    let viewOffset: Int?
+    let duration: Int?
     let guids: [Guid]?
 
     private enum CodingKeys: String, CodingKey {
         case ratingKey, type, title, editionTitle, guid, parentTitle, grandparentTitle, parentIndex, index, thumb, art
-        case lastViewedAt, addedAt
+        case lastViewedAt, addedAt, viewOffset, duration
         case guids = "Guid"
     }
 }
@@ -461,7 +475,11 @@ private struct JellyfinItemsResponse: Decodable {
 private struct JellyfinTopShelfItem: Decodable {
     struct UserData: Decodable {
         let lastPlayedDate: String?
-        private enum CodingKeys: String, CodingKey { case lastPlayedDate = "LastPlayedDate" }
+        let playbackPositionTicks: Int64?
+        private enum CodingKeys: String, CodingKey {
+            case lastPlayedDate = "LastPlayedDate"
+            case playbackPositionTicks = "PlaybackPositionTicks"
+        }
     }
 
     let id: String
@@ -475,6 +493,7 @@ private struct JellyfinTopShelfItem: Decodable {
     let backdropImageTags: [String]?
     let providerIDs: [String: String]?
     let dateCreated: String?
+    let runTimeTicks: Int64?
     let userData: UserData?
     private enum CodingKeys: String, CodingKey {
         case id = "Id"; case name = "Name"; case type = "Type"
@@ -482,6 +501,7 @@ private struct JellyfinTopShelfItem: Decodable {
         case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
         case imageTags = "ImageTags"; case backdropImageTags = "BackdropImageTags"
         case providerIDs = "ProviderIds"; case dateCreated = "DateCreated"; case userData = "UserData"
+        case runTimeTicks = "RunTimeTicks"
     }
 }
 
