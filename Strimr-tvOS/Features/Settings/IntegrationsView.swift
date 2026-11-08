@@ -31,7 +31,7 @@ struct IntegrationsView: View {
                     .buttonBorderShape(.roundedRectangle(radius: LayoutMetrics.cardCornerRadius))
                     .settingsFocus("seerr", isDefault: true)
 
-                    ForEach(TrackerService.allCases) { service in
+                    ForEach(TrackerService.available) { service in
                         trackerLink(service)
                     }
 
