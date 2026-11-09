@@ -30,6 +30,8 @@ struct DetailHeroTitle: View {
 
             MediaFactsLine(facts: facts, badges: badges)
 
+            OtherEditionsButton(viewModel: viewModel)
+
             if !viewModel.media.ratings.isEmpty {
                 HStack(spacing: 12) {
                     ForEach(Array(viewModel.media.ratings.enumerated()), id: \.offset) { _, rating in
@@ -64,6 +66,7 @@ struct DetailHeroTitle: View {
         MediaFactsFormatter.facts(
             for: viewModel.media.mediaItem,
             seasonCount: viewModel.seasons.isEmpty ? nil : viewModel.seasons.count,
+            namesStandardEdition: !viewModel.otherEditions.isEmpty,
         )
     }
 

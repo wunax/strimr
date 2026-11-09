@@ -25,6 +25,14 @@ struct MediaItemMappingTests {
         #expect(items[1].themePath == "/library/metadata/100/theme/1700000000")
     }
 
+    @Test func `plex edition title maps to the item`() throws {
+        let items = try (Fixtures.decode(PlexItemMediaContainer.self, from: "plex-section-editions")
+            .mediaContainer.metadata ?? []).map { MediaItem(plexItem: $0, server: server) }
+
+        #expect(items[0].editionTitle == nil)
+        #expect(items[1].editionTitle == "Black and White")
+    }
+
     @Test func `plex date parser rejects malformed values`() {
         #expect(PlexDate.date(from: "not-a-date") == nil)
         #expect(PlexDate.date(from: "2021-06-18 00:00:00") == ISO8601DateFormatter().date(from: "2021-06-18T00:00:00Z"))

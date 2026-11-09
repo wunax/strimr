@@ -89,10 +89,10 @@ class CachedLibraryService: MediaLibraryService {
         }
     }
 
-    func recommended(in library: Library) async throws -> [Hub] {
+    func recommended(in library: Library, mergesNextUp: Bool) async throws -> [Hub] {
         let key = "recommended:\(library.id)"
         return try await policy.read(
-            network: { try await base.recommended(in: library) },
+            network: { try await base.recommended(in: library, mergesNextUp: mergesNextUp) },
             write: { hubs in
                 let snapshots = hubs.map { HubSnapshot(hub: Self.emptied($0), itemIDs: $0.items.map(\.id)) }
                 policy.store.store(

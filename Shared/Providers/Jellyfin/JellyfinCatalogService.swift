@@ -68,11 +68,12 @@ struct JellyfinCatalogService {
         seriesID: String? = nil,
         parentID: String? = nil,
         limit: Int = 20,
+        includesResumable: Bool = false,
     ) async throws -> [JellyfinItem] {
         var query = commonUserQuery + [
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: Self.cardFields),
-            URLQueryItem(name: "EnableResumable", value: "false"),
+            URLQueryItem(name: "EnableResumable", value: String(includesResumable)),
         ]
         if let seriesID {
             query.append(URLQueryItem(name: "SeriesId", value: seriesID))
@@ -82,6 +83,144 @@ struct JellyfinCatalogService {
         }
         let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
             path: ["Shows", "NextUp"],
+            query: query,
+        )
+        return response.items
+    }
+
+    func continueEpisode(seriesID: String) async throws -> JellyfinItem? {
+        async let nextUpItems = nextUp(seriesID: seriesID, limit: 1, includesResumable: true)
+        async let resumableItems = resumable(parentID: seriesID, includeTypes: "Episode", limit: 1)
+        let nextUp = try await nextUpItems.first
+        do {
+            return try await Self.continueEpisode(nextUp: nextUp, resumable: resumableItems.first)
+        } catch {
+            guard !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            return nextUp
+        }
+    }
+
+    /// Next Up only follows the last fully played episode, so it offers the first episode of a show
+    /// started mid-way even though a later episode is in progress.
+    static func continueEpisode(nextUp: JellyfinItem?, resumable: JellyfinItem?) -> JellyfinItem? {
+        guard let resumable else { return nextUp }
+        guard let nextUp else { return resumable }
+        return episodeOrder(resumable) >= episodeOrder(nextUp) ? resumable : nextUp
+    }
+
+    private static func episodeOrder(_ item: JellyfinItem) -> (Int, Int) {
+        (item.parentIndexNumber ?? 0, item.indexNumber ?? 0)
+    }
+
+    /// Continue Watching and Next Up as one row, the way Plex shows it: one episode per series, the series watched
+    /// most recently first.
+    func continueWatching(parentID: String? = nil, resumeLimit: Int = 20, nextUpLimit: Int = 20) async throws
+        -> [JellyfinItem]
+    {
+        async let resumeItems = inProgress(parentID: parentID, limit: resumeLimit)
+        async let nextUpItems = nextUp(parentID: parentID, limit: nextUpLimit)
+        async let playedItems = recentlyPlayedEpisodes(parentID: parentID)
+        let resume = try await resumeItems
+        let nextUp = try await nextUpItems
+        let played: [JellyfinItem]
+        // Only orders the row: without it, Next Up keeps the server's order.
+        do {
+            played = try await playedItems
+        } catch {
+            guard !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            played = []
+        }
+        return Self.continueWatching(resume: resume, nextUp: nextUp, playedEpisodes: played)
+    }
+
+    /// - Parameters:
+    ///   - resume: in-progress items, most recently played first.
+    ///   - nextUp: next episodes, the series watched most recently first.
+    ///   - playedEpisodes: recently played episodes. Next Up episodes were never played, so they take the date their
+    ///     series was last watched.
+    static func continueWatching(
+        resume: [JellyfinItem],
+        nextUp: [JellyfinItem],
+        playedEpisodes: [JellyfinItem],
+    ) -> [JellyfinItem] {
+        var seriesDates: [String: Date] = [:]
+        for item in playedEpisodes + resume {
+            guard let seriesID = item.seriesID, let date = item.userData?.lastPlayedDate else { continue }
+            seriesDates[seriesID] = max(seriesDates[seriesID] ?? date, date)
+        }
+
+        var entries: [(item: JellyfinItem, date: Date?, nextUpRank: Int)] = []
+        var entryIndexBySeries: [String: Int] = [:]
+        for item in resume {
+            if let seriesID = item.seriesID {
+                guard entryIndexBySeries[seriesID] == nil else { continue }
+                entryIndexBySeries[seriesID] = entries.count
+            }
+            let date = item.seriesID.flatMap { seriesDates[$0] } ?? item.userData?.lastPlayedDate
+            entries.append((item, date, .max))
+        }
+        // Series too old to be among the played episodes keep Next Up's own order, taking the date of the series
+        // before them, or of the first dated one when they lead.
+        var previousNextUpDate = nextUp.lazy.compactMap { $0.seriesID.flatMap { seriesDates[$0] } }.first
+        for (rank, item) in nextUp.enumerated() {
+            guard let seriesID = item.seriesID else { continue }
+            if let index = entryIndexBySeries[seriesID] {
+                if let episode = continueEpisode(nextUp: item, resumable: entries[index].item) {
+                    entries[index].item = episode
+                }
+                entries[index].nextUpRank = rank
+                previousNextUpDate = entries[index].date ?? previousNextUpDate
+                continue
+            }
+            let date = seriesDates[seriesID] ?? previousNextUpDate
+            entryIndexBySeries[seriesID] = entries.count
+            entries.append((item, date, rank))
+            previousNextUpDate = date
+        }
+
+        return entries.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.date, rhs.element.date) {
+            case let (left?, right?) where left != right:
+                left > right
+            case (_?, nil):
+                true
+            case (nil, _?):
+                false
+            default:
+                // A series that took the date of another one is at least as recent: Next Up decides between them.
+                (lhs.element.nextUpRank, lhs.offset) < (rhs.element.nextUpRank, rhs.offset)
+            }
+        }.map(\.element.item)
+    }
+
+    private func inProgress(parentID: String?, limit: Int) async throws -> [JellyfinItem] {
+        guard let parentID else { return try await resume(limit: limit) }
+        return try await resumable(parentID: parentID, includeTypes: "Episode", limit: limit)
+    }
+
+    private func recentlyPlayedEpisodes(parentID: String?, limit: Int = 100) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        var query = [
+            URLQueryItem(name: "SortBy", value: "DatePlayed"),
+            URLQueryItem(name: "SortOrder", value: "Descending"),
+            URLQueryItem(name: "IncludeItemTypes", value: "Episode"),
+            URLQueryItem(name: "Filters", value: "IsPlayed"),
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "Limit", value: String(limit)),
+            URLQueryItem(name: "Fields", value: "SeriesId"),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+            URLQueryItem(name: "EnableImages", value: "false"),
+            URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+        ]
+        if let parentID {
+            query.append(URLQueryItem(name: "ParentId", value: parentID))
+        }
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items"],
             query: query,
         )
         return response.items
@@ -181,6 +320,42 @@ struct JellyfinCatalogService {
         }
         return try await context.get(path: ["Users", userID, "Items"], query: query)
     }
+
+    /// Items for the home hero, with the dates and ratings its rules need.
+    func featuredItems(
+        parentID: String? = nil,
+        includeTypes: String,
+        sortBy: String? = nil,
+        limit: Int,
+        extraQuery: [URLQueryItem] = [],
+    ) async throws -> [JellyfinItem] {
+        guard let userID = context.connection?.userID else {
+            throw JellyfinAPIError.authenticationRequired
+        }
+        var query = [
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "IncludeItemTypes", value: includeTypes),
+            URLQueryItem(name: "Limit", value: String(limit)),
+            URLQueryItem(name: "Fields", value: Self.featuredFields),
+            URLQueryItem(name: "EnableUserData", value: "true"),
+            URLQueryItem(name: "EnableImages", value: "true"),
+        ]
+        if let sortBy {
+            query.append(URLQueryItem(name: "SortBy", value: sortBy))
+            query.append(URLQueryItem(name: "SortOrder", value: "Descending"))
+        }
+        if let parentID {
+            query.append(URLQueryItem(name: "ParentId", value: parentID))
+        }
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items"],
+            query: query + extraQuery,
+        )
+        return response.items
+    }
+
+    static let featuredFields = [cardFields, "DateCreated", "DateLastMediaAdded", "CommunityRating"]
+        .joined(separator: ",")
 
     func browseFilterOptions(parentID: String, includeTypes: String) async throws -> LibraryBrowseFilterOptions {
         let query = commonUserQuery + [
@@ -327,6 +502,28 @@ struct JellyfinCatalogService {
         seasonID: String? = nil,
         startItemID: String? = nil,
     ) async throws -> [JellyfinItem] {
+        let response = try await episodePage(seriesID: seriesID, seasonID: seasonID, startItemID: startItemID)
+        guard let startItemID, let index = response.items.firstIndex(where: { $0.id == startItemID }) else {
+            return response.items
+        }
+        return Array(response.items[index...])
+    }
+
+    /// The whole series, or only from `startItemID` on when the series does not fit in one page.
+    private func episodes(seriesID: String, around startItemID: String) async throws -> [JellyfinItem] {
+        let response = try await episodePage(seriesID: seriesID)
+        let isComplete = response.items.count >= (response.totalRecordCount ?? response.items.count)
+        if isComplete, response.items.contains(where: { $0.id == startItemID }) {
+            return response.items
+        }
+        return try await episodes(seriesID: seriesID, startItemID: startItemID)
+    }
+
+    private func episodePage(
+        seriesID: String,
+        seasonID: String? = nil,
+        startItemID: String? = nil,
+    ) async throws -> JellyfinQueryResult<JellyfinItem> {
         var query = commonUserQuery + [
             URLQueryItem(name: "Fields", value: Self.playbackFields),
             URLQueryItem(name: "EnableUserData", value: "true"),
@@ -338,14 +535,10 @@ struct JellyfinCatalogService {
         if let startItemID {
             query.append(URLQueryItem(name: "StartItemId", value: startItemID))
         }
-        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+        return try await context.get(
             path: ["Shows", seriesID, "Episodes"],
             query: query,
         )
-        guard let startItemID, let index = response.items.firstIndex(where: { $0.id == startItemID }) else {
-            return response.items
-        }
-        return Array(response.items[index...])
     }
 
     func similar(itemID: String, limit: Int = 20) async throws -> [JellyfinItem] {
@@ -355,6 +548,15 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "Limit", value: String(limit)),
                 URLQueryItem(name: "Fields", value: Self.cardFields),
             ],
+        )
+        return response.items
+    }
+
+    /// Seasons and episodes without their own theme inherit the series one.
+    func themeSongs(itemID: String) async throws -> [JellyfinItem] {
+        let response: JellyfinQueryResult<JellyfinItem> = try await context.get(
+            path: ["Items", itemID, "ThemeSongs"],
+            query: commonUserQuery + [URLQueryItem(name: "inheritFromParent", value: "true")],
         )
         return response.items
     }
@@ -408,32 +610,31 @@ struct JellyfinCatalogService {
         )
     }
 
-    func playbackQueue(startingWith item: JellyfinItem) async throws -> [JellyfinItem] {
+    /// The items to queue, and the one to start with when it is not the first.
+    func playbackQueue(
+        startingWith item: JellyfinItem,
+    ) async throws -> (items: [JellyfinItem], startItemID: String?) {
         switch item.kind {
-        case .movie:
-            return [item]
+        case .movie, .clip:
+            return ([item], nil)
         case .episode:
-            guard let seriesID = item.seriesID else { return [item] }
-            let queue = try await episodes(seriesID: seriesID, startItemID: item.id)
-            return queue.isEmpty ? [item] : queue
+            guard let seriesID = item.seriesID else { return ([item], nil) }
+            let queue = try await episodes(seriesID: seriesID, around: item.id)
+            return (queue.isEmpty ? [item] : queue, item.id)
         case .season:
-            guard let seriesID = item.seriesID ?? item.parentID else { return [] }
-            return try await episodes(seriesID: seriesID, seasonID: item.id)
+            guard let seriesID = item.seriesID ?? item.parentID else { return ([], nil) }
+            return try await (episodes(seriesID: seriesID, seasonID: item.id), nil)
         case .series:
-            if let next = try await nextUp(seriesID: item.id, limit: 1).first {
-                return try await episodes(seriesID: item.id, startItemID: next.id)
+            if let next = try await continueEpisode(seriesID: item.id) {
+                return try await (episodes(seriesID: item.id, around: next.id), next.id)
             }
-            return try await episodes(seriesID: item.id)
+            return try await (episodes(seriesID: item.id), nil)
         case .collection:
-            return try await collectionPlaybackItems(id: item.id)
-                .filter(\.isPlayable)
+            return try await (collectionPlaybackItems(id: item.id).filter(\.isPlayable), nil)
         case .playlist:
-            return try await playlistItems(id: item.id, fields: "Chapters,Trickplay")
-                .filter(\.isPlayable)
-        case .clip:
-            return [item]
+            return try await (playlistItems(id: item.id, fields: "Chapters,Trickplay").filter(\.isPlayable), nil)
         case .folder, .unknown:
-            return []
+            return ([], nil)
         }
     }
 

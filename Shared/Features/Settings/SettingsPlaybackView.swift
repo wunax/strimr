@@ -27,6 +27,22 @@ struct SettingsPlaybackView: View {
                         Text("settings.playback.autoRotateVideo.description")
                     }
                 }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.pictureInPicture", isOn: viewModel.pictureInPictureBinding)
+                        Text("settings.playback.pictureInPicture.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("settings.playback.backgroundAudio", isOn: viewModel.backgroundAudioBinding)
+                        Text("settings.playback.backgroundAudio.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             #endif
 
             Section {
@@ -40,12 +56,34 @@ struct SettingsPlaybackView: View {
             }
 
             Section {
+                Picker("settings.playback.readAhead", selection: viewModel.readAheadBinding) {
+                    ForEach(PlaybackReadAhead.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+            } footer: {
+                Text("settings.playback.readAhead.footer")
+            }
+
+            Section {
                 Picker(
                     "settings.playback.nextEpisodeAutoplay",
                     selection: viewModel.nextEpisodeAutoplayBinding,
                 ) {
                     ForEach(viewModel.nextEpisodeAutoplayOptions, id: \.self) { option in
                         Text(option.title).tag(option)
+                    }
+                }
+
+                Picker("settings.playback.defaultSpeed", selection: viewModel.defaultPlaybackRateBinding) {
+                    ForEach(PlaybackSpeedOptions.all) { option in
+                        Text("player.settings.speed.value \(option.valueText)").tag(option.rate)
+                    }
+                }
+
+                Picker("settings.playback.defaultSleepTimer", selection: viewModel.defaultSleepTimerBinding) {
+                    ForEach(viewModel.defaultSleepTimerOptions, id: \.self) { option in
+                        Text(viewModel.defaultSleepTimerTitle(option)).tag(option)
                     }
                 }
 
@@ -85,10 +123,24 @@ struct SettingsPlaybackView: View {
                 }
             }
 
+            if hasLiveTV {
+                Section {
+                    Toggle("settings.playback.transcodeLiveTV", isOn: viewModel.transcodeLiveTVBinding)
+                } header: {
+                    Text("settings.playback.liveTV.title")
+                } footer: {
+                    Text("settings.playback.transcodeLiveTV.footer")
+                }
+            }
+
             Section("settings.playback.timeline.title") {
                 Toggle(
                     "settings.playback.showChaptersOnTimeline",
                     isOn: viewModel.showChaptersOnTimelineBinding,
+                )
+                Toggle(
+                    "settings.playback.showSkipSegmentsOnTimeline",
+                    isOn: viewModel.showSkipSegmentsOnTimelineBinding,
                 )
                 Toggle(
                     "settings.playback.showEndsAtTime",

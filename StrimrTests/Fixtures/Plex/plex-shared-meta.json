@@ -1,0 +1,151 @@
+{
+  "Type": [
+    {
+      "key": "/library/shared/all",
+      "type": "mixed",
+      "title": "All Shared",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/all?type=1",
+      "type": "mixed",
+      "title": "Movies",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/all?type=2,3,4",
+      "type": "mixed",
+      "title": "TV",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/all?type=8,9,10",
+      "type": "mixed",
+      "title": "Music",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/all?type=13,14,12",
+      "type": "mixed",
+      "title": "Photos",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/all?type=15",
+      "type": "mixed",
+      "title": "Playlists",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    },
+    {
+      "key": "/library/shared/libraries",
+      "type": "mixed",
+      "title": "Libraries",
+      "active": false,
+      "Sort": [
+        {
+          "default": "asc",
+          "defaultDirection": "asc",
+          "descKey": "titleSort:desc",
+          "key": "titleSort",
+          "title": "Title"
+        },
+        {
+          "defaultDirection": "asc",
+          "descKey": "taggingCreatedAt:desc",
+          "key": "taggingCreatedAt",
+          "title": "Date Shared"
+        }
+      ]
+    }
+  ]
+}

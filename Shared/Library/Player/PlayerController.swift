@@ -7,12 +7,6 @@ import Observation
 import SwiftAssRenderer
 import SwiftUI
 
-extension PlayerVideoScaleMode {
-    var videoGravity: AVLayerVideoGravity {
-        self == .fit ? .resizeAspect : .resizeAspectFill
-    }
-}
-
 struct PlayerScrubPreview {
     var position: Double
     var image: CGImage?
@@ -32,10 +26,12 @@ final class PlayerController {
     var isLive = false
     var liveEdgeTime = 0.0
     var behindLiveSeconds = 0.0
+    var isAtLiveEdge = true
     var seekableLiveRange: ClosedRange<Double>?
     var sourceVideoSize: CGSize?
     private(set) var displayVideoSize: CGSize?
-    private(set) var videoScaleMode = PlayerVideoScaleMode.fit
+    private(set) var videoZoom = VideoZoom.fit
+    @ObservationIgnored private var videoZoomContext: String?
     var videoFormatBadge: PlayerVideoFormatBadge?
     var subtitleCues: [SubtitleCue] = []
     var subtitleMaxCueDuration = 60.0
@@ -54,14 +50,25 @@ final class PlayerController {
     private(set) var audioDelayMilliseconds = 0
     private(set) var subtitleDelayMilliseconds = 0
     private(set) var isApplyingAudioDelay = false
+    private(set) var audioShaping = AudioShaping()
+    private(set) var audioShapingState: AudioShapingState = .off
     private(set) var videoRoute: VideoRoute = .none
     private(set) var selectedSubtitleTrackID: Int?
     private(set) var volume: Float = 1.0
     private(set) var isCoordinatedPlayback = false
 
-    func setVideoScaleMode(_ mode: PlayerVideoScaleMode) {
-        videoScaleMode = mode
-        engine.videoGravity = mode.videoGravity
+    func setVideoZoom(_ zoom: VideoZoom) {
+        videoZoom = zoom
+    }
+
+    func prepareVideoZoom(for context: String?, persistedMode: PlayerVideoScaleMode) {
+        videoZoom = VideoZoom.carriedOver(
+            videoZoom,
+            from: videoZoomContext,
+            to: context,
+            persistedMode: persistedMode,
+        )
+        videoZoomContext = context
     }
 
     var isMuted: Bool {
@@ -81,6 +88,11 @@ final class PlayerController {
         )
     }
 
+    /// AVPlayer owns the audio on the native bypass, so the engine has no PCM to shape there.
+    var isAudioShapingAvailable: Bool {
+        videoRoute != .remoteBypass && audioShapingState != .unavailable
+    }
+
     func subtitleDelayAvailability(burnsSubtitles: Bool) -> PlaybackOffsetAvailability {
         .subtitles(
             isNativeBypass: videoRoute == .remoteBypass,
@@ -90,6 +102,8 @@ final class PlayerController {
     }
 
     @ObservationIgnored var onMediaLoaded: (() -> Void)?
+    /// The engine could not demux a live stream it read itself; the server-transcoded route may still play it.
+    @ObservationIgnored var onLiveDemuxFailure: ((Error) -> Void)?
     @ObservationIgnored var onPlaybackEnded: (() -> Void)?
 
     @ObservationIgnored private var cancellables: Set<AnyCancellable> = []
@@ -108,6 +122,11 @@ final class PlayerController {
     @ObservationIgnored private var externalSubtitleProviderStreamIDs: [Int: Int] = [:]
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
+    @ObservationIgnored private var nowPlayingController: NowPlayingController?
+    #if os(iOS)
+        @ObservationIgnored private var backgroundRestoreTask: Task<Void, Never>?
+        @ObservationIgnored private var backgroundRestoreResumesPlayback = false
+    #endif
     @ObservationIgnored private var lastAudibleVolume: Float = 1.0
     @ObservationIgnored private var volumeAttenuation: Float = 1.0
     @ObservationIgnored private var pendingSeekTarget: Double?
@@ -145,6 +164,16 @@ final class PlayerController {
         } catch {
             fatalError("Failed to initialize player engine: \(error)")
         }
+        nowPlayingController = NowPlayingController(
+            engine: engine,
+            commands: NowPlayingController.Commands(
+                play: { [weak self] in self?.resume() },
+                pause: { [weak self] in self?.pause() },
+                togglePlayPause: { [weak self] in self?.togglePlayback() },
+                skip: { [weak self] seconds in self?.seek(by: seconds) },
+                seek: { [weak self] position in self?.seek(to: position) },
+            ),
+        )
 
         observeEngine()
         #if os(iOS) || os(macOS)
@@ -158,6 +187,7 @@ final class PlayerController {
         startPosition: Double?,
         preferredAudioTrackID: Int?,
         losslessAudio: Bool,
+        readAhead: PlaybackReadAhead = .standard,
         spatialAudioLayout: SpatialSpeakerLayout?,
         styledASSSubtitles: Bool,
         mediaIdentifier: String,
@@ -167,11 +197,11 @@ final class PlayerController {
         showsScrubThumbnailPreviews: Bool = true,
         generatesMissingScrubThumbnailPreviews: Bool = true,
         showsSubtitlesOnSkipBack: Bool = false,
-        isLive: Bool = false,
-        nativeRemoteHLS: Bool = false,
-        dvrWindowSeconds: TimeInterval? = nil,
+        live: LiveLoadOptions? = nil,
         audioDelayMilliseconds: Int = 0,
+        audioShaping: AudioShaping = AudioShaping(),
         autoplay: Bool = true,
+        nowPlaying: NowPlayingItem? = nil,
     ) {
         deactivateASSRendering()
         resetScrubPreviewSession()
@@ -202,13 +232,16 @@ final class PlayerController {
             setSubtitleDelay(milliseconds: 0)
         }
         self.mediaIdentifier = mediaIdentifier
-        hasLiveDVRWindow = (dvrWindowSeconds ?? 0) > 0
+        let isLive = live != nil
+        hasLiveDVRWindow = (live?.dvrWindowSeconds ?? 0) > 0
         cancelPendingAudioDelay()
         self.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(audioDelayMilliseconds)
         let audioDelaySeconds = PlaybackOffset(milliseconds: self.audioDelayMilliseconds).seconds
+        self.audioShaping = audioShaping.clamped
         self.providerStreamIDsByFFIndex = providerStreamIDsByFFIndex
         externalSubtitleProviderStreamIDs = [:]
         errorMessage = nil
+        nowPlayingController?.begin(nowPlaying, isLive: isLive)
 
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -221,17 +254,28 @@ final class PlayerController {
                         audioBridgeMode: losslessAudio ? .lossless : .surroundCompat,
                         objectAudioRendering: spatialAudioLayout.map { .apac($0) } ?? .off,
                         isLive: isLive,
-                        dvrWindowSeconds: dvrWindowSeconds,
+                        dvrWindowSeconds: live?.dvrWindowSeconds,
                         liveJoinProfile: .fastZap,
-                        nativeRemoteHLS: nativeRemoteHLS,
+                        liveJoinStartsImmediately: live?.startsImmediately ?? true,
+                        nativeRemoteHLS: live?.nativeRemoteHLS ?? false,
                         preserveASSMarkup: true,
                         prepareNativeSubtitles: Self.preparesNativeSubtitles,
+                        probesize: live?.probesize,
+                        maxAnalyzeDuration: live?.maxAnalyzeDuration,
+                        preferredAudioLanguages: live?.preferredAudioLanguages ?? [],
                         externalSubtitles: externalSubtitles.map(\.track),
-                        autoplay: autoplay,
+                        forwardBufferSegments: isLive ? nil : readAhead.forwardBufferSegments,
+                        softwarePacketCacheStorage: isLive ? .automatic : readAhead.softwarePacketCacheStorage,
+                        autoplay: autoplay && (live?.autoplay ?? true),
                         audioDelaySeconds: audioDelaySeconds,
+                        audioShaping: audioShaping,
+                        preferredDecodePath: live?.preferredDecodePath ?? .automatic,
                     ),
                     audioSourceStreamIndex: preferredAudioTrackID.map(Int32.init),
                 )
+                if autoplay, live?.autoplay == false {
+                    engine.play()
+                }
                 if let sourceProbe,
                    sourceProbe.videoWidth > 0,
                    sourceProbe.videoHeight > 0
@@ -259,12 +303,19 @@ final class PlayerController {
                         await scrubThumbnailProvider.prepare()
                     }
                 }
+                nowPlayingController?.playbackDidLoad()
                 onMediaLoaded?()
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 deactivateASSRendering()
+                if let live, !live.nativeRemoteHLS, LiveLoadOptions.isDemuxFailure(error),
+                   let onLiveDemuxFailure
+                {
+                    onLiveDemuxFailure(error)
+                    return
+                }
                 if isLive {
-                    LiveTVErrorReporting.capture(error)
+                    LiveTVErrorReporting.capture(error, route: live?.route)
                 } else {
                     ErrorReporter.capture(error)
                 }
@@ -274,6 +325,12 @@ final class PlayerController {
     }
 
     func togglePlayback() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                restoreAfterBackground(resumesPlayback: !backgroundRestoreResumesPlayback)
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(
                 to: isPaused ? playbackRate : 0,
@@ -289,6 +346,12 @@ final class PlayerController {
     }
 
     func pause() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                backgroundRestoreResumesPlayback = false
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: 0, options: [])
         } else {
@@ -297,12 +360,54 @@ final class PlayerController {
     }
 
     func resume() {
+        #if os(iOS)
+            if needsBackgroundRestore {
+                restoreAfterBackground(resumesPlayback: true)
+                return
+            }
+        #endif
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: playbackRate, options: [])
         } else {
             engine.play()
         }
     }
+
+    #if os(iOS)
+        private var needsBackgroundRestore: Bool {
+            engine.needsForegroundVideoRestore || backgroundRestoreTask != nil
+        }
+
+        /// The engine releases the video of a session left paused in the background; it has to be rebuilt where it
+        /// stopped before it can play again.
+        /// `nil` keeps the intent of a restore already running, such as a play from the lock screen.
+        func restoreAfterBackground(resumesPlayback: Bool? = nil) {
+            if let resumesPlayback {
+                backgroundRestoreResumesPlayback = resumesPlayback
+            }
+            guard backgroundRestoreTask == nil, engine.needsForegroundVideoRestore else { return }
+            if resumesPlayback == nil {
+                backgroundRestoreResumesPlayback = false
+            }
+            backgroundRestoreTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    try await engine.reloadAtCurrentPosition { $0.autoplay = false }
+                } catch {
+                    guard !Task.isCancelled, !error.isCancellation else { return }
+                    backgroundRestoreTask = nil
+                    ErrorReporter.capture(error)
+                    errorMessage = error.localizedDescription
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                backgroundRestoreTask = nil
+                if backgroundRestoreResumesPlayback {
+                    resume()
+                }
+            }
+        }
+    #endif
 
     /// Where relative seeks start from. `position` only catches up once the engine has taken the seek,
     /// so rapid presses would otherwise restart from the same stale value.
@@ -422,6 +527,7 @@ final class PlayerController {
 
     func setPlaybackRate(_ rate: Float) {
         playbackRate = rate
+        nowPlayingController?.setPlaybackRate(rate)
         if isCoordinatedPlayback {
             engine.playbackCoordinator.coordinateRateChange(to: rate, options: [])
         } else {
@@ -547,6 +653,12 @@ final class PlayerController {
         if let pending = audioDelayDispatch.flush() {
             sendAudioDelay(pending)
         }
+    }
+
+    /// Each change rebuilds the session at the playhead (about 0.3 s of held picture).
+    func setAudioShaping(_ shaping: AudioShaping) {
+        audioShaping = shaping.clamped
+        engine.setAudioShaping(shaping)
     }
 
     func setSubtitleDelay(milliseconds: Int) {
@@ -687,6 +799,11 @@ final class PlayerController {
         selectedSubtitleTrackID = nil
         cancelPendingAudioDelay()
         skipBackSubtitles.cancel()
+        #if os(iOS)
+            backgroundRestoreTask?.cancel()
+            backgroundRestoreTask = nil
+        #endif
+        nowPlayingController?.stop()
         engine.stop()
     }
 
@@ -746,6 +863,10 @@ final class PlayerController {
     #if os(iOS) || os(macOS)
         func startPictureInPicture() {
             pictureInPictureCoordinator.start()
+        }
+
+        func setPictureInPictureEnabled(_ enabled: Bool) {
+            pictureInPictureCoordinator.isEnabled = enabled
         }
 
         private func configurePictureInPicture() {
@@ -964,7 +1085,60 @@ final class PlayerController {
         }
     }
 
+    func playbackStatistics(context: PlaybackStatisticsContext) -> PlaybackStatistics {
+        let audioTrack = engine.activeAudioTrackIndex.flatMap { index in
+            engine.audioTracks.first { $0.id == index }
+        }
+        return PlaybackStatistics(PlaybackStatisticsSource(
+            context: context,
+            videoRoute: engine.videoRoute,
+            containerFormat: engine.sourceContainerFormat,
+            videoCodec: engine.sourceVideoCodecName,
+            videoStreamFormat: engine.sourceVideoStreamFormat,
+            decodedVideoFormat: engine.decodedVideoFormat,
+            sourceVideoSize: sourceVideoSize,
+            displayVideoSize: displayVideoSize,
+            frameRate: engine.sourceVideoFrameRate,
+            videoBitrate: engine.sourceVideoBitrate,
+            sourceVideoFormat: engine.sourceVideoFormat,
+            presentedVideoFormat: engine.videoFormat,
+            dolbyVisionProfile: engine.sourceDVProfile,
+            dolbyVisionConversion: engine.dolbyVisionConversion,
+            videoDecoder: engine.activeVideoDecoder,
+            audioTrack: audioTrack,
+            audioDecoder: engine.activeAudioDecoder,
+            audioDelivery: engine.audioDelivery,
+            subtitleCodec: activeSubtitleCodec,
+            subtitleRenderer: statisticsSubtitleRenderer(burnsSubtitles: context.burnsSubtitles),
+            bufferedAhead: isLive ? nil : bufferedAhead,
+            telemetry: engine.diagnostics.liveTelemetry,
+        ))
+    }
+
+    private func statisticsSubtitleRenderer(burnsSubtitles: Bool) -> PlaybackStatisticsSubtitleRenderer? {
+        if burnsSubtitles {
+            return .burnedIn
+        }
+        guard let selectedSubtitleTrackID,
+              let track = engine.subtitleTracks.first(where: { $0.id == selectedSubtitleTrackID })
+        else {
+            return nil
+        }
+        if track.isNativelyRenderedSubtitle {
+            return .native
+        }
+        return assRenderer == nil ? .overlay : .styled
+    }
+
     private func observeEngine() {
+        #if os(iOS)
+            // Without this the system pauses a player showing video as soon as the app leaves the foreground.
+            engine.$currentAVPlayer
+                .receive(on: DispatchQueue.main)
+                .sink { $0?.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible }
+                .store(in: &cancellables)
+        #endif
+
         engine.$currentAVPlayerItem
             .map { item -> AnyPublisher<CGSize, Never> in
                 guard let item else { return Just(.zero).eraseToAnyPublisher() }
@@ -1004,6 +1178,11 @@ final class PlayerController {
         engine.$videoRoute
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.videoRoute = $0 }
+            .store(in: &cancellables)
+
+        engine.$audioShapingState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.audioShapingState = $0 }
             .store(in: &cancellables)
 
         engine.$isBuffering
@@ -1080,6 +1259,11 @@ final class PlayerController {
         engine.clock.$behindLiveSeconds
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.behindLiveSeconds = $0 }
+            .store(in: &cancellables)
+
+        engine.clock.$isAtLiveEdge
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.isAtLiveEdge = $0 }
             .store(in: &cancellables)
 
         engine.clock.$seekableLiveRange
@@ -1172,8 +1356,11 @@ struct ExternalSubtitleRegistrationError: LocalizedError {
 
 struct PlayerSurfaceView: View {
     let controller: PlayerController
+    var zoomScale = 1.0
 
     var body: some View {
         AetherPlayerSurface(engine: controller.engine)
+            .scaleEffect(zoomScale)
+            .clipped()
     }
 }

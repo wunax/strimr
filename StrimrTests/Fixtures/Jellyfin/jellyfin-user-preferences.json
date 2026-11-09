@@ -1,0 +1,13 @@
+{
+  "Id": "user-1",
+  "Name": "Example User",
+  "Configuration": {
+    "AudioLanguagePreference": "fre",
+    "PlayDefaultAudioTrack": false,
+    "SubtitleLanguagePreference": "",
+    "SubtitleMode": "Smart",
+    "RememberAudioSelections": false,
+    "EnableNextEpisodeAutoPlay": true,
+    "OrderedViews": ["view-1", "view-2"]
+  }
+}

@@ -143,6 +143,62 @@ final class ServerRegistry {
         entries[server]?.plexResource
     }
 
+    /// The accounts linked to the active profile, whether or not their servers are connected or enabled.
+    func accountPreferencesTargets() -> [AccountPreferencesTarget] {
+        #if DEBUG
+            if DemoMode.isEnabled {
+                return []
+            }
+        #endif
+        guard let profile else { return [] }
+        return profileStore.links(for: profile).compactMap { link in
+            switch (accountStore.account(id: link.accountID), link.user) {
+            case let (.plex(account)?, .plexHome(userUUID)):
+                plexPreferencesTarget(link: link, account: account, userUUID: userUUID)
+            case let (.jellyfin(account)?, .jellyfin):
+                jellyfinPreferencesTarget(link: link, account: account)
+            default:
+                nil
+            }
+        }
+    }
+
+    private func plexPreferencesTarget(
+        link: ProfileLink,
+        account: PlexAccount,
+        userUUID: String,
+    ) -> AccountPreferencesTarget {
+        let user = profileStore.plexHomeUsers(accountID: link.accountID).first { $0.uuid == userUUID }
+        return AccountPreferencesTarget(
+            id: link.accountID,
+            title: user?.displayName ?? account.displayName,
+            subtitle: "Plex",
+            service: PlexAccountPreferencesService(token: { [weak self] in
+                guard let self else { throw PlexServerAccessRecoveryError.accountUnauthorized }
+                return try await plexToken(link: link, account: account, userUUID: userUUID)
+            }),
+        )
+    }
+
+    private func jellyfinPreferencesTarget(link: ProfileLink, account: JellyfinAccount) -> AccountPreferencesTarget {
+        AccountPreferencesTarget(
+            id: link.accountID,
+            title: account.connection.serverName,
+            subtitle: account.connection.username,
+            service: JellyfinAccountPreferencesService(context: { [weak self] in
+                if let context = self?.entries[account.server]?.jellyfinContext {
+                    return context
+                }
+                guard let token = try self?.accountStore.token(forAccountID: link.accountID) else {
+                    throw JellyfinAPIError.authenticationRequired
+                }
+                let context = JellyfinAPIContext()
+                context.configure(connection: account.connection, token: token)
+                return context
+            }),
+        )
+    }
+
     // MARK: - Activation
 
     /// Resolves the links of `profile` and starts connecting its enabled servers in parallel.
@@ -540,11 +596,22 @@ final class ServerRegistry {
                 context: context,
                 serverName: resource.name,
                 userID: entry.userID,
+                isServerAdministrator: PlexServerRights.isAdministrator(
+                    resourceOwned: resource.owned,
+                    homeUsers: profileStore.plexHomeUsers(accountID: entry.link.accountID),
+                    userUUID: userUUID,
+                    accountID: account.id,
+                ),
                 favoritesProfileID: entry.link.profileID,
                 favoritesStore: favoritesStore,
                 trackSelectionCoordinator: trackSelectionCoordinator,
                 versionSelectionStore: versionSelectionStore,
             )
+            services?.accountPreferences = plexPreferencesTarget(
+                link: entry.link,
+                account: account,
+                userUUID: userUUID,
+            ).service
             markReady(server, services: services) { $0.plexContext = context }
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
@@ -622,6 +689,7 @@ final class ServerRegistry {
             trackSelectionCoordinator: trackSelectionCoordinator,
             versionSelectionStore: versionSelectionStore,
         )
+        services?.accountPreferences = jellyfinPreferencesTarget(link: entry.link, account: account).service
         markReady(server, services: services) { $0.jellyfinContext = context }
     }
 

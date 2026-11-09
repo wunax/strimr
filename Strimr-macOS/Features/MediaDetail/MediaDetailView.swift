@@ -6,6 +6,7 @@ struct MediaDetailView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.dismiss) private var dismiss
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(AppModel.self) private var appModel
@@ -18,6 +19,7 @@ struct MediaDetailView: View {
     @State private var isShowingFileInfo = false
     @State private var isMoreMenuHovered = false
     @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var manageController = MediaManageController()
     let onSelectMedia: (MediaItem) -> Void
     let onSelectParentSeries: (PlayableMediaItem) -> Void
     let onSelectPerson: (Person) -> Void
@@ -73,8 +75,16 @@ struct MediaDetailView: View {
             }
         }
         .navigationTitle(viewModel.detailPrimaryLabel)
-        .task { await viewModel.loadDetails() }
-        .themeMusic(path: viewModel.media.mediaItem.themePath)
+        .task { await viewModel.loadDetailsIfNeeded() }
+        .onChange(of: mediaServices.mediaRevision) {
+            guard !viewModel.wasDeleted else {
+                dismiss()
+                return
+            }
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await viewModel.refreshAfterMediaChange(itemID: changedMediaID) }
+        }
+        .themeMusic(for: viewModel.media.mediaItem)
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             ShowDownloadSelectionSheet(
                 viewModel: viewModel,
@@ -507,11 +517,22 @@ struct MediaDetailView: View {
                     }
                 }
 
-                if viewModel.canShowFileInfo {
+                if viewModel.canShowFileInfo || viewModel.canManageMedia {
                     Divider()
+                }
+
+                if viewModel.canShowFileInfo {
                     Button("media.fileInfo.title", systemImage: "doc.text.magnifyingglass") {
                         isShowingFileInfo = true
                     }
+                }
+
+                if viewModel.canManageMedia {
+                    MediaManageMenu(
+                        item: viewModel.media.mediaItem,
+                        quickActions: viewModel.quickActions,
+                        controller: manageController,
+                    )
                 }
             }
 
@@ -533,6 +554,7 @@ struct MediaDetailView: View {
         .fixedSize()
         .help(Text("common.actions.more"))
         .accessibilityLabel(Text("common.actions.more"))
+        .mediaManagePresentation(manageController, quickActions: viewModel.quickActions)
     }
 
     private var isStartingSharePlay: Bool {
@@ -661,14 +683,11 @@ struct MediaDetailView: View {
             HStack(spacing: 16) {
                 EpisodeArtworkView(
                     episode: episode,
-                    imageURL: viewModel.imageURL(
+                    artworkPath: viewModel.artworkPath(
                         for: episode,
-                        width: 640,
-                        height: 360,
                         spoilerProtection: settingsManager.interface.spoilerProtection,
                     ),
                     width: 200,
-                    runtime: nil,
                     progress: viewModel.progressFraction(for: episode),
                 )
 

@@ -53,6 +53,7 @@ final class JellyfinAPIContext {
     @ObservationIgnored private let deviceID: String
     @ObservationIgnored private let clientVersion: String
     @ObservationIgnored private var authenticationRequiredHandler: (() -> Void)?
+    @ObservationIgnored private var configurationWrite: Task<Void, any Error>?
 
     init(session: URLSession? = nil) {
         if let session {
@@ -313,13 +314,7 @@ final class JellyfinAPIContext {
     }
 
     var authorization: MediaAuthorization {
-        guard let policy = currentUser?.policy else { return .denied }
-        let isAdministrator = policy.isAdministrator == true
-        return MediaAuthorization(
-            isAdministrator: isAdministrator,
-            canManageSubtitles: isAdministrator || policy.enableSubtitleManagement == true,
-            canManageServer: isAdministrator,
-        )
+        currentUser?.policy.map(MediaAuthorization.jellyfin) ?? .denied
     }
 
     func get<Response: Decodable & Sendable>(
@@ -338,17 +333,23 @@ final class JellyfinAPIContext {
         return try await request(path: path, method: "POST", query: query, body: encoded)
     }
 
+    /// `contentType` describes the body, JSON unless given. `timeout` replaces the default one for calls the server
+    /// only answers once its work is done.
     func send(
         path: [String],
         method: String,
         query: [URLQueryItem] = [],
         body: Data? = nil,
+        contentType: String? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws {
         let (_, response) = try await authenticatedRequest(
             path: path,
             method: method,
             query: query,
             body: body,
+            contentType: contentType,
+            timeout: timeout,
         )
         try validateStatus(response.statusCode)
     }
@@ -358,34 +359,60 @@ final class JellyfinAPIContext {
         method: String = "GET",
         query: [URLQueryItem] = [],
         body: Data? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws -> Data {
         let (data, response) = try await authenticatedRequest(
             path: path,
             method: method,
             query: query,
             body: body,
+            timeout: timeout,
         )
         try validateStatus(response.statusCode)
         return data
     }
 
     func enableTrackSelectionMemory(for kind: PlaybackTrackKind) async throws {
-        guard let connection else { throw JellyfinAPIError.authenticationRequired }
         let key = kind == .audio ? "RememberAudioSelections" : "RememberSubtitleSelections"
-        let data = try await rawData(path: ["Users", connection.userID])
-        var user = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        var configuration = user["Configuration"] as? [String: Any] ?? [:]
-        if (configuration[key] as? NSNumber)?.boolValue == true || configuration[key] as? Bool == true {
-            return
+        try await updateUserConfiguration { configuration in
+            if configuration[key] as? Bool == true {
+                return false
+            }
+            configuration[key] = true
+            return true
         }
-        configuration[key] = true
-        user["Configuration"] = configuration
-        let configurationData = try JSONSerialization.data(withJSONObject: configuration)
+    }
+
+    /// The raw JSON: the server replaces the whole configuration on write, and `JellyfinUserConfiguration` only decodes
+    /// the fields the app reads.
+    func userConfiguration() async throws -> [String: Any] {
+        guard let connection else { throw JellyfinAPIError.authenticationRequired }
+        let data = try await rawData(path: ["Users", connection.userID])
+        let user = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return user["Configuration"] as? [String: Any] ?? [:]
+    }
+
+    /// Writes run one after the other, otherwise a write started from an older read would undo the previous one.
+    /// `update` returns false when there is nothing to send.
+    func updateUserConfiguration(_ update: @escaping (inout [String: Any]) -> Bool) async throws {
+        let previous = configurationWrite
+        let write = Task {
+            _ = await previous?.result
+            try await performConfigurationWrite(update)
+        }
+        configurationWrite = write
+        try await write.value
+    }
+
+    private func performConfigurationWrite(_ update: (inout [String: Any]) -> Bool) async throws {
+        guard let connection else { throw JellyfinAPIError.authenticationRequired }
+        var configuration = try await userConfiguration()
+        guard update(&configuration) else { return }
         try await send(
             path: ["Users", "Configuration"],
             method: "POST",
             query: [URLQueryItem(name: "UserId", value: connection.userID)],
-            body: configurationData,
+            body: JSONSerialization.data(withJSONObject: configuration),
         )
         _ = try? await refreshCurrentUser()
     }
@@ -481,6 +508,8 @@ final class JellyfinAPIContext {
         method: String,
         query: [URLQueryItem],
         body: Data?,
+        contentType: String? = nil,
+        timeout: TimeInterval? = nil,
     ) async throws -> (Data, HTTPURLResponse) {
         guard let connection, let accessToken else {
             throw JellyfinAPIError.authenticationRequired
@@ -491,6 +520,8 @@ final class JellyfinAPIContext {
             method: method,
             query: query,
             body: body,
+            contentType: contentType,
+            timeout: timeout,
             token: accessToken,
         )
     }
@@ -501,16 +532,18 @@ final class JellyfinAPIContext {
         method: String,
         query: [URLQueryItem],
         body: Data?,
+        contentType: String? = nil,
+        timeout: TimeInterval? = nil,
         token: String?,
     ) async throws -> (Data, HTTPURLResponse) {
         let url = try Self.makeURL(baseURL: baseURL, path: path, query: query)
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
-        request.timeoutInterval = 15
+        request.timeoutInterval = timeout ?? 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(contentType ?? "application/json", forHTTPHeaderField: "Content-Type")
         }
         for authorizationHeader in authorizationHeaders(token: token) {
             request.setValue(authorizationHeader.value, forHTTPHeaderField: authorizationHeader.key)
@@ -608,6 +641,8 @@ final class JellyfinAPIContext {
             throw JellyfinAPIError.invalidServerURL
         }
         components.queryItems = query.isEmpty ? nil : query
+        // URLComponents leaves `+` as is, which Jellyfin reads as a space, breaking image URLs and search terms.
+        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         guard let result = components.url else { throw JellyfinAPIError.invalidServerURL }
         return result
     }

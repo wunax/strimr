@@ -110,12 +110,11 @@ struct MediaCard: View {
     }
 
     private var secondaryLabel: String? {
-        remainingTimeLine == .secondary ? remainingTimeText : media.secondaryLabel
+        media.cardSecondaryLabel(remainingTime: remainingTimeLine == .secondary ? remainingTimeText : nil)
     }
 
     private var tertiaryLabel: String? {
-        guard remainingTimeLine == .tertiary else { return media.tertiaryLabel }
-        return [media.tertiaryLabel, remainingTimeText].compactMap(\.self).joined(separator: " · ")
+        media.cardTertiaryLabel(remainingTime: remainingTimeLine == .tertiary ? remainingTimeText : nil)
     }
 
     private var titleOpacity: Double {
@@ -138,7 +137,6 @@ struct MediaCard: View {
 
 extension View {
     /// Download badge on artwork; tvOS has no downloads.
-    @ViewBuilder
     func downloadStatusOverlay(_ media: MediaDisplayItem) -> some View {
         #if os(tvOS)
             self
@@ -150,7 +148,6 @@ extension View {
     }
 
     /// Greys out items that cannot be played while their server is unreachable; tvOS has no offline mode.
-    @ViewBuilder
     func offlineAvailability(of media: MediaDisplayItem) -> some View {
         #if os(tvOS)
             self

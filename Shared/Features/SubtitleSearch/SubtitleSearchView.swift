@@ -28,9 +28,15 @@ struct SubtitleLanguageOption: Hashable, Identifiable {
 @MainActor
 @Observable
 final class SubtitleSearchViewModel {
+    struct SearchOptions: Hashable {
+        let language: String
+        let hearingImpaired: Bool
+        let forced: Bool
+    }
+
     var selectedLanguage: String
-    var hearingImpaired = false
-    var forced = false
+    var hearingImpaired: Bool
+    var forced: Bool
     var title = ""
     var results: [RemoteSubtitleResult] = []
     var isSearching = false
@@ -42,34 +48,94 @@ final class SubtitleSearchViewModel {
 
     private let itemID: String
     private let services: MediaServices
+    private let deviceLanguage: String
+    private let onPreferencesChange: (SubtitleSearchPreferences) -> Void
+    private var preferences: SubtitleSearchPreferences
+    private var completedOptions: SearchOptions?
+    private var searchGeneration = 0
 
-    init(itemID: String, services: MediaServices) {
+    init(
+        itemID: String,
+        services: MediaServices,
+        preferences: SubtitleSearchPreferences = SubtitleSearchPreferences(),
+        onPreferencesChange: @escaping (SubtitleSearchPreferences) -> Void = { _ in },
+    ) {
         self.itemID = itemID
         self.services = services
+        self.preferences = preferences
+        self.onPreferencesChange = onPreferencesChange
         let preferred = Locale.preferredLanguages.first ?? "en"
-        selectedLanguage = Locale.Language(identifier: preferred).languageCode?.identifier ?? "en"
+        deviceLanguage = Locale.Language(identifier: preferred).languageCode?.identifier ?? "en"
+        selectedLanguage = preferences.language ?? deviceLanguage
+        // Servers without these options hide their toggles, so a saved value could not be turned off there.
+        let supportsAdvancedOptions = services.detail.supportsAdvancedSubtitleSearch
+        hearingImpaired = supportsAdvancedOptions && preferences.hearingImpaired
+        forced = supportsAdvancedOptions && preferences.forced
+    }
+
+    var searchOptions: SearchOptions {
+        SearchOptions(language: selectedLanguage, hearingImpaired: hearingImpaired, forced: forced)
+    }
+
+    var bestMatchID: String? {
+        results.bestMatch?.id
+    }
+
+    /// Reappearing after the language list was pushed must not repeat a search that already completed.
+    func searchIfNeeded() async {
+        guard completedOptions != searchOptions || !hasSearched else { return }
+        await search()
     }
 
     func search() async {
-        guard !isSearching, attachingResultID == nil else { return }
+        guard attachingResultID == nil else { return }
+        let options = searchOptions
+        searchGeneration += 1
+        let generation = searchGeneration
         isSearching = true
         errorMessage = nil
-        defer { isSearching = false }
+        if completedOptions != options {
+            results = []
+            hasSearched = false
+        }
+        rememberPreferences()
+        defer {
+            if generation == searchGeneration {
+                isSearching = false
+            }
+        }
 
         do {
-            results = try await services.detail.searchSubtitles(
+            let values = try await services.detail.searchSubtitles(
                 itemID: itemID,
-                language: selectedLanguage,
-                hearingImpaired: hearingImpaired,
-                forced: forced,
+                language: options.language,
+                hearingImpaired: options.hearingImpaired,
+                forced: options.forced,
                 title: title,
             )
+            guard generation == searchGeneration, !Task.isCancelled else { return }
+            results = values.rankedByMatch()
             hasSearched = true
+            completedOptions = options
         } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
+            guard generation == searchGeneration, !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func rememberPreferences() {
+        var updated = preferences
+        if selectedLanguage != preferences.language ?? deviceLanguage {
+            updated.language = selectedLanguage
+        }
+        if services.detail.supportsAdvancedSubtitleSearch {
+            updated.hearingImpaired = hearingImpaired
+            updated.forced = forced
+        }
+        guard updated != preferences else { return }
+        preferences = updated
+        onPreferencesChange(updated)
     }
 
     func attach(_ result: RemoteSubtitleResult) async -> Bool {
@@ -91,6 +157,25 @@ final class SubtitleSearchViewModel {
 }
 
 struct SubtitleSearchView: View {
+    @Environment(SettingsManager.self) private var settingsManager
+    let itemID: String
+    let titlePlaceholder: String
+    let services: MediaServices
+    let onAttached: (RemoteSubtitleResult) async -> Void
+
+    var body: some View {
+        SubtitleSearchContentView(
+            itemID: itemID,
+            titlePlaceholder: titlePlaceholder,
+            services: services,
+            preferences: settingsManager.playback.subtitleSearch,
+            onPreferencesChange: settingsManager.setSubtitleSearchPreferences(_:),
+            onAttached: onAttached,
+        )
+    }
+}
+
+private struct SubtitleSearchContentView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: SubtitleSearchViewModel
     let titlePlaceholder: String
@@ -101,9 +186,16 @@ struct SubtitleSearchView: View {
         itemID: String,
         titlePlaceholder: String,
         services: MediaServices,
+        preferences: SubtitleSearchPreferences,
+        onPreferencesChange: @escaping (SubtitleSearchPreferences) -> Void,
         onAttached: @escaping (RemoteSubtitleResult) async -> Void,
     ) {
-        _viewModel = State(initialValue: SubtitleSearchViewModel(itemID: itemID, services: services))
+        _viewModel = State(initialValue: SubtitleSearchViewModel(
+            itemID: itemID,
+            services: services,
+            preferences: preferences,
+            onPreferencesChange: onPreferencesChange,
+        ))
         self.titlePlaceholder = titlePlaceholder
         self.onAttached = onAttached
         showsAdvancedOptions = services.detail.supportsAdvancedSubtitleSearch
@@ -112,6 +204,9 @@ struct SubtitleSearchView: View {
     var body: some View {
         TaskModalNavigationView {
             subtitleSearchContent
+                .task(id: viewModel.searchOptions) {
+                    await viewModel.searchIfNeeded()
+                }
                 .taskModalTitle("subtitles.search.title")
             #if !os(tvOS)
                 .toolbar {
@@ -123,7 +218,6 @@ struct SubtitleSearchView: View {
         }
     }
 
-    @ViewBuilder
     private var subtitleSearchContent: some View {
         #if os(tvOS)
             HStack(alignment: .top, spacing: 40) {
@@ -207,6 +301,7 @@ struct SubtitleSearchView: View {
             .tint(.secondary)
             .centeredSubtitleSearchAction()
         }
+        .disabled(viewModel.attachingResultID != nil)
     }
 
     private var selectedLanguageName: String {
@@ -240,6 +335,11 @@ struct SubtitleSearchView: View {
                     } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
+                                if viewModel.bestMatchID == result.id {
+                                    Label("subtitles.search.bestMatch", systemImage: "star.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                }
                                 Text(result.title)
                                     .foregroundStyle(.primary)
                                     .multilineTextAlignment(.leading)
@@ -322,7 +422,6 @@ struct SubtitleSearchView: View {
 #endif
 
 private extension View {
-    @ViewBuilder
     func centeredSubtitleSearchAction() -> some View {
         #if os(tvOS)
             frame(maxWidth: .infinity, alignment: .center)

@@ -38,6 +38,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setDefaultSleepTimer(_ mode: SleepTimerMode?) {
+        settings.playback.defaultSleepTimer = mode
+        persist()
+    }
+
     func setPlaybackQualityPreset(_ preset: TranscodeQualityPreset) {
         settings.playback.qualityPreset = preset
         persist()
@@ -50,6 +55,16 @@ final class SettingsManager {
 
     func setAutoRotateVideo(_ enabled: Bool) {
         settings.playback.autoRotateVideo = enabled
+        persist()
+    }
+
+    func setPictureInPicture(_ enabled: Bool) {
+        settings.playback.pictureInPicture = enabled
+        persist()
+    }
+
+    func setBackgroundAudio(_ enabled: Bool) {
+        settings.playback.backgroundAudio = enabled
         persist()
     }
 
@@ -68,6 +83,47 @@ final class SettingsManager {
         persist()
     }
 
+    func setTranscodeLiveTV(_ enabled: Bool) {
+        settings.playback.transcodeLiveTV = enabled
+        persist()
+    }
+
+    func setTintsLiveTVGuideCategories(_ enabled: Bool) {
+        settings.interface.tintsLiveTVGuideCategories = enabled
+        persist()
+    }
+
+    func setLiveTVSection(_ section: String, server: ServerIdentity) {
+        let key = liveTVKey(server)
+        guard settings.interface.liveTVSectionByServer[key] != section else { return }
+        settings.interface.liveTVSectionByServer[key] = section
+        persist()
+    }
+
+    func liveTVSection(server: ServerIdentity) -> String? {
+        settings.interface.liveTVSectionByServer[liveTVKey(server)]
+    }
+
+    func setLiveTVChannelSort(_ sort: LiveTVChannelSort, server: ServerIdentity) {
+        let key = liveTVKey(server)
+        guard settings.interface.liveTVChannelSortByServer[key] != sort else { return }
+        settings.interface.liveTVChannelSortByServer[key] = sort
+        persist()
+    }
+
+    func liveTVChannelSort(server: ServerIdentity) -> LiveTVChannelSort {
+        settings.interface.liveTVChannelSortByServer[liveTVKey(server)] ?? .number
+    }
+
+    private func liveTVKey(_ server: ServerIdentity) -> String {
+        "\(server.provider.rawValue):\(server.id)"
+    }
+
+    func setReadAhead(_ readAhead: PlaybackReadAhead) {
+        settings.playback.readAhead = readAhead
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()
@@ -78,6 +134,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setNightMode(_ enabled: Bool) {
+        settings.playback.nightMode = enabled
+        persist()
+    }
+
+    func setDialogueBoost(_ boost: DialogueBoost) {
+        settings.playback.dialogueBoost = boost
+        persist()
+    }
+
     func setRememberTrackSelections(_ enabled: Bool) {
         settings.playback.rememberTrackSelections = enabled
         persist()
@@ -85,6 +151,11 @@ final class SettingsManager {
 
     func setShowChaptersOnTimeline(_ enabled: Bool) {
         settings.playback.showChaptersOnTimeline = enabled
+        persist()
+    }
+
+    func setShowSkipSegmentsOnTimeline(_ enabled: Bool) {
+        settings.playback.showSkipSegmentsOnTimeline = enabled
         persist()
     }
 
@@ -123,6 +194,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutomaticSubtitleSearch(_ enabled: Bool) {
+        settings.playback.automaticSubtitleSearch = enabled
+        persist()
+    }
+
     func setSeekBackwardSeconds(_ seconds: Int) {
         settings.playback.seekBackwardSeconds = seconds
         persist()
@@ -130,6 +206,11 @@ final class SettingsManager {
 
     func setSeekForwardSeconds(_ seconds: Int) {
         settings.playback.seekForwardSeconds = seconds
+        persist()
+    }
+
+    func setDefaultPlaybackRate(_ rate: Float) {
+        settings.playback.defaultPlaybackRate = rate
         persist()
     }
 
@@ -175,6 +256,16 @@ final class SettingsManager {
 
     func setSubtitleVerticalPosition(_ position: SubtitleVerticalPosition) {
         settings.playback.subtitleVerticalPosition = position
+        persist()
+    }
+
+    func setSubtitleBottomMargin(_ margin: SubtitleBottomMargin) {
+        settings.playback.subtitleBottomMargin = margin
+        persist()
+    }
+
+    func setSubtitleSearchPreferences(_ preferences: SubtitleSearchPreferences) {
+        settings.playback.subtitleSearch = preferences
         persist()
     }
 
@@ -368,6 +459,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setTabBarPlacement(_ placement: TabBarPlacement) {
+        settings.interface.tabBarPlacement = placement
+        persist()
+    }
+
+    func setStartupScreen(_ screen: StartupScreen) {
+        settings.interface.startupScreen = screen
+        persist()
+    }
+
     func setThemeMusicVolume(_ volume: ThemeMusicVolume) {
         settings.interface.themeMusicVolume = volume
         persist()
@@ -381,6 +482,47 @@ final class SettingsManager {
     func setShowsCardLabels(_ enabled: Bool) {
         settings.interface.showsCardLabels = enabled
         persist()
+    }
+
+    func setShowsWatchStatusBadges(_ enabled: Bool) {
+        settings.interface.showsWatchStatusBadges = enabled
+        persist()
+    }
+
+    func setContinueWatchingAction(_ action: ContinueWatchingAction) {
+        settings.interface.continueWatchingAction = action
+        persist()
+    }
+
+    func setMergesNextUpIntoContinueWatching(_ enabled: Bool) {
+        settings.interface.mergesNextUpIntoContinueWatching = enabled
+        persist()
+    }
+
+    func setHomeHero(_ source: HomeHeroSource) {
+        settings.interface.homeHero = source
+        persist()
+    }
+
+    func setHomeHeroIncludesTrending(_ enabled: Bool) {
+        settings.interface.homeHeroIncludesTrending = enabled
+        persist()
+    }
+
+    /// Kept apart from the settings: it changes every day and holds whole items.
+    func featuredSelection(profileID: String) -> FeaturedSelection? {
+        defaults.data(forKey: featuredSelectionKey(profileID)).flatMap {
+            try? JSONDecoder().decode(FeaturedSelection.self, from: $0)
+        }
+    }
+
+    func setFeaturedSelection(_ selection: FeaturedSelection, profileID: String) {
+        guard let data = try? JSONEncoder().encode(selection) else { return }
+        defaults.set(data, forKey: featuredSelectionKey(profileID))
+    }
+
+    private func featuredSelectionKey(_ profileID: String) -> String {
+        "strimr.home.featured.\(profileID)"
     }
 
     func setDisplayCollections(_ enabled: Bool) {
@@ -418,8 +560,23 @@ final class SettingsManager {
         persist()
     }
 
+    func setGroupsSearchResults(_ enabled: Bool) {
+        settings.interface.groupsSearchResults = enabled
+        persist()
+    }
+
     func setSpoilerProtection(_ level: SpoilerProtectionLevel) {
         settings.interface.spoilerProtection = level
+        persist()
+    }
+
+    func setLandscapeEpisodeArtwork(_ artwork: LandscapeEpisodeArtwork) {
+        settings.interface.landscapeEpisodeArtwork = artwork
+        persist()
+    }
+
+    func setPortraitEpisodeArtwork(_ artwork: PortraitEpisodeArtwork) {
+        settings.interface.portraitEpisodeArtwork = artwork
         persist()
     }
 

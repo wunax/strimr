@@ -4,13 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class LibraryBrowseViewModel {
-    struct SectionCharacter: Identifiable, Hashable {
-        let id: String
-        let title: String
-        let size: Int
-        let startIndex: Int
-    }
-
     private struct FolderBreadcrumb: Identifiable, Equatable {
         let id: String
         let title: String
@@ -20,7 +13,7 @@ final class LibraryBrowseViewModel {
     let library: Library
     var itemsByIndex: [Int: LibraryBrowseItem] = [:]
     var totalItemCount = 0
-    var sectionCharacters: [SectionCharacter] = []
+    var sectionIndex: LibrarySectionIndex?
     var isLoading = false
     var errorMessage: String?
     var controls: LibraryBrowseControlsViewModel
@@ -102,7 +95,7 @@ final class LibraryBrowseViewModel {
     }
 
     var showsCharacterColumn: Bool {
-        folderTree == nil && supportsSectionCharacters && !sectionCharacters.isEmpty
+        folderTree == nil && supportsSectionCharacters && sectionIndex?.isUsable == true
     }
 
     var canShowFolderTree: Bool {
@@ -111,6 +104,28 @@ final class LibraryBrowseViewModel {
 
     var isFolderTreeActive: Bool {
         showsFolderTree && canShowFolderTree
+    }
+
+    var viewMode: LibraryBrowseViewMode {
+        isFolderTreeActive ? .tree : LibraryBrowseViewMode(layout: layout)
+    }
+
+    var viewModes: [LibraryBrowseViewMode] {
+        canShowFolderTree ? [.grid, .list, .tree] : [.grid, .list]
+    }
+
+    func setViewMode(_ mode: LibraryBrowseViewMode) {
+        switch mode {
+        case .tree:
+            if !isFolderTreeActive {
+                toggleFolderTree()
+            }
+        case .grid, .list:
+            setLayout(mode == .grid ? .grid : .list)
+            if isFolderTreeActive {
+                toggleFolderTree()
+            }
+        }
     }
 
     func toggleFolderTree() {
@@ -165,6 +180,24 @@ final class LibraryBrowseViewModel {
         Task { await refresh() }
     }
 
+    func removeDeletedItems(ids: Set<String>) {
+        folderTree?.removeMedia(ids: ids)
+        let removed = itemsByIndex.compactMap { index, item -> Int? in
+            guard case let .media(media) = item, ids.contains(media.id) else { return nil }
+            return index
+        }
+        guard !removed.isEmpty else { return }
+        var shifted: [Int: LibraryBrowseItem] = [:]
+        for (index, item) in itemsByIndex where !removed.contains(index) {
+            shifted[index - removed.count(where: { $0 < index })] = item
+        }
+        itemsByIndex = shifted
+        totalItemCount = max(totalItemCount - removed.count, 0)
+        sectionIndex = sectionIndex?.removingIndexes(removed)
+        // Every page past a removal now starts one item later on the server, so pages load again when shown.
+        loadedPageStarts.removeAll()
+    }
+
     func refresh() async {
         scrollResetID &+= 1
         resetState()
@@ -183,10 +216,12 @@ final class LibraryBrowseViewModel {
     }
 
     private func reloadFolderTree() async {
-        guard let advancedService, let sectionId = library.sectionId else { return }
+        guard let advancedService, let browsePath = library.plexBrowsePath else { return }
         let includeCollections = settingsManager.interface.displayCollections ? true : nil
         let tree =
-            FolderTreeModel(rootEndpoint: resolvedEndpoint(sectionId: sectionId)) { [controls] endpoint, start, limit in
+            FolderTreeModel(rootEndpoint: resolvedEndpoint(
+                browsePath: browsePath,
+            )) { [controls] endpoint, start, limit in
                 try await advancedService.advancedBrowse(
                     path: endpoint.path,
                     queryItems: controls.buildQueryItems(
@@ -249,10 +284,10 @@ final class LibraryBrowseViewModel {
     }
 
     private func fetchCharactersIfNeeded() async {
-        guard let advancedService, sectionCharacters.isEmpty, supportsSectionCharacters,
-              let sectionId = library.sectionId else { return }
+        guard let advancedService, sectionIndex == nil, supportsSectionCharacters,
+              let browsePath = library.plexBrowsePath else { return }
         do {
-            let endpoint = resolvedEndpoint(sectionId: sectionId)
+            let endpoint = resolvedEndpoint(browsePath: browsePath)
             guard let firstCharacterEndpoint = firstCharacterEndpoint(from: endpoint) else { return }
             let includeCollections = settingsManager.interface.displayCollections ? true : nil
             let queryItems = controls.buildQueryItems(
@@ -265,26 +300,9 @@ final class LibraryBrowseViewModel {
                 path: firstCharacterEndpoint.path,
                 queryItems: queryItems,
             )
-            var runningIndex = 0
-            var characters: [SectionCharacter] = []
-
-            for value in values {
-                let size = value.size
-                let title = value.title
-                let identifier = "\(title)-\(runningIndex)"
-                characters.append(
-                    SectionCharacter(
-                        id: identifier,
-                        title: title,
-                        size: size,
-                        startIndex: runningIndex,
-                    ),
-                )
-                runningIndex += size
-            }
-
-            sectionCharacters = characters
-            totalItemCount = max(totalItemCount, runningIndex)
+            let index = LibrarySectionIndex(characters: values)
+            sectionIndex = index
+            totalItemCount = max(totalItemCount, index.sections.reduce(0) { $0 + $1.size })
         } catch {
             if itemsByIndex.isEmpty {
                 errorMessage = error.localizedDescription
@@ -298,7 +316,7 @@ final class LibraryBrowseViewModel {
             await loadCommonPage(start: start)
             return
         }
-        guard let sectionId = library.sectionId else {
+        guard let browsePath = library.plexBrowsePath else {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
@@ -309,7 +327,7 @@ final class LibraryBrowseViewModel {
         }
 
         do {
-            let endpoint = resolvedEndpoint(sectionId: sectionId)
+            let endpoint = resolvedEndpoint(browsePath: browsePath)
             let includeCollections = settingsManager.interface.displayCollections ? true : nil
             let includeMeta = !hasLoadedMeta
             let queryItems = controls.buildQueryItems(
@@ -384,7 +402,7 @@ final class LibraryBrowseViewModel {
         }
     }
 
-    private func resolvedEndpoint(sectionId: Int) -> PlexEndpoint {
+    private func resolvedEndpoint(browsePath: String) -> PlexEndpoint {
         if let currentFolderEndpoint {
             return currentFolderEndpoint
         }
@@ -394,10 +412,8 @@ final class LibraryBrowseViewModel {
             return endpoint
         }
 
-        let path = "/library/sections/\(sectionId)/all"
-        let typeValue = defaultTypeQueryValue
-        let queryItems = [URLQueryItem.make("type", typeValue)].compactMap(\.self)
-        return PlexEndpoint(path: path, queryItems: queryItems)
+        let queryItems = [URLQueryItem.make("type", defaultTypeQueryValue)].compactMap(\.self)
+        return PlexEndpoint(path: browsePath, queryItems: queryItems)
     }
 
     private var currentFolderEndpoint: PlexEndpoint? {
@@ -405,7 +421,10 @@ final class LibraryBrowseViewModel {
     }
 
     private var defaultTypeQueryValue: String? {
-        switch library.type {
+        if library.isShared {
+            return PlexSharedLibrary.videoTypes
+        }
+        return switch library.type {
         case .movie:
             "1"
         case .series:
@@ -424,15 +443,17 @@ final class LibraryBrowseViewModel {
     }
 
     private var supportsSectionCharacters: Bool {
-        guard advancedService != nil, let sectionId = library.sectionId else { return false }
-        let endpoint = resolvedEndpoint(sectionId: sectionId)
+        // The shared view answers with no characters.
+        guard advancedService != nil, !library.isShared, controls.isPlexTitleSort,
+              let browsePath = library.plexBrowsePath else { return false }
+        let endpoint = resolvedEndpoint(browsePath: browsePath)
         return firstCharacterEndpoint(from: endpoint) != nil
     }
 
     private func resetState(error: String? = nil) {
         itemsByIndex = [:]
         totalItemCount = 0
-        sectionCharacters = []
+        sectionIndex = nil
         errorMessage = error
         isLoading = false
         loadedPageStarts = []

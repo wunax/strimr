@@ -8,6 +8,7 @@ final class SettingsViewModel {
     private let settingsManager: SettingsManager
     let seekOptions = [5, 10, 15, 30, 45, 60]
     let nextEpisodeAutoplayOptions = NextEpisodeAutoplay.allCases
+    let defaultSleepTimerOptions = SleepTimerMode.defaultOptions
     #if os(tvOS)
         let subtitleFontSizeOptions = Array(stride(from: 12, through: 80, by: 2))
     #else
@@ -19,6 +20,7 @@ final class SettingsViewModel {
     let subtitleBackgroundStrengthOptions = SubtitleBackgroundStrength.allCases
     let subtitleEdgeStyleOptions = SubtitleEdgeStyle.allCases
     let subtitleVerticalPositionOptions = SubtitleVerticalPosition.allCases
+    let subtitleBottomMarginOptions = SubtitleBottomMargin.allCases
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -31,6 +33,13 @@ final class SettingsViewModel {
         )
     }
 
+    var readAheadBinding: Binding<PlaybackReadAhead> {
+        Binding(
+            get: { self.settingsManager.playback.readAhead },
+            set: { self.settingsManager.setReadAhead($0) },
+        )
+    }
+
     var nextEpisodeAutoplayBinding: Binding<NextEpisodeAutoplay> {
         Binding(
             get: { self.settingsManager.playback.nextEpisodeAutoplay },
@@ -38,10 +47,35 @@ final class SettingsViewModel {
         )
     }
 
+    var defaultSleepTimerBinding: Binding<SleepTimerMode?> {
+        Binding(
+            get: { self.settingsManager.playback.defaultSleepTimer },
+            set: { self.settingsManager.setDefaultSleepTimer($0) },
+        )
+    }
+
+    func defaultSleepTimerTitle(_ mode: SleepTimerMode?) -> String {
+        mode?.title(for: nil) ?? String(localized: "player.sleepTimer.off")
+    }
+
     var autoRotateVideoBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.autoRotateVideo },
             set: { self.settingsManager.setAutoRotateVideo($0) },
+        )
+    }
+
+    var pictureInPictureBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.pictureInPicture },
+            set: { self.settingsManager.setPictureInPicture($0) },
+        )
+    }
+
+    var backgroundAudioBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.backgroundAudio },
+            set: { self.settingsManager.setBackgroundAudio($0) },
         )
     }
 
@@ -66,6 +100,13 @@ final class SettingsViewModel {
         )
     }
 
+    var transcodeLiveTVBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.transcodeLiveTV },
+            set: { self.settingsManager.setTranscodeLiveTV($0) },
+        )
+    }
+
     var losslessAudioBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.losslessAudio },
@@ -87,6 +128,20 @@ final class SettingsViewModel {
         )
     }
 
+    var nightModeBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.nightMode },
+            set: { self.settingsManager.setNightMode($0) },
+        )
+    }
+
+    var dialogueBoostBinding: Binding<DialogueBoost> {
+        Binding(
+            get: { self.settingsManager.playback.dialogueBoost },
+            set: { self.settingsManager.setDialogueBoost($0) },
+        )
+    }
+
     var rememberTrackSelectionsBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.rememberTrackSelections },
@@ -98,6 +153,13 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.showChaptersOnTimeline },
             set: { self.settingsManager.setShowChaptersOnTimeline($0) },
+        )
+    }
+
+    var showSkipSegmentsOnTimelineBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.showSkipSegmentsOnTimeline },
+            set: { self.settingsManager.setShowSkipSegmentsOnTimeline($0) },
         )
     }
 
@@ -154,6 +216,13 @@ final class SettingsViewModel {
         )
     }
 
+    var defaultPlaybackRateBinding: Binding<Float> {
+        Binding(
+            get: { self.settingsManager.playback.defaultPlaybackRate },
+            set: { self.settingsManager.setDefaultPlaybackRate($0) },
+        )
+    }
+
     var doubleTapToSeekBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.doubleTapToSeek },
@@ -172,6 +241,13 @@ final class SettingsViewModel {
         Binding(
             get: { self.settingsManager.playback.styledASSSubtitles },
             set: { self.settingsManager.setStyledASSSubtitles($0) },
+        )
+    }
+
+    var automaticSubtitleSearchBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.automaticSubtitleSearch },
+            set: { self.settingsManager.setAutomaticSubtitleSearch($0) },
         )
     }
 
@@ -215,6 +291,17 @@ final class SettingsViewModel {
             get: { self.settingsManager.playback.subtitleVerticalPosition },
             set: { self.settingsManager.setSubtitleVerticalPosition($0) },
         )
+    }
+
+    var subtitleBottomMarginBinding: Binding<SubtitleBottomMargin> {
+        Binding(
+            get: { self.settingsManager.playback.subtitleBottomMargin },
+            set: { self.settingsManager.setSubtitleBottomMargin($0) },
+        )
+    }
+
+    var showsSubtitleBottomMargin: Bool {
+        settingsManager.playback.subtitleVerticalPosition == .bottom
     }
 
     var subtitleEdgeStyleBinding: Binding<SubtitleEdgeStyle> {

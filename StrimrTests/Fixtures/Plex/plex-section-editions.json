@@ -1,0 +1,33 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "librarySectionID": 2,
+    "Metadata": [
+      {
+        "ratingKey": "301",
+        "key": "/library/metadata/301/children",
+        "guid": "plex://show/5d7768000000000000000301",
+        "type": "show",
+        "title": "Example Show",
+        "librarySectionID": 2,
+        "year": 2026,
+        "childCount": 1,
+        "leafCount": 8,
+        "viewedLeafCount": 0
+      },
+      {
+        "ratingKey": "302",
+        "key": "/library/metadata/302/children",
+        "guid": "plex://show/5d7768000000000000000301",
+        "editionTitle": "Black and White",
+        "type": "show",
+        "title": "Example Show",
+        "librarySectionID": 2,
+        "year": 2026,
+        "childCount": 1,
+        "leafCount": 8,
+        "viewedLeafCount": 0
+      }
+    ]
+  }
+}

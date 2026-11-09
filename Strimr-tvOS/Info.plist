@@ -20,6 +20,7 @@
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
 		<string>nativeplayer</string>
+		<string>youtube</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

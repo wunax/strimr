@@ -145,6 +145,16 @@ struct DownloadRow: View {
         case .downloading:
             if isWaitingForWiFi {
                 waitingForWiFi
+            } else if item.totalBytes == 0 {
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView()
+                        .progressViewStyle(.linear)
+                        .tint(.progressFill)
+                    if item.bytesWritten > 0 {
+                        statusText("downloads.status.downloadingBytes \(formattedBytes(item.bytesWritten))")
+                    }
+                }
+                .accessibilityElement(children: .combine)
             } else {
                 progress(label: "downloads.status.downloading \(percent)")
             }

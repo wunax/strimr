@@ -1,0 +1,20 @@
+{
+  "PlaySessionId": "play-session-1",
+  "MediaSources": [
+    {
+      "Id": "source-1",
+      "Path": "http://tuner.example.invalid:5004/auto/v5.1",
+      "Container": "ts",
+      "Protocol": "Http",
+      "IsInfiniteStream": true,
+      "SupportsDirectPlay": false,
+      "SupportsDirectStream": true,
+      "SupportsTranscoding": true,
+      "LiveStreamId": "live-stream-1",
+      "MediaStreams": [
+        { "Index": 0, "Type": "Video", "Codec": "mpeg2video", "IsInterlaced": true, "Width": 720, "Height": 576 },
+        { "Index": 1, "Type": "Audio", "Codec": "mp2", "Language": "fre" }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 import Observation
 import SwiftUI
+import UIKit
 
 struct SeerrMediaDetailView: View {
     @EnvironmentObject private var coordinator: MainCoordinator
+    @Environment(\.openURL) private var openURL
     @State var viewModel: SeerrMediaDetailViewModel
     @State private var requestSheet: SeerrMediaRequestSheetState?
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
@@ -116,6 +118,17 @@ struct SeerrMediaDetailView: View {
                     )
                     .font(.facts.weight(.semibold))
                     .padding(.horizontal, 12)
+                }
+                .actionButtonStyle(.secondary)
+            }
+
+            if let trailerURL = viewModel.youtubeAppTrailerURL, UIApplication.shared.canOpenURL(trailerURL) {
+                Button {
+                    openURL(trailerURL)
+                } label: {
+                    Label("seerr.detail.watchTrailer", systemImage: "film")
+                        .font(.facts.weight(.semibold))
+                        .padding(.horizontal, 12)
                 }
                 .actionButtonStyle(.secondary)
             }

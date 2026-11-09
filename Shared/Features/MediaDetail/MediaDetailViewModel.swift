@@ -23,7 +23,12 @@ final class MediaDetailViewModel {
     @ObservationIgnored private var copiesTask: Task<Void, Never>?
     /// Copies of the title on the profile's servers, shown in the Version menu.
     private(set) var copies: [MediaCopy] = []
+    @ObservationIgnored private var editionsTask: Task<Void, Never>?
+    /// Other editions of the title in its library, each its own item with its own progress.
+    private(set) var otherEditions: [MediaItem] = []
     @ObservationIgnored private var backdropSourcePath: String?
+    @ObservationIgnored private let requestedEpisodeID: String?
+    @ObservationIgnored private var prefersOnDeckSeason = false
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -81,12 +86,15 @@ final class MediaDetailViewModel {
     private var loadingFavoriteStatusIDs: Set<String> = []
     private var updatingFavoriteStatusIDs: Set<String> = []
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    @ObservationIgnored private var hasLoadedDetails = false
+    @ObservationIgnored private var hasAppliedDetails = false
     @ObservationIgnored private var extrasTask: Task<Void, Never>?
     @ObservationIgnored private var extrasLoadedFor: MediaIdentity?
 
     deinit {
         extrasTask?.cancel()
         copiesTask?.cancel()
+        editionsTask?.cancel()
     }
 
     init(
@@ -101,6 +109,8 @@ final class MediaDetailViewModel {
         self.resolutionMode = resolutionMode
         self.copyFinder = copyFinder
         self.onSelectCopy = onSelectCopy
+        requestedEpisodeID = resolutionMode == .seriesRoot && media.type == .episode
+            && media.metadataRatingKey != media.id ? media.id : nil
         _ = resolveArtwork()
     }
 
@@ -108,8 +118,37 @@ final class MediaDetailViewModel {
         services.identity
     }
 
-    private var quickActions: MediaQuickActions {
+    var quickActions: MediaQuickActions {
         MediaQuickActions(services: services)
+    }
+
+    var canManageMedia: Bool {
+        !quickActions.manageActions(for: media.mediaItem).isEmpty
+    }
+
+    /// The media this page shows, or its series, was deleted from the server from the app.
+    var wasDeleted: Bool {
+        let deleted = services.deletedMediaIDs
+        return deleted.contains(media.id) || parentSeries.map { deleted.contains($0.id) } == true
+    }
+
+    /// Reloads when a media this page shows was changed on the server from the app.
+    func refreshAfterMediaChange(itemID: String?) async {
+        guard let itemID, shownMediaIDs.contains(itemID), !wasDeleted else { return }
+        // A regular reload keeps the tracks, file info and extras of an unchanged item, which an analysis or a
+        // refresh may have changed.
+        fileInfoMediaID = nil
+        extrasLoadedFor = nil
+        await loadDetails(preservingExistingContent: true)
+        await refreshTrackSelectionAfterSubtitleAttachment()
+    }
+
+    /// The episode offered for playback can belong to a season other than the one listed.
+    var shownMediaIDs: Set<String> {
+        Set(
+            [media.id, media.metadataRatingKey, parentSeries?.id, onDeckItem?.id, requestedEpisodeID]
+                .compactMap(\.self) + seasons.map(\.id) + episodes.map(\.id),
+        )
     }
 
     private var detailTargetID: String {
@@ -121,9 +160,28 @@ final class MediaDetailViewModel {
         await loadDetails(preservingExistingContent: false)
     }
 
+    /// The page reappears when a pushed page is popped; reloading it then would clear its content
+    /// and lose the scroll position.
+    func loadDetailsIfNeeded() async {
+        guard !hasLoadedDetails else { return }
+        // A previous load cancelled midway left content on screen: finish it without clearing.
+        if hasAppliedDetails {
+            await refreshSilently()
+        } else {
+            await loadDetails()
+        }
+    }
+
     /// Reloads without clearing what is on screen, e.g. after the server became reachable again.
     func refreshSilently() async {
         await loadDetails(preservingExistingContent: true)
+    }
+
+    /// Follows the next episode into its season, since playback may have finished the current one.
+    func reloadAfterPlayback() async {
+        prefersOnDeckSeason = true
+        defer { prefersOnDeckSeason = false }
+        await loadDetails()
     }
 
     func refreshIfNeeded(now: Date = Date()) async {
@@ -142,6 +200,7 @@ final class MediaDetailViewModel {
 
     func selectSeason(id: String) async {
         guard selectedSeasonId != id else { return }
+        prefersOnDeckSeason = false
         selectedSeasonId = id
         episodes = []
         episodesErrorMessage = nil
@@ -234,18 +293,11 @@ final class MediaDetailViewModel {
         }
     }
 
-    func imageURL(
-        for media: MediaItem,
-        width: Int = 320,
-        height: Int = 180,
-        spoilerProtection: SpoilerProtectionLevel = .off,
-    ) -> URL? {
-        let path = if media.isSpoilerProtected(at: spoilerProtection) {
-            media.spoilerProtectedArtworkPath(at: spoilerProtection)
-        } else {
-            media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
+    func artworkPath(for media: MediaItem, spoilerProtection: SpoilerProtectionLevel = .off) -> String? {
+        if media.isSpoilerProtected(at: spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: spoilerProtection)
         }
-        return services.artwork.artworkURL(path: path, width: width, height: height)
+        return media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
     }
 
     func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {
@@ -706,6 +758,25 @@ final class MediaDetailViewModel {
         onSelectCopy?(copy.media)
     }
 
+    /// Opens the edition's own page.
+    func selectEdition(_ edition: MediaItem) {
+        onSelectCopy?(edition)
+    }
+
+    private func loadOtherEditions(of item: MediaItem) {
+        editionsTask?.cancel()
+        editionsTask = Task { [weak self, services] in
+            do {
+                let editions = try await services.detail.otherEditions(of: item)
+                guard !Task.isCancelled else { return }
+                self?.otherEditions = editions
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
+        }
+    }
+
     private func loadCopies(of item: MediaItem) {
         guard let copyFinder, [.movie, .show, .episode].contains(media.type) else { return }
         copiesTask?.cancel()
@@ -992,20 +1063,31 @@ final class MediaDetailViewModel {
     }
 
     private func preferredSeasonId(in fetchedSeasons: [MediaItem]) -> String? {
-        if let selectedSeasonId,
-           fetchedSeasons.contains(where: { $0.id == selectedSeasonId })
-        {
-            return selectedSeasonId
-        }
+        Self.preferredSeasonID(
+            in: fetchedSeasons,
+            selected: selectedSeasonId,
+            onDeck: onDeckItem,
+            prefersOnDeckSeason: prefersOnDeckSeason,
+        )
+    }
 
-        if let onDeckSeasonIndex = onDeckItem?.parentIndex,
-           let onDeckSeason = fetchedSeasons.first(where: { $0.index == onDeckSeasonIndex })
-        {
+    static func preferredSeasonID(
+        in seasons: [MediaItem],
+        selected: String?,
+        onDeck: MediaItem?,
+        prefersOnDeckSeason: Bool,
+    ) -> String? {
+        let selectedSeason = selected.flatMap { id in seasons.first(where: { $0.id == id }) }
+        let onDeckSeason = onDeck?.parentIndex.flatMap { index in seasons.first(where: { $0.index == index }) }
+
+        if prefersOnDeckSeason, let onDeckSeason {
             return onDeckSeason.id
         }
 
-        return fetchedSeasons.first(where: { ($0.index ?? 0) > 0 })?.id
-            ?? fetchedSeasons.first?.id
+        return selectedSeason?.id
+            ?? onDeckSeason?.id
+            ?? seasons.first(where: { ($0.index ?? 0) > 0 })?.id
+            ?? seasons.first?.id
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
@@ -1183,7 +1265,8 @@ final class MediaDetailViewModel {
 
     private func selectedTrackTitle(in tracks: [MediaTrackMetadata], id: Int?) -> String? {
         guard let id, let stream = tracks.first(where: { $0.id == id }) else { return nil }
-        return stream.displayTitle.isEmpty ? stream.language ?? stream.codec.uppercased() : stream.displayTitle
+        return stream.displayTitle.isEmpty ? stream.title ?? stream.language ?? stream.codec.uppercased() : stream
+            .summaryTitle
     }
 
     private func playbackFallback(
@@ -1250,20 +1333,29 @@ final class MediaDetailViewModel {
             let target = detailTargetID == media.id
                 ? media.mediaItem
                 : try await services.detail.mediaItem(id: detailTargetID)
+            async let requestedEpisode = loadRequestedEpisode()
             let content = try await services.detail.details(for: target)
+            let onDeck = await Self.playbackEpisode(requested: requestedEpisode, onDeck: content.onDeck)
             guard !Task.isCancelled else { return }
+            hasAppliedDetails = true
             if let mapped = PlayableMediaItem(mediaItem: content.media) {
                 media = mapped
             }
             parentSeries = content.parentSeries.flatMap(PlayableMediaItem.init)
-            onDeckItem = content.onDeck
+            onDeckItem = onDeck
             seasons = content.seasons
-            episodes = content.episodes
+            episodes = Self.episodesAfterLoading(
+                content.episodes,
+                current: episodes,
+                mediaType: media.type,
+                preservingExistingContent: preservingExistingContent,
+            )
             cast = content.cast
             relatedHubs = content.relatedHubs
             relatedHubsErrorMessage = nil
             loadExtras(for: media.mediaItem)
             loadCopies(of: media.mediaItem)
+            loadOtherEditions(of: media.mediaItem)
 
             switch media.type {
             case .show:
@@ -1283,12 +1375,45 @@ final class MediaDetailViewModel {
             await loadFavoriteStatus()
             let artworkPath = resolveArtwork()
             await loadBackdropGradient(path: artworkPath)
+            guard !Task.isCancelled else { return }
+            hasLoadedDetails = true
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
             if !preservingExistingContent {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    /// A series opened from an episode card offers that episode until it is watched, so the page
+    /// matches the card rather than the server's own next episode. A rewatched episode stays marked
+    /// as watched while in progress, so its resume position keeps it offered.
+    static func playbackEpisode(requested: MediaItem?, onDeck: MediaItem?) -> MediaItem? {
+        guard let requested, !requested.isFullyWatched || (requested.viewOffset ?? 0) > 0 else { return onDeck }
+        return requested
+    }
+
+    /// A series' details carry no episodes: they come from `fetchEpisodes`. Clearing them on a refresh
+    /// would rebuild the episode rail and lose its focus and the episode the page shows.
+    static func episodesAfterLoading(
+        _ loaded: [MediaItem],
+        current: [MediaItem],
+        mediaType: PlayableItemType,
+        preservingExistingContent: Bool,
+    ) -> [MediaItem] {
+        guard preservingExistingContent, mediaType == .show else { return loaded }
+        return current
+    }
+
+    private func loadRequestedEpisode() async -> MediaItem? {
+        guard let requestedEpisodeID else { return nil }
+        do {
+            return try await services.detail.mediaItem(id: requestedEpisodeID)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return nil }
+            ErrorReporter.capture(error)
+            return nil
         }
     }
 

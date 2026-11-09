@@ -43,19 +43,16 @@ struct PlaybackSettingsTrack: Identifiable, Hashable {
     }
 
     var subtitle: String? {
-        guard metadata != nil else {
-            return combinedSubtitle(track.codec?.uppercased())
+        guard let metadata else {
+            return combinedSubtitle([track.codec?.uppercased()])
         }
 
-        if let title = metadata?.title, !title.isEmpty {
-            return combinedSubtitle(title)
-        }
-
-        return combinedSubtitle(metadataCodec ?? track.codec?.uppercased())
+        let codec = metadataCodec.flatMap { title.range(of: $0, options: .caseInsensitive) == nil ? $0 : nil }
+        return combinedSubtitle([metadata.secondaryTitle, codec])
     }
 
-    private func combinedSubtitle(_ primary: String?) -> String? {
-        let values = [primary].compactMap { value -> String? in
+    private func combinedSubtitle(_ primary: [String?]) -> String? {
+        let values = primary.compactMap { value -> String? in
             guard let value, !value.isEmpty else { return nil }
             return value
         } + metadataLabels

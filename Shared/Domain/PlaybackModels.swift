@@ -117,6 +117,7 @@ struct PlaybackTrack: Sendable, Hashable, Identifiable {
     let kind: PlaybackTrackKind
     let isExternal: Bool
     let title: String
+    let name: String?
     let language: String?
     let codec: String?
     let isDefault: Bool
@@ -134,6 +135,21 @@ struct MediaTrackMetadata: Sendable, Hashable, Identifiable {
     let isDefault: Bool
     let isForced: Bool
     let isHearingImpaired: Bool
+
+    /// The stream's own name (e.g. "VFQ", "Forced"), unless the display title already shows it.
+    var secondaryTitle: String? {
+        guard let title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty,
+              displayTitle.range(of: title, options: .caseInsensitive) == nil
+        else { return nil }
+        return title
+    }
+
+    /// Display title and stream name on one line, for places that cannot show a second line.
+    var summaryTitle: String {
+        guard !displayTitle.isEmpty else { return title ?? "" }
+        guard let secondaryTitle else { return displayTitle }
+        return "\(secondaryTitle) · \(displayTitle)"
+    }
 }
 
 struct MediaChapter: Sendable, Hashable, Identifiable {
@@ -219,7 +235,7 @@ struct PlaybackPlan: Sendable {
     let selectedSubtitleIndex: Int?
     let subtitleSelectionIsOff: Bool
     let tracks: [PlaybackTrack]
-    let externalSubtitles: [ExternalSubtitleTrack]
+    let externalSubtitles: [PlayerExternalSubtitle]
     let chapters: [MediaChapter]
     let skipSegments: [SkipSegment]
     let scrubThumbnailSource: ScrubThumbnailSource?
@@ -228,6 +244,21 @@ struct PlaybackPlan: Sendable {
     let versionID: String?
     /// The server draws the selected subtitle into the transcoded picture.
     var burnsSubtitles = false
+
+    /// Servers do not always name the track they picked: the player then starts on the default or the first one.
+    func audioLanguage(sourceIndex: Int?) -> String? {
+        let audio = tracks.filter { $0.kind == .audio }
+        let track = audio.first { $0.sourceIndex == sourceIndex } ?? audio.first(where: \.isDefault) ?? audio.first
+        return track?.language
+    }
+
+    var existingSubtitles: [AutomaticSubtitleSearch.ExistingSubtitle] {
+        tracks.filter { $0.kind == .subtitle }.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.language, isForced: $0.isForced)
+        } + externalSubtitles.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.track.language, isForced: $0.track.isForced)
+        }
+    }
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {
@@ -241,4 +272,27 @@ struct PlaybackQueue: Sendable, Equatable {
     var items: [PlaybackQueueItem]
     var currentIndex: Int
     var isShuffled: Bool
+}
+
+extension PlaybackQueue {
+    /// Starts at `startID` and keeps what precedes it. Shuffled, `startID` plays first and only what follows
+    /// it is shuffled, so nothing unplayed shows up as already played.
+    init(media: [MediaItem], startingAt startID: String?, shuffle: Bool) {
+        var media = media
+        var currentIndex = media.firstIndex { $0.id == startID }
+        if shuffle {
+            if let index = currentIndex {
+                media = [media[index]] + media[(index + 1)...].shuffled()
+            } else {
+                media.shuffle()
+            }
+            currentIndex = 0
+        }
+        self.init(
+            id: UUID(),
+            items: media.map { PlaybackQueueItem(id: UUID(), media: $0, providerQueueItemID: nil) },
+            currentIndex: currentIndex ?? 0,
+            isShuffled: shuffle,
+        )
+    }
 }

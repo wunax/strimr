@@ -15,10 +15,8 @@ struct SettingsView: View {
     @FocusedValue(\.settingsActualFocus) private var actualDetailFocus
     @FocusState private var focusedTarget: SettingsFocusTarget?
 
-    /// The first category is known before the first frame, so neither the selection nor the detail page jumps.
-    init(canManageAccounts: Bool) {
-        let category = SettingsCategory.visible(canManageAccounts: canManageAccounts).first ?? .playback
-        _navigation = State(initialValue: SettingsNavigation(category: category))
+    init(navigation: SettingsNavigation) {
+        _navigation = State(initialValue: navigation)
     }
 
     var body: some View {
@@ -233,6 +231,7 @@ struct SettingsView: View {
         case .playback: SettingsPlaybackView()
         case .audio: SettingsAudioView()
         case .subtitles: SettingsSubtitlesView()
+        case .accountPreferences: AccountPreferencesView()
         case .interface:
             SettingsInterfaceView(settingsManager: settingsManager, libraryStore: libraryStore)
         case .integrations: IntegrationsView()

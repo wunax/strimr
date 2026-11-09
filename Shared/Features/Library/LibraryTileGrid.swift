@@ -4,6 +4,7 @@ import SwiftUI
 struct LibraryTileGrid: View {
     let viewModel: LibraryViewModel
     @State private var isHiddenExpanded = false
+    @State private var manageController = LibraryManageController()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(tvOS)
         @FocusState private var focusedLibrary: LibraryIdentity?
@@ -56,6 +57,7 @@ struct LibraryTileGrid: View {
         .task {
             await viewModel.load()
         }
+        .libraryManagePresentation(manageController, actions: viewModel.manageActions(for:))
     }
 
     private func grid(_ libraries: [Library]) -> some View {
@@ -106,6 +108,11 @@ struct LibraryTileGrid: View {
             Button("library.menu.hide", systemImage: "eye.slash") {
                 viewModel.setHidden(library, hidden: true)
             }
+        }
+
+        if let actions = viewModel.manageActions(for: library), !actions.actions(for: library).isEmpty {
+            Divider()
+            LibraryManageMenu(library: library, actions: actions, controller: manageController)
         }
     }
 

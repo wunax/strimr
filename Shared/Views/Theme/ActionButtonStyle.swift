@@ -39,21 +39,31 @@ extension View {
 
     private struct CapsuleActionButton: View {
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.controlSize) private var controlSize
         let role: ActionButtonRole
         let configuration: ButtonStyleConfiguration
 
         var body: some View {
             configuration.label
+                .transformEnvironment(\.font) { font in
+                    if isSmall {
+                        font = .subheadline
+                    }
+                }
                 .fontWeight(.semibold)
                 .foregroundStyle(foreground)
-                .padding(.horizontal, 20)
-                .frame(minHeight: LayoutMetrics.actionButtonHeight)
+                .padding(.horizontal, isSmall ? 16 : 20)
+                .frame(minHeight: isSmall ? LayoutMetrics.smallActionButtonHeight : LayoutMetrics.actionButtonHeight)
                 .background(background, in: Capsule(style: .continuous))
                 .contentShape(Capsule(style: .continuous))
                 .opacity(configuration.isPressed ? 0.7 : 1)
             #if os(macOS)
                 .hoverLift(scale: 1.03)
             #endif
+        }
+
+        private var isSmall: Bool {
+            controlSize == .small || controlSize == .mini
         }
 
         private var foreground: Color {

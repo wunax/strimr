@@ -7,20 +7,9 @@ struct MediaDetailVersionMenuItems: View {
         Button {
             Task { await viewModel.selectVersion(id: nil) }
         } label: {
-            Label {
-                if let automatic = viewModel.automaticVersion {
-                    #if os(tvOS)
-                        // tvOS menus drop the second line, so the target goes into the title.
-                        Text("media.versions.automaticTarget \(automatic.displayLabel(among: viewModel.versions))")
-                    #else
-                        Text("media.versions.automatic")
-                        Text(automatic.displayLabel(among: viewModel.versions))
-                    #endif
-                } else {
-                    Text("media.versions.automatic")
-                }
-            } icon: {
-                Image(systemName: viewModel.hasVersionPreference ? "circle" : "checkmark")
+            Label("media.versions.automatic", systemImage: viewModel.hasVersionPreference ? "circle" : "checkmark")
+            if let automatic = viewModel.automaticVersion {
+                Text(automatic.displayLabel(among: viewModel.versions))
             }
         }
 
@@ -32,15 +21,11 @@ struct MediaDetailVersionMenuItems: View {
                 guard let id = version.id else { return }
                 Task { await viewModel.selectVersion(id: id) }
             } label: {
-                Label {
-                    Text(verbatim: labels[index])
-                    if version.isAvailable {
-                        Text(verbatim: version.detailLabel)
-                    } else {
-                        Text("media.versions.unavailable")
-                    }
-                } icon: {
-                    Image(systemName: isChecked(version) ? "checkmark" : "circle")
+                Label(labels[index], systemImage: isChecked(version) ? "checkmark" : "circle")
+                if version.isAvailable {
+                    Text(verbatim: version.detailLabel)
+                } else {
+                    Text("media.versions.unavailable")
                 }
             }
             .disabled(!version.isAvailable || version.id == nil)
@@ -69,13 +54,9 @@ struct MediaCopiesMenuItems: View {
                     Button {
                         viewModel.selectCopy(copy)
                     } label: {
-                        Label {
-                            Text(verbatim: copy.media.playbackResolutionLabel ?? copy.media.title)
-                            if !copy.isReachable {
-                                Text("media.availableOn.offline")
-                            }
-                        } icon: {
-                            Image(systemName: "server.rack")
+                        Label(copy.media.playbackResolutionLabel ?? copy.media.title, systemImage: "server.rack")
+                        if !copy.isReachable {
+                            Text("media.availableOn.offline")
                         }
                     }
                     .disabled(!copy.isReachable)
@@ -160,10 +141,7 @@ struct MediaDetailAudioMenuItems: View {
                 Button {
                     Task { await viewModel.selectAudioStream(id: id) }
                 } label: {
-                    Label(
-                        track.displayTitle,
-                        systemImage: viewModel.selectedAudioStreamID == id ? "checkmark" : "circle",
-                    )
+                    MediaTrackMenuLabel(track: track, isSelected: viewModel.selectedAudioStreamID == id)
                 }
             }
         }
@@ -189,10 +167,7 @@ struct MediaDetailSubtitleMenuItems: View {
                 Button {
                     Task { await viewModel.selectSubtitleStream(id: id) }
                 } label: {
-                    Label(
-                        track.displayTitle,
-                        systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
-                    )
+                    MediaTrackMenuLabel(track: track, isSelected: viewModel.selectedSubtitleStreamID == id)
                 }
             }
         }
@@ -204,5 +179,21 @@ struct MediaDetailSubtitleMenuItems: View {
             }
             .tint(.secondary)
         }
+    }
+}
+
+struct MediaTrackMenuLabel: View {
+    let track: MediaTrackMetadata
+    let isSelected: Bool
+
+    var body: some View {
+        Label(track.displayTitle, systemImage: iconName)
+        if let secondaryTitle = track.secondaryTitle {
+            Text(verbatim: secondaryTitle)
+        }
+    }
+
+    private var iconName: String {
+        isSelected ? "checkmark" : "circle"
     }
 }

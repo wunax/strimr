@@ -67,7 +67,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
                 providerID: item.id,
                 title: item.name,
                 callSign: item.callSign,
-                number: item.number,
+                number: item.number.flatMap { $0.isEmpty ? nil : $0 } ?? item.channelNumber,
                 thumbPath: JellyfinArtworkPath.make(ownerID: item.id, type: "Primary", tag: item.imageTags?["Primary"]),
                 artPath: nil,
                 lineupID: nil,
@@ -184,8 +184,11 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
         storeFavoriteOrder(channels.map(\.providerID))
     }
 
-    func startPlayback(channel: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
-        try await JellyfinLiveTVPlaybackSession.start(channel: channel, context: context)
+    func startPlayback(
+        channel: LiveTVChannel,
+        route: LiveTVRoutePreference,
+    ) async throws -> any LiveTVPlaybackSession {
+        try await JellyfinLiveTVPlaybackSession.start(channel: channel, context: context, preference: route)
     }
 
     // MARK: DVR
@@ -328,6 +331,7 @@ final class JellyfinLiveTVService: MediaLiveTVService, MediaDVRService {
             seriesRecordingID: item.timerID?.isEmpty == false ? item.seriesTimerID : nil,
             recordingStatus: item.timerID?.isEmpty == false ? Self.recordingStatus(from: item.status) : nil,
             providerGUID: nil,
+            categories: item.categories,
         )
     }
 
@@ -594,40 +598,49 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
     let backgroundPolicy = LiveTVBackgroundPolicy.stopAndExit
     let captureRange: LiveTVCaptureRange? = nil
     private let context: JellyfinAPIContext
-    private let url: URL
+    private let route: JellyfinLiveStreamRoute
+    private let preference: LiveTVRoutePreference
     private let headers: [String: String]
     private let playSessionID: String
     private let mediaSourceID: String
     private let liveStreamID: String?
-    private let playMethod: String
+    private let isInterlaced: Bool
     private var didReportStarted = false
 
     private init(
         channel: LiveTVChannel,
         context: JellyfinAPIContext,
-        url: URL,
+        route: JellyfinLiveStreamRoute,
+        preference: LiveTVRoutePreference,
         headers: [String: String],
         playSessionID: String,
         mediaSourceID: String,
         liveStreamID: String?,
-        playMethod: String,
+        isInterlaced: Bool,
     ) {
         self.channel = channel
         self.context = context
-        self.url = url
+        self.route = route
+        self.preference = preference
         self.headers = headers
         self.playSessionID = playSessionID
         self.mediaSourceID = mediaSourceID
         self.liveStreamID = liveStreamID
-        self.playMethod = playMethod
+        self.isInterlaced = isInterlaced
     }
 
     static func start(
         channel: LiveTVChannel,
         context: JellyfinAPIContext,
+        preference: LiveTVRoutePreference,
     ) async throws -> JellyfinLiveTVPlaybackSession {
-        guard let userID = context.connection?.userID else { throw JellyfinAPIError.authenticationRequired }
-        let request = JellyfinLivePlaybackInfoRequest(userID: userID)
+        guard let userID = context.connection?.userID,
+              let baseURL = context.connection?.baseURL
+        else { throw JellyfinAPIError.authenticationRequired }
+        let request = JellyfinLivePlaybackInfoRequest(
+            userID: userID,
+            allowsDirectStream: preference == .automatic,
+        )
         let info: JellyfinPlaybackInfo = try await context.post(
             path: ["Items", channel.providerID, "PlaybackInfo"],
             query: [URLQueryItem(name: "UserId", value: userID)],
@@ -638,44 +651,55 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
         else {
             throw JellyfinAPIError.noPlayableSource
         }
+        guard let route = JellyfinLiveStreamRoute.resolve(
+            source: source,
+            itemID: channel.providerID,
+            playSessionID: playSessionID,
+            baseURL: baseURL,
+            preference: preference,
+        ) else {
+            await closeLiveStream(source.liveStreamID, context: context)
+            throw JellyfinAPIError.noPlayableSource
+        }
 
-        let url: URL
+        var liveStreamID = source.liveStreamID
         let headers: [String: String]
-        let playMethod: String
-        if let rawURL = source.transcodingURL,
-           let transcodeURL = URL(string: rawURL, relativeTo: context.connection?.baseURL)?.absoluteURL
-        {
-            url = transcodeURL
+        if route.usesJellyfinServer {
             headers = try context.playbackHeaders()
-            playMethod = "Transcode"
-        } else if let rawPath = source.path,
-                  let directURL = URL(string: rawPath),
-                  let scheme = directURL.scheme?.lowercased(),
-                  scheme == "http" || scheme == "https",
-                  source.container?.lowercased() == "hls" || directURL.pathExtension.lowercased() == "m3u8"
-        {
-            url = directURL
+        } else {
             // This URL may point at a third-party origin. Never forward the
             // Jellyfin authorization header outside the Jellyfin server.
             headers = source.requiredHTTPHeaders ?? [:]
-            playMethod = "DirectPlay"
-        } else {
-            throw JellyfinAPIError.noPlayableSource
+            // Nothing on the server reads the tuner while the origin is read directly.
+            await closeLiveStream(liveStreamID, context: context)
+            liveStreamID = nil
         }
+        let isInterlaced = source.mediaStreams?
+            .first { $0.type.lowercased() == "video" }?
+            .isInterlaced ?? false
         return JellyfinLiveTVPlaybackSession(
             channel: channel,
             context: context,
-            url: url,
+            route: route,
+            preference: preference,
             headers: headers,
             playSessionID: playSessionID,
             mediaSourceID: source.id,
-            liveStreamID: source.liveStreamID,
-            playMethod: playMethod,
+            liveStreamID: liveStreamID,
+            isInterlaced: isInterlaced,
         )
     }
 
     func source(offsetFromCaptureStart _: TimeInterval?) async throws -> LiveTVPlaybackSource {
-        LiveTVPlaybackSource(url: url, httpHeaders: headers, program: nil, captureRange: nil, nativeRemoteHLS: true)
+        LiveTVPlaybackSource(
+            url: route.url,
+            httpHeaders: headers,
+            program: nil,
+            captureRange: nil,
+            nativeRemoteHLS: route.nativeRemoteHLS,
+            route: route.playbackRoute,
+            isInterlaced: isInterlaced,
+        )
     }
 
     func report(position: TimeInterval, isPaused: Bool) async throws -> LiveTVCaptureRange? {
@@ -685,7 +709,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
             playSessionID: playSessionID,
             positionTicks: JellyfinTime.ticks(fromSeconds: position),
             isPaused: isPaused,
-            playMethod: playMethod,
+            playMethod: route.playMethod,
         )
         let path = didReportStarted ? ["Sessions", "Playing", "Progress"] : ["Sessions", "Playing"]
         try await context.send(path: path, method: "POST", body: JSONEncoder().encode(report))
@@ -694,7 +718,12 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
     }
 
     func recover() async throws -> any LiveTVPlaybackSession {
-        try await Self.start(channel: channel, context: context)
+        try await Self.start(channel: channel, context: context, preference: preference)
+    }
+
+    func fallback() async throws -> (any LiveTVPlaybackSession)? {
+        guard route.kind == .directStream else { return nil }
+        return try await Self.start(channel: channel, context: context, preference: .serverTranscode)
     }
 
     func stop() async {
@@ -704,7 +733,7 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
             playSessionID: playSessionID,
             positionTicks: 0,
             isPaused: true,
-            playMethod: playMethod,
+            playMethod: route.playMethod,
         )
         do {
             try await context.send(
@@ -713,25 +742,28 @@ private final class JellyfinLiveTVPlaybackSession: LiveTVPlaybackSession {
                 body: JSONEncoder().encode(report),
             )
         } catch {
-            LiveTVErrorReporting.capture(error)
+            LiveTVErrorReporting.capture(error, route: route.playbackRoute)
         }
-        if let liveStreamID {
-            do {
-                try await context.send(
-                    path: ["LiveStreams", "Close"],
-                    method: "POST",
-                    query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)],
-                )
-            } catch {
-                LiveTVErrorReporting.capture(error)
-            }
-        }
-        if playMethod == "Transcode" {
+        await Self.closeLiveStream(liveStreamID, context: context)
+        if route.kind == .transcode {
             do {
                 try await context.stopEncoding(playSessionID: playSessionID)
             } catch {
-                LiveTVErrorReporting.capture(error)
+                LiveTVErrorReporting.capture(error, route: route.playbackRoute)
             }
+        }
+    }
+
+    private static func closeLiveStream(_ liveStreamID: String?, context: JellyfinAPIContext) async {
+        guard let liveStreamID, !liveStreamID.isEmpty else { return }
+        do {
+            try await context.send(
+                path: ["LiveStreams", "Close"],
+                method: "POST",
+                query: [URLQueryItem(name: "LiveStreamId", value: liveStreamID)],
+            )
+        } catch {
+            LiveTVErrorReporting.capture(error)
         }
     }
 }
@@ -741,8 +773,8 @@ private struct JellyfinLivePlaybackInfoRequest: Encodable {
     let startTimeTicks = 0
     let isPlayback = true
     let autoOpenLiveStream = true
-    let enableDirectPlay = true
-    let enableDirectStream = true
+    let enableDirectPlay: Bool
+    let enableDirectStream: Bool
     let enableTranscoding = true
     let allowVideoStreamCopy = true
     let allowAudioStreamCopy = true
@@ -763,6 +795,12 @@ private struct JellyfinLivePlaybackInfoRequest: Encodable {
         case maxStreamingBitrate = "MaxStreamingBitrate"
         case alwaysBurnInSubtitleWhenTranscoding = "AlwaysBurnInSubtitleWhenTranscoding"
         case deviceProfile = "DeviceProfile"
+    }
+
+    init(userID: String, allowsDirectStream: Bool) {
+        self.userID = userID
+        enableDirectPlay = allowsDirectStream
+        enableDirectStream = allowsDirectStream
     }
 }
 
@@ -788,18 +826,20 @@ private nonisolated struct JellyfinLiveChannelDTO: Decodable, Sendable {
     let id: String
     let name: String
     let number: String?
+    let channelNumber: String?
     let callSign: String?
     let imageTags: [String: String]?
     let userData: JellyfinUserData?
     let isHD: Bool?
 
     private enum CodingKeys: String, CodingKey {
-        case id = "Id"; case name = "Name"; case number = "Number"; case callSign = "ChannelCallSign"
+        case id = "Id"; case name = "Name"; case number = "Number"; case channelNumber = "ChannelNumber"
+        case callSign = "ChannelCallSign"
         case imageTags = "ImageTags"; case userData = "UserData"; case isHD = "IsHD"
     }
 }
 
-private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
+nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let id: String
     let name: String
     let overview: String?
@@ -814,6 +854,10 @@ private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
     let isLive: Bool?
     let isPremiere: Bool?
     let isSeries: Bool?
+    let isSports: Bool?
+    let isMovie: Bool?
+    let isNews: Bool?
+    let isKids: Bool?
     let timerID: String?
     let seriesTimerID: String?
     let status: String?
@@ -824,6 +868,27 @@ private nonisolated struct JellyfinLiveProgramDTO: Decodable, Sendable {
         case imageTags = "ImageTags"; case parentIndexNumber = "ParentIndexNumber"; case indexNumber = "IndexNumber"
         case isLive = "IsLive"; case isPremiere = "IsPremiere"; case isSeries = "IsSeries"; case timerID =
             "TimerId"; case seriesTimerID = "SeriesTimerId"; case status = "Status"
+        case isSports = "IsSports"; case isMovie = "IsMovie"; case isNews = "IsNews"; case isKids = "IsKids"
+    }
+
+    var categories: Set<LiveTVCategory> {
+        var categories: Set<LiveTVCategory> = []
+        if isSports == true {
+            categories.insert(.sports)
+        }
+        if isMovie == true {
+            categories.insert(.movie)
+        }
+        if isSeries == true {
+            categories.insert(.series)
+        }
+        if isNews == true {
+            categories.insert(.news)
+        }
+        if isKids == true {
+            categories.insert(.kids)
+        }
+        return categories
     }
 }
 

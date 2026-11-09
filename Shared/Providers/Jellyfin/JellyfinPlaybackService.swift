@@ -13,7 +13,7 @@ struct JellyfinPlaybackPlan: Sendable {
     let subtitleSelectionIsOff: Bool
     let mediaStreams: [JellyfinMediaStream]
     let chapters: [JellyfinChapter]
-    let externalSubtitles: [ExternalSubtitleTrack]
+    let externalSubtitles: [PlayerExternalSubtitle]
     let method: PlaybackMethod
     let playMethod: String
     let requestedQuality: TranscodeQualityPreset
@@ -333,9 +333,7 @@ struct JellyfinPlaybackService {
         source: JellyfinMediaSource,
         streams: [JellyfinMediaStream],
     ) -> Int? {
-        source.defaultSubtitleStreamIndex.flatMap { defaultIndex in
-            streams.contains(where: { $0.index == defaultIndex }) ? defaultIndex : nil
-        } ?? streams.first(where: { $0.isDefault == true })?.index
+        source.serverSubtitleIndex(validIndices: Set(streams.map(\.index)))
     }
 
     private func defaultAudioStreamIndex(
@@ -347,7 +345,7 @@ struct JellyfinPlaybackService {
         } ?? streams.first(where: { $0.isDefault == true })?.index ?? streams.first?.index
     }
 
-    func externalSubtitles(item: JellyfinItem) throws -> [ExternalSubtitleTrack] {
+    func externalSubtitles(item: JellyfinItem) throws -> [PlayerExternalSubtitle] {
         let headers = try context.playbackHeaders()
         return externalSubtitles(
             streams: (item.mediaSources ?? []).flatMap { $0.mediaStreams ?? [] },
@@ -358,8 +356,8 @@ struct JellyfinPlaybackService {
     private func externalSubtitles(
         streams: [JellyfinMediaStream],
         headers: [String: String],
-    ) -> [ExternalSubtitleTrack] {
-        streams.compactMap { stream -> ExternalSubtitleTrack? in
+    ) -> [PlayerExternalSubtitle] {
+        streams.compactMap { stream -> PlayerExternalSubtitle? in
             guard stream.type.lowercased() == "subtitle",
                   stream.isExternal == true,
                   stream.deliveryMethod?.lowercased() == "external",
@@ -368,14 +366,17 @@ struct JellyfinPlaybackService {
             else {
                 return nil
             }
-            return ExternalSubtitleTrack(
-                url: url,
-                name: stream.displayTitle,
-                language: stream.language,
-                isForced: stream.isForced ?? false,
-                isDefault: stream.isDefault ?? false,
-                httpHeaders: headers,
-                formatHint: stream.codec,
+            return PlayerExternalSubtitle(
+                track: ExternalSubtitleTrack(
+                    url: url,
+                    name: stream.displayTitle,
+                    language: stream.language,
+                    isForced: stream.isForced ?? false,
+                    isDefault: stream.isDefault ?? false,
+                    httpHeaders: headers,
+                    formatHint: stream.codec,
+                ),
+                providerStreamID: stream.index,
             )
         }
     }
@@ -645,7 +646,7 @@ struct JellyfinDeviceProfile: Encodable {
                 TranscodingProfile(
                     container: "ts",
                     type: "Video",
-                    videoCodec: "hevc,h264",
+                    videoCodec: "h264",
                     audioCodec: "aac,mp3,mp2,ac3,eac3,flac,opus",
                     protocolName: "hls",
                 ),

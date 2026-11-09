@@ -54,6 +54,16 @@ final class FolderTreeModel {
         }
     }
 
+    /// Keeps the expanded folders, which a reload would collapse.
+    func removeMedia(ids: Set<String>) {
+        let isDeleted = { (item: LibraryBrowseItem) -> Bool in
+            guard case let .media(media) = item else { return false }
+            return ids.contains(media.id)
+        }
+        rootItems.removeAll(where: isDeleted)
+        childrenByFolder = childrenByFolder.mapValues { $0.filter { !isDeleted($0) } }
+    }
+
     func toggle(_ folder: LibraryBrowseFolderItem) async {
         if expandedFolders.contains(folder.key) {
             expandedFolders.remove(folder.key)

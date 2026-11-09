@@ -41,6 +41,30 @@ struct SettingsAudioView: View {
             }
 
             Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("settings.playback.nightMode", isOn: viewModel.nightModeBinding)
+                    Text("settings.playback.nightMode.footer")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Picker("settings.playback.dialogueBoost", selection: viewModel.dialogueBoostBinding) {
+                        ForEach(DialogueBoost.allCases) { boost in
+                            Text(boost.title).tag(boost)
+                        }
+                    }
+                    Text("settings.playback.dialogueBoost.footer")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("settings.playback.audioEnhancements")
+            } footer: {
+                Text("settings.playback.audioEnhancements.footer")
+            }
+
+            Section {
                 AudioDelaySettingsRow()
             } footer: {
                 Text("settings.playback.audioDelay.footer")

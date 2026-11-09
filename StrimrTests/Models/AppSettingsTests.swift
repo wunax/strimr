@@ -1,3 +1,4 @@
+import AetherEngine
 import Foundation
 @testable import Strimr
 import Testing
@@ -16,6 +17,30 @@ struct AppSettingsTests {
         #expect(try decode(#"{"interface":{"themeMusicVolume":"medium"}}"#).interface.themeMusicVolume == .medium)
     }
 
+    @Test func `episode artwork keeps the episode image and series poster unless chosen`() throws {
+        let defaults = try decode(#"{"interface":{}}"#).interface
+        #expect(defaults.landscapeEpisodeArtwork == .episode)
+        #expect(defaults.portraitEpisodeArtwork == .series)
+
+        let unknown = try decode(#"{"interface":{"landscapeEpisodeArtwork":"x","portraitEpisodeArtwork":"x"}}"#)
+        #expect(unknown.interface.landscapeEpisodeArtwork == .episode)
+        #expect(unknown.interface.portraitEpisodeArtwork == .series)
+
+        let chosen =
+            try decode(#"{"interface":{"landscapeEpisodeArtwork":"series","portraitEpisodeArtwork":"season"}}"#)
+        #expect(chosen.interface.landscapeEpisodeArtwork == .series)
+        #expect(chosen.interface.portraitEpisodeArtwork == .season)
+    }
+
+    @Test func `subtitle search follows the device language until chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.subtitleSearch == SubtitleSearchPreferences())
+
+        var settings = AppSettings()
+        settings.playback.subtitleSearch = SubtitleSearchPreferences(language: "fr", hearingImpaired: true)
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.playback.subtitleSearch == settings.playback.subtitleSearch)
+    }
+
     @Test func `title logo is shown unless turned off`() throws {
         #expect(try decode(#"{"interface":{"displayPlaylists":false}}"#).interface.showsTitleLogo)
         #expect(try !decode(#"{"interface":{"showsTitleLogo":false}}"#).interface.showsTitleLogo)
@@ -24,6 +49,37 @@ struct AppSettingsTests {
     @Test func `card labels are shown unless turned off`() throws {
         #expect(try decode(#"{"interface":{"displayPlaylists":false}}"#).interface.showsCardLabels)
         #expect(try !decode(#"{"interface":{"showsCardLabels":false}}"#).interface.showsCardLabels)
+    }
+
+    @Test func `watch status badges are shown unless turned off`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.showsWatchStatusBadges)
+        #expect(try !decode(#"{"interface":{"showsWatchStatusBadges":false}}"#).interface.showsWatchStatusBadges)
+    }
+
+    @Test func `continue watching opens details unless chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.continueWatchingAction == .openDetails)
+        #expect(try decode(#"{"interface":{"continueWatchingAction":"x"}}"#).interface
+            .continueWatchingAction == .openDetails)
+        #expect(try decode(#"{"interface":{"continueWatchingAction":"play"}}"#).interface
+            .continueWatchingAction == .play)
+    }
+
+    @Test func `default playback rate is normal speed unless a listed speed is chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.defaultPlaybackRate == 1.0)
+        #expect(try decode(#"{"playback":{"defaultPlaybackRate":1.3}}"#).playback.defaultPlaybackRate == 1.0)
+        #expect(try decode(#"{"playback":{"defaultPlaybackRate":1.5}}"#).playback.defaultPlaybackRate == 1.5)
+    }
+
+    @Test func `tab bar stays on top unless chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.tabBarPlacement == .top)
+        #expect(try decode(#"{"interface":{"tabBarPlacement":"x"}}"#).interface.tabBarPlacement == .top)
+        #expect(try decode(#"{"interface":{"tabBarPlacement":"sidebar"}}"#).interface.tabBarPlacement == .sidebar)
+    }
+
+    @Test func `app opens on Home unless another screen is chosen`() throws {
+        #expect(try decode(#"{"interface":{}}"#).interface.startupScreen == .home)
+        #expect(try decode(#"{"interface":{"startupScreen":"x"}}"#).interface.startupScreen == .home)
+        #expect(try decode(#"{"interface":{"startupScreen":"liveTV"}}"#).interface.startupScreen == .liveTV)
     }
 
     @Test func `corrupt library browse preferences keep other settings`() throws {
@@ -74,6 +130,20 @@ struct AppSettingsTests {
         #expect(reloaded.libraryBrowsePreferences(for: "key") == preferences)
     }
 
+    @MainActor
+    @Test func `the live TV channel sort is saved per server`() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let plex = ServerIdentity(provider: .plex, id: "server")
+        let jellyfin = ServerIdentity(provider: .jellyfin, id: "server")
+
+        SettingsManager(userDefaults: defaults).setLiveTVChannelSort(.name, server: plex)
+        let reloaded = SettingsManager(userDefaults: defaults)
+
+        #expect(reloaded.liveTVChannelSort(server: plex) == .name)
+        #expect(reloaded.liveTVChannelSort(server: jellyfin) == .number)
+    }
+
     @Test func `missing pause screen setting decodes as enabled`() throws {
         let settings = try decode(#"{"playback":{"showClock":true}}"#)
 
@@ -106,11 +176,33 @@ struct AppSettingsTests {
         #expect(manager.interface.libraryBrowseByKey["b"] == nil)
     }
 
+    @Test func `skip segments are hidden on the timeline unless turned on`() throws {
+        #expect(try !decode(#"{"playback":{"showClock":true}}"#).playback.showSkipSegmentsOnTimeline)
+        #expect(try decode(#"{"playback":{"showSkipSegmentsOnTimeline":true}}"#).playback.showSkipSegmentsOnTimeline)
+    }
+
     @Test func `missing audio delay decodes as zero`() throws {
         let settings = try decode(#"{"playback":{"losslessAudio":true}}"#)
 
         #expect(settings.playback.audioDelayMilliseconds == 0)
         #expect(settings.playback.losslessAudio)
+    }
+
+    @Test func `read-ahead defaults to standard and survives an unknown value`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.readAhead == .standard)
+        #expect(try decode(#"{"playback":{"readAhead":"maximum"}}"#).playback.readAhead == .maximum)
+
+        let settings = try decode(#"{"playback":{"readAhead":"huge","seekForwardSeconds":30}}"#)
+        #expect(settings.playback.readAhead == .standard)
+        #expect(settings.playback.seekForwardSeconds == 30)
+    }
+
+    @Test func `standard read-ahead keeps the engine default window`() {
+        #expect(PlaybackReadAhead.standard.forwardBufferSegments == nil)
+        #expect(PlaybackReadAhead.extended.forwardBufferSegments == 75)
+        #expect(PlaybackReadAhead.maximum.forwardBufferSegments == .max)
+        #expect(PlaybackReadAhead.standard.softwarePacketCacheStorage == .automatic)
+        #expect(PlaybackReadAhead.maximum.softwarePacketCacheStorage == .disk)
     }
 
     @Test func `out of range audio delay decodes clamped`() throws {
@@ -125,6 +217,33 @@ struct AppSettingsTests {
         #expect(settings.playback.seekForwardSeconds == 30)
     }
 
+    @Test func `audio enhancements are off unless chosen`() throws {
+        let playback = try decode(#"{"playback":{"dialogueBoost":"loud","seekForwardSeconds":30}}"#).playback
+
+        #expect(!playback.nightMode)
+        #expect(playback.dialogueBoost == .off)
+        #expect(playback.seekForwardSeconds == 30)
+        #expect(!playback.audioShaping.isActive)
+    }
+
+    @Test func `audio enhancements combine into one shaping`() throws {
+        let playback = try decode(#"{"playback":{"nightMode":true,"dialogueBoost":"strong"}}"#).playback
+
+        #expect(playback.audioShaping.compressor == .night)
+        #expect(playback.audioShaping.dialogueGainDB == 8)
+        #expect(playback.audioShaping.maxChannels == nil)
+    }
+
+    @Test func `picture in picture and background audio stay on unless turned off`() throws {
+        let defaults = try decode(#"{"playback":{}}"#).playback
+        #expect(defaults.pictureInPicture)
+        #expect(defaults.backgroundAudio)
+
+        let disabled = try decode(#"{"playback":{"pictureInPicture":false,"backgroundAudio":false}}"#).playback
+        #expect(!disabled.pictureInPicture)
+        #expect(!disabled.backgroundAudio)
+    }
+
     @Test func `subtitle brightness is full unless chosen`() throws {
         #expect(try decode(#"{"playback":{}}"#).playback.subtitleBrightness == .full)
         #expect(try decode(#"{"playback":{"subtitleBrightness":"medium"}}"#).playback.subtitleBrightness == .medium)
@@ -135,6 +254,28 @@ struct AppSettingsTests {
 
         #expect(settings.playback.subtitleBrightness == .full)
         #expect(settings.playback.subtitleTextColor == .cream)
+    }
+
+    @Test func `subtitle bottom margin is automatic unless chosen`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.subtitleBottomMargin == .automatic)
+        #expect(try decode(#"{"playback":{"subtitleBottomMargin":"percent8"}}"#).playback
+            .subtitleBottomMargin == .percent8)
+    }
+
+    @Test func `unknown subtitle bottom margin keeps other subtitle settings`() throws {
+        let settings = try decode(#"{"playback":{"subtitleBottomMargin":"huge","subtitleTextColor":"cream"}}"#)
+
+        #expect(settings.playback.subtitleBottomMargin == .automatic)
+        #expect(settings.playback.subtitleTextColor == .cream)
+    }
+
+    @Test func `resetting subtitle appearance restores the automatic bottom margin`() {
+        var playback = PlaybackSettings()
+        playback.subtitleBottomMargin = .percent15
+
+        playback.resetSubtitleAppearance()
+
+        #expect(playback.subtitleBottomMargin == .automatic)
     }
 
     @Test func `resetting subtitle appearance restores full brightness`() {
@@ -222,6 +363,11 @@ struct AppSettingsTests {
     @Test func `subtitles on skip back are on unless turned off`() throws {
         #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.showSubtitlesOnSkipBack)
         #expect(try !decode(#"{"playback":{"showSubtitlesOnSkipBack":false}}"#).playback.showSubtitlesOnSkipBack)
+    }
+
+    @Test func `automatic subtitle search stays off unless turned on`() throws {
+        #expect(try !decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.automaticSubtitleSearch)
+        #expect(try decode(#"{"playback":{"automaticSubtitleSearch":true}}"#).playback.automaticSubtitleSearch)
     }
 
     private func decode(_ json: String) throws -> AppSettings {

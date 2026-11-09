@@ -77,7 +77,7 @@ final class DownloadOptionsViewModel {
         return MediaTrackPreference(
             audioStreamIndex: audio?.sourceIndex ?? audio?.id,
             audioLanguage: audio?.language,
-            audioTitle: audio?.displayTitle,
+            audioTitle: audio?.title ?? audio?.displayTitle,
             audioCodec: audio?.codec,
             audioIsHearingImpaired: audio?.isHearingImpaired,
             audioIsCommentary: nil,
@@ -85,7 +85,7 @@ final class DownloadOptionsViewModel {
                 .track(
                     streamIndex: $0.sourceIndex ?? $0.id ?? 0,
                     language: $0.language,
-                    title: $0.displayTitle,
+                    title: $0.title ?? $0.displayTitle,
                     codec: $0.codec,
                     isForced: $0.isForced,
                     isHearingImpaired: $0.isHearingImpaired,
@@ -191,13 +191,13 @@ struct DownloadOptionsSections: View {
                 } else {
                     Picker("downloads.options.audio", selection: $model.selectedAudioID) {
                         ForEach(model.audioTracks) { track in
-                            Text(track.displayTitle).tag(track.id)
+                            Text(track.summaryTitle).tag(track.id)
                         }
                     }
                     Picker("downloads.options.subtitles", selection: $model.selectedSubtitleID) {
                         Text("downloads.options.subtitles.off").tag(Int?.none)
                         ForEach(model.subtitleTracks) { track in
-                            Text(track.displayTitle).tag(track.id)
+                            Text(track.summaryTitle).tag(track.id)
                         }
                     }
                 }

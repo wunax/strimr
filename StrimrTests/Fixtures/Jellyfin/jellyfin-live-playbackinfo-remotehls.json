@@ -1,0 +1,20 @@
+{
+  "PlaySessionId": "play-session-2",
+  "MediaSources": [
+    {
+      "Id": "source-2",
+      "Path": "https://iptv.example.invalid/channel/index.m3u8",
+      "Container": "hls",
+      "Protocol": "Http",
+      "IsInfiniteStream": true,
+      "SupportsDirectPlay": true,
+      "SupportsDirectStream": false,
+      "SupportsTranscoding": true,
+      "LiveStreamId": "live-stream-2",
+      "RequiredHttpHeaders": { "User-Agent": "ExampleAgent" },
+      "MediaStreams": [
+        { "Index": 0, "Type": "Video", "Codec": "h264", "IsInterlaced": false }
+      ]
+    }
+  ]
+}

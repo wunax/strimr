@@ -38,6 +38,7 @@ struct DisplayedLibrariesSectionView: View {
                     subtitle: viewModel.subtitle(for: library),
                     isOn: viewModel.displayedBinding(for: library),
                     key: "displayed-library-\(library.identity.stableKey)",
+                    isDefaultFocus: index == 0,
                     canMoveUp: index > 0,
                     canMoveDown: index < viewModel.libraries.count - 1,
                 ) { offset in
@@ -72,44 +73,47 @@ struct LibraryOrderRow: View {
     let isOn: Binding<Bool>
     let key: String
     var canReorder = true
+    var isDefaultFocus = false
     let canMoveUp: Bool
     let canMoveDown: Bool
     let move: (Int) -> Void
 
     var body: some View {
         #if os(tvOS)
-            VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 24) {
                 Toggle(isOn: isOn) {
                     LibrarySettingsLabel(title: title, subtitle: subtitle)
                         .foregroundStyle(isOn.wrappedValue ? .primary : .secondary)
                 }
-                .settingsFocus(key)
+                .settingsFocus(key, isDefault: isDefaultFocus)
 
-                if canReorder {
-                    HStack(spacing: 12) {
-                        Button {
-                            move(-1)
-                        } label: {
-                            Image(systemName: "arrow.up")
-                        }
-                        .buttonStyle(.bordered)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
-                        .settingsFocus("\(key)-up")
-                        .disabled(!canMoveUp)
-
-                        Button {
-                            move(1)
-                        } label: {
-                            Image(systemName: "arrow.down")
-                        }
-                        .buttonStyle(.bordered)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
-                        .settingsFocus("\(key)-down", exitsLeft: false)
-                        .disabled(!canMoveDown)
+                // Hidden rather than removed so every toggle keeps the same width.
+                HStack(spacing: 12) {
+                    Button {
+                        move(-1)
+                    } label: {
+                        Image(systemName: "arrow.up")
                     }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(canMoveUp ? .secondary : .tertiary)
+                    .accessibilityLabel(Text("settings.interface.homeRows.moveUp"))
+                    .settingsFocus("\(key)-up", exitsLeft: false)
+                    .disabled(!canReorder || !canMoveUp)
+
+                    Button {
+                        move(1)
+                    } label: {
+                        Image(systemName: "arrow.down")
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(canMoveDown ? .secondary : .tertiary)
+                    .accessibilityLabel(Text("settings.interface.homeRows.moveDown"))
+                    .settingsFocus("\(key)-down", exitsLeft: false)
+                    .disabled(!canReorder || !canMoveDown)
                 }
+                .fixedSize()
+                .opacity(canReorder ? 1 : 0)
+                .accessibilityHidden(!canReorder)
             }
         #else
             HStack(spacing: 12) {

@@ -1,0 +1,20 @@
+{
+  "Id": "movie-1",
+  "Name": "Example Movie",
+  "Type": "Movie",
+  "CanDelete": true,
+  "MediaSources": [
+    {
+      "Id": "source-1",
+      "Path": "/media/movies/Example Movie (2021) - 1080p.mkv",
+      "Protocol": "File",
+      "Size": 4200000000
+    },
+    {
+      "Id": "source-2",
+      "Path": "/media/movies/Example Movie (2021) - 2160p.mp4",
+      "Protocol": "File",
+      "Size": 12800000000
+    }
+  ]
+}

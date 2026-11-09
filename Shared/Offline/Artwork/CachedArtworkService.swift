@@ -33,6 +33,10 @@ final class CachedArtworkService: MediaArtworkService {
         nil
     }
 
+    func themePath(for media: MediaItem) async -> String? {
+        await base.themePath(for: media)
+    }
+
     func themeMusicURL(path: String) -> URL? {
         base.themeMusicURL(path: path)
     }

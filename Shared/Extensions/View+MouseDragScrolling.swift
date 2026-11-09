@@ -33,7 +33,6 @@ import SwiftUI
 #endif
 
 extension View {
-    @ViewBuilder
     func mouseDragScrolling() -> some View {
         #if os(macOS)
             modifier(MouseDragScrollingModifier())

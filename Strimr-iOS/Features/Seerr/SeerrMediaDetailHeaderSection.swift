@@ -63,6 +63,14 @@ struct SeerrMediaDetailHeaderSection: View {
             }
             .actionButtonStyle(.secondary)
         }
+
+        if let trailerURL = viewModel.trailerURL {
+            Link(destination: trailerURL) {
+                Label("seerr.detail.watchTrailer", systemImage: "film")
+                    .frame(maxWidth: .infinity)
+            }
+            .actionButtonStyle(.secondary)
+        }
     }
 
     private var requestButtonIcon: String {
