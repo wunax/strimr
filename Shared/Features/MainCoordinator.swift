@@ -224,8 +224,18 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         appendNavigationRoute(.libraryBrowser)
     }
 
+    /// Opens the library in the Libraries tab, or on the current tab when the Libraries tab is hidden.
     func showLibrary(_ library: Library) {
-        appendNavigationRoute(.libraryDetail(library))
+        guard settingsManager.interface.displayLibrariesTab else {
+            appendNavigationRoute(.libraryDetail(library))
+            return
+        }
+        tab = .library
+        if tab == .more {
+            morePath.append(library)
+        } else {
+            libraryPath = NavigationPath([library])
+        }
     }
 
     private func appendNavigationRoute(_ route: Route) {
