@@ -2,6 +2,7 @@ import AetherEngine
 import Foundation
 import Network
 import Observation
+import Synchronization
 
 @MainActor
 @Observable
@@ -52,6 +53,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private var deletingIDs: Set<String> = []
     @ObservationIgnored private var activeFinalizations = 0
     @ObservationIgnored private var backgroundEventsFinished = false
+    /// Finished transfers handed from the delegate queue to the main actor but not yet picked up there.
+    private nonisolated let queuedHandoffs = Mutex(0)
     @ObservationIgnored private var retryAttempts: [String: Int] = [:]
     @ObservationIgnored private var retryTasks: [String: Task<Void, Never>] = [:]
 
@@ -580,6 +583,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func finishBackgroundEventsIfIdle() {
         guard backgroundEventsFinished,
               activeFinalizations == 0,
+              queuedHandoffs.withLock({ $0 }) == 0,
               let handler = backgroundEventsCompletionHandler
         else { return }
         backgroundEventsFinished = false
@@ -1365,14 +1369,21 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL,
     ) {
+        // Counted before the hop, so the background completion handler cannot run ahead of this transfer.
+        queuedHandoffs.withLock { $0 += 1 }
         do {
             let stagedURL = try Self.stageDownloadFile(at: location)
             Task { @MainActor in
+                // `completeDownload` takes over the count in `activeFinalizations` before its first suspension.
+                queuedHandoffs.withLock { $0 -= 1 }
                 await completeDownload(task: downloadTask, stagedLocation: stagedURL)
+                finishBackgroundEventsIfIdle()
             }
         } catch {
             Task { @MainActor in
+                queuedHandoffs.withLock { $0 -= 1 }
                 failDownload(task: downloadTask, error: error)
+                finishBackgroundEventsIfIdle()
             }
         }
     }
