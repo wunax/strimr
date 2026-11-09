@@ -5,13 +5,12 @@ extension MediaDisplayItem {
         guard case let .playable(item) = self else { return secondaryLabel }
         switch item.type {
         case .episode:
-            let parts = [item.grandparentTitle, item.tertiaryLabel].compactMap(\.self)
-            return parts.isEmpty ? nil : parts.joined(separator: " · ")
+            return Self.joined(item.grandparentTitle, item.tertiaryLabel, item.editionTitle)
         case .season:
-            return item.parentTitle
+            return Self.joined(item.parentTitle, item.editionTitle)
         default:
             // The year already leads the metadata line.
-            let label = item.secondaryLabel
+            let label = item.type == .movie ? item.editionTitle : item.secondaryLabel
             return label == item.year.map(String.init) ? nil : label
         }
     }
@@ -26,6 +25,27 @@ extension MediaDisplayItem {
             item.rating.map { "★ " + $0.formatted(.number.precision(.fractionLength(1))) },
         ].compactMap(\.self)
         return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+    /// In-progress cards show the time left in place of the year. Editions share the title's artwork and name, so the
+    /// caption keeps naming the edition.
+    func cardSecondaryLabel(remainingTime: String?) -> String? {
+        guard case let .playable(item) = self, item.type != .episode else { return secondaryLabel }
+        if let remainingTime {
+            return Self.joined(remainingTime, item.editionTitle)
+        }
+        return item.type == .season ? Self.joined(secondaryLabel, item.editionTitle) : secondaryLabel
+    }
+
+    /// Episodes keep their title on the second line, so the edition and the time left follow the episode number.
+    func cardTertiaryLabel(remainingTime: String?) -> String? {
+        guard case let .playable(item) = self, item.type == .episode else { return tertiaryLabel }
+        return Self.joined(tertiaryLabel, item.editionTitle, remainingTime)
+    }
+
+    private static func joined(_ parts: String?...) -> String? {
+        let parts = parts.compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     var usesWideListArtwork: Bool {

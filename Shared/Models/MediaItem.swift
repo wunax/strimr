@@ -6,6 +6,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let guid: String
     let summary: String?
     let title: String
+    /// Plex edition, e.g. `Director's Cut`. Each edition is its own item.
+    let editionTitle: String?
     let type: MediaKind
     let parentRatingKey: String?
     let grandparentRatingKey: String?
@@ -36,6 +38,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
     let librarySectionID: String?
+    /// Only Plex reports it alongside the item.
+    let librarySectionTitle: String?
     let lastViewedAt: Date?
     /// Theme music of the item or of its series.
     let themePath: String?
@@ -64,6 +68,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         guid: String,
         summary: String?,
         title: String,
+        editionTitle: String? = nil,
         type: MediaKind,
         parentRatingKey: String?,
         grandparentRatingKey: String?,
@@ -94,6 +99,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         grandparentArtPath: String?,
         parentThumbPath: String?,
         librarySectionID: String? = nil,
+        librarySectionTitle: String? = nil,
         lastViewedAt: Date? = nil,
         externalIDs: ExternalIDs = ExternalIDs(),
         themePath: String? = nil,
@@ -105,6 +111,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.guid = guid
         self.summary = summary
         self.title = title
+        let editionTitle = editionTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.editionTitle = editionTitle?.isEmpty == false ? editionTitle : nil
         self.type = type
         self.parentRatingKey = parentRatingKey
         self.grandparentRatingKey = grandparentRatingKey
@@ -135,6 +143,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.grandparentArtPath = grandparentArtPath
         self.parentThumbPath = parentThumbPath
         self.librarySectionID = librarySectionID
+        self.librarySectionTitle = librarySectionTitle
         self.lastViewedAt = lastViewedAt
         self.themePath = themePath
         self.logoPath = logoPath
@@ -171,6 +180,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
             externalIDs: externalIDs,
             seasonNumber: type == .episode ? parentIndex : nil,
             episodeNumber: type == .episode ? index : nil,
+            edition: editionTitle,
         )
     }
 
@@ -260,15 +270,14 @@ struct MediaItem: Identifiable, Hashable, Codable {
     var secondaryLabel: String? {
         switch type {
         case .movie:
-            return year.map(String.init)
+            return withEdition(year.map(String.init))
 
         case .series:
             switch provider {
             case .jellyfin:
                 return year.map(String.init)
             case .plex:
-                guard let childCount else { return nil }
-                return String(localized: "media.labels.seasonsCount \(childCount)")
+                return withEdition(childCount.map { String(localized: "media.labels.seasonsCount \($0)") })
             }
 
         case .season, .episode:
@@ -283,12 +292,45 @@ struct MediaItem: Identifiable, Hashable, Codable {
         }
     }
 
+    /// Plex leaves the edition empty on the regular cut.
+    var editionLabel: String {
+        editionTitle ?? String(localized: "media.editions.standard")
+    }
+
+    /// The regular cut first, then editions by name.
+    static func editionOrder(_ lhs: MediaItem, _ rhs: MediaItem) -> Bool {
+        switch (lhs.editionTitle, rhs.editionTitle) {
+        case (nil, nil): lhs.id < rhs.id
+        case (nil, _): true
+        case (_, nil): false
+        case let (lhs?, rhs?): lhs.localizedStandardCompare(rhs) == .orderedAscending
+        }
+    }
+
+    /// Editions of a title share its poster and name, so cards tell them apart by the edition.
+    private func withEdition(_ label: String?) -> String? {
+        let parts = [label, editionTitle].compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     var tertiaryLabel: String? {
         guard case .episode = type, let parentIndex, let index else {
             return nil
         }
 
         return String(localized: "media.labels.seasonEpisode \(parentIndex) \(index)")
+    }
+
+    var episodeTitleLabel: String? {
+        guard case .episode = type else { return nil }
+
+        let episodeTitle = title.trimmingCharacters(in: .whitespaces)
+        guard let tertiaryLabel else {
+            return episodeTitle.isEmpty ? nil : episodeTitle
+        }
+        guard !episodeTitle.isEmpty else { return tertiaryLabel }
+
+        return String(localized: "media.labels.episodeWithTitle \(tertiaryLabel) \(episodeTitle)")
     }
 
     var metadataRatingKey: String {
@@ -310,6 +352,19 @@ struct MediaItem: Identifiable, Hashable, Codable {
         }
 
         return min(100, (viewOffset / duration) * 100)
+    }
+
+    var resolutionRank: Int {
+        guard let value = videoResolution?.lowercased() else { return 0 }
+        if value == "4k" || value == "uhd" {
+            return 2160
+        }
+        if value == "sd" {
+            return 480
+        }
+        // Jellyfin labels unusual sizes as "640 × 480": the height ranks them.
+        let height = value.split(separator: "×").last.map(String.init) ?? value
+        return Int(height.filter(\.isNumber)) ?? 0
     }
 
     var playbackResolutionLabel: String? {

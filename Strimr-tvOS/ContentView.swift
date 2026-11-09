@@ -46,6 +46,7 @@ struct ContentView: View {
                 .id(registry.generation)
             }
         }
+        .background(ClosingMenuBackPressGuard())
         .onChange(of: registry.readyServers) { _, _ in
             sessionManager.updateTopShelf()
         }

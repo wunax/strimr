@@ -422,7 +422,6 @@ nonisolated struct PlexMarker: Codable, Equatable {
 
 nonisolated struct PlexChapter: Codable, Equatable, Hashable {
     let id: Int
-    let filter: String
     let index: Int
     let startTimeOffset: Int
     let endTimeOffset: Int
@@ -810,6 +809,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let librarySectionTitle: String?
     let type: PlexItemType
     let title: String
+    let editionTitle: String?
     let summary: String?
     let thumb: String?
     let art: String?
@@ -817,6 +817,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let year: Int?
     let viewOffset: Int?
     let lastViewedAt: Int?
+    let addedAt: Int?
     let viewCount: Int?
     let originallyAvailableAt: String?
     let duration: Int?
@@ -827,7 +828,7 @@ nonisolated struct PlexItem: Codable, Equatable {
     let tagline: String?
     let ultraBlurColors: ArtworkCornerColors?
     let images: [PlexImage]?
-    let guids: [PlexGuid]?
+    var guids: [PlexGuid]?
     let genres: [PlexTag]?
     let countries: [PlexTag]?
     let directors: [PlexTagPerson]?
@@ -894,8 +895,8 @@ nonisolated struct PlexItem: Codable, Equatable {
     let playlistItemID: Int?
 
     private enum CodingKeys: String, CodingKey {
-        case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, summary, thumb, art, theme,
-             year, viewOffset, lastViewedAt, viewCount
+        case ratingKey, key, guid, librarySectionID, librarySectionTitle, type, title, editionTitle, summary, thumb,
+             art, theme, year, viewOffset, lastViewedAt, addedAt, viewCount
         case originallyAvailableAt, duration, audienceRating, audienceRatingImage, contentRating
         case contentRatingAge, tagline, slug, studio, rating, chapterSource, primaryExtraKey, ratingImage
         case index, leafCount, viewedLeafCount, childCount

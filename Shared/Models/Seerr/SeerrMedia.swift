@@ -37,6 +37,7 @@ struct SeerrMedia: Identifiable, Hashable, Decodable {
     let seasons: [SeerrSeason]?
     let createdBy: [SeerrCreatedBy]?
     let collection: SeerrCollectionSummary?
+    let relatedVideos: [SeerrVideo]?
 }
 
 extension SeerrMedia {
@@ -72,7 +73,56 @@ extension SeerrMedia {
             seasons: nil,
             createdBy: nil,
             collection: nil,
+            relatedVideos: nil,
         )
+    }
+}
+
+struct SeerrVideo: Hashable, Decodable {
+    let site: String?
+    let key: String?
+    let name: String?
+    let size: Int?
+    let type: String?
+    let url: String?
+}
+
+extension SeerrMedia {
+    /// Like Seerr's web client, the largest trailer wins and YouTube goes through the
+    /// instance's `youtubeUrl` override. Seerr only builds `url` for YouTube, so
+    /// trailers from other sites are skipped when they have none.
+    func trailerURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        largestTrailerURL { $0.resolvedURL(youtubeBaseURL: youtubeBaseURL, serverURL: serverURL) }
+    }
+
+    /// tvOS has no browser, so trailers there can only open in the YouTube app, which ignores the
+    /// instance's `youtubeUrl` override.
+    var youtubeAppTrailerURL: URL? {
+        largestTrailerURL { video in
+            guard video.site == "YouTube", let key = video.key, !key.isEmpty else { return nil }
+            return URL(string: "youtube://watch/\(key)")
+        }
+    }
+
+    private func largestTrailerURL(_ resolve: (SeerrVideo) -> URL?) -> URL? {
+        (relatedVideos ?? [])
+            .filter { $0.type == "Trailer" }
+            .compactMap { video in resolve(video).map { (video, $0) } }
+            .max { ($0.0.size ?? 0) < ($1.0.size ?? 0) }?
+            .1
+    }
+}
+
+private extension SeerrVideo {
+    func resolvedURL(youtubeBaseURL: String?, serverURL: URL?) -> URL? {
+        if site == "YouTube", let youtubeBaseURL, !youtubeBaseURL.isEmpty, let key,
+           // Seerr accepts protocol-relative overrides, which its web client resolves against the page.
+           let override = URL(string: youtubeBaseURL + key, relativeTo: serverURL)?.absoluteURL,
+           override.scheme != nil
+        {
+            return override
+        }
+        return url.flatMap(URL.init(string:))
     }
 }
 
@@ -86,12 +136,16 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
     let mediaType: SeerrMediaType?
     let jellyfinMediaId: String?
     let jellyfinMediaId4k: String?
+    /// Id of the title on the Plex server linked to Seerr.
+    let ratingKey: String?
+    /// Link to the title on the linked server; for Plex it carries the server's machine identifier.
+    let mediaUrl: String?
     let downloadStatus: [SeerrDownloadItem]?
     let downloadStatus4k: [SeerrDownloadItem]?
 
     private enum CodingKeys: String, CodingKey {
         case id, status, status4k, seasons, requests, tmdbId, mediaType
-        case jellyfinMediaId, jellyfinMediaId4k
+        case jellyfinMediaId, jellyfinMediaId4k, ratingKey, mediaUrl
         case downloadStatus, downloadStatus4k
     }
 
@@ -106,6 +160,8 @@ struct SeerrMediaInfo: Identifiable, Hashable, Decodable {
         mediaType = try container.decodeIfPresent(SeerrMediaType.self, forKey: .mediaType)
         jellyfinMediaId = Self.decodeString(container, key: .jellyfinMediaId)
         jellyfinMediaId4k = Self.decodeString(container, key: .jellyfinMediaId4k)
+        ratingKey = Self.decodeString(container, key: .ratingKey)
+        mediaUrl = Self.decodeString(container, key: .mediaUrl)
         downloadStatus = try? container.decodeIfPresent([SeerrDownloadItem].self, forKey: .downloadStatus)
         downloadStatus4k = try? container.decodeIfPresent([SeerrDownloadItem].self, forKey: .downloadStatus4k)
     }

@@ -1,0 +1,11 @@
+{
+  "id": 1002,
+  "mediaType": "movie",
+  "title": "Sample Movie",
+  "relatedVideos": [
+    { "site": "YouTube", "key": "teaserKey", "name": "Teaser", "size": 2160, "type": "Teaser", "url": "https://www.youtube.com/watch?v=teaserKey" },
+    { "site": "YouTube", "key": "smallKey", "name": "Trailer", "size": 720, "type": "Trailer", "url": "https://www.youtube.com/watch?v=smallKey" },
+    { "site": "Vimeo", "key": "vimeoKey", "name": "Vimeo Trailer", "size": 2160, "type": "Trailer" },
+    { "site": "YouTube", "key": "largeKey", "name": "Official Trailer", "size": 1080, "type": "Trailer", "url": "https://www.youtube.com/watch?v=largeKey" }
+  ]
+}

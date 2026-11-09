@@ -8,11 +8,13 @@ final class PauseScreenPresentation {
     private(set) var isPresented = false
 
     @ObservationIgnored private let delay: Duration
+    @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored private var isEligible = false
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    init(delay: Duration = .seconds(10)) {
+    init(delay: Duration = .seconds(10), clock: any Clock<Duration> = ContinuousClock()) {
         self.delay = delay
+        self.clock = clock
     }
 
     func update(isEligible: Bool) {
@@ -44,9 +46,9 @@ final class PauseScreenPresentation {
 
     private func restartCountdown() {
         task?.cancel()
-        task = Task { [weak self, delay] in
+        task = Task { [weak self, delay, clock] in
             do {
-                try await Task.sleep(for: delay)
+                try await clock.sleep(for: delay)
             } catch {
                 return
             }

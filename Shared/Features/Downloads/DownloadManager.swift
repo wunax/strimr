@@ -20,6 +20,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private let monitorQueue = DispatchQueue(label: "strimr.downloads.network-monitor")
     @ObservationIgnored private var backgroundEventsCompletionHandler: (() -> Void)?
     @ObservationIgnored private var progressByTaskIdentifier: [Int: Double] = [:]
+    @ObservationIgnored private var freshTaskIdentifiers: Set<Int> = []
+    @ObservationIgnored private var unknownLengthReportTimes: [Int: ContinuousClock.Instant] = [:]
     @ObservationIgnored private var isLoadingPersistedState = false
     @ObservationIgnored private var ignoredCompletionIDs: Set<String> = []
     @ObservationIgnored private var servicesByServer: [ServerIdentity: MediaServices] = [:]
@@ -160,6 +162,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
         let replacementTask = backgroundSession.downloadTask(with: request)
         replacementTask.taskDescription = item.id
+        freshTaskIdentifiers.remove(currentTaskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: currentTaskIdentifier)
+        freshTaskIdentifiers.insert(replacementTask.taskIdentifier)
         items[index].allowsCellularAccess = true
         items[index].progress = 0
         items[index].bytesWritten = 0
@@ -188,18 +193,19 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     func localExternalSubtitles(for item: DownloadItem) -> [ExternalSubtitleTrack] {
-        guard let fileName = item.metadata.subtitleFileName else { return [] }
-        let url = downloadsDirectory
-            .appendingPathComponent(item.id, isDirectory: true)
-            .appendingPathComponent(fileName, isDirectory: false)
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        return [ExternalSubtitleTrack(
-            url: url,
-            name: item.metadata.subtitleTitle,
-            language: item.metadata.subtitleLanguage,
-            isForced: item.metadata.subtitleIsForced,
-            formatHint: item.metadata.subtitleCodec,
-        )]
+        let folderURL = downloadsDirectory.appendingPathComponent(item.id, isDirectory: true)
+        return item.metadata.subtitleFiles.compactMap { file in
+            let url = folderURL.appendingPathComponent(file.fileName, isDirectory: false)
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return ExternalSubtitleTrack(
+                url: url,
+                name: file.title,
+                language: file.language,
+                isForced: file.isForced,
+                isHearingImpaired: file.isHearingImpaired,
+                formatHint: file.codec,
+            )
+        }
     }
 
     func localMediaItem(for item: DownloadItem) -> MediaItem {
@@ -510,6 +516,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         items.removeAll { $0.id == item.id }
         offlineStore?.deleteDownload(id: item.id)
         progressByTaskIdentifier.removeValue(forKey: item.taskIdentifier ?? -1)
+        freshTaskIdentifiers.remove(item.taskIdentifier ?? -1)
+        unknownLengthReportTimes.removeValue(forKey: item.taskIdentifier ?? -1)
         sidecarsByItemID[item.id] = nil
         pendingRequestsByItemID[item.id] = nil
         persistState()
@@ -676,6 +684,17 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
+    private static let insufficientStorageCode = 1001
+    private static let storageHeadroomBytes: Int64 = 256 * 1024 * 1024
+    private static let unknownLengthReportInterval: Duration = .seconds(1)
+
+    /// Only checkable once the server reports a length; a transcode of unknown size relies on the OS write error.
+    private func hasEnoughSpace(forRemainingBytes bytes: Int64) -> Bool {
+        let values = try? downloadsDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        guard let available = values?.volumeAvailableCapacityForImportantUsage else { return true }
+        return available > Self.storageHeadroomBytes && bytes < available - Self.storageHeadroomBytes
+    }
+
     private func refreshStorageSummary() {
         let downloadsBytes = items.reduce(into: Int64(0)) { partialResult, item in
             if item.status == .completed {
@@ -766,6 +785,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         request.allowsExpensiveNetworkAccess = allowsCellularAccess
         let task = backgroundSession.downloadTask(with: request)
         task.taskDescription = itemID
+        freshTaskIdentifiers.insert(task.taskIdentifier)
         items[index].allowsCellularAccess = allowsCellularAccess
         items[index].status = .downloading
         items[index].progress = 0
@@ -792,8 +812,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                             items[index].progress = progress
                         }
                         persistState()
-                    case let .ready(request, sidecars):
-                        sidecarsByItemID[itemID] = sidecars
+                    case let .ready(request):
                         startTransfer(itemID: itemID, request: request)
                         return
                     case let .failed(message):
@@ -897,6 +916,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func completeDownload(task: URLSessionDownloadTask, stagedLocation: URL) async {
+        freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else {
             try? FileManager.default.removeItem(at: stagedLocation)
             return
@@ -926,13 +947,17 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             items[index].metadata.videoFileName = destination.lastPathComponent
             items[index].metadata.fileSize = fileSize
 
-            await persistSidecars(forItemAt: index, folderURL: destination.deletingLastPathComponent())
+            await persistSidecars(forItemID: item.id, folderURL: destination.deletingLastPathComponent())
 
+            // The download can be deleted while its sidecars or the server cleanup are awaited.
+            guard var index = items.firstIndex(where: { $0.id == item.id }) else { return }
             if let reference = items[index].remoteReference,
                let server = items[index].identity?.server,
                let services = servicesByServer[server]
             {
                 await services.downloads.cancelDownloadPreparation(reference)
+                guard let refreshedIndex = items.firstIndex(where: { $0.id == item.id }) else { return }
+                index = refreshedIndex
                 items[index].remoteReference = nil
             }
 
@@ -953,53 +978,62 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
     }
 
-    private func persistSidecars(forItemAt index: Int, folderURL: URL) async {
-        let itemID = items[index].id
+    private func persistSidecars(forItemID itemID: String, folderURL: URL) async {
+        defer { sidecarsByItemID[itemID] = nil }
+        guard let item = items.first(where: { $0.id == itemID }) else { return }
         if sidecarsByItemID[itemID] == nil,
-           let server = items[index].identity?.server,
+           let server = item.identity?.server,
            let services = servicesByServer[server]
         {
             do {
                 sidecarsByItemID[itemID] = try await services.downloads.downloadSidecars(
-                    itemID: items[index].itemID,
-                    tracks: items[index].trackPreference ?? .serverDefault,
-                    versionID: items[index].metadata.versionID,
+                    itemID: item.itemID,
+                    tracks: item.trackPreference ?? .serverDefault,
+                    versionID: item.metadata.versionID,
+                    isTranscoded: item.remoteReference != nil,
                 )
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
             }
         }
-        guard let sidecar = sidecarsByItemID[itemID]?.first else { return }
-        do {
-            var request = sidecar.request
-            let allowsCellularAccess = items[index].allowsCellularAccess
-                ?? !settingsManager.downloads.wifiOnly
-            request.allowsCellularAccess = allowsCellularAccess
-            request.allowsConstrainedNetworkAccess = allowsCellularAccess
-            request.allowsExpensiveNetworkAccess = allowsCellularAccess
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  200 ..< 300 ~= httpResponse.statusCode,
-                  !data.isEmpty
-            else { return }
-            let fileName = "subtitle.\(sanitizeFileName(sidecar.fileExtension))"
-            let url = folderURL.appendingPathComponent(fileName, isDirectory: false)
-            try data.write(to: url, options: .atomic)
-            try setExcludedFromBackup(at: url)
-            items[index].metadata.subtitleFileName = fileName
-            items[index].metadata.subtitleTitle = sidecar.title
-            items[index].metadata.subtitleLanguage = sidecar.language
-            items[index].metadata.subtitleCodec = sidecar.codec
-            items[index].metadata.subtitleIsForced = sidecar.isForced
-            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?
-                .int64Value ?? 0
-            items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + size
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            ErrorReporter.capture(error)
+        let allowsCellularAccess = item.allowsCellularAccess ?? !settingsManager.downloads.wifiOnly
+        var files: [DownloadedSubtitleFile] = []
+        var totalSize: Int64 = 0
+        for (offset, sidecar) in (sidecarsByItemID[itemID] ?? []).enumerated() {
+            do {
+                var request = sidecar.request
+                request.allowsCellularAccess = allowsCellularAccess
+                request.allowsConstrainedNetworkAccess = allowsCellularAccess
+                request.allowsExpensiveNetworkAccess = allowsCellularAccess
+                let (data, response) = try await URLSession.shared.data(for: request)
+                // A download deleted meanwhile has lost its folder.
+                guard items.contains(where: { $0.id == itemID }) else { return }
+                guard let httpResponse = response as? HTTPURLResponse,
+                      200 ..< 300 ~= httpResponse.statusCode,
+                      !data.isEmpty
+                else { continue }
+                let fileName = "subtitle-\(offset).\(sanitizeFileName(sidecar.fileExtension))"
+                let url = folderURL.appendingPathComponent(fileName, isDirectory: false)
+                try data.write(to: url, options: .atomic)
+                try setExcludedFromBackup(at: url)
+                files.append(DownloadedSubtitleFile(
+                    fileName: fileName,
+                    title: sidecar.title,
+                    language: sidecar.language,
+                    codec: sidecar.codec,
+                    isForced: sidecar.isForced,
+                    isHearingImpaired: sidecar.isHearingImpaired,
+                ))
+                totalSize += Int64(data.count)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+            }
         }
-        sidecarsByItemID[itemID] = nil
+        guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
+        items[index].metadata.subtitleFiles = files
+        items[index].metadata.fileSize = (items[index].metadata.fileSize ?? 0) + totalSize
     }
 
     private nonisolated static func stageDownloadFile(at location: URL) throws -> URL {
@@ -1019,6 +1053,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func failDownload(task: URLSessionTask, error: Error) {
+        freshTaskIdentifiers.remove(task.taskIdentifier)
+        unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
         guard let index = itemIndex(for: task) else { return }
         let itemID = items[index].id
         guard !ignoredCompletionIDs.contains(itemID) else {
@@ -1048,9 +1084,40 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         totalBytesExpectedToWrite: Int64,
     ) {
         Task { @MainActor in
-            guard totalBytesExpectedToWrite > 0 else { return }
-            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+            guard let index = itemIndex(for: downloadTask) else { return }
+            // Live transcodes send no length: publish the first bytes, then update at most once per second.
+            guard totalBytesExpectedToWrite > 0 else {
+                guard totalBytesWritten > 0 else { return }
+                let now = ContinuousClock().now
+                if let lastReport = unknownLengthReportTimes[downloadTask.taskIdentifier],
+                   lastReport.duration(to: now) < Self.unknownLengthReportInterval
+                {
+                    return
+                }
+                unknownLengthReportTimes[downloadTask.taskIdentifier] = now
+                items[index].status = .downloading
+                items[index].progress = 0
+                items[index].totalBytes = 0
+                items[index].bytesWritten = totalBytesWritten
+                persistState()
+                return
+            }
             let previousProgress = progressByTaskIdentifier[downloadTask.taskIdentifier] ?? -1
+            let receivedBytes = max(totalBytesWritten, downloadTask.countOfBytesReceived)
+            let remainingBytes = max(0, totalBytesExpectedToWrite - receivedBytes)
+            // Only tasks created by this manager instance receive a capacity preflight.
+            if freshTaskIdentifiers.remove(downloadTask.taskIdentifier) != nil,
+               remainingBytes > 0, !hasEnoughSpace(forRemainingBytes: remainingBytes)
+            {
+                failDownload(task: downloadTask, error: NSError(
+                    domain: "Strimr.DownloadManager",
+                    code: Self.insufficientStorageCode,
+                    userInfo: [NSLocalizedDescriptionKey: String(localized: "downloads.status.insufficientStorage")],
+                ))
+                downloadTask.cancel()
+                return
+            }
+            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
             guard progress - previousProgress >= 0.01 || progress == 1 else { return }
             progressByTaskIdentifier[downloadTask.taskIdentifier] = progress
 

@@ -7,9 +7,10 @@ struct LibraryDetailView: View {
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @State private var viewModel = LibraryDetailViewModel()
-    @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
+    @State private var manageController = LibraryManageController()
     @FocusState private var focusedSidebarItem: LibraryDetailTab?
+    @FocusState private var isManageButtonFocused: Bool
     @FocusState private var contentFocused: Bool
     @Namespace private var focusNamespace
 
@@ -19,9 +20,6 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
-        _selectedTab = State(
-            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended,
-        )
     }
 
     var body: some View {
@@ -33,38 +31,62 @@ struct LibraryDetailView: View {
                 MediaHeroBackgroundView(media: heroMedia)
             }
 
-            HStack(alignment: .center, spacing: 12) {
-                if availableTabs.count > 1 {
-                    sidebarContainer
-                        .zIndex(1)
-                }
-                contentView
-                    .focusSection()
-                    .overlay {
-                        Color.black
-                            .opacity(isSidebarFocused ? 0.35 : 0)
-                            .ignoresSafeArea(edges: [.trailing, .top, .bottom])
-                            .allowsHitTesting(false)
-                    }
+            if settingsManager.interface.tabBarPlacement == .sidebar {
+                chipsLayout
+            } else {
+                sidebarLayout
             }
-            .focusScope(focusNamespace)
-            // The sidebar supplies the leading margin; without it, the safe area does.
-            .ignoresSafeArea(edges: availableTabs.count > 1 ? [.leading] : [])
-            .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
         }
         .onAppear {
             contentFocused = true
         }
-        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
-            if !displayCollections, selectedTab == .collections {
-                selectedTab = .recommended
+        .libraryManagePresentation(manageController) { _ in manageActions }
+    }
+
+    /// The app sidebar already sits on the leading edge, so the library sections move to chips on top.
+    private var chipsLayout: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if availableTabs.count > 1 {
+                LibraryDetailTabPicker(selection: selectedTabBinding, tabs: availableTabs) {
+                    if canManage {
+                        Button {
+                            openManageDialog()
+                        } label: {
+                            // Inside a text so the chip takes the line height of the tab chips.
+                            Text(Image(systemName: "ellipsis"))
+                        }
+                        .buttonStyle(.chip(isSelected: false))
+                        .disabled(manageController.isPerforming)
+                        .accessibilityLabel(Text(MediaQuickAction.manage.title))
+                    }
+                }
+                .focusSection()
             }
+            contentView
+                .focusSection()
         }
-        .onChange(of: settingsManager.interface.displayPlaylists) { _, displayPlaylists in
-            if !displayPlaylists, selectedTab == .playlists {
-                selectedTab = .recommended
+        .focusScope(focusNamespace)
+    }
+
+    private var sidebarLayout: some View {
+        HStack(alignment: .center, spacing: 12) {
+            if availableTabs.count > 1 {
+                sidebarContainer
+                    .zIndex(1)
             }
+            contentView
+                .focusSection()
+                .overlay {
+                    Color.black
+                        .opacity(isSidebarFocused ? 0.35 : 0)
+                        .ignoresSafeArea(edges: [.trailing, .top, .bottom])
+                        .allowsHitTesting(false)
+                }
         }
+        .focusScope(focusNamespace)
+        // The sidebar supplies the leading margin; without it, the safe area does.
+        .ignoresSafeArea(edges: availableTabs.count > 1 ? [.leading] : [])
+        .animation(.easeInOut(duration: 0.2), value: isSidebarFocused)
     }
 
     private var contentView: some View {
@@ -75,6 +97,7 @@ struct LibraryDetailView: View {
                     viewModel: LibraryRecommendedViewModel(
                         library: library,
                         services: mediaServices,
+                        settingsManager: settingsManager,
                     ),
                     heroMedia: $viewModel.heroMedia,
                     onSelectMedia: onSelectMedia,
@@ -131,6 +154,12 @@ struct LibraryDetailView: View {
         }
         .frame(width: sidebarWidth)
         .frame(maxHeight: .infinity)
+        .overlay(alignment: .bottom) {
+            if canManage {
+                sidebarManageButton
+                    .padding(.bottom, 48)
+            }
+        }
         .padding(.leading, 48)
         .padding(.trailing, 12)
         .background(alignment: .leading) {
@@ -143,36 +172,65 @@ struct LibraryDetailView: View {
         .onMoveCommand { direction in
             guard direction == .right else { return }
             focusedSidebarItem = nil
+            isManageButtonFocused = false
             contentFocused = true
         }
     }
 
     private func sidebarButton(for tab: LibraryDetailTab) -> some View {
         Button {
-            selectedTab = tab
+            select(tab)
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: tab.systemImageName)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                if isSidebarFocused {
-                    Text(tab.title)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            // Hierarchical so the system focus, which turns the button white, inverts it.
-            .foregroundStyle(selectedTab == tab ? HierarchicalShapeStyle.primary : .secondary)
+            sidebarLabel(title: tab.title, systemImage: tab.systemImageName)
+                // Hierarchical so the system focus, which turns the button white, inverts it.
+                .foregroundStyle(selectedTab == tab ? HierarchicalShapeStyle.primary : .secondary)
         }
         .focused($focusedSidebarItem, equals: tab)
         .buttonStyle(.plain)
     }
 
+    private func sidebarLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .fontWeight(.semibold)
+            if isSidebarFocused {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private var sidebarManageButton: some View {
+        Button {
+            openManageDialog()
+        } label: {
+            sidebarLabel(title: MediaQuickAction.manage.title, systemImage: "ellipsis")
+                .foregroundStyle(.secondary)
+        }
+        .focused($isManageButtonFocused)
+        .buttonStyle(.plain)
+        .disabled(manageController.isPerforming)
+    }
+
+    private func openManageDialog() {
+        manageController.dialogLibrary = library
+    }
+
+    private var manageActions: LibraryManageActions {
+        LibraryManageActions(services: mediaServices, isReachable: true)
+    }
+
+    private var canManage: Bool {
+        !manageActions.actions(for: library).isEmpty
+    }
+
     private var isSidebarFocused: Bool {
-        focusedSidebarItem != nil
+        focusedSidebarItem != nil || isManageButtonFocused
     }
 
     private var sidebarWidth: CGFloat {
@@ -188,20 +246,33 @@ struct LibraryDetailView: View {
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        if mediaServices.provider == .jellyfin {
-            return library.type == .collection || library.type == .playlist
-                ? [.browse]
-                : [.recommended, .browse]
-        }
-        return LibraryDetailTab.allCases.filter { tab in
-            switch tab {
-            case .collections:
-                settingsManager.interface.displayCollections
-            case .playlists:
-                settingsManager.interface.displayPlaylists
-            default:
-                true
-            }
-        }
+        LibraryDetailTab.available(
+            for: library,
+            provider: mediaServices.provider,
+            displaysCollections: settingsManager.interface.displayCollections,
+            displaysPlaylists: settingsManager.interface.displayPlaylists,
+        )
+    }
+
+    private var preferencesKey: String {
+        LibraryBrowsePreferences.key(scopeID: mediaServices.serverPreferencesScopeID, libraryID: library.id)
+    }
+
+    private var selectedTab: LibraryDetailTab {
+        LibraryDetailTab.resolved(
+            saved: settingsManager.libraryBrowsePreferences(for: preferencesKey).selectedTab,
+            available: availableTabs,
+            library: library,
+        )
+    }
+
+    private var selectedTabBinding: Binding<LibraryDetailTab> {
+        Binding { selectedTab } set: { select($0) }
+    }
+
+    private func select(_ tab: LibraryDetailTab) {
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.setSelectedTab(tab, for: library)
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 }

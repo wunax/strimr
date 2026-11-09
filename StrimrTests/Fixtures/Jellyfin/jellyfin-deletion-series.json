@@ -1,0 +1,7 @@
+{
+  "Id": "series-1",
+  "Name": "Example Series",
+  "Type": "Series",
+  "CanDelete": false,
+  "RecursiveItemCount": 26
+}

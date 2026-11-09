@@ -34,6 +34,19 @@ struct SettingsPlaybackView: View {
 
             Section {
                 SettingsPicker(
+                    "settings.playback.readAhead",
+                    selection: viewModel.readAheadBinding,
+                    options: PlaybackReadAhead.allCases,
+                ) { option in
+                    Text(option.title)
+                }
+                .settingsFocus("settings.playback.readAhead")
+            } footer: {
+                Text("settings.playback.readAhead.footer")
+            }
+
+            Section {
+                SettingsPicker(
                     "settings.playback.nextEpisodeAutoplay",
                     selection: viewModel.nextEpisodeAutoplayBinding,
                     options: Array(viewModel.nextEpisodeAutoplayOptions),
@@ -41,6 +54,24 @@ struct SettingsPlaybackView: View {
                     Text(option.title)
                 }
                 .settingsFocus("settings.playback.nextEpisodeAutoplay")
+
+                SettingsPicker(
+                    "settings.playback.defaultSpeed",
+                    selection: viewModel.defaultPlaybackRateBinding,
+                    options: PlaybackSpeedOptions.all.map(\.rate),
+                ) { rate in
+                    Text("player.settings.speed.value \(PlaybackSpeedOption(rate: rate).valueText)")
+                }
+                .settingsFocus("settings.playback.defaultSpeed")
+
+                SettingsPicker(
+                    "settings.playback.defaultSleepTimer",
+                    selection: viewModel.defaultSleepTimerBinding,
+                    options: viewModel.defaultSleepTimerOptions,
+                ) { option in
+                    Text(viewModel.defaultSleepTimerTitle(option))
+                }
+                .settingsFocus("settings.playback.defaultSleepTimer")
 
                 SettingsPicker(
                     "settings.playback.rewind",
@@ -78,12 +109,28 @@ struct SettingsPlaybackView: View {
                 }
             }
 
+            if hasLiveTV {
+                Section {
+                    Toggle("settings.playback.transcodeLiveTV", isOn: viewModel.transcodeLiveTVBinding)
+                        .settingsFocus("settings.playback.transcodeLiveTV")
+                } header: {
+                    Text("settings.playback.liveTV.title")
+                } footer: {
+                    Text("settings.playback.transcodeLiveTV.footer")
+                }
+            }
+
             Section("settings.playback.timeline.title") {
                 Toggle(
                     "settings.playback.showChaptersOnTimeline",
                     isOn: viewModel.showChaptersOnTimelineBinding,
                 )
                 .settingsFocus("settings.playback.showChaptersOnTimeline")
+                Toggle(
+                    "settings.playback.showSkipSegmentsOnTimeline",
+                    isOn: viewModel.showSkipSegmentsOnTimelineBinding,
+                )
+                .settingsFocus("settings.playback.showSkipSegmentsOnTimeline")
                 Toggle(
                     "settings.playback.showEndsAtTime",
                     isOn: viewModel.showEndsAtTimeBinding,

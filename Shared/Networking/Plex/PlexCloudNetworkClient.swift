@@ -1,27 +1,35 @@
 import Foundation
 
 final class PlexCloudNetworkClient {
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let baseURL: URL
     private let apiURL = URL(string: "https://plex.tv/api/v2")!
     private let discoverBaseURL = URL(string: "https://discover.provider.plex.tv")!
+    static let clientsAPIURL = URL(string: "https://clients.plex.tv/api/v2")!
     private var authToken: String?
     private var clientIdentifier: String
     private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     private let platform: String = {
         #if os(tvOS)
-            return "tvOS"
+            "tvOS"
         #elseif os(iOS)
-            return "iOS"
+            "iOS"
         #else
-            return "Unknown"
+            "Unknown"
         #endif
     }()
 
-    init(authToken: String?, clientIdentifier: String, useDiscoverBaseURL: Bool = false) {
+    init(
+        authToken: String?,
+        clientIdentifier: String,
+        useDiscoverBaseURL: Bool = false,
+        customBaseURL: URL? = nil,
+        session: URLSession = .shared,
+    ) {
         self.authToken = authToken
+        self.session = session
         self.clientIdentifier = clientIdentifier
-        baseURL = useDiscoverBaseURL ? discoverBaseURL : apiURL
+        baseURL = customBaseURL ?? (useDiscoverBaseURL ? discoverBaseURL : apiURL)
     }
 
     func request<Response: Decodable>(

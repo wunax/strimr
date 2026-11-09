@@ -80,7 +80,6 @@ struct ProfileDetailView: View {
         }
     }
 
-    @ViewBuilder
     private func form(for profile: StrimrProfile) -> some View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 32) {

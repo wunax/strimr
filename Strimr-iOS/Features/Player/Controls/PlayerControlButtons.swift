@@ -18,7 +18,6 @@ struct SkipMarkerButton: View {
 }
 
 struct PlayerSettingsButton: View {
-    var showsIndicator = false
     let action: () -> Void
 
     var body: some View {
@@ -28,10 +27,26 @@ struct PlayerSettingsButton: View {
             size: .small,
             action: action,
         )
+    }
+}
+
+struct PlayerTracksMenuButton: View {
+    let model: PlayerTracksMenuModel
+    let actions: PlayerTracksMenuActions
+
+    var body: some View {
+        PlayerTracksMenu(model: model, actions: actions) {
+            Image(systemName: "text.bubble")
+                .font(PlayerIconButton.Size.small.font)
+        }
+        .equatable()
+        .buttonStyle(.playerControl(diameter: PlayerIconButton.Size.small.diameter))
+        .accessibilityLabel(Text("player.tracks.title"))
         .overlay(alignment: .topTrailing) {
-            if showsIndicator {
+            if model.showsIndicator {
                 PlaybackOffsetIndicator()
                     .offset(x: 2, y: -2)
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -50,7 +65,7 @@ struct PlayerPictureInPictureButton: View {
     }
 }
 
-struct RotationLockButton: View {
+struct ControlsLockButton: View {
     var isLocked: Bool
     let action: () -> Void
 
@@ -58,8 +73,8 @@ struct RotationLockButton: View {
         PlayerIconButton(
             systemName: isLocked ? "lock.fill" : "lock.open",
             accessibilityLabel: isLocked
-                ? String(localized: "player.controls.rotation.unlock")
-                : String(localized: "player.controls.rotation.lock"),
+                ? String(localized: "player.controls.touchLock.unlock")
+                : String(localized: "player.controls.touchLock.lock"),
             size: .small,
             isSelected: isLocked,
             action: action,

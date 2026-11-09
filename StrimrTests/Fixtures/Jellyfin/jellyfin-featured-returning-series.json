@@ -1,0 +1,8 @@
+{
+  "TotalRecordCount": 3,
+  "Items": [
+    {"Id": "r1", "Name": "Returning Series", "Type": "Series", "DateLastMediaAdded": "2027-01-12T10:00:00.0000000Z", "BackdropImageTags": ["b"], "UserData": {"Played": false, "PlayedPercentage": 70}},
+    {"Id": "r2", "Name": "Untouched Series", "Type": "Series", "DateLastMediaAdded": "2027-01-12T10:00:00.0000000Z", "BackdropImageTags": ["b"], "UserData": {"Played": false, "PlayedPercentage": 0}},
+    {"Id": "r3", "Name": "Stale Series", "Type": "Series", "DateLastMediaAdded": "2026-06-01T10:00:00.0000000Z", "BackdropImageTags": ["b"], "UserData": {"Played": false, "PlayedPercentage": 40}}
+  ]
+}

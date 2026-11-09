@@ -116,6 +116,11 @@ final class CachedDetailService: MediaDetailService {
         return try await policy.online { try await base.fetchExtras(for: media) }
     }
 
+    func otherEditions(of media: MediaItem) async throws -> [MediaItem] {
+        guard !policy.isUnreachable else { return [] }
+        return try await policy.online { try await base.otherEditions(of: media) }
+    }
+
     func seasons(for series: MediaItem) async throws -> [MediaItem] {
         try await policy.read(
             network: { try await base.seasons(for: series) },
@@ -201,6 +206,10 @@ final class CachedDetailService: MediaDetailService {
             write: { store.store(list: $0, key: key, owner: owner) },
             fallback: { store.list(key: key, owner: owner)?.items },
         ))
+    }
+
+    func forgetDeletedMedia(itemID: String) {
+        itemDisappeared(itemID)
     }
 
     /// A 404 online removes the item from the browsing cache; a downloaded copy stays playable.

@@ -2,11 +2,30 @@ import Foundation
 
 final class UserRepository {
     private let network: PlexCloudNetworkClient
+    private let clientsNetwork: PlexCloudNetworkClient
     private weak var context: PlexAPIContext?
 
     init(context: PlexAPIContext) {
         self.context = context
-        network = PlexCloudNetworkClient(authToken: context.authTokenCloud, clientIdentifier: context.clientIdentifier)
+        network = PlexCloudNetworkClient(
+            authToken: context.authTokenCloud,
+            clientIdentifier: context.clientIdentifier,
+            session: context.session,
+        )
+        clientsNetwork = PlexCloudNetworkClient(
+            authToken: context.authTokenCloud,
+            clientIdentifier: context.clientIdentifier,
+            customBaseURL: PlexCloudNetworkClient.clientsAPIURL,
+            session: context.session,
+        )
+    }
+
+    func getAccountProfile() async throws -> PlexAccountProfile {
+        try await clientsNetwork.request(path: "/user/profile", method: "GET")
+    }
+
+    func updateAccountProfile(queryItems: [URLQueryItem]) async throws {
+        try await clientsNetwork.send(path: "/user/profile", method: "PUT", queryItems: queryItems)
     }
 
     func getUser() async throws -> PlexCloudUser {

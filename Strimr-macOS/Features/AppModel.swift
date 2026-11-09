@@ -130,14 +130,67 @@ final class AppModel: PlaybackPresenting {
         }
     }
 
-    var selection: SidebarItem = .home
-    var playerPresentation: PlayerPresentation?
-    private var paths: [SidebarItem: NavigationPath] = [:]
+    var selection: SidebarItem = .home {
+        didSet {
+            if selection != oldValue {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
+    var playerPresentation: PlayerPresentation? {
+        didSet {
+            if playerPresentation != nil {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
+    private var paths: [SidebarItem: NavigationPath] = [:] {
+        didSet {
+            if paths[.home]?.isEmpty == false {
+                pendingStartupSelection = nil
+            }
+        }
+    }
+
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
     @ObservationIgnored private let settingsManager: SettingsManager
+    /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
+    /// up, unless the user has picked another item meanwhile.
+    @ObservationIgnored private var pendingStartupSelection: SidebarItem?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
+        applyStartupScreen(settingsManager.interface)
+    }
+
+    private func applyStartupScreen(_ interface: InterfaceSettings) {
+        switch interface.startupScreen {
+        case .home:
+            break
+        case .search:
+            selection = .search
+        case .downloads:
+            selection = .downloads
+        case .libraries:
+            selection = .libraries
+        case .favorites:
+            selection = .favorites
+        case .discover:
+            if interface.displaySeerrDiscoverTab {
+                pendingStartupSelection = .discover
+            }
+        case .liveTV:
+            if interface.displayLiveTVTab {
+                pendingStartupSelection = .liveTV
+            }
+        }
+    }
+
+    func openPendingStartupSelection(_ candidate: SidebarItem) {
+        guard pendingStartupSelection == candidate else { return }
+        selection = candidate
     }
 
     var externalPlayer: ExternalPlayer? {

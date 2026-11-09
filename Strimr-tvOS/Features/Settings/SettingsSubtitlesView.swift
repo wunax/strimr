@@ -22,6 +22,16 @@ struct SettingsSubtitlesView: View {
 
             Section {
                 Toggle(
+                    "settings.playback.subtitles.automaticSearch",
+                    isOn: viewModel.automaticSubtitleSearchBinding,
+                )
+                .settingsFocus("settings.playback.subtitles.automaticSearch")
+            } footer: {
+                Text("settings.playback.subtitles.automaticSearch.description")
+            }
+
+            Section {
+                Toggle(
                     "settings.playback.subtitles.showOnSkipBack",
                     isOn: viewModel.showSubtitlesOnSkipBackBinding,
                 )
@@ -91,6 +101,21 @@ struct SettingsSubtitlesView: View {
                 .settingsFocus("settings.playback.subtitles.position")
             } footer: {
                 Text("settings.playback.subtitles.footer")
+            }
+
+            if viewModel.showsSubtitleBottomMargin {
+                Section {
+                    SettingsPicker(
+                        "settings.playback.subtitles.bottomMargin",
+                        selection: viewModel.subtitleBottomMarginBinding,
+                        options: Array(viewModel.subtitleBottomMarginOptions),
+                    ) { margin in
+                        Text(margin.localizedName)
+                    }
+                    .settingsFocus("settings.playback.subtitles.bottomMargin")
+                } footer: {
+                    Text("settings.playback.subtitles.bottomMargin.description")
+                }
             }
 
             Section {

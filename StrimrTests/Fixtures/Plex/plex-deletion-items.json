@@ -1,0 +1,53 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "Metadata": [
+      {
+        "ratingKey": "101",
+        "guid": "plex://movie/000000000000000000000001",
+        "key": "/library/metadata/101",
+        "type": "movie",
+        "title": "Example Movie",
+        "Media": [
+          {
+            "id": 201,
+            "Part": [
+              { "id": 301, "key": "/library/parts/301/1700000000/file.mkv", "file": "/media/movies/Example Movie - CD1.mkv", "size": 2000000000 },
+              { "id": 302, "key": "/library/parts/302/1700000000/file.mkv", "file": "/media/movies/Example Movie - CD2.mkv", "size": 1500000000 }
+            ]
+          },
+          {
+            "id": 202,
+            "Part": [
+              { "id": 303, "key": "/library/parts/303/1700000000/file.mp4", "file": "/media/movies/Example Movie - 2160p.mp4", "size": "700000000" }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "102",
+        "guid": "plex://show/000000000000000000000002",
+        "key": "/library/metadata/102/children",
+        "type": "show",
+        "title": "Example Show",
+        "leafCount": 24,
+        "childCount": 2
+      },
+      {
+        "ratingKey": "103",
+        "guid": "plex://episode/000000000000000000000003",
+        "key": "/library/metadata/103",
+        "type": "episode",
+        "title": "Example Episode",
+        "Media": [
+          {
+            "id": 204,
+            "Part": [
+              { "id": 304, "key": "/library/parts/304/1700000000/file.mkv", "file": "/media/shows/Example Show - S01E01.mkv" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

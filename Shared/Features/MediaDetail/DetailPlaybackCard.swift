@@ -138,10 +138,7 @@ struct DetailPlaybackCard: View {
                 Button {
                     Task { await viewModel.selectAudioStream(id: id) }
                 } label: {
-                    Label(
-                        track.displayTitle,
-                        systemImage: viewModel.selectedAudioStreamID == id ? "checkmark" : "circle",
-                    )
+                    MediaTrackMenuLabel(track: track, isSelected: viewModel.selectedAudioStreamID == id)
                 }
             }
         }
@@ -163,10 +160,7 @@ struct DetailPlaybackCard: View {
                 Button {
                     Task { await viewModel.selectSubtitleStream(id: id) }
                 } label: {
-                    Label(
-                        track.displayTitle,
-                        systemImage: viewModel.selectedSubtitleStreamID == id ? "checkmark" : "circle",
-                    )
+                    MediaTrackMenuLabel(track: track, isSelected: viewModel.selectedSubtitleStreamID == id)
                 }
             }
         }
@@ -182,7 +176,6 @@ struct DetailPlaybackCard: View {
 
 private extension View {
     /// The default macOS menu draws a pop-up button inside the row; the row is the control here.
-    @ViewBuilder
     func plainRowMenu() -> some View {
         #if os(macOS)
             menuStyle(.button)

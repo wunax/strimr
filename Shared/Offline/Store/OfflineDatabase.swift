@@ -9,9 +9,15 @@ final nonisolated class OfflineDatabase: Sendable {
     let pinnedArtworkDirectory: URL
     let cacheArtworkDirectory: URL
 
-    init(fileManager: FileManager = .default) throws {
-        let applicationSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+    convenience init(fileManager: FileManager = .default) throws {
+        try self.init(
+            applicationSupport: fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0],
+            caches: fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0],
+            fileManager: fileManager,
+        )
+    }
+
+    init(applicationSupport: URL, caches: URL, fileManager: FileManager = .default) throws {
         let offlineDirectory = applicationSupport.appendingPathComponent("Offline", isDirectory: true)
         let cacheDirectory = caches.appendingPathComponent("Offline", isDirectory: true)
         pinnedArtworkDirectory = applicationSupport.appendingPathComponent("OfflineArtwork", isDirectory: true)

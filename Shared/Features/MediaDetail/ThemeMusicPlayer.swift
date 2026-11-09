@@ -136,16 +136,26 @@ private struct ThemeMusicModifier: ViewModifier {
     @Environment(MediaServices.self) private var mediaServices
     @Environment(\.scenePhase) private var scenePhase
     @State private var ownerID = UUID()
-    let themePath: String?
+    let media: MediaItem
+
+    private struct Request: Equatable {
+        let mediaID: String
+        let themePath: String?
+        let volume: ThemeMusicVolume
+    }
 
     func body(content: Content) -> some View {
         content
-            .onAppear(perform: requestTheme)
+            .task(id: Request(
+                mediaID: media.id,
+                themePath: media.themePath,
+                volume: settingsManager.interface.themeMusicVolume,
+            )) {
+                await requestTheme()
+            }
             .onDisappear {
                 ThemeMusicPlayer.shared.release(owner: ownerID)
             }
-            .onChange(of: themePath) { requestTheme() }
-            .onChange(of: settingsManager.interface.themeMusicVolume) { requestTheme() }
             .onChange(of: scenePhase) { _, phase in
                 // The app keeps its audio session in the background for picture in picture.
                 if phase == .background {
@@ -154,22 +164,28 @@ private struct ThemeMusicModifier: ViewModifier {
             }
     }
 
-    private func requestTheme() {
-        let theme = themePath.flatMap { path in
+    private func requestTheme() async {
+        let volume = settingsManager.interface.themeMusicVolume.level
+        // Requesting right away takes over from the previous page, so its theme keeps playing during the lookup.
+        ThemeMusicPlayer.shared.request(theme(path: media.themePath), owner: ownerID, volume: volume)
+        // Some providers fetch the theme separately, so nothing is requested while theme music is off.
+        guard volume > 0 else { return }
+        let path = await mediaServices.artwork.themePath(for: media)
+        guard !Task.isCancelled, path != media.themePath else { return }
+        ThemeMusicPlayer.shared.request(theme(path: path), owner: ownerID, volume: volume)
+    }
+
+    private func theme(path: String?) -> ThemeMusic? {
+        path.flatMap { path in
             mediaServices.artwork.themeMusicURL(path: path).map {
                 ThemeMusic(path: path, url: $0, server: mediaServices.identity)
             }
         }
-        ThemeMusicPlayer.shared.request(
-            theme,
-            owner: ownerID,
-            volume: settingsManager.interface.themeMusicVolume.level,
-        )
     }
 }
 
 extension View {
-    func themeMusic(path: String?) -> some View {
-        modifier(ThemeMusicModifier(themePath: path))
+    func themeMusic(for media: MediaItem) -> some View {
+        modifier(ThemeMusicModifier(media: media))
     }
 }

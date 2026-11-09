@@ -76,6 +76,16 @@
       "items": ["shogun", "fallout", "severance", "the-bear", "slow-horses", "andor"]
     }
   ],
+  "featured": [
+    { "item": "project-hail-mary", "reason": "recentlyAdded" },
+    { "item": "sinners", "reason": "recentlyAdded" },
+    { "item": "fallout", "reason": "newSeason", "season": 2 },
+    { "item": "one-battle-after-another", "reason": "recentlyAdded" },
+    { "item": "arcane", "reason": "rediscover" },
+    { "item": "avatar-fire-and-ash", "reason": "trending" },
+    { "item": "oppenheimer", "reason": "rediscover" },
+    { "item": "the-bear", "reason": "recentlyAdded" }
+  ],
   "items": [
     { "id": "dune-part-two", "title": "Dune: Part Two", "year": 2024, "type": "movie", "library": "movies", "progress": 0.42 },
     { "id": "oppenheimer", "title": "Oppenheimer", "year": 2023, "type": "movie", "library": "movies" },

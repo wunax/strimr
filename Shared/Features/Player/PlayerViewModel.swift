@@ -29,15 +29,57 @@ final class PlayerViewModel {
         liveContext != nil
     }
 
+    /// Live streams cannot play faster than real time, and SharePlay takes the group's rate.
+    func initialPlaybackRate(settings: PlaybackSettings, isSharePlay: Bool) -> Float {
+        isLivePlayback || isSharePlay ? 1.0 : settings.defaultPlaybackRate
+    }
+
     var liveChannel: LiveTVChannel? {
         liveContext?.channel
     }
 
     var liveProgram: LiveTVProgram?
     var liveCaptureRange: LiveTVCaptureRange?
-    var liveNativeRemoteHLS = false
-    var liveDVRWindowSeconds: TimeInterval? {
-        liveCaptureRange?.duration
+    var liveRoutePreference = LiveTVRoutePreference.automatic
+    private(set) var liveSource: LiveTVPlaybackSource?
+
+    var liveRoute: LiveTVPlaybackRoute? {
+        liveSource?.route
+    }
+
+    func liveLoadOptions(routesAudioToAirPlay: Bool) -> LiveLoadOptions? {
+        guard isLivePlayback, let liveSource else { return nil }
+        return LiveLoadOptions.make(
+            route: liveSource.route,
+            nativeRemoteHLS: liveSource.nativeRemoteHLS,
+            captureDuration: liveCaptureRange?.duration,
+            isInterlaced: liveSource.isInterlaced,
+            routesAudioToAirPlay: routesAudioToAirPlay,
+            preferredLanguages: Locale.preferredLanguages,
+        )
+    }
+
+    /// The channel is tuning: the player shows the program's artwork instead of black.
+    private(set) var isJoiningLive = false
+    /// Changes each time a channel comes on screen, which shows the zap banner.
+    private(set) var liveChannelArrivals = 0
+    @ObservationIgnored private var lastLiveChannelIndex: Int?
+
+    var liveChannels: [LiveTVChannel] {
+        liveContext?.channels ?? []
+    }
+
+    var liveChannelIndex: Int? {
+        liveContext?.selectedIndex
+    }
+
+    var liveStore: LiveTVStore? {
+        isLivePlayback ? mediaServices?.liveTVStore : nil
+    }
+
+    var lastLiveChannel: LiveTVChannel? {
+        guard let lastLiveChannelIndex, liveChannels.indices.contains(lastLiveChannelIndex) else { return nil }
+        return liveChannels[lastLiveChannelIndex]
     }
 
     var canSwitchToPreviousLiveChannel: Bool {
@@ -56,6 +98,14 @@ final class PlayerViewModel {
 
     var burnsSubtitles: Bool {
         playbackPlan?.burnsSubtitles ?? false
+    }
+
+    var playbackStatisticsContext: PlaybackStatisticsContext {
+        PlaybackStatisticsContext(
+            method: isLocalPlayback ? .offline : playbackPlan?.method,
+            quality: playbackPlan?.effectiveQuality ?? .original,
+            burnsSubtitles: burnsSubtitles,
+        )
     }
 
     var resumePosition: Double? {
@@ -91,6 +141,15 @@ final class PlayerViewModel {
     /// Server whose services the player uses; `nil` for downloads.
     var serverIdentity: ServerIdentity? {
         mediaServices?.identity
+    }
+
+    func nowPlayingItem(settings: PlaybackSettings) -> NowPlayingItem? {
+        NowPlayingItem(
+            media: media,
+            artworkService: artworkServices?.artwork,
+            skipBackwardSeconds: settings.seekBackwardSeconds,
+            skipForwardSeconds: settings.seekForwardSeconds,
+        )
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -165,6 +224,7 @@ final class PlayerViewModel {
     }
 
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
+    @ObservationIgnored private var trackerSession: TrackerPlaybackSession?
     @ObservationIgnored private var lastTimelineSentAt: Date?
     @ObservationIgnored private var lastTimelineState: TimelineState?
     @ObservationIgnored private let ratingKey: String
@@ -177,6 +237,8 @@ final class PlayerViewModel {
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
     @ObservationIgnored private var automaticSkipMarkerInFlight: SkipSegment?
+    /// Bumped by each subtitle choice made by hand, which an automatic search in progress must not override.
+    @ObservationIgnored private var manualSubtitleChanges = 0
     @ObservationIgnored private var liveContext: LiveTVLaunchContext?
     @ObservationIgnored private var liveSession: (any LiveTVPlaybackSession)?
     @ObservationIgnored private var isSwitchingLiveChannel = false
@@ -184,6 +246,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var pendingLiveSessionToStop: (any LiveTVPlaybackSession)?
     @ObservationIgnored private var liveSessionGeneration = 0
     @ObservationIgnored private var liveTimelineTask: Task<Void, Never>?
+    @ObservationIgnored private var liveWatchTask: Task<Void, Never>?
     @ObservationIgnored private var pendingLiveTimelineState: TimelineState?
     #if !os(tvOS)
         @ObservationIgnored private var progressRecorder: PlaybackProgressRecorder?
@@ -286,7 +349,7 @@ final class PlayerViewModel {
             id: Int(track.id) ?? track.sourceIndex,
             sourceIndex: track.sourceIndex,
             codec: track.codec ?? "",
-            title: nil,
+            title: track.name,
             displayTitle: track.title,
             language: track.language,
             isDefault: track.isDefault,
@@ -314,35 +377,39 @@ final class PlayerViewModel {
                 PlayerExternalSubtitle(track: track, providerStreamID: -(index + 1))
             }
         }
-        guard let playbackPlan else { return [] }
-        let subtitleTracks = playbackPlan.tracks.filter {
-            $0.kind == .subtitle && $0.isExternal
-        }
-        return playbackPlan.externalSubtitles.enumerated().map { index, track in
-            let streamID = subtitleTracks.indices.contains(index)
-                ? providerStreamID(for: subtitleTracks[index])
-                : -(index + 1)
-            return PlayerExternalSubtitle(track: track, providerStreamID: streamID)
-        }
+        return playbackPlan?.externalSubtitles ?? []
     }
 
     func sourcePlayerTracks() -> [PlayerTrack] {
         guard let playbackPlan else { return [] }
-        return playbackPlan.tracks.map { track in
-            let providerStreamID = providerStreamID(for: track)
+        return Self.sourcePlayerTracks(
+            playbackPlan.tracks,
+            selectedAudioIndex: playbackPlan.selectedAudioIndex,
+            selectedSubtitleIndex: playbackPlan.selectedSubtitleIndex,
+        )
+    }
+
+    static func sourcePlayerTracks(
+        _ tracks: [PlaybackTrack],
+        selectedAudioIndex: Int?,
+        selectedSubtitleIndex: Int?,
+    ) -> [PlayerTrack] {
+        tracks.map { track in
+            let providerStreamID = Int(track.id) ?? track.sourceIndex
             let isSelected = switch track.kind {
             case .audio:
-                playbackPlan.selectedAudioIndex == track.sourceIndex
+                selectedAudioIndex == track.sourceIndex
             case .subtitle:
-                playbackPlan.selectedSubtitleIndex == providerStreamID
-                    || playbackPlan.selectedSubtitleIndex == track.sourceIndex
+                selectedSubtitleIndex == providerStreamID
+                    || selectedSubtitleIndex == track.sourceIndex
             }
             return PlayerTrack(
                 id: track.sourceIndex,
                 ffIndex: track.sourceIndex,
                 providerStreamID: providerStreamID,
                 type: track.kind == .audio ? .audio : .subtitle,
-                title: track.title,
+                // Like the engine's tracks in direct play, so a remembered title is the stream's own name.
+                title: track.name ?? track.title,
                 language: track.language,
                 codec: track.codec,
                 isDefault: track.isDefault,
@@ -416,7 +483,11 @@ final class PlayerViewModel {
 
         do {
             if let liveContext {
-                let session = try await mediaServices.liveTV.startPlayback(channel: liveContext.channel)
+                isJoiningLive = true
+                let session = try await mediaServices.liveTV.startPlayback(
+                    channel: liveContext.channel,
+                    route: liveRoutePreference,
+                )
                 let offset = liveContext.startsFromBeginning
                     ? session.captureRange.flatMap { range in
                         liveContext.program.map { max(0, $0.startDate.timeIntervalSince(range.startDate)) }
@@ -443,7 +514,8 @@ final class PlayerViewModel {
             guard !Task.isCancelled, !error.isCancellation else { return }
             serverAccessRecoveryError = mediaServices.playback.serverAccessRecoveryError(from: error)
             if isLivePlayback {
-                LiveTVErrorReporting.capture(error)
+                isJoiningLive = false
+                LiveTVErrorReporting.capture(error, route: liveRoute)
                 errorMessage = String(localized: "livetv.playback.error")
             } else {
                 ErrorReporter.capture(error)
@@ -567,7 +639,7 @@ final class PlayerViewModel {
             .track(
                 streamIndex: nil,
                 language: subtitle.language,
-                title: subtitle.title,
+                title: subtitle.name ?? subtitle.title,
                 codec: subtitle.codec ?? "",
                 isForced: subtitle.isForced,
                 isHearingImpaired: subtitle.isHearingImpaired,
@@ -581,7 +653,7 @@ final class PlayerViewModel {
         return MediaTrackPreference(
             audioStreamIndex: nil,
             audioLanguage: audio?.language,
-            audioTitle: audio?.title,
+            audioTitle: audio?.name ?? audio?.title,
             audioCodec: audio?.codec,
             audioIsHearingImpaired: audio?.isHearingImpaired,
             audioIsCommentary: nil,
@@ -614,19 +686,94 @@ final class PlayerViewModel {
         return services.versionRequest(for: media)
     }
 
+    /// Downloads a subtitle when the media has none in the wanted language. Nil when there is nothing to tell the user.
+    func searchMissingSubtitle(settings: PlaybackSettings) async -> AutomaticSubtitleSearchOutcome? {
+        guard settings.automaticSubtitleSearch,
+              canSearchSubtitles,
+              !isLivePlayback,
+              let mediaServices,
+              let media,
+              media.type == .movie || media.type == .episode,
+              let playbackPlan
+        else { return nil }
+
+        let changesAtStart = manualSubtitleChanges
+        var isStillWanted: Bool {
+            !Task.isCancelled && manualSubtitleChanges == changesAtStart
+        }
+
+        let account: AccountPreferences?
+        do {
+            account = try await mediaServices.accountPreferences?.load()
+        } catch {
+            // The account may have refused subtitles or want another language, and a download stays on the server.
+            if !Task.isCancelled, !error.isCancellation {
+                ErrorReporter.capture(error)
+            }
+            return nil
+        }
+        guard isStillWanted,
+              let language = AutomaticSubtitleSearch.language(
+                  remembered: rememberedTrackPreference?.subtitle,
+                  account: account,
+                  deviceLanguage: Locale.preferredLanguages.first ?? "en",
+              ),
+              AutomaticSubtitleSearch.isMissing(
+                  language: language,
+                  audioLanguage: playbackPlan.audioLanguage(sourceIndex: preferredAudioStreamFFIndex),
+                  subtitles: playbackPlan.existingSubtitles,
+              )
+        else { return nil }
+
+        do {
+            let results = try await mediaServices.detail.searchSubtitles(
+                itemID: media.id,
+                language: language,
+                hearingImpaired: mediaServices.detail.supportsAdvancedSubtitleSearch
+                    && settings.subtitleSearch.hearingImpaired,
+                forced: false,
+                title: nil,
+            ).rankedByMatch()
+            guard isStillWanted else { return nil }
+            // Servers can return forced results in a search for full subtitles.
+            guard let result = results.first(where: { !$0.isForced }) else { return .notFound(language: language) }
+
+            // The plan only lists the played version, while the refresh below can cover all of them.
+            let previous = try await mediaServices.playback.externalSubtitles(media: media)
+            guard isStillWanted else { return nil }
+            try await mediaServices.detail.installSubtitle(itemID: media.id, result: result)
+            guard isStillWanted else { return nil }
+
+            let refreshed = try await mediaServices.playback.externalSubtitles(media: media)
+            guard isStillWanted else { return nil }
+            guard let subtitle = AutomaticSubtitleSearch.installedSubtitle(
+                in: refreshed,
+                previousURLs: Set(previous.map(\.track.url)),
+                language: language,
+            ) else { throw PlayerPlaybackError.missingExternalSubtitle }
+            return .attached(subtitle, language: language)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return nil }
+            ErrorReporter.capture(error)
+            return .failed(language: language)
+        }
+    }
+
     func refreshMetadataAfterSubtitleAttachment() async throws -> PlayerExternalSubtitle {
+        manualSubtitleChanges += 1
         guard !isLocalPlayback,
               let mediaServices,
               let media
         else { throw PlayerPlaybackError.missingExternalSubtitle }
 
-        let previousURLs = Set(playbackPlan?.externalSubtitles.map(\.url) ?? [])
+        let previousURLs = Set(playbackPlan?.externalSubtitles.map(\.track.url) ?? [])
         do {
             let refreshed = try await mediaServices.playback.externalSubtitles(media: media)
-            guard let track = refreshed.first(where: { !previousURLs.contains($0.url) }) ?? refreshed.first else {
+            guard let subtitle = refreshed.first(where: { !previousURLs.contains($0.track.url) }) ?? refreshed.first
+            else {
                 throw PlayerPlaybackError.missingExternalSubtitle
             }
-            return PlayerExternalSubtitle(track: track, providerStreamID: -(refreshed.count + 1))
+            return subtitle
         } catch {
             throw translatedServerAccessError(error, using: mediaServices.playback)
         }
@@ -654,6 +801,7 @@ final class PlayerViewModel {
 
         if previousState != playbackState {
             reportTimeline(state: playbackState, force: true)
+            reportTrackerState()
         }
     }
 
@@ -681,6 +829,7 @@ final class PlayerViewModel {
     }
 
     func handleStop() {
+        trackerSession?.stopped(position: position, duration: duration ?? media?.duration)
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.stop(position: position)
@@ -690,6 +839,8 @@ final class PlayerViewModel {
         if let liveSession {
             self.liveSession = nil
             invalidateLiveReporting()
+            liveWatchTask?.cancel()
+            mediaServices?.liveTVStore.notePlaybackEnded(on: liveSession.channel.identity)
             let pending = pendingLiveSessionToStop
             pendingLiveSessionToStop = nil
             Task {
@@ -741,6 +892,7 @@ final class PlayerViewModel {
     }
 
     func markPlaybackFinished() async {
+        trackerSession?.finished()
         #if !os(tvOS)
             if let progressRecorder {
                 progressRecorder.finish()
@@ -838,6 +990,7 @@ final class PlayerViewModel {
     }
 
     func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
+        manualSubtitleChanges += 1
         guard let mediaServices, let itemID = media?.id else { return }
         let streamID = track?.providerStreamID
         do {
@@ -904,32 +1057,67 @@ final class PlayerViewModel {
     }
 
     func switchLiveChannel(by offset: Int) async throws -> URL {
-        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices else {
-            throw PlayerPlaybackError.missingPlaybackURL
-        }
-        let index = context.selectedIndex + offset
-        guard context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
+        guard let context = liveContext else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: context.selectedIndex + offset)
+    }
+
+    /// Goes back to the channel watched before this one.
+    func switchToLastLiveChannel() async throws -> URL {
+        guard let lastLiveChannelIndex else { throw PlayerPlaybackError.missingPlaybackURL }
+        return try await switchLiveChannel(to: lastLiveChannelIndex)
+    }
+
+    func switchLiveChannel(to index: Int) async throws -> URL {
+        guard !isSwitchingLiveChannel, let context = liveContext, let mediaServices,
+              index != context.selectedIndex,
+              context.channels.indices.contains(index) else { throw PlayerPlaybackError.missingPlaybackURL }
         isSwitchingLiveChannel = true
+        isJoiningLive = true
         defer { isSwitchingLiveChannel = false }
 
         let replacementContext = LiveTVLaunchContext(channels: context.channels, selectedIndex: index)
-        let replacement = try await mediaServices.liveTV.startPlayback(channel: replacementContext.channel)
         do {
-            let source = try await replacement.source(offsetFromCaptureStart: nil)
-            let previous = liveSession
-            liveContext = replacementContext
-            adoptLiveSession(replacement)
-            pendingLiveSessionToStop = previous
-            media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
-            apply(liveSource: source)
-            return source.url
+            let replacement = try await mediaServices.liveTV.startPlayback(
+                channel: replacementContext.channel,
+                route: liveRoutePreference,
+            )
+            do {
+                let source = try await replacement.source(offsetFromCaptureStart: nil)
+                let previous = liveSession
+                lastLiveChannelIndex = context.selectedIndex
+                liveContext = replacementContext
+                adoptLiveSession(replacement)
+                pendingLiveSessionToStop = previous
+                media = Self.liveMedia(channel: replacementContext.channel, server: mediaServices.identity)
+                apply(liveSource: source)
+                return source.url
+            } catch {
+                await replacement.stop()
+                throw error
+            }
         } catch {
-            await replacement.stop()
+            isJoiningLive = false
             throw error
         }
     }
 
+    /// Moves the current channel to the server-transcoded route once, after the engine failed to demux it.
+    func fallBackToServerTranscode() async throws -> URL? {
+        guard let liveSession, let replacement = try await liveSession.fallback() else { return nil }
+        let source = try await replacement.source(offsetFromCaptureStart: nil)
+        if replacement !== liveSession {
+            adoptLiveSession(replacement)
+            await liveSession.stop()
+        }
+        apply(liveSource: source)
+        return source.url
+    }
+
     func confirmLiveChannelSwitch() {
+        if isJoiningLive {
+            isJoiningLive = false
+            liveChannelArrivals += 1
+        }
         guard let pendingLiveSessionToStop else { return }
         self.pendingLiveSessionToStop = nil
         Task { await pendingLiveSessionToStop.stop() }
@@ -940,8 +1128,8 @@ final class PlayerViewModel {
         playbackHTTPHeaders = source.httpHeaders
         liveProgram = source.program
         liveCaptureRange = source.captureRange
-        liveNativeRemoteHLS = source.nativeRemoteHLS
-        duration = source.captureRange?.duration
+        liveSource = source
+        duration = source.nativeRemoteHLS ? source.captureRange?.duration : nil
         markers = []
         chapters = []
         scrubThumbnailSource = nil
@@ -951,6 +1139,14 @@ final class PlayerViewModel {
     private func apply(plan: PlaybackPlan) {
         playbackPlan = plan
         media = plan.media
+        // A plan is applied again on a quality change or a recovery, which is still the same playback.
+        if trackerSession == nil, let mediaServices {
+            trackerSession = TrackerCoordinator.shared.beginPlayback(
+                of: plan.media,
+                detail: mediaServices.detail,
+                resumeOffset: shouldResumeFromOffsetFlag ? plan.media.viewOffset : nil,
+            )
+        }
         playbackURL = plan.url
         playbackHTTPHeaders = plan.httpHeaders
         selectedQuality = plan.requestedQuality
@@ -1006,6 +1202,18 @@ final class PlayerViewModel {
         Task { await sendTimeline(state: state) }
     }
 
+    /// Buffering is neither a pause nor a resume for a tracker.
+    private func reportTrackerState() {
+        switch playbackState {
+        case .playing:
+            trackerSession?.playing(position: position, duration: duration ?? media?.duration)
+        case .paused:
+            trackerSession?.paused(position: position, duration: duration ?? media?.duration)
+        case .buffering:
+            break
+        }
+    }
+
     private var hasProgressRecorder: Bool {
         #if os(tvOS)
             false
@@ -1054,6 +1262,18 @@ final class PlayerViewModel {
     private func adoptLiveSession(_ session: any LiveTVPlaybackSession) {
         invalidateLiveReporting()
         liveSession = session
+        recordWatchedChannel(session.channel)
+    }
+
+    private func recordWatchedChannel(_ channel: LiveTVChannel) {
+        liveWatchTask?.cancel()
+        let store = mediaServices?.liveTVStore
+        liveWatchTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(LiveTVRecentChannels.watchThreshold))
+            guard !Task.isCancelled, let self, liveChannel?.identity == channel.identity, liveSession != nil
+            else { return }
+            store?.recordWatched(channel.identity)
+        }
     }
 
     private func invalidateLiveReporting() {

@@ -35,6 +35,10 @@ struct HomeRow: Identifiable, Hashable {
         hub.canOpenDetail
     }
 
+    var isWatchingRow: Bool {
+        kind == .continueWatching || kind == .nextUp
+    }
+
     /// Reprendre and Next Up are merged across servers, so their ids carry no server.
     static let continueWatchingID = "home:continueWatching"
     static let nextUpID = "home:nextUp"

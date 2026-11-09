@@ -27,6 +27,14 @@ extension MediaItem {
 
     func spoilerProtectedArtworkPath(at level: SpoilerProtectionLevel) -> String? {
         guard isSpoilerProtected(at: level) else { return nil }
-        return grandparentArtPath ?? grandparentThumbPath
+        return seriesArtworkPath
+    }
+
+    var seriesArtworkPath: String? {
+        grandparentArtPath ?? grandparentThumbPath
+    }
+
+    var seasonPosterPath: String? {
+        parentThumbPath ?? grandparentThumbPath
     }
 }
