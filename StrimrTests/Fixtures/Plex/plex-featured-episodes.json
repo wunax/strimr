@@ -1,0 +1,12 @@
+{
+  "MediaContainer": {
+    "size": 5,
+    "Metadata": [
+      {"ratingKey": "301", "key": "/library/metadata/301", "guid": "plex://episode/e301", "type": "episode", "title": "Premiere", "grandparentRatingKey": "201", "grandparentTitle": "Returning Show", "parentIndex": 4, "index": 1, "addedAt": 1799600000},
+      {"ratingKey": "302", "key": "/library/metadata/302", "guid": "plex://episode/e302", "type": "episode", "title": "Second", "grandparentRatingKey": "201", "grandparentTitle": "Returning Show", "parentIndex": 4, "index": 2, "addedAt": 1799650000},
+      {"ratingKey": "303", "key": "/library/metadata/303", "guid": "plex://episode/e303", "type": "episode", "title": "Weekly", "grandparentRatingKey": "202", "grandparentTitle": "Weekly Show", "parentIndex": 2, "index": 7, "addedAt": 1799700000},
+      {"ratingKey": "304", "key": "/library/metadata/304", "guid": "plex://episode/e304", "type": "episode", "title": "Ancient", "grandparentRatingKey": "203", "grandparentTitle": "Stale Show", "parentIndex": 1, "index": 3, "addedAt": 1780000000},
+      {"ratingKey": "305", "key": "/library/metadata/305", "guid": "plex://episode/e305", "type": "episode", "title": "Brand New", "grandparentRatingKey": "204", "grandparentTitle": "Never Started", "parentIndex": 1, "index": 1, "addedAt": 1799700000}
+    ]
+  }
+}

@@ -314,6 +314,23 @@ struct OfflineStoreTests {
         #expect(downloads.first?.metadata.videoFileName == "download-1.mp4")
     }
 
+    @Test func `downloads are read back with all their subtitle files`() throws {
+        var item = DownloadItem.make(id: "download-1", itemID: "movie-1", server: server)
+        item.metadata.subtitleFiles = [
+            DownloadedSubtitleFile(
+                fileName: "subtitle-0.srt", title: "English", language: "en", codec: "srt",
+                isForced: false, isHearingImpaired: false,
+            ),
+            DownloadedSubtitleFile(
+                fileName: "subtitle-1.ass", title: "Français", language: "fr", codec: "ass",
+                isForced: true, isHearingImpaired: false,
+            ),
+        ]
+        try store.save(downloads: [item])
+
+        #expect(try store.allDownloads().first?.metadata.subtitleFiles == item.metadata.subtitleFiles)
+    }
+
     @Test func `downloaded items are the completed ones of the owner, newest first`() throws {
         try store.save(downloads: [
             download("download-1", itemID: "movie-1", createdAt: 1000),

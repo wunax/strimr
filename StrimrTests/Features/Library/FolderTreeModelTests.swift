@@ -57,12 +57,30 @@ struct FolderTreeModelTests {
         #expect(model.rows.map(\.isExpanded) == [false])
     }
 
+    @Test func `deleted media leave the tree and expanded folders stay open`() async {
+        let model = makeModel(listings: [
+            rootKey: [folder(moviesKey, "Movies"), media("root-movie")],
+            moviesKey: [media("deleted"), media("kept")],
+        ])
+        await model.loadRoot()
+        await model.toggle(LibraryBrowseFolderItem(id: moviesKey, key: moviesKey, title: "Movies"))
+
+        model.removeMedia(ids: ["deleted", "root-movie"])
+
+        #expect(model.rows.map(\.item.id) == [moviesKey, "kept"])
+        #expect(model.rows.first?.isExpanded == true)
+    }
+
     private func makeModel(listings: [String: [LibraryBrowseItem]]) -> FolderTreeModel {
         FolderTreeModel(rootEndpoint: PlexEndpoint(key: rootKey)!, loadPage: RecordingLoader(listings: listings).load)
     }
 
     private func folder(_ key: String, _ title: String) -> LibraryBrowseItem {
         .folder(LibraryBrowseFolderItem(id: key, key: key, title: title))
+    }
+
+    private func media(_ id: String) -> LibraryBrowseItem {
+        .media(.playable(MediaItem.make(id: id, server: ServerIdentity(provider: .plex, id: "server"))))
     }
 }
 

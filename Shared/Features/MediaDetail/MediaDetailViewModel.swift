@@ -28,6 +28,7 @@ final class MediaDetailViewModel {
     private(set) var otherEditions: [MediaItem] = []
     @ObservationIgnored private var backdropSourcePath: String?
     @ObservationIgnored private let requestedEpisodeID: String?
+    @ObservationIgnored private var prefersOnDeckSeason = false
 
     var media: PlayableMediaItem
     var parentSeries: PlayableMediaItem?
@@ -85,6 +86,8 @@ final class MediaDetailViewModel {
     private var loadingFavoriteStatusIDs: Set<String> = []
     private var updatingFavoriteStatusIDs: Set<String> = []
     @ObservationIgnored private var refreshGate = AutomaticRefreshGate()
+    @ObservationIgnored private var hasLoadedDetails = false
+    @ObservationIgnored private var hasAppliedDetails = false
     @ObservationIgnored private var extrasTask: Task<Void, Never>?
     @ObservationIgnored private var extrasLoadedFor: MediaIdentity?
 
@@ -115,8 +118,37 @@ final class MediaDetailViewModel {
         services.identity
     }
 
-    private var quickActions: MediaQuickActions {
+    var quickActions: MediaQuickActions {
         MediaQuickActions(services: services)
+    }
+
+    var canManageMedia: Bool {
+        !quickActions.manageActions(for: media.mediaItem).isEmpty
+    }
+
+    /// The media this page shows, or its series, was deleted from the server from the app.
+    var wasDeleted: Bool {
+        let deleted = services.deletedMediaIDs
+        return deleted.contains(media.id) || parentSeries.map { deleted.contains($0.id) } == true
+    }
+
+    /// Reloads when a media this page shows was changed on the server from the app.
+    func refreshAfterMediaChange(itemID: String?) async {
+        guard let itemID, shownMediaIDs.contains(itemID), !wasDeleted else { return }
+        // A regular reload keeps the tracks, file info and extras of an unchanged item, which an analysis or a
+        // refresh may have changed.
+        fileInfoMediaID = nil
+        extrasLoadedFor = nil
+        await loadDetails(preservingExistingContent: true)
+        await refreshTrackSelectionAfterSubtitleAttachment()
+    }
+
+    /// The episode offered for playback can belong to a season other than the one listed.
+    var shownMediaIDs: Set<String> {
+        Set(
+            [media.id, media.metadataRatingKey, parentSeries?.id, onDeckItem?.id, requestedEpisodeID]
+                .compactMap(\.self) + seasons.map(\.id) + episodes.map(\.id),
+        )
     }
 
     private var detailTargetID: String {
@@ -128,9 +160,28 @@ final class MediaDetailViewModel {
         await loadDetails(preservingExistingContent: false)
     }
 
+    /// The page reappears when a pushed page is popped; reloading it then would clear its content
+    /// and lose the scroll position.
+    func loadDetailsIfNeeded() async {
+        guard !hasLoadedDetails else { return }
+        // A previous load cancelled midway left content on screen: finish it without clearing.
+        if hasAppliedDetails {
+            await refreshSilently()
+        } else {
+            await loadDetails()
+        }
+    }
+
     /// Reloads without clearing what is on screen, e.g. after the server became reachable again.
     func refreshSilently() async {
         await loadDetails(preservingExistingContent: true)
+    }
+
+    /// Follows the next episode into its season, since playback may have finished the current one.
+    func reloadAfterPlayback() async {
+        prefersOnDeckSeason = true
+        defer { prefersOnDeckSeason = false }
+        await loadDetails()
     }
 
     func refreshIfNeeded(now: Date = Date()) async {
@@ -149,6 +200,7 @@ final class MediaDetailViewModel {
 
     func selectSeason(id: String) async {
         guard selectedSeasonId != id else { return }
+        prefersOnDeckSeason = false
         selectedSeasonId = id
         episodes = []
         episodesErrorMessage = nil
@@ -241,18 +293,11 @@ final class MediaDetailViewModel {
         }
     }
 
-    func imageURL(
-        for media: MediaItem,
-        width: Int = 320,
-        height: Int = 180,
-        spoilerProtection: SpoilerProtectionLevel = .off,
-    ) -> URL? {
-        let path = if media.isSpoilerProtected(at: spoilerProtection) {
-            media.spoilerProtectedArtworkPath(at: spoilerProtection)
-        } else {
-            media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
+    func artworkPath(for media: MediaItem, spoilerProtection: SpoilerProtectionLevel = .off) -> String? {
+        if media.isSpoilerProtected(at: spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: spoilerProtection)
         }
-        return services.artwork.artworkURL(path: path, width: width, height: height)
+        return media.thumbPath ?? media.parentThumbPath ?? media.grandparentThumbPath
     }
 
     func heroImageURL(spoilerProtection: SpoilerProtectionLevel) -> URL? {
@@ -1018,20 +1063,31 @@ final class MediaDetailViewModel {
     }
 
     private func preferredSeasonId(in fetchedSeasons: [MediaItem]) -> String? {
-        if let selectedSeasonId,
-           fetchedSeasons.contains(where: { $0.id == selectedSeasonId })
-        {
-            return selectedSeasonId
-        }
+        Self.preferredSeasonID(
+            in: fetchedSeasons,
+            selected: selectedSeasonId,
+            onDeck: onDeckItem,
+            prefersOnDeckSeason: prefersOnDeckSeason,
+        )
+    }
 
-        if let onDeckSeasonIndex = onDeckItem?.parentIndex,
-           let onDeckSeason = fetchedSeasons.first(where: { $0.index == onDeckSeasonIndex })
-        {
+    static func preferredSeasonID(
+        in seasons: [MediaItem],
+        selected: String?,
+        onDeck: MediaItem?,
+        prefersOnDeckSeason: Bool,
+    ) -> String? {
+        let selectedSeason = selected.flatMap { id in seasons.first(where: { $0.id == id }) }
+        let onDeckSeason = onDeck?.parentIndex.flatMap { index in seasons.first(where: { $0.index == index }) }
+
+        if prefersOnDeckSeason, let onDeckSeason {
             return onDeckSeason.id
         }
 
-        return fetchedSeasons.first(where: { ($0.index ?? 0) > 0 })?.id
-            ?? fetchedSeasons.first?.id
+        return selectedSeason?.id
+            ?? onDeckSeason?.id
+            ?? seasons.first(where: { ($0.index ?? 0) > 0 })?.id
+            ?? seasons.first?.id
     }
 
     private func fetchEpisodes(for seasonId: String, preservingExistingContent: Bool = false) async {
@@ -1281,6 +1337,7 @@ final class MediaDetailViewModel {
             let content = try await services.detail.details(for: target)
             let onDeck = await Self.playbackEpisode(requested: requestedEpisode, onDeck: content.onDeck)
             guard !Task.isCancelled else { return }
+            hasAppliedDetails = true
             if let mapped = PlayableMediaItem(mediaItem: content.media) {
                 media = mapped
             }
@@ -1318,6 +1375,8 @@ final class MediaDetailViewModel {
             await loadFavoriteStatus()
             let artworkPath = resolveArtwork()
             await loadBackdropGradient(path: artworkPath)
+            guard !Task.isCancelled else { return }
+            hasLoadedDetails = true
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)

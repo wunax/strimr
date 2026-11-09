@@ -107,13 +107,28 @@ final class SeerrNetworkClient {
             throw SeerrAPIError.invalidURL
         }
 
-        components.queryItems = queryItems
+        // Seerr's request validator rejects reserved characters such as `;`, `:` or `+` left raw in a query value,
+        // which URLComponents does not encode.
+        components.percentEncodedQueryItems = queryItems.map { item in
+            URLQueryItem(
+                name: Self.percentEncoded(item.name),
+                value: item.value.map(Self.percentEncoded),
+            )
+        }
 
         guard let resolvedURL = components.url else {
             throw SeerrAPIError.invalidURL
         }
 
         return resolvedURL
+    }
+
+    private static let queryValueAllowed = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
+    )
+
+    private static func percentEncoded(_ string: String) -> String {
+        string.addingPercentEncoding(withAllowedCharacters: queryValueAllowed) ?? string
     }
 
     private func validateResponse(_ response: URLResponse) throws {

@@ -1,0 +1,23 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "directPlayDecisionCode": 3000,
+    "mdeDecisionCode": 3000,
+    "Metadata": [
+      {
+        "ratingKey": "1000",
+        "key": "/livetv/sessions/session-1",
+        "Media": [
+          {
+            "Part": [
+              {
+                "key": "/livetv/sessions/session-1/client-1/index.m3u8",
+                "decision": "transcode"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

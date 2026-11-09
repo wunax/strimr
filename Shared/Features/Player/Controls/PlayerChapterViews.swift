@@ -88,6 +88,7 @@ struct PlayerChapterArtworkView: View {
 
 struct PlayerSegmentedTimelineRail: View {
     var chapters: [MediaChapter]
+    var skipSegments: [SkipSegment] = []
     var duration: Double?
     var position: Double
     var bufferedEnd: Double
@@ -115,6 +116,8 @@ struct PlayerSegmentedTimelineRail: View {
                 duration: timelineDuration,
             )
 
+            let segmentSpans = skipSegmentSpans(width: proxy.size.width)
+
             ForEach(Array(rects.enumerated()), id: \.offset) { _, rect in
                 ZStack(alignment: .leading) {
                     Color.progressTrack
@@ -124,6 +127,16 @@ struct PlayerSegmentedTimelineRail: View {
 
                     Color.progressFill
                         .frame(width: fillWidth(endingAt: playedX, in: rect))
+
+                    ForEach(Array(segmentSpans.enumerated()), id: \.offset) { _, span in
+                        let minX = max(span.lowerBound, rect.minX)
+                        let maxX = min(span.upperBound, rect.maxX)
+                        if maxX > minX {
+                            Color.progressSegment
+                                .frame(width: maxX - minX)
+                                .offset(x: minX - rect.minX)
+                        }
+                    }
                 }
                 .frame(width: rect.width, height: trackHeight)
                 .clipShape(Capsule())
@@ -207,6 +220,18 @@ struct PlayerSegmentedTimelineRail: View {
                 height: trackHeight,
             )
         }
+    }
+
+    private func skipSegmentSpans(width: CGFloat) -> [ClosedRange<CGFloat>] {
+        guard let knownDuration = duration, knownDuration.isFinite, knownDuration > 0, !skipSegments.isEmpty else {
+            return []
+        }
+        return skipSegments
+            .filter { $0.startTime.isFinite && $0.endTime.isFinite && $0.endTime > $0.startTime }
+            .map { segment in
+                timelineX(for: segment.startTime, width: width, duration: knownDuration)
+                    ... timelineX(for: segment.endTime, width: width, duration: knownDuration)
+            }
     }
 
     private func timelineX(for time: Double, width: CGFloat, duration: Double) -> CGFloat {

@@ -18,6 +18,117 @@ enum SpoilerProtectionLevel: String, Codable, CaseIterable, Hashable {
     }
 }
 
+enum ContinueWatchingAction: String, Codable, CaseIterable, Hashable {
+    case openDetails
+    case play
+
+    var title: String {
+        switch self {
+        case .openDetails:
+            String(localized: "settings.interface.continueWatchingAction.openDetails")
+        case .play:
+            String(localized: "settings.interface.continueWatchingAction.play")
+        }
+    }
+}
+
+enum LandscapeEpisodeArtwork: String, Codable, CaseIterable, Hashable {
+    case episode
+    case series
+
+    var title: String {
+        switch self {
+        case .episode:
+            String(localized: "settings.interface.seriesArtwork.landscape.episode")
+        case .series:
+            String(localized: "settings.interface.seriesArtwork.landscape.series")
+        }
+    }
+}
+
+enum PortraitEpisodeArtwork: String, Codable, CaseIterable, Hashable {
+    case series
+    case season
+
+    var title: String {
+        switch self {
+        case .series:
+            String(localized: "settings.interface.seriesArtwork.portrait.series")
+        case .season:
+            String(localized: "settings.interface.seriesArtwork.portrait.season")
+        }
+    }
+}
+
+/// What the hero at the top of the home shows.
+enum HomeHeroSource: String, Codable, CaseIterable, Hashable {
+    case discover
+    case continueWatching
+    case off
+
+    var title: String {
+        switch self {
+        case .discover:
+            String(localized: "settings.interface.homeHero.discover")
+        case .continueWatching:
+            String(localized: "settings.interface.homeHero.continueWatching")
+        case .off:
+            String(localized: "settings.interface.homeHero.off")
+        }
+    }
+}
+
+enum StartupScreen: String, Codable, CaseIterable, Hashable {
+    case home
+    case discover
+    case search
+    case downloads
+    case libraries
+    case liveTV
+    case favorites
+
+    static var selectableCases: [StartupScreen] {
+        #if os(tvOS)
+            allCases.filter { $0 != .downloads }
+        #else
+            allCases
+        #endif
+    }
+
+    var title: String {
+        switch self {
+        case .home:
+            String(localized: "tabs.home")
+        case .discover:
+            String(localized: "tabs.discover")
+        case .search:
+            String(localized: "tabs.search")
+        case .downloads:
+            String(localized: "downloads.title")
+        case .libraries:
+            String(localized: "tabs.libraries")
+        case .liveTV:
+            String(localized: "livetv.title")
+        case .favorites:
+            String(localized: "tabs.favorites")
+        }
+    }
+}
+
+enum TabBarPlacement: String, Codable, CaseIterable, Hashable {
+    case top
+    case sidebar
+
+    var title: String {
+        switch self {
+        case .top:
+            String(localized: "settings.interface.tabBarPlacement.top")
+        case .sidebar:
+            String(localized: "settings.interface.tabBarPlacement.sidebar")
+        }
+    }
+}
+
 enum PosterSize: String, Codable, CaseIterable, Hashable {
     case small
     case medium
@@ -123,6 +234,33 @@ enum SubtitleVerticalPosition: String, Codable, CaseIterable, Hashable {
     case top
 }
 
+enum SubtitleBottomMargin: String, Codable, CaseIterable, Hashable {
+    case automatic
+    case percent0
+    case percent2
+    case percent4
+    case percent6
+    case percent8
+    case percent10
+    case percent15
+    case percent20
+
+    /// Nil keeps the player's default margin.
+    var percent: Int? {
+        switch self {
+        case .automatic: nil
+        case .percent0: 0
+        case .percent2: 2
+        case .percent4: 4
+        case .percent6: 6
+        case .percent8: 8
+        case .percent10: 10
+        case .percent15: 15
+        case .percent20: 20
+        }
+    }
+}
+
 enum NextEpisodeAutoplay: String, Codable, CaseIterable, Hashable {
     case disabled
     case immediately
@@ -178,21 +316,100 @@ struct SubtitleAppearance: Equatable {
     let backgroundStrength: SubtitleBackgroundStrength
     let edgeStyle: SubtitleEdgeStyle
     let verticalPosition: SubtitleVerticalPosition
+    let bottomMargin: SubtitleBottomMargin
+}
+
+enum DialogueBoost: String, Codable, CaseIterable, Hashable, Identifiable {
+    case off
+    case light
+    case strong
+
+    var id: Self {
+        self
+    }
+
+    var gainDB: Double {
+        switch self {
+        case .off: 0
+        case .light: 4
+        case .strong: 8
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .off:
+            String(localized: "settings.playback.dialogueBoost.off")
+        case .light:
+            String(localized: "settings.playback.dialogueBoost.light")
+        case .strong:
+            String(localized: "settings.playback.dialogueBoost.strong")
+        }
+    }
+}
+
+struct SubtitleSearchPreferences: Codable, Equatable {
+    /// Nil follows the device language until another one is chosen.
+    var language: String?
+    var hearingImpaired = false
+    var forced = false
+}
+
+enum PlaybackReadAhead: String, Codable, CaseIterable, Hashable, Identifiable {
+    case standard
+    case extended
+    case maximum
+
+    var id: Self {
+        self
+    }
+
+    /// Segments are about 4 s long. The engine stops a larger read-ahead once it fills its disk budget.
+    var forwardBufferSegments: Int? {
+        switch self {
+        case .standard: nil
+        case .extended: 75
+        case .maximum: .max
+        }
+    }
+
+    /// tvOS keeps the software decoder's read-ahead in a fixed 96 MB of memory, which ignores the window.
+    var softwarePacketCacheStorage: SoftwarePacketCacheStorage {
+        self == .standard ? .automatic : .disk
+    }
+
+    var title: String {
+        switch self {
+        case .standard:
+            String(localized: "settings.playback.readAhead.standard")
+        case .extended:
+            String(localized: "settings.playback.readAhead.extended")
+        case .maximum:
+            String(localized: "settings.playback.readAhead.maximum")
+        }
+    }
 }
 
 struct PlaybackSettings: Codable, Equatable {
     var qualityPreset = TranscodeQualityPreset.original
     var nextEpisodeAutoplay = NextEpisodeAutoplay.after15Seconds
+    /// Armed when the player opens. Nil leaves the sleep timer off.
+    var defaultSleepTimer: SleepTimerMode?
     var videoScaleMode = PlayerVideoScaleMode.fit
     var autoRotateVideo = true
+    var pictureInPicture = true
+    var backgroundAudio = true
     var autoSkipIntros = false
     var autoSkipCredits = false
     var autoSkipCommercials = false
     var losslessAudio = false
     /// Nil keeps TrueHD Atmos and DTS:X on the channel bridge.
     var spatialAudioLayout: SpatialSpeakerLayout?
+    var nightMode = false
+    var dialogueBoost = DialogueBoost.off
     var rememberTrackSelections = true
     var showChaptersOnTimeline = true
+    var showSkipSegmentsOnTimeline = false
     var showEndsAtTime = true
     var showClock = false
     var showInfoWhenPaused = true
@@ -203,6 +420,7 @@ struct PlaybackSettings: Codable, Equatable {
     var seekBackwardSeconds = 10
     var seekForwardSeconds = 10
     var doubleTapToSeek = true
+    var defaultPlaybackRate: Float = 1.0
     var audioDelayMilliseconds = 0
     var subtitleFontSize = defaultSubtitleFontSize
     var subtitleTextColor = SubtitleTextColor.white
@@ -211,10 +429,16 @@ struct PlaybackSettings: Codable, Equatable {
     var subtitleBackgroundStrength = SubtitleBackgroundStrength.standard
     var subtitleEdgeStyle = SubtitleEdgeStyle.shadow
     var subtitleVerticalPosition = SubtitleVerticalPosition.bottom
+    var subtitleBottomMargin = SubtitleBottomMargin.automatic
+    var subtitleSearch = SubtitleSearchPreferences()
+    var automaticSubtitleSearch = false
     /// Nil plays in Strimr's built-in player.
     var externalPlayer: ExternalPlayerSelection?
     /// Kept apart from the selection so switching to another player does not lose the template.
     var customExternalPlayer: CustomExternalPlayer?
+    /// Forces the server-side transcode for Live TV, the route used before the engine played broadcast streams.
+    var transcodeLiveTV = false
+    var readAhead = PlaybackReadAhead.standard
 
     init() {}
 
@@ -228,8 +452,11 @@ struct PlaybackSettings: Codable, Equatable {
             NextEpisodeAutoplay.self,
             forKey: .nextEpisodeAutoplay,
         ) ?? .after15Seconds
+        defaultSleepTimer = try? container.decodeIfPresent(SleepTimerMode.self, forKey: .defaultSleepTimer)
         videoScaleMode = (try? container.decodeIfPresent(PlayerVideoScaleMode.self, forKey: .videoScaleMode)) ?? .fit
         autoRotateVideo = try container.decodeIfPresent(Bool.self, forKey: .autoRotateVideo) ?? true
+        pictureInPicture = (try? container.decodeIfPresent(Bool.self, forKey: .pictureInPicture)) ?? true
+        backgroundAudio = (try? container.decodeIfPresent(Bool.self, forKey: .backgroundAudio)) ?? true
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         autoSkipCommercials = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCommercials) ?? false
@@ -238,6 +465,8 @@ struct PlaybackSettings: Codable, Equatable {
             SpatialSpeakerLayout.self,
             forKey: .spatialAudioLayout,
         )
+        nightMode = (try? container.decodeIfPresent(Bool.self, forKey: .nightMode)) ?? false
+        dialogueBoost = (try? container.decodeIfPresent(DialogueBoost.self, forKey: .dialogueBoost)) ?? .off
         rememberTrackSelections = try container.decodeIfPresent(
             Bool.self,
             forKey: .rememberTrackSelections,
@@ -246,6 +475,10 @@ struct PlaybackSettings: Codable, Equatable {
             Bool.self,
             forKey: .showChaptersOnTimeline,
         ) ?? true
+        showSkipSegmentsOnTimeline = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showSkipSegmentsOnTimeline,
+        ) ?? false
         showEndsAtTime = try container.decodeIfPresent(
             Bool.self,
             forKey: .showEndsAtTime,
@@ -265,9 +498,15 @@ struct PlaybackSettings: Codable, Equatable {
             Bool.self,
             forKey: .showSubtitlesOnSkipBack,
         ) ?? true
+        automaticSubtitleSearch = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .automaticSubtitleSearch,
+        ) ?? false
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
         doubleTapToSeek = try container.decodeIfPresent(Bool.self, forKey: .doubleTapToSeek) ?? true
+        let decodedRate = (try? container.decodeIfPresent(Float.self, forKey: .defaultPlaybackRate)) ?? 1.0
+        defaultPlaybackRate = PlaybackSpeedOptions.all.contains { $0.rate == decodedRate } ? decodedRate : 1.0
         audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(
             (try? container.decodeIfPresent(Int.self, forKey: .audioDelayMilliseconds)) ?? 0,
         )
@@ -289,11 +528,23 @@ struct PlaybackSettings: Codable, Equatable {
             try? container.decode(SubtitleVerticalPosition.self, forKey: .subtitleVerticalPosition),
         )
             ?? .bottom
+        subtitleBottomMargin = (
+            try? container.decode(SubtitleBottomMargin.self, forKey: .subtitleBottomMargin),
+        )
+            ?? .automatic
+        subtitleSearch = (try? container.decode(SubtitleSearchPreferences.self, forKey: .subtitleSearch))
+            ?? SubtitleSearchPreferences()
         externalPlayer = try? container.decodeIfPresent(ExternalPlayerSelection.self, forKey: .externalPlayer)
         customExternalPlayer = try? container.decodeIfPresent(
             CustomExternalPlayer.self,
             forKey: .customExternalPlayer,
         )
+        transcodeLiveTV = (try? container.decodeIfPresent(Bool.self, forKey: .transcodeLiveTV)) ?? false
+        readAhead = (try? container.decodeIfPresent(PlaybackReadAhead.self, forKey: .readAhead)) ?? .standard
+    }
+
+    var audioShaping: AudioShaping {
+        AudioShaping(dialogueGainDB: dialogueBoost.gainDB, compressor: nightMode ? .night : nil)
     }
 
     var resolvedExternalPlayer: ExternalPlayer? {
@@ -309,6 +560,7 @@ struct PlaybackSettings: Codable, Equatable {
             backgroundStrength: subtitleBackgroundStrength,
             edgeStyle: subtitleEdgeStyle,
             verticalPosition: subtitleVerticalPosition,
+            bottomMargin: subtitleBottomMargin,
         )
     }
 
@@ -320,6 +572,7 @@ struct PlaybackSettings: Codable, Equatable {
         subtitleBackgroundStrength = .standard
         subtitleEdgeStyle = .shadow
         subtitleVerticalPosition = .bottom
+        subtitleBottomMargin = .automatic
     }
 
     private static var defaultSubtitleFontSize: Int {
@@ -346,13 +599,27 @@ struct InterfaceSettings: Codable, Equatable {
     var displayLiveTVTab = true
     var displaySeerrDiscoverTab = true
     var multiServerSearchEnabled: Bool?
+    var groupsSearchResults = true
     var spoilerProtection = SpoilerProtectionLevel.off
+    var landscapeEpisodeArtwork = LandscapeEpisodeArtwork.episode
+    var portraitEpisodeArtwork = PortraitEpisodeArtwork.series
     var libraryBrowseByKey: [String: LibraryBrowsePreferences] = [:]
     var libraryDefaultLayout = LibraryDefaultLayout.automatic
     var posterSize = PosterSize.medium
     var themeMusicVolume = ThemeMusicVolume.off
     var showsTitleLogo = true
     var showsCardLabels = true
+    var showsWatchStatusBadges = true
+    var continueWatchingAction = ContinueWatchingAction.openDetails
+    /// Jellyfin keeps Next Up apart; Plex already shows a single row.
+    var mergesNextUpIntoContinueWatching = false
+    var homeHero = HomeHeroSource.discover
+    var homeHeroIncludesTrending = true
+    var tabBarPlacement = TabBarPlacement.top
+    var startupScreen = StartupScreen.home
+    var tintsLiveTVGuideCategories = true
+    var liveTVSectionByServer: [String: String] = [:]
+    var liveTVChannelSortByServer: [String: LiveTVChannelSort] = [:]
 
     init() {}
 
@@ -380,7 +647,16 @@ struct InterfaceSettings: Codable, Equatable {
         displayLiveTVTab = try container.decodeIfPresent(Bool.self, forKey: .displayLiveTVTab) ?? true
         displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)
+        groupsSearchResults = try container.decodeIfPresent(Bool.self, forKey: .groupsSearchResults) ?? true
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off
+        landscapeEpisodeArtwork = (try? container.decode(
+            LandscapeEpisodeArtwork.self,
+            forKey: .landscapeEpisodeArtwork,
+        )) ?? .episode
+        portraitEpisodeArtwork = (try? container.decode(
+            PortraitEpisodeArtwork.self,
+            forKey: .portraitEpisodeArtwork,
+        )) ?? .series
         libraryBrowseByKey = (try? container.decode(
             [String: LibraryBrowsePreferences].self,
             forKey: .libraryBrowseByKey,
@@ -393,6 +669,31 @@ struct InterfaceSettings: Codable, Equatable {
         themeMusicVolume = (try? container.decode(ThemeMusicVolume.self, forKey: .themeMusicVolume)) ?? .off
         showsTitleLogo = try container.decodeIfPresent(Bool.self, forKey: .showsTitleLogo) ?? true
         showsCardLabels = try container.decodeIfPresent(Bool.self, forKey: .showsCardLabels) ?? true
+        showsWatchStatusBadges = try container.decodeIfPresent(Bool.self, forKey: .showsWatchStatusBadges) ?? true
+        continueWatchingAction = (try? container.decode(
+            ContinueWatchingAction.self,
+            forKey: .continueWatchingAction,
+        )) ?? .openDetails
+        mergesNextUpIntoContinueWatching = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .mergesNextUpIntoContinueWatching,
+        ) ?? false
+        homeHero = (try? container.decode(HomeHeroSource.self, forKey: .homeHero)) ?? .discover
+        homeHeroIncludesTrending = try container.decodeIfPresent(Bool.self, forKey: .homeHeroIncludesTrending) ?? true
+        tabBarPlacement = (try? container.decode(TabBarPlacement.self, forKey: .tabBarPlacement)) ?? .top
+        startupScreen = (try? container.decode(StartupScreen.self, forKey: .startupScreen)) ?? .home
+        tintsLiveTVGuideCategories = (try? container.decodeIfPresent(
+            Bool.self,
+            forKey: .tintsLiveTVGuideCategories,
+        )) ?? true
+        liveTVSectionByServer = (try? container.decodeIfPresent(
+            [String: String].self,
+            forKey: .liveTVSectionByServer,
+        )) ?? [:]
+        liveTVChannelSortByServer = (try? container.decodeIfPresent(
+            [String: LiveTVChannelSort].self,
+            forKey: .liveTVChannelSortByServer,
+        )) ?? [:]
     }
 }
 

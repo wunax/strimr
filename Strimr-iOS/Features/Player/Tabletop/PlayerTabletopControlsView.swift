@@ -15,6 +15,7 @@ struct PlayerTabletopControlsView: View {
     var showsEndsAtTime: Bool
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
+    var skipSegments: [SkipSegment]
     var scrubPreview: PlayerScrubPreview?
     var seekBackwardSeconds: Int
     var seekForwardSeconds: Int
@@ -23,11 +24,13 @@ struct PlayerTabletopControlsView: View {
     var sleepTimer: SleepTimer?
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
-    var showsSettingsIndicator: Bool
+    var tracksMenu: PlayerTracksMenuModel
+    var tracksMenuActions: PlayerTracksMenuActions
     var canShowInfo: Bool
     var canPlayNext: Bool
     var isLive: Bool
     var behindLiveSeconds: Double
+    var isAtLiveEdge: Bool
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var actions: PlayerTabletopActions
@@ -107,17 +110,27 @@ struct PlayerTabletopControlsView: View {
                 action: actions.onToggleLock,
             )
 
+            PlayerTracksMenu(model: tracksMenu, actions: tracksMenuActions) {
+                Image(systemName: "text.bubble")
+                    .font(.headline.weight(.semibold))
+            }
+            .equatable()
+            .buttonStyle(.tile)
+            .frame(width: Metrics.smallTileSide)
+            .accessibilityLabel(Text("player.tracks.title"))
+            .overlay(alignment: .topTrailing) {
+                if tracksMenu.showsIndicator {
+                    PlaybackOffsetIndicator()
+                        .padding(8)
+                        .allowsHitTesting(false)
+                }
+            }
+
             iconTile(
                 systemName: "gearshape",
                 accessibilityLabel: String(localized: "settings.title"),
                 action: actions.onShowSettings,
             )
-            .overlay(alignment: .topTrailing) {
-                if showsSettingsIndicator {
-                    PlaybackOffsetIndicator()
-                        .padding(8)
-                }
-            }
         }
     }
 
@@ -210,15 +223,7 @@ struct PlayerTabletopControlsView: View {
     private var progressTile: some View {
         if isLive {
             HStack {
-                Group {
-                    if behindLiveSeconds < 2 {
-                        Text("livetv.player.live")
-                    } else {
-                        Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
-                    }
-                }
-                .font(.rowTitle.monospacedDigit())
-                .foregroundStyle(.textPrimary)
+                LiveTVLiveBadge(behindLiveSeconds: behindLiveSeconds, isAtLiveEdge: isAtLiveEdge)
 
                 Spacer()
 
@@ -228,7 +233,7 @@ struct PlayerTabletopControlsView: View {
                     action: interacting(actions.onGoLive),
                 )
                 .actionButtonStyle(.primary)
-                .disabled(behindLiveSeconds < 2)
+                .disabled(LiveTVLiveBadge.isLive(behindLiveSeconds: behindLiveSeconds, isAtLiveEdge: isAtLiveEdge))
             }
             .padding(12)
             .background(.surfaceRaised, in: tileShape)
@@ -242,6 +247,7 @@ struct PlayerTabletopControlsView: View {
                 showsEndsAtTime: showsEndsAtTime,
                 chapters: chapters,
                 showsChaptersOnTimeline: showsChaptersOnTimeline,
+                skipSegments: skipSegments,
                 scrubPreview: scrubPreview,
                 onEditingChanged: actions.onScrubbingChanged,
                 floatsScrubDetails: true,

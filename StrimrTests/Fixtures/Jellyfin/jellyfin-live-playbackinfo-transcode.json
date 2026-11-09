@@ -1,0 +1,17 @@
+{
+  "PlaySessionId": "play-session-3",
+  "MediaSources": [
+    {
+      "Id": "source-3",
+      "Path": "/var/lib/jellyfin/recordings/channel.ts",
+      "Container": "ts",
+      "Protocol": "File",
+      "SupportsDirectPlay": false,
+      "SupportsDirectStream": false,
+      "SupportsTranscoding": true,
+      "TranscodingUrl": "/videos/channel-3/live.m3u8?DeviceId=device&MediaSourceId=source-3&PlaySessionId=play-session-3&LiveStreamId=live-stream-3",
+      "LiveStreamId": "live-stream-3",
+      "MediaStreams": []
+    }
+  ]
+}

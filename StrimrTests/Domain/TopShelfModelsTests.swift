@@ -74,6 +74,18 @@ struct TopShelfModelsTests {
         #expect(merged.map(\.id) == ["a"])
     }
 
+    @Test func `playback progress is the watched fraction`() {
+        #expect(TopShelfSessions.playbackProgress(position: 1800, duration: 7200) == 0.25)
+        #expect(TopShelfSessions.playbackProgress(position: 9000, duration: 7200) == 1)
+    }
+
+    @Test func `unstarted or unknown items have no progress`() {
+        #expect(TopShelfSessions.playbackProgress(position: 0, duration: 7200) == nil)
+        #expect(TopShelfSessions.playbackProgress(position: nil, duration: 7200) == nil)
+        #expect(TopShelfSessions.playbackProgress(position: 1800, duration: nil) == nil)
+        #expect(TopShelfSessions.playbackProgress(position: 1800, duration: 0) == nil)
+    }
+
     private var none: MediaMatchDescriptor {
         MediaMatchDescriptor(kind: .movie, guid: nil, externalIDs: ExternalIDs())
     }

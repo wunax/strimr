@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaDetailView: View {
     @Environment(MediaServices.self) private var mediaServices
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var coordinator: MainCoordinator
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
@@ -17,6 +18,7 @@ struct MediaDetailView: View {
     @State private var fileInfoMedia: MediaItem?
     @State private var expandedSummaryMedia: MediaItem?
     @State private var mediaToAddToPlaylist: MediaItem?
+    @State private var manageController = MediaManageController()
     @FocusState private var isPlayButtonFocused: Bool
     private let onPlay: (String, MediaKind) -> Void
     private let onPlayFromStart: (String, MediaKind) -> Void
@@ -92,7 +94,15 @@ struct MediaDetailView: View {
             }
         }
         .task {
-            await bindableViewModel.loadDetails()
+            await bindableViewModel.loadDetailsIfNeeded()
+        }
+        .onChange(of: mediaServices.mediaRevision) {
+            guard !bindableViewModel.wasDeleted else {
+                dismiss()
+                return
+            }
+            let changedMediaID = mediaServices.lastChangedMediaID
+            Task { await bindableViewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }
         .themeMusic(for: bindableViewModel.media.mediaItem)
         .taskPresentation(isPresented: $isShowingSubtitleSearch) {
@@ -117,7 +127,9 @@ struct MediaDetailView: View {
         }
         .onChange(of: coordinator.isPresentingPlayer) { _, isPresenting in
             guard !isPresenting else { return }
-            Task { await bindableViewModel.loadDetails() }
+            hasHandledInitialEpisodePosition = false
+            hasUserSelectedSeason = false
+            Task { await bindableViewModel.reloadAfterPlayback() }
         }
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
@@ -322,6 +334,7 @@ struct MediaDetailView: View {
         sharePlayCoordinator.isActivating
             || viewModel.isUpdatingWatchStatus
             || viewModel.isUpdatingWatchlistStatus
+            || manageController.isPerforming
     }
 
     private var moreActionsMenu: some View {
@@ -386,13 +399,24 @@ struct MediaDetailView: View {
                 }
             }
 
-            if viewModel.canShowFileInfo {
+            if viewModel.canShowFileInfo || viewModel.canManageMedia {
                 Divider()
+            }
+
+            if viewModel.canShowFileInfo {
                 Button {
                     fileInfoMedia = viewModel.media.mediaItem
                 } label: {
                     Label("media.fileInfo.title", systemImage: "doc.text.magnifyingglass")
                 }
+            }
+
+            if viewModel.canManageMedia {
+                MediaManageMenu(
+                    item: viewModel.media.mediaItem,
+                    quickActions: viewModel.quickActions,
+                    controller: manageController,
+                )
             }
 
             if !viewModel.listsCopiesWithVersions {
@@ -404,6 +428,7 @@ struct MediaDetailView: View {
         .detailRoundButtonStyle()
         .menuIndicator(.hidden)
         .accessibilityLabel(Text("common.actions.more"))
+        .mediaManagePresentation(manageController, quickActions: viewModel.quickActions)
     }
 
     private var seasonsSection: some View {
@@ -483,10 +508,8 @@ struct MediaDetailView: View {
                         ForEach(viewModel.episodes) { episode in
                             EpisodeArtworkCard(
                                 episode: episode,
-                                imageURL: viewModel.imageURL(
+                                artworkPath: viewModel.artworkPath(
                                     for: episode,
-                                    width: 640,
-                                    height: 360,
                                     spoilerProtection: settingsManager.interface.spoilerProtection,
                                 ),
                                 runtime: viewModel.runtimeText(for: episode),
@@ -535,7 +558,11 @@ struct MediaDetailView: View {
                     .padding(.vertical, 12)
                     .padding(.vertical, 4)
                 }
-                .task(id: viewModel.episodes.map(\.id)) {
+                .task(id: EpisodePositionTrigger(
+                    episodeIDs: viewModel.episodes.map(\.id),
+                    primaryEpisodeID: viewModel.primaryActionItem?.id,
+                    isLoading: viewModel.isLoading,
+                )) {
                     await positionOnDeckEpisodeIfNeeded(using: scrollProxy)
                 }
                 .focusSection()
@@ -543,12 +570,19 @@ struct MediaDetailView: View {
         }
     }
 
+    private struct EpisodePositionTrigger: Equatable {
+        let episodeIDs: [String]
+        let primaryEpisodeID: String?
+        let isLoading: Bool
+    }
+
     private let episodeWidth: CGFloat = 460
     private let episodeSpacing: CGFloat = 36
 
     @MainActor
     private func positionOnDeckEpisodeIfNeeded(using scrollProxy: ScrollViewProxy) async {
-        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason else { return }
+        // Waits for the whole load, since the next episode is resolved after the episodes are shown.
+        guard !hasHandledInitialEpisodePosition, !hasUserSelectedSeason, !viewModel.isLoading else { return }
         hasHandledInitialEpisodePosition = true
 
         guard let primaryEpisodeID = viewModel.primaryActionItem?.id,
@@ -619,7 +653,7 @@ struct MediaDetailView: View {
 
 private struct EpisodeArtworkCard: View {
     let episode: MediaItem
-    let imageURL: URL?
+    let artworkPath: String?
     let runtime: String?
     let progress: Double?
     let width: CGFloat
@@ -673,31 +707,19 @@ private struct EpisodeArtworkCard: View {
         return String(localized: "media.detail.episodeNumber \(index)")
     }
 
-    @ViewBuilder
-    private var onDeckBadge: some View {
-        if isOnDeck {
-            Text(progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext")
-                .font(.badge)
-                .textCase(.uppercase)
-                .foregroundStyle(.textPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.badgeBackground, in: Capsule(style: .continuous))
-                .padding(12)
-        }
+    private var onDeckBadge: LocalizedStringKey? {
+        guard isOnDeck else { return nil }
+        return progress != nil ? "media.detail.episode.inProgress" : "media.detail.episode.upNext"
     }
 
     private var artwork: some View {
         EpisodeArtworkView(
             episode: episode,
-            imageURL: imageURL,
+            artworkPath: artworkPath,
             width: width,
-            runtime: nil,
             progress: progress,
+            leadingBadge: onDeckBadge,
         )
-        .overlay(alignment: .topLeading) {
-            onDeckBadge
-        }
         .focusable()
         .focused($isFocused)
         .overlay(alignment: .trailing) {

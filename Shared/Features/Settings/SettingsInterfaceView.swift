@@ -8,13 +8,35 @@ struct SettingsInterfaceView: View {
 
     var body: some View {
         List {
-            Section("settings.interface.homeRows.section") {
+            Section {
                 NavigationLink("settings.interface.homeRows.title") {
                     HomeRowsSettingsView(
                         sessionManager: sessionManager,
                         settingsManager: settingsManager,
                     )
                 }
+                Picker(
+                    "settings.interface.continueWatchingAction",
+                    selection: Binding(
+                        get: { settingsManager.interface.continueWatchingAction },
+                        set: { settingsManager.setContinueWatchingAction($0) },
+                    ),
+                ) {
+                    ForEach(ContinueWatchingAction.allCases, id: \.self) { action in
+                        Text(action.title).tag(action)
+                    }
+                }
+                Toggle(
+                    "settings.interface.mergeNextUp",
+                    isOn: Binding(
+                        get: { settingsManager.interface.mergesNextUpIntoContinueWatching },
+                        set: { settingsManager.setMergesNextUpIntoContinueWatching($0) },
+                    ),
+                )
+            } header: {
+                Text("settings.interface.homeRows.section")
+            } footer: {
+                Text("settings.interface.mergeNextUp.footer")
             }
 
             Section {
@@ -35,6 +57,17 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                Picker(
+                    "settings.interface.startupScreen",
+                    selection: Binding(
+                        get: { settingsManager.interface.startupScreen },
+                        set: { settingsManager.setStartupScreen($0) },
+                    ),
+                ) {
+                    ForEach(StartupScreen.selectableCases, id: \.self) { screen in
+                        Text(screen.title).tag(screen)
+                    }
+                }
                 #if os(iOS)
                     Toggle(
                         "settings.interface.displayFavoritesTab",
@@ -65,6 +98,15 @@ struct SettingsInterfaceView: View {
                         set: { settingsManager.setDisplayLiveTVTab($0) },
                     ),
                 )
+                if settingsManager.interface.displayLiveTVTab {
+                    Toggle(
+                        "settings.interface.liveTVGuideCategoryTint",
+                        isOn: Binding(
+                            get: { settingsManager.interface.tintsLiveTVGuideCategories },
+                            set: { settingsManager.setTintsLiveTVGuideCategories($0) },
+                        ),
+                    )
+                }
             } header: {
                 Text("settings.interface.tabs.section")
             }
@@ -83,6 +125,47 @@ struct SettingsInterfaceView: View {
                 }
             } footer: {
                 Text("settings.interface.spoilerProtection.description")
+            }
+
+            Section {
+                Picker(
+                    "settings.interface.seriesArtwork.landscape",
+                    selection: Binding(
+                        get: { settingsManager.interface.landscapeEpisodeArtwork },
+                        set: { settingsManager.setLandscapeEpisodeArtwork($0) },
+                    ),
+                ) {
+                    ForEach(LandscapeEpisodeArtwork.allCases, id: \.self) { artwork in
+                        Text(artwork.title).tag(artwork)
+                    }
+                }
+                Picker(
+                    "settings.interface.seriesArtwork.portrait",
+                    selection: Binding(
+                        get: { settingsManager.interface.portraitEpisodeArtwork },
+                        set: { settingsManager.setPortraitEpisodeArtwork($0) },
+                    ),
+                ) {
+                    ForEach(PortraitEpisodeArtwork.allCases, id: \.self) { artwork in
+                        Text(artwork.title).tag(artwork)
+                    }
+                }
+            } header: {
+                Text("settings.interface.seriesArtwork.title")
+            } footer: {
+                Text("settings.interface.seriesArtwork.description")
+            }
+
+            Section {
+                Toggle(
+                    "settings.interface.groupSearchResults",
+                    isOn: Binding(
+                        get: { settingsManager.interface.groupsSearchResults },
+                        set: { settingsManager.setGroupsSearchResults($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.groupSearchResults.footer")
             }
 
             Section {
@@ -107,6 +190,18 @@ struct SettingsInterfaceView: View {
                 )
             } footer: {
                 Text("settings.interface.cardLabels.footer")
+            }
+
+            Section {
+                Toggle(
+                    "settings.interface.watchStatusBadges",
+                    isOn: Binding(
+                        get: { settingsManager.interface.showsWatchStatusBadges },
+                        set: { settingsManager.setShowsWatchStatusBadges($0) },
+                    ),
+                )
+            } footer: {
+                Text("settings.interface.watchStatusBadges.footer")
             }
 
             Section {
@@ -142,6 +237,12 @@ struct SettingsInterfaceView: View {
             }
 
             Section {
+                NavigationLink("settings.interface.manageLibraries") {
+                    LibrariesSettingsView(
+                        settingsManager: settingsManager,
+                        libraryStore: libraryStore,
+                    )
+                }
                 Picker(
                     "settings.interface.libraries.defaultLayout",
                     selection: Binding(
@@ -162,16 +263,6 @@ struct SettingsInterfaceView: View {
             } footer: {
                 Text("settings.interface.libraries.footer")
             }
-
-            DisplayedLibrariesSectionView(
-                settingsManager: settingsManager,
-                libraryStore: libraryStore,
-            )
-
-            NavigationLibrariesSectionView(
-                settingsManager: settingsManager,
-                libraryStore: libraryStore,
-            )
         }
         .insetListStyle()
         .navigationTitle("settings.interface.title")

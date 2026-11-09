@@ -151,3 +151,24 @@ struct PosterSkeletonCards: View {
         }
     }
 }
+
+/// Stands in for a `MediaListRow` whose page has not loaded yet.
+struct ListRowSkeleton: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    var body: some View {
+        let metrics = MediaListRowMetrics(sizeClass: sizeClass)
+        HStack(alignment: .top, spacing: metrics.spacing) {
+            RoundedRectangle(cornerRadius: MediaArtworkMetrics.compactCornerRadius, style: .continuous)
+                .fill(.surfaceSubtle)
+                .frame(width: metrics.posterSize.width, height: metrics.posterSize.height)
+            VStack(alignment: .leading, spacing: 4) {
+                SkeletonLine(font: .rowTitle, fraction: 0.6)
+                SkeletonLine(font: .facts, fraction: 0.35)
+            }
+        }
+        .padding(.vertical, metrics.verticalPadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("common.loading"))
+    }
+}

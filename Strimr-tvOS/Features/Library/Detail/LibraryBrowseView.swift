@@ -2,10 +2,12 @@ import SwiftUI
 
 struct LibraryBrowseView: View {
     @Environment(SettingsManager.self) private var settingsManager
+    @Environment(MediaServices.self) private var mediaServices: MediaServices?
     @State var viewModel: LibraryBrowseViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     @FocusState private var focusedCharacterId: String?
+    @State private var isFiltersPresented = false
 
     private let listRowMetrics = MediaListRowMetrics(sizeClass: nil)
 
@@ -17,14 +19,7 @@ struct LibraryBrowseView: View {
         self.onSelectMedia = onSelectMedia
     }
 
-    private var folderTreeToggle: LibraryBrowseToggle? {
-        guard viewModel.canShowFolderTree else { return nil }
-        return .folderTree(isSelected: viewModel.showsFolderTree, action: viewModel.toggleFolderTree)
-    }
-
     var body: some View {
-        @Bindable var controls = viewModel.controls
-
         ScrollViewReader { proxy in
             HStack(alignment: .top, spacing: 32) {
                 ScrollView {
@@ -34,15 +29,30 @@ struct LibraryBrowseView: View {
                             .id("libraryBrowseTop")
 
                         LibraryBrowseControlsView(
-                            viewModel: controls,
+                            viewModel: viewModel.controls,
+                            showsServerControls: viewModel.controls.hasControls,
                             showsBackButton: viewModel.canNavigateBack,
                             onNavigateBack: viewModel.navigateBack,
-                            folderTreeToggle: folderTreeToggle,
-                            layoutToggle: viewModel.folderTree == nil
-                                ? .layout(current: viewModel.layout, onChange: viewModel.setLayout)
-                                : nil,
+                            showsFiltersButton: viewModel.controls.hasControls
+                                && viewModel.controls.showsFilterControl,
+                            filterCount: viewModel.controls.activeFilters.count,
+                            isFiltersPresented: $isFiltersPresented,
+                            canReset: viewModel.controls.canResetSelection,
+                            onReset: viewModel.controls.resetSelection,
+                            viewMode: viewModel.viewMode,
+                            viewModes: viewModel.viewModes,
+                            onSelectViewMode: viewModel.setViewMode,
                             itemCount: viewModel.folderTree == nil ? viewModel.totalItemCount : nil,
-                        )
+                        ) {
+                            LibraryBrowseFiltersView(
+                                viewModel: viewModel.controls,
+                                serverFilters: .available,
+                                canReset: viewModel.controls.canResetSelection,
+                                onReset: viewModel.controls.resetSelection,
+                                onDone: { isFiltersPresented = false },
+                            )
+                        }
+                        .focusSection()
 
                         if let folderTree = viewModel.folderTree {
                             FolderTreeView(model: folderTree, onSelectMedia: onSelectMedia)
@@ -74,8 +84,8 @@ struct LibraryBrowseView: View {
                 .id(viewModel.folderPath)
                 .frame(minWidth: 0, maxWidth: .infinity)
 
-                if viewModel.showsCharacterColumn {
-                    characterColumn(proxy: proxy)
+                if viewModel.showsCharacterColumn, let sectionIndex = viewModel.sectionIndex {
+                    characterColumn(sectionIndex, proxy: proxy)
                 }
             }
             .overlay {
@@ -110,6 +120,9 @@ struct LibraryBrowseView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .onChange(of: mediaServices?.deletedMediaIDs) {
+                viewModel.removeDeletedItems(ids: mediaServices?.deletedMediaIDs ?? [])
             }
             .onChange(of: viewModel.scrollResetID) {
                 proxy.scrollTo("libraryBrowseTop", anchor: .top)
@@ -159,9 +172,9 @@ struct LibraryBrowseView: View {
         }
     }
 
-    private func characterColumn(proxy: ScrollViewProxy) -> some View {
+    private func characterColumn(_ sectionIndex: LibrarySectionIndex, proxy: ScrollViewProxy) -> some View {
         VStack(spacing: 4) {
-            ForEach(viewModel.sectionCharacters) { character in
+            ForEach(sectionIndex.sections) { character in
                 characterButton(character, proxy: proxy)
             }
         }
@@ -171,7 +184,7 @@ struct LibraryBrowseView: View {
     }
 
     private func characterButton(
-        _ character: LibraryBrowseViewModel.SectionCharacter,
+        _ character: LibrarySectionIndex.Section,
         proxy: ScrollViewProxy,
     ) -> some View {
         let isFocused = focusedCharacterId == character.id

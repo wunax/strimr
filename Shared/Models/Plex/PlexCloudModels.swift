@@ -43,6 +43,52 @@ nonisolated struct PlexCloudUser: Codable, Equatable {
     let thumb: String?
 }
 
+/// Reads each field on its own: this plex.tv API has returned the same field in different shapes over time.
+nonisolated struct PlexAccountProfile: Decodable, Equatable {
+    let defaultAudioLanguage: String?
+    let autoSelectAudio: Bool?
+    let defaultSubtitleLanguage: String?
+    let autoSelectSubtitle: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case profile
+        case defaultAudioLanguage
+        case autoSelectAudio
+        case defaultSubtitleLanguage
+        case autoSelectSubtitle
+    }
+
+    init(from decoder: Decoder) throws {
+        let root = try decoder.container(keyedBy: CodingKeys.self)
+        let container = (try? root.nestedContainer(keyedBy: CodingKeys.self, forKey: .profile)) ?? root
+        defaultAudioLanguage = Self.language(in: container, forKey: .defaultAudioLanguage)
+        autoSelectAudio = Self.int(in: container, forKey: .autoSelectAudio).map { $0 != 0 }
+        defaultSubtitleLanguage = Self.language(in: container, forKey: .defaultSubtitleLanguage)
+        autoSelectSubtitle = Self.int(in: container, forKey: .autoSelectSubtitle)
+    }
+
+    /// A single code, a comma-separated list or an array; the first one is the preference.
+    private static func language(in container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> String? {
+        if let values = try? container.decodeIfPresent([String].self, forKey: key) {
+            return values.first
+        }
+        return (try? container.decodeIfPresent(String.self, forKey: key))?
+            .split(separator: ",")
+            .first
+            .map(String.init)
+    }
+
+    private static func int(in container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Int? {
+        if let value = try? container.decodeIfPresent(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? container.decodeIfPresent(Bool.self, forKey: key) {
+            return value ? 1 : 0
+        }
+        return (try? container.decodeIfPresent(String.self, forKey: key)).flatMap { $0.flatMap(Int.init) }
+    }
+}
+
 nonisolated struct PlexCloudPin: Codable, Equatable {
     let id: Int
     let code: String

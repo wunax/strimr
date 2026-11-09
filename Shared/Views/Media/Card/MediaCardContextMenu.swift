@@ -8,6 +8,10 @@ struct MediaCardActions {
 
 extension EnvironmentValues {
     @Entry var mediaCardActions: MediaCardActions?
+    /// Set where selecting a card plays it instead of opening its details, so the menu offers the details instead.
+    @Entry var mediaCardOffersDetails = false
+    /// Set on the cards of the home's Continue Watching row, which can take their item off the row.
+    @Entry var mediaCardIsInContinueWatching = false
     /// Reloads the rows or page holding the card once a menu action changed its item, which can move it out of
     /// Continue Watching or change its badge.
     @Entry var reloadAfterMediaCardAction: ((MediaItem) -> Void)?
@@ -45,6 +49,8 @@ private struct MediaCardContextMenu: ViewModifier {
     @Environment(ServerRegistry.self) private var registry
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(\.mediaCardActions) private var actions
+    @Environment(\.mediaCardOffersDetails) private var offersDetails
+    @Environment(\.mediaCardIsInContinueWatching) private var isInContinueWatching
     @Environment(\.reloadAfterMediaCardAction) private var reload
     @Environment(\.reloadAfterPlaylistChange) private var reloadAfterPlaylistChange
     #if !os(tvOS)
@@ -54,17 +60,12 @@ private struct MediaCardContextMenu: ViewModifier {
     let media: MediaDisplayItem
 
     @State private var isPerforming = false
-    @State private var failure: Failure?
+    @State private var failure: Toast?
     @State private var successCount = 0
     @State private var mediaToAddToPlaylist: MediaItem?
     @State private var isRenamingPlaylist = false
     @State private var isConfirmingPlaylistDeletion = false
-
-    private struct Failure: Identifiable {
-        let id = UUID()
-        let title: LocalizedStringKey
-        let message: String
-    }
+    @State private var manageController = MediaManageController()
 
     func body(content: Content) -> some View {
         if let item = media.playableItem, let services, let actions {
@@ -73,7 +74,15 @@ private struct MediaCardContextMenu: ViewModifier {
                     menu(for: item, services: services, actions: actions)
                 }
                 .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: services)
-                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+                .mediaManagePresentation(
+                    manageController,
+                    quickActions: MediaQuickActions(services: services),
+                    onEdited: { reload?(item) },
+                    onDeleted: { reload?(item) },
+                ) {
+                    reloadAfterServerUpdate(item)
+                }
+                .modifier(Feedback(failure: $failure, successCount: successCount))
         } else if case let .playlist(playlist) = media, !playlist.isSmart, let services, isOnline(services) {
             content
                 .contextMenu {
@@ -98,25 +107,19 @@ private struct MediaCardContextMenu: ViewModifier {
                         try await services.playlists.delete(playlistID: playlist.id)
                     }
                 }
-                .modifier(FailureAlert(failure: $failure, successCount: successCount))
+                .modifier(Feedback(failure: $failure, successCount: successCount))
         } else {
             content
         }
     }
 
-    private struct FailureAlert: ViewModifier {
-        @Binding var failure: Failure?
+    private struct Feedback: ViewModifier {
+        @Binding var failure: Toast?
         let successCount: Int
 
         func body(content: Content) -> some View {
             content
-                .alert(item: $failure) { failure in
-                    Alert(
-                        title: Text(failure.title),
-                        message: Text(failure.message),
-                        dismissButton: .default(Text("common.actions.done")),
-                    )
-                }
+                .toast($failure)
             #if os(iOS)
                 .sensoryFeedback(.success, trigger: successCount)
             #endif
@@ -132,7 +135,7 @@ private struct MediaCardContextMenu: ViewModifier {
     }
 
     private func changePlaylist(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         services: MediaServices,
         _ operation: @escaping () async throws -> Void,
     ) {
@@ -148,7 +151,11 @@ private struct MediaCardContextMenu: ViewModifier {
             } catch {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 ErrorReporter.capture(error)
-                failure = Failure(title: failureTitle, message: error.localizedDescription)
+                failure = Toast(
+                    style: .failure,
+                    title: String(localized: failureTitle),
+                    message: error.localizedDescription,
+                )
             }
         }
     }
@@ -165,15 +172,33 @@ private struct MediaCardContextMenu: ViewModifier {
                 for: item,
                 canDownload: canDownload(item, services: services),
                 canAddToPlaylist: isOnline(services),
+                offersDetails: offersDetails,
+                isInContinueWatching: isInContinueWatching && isOnline(services),
+                canManage: isOnline(services),
             ),
             id: \.self,
         ) { action in
-            Button {
-                perform(action, on: item, quickActions: quickActions, services: services, actions: actions)
-            } label: {
-                Label(action.title, systemImage: action.systemImage)
+            if action == .manage {
+                MediaManageMenu(item: item, quickActions: quickActions, controller: manageController) {
+                    reloadAfterServerUpdate(item)
+                }
+            } else {
+                Button {
+                    perform(action, on: item, quickActions: quickActions, services: services, actions: actions)
+                } label: {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+                .disabled(isPerforming)
             }
-            .disabled(isPerforming)
+        }
+    }
+
+    /// The server applies the update after answering, so the page holding the card reloads once it had time to.
+    private func reloadAfterServerUpdate(_ item: MediaItem) {
+        guard let reload else { return }
+        Task {
+            try? await Task.sleep(for: MediaServices.serverUpdateDelay)
+            reload(item)
         }
     }
 
@@ -193,6 +218,8 @@ private struct MediaCardContextMenu: ViewModifier {
         actions: MediaCardActions,
     ) {
         switch action {
+        case .showDetails:
+            actions.showMedia(item)
         case .play, .resume:
             actions.play(item, false)
         case .playFromStart:
@@ -213,12 +240,19 @@ private struct MediaCardContextMenu: ViewModifier {
             mediaToAddToPlaylist = item
         case .download:
             download(item, services: services)
+        case .removeFromContinueWatching:
+            run(failureTitle: "media.quickActions.removeFromContinueWatching.error.title", for: item) {
+                await quickActions.removeFromContinueWatching(item)
+            }
+        case .manage, .refreshMetadata, .analyze, .editArtwork, .editMetadata, .advancedSettings, .fixMatch, .identify,
+             .unmatch, .delete:
+            break
         }
     }
 
     /// One action at a time per card: a request made while another runs is ignored.
     private func run(
-        failureTitle: LocalizedStringKey,
+        failureTitle: String.LocalizationValue,
         for item: MediaItem,
         _ operation: @escaping () async -> MediaQuickActions.Outcome,
     ) {
@@ -232,7 +266,7 @@ private struct MediaCardContextMenu: ViewModifier {
                 successCount += 1
                 reload?(item)
             case let .failed(message):
-                failure = Failure(title: failureTitle, message: message)
+                failure = Toast(style: .failure, title: String(localized: failureTitle), message: message)
             case .cancelled:
                 break
             }

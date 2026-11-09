@@ -1,0 +1,27 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "identifier": "com.plexapp.plugins.library",
+    "Metadata": [
+      {
+        "key": "https://image.tmdb.org/t/p/original/poster-one.jpg",
+        "ratingKey": "https://image.tmdb.org/t/p/original/poster-one.jpg",
+        "selected": true,
+        "thumb": "https://images.plex.tv/photo?size=medium-240&url=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Foriginal%2Fposter-one.jpg",
+        "provider": "tmdb"
+      },
+      {
+        "key": "https://assets.fanart.tv/fanart/movies/1/movieposter/poster-two.jpg",
+        "ratingKey": "https://assets.fanart.tv/fanart/movies/1/movieposter/poster-two.jpg",
+        "selected": false,
+        "provider": "fanarttv"
+      },
+      {
+        "key": "/library/metadata/100/file?url=metadata%3A%2F%2Fposters%2Ftv.plex.agents.movie_0000000000000000000000000000000000000000",
+        "ratingKey": "metadata://posters/tv.plex.agents.movie_0000000000000000000000000000000000000000",
+        "selected": 0,
+        "thumb": "/library/metadata/100/file?url=metadata%3A%2F%2Fposters%2Ftv.plex.agents.movie_0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}

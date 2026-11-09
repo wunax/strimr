@@ -26,6 +26,7 @@ final class ProgressSynchronizer {
             let synced = await synchronize(itemID: itemID, entries: entries, owner: owner, services: services)
             allSynced = allSynced && synced
         }
+        services.noteWatchStateChanged()
         return allSynced
     }
 
@@ -51,10 +52,20 @@ final class ProgressSynchronizer {
                 // The server saw more recent activity: it wins, unless a local "watched" is newer than it.
                 if let lastWatched, lastWatched.occurredAt > serverDate, !server.isPlayed {
                     try await services.playback.markItemWatched(itemID: itemID, at: lastWatched.occurredAt)
+                    TrackerCoordinator.shared.noteWatched(
+                        itemID: itemID,
+                        at: lastWatched.occurredAt,
+                        detail: services.detail,
+                    )
                 }
             } else {
                 if let lastWatched {
                     try await services.playback.markItemWatched(itemID: itemID, at: lastWatched.occurredAt)
+                    TrackerCoordinator.shared.noteWatched(
+                        itemID: itemID,
+                        at: lastWatched.occurredAt,
+                        detail: services.detail,
+                    )
                 }
                 // A rewatch started after the local "watched" still needs its position.
                 if let lastPosition, lastWatched.map({ lastPosition.occurredAt > $0.occurredAt }) ?? true {

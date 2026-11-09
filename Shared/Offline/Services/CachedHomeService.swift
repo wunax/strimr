@@ -29,6 +29,7 @@ final class CachedHomeService: MediaHomeService {
         hiddenLibraryIDs: Set<String>,
         includesPlaylists: Bool,
         shownRowIDs: Set<String>,
+        mergesNextUp: Bool,
     ) async throws -> HomeContent {
         let content = try await policy.read(
             network: {
@@ -36,26 +37,50 @@ final class CachedHomeService: MediaHomeService {
                     hiddenLibraryIDs: hiddenLibraryIDs,
                     includesPlaylists: includesPlaylists,
                     shownRowIDs: shownRowIDs,
+                    mergesNextUp: mergesNextUp,
                 )
             },
             write: save,
             fallback: offlineHome,
         )
         guard !policy.isUnreachable else { return content }
-        return HomeContent(rows: content.rows.map { row in
-            HomeRow(
-                id: row.id,
-                kind: row.kind,
-                style: row.style,
-                hub: hub(row.hub, items: policy.overlayLocalProgress(row.hub.items)),
-                libraryName: row.libraryName,
-                isExcludedFromServerHome: row.isExcludedFromServerHome,
-            )
-        })
+        return HomeContent(rows: content.rows.map(overlayingLocalProgress))
+    }
+
+    /// Not cached: the next full load saves the home.
+    func loadWatchingRows(hiddenLibraryIDs: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
+        try await base.loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs, mergesNextUp: mergesNextUp)
+            .map(overlayingLocalProgress)
+    }
+
+    private func overlayingLocalProgress(_ row: HomeRow) -> HomeRow {
+        HomeRow(
+            id: row.id,
+            kind: row.kind,
+            style: row.style,
+            hub: hub(row.hub, items: policy.overlayLocalProgress(row.hub.items)),
+            libraryName: row.libraryName,
+            isExcludedFromServerHome: row.isExcludedFromServerHome,
+        )
     }
 
     func homeRowCatalog(hiddenLibraryIDs: Set<String>) async throws -> [HomeRow] {
         try await base.homeRowCatalog(hiddenLibraryIDs: hiddenLibraryIDs)
+    }
+
+    /// Not cached: the home keeps its last selection of the day while offline.
+    func loadFeaturedCandidates(hiddenLibraryIDs: Set<String>) async throws -> [FeaturedCandidate] {
+        try await policy.online {
+            try await base.loadFeaturedCandidates(hiddenLibraryIDs: hiddenLibraryIDs)
+        }
+    }
+
+    var supportsContinueWatchingRemoval: Bool {
+        base.supportsContinueWatchingRemoval
+    }
+
+    func removeFromContinueWatching(itemID: String) async throws {
+        try await base.removeFromContinueWatching(itemID: itemID)
     }
 
     /// Last home snapshot, shown immediately while the network response is loading.

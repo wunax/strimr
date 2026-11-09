@@ -47,10 +47,18 @@ final class SectionRepository {
         params: SectionItemsParams? = nil,
         pagination: PlexPagination? = nil,
     ) async throws -> PlexItemMediaContainer {
+        try await getItems(path: "/library/sections/\(sectionId)/all", params: params, pagination: pagination)
+    }
+
+    func getItems(
+        path: String,
+        params: SectionItemsParams? = nil,
+        pagination: PlexPagination? = nil,
+    ) async throws -> PlexItemMediaContainer {
         let resolvedParams = params ?? SectionItemsParams()
         let resolvedPagination = pagination ?? PlexPagination()
         return try await network.request(
-            path: "/library/sections/\(sectionId)/all",
+            path: path,
             queryItems: resolvedParams.queryItems,
             headers: resolvedPagination.headers,
         )

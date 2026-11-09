@@ -27,7 +27,7 @@ struct MainView: View {
                 Section {
                     sidebarLabel("tabs.home", systemImage: "house.fill", item: .home)
 
-                    if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+                    if isDiscoverAvailable {
                         sidebarLabel("tabs.discover", systemImage: "sparkles", item: .discover)
                     }
 
@@ -37,7 +37,7 @@ struct MainView: View {
                         sidebarLabel("tabs.libraries", systemImage: "rectangle.stack.fill", item: .libraries)
                     }
                     sidebarLabel("tabs.favorites", systemImage: "star.fill", item: .favorites)
-                    if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
+                    if isLiveTVAvailable {
                         sidebarLabel("livetv.title", systemImage: "tv", item: .liveTV)
                     }
                 }
@@ -95,6 +95,16 @@ struct MainView: View {
             guard phase == .active else { return }
             Task { await refreshLiveTVAvailability() }
         }
+        .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                appModel.openPendingStartupSelection(.discover)
+            }
+        }
+        .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                appModel.openPendingStartupSelection(.liveTV)
+            }
+        }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
             if !isDisplayed {
                 appModel.resetLiveTVNavigation()
@@ -116,6 +126,7 @@ struct MainView: View {
             Task { await homeViewModel.refresh(server: server) }
         }
         .onChange(of: appModel.playerPresentation?.id) { previous, current in
+            homeViewModel.isPlaybackActive = current != nil
             // Only the server of the item that was played is reloaded, to update Reprendre and Next Up.
             guard previous != nil, current == nil, let server = lastPlayedServer else { return }
             Task { await homeViewModel.refresh(server: server) }
@@ -128,6 +139,14 @@ struct MainView: View {
     }
 
     @State private var lastPlayedServer: ServerIdentity?
+
+    private var isDiscoverAvailable: Bool {
+        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    }
+
+    private var isLiveTVAvailable: Bool {
+        !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
+    }
 
     private func refreshLiveTVAvailability() async {
         await registry.refreshLiveTVAvailability()
@@ -178,7 +197,7 @@ struct MainView: View {
             .unavailableWhenOffline()
         case .search:
             SearchView(
-                viewModel: SearchViewModel(sessionManager: sessionManager),
+                viewModel: SearchViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
                 onSelectMedia: { appModel.showMedia($0.media) },
             )
         case .downloads:

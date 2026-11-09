@@ -16,8 +16,12 @@ struct MediaHeroBackgroundView: View {
     }
 
     private var artworkPath: String? {
-        if media.isSpoilerProtected(at: settingsManager.interface.spoilerProtection) {
-            return media.spoilerProtectedArtworkPath(at: settingsManager.interface.spoilerProtection)
+        Self.artworkPath(for: media, spoilerProtection: settingsManager.interface.spoilerProtection)
+    }
+
+    static func artworkPath(for media: MediaItem, spoilerProtection: SpoilerProtectionLevel) -> String? {
+        if media.isSpoilerProtected(at: spoilerProtection) {
+            return media.spoilerProtectedArtworkPath(at: spoilerProtection)
         }
         return media.grandparentArtPath
             ?? media.artPath
@@ -68,11 +72,14 @@ struct MediaHeroContentView: View {
     var reservedLines: HeroLines = []
     /// Names the regular cut "Standard" when the title is known to have other editions.
     var namesStandardEdition = false
+    /// Small label set right above the logo, such as why the home features the item.
+    var eyebrow: String?
 
     var body: some View {
         HeroContentTransitionView(item: media) { media in
             MediaHeroDetailsView(
                 media: media,
+                eyebrow: eyebrow,
                 logoPath: media.preferredLogoPath ?? fallbackLogoPath,
                 badges: badges ?? media.playbackResolutionLabel.map { [$0] } ?? [],
                 onExpandSummary: onExpandSummary,
@@ -94,6 +101,7 @@ struct HeroLines: OptionSet {
 private struct MediaHeroDetailsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     let media: MediaItem
+    let eyebrow: String?
     let logoPath: String?
     let badges: [String]
     let onExpandSummary: ((MediaItem) -> Void)?
@@ -104,8 +112,28 @@ private struct MediaHeroDetailsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Fixed height so a tall logo or a two-line title never moves what follows during hero transitions.
-            TitleLogoView(media: media, logoPath: logoPath, maxSize: LayoutMetrics.heroLogoMaxSize)
-                .frame(height: LayoutMetrics.heroLogoMaxSize.height, alignment: .bottomLeading)
+            if let eyebrow {
+                // The eyebrow sits on the logo itself, however short it is, within the same fixed room.
+                VStack(alignment: .leading, spacing: 12) {
+                    eyebrowText(eyebrow)
+                    Color.clear.frame(height: LayoutMetrics.heroLogoMaxSize.height)
+                }
+                .hidden()
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        eyebrowText(eyebrow)
+                        TitleLogoView(
+                            media: media,
+                            logoPath: logoPath,
+                            maxSize: LayoutMetrics.heroLogoMaxSize,
+                            hugsLogo: true,
+                        )
+                    }
+                }
+            } else {
+                TitleLogoView(media: media, logoPath: logoPath, maxSize: LayoutMetrics.heroLogoMaxSize)
+                    .frame(height: LayoutMetrics.heroLogoMaxSize.height, alignment: .bottomLeading)
+            }
 
             if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
                 Text(secondary)
@@ -132,6 +160,12 @@ private struct MediaHeroDetailsView: View {
 
             summary
         }
+    }
+
+    private func eyebrowText(_ eyebrow: String) -> some View {
+        Text(eyebrow)
+            .eyebrowStyle()
+            .foregroundStyle(.textSecondary)
     }
 
     private func lineSpacer(font: Font) -> some View {

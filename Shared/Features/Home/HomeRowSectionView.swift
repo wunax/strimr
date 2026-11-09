@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HomeRowSectionView: View {
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.mediaCardActions) private var mediaCardActions
     let row: HomeRow
     let showsLabels: Bool
     let onViewAll: (Hub) -> Void
@@ -17,8 +19,25 @@ struct HomeRowSectionView: View {
                 items: row.items,
                 showsLabels: showsLabels,
                 onViewAll: carouselViewAllAction,
-                onSelectMedia: onSelectMedia,
+                onSelectMedia: select,
             )
+            .environment(\.mediaCardOffersDetails, playsOnSelect)
+            .environment(\.mediaCardIsInContinueWatching, row.kind == .continueWatching)
+        }
+    }
+
+    private var playsOnSelect: Bool {
+        row.kind == .continueWatching && settingsManager.interface.continueWatchingAction == .play
+    }
+
+    private func select(_ media: MediaDisplayItem) {
+        if playsOnSelect,
+           let item = media.playableItem,
+           let mediaCardActions
+        {
+            mediaCardActions.play(item, false)
+        } else {
+            onSelectMedia(media)
         }
     }
 

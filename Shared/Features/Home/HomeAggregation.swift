@@ -80,8 +80,7 @@ enum HomeAggregation {
     ) -> HomeRow? {
         let sources = homes.compactMap { home in home.rows.first { $0.kind == kind } }
         guard let first = sources.first else { return nil }
-        let candidates = sources.flatMap(\.items)
-        let ordered = sortsByLastViewed ? sortedByLastViewed(candidates) : candidates
+        let ordered = sortsByLastViewed ? sortedByLastViewed(sources.map(\.items)) : sources.flatMap(\.items)
         let items = MediaMatching.group(ordered) { matchDescriptor(of: $0) }.compactMap { group in
             preferredCopy(in: group, localPlaybackDate: localPlaybackDate)
         }
@@ -116,9 +115,20 @@ enum HomeAggregation {
         return local.max { $0.1 < $1.1 }?.0 ?? group.first
     }
 
-    private static func sortedByLastViewed(_ items: [MediaDisplayItem]) -> [MediaDisplayItem] {
-        items.enumerated().sorted { lhs, rhs in
-            switch (lhs.element.playableItem?.lastViewedAt, rhs.element.playableItem?.lastViewedAt) {
+    /// An item never played, such as a next episode, keeps its place in its server's order: it takes the date of the
+    /// item before it, or of the first dated item when it leads.
+    private static func sortedByLastViewed(_ sources: [[MediaDisplayItem]]) -> [MediaDisplayItem] {
+        let dated = sources.flatMap { items in
+            let dates = items.map { $0.playableItem?.lastViewedAt }
+            let firstDate = dates.lazy.compactMap(\.self).first
+            var previousDate: Date?
+            return zip(items, dates).map { item, date in
+                previousDate = date ?? previousDate
+                return (item: item, date: previousDate ?? firstDate)
+            }
+        }
+        return dated.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.date, rhs.element.date) {
             case let (left?, right?) where left != right:
                 left > right
             case (_?, nil):
@@ -128,7 +138,7 @@ enum HomeAggregation {
             default:
                 lhs.offset < rhs.offset
             }
-        }.map(\.element)
+        }.map(\.element.item)
     }
 
     private static func matchDescriptor(of item: MediaDisplayItem) -> MediaMatchDescriptor {

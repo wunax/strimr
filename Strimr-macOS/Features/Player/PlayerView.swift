@@ -74,6 +74,9 @@ struct PlayerView: View {
     @State private var subtitleTracks: [PlayerTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    /// Set once the media is loaded, and changes with each new media, which starts the automatic subtitle search.
+    @State private var automaticSubtitleSearchKey: String?
+    @State private var automaticSubtitleToast: Toast?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var shouldRestoreTracksAfterLoad = false
@@ -88,7 +91,9 @@ struct PlayerView: View {
     @State private var participatesInSharePlay = false
     @State private var isShowingChapterPopover = false
     @State private var isShowingInfoPopover = false
+    @State private var isShowingSubtitleAppearance = false
     @State private var isShowingPlayQueue = false
+    @State private var isShowingLiveChannels = false
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
@@ -103,6 +108,7 @@ struct PlayerView: View {
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var showsPlaybackStatistics = false
 
     private let presentationID: UUID
     private let controlsHideDelay: TimeInterval = 3
@@ -129,13 +135,16 @@ struct PlayerView: View {
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: controlsVisible ? 96 : 48,
+                controlsInset: controlsVisible ? 96 : 0,
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+
+            LiveTVPlayerBackdrop(viewModel: viewModel, hidesBanner: isShowingLiveChannels || controlsVisible)
 
             Color.clear
                 .contentShape(Rectangle())
@@ -146,11 +155,26 @@ struct PlayerView: View {
                                 .onEnded { toggleControlsVisibility() },
                         ),
                 )
+                .contextMenu {
+                    Toggle(isOn: $showsPlaybackStatistics) {
+                        Label("player.statistics.title", systemImage: "chart.bar.xaxis")
+                    }
+                }
 
             if viewModel.isLoading || viewModel.isBuffering || isRecoveringServerAccess {
                 ProgressView()
                     .controlSize(.large)
                     .tint(.white)
+            }
+
+            if showsPlaybackStatistics {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, controlsVisible ? 76 : 20)
+                    .padding(.bottom, 12)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
+                    .transition(.opacity)
             }
 
             if controlsVisible, !isShowingPlayQueue, !nextEpisodePresentation.isPresented,
@@ -232,6 +256,12 @@ struct PlayerView: View {
             if sleepTimer.isPromptPresented {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
+
+            LiveTVChannelPanelOverlay(
+                viewModel: viewModel,
+                isPresented: $isShowingLiveChannels,
+                onSelectChannel: switchLiveChannel(to:),
+            )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
         .simultaneousGesture(
@@ -261,9 +291,21 @@ struct PlayerView: View {
                             ratingKey: viewModel.currentRatingKey,
                         )
                     }
+                    if loadedURL == nil {
+                        playbackRate = viewModel.initialPlaybackRate(
+                            settings: settingsManager.playback,
+                            isSharePlay: sharePlayCoordinator.isInSession,
+                        )
+                    }
+                    viewModel.liveRoutePreference = settingsManager.playback
+                        .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
                     startPlaybackIfNeeded(viewModel.playbackURL)
                 }
+                .task(id: automaticSubtitleSearchKey) {
+                    await searchMissingSubtitle()
+                }
+                .toast($automaticSubtitleToast)
                 .onDisappear {
                     nextEpisodePresentation.cancel()
                     sleepTimer.cancel()
@@ -340,6 +382,13 @@ struct PlayerView: View {
                     }
                 }
                 .onChange(of: isShowingChapterPopover) { _, isShowing in
+                    if isShowing {
+                        hideControlsWorkItem?.cancel()
+                    } else {
+                        showControls(temporarily: true)
+                    }
+                }
+                .onChange(of: isShowingSubtitleAppearance) { _, isShowing in
                     if isShowing {
                         hideControlsWorkItem?.cancel()
                     } else {
@@ -563,6 +612,9 @@ struct PlayerView: View {
                             chapters: settingsManager.playback.showChaptersOnTimeline
                                 ? viewModel.chapters
                                 : [],
+                            skipSegments: settingsManager.playback.showSkipSegmentsOnTimeline
+                                ? viewModel.markers
+                                : [],
                             duration: viewModel.duration,
                             position: scrubPosition,
                             bufferedEnd: viewModel.position + viewModel.bufferedAhead,
@@ -640,18 +692,34 @@ struct PlayerView: View {
             volumeControl
 
             if viewModel.isLivePlayback {
-                Button {
-                    playerController.seekToLiveEdge()
-                } label: {
-                    Label(
-                        playerController.behindLiveSeconds < 2
-                            ? String(localized: "livetv.player.live")
-                            : String(localized: "livetv.player.goLive"),
-                        systemImage: "dot.radiowaves.left.and.right",
+                LiveTVLiveBadge(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                )
+                if !LiveTVLiveBadge.isLive(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                ) {
+                    Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right") {
+                        playerController.seekToLiveEdge()
+                    }
+                    .actionButtonStyle(.primary)
+                }
+                PlayerIconButton(
+                    systemName: "list.bullet.rectangle",
+                    accessibilityLabel: String(localized: "livetv.player.channels"),
+                    size: .small,
+                ) {
+                    isShowingLiveChannels = true
+                }
+                if viewModel.lastLiveChannel != nil {
+                    PlayerIconButton(
+                        systemName: "arrow.uturn.backward",
+                        accessibilityLabel: String(localized: "livetv.player.lastChannel"),
+                        size: .small,
+                        action: switchToLastLiveChannel,
                     )
                 }
-                .actionButtonStyle(.primary)
-                .disabled(playerController.behindLiveSeconds < 2)
             }
 
             if viewModel.hasNavigableChapters {
@@ -818,6 +886,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private var audioMenu: some View {
         Menu {
             if audioTracks.isEmpty {
@@ -840,10 +918,39 @@ struct PlayerView: View {
             }
             Divider()
             offsetMenuButton(.audio)
+            Divider()
+            Section {
+                Toggle(isOn: Binding(
+                    get: { settingsManager.playback.nightMode },
+                    set: { setNightMode($0) },
+                )) {
+                    Label("settings.playback.nightMode", systemImage: "moon.stars")
+                }
+                Picker(selection: Binding(
+                    get: { settingsManager.playback.dialogueBoost },
+                    set: { selectDialogueBoost($0) },
+                )) {
+                    ForEach(DialogueBoost.allCases) { boost in
+                        Text(boost.title).tag(boost)
+                    }
+                } label: {
+                    Label("settings.playback.dialogueBoost", systemImage: "person.wave.2")
+                }
+            } header: {
+                if playerController.isAudioShapingAvailable {
+                    Text("settings.playback.audioEnhancements")
+                } else {
+                    Text("player.settings.audioEnhancements.unavailable")
+                }
+            }
         } label: {
             Label("player.settings.audio", systemImage: "waveform")
                 .labelStyle(.iconOnly)
         }
+    }
+
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
     }
 
     private var subtitleMenu: some View {
@@ -886,6 +993,16 @@ struct PlayerView: View {
                     playerTrackLabel(track)
                 }
             }
+            Divider()
+            Button {
+                isShowingSubtitleAppearance = true
+            } label: {
+                Text("player.settings.subtitles.appearance")
+                if let message = subtitleAppearanceAvailability.message {
+                    Text(message)
+                }
+            }
+            .disabled(!subtitleAppearanceAvailability.isAvailable)
             if viewModel.canSearchSubtitles {
                 Divider()
                 Button {
@@ -908,6 +1025,9 @@ struct PlayerView: View {
         } label: {
             Label("player.settings.subtitles", systemImage: "captions.bubble")
                 .labelStyle(.iconOnly)
+        }
+        .popover(isPresented: $isShowingSubtitleAppearance, arrowEdge: .bottom) {
+            PlayerSubtitleAppearancePopover(availability: subtitleAppearanceAvailability)
         }
         .overlay(alignment: .topTrailing) {
             if playerController.subtitleDelayMilliseconds != 0 {
@@ -1071,6 +1191,9 @@ struct PlayerView: View {
         sleepTimer.onBoundaryPause = {
             showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
         }
+        if !isSharePlayPlayback {
+            sleepTimer.applyDefault(settingsManager.playback.defaultSleepTimer, isLive: viewModel.isLivePlayback)
+        }
     }
 
     private func togglePlayPauseFromKeyboard() {
@@ -1158,6 +1281,7 @@ struct PlayerView: View {
             startPosition: position,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1169,30 +1293,53 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !wasPaused,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
         playerController.setPlaybackRate(playbackRate)
     }
 
+    private func activateExternalSubtitle(_ subtitle: PlayerExternalSubtitle) throws {
+        let id = try playerController.registerExternalSubtitleIfNeeded(
+            subtitle,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
+        playerController.setSubtitleDelay(milliseconds: 0)
+        selectedSubtitleTrackID = id
+        let tracks = viewModel.isTranscoding
+            ? viewModel.sourcePlayerTracks()
+            : playerController.trackList()
+        audioTracks = tracks.filter { $0.type == .audio }
+        subtitleTracks = tracks.filter { $0.type == .subtitle }
+    }
+
+    private func searchMissingSubtitle() async {
+        guard automaticSubtitleSearchKey != nil, !isSharePlayPlayback else { return }
+        let searchingViewModel = viewModel
+        guard let outcome = await searchingViewModel.searchMissingSubtitle(settings: settingsManager.playback),
+              searchingViewModel === viewModel,
+              !Task.isCancelled
+        else { return }
+
+        if case let .attached(subtitle, language) = outcome {
+            do {
+                try activateExternalSubtitle(subtitle)
+            } catch {
+                ErrorReporter.capture(error)
+                automaticSubtitleToast = AutomaticSubtitleSearchOutcome.failed(language: language).toast
+                return
+            }
+        }
+        automaticSubtitleToast = outcome.toast
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
-            let id = try playerController.registerExternalSubtitleIfNeeded(
-                subtitle,
-                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-            )
-            playerController.setSubtitleDelay(milliseconds: 0)
-            selectedSubtitleTrackID = id
-            let tracks = viewModel.isTranscoding
-                ? viewModel.sourcePlayerTracks()
-                : playerController.trackList()
-            audioTracks = tracks.filter { $0.type == .audio }
-            subtitleTracks = tracks.filter { $0.type == .subtitle }
+            try activateExternalSubtitle(subtitle)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -1275,6 +1422,9 @@ struct PlayerView: View {
             }
             .keyboardShortcut("i", modifiers: [])
 
+            Button(action: { showsPlaybackStatistics.toggle() }) { EmptyView() }
+                .keyboardShortcut("s", modifiers: [])
+
             Button {
                 guard !dismissPauseScreen() else { return }
                 keyboardSeek(by: -seekBackwardInterval)
@@ -1355,8 +1505,12 @@ struct PlayerView: View {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: AppModel.playerWindowID)
         }
+        playerController.onLiveDemuxFailure = { error in
+            fallBackToServerTranscode(after: error)
+        }
         playerController.onMediaLoaded = {
             viewModel.confirmLiveChannelSwitch()
+            automaticSubtitleSearchKey = viewModel.currentRatingKey
             let tracks = playerController.trackList()
             audioTracks = tracks.filter { $0.type == .audio }
             subtitleTracks = tracks.filter { $0.type == .subtitle }
@@ -1431,6 +1585,7 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: viewModel.preferredAudioStreamFFIndex,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1442,10 +1597,9 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !isSharePlayPlayback,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1573,10 +1727,41 @@ struct PlayerView: View {
         playerController.pause()
     }
 
-    private func switchLiveChannel(by offset: Int) {
+    private func fallBackToServerTranscode(after error: Error) {
+        LiveTVErrorReporting.capture(error, route: viewModel.liveRoute)
         Task {
             do {
-                let url = try await viewModel.switchLiveChannel(by: offset)
+                guard let url = try await viewModel.fallBackToServerTranscode() else {
+                    showError(String(localized: "livetv.playback.error"))
+                    return
+                }
+                playerController.stop()
+                loadedURL = nil
+                startPlaybackIfNeeded(url)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showError(String(localized: "livetv.playback.error"))
+            }
+        }
+    }
+
+    private func switchLiveChannel(by offset: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(by: offset) }
+    }
+
+    private func switchLiveChannel(to index: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
+    }
+
+    private func switchToLastLiveChannel() {
+        performLiveSwitch { try await viewModel.switchToLastLiveChannel() }
+    }
+
+    private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {
+        Task {
+            do {
+                let url = try await switching()
                 playerController.stop()
                 loadedURL = nil
                 startPlaybackIfNeeded(url)
@@ -1600,6 +1785,10 @@ struct PlayerView: View {
     }
 
     private func handlePlaybackError(_ message: String) async {
+        // The engine can fail on a read from the lost server before the buffer runs out, while it is not stalled yet.
+        if isStreamingServerMarkedUnreachable, handleStreamingServerLost() {
+            return
+        }
         guard !isRecoveringServerAccess else { return }
         isRecoveringServerAccess = true
         defer { isRecoveringServerAccess = false }
@@ -1650,6 +1839,7 @@ struct PlayerView: View {
                     forProviderStreamID: pendingRecoveryAudioProviderStreamID,
                 ),
                 losslessAudio: settingsManager.playback.losslessAudio,
+                readAhead: settingsManager.playback.readAhead,
                 spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
                 styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
                 mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1661,10 +1851,9 @@ struct PlayerView: View {
                 settingsManager.playback.generateMissingScrubThumbnailPreviews,
                 showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                     && !viewModel.isTranscoding,
-                isLive: viewModel.isLivePlayback,
-                nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-                dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+                live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
                 audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+                audioShaping: settingsManager.playback.audioShaping,
                 autoplay: !isSharePlay,
                 nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
             )
@@ -1724,20 +1913,26 @@ struct PlayerView: View {
         playerController.stop()
     }
 
-    /// The stream is considered lost when there is no network at all, or when its server is unreachable and the
-    /// player stalls; a single failed side request must not interrupt a stream that still plays.
+    /// The stream is considered lost only once its server is unreachable and the player stalls, so a network drop
+    /// plays through what is already buffered and a single failed side request does not interrupt playback.
     private var isStreamingServerUnreachable: Bool {
-        guard let server = viewModel.streamingServer, offlineCoordinator.isUnreachable(server) else { return false }
-        return !offlineCoordinator.availability.hasNetworkPath || playerController.isBuffering
+        isStreamingServerMarkedUnreachable && playerController.isBuffering
+    }
+
+    private var isStreamingServerMarkedUnreachable: Bool {
+        guard let server = viewModel.streamingServer else { return false }
+        return offlineCoordinator.isUnreachable(server)
     }
 
     /// Streaming cannot continue without its server: stop cleanly and offer the downloaded copy when there is one.
-    private func handleStreamingServerLost() {
-        guard !(participatesInSharePlay && sharePlayCoordinator.isInSession) else { return }
+    @discardableResult
+    private func handleStreamingServerLost() -> Bool {
+        guard !(participatesInSharePlay && sharePlayCoordinator.isInSession) else { return false }
         playerController.pause()
         offlineHandoff = viewModel.prepareOfflineHandoff()
         viewModel.handleStop()
         isShowingOfflineInterruption = true
+        return true
     }
 
     private func closePlayer(force: Bool = false) {
@@ -1902,6 +2097,7 @@ struct PlayerView: View {
             && sheetPresentation.item == nil
             && !isShowingChapterPopover
             && !isShowingInfoPopover
+            && !isShowingSubtitleAppearance
             && !isShowingPlayQueue
             && activeOffsetBar == nil
             && !nextEpisodePresentation.isPresented
@@ -1925,6 +2121,7 @@ struct PlayerView: View {
             !isShowingError,
             !isShowingChapterPopover,
             !isShowingInfoPopover,
+            !isShowingSubtitleAppearance,
             activeOffsetBar == nil
         else {
             return
@@ -1946,6 +2143,7 @@ struct PlayerView: View {
                     && !isShowingError
                     && !isShowingChapterPopover
                     && !isShowingInfoPopover
+                    && !isShowingSubtitleAppearance
                     && activeOffsetBar == nil
             )
         else {

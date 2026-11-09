@@ -1,612 +1,317 @@
 import SwiftUI
 
-/// A toggle pill shown first in the controls row, independent of the server-side type, filter and sort controls.
-struct LibraryBrowseToggle {
-    let title: String
-    let systemImage: String
-    let isSelected: Bool
-    let action: () -> Void
-}
+/// One fixed row of controls (type, filters, sort, view options) and, when filters apply, a summary line of them.
+struct LibraryBrowseControlsView<Filters: View>: View {
+    typealias ActiveFilter = LibraryBrowseControlsViewModel.ActiveFilter
 
-extension LibraryBrowseToggle {
-    /// Shows the layout the button switches to, like the Photos toolbar toggles.
-    static func layout(
-        current: LibraryBrowseLayout,
-        onChange: @escaping (LibraryBrowseLayout) -> Void,
-    ) -> LibraryBrowseToggle {
-        let target: LibraryBrowseLayout = current == .grid ? .list : .grid
-        return switch target {
-        case .grid:
-            LibraryBrowseToggle(
-                title: String(localized: "library.browse.layout.grid"),
-                systemImage: "square.grid.2x2",
-                isSelected: false,
-                action: { onChange(.grid) },
-            )
-        case .list:
-            LibraryBrowseToggle(
-                title: String(localized: "library.browse.layout.list"),
-                systemImage: "list.bullet",
-                isSelected: false,
-                action: { onChange(.list) },
-            )
-        }
-    }
-
-    static func folderTree(isSelected: Bool, action: @escaping () -> Void) -> LibraryBrowseToggle {
-        LibraryBrowseToggle(
-            title: String(localized: "library.browse.folders.tree"),
-            systemImage: "list.bullet.indent",
-            isSelected: isSelected,
-            action: action,
-        )
-    }
-}
-
-struct LibraryBrowseControlsView: View {
-    @Bindable var viewModel: LibraryBrowseControlsViewModel
-    let showsBackButton: Bool
-    let onNavigateBack: () -> Void
-    let leadingToggle: LibraryBrowseToggle?
+    let viewModel: LibraryBrowseControlsViewModel
     let showsServerControls: Bool
-    let folderTreeToggle: LibraryBrowseToggle?
-    /// Icon-only toggle shown last in the controls row; its title is used as the accessibility label.
-    let layoutToggle: LibraryBrowseToggle?
-    let itemCount: Int?
+    var showsBackButton = false
+    var onNavigateBack: () -> Void = {}
+    let showsFiltersButton: Bool
+    let filterCount: Int
+    @Binding var isFiltersPresented: Bool
+    /// Shown first in the summary, since it changes where the items come from.
+    var downloadsFilter: ActiveFilter?
+    var canReset = false
+    var onReset: () -> Void = {}
+    let viewMode: LibraryBrowseViewMode
+    let viewModes: [LibraryBrowseViewMode]
+    let onSelectViewMode: (LibraryBrowseViewMode) -> Void
+    var itemCount: Int?
+    @ViewBuilder let filters: () -> Filters
 
-    init(
-        viewModel: LibraryBrowseControlsViewModel,
-        showsBackButton: Bool = false,
-        onNavigateBack: @escaping () -> Void = {},
-        leadingToggle: LibraryBrowseToggle? = nil,
-        showsServerControls: Bool = true,
-        folderTreeToggle: LibraryBrowseToggle? = nil,
-        layoutToggle: LibraryBrowseToggle? = nil,
-        itemCount: Int? = nil,
-    ) {
-        self.viewModel = viewModel
-        self.showsBackButton = showsBackButton
-        self.onNavigateBack = onNavigateBack
-        self.leadingToggle = leadingToggle
-        self.showsServerControls = showsServerControls
-        self.folderTreeToggle = folderTreeToggle
-        self.layoutToggle = layoutToggle
-        self.itemCount = itemCount
+    /// Below this width, the filters button drops its title so the row never has to scroll.
+    private static var compactRowWidth: CGFloat {
+        460
     }
+
+    @State private var rowWidth: CGFloat = .infinity
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            topRow
+        VStack(alignment: .leading, spacing: summarySpacing) {
+            controlsRow(isCompact: rowWidth < Self.compactRowWidth)
+                .padding(rowPadding)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
-            if showsServerControls, let panel = viewModel.activePanel {
-                optionsRow(for: panel)
+            if hasSummary {
+                summaryRow
             }
-
-            if let itemCount, itemCount > 0 {
-                Text(String(localized: "library.browse.count.items \(itemCount)"))
-                    .font(.facts)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, rowPadding.leading)
-            }
-        }
-        .taskPresentation(item: $viewModel.activeFilterSheet, style: .contextual) { sheet in
-            LibraryBrowseFilterSheetView(viewModel: viewModel, filter: sheet.filter)
-        }
-        .taskPresentation(item: $viewModel.activeJellyfinFilterSheet, style: .contextual) { filter in
-            JellyfinLibraryBrowseFilterSheetView(viewModel: viewModel, filter: filter)
         }
     }
 
-    private var topRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: LayoutMetrics.chipSpacing) {
-                if let leadingToggle {
-                    LibraryBrowsePillButton(
-                        title: leadingToggle.title,
-                        systemImage: leadingToggle.systemImage,
-                        isSelected: leadingToggle.isSelected,
-                        showsDisclosure: false,
-                        action: leadingToggle.action,
-                    )
-                }
-                if showsServerControls {
-                    serverPills
-                }
-                if let folderTreeToggle {
-                    LibraryBrowsePillButton(
-                        title: folderTreeToggle.title,
-                        systemImage: folderTreeToggle.systemImage,
-                        isSelected: folderTreeToggle.isSelected,
-                        showsDisclosure: false,
-                        action: folderTreeToggle.action,
-                    )
-                }
-                if let layoutToggle {
-                    LibraryBrowsePillButton(
-                        title: layoutToggle.title,
-                        systemImage: layoutToggle.systemImage,
-                        isSelected: layoutToggle.isSelected,
-                        showsDisclosure: false,
-                        showsTitle: false,
-                        action: layoutToggle.action,
-                    )
-                }
-            }
-            .padding(rowPadding)
-        }
-        .mouseDragScrolling()
+    private var activeFilters: [ActiveFilter] {
+        (downloadsFilter.map { [$0] } ?? []) + (showsServerControls ? viewModel.activeFilters : [])
     }
 
-    @ViewBuilder
-    private var serverPills: some View {
-        if showsBackButton {
-            LibraryBrowsePillButton(
-                title: String(localized: "library.browse.folders.back"),
-                systemImage: "chevron.left",
-                isSelected: false,
-                showsDisclosure: false,
-                action: onNavigateBack,
-            )
-        }
-        if viewModel.hasDisplayTypes {
-            LibraryBrowsePillButton(
-                title: viewModel.typePillTitle,
-                systemImage: "square.grid.2x2",
-                isSelected: viewModel.activePanel == .type,
-                showsDisclosure: true,
-            ) {
-                viewModel.togglePanel(.type)
-            }
-        }
+    private var hasSummary: Bool {
+        !activeFilters.isEmpty || (itemCount ?? 0) > 0
+    }
 
-        if viewModel.showsFilterPill {
-            LibraryBrowsePillButton(
-                title: viewModel.filterPillTitle,
-                systemImage: "line.3.horizontal.decrease.circle",
-                isSelected: viewModel.activePanel == .filters,
-                showsDisclosure: true,
-            ) {
-                viewModel.togglePanel(.filters)
+    private func controlsRow(isCompact: Bool) -> some View {
+        HStack(spacing: LayoutMetrics.chipSpacing) {
+            if showsBackButton {
+                Button(action: onNavigateBack) {
+                    Image(systemName: "chevron.left")
+                }
+                .modifier(BrowseControlStyle(isActive: false))
+                .accessibilityLabel(Text("library.browse.folders.back"))
             }
-        }
-
-        if viewModel.showsSortPill {
-            LibraryBrowsePillButton(
-                title: viewModel.sortPillTitle,
-                systemImage: "arrow.up.arrow.down.circle",
-                isSelected: viewModel.activePanel == .sort,
-                showsDisclosure: true,
-            ) {
-                viewModel.togglePanel(.sort)
+            if showsServerControls, viewModel.hasDisplayTypes {
+                typeMenu
             }
-        }
-
-        if viewModel.canResetSelection {
-            LibraryBrowsePillButton(
-                title: String(localized: "library.browse.filters.reset"),
-                systemImage: "arrow.counterclockwise",
-                isSelected: false,
-                showsDisclosure: false,
-                action: viewModel.resetSelection,
-            )
+            if showsFiltersButton {
+                filtersButton(isCompact: isCompact)
+            }
+            if showsServerControls, viewModel.showsSortControl {
+                sortMenu
+            }
+            Spacer(minLength: 0)
+            if viewModes.count > 1 {
+                viewMenu
+            }
         }
     }
 
-    @ViewBuilder
-    private func optionsRow(for panel: LibraryBrowseControlsViewModel.Panel) -> some View {
-        switch panel {
-        case .type:
-            typeOptions
-        case .filters:
-            filterOptions
-        case .sort:
-            sortOptions
-        }
-    }
-
-    private var typeOptions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: LayoutMetrics.chipSpacing) {
+    private var typeMenu: some View {
+        Menu {
+            Picker(selection: typeSelection) {
                 ForEach(viewModel.displayTypes) { type in
-                    LibraryBrowsePillButton(
-                        title: type.title,
-                        systemImage: nil,
-                        isSelected: type.key == viewModel.selectedDisplayType?.key,
-                        showsDisclosure: false,
-                    ) {
-                        viewModel.selectDisplayType(type)
-                    }
+                    Text(verbatim: type.title).tag(type.key)
+                }
+            } label: {
+                Text("library.browse.type.title")
+            }
+            .pickerStyle(.inline)
+        } label: {
+            menuLabel(title: viewModel.typeTitle, systemImage: nil)
+        }
+        .modifier(BrowseControlStyle(isActive: false, isMenu: true))
+    }
+
+    private func filtersButton(isCompact: Bool) -> some View {
+        Button {
+            isFiltersPresented.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease")
+                if !isCompact || filterCount == 0 {
+                    Text("library.browse.filters.title")
+                }
+                if filterCount > 0 {
+                    Text(verbatim: String(filterCount))
+                        .monospacedDigit()
                 }
             }
-            .padding(rowPadding)
         }
-        .mouseDragScrolling()
+        .modifier(BrowseControlStyle(isActive: filterCount > 0))
+        #if os(tvOS)
+            .taskPresentation(isPresented: $isFiltersPresented, style: .contextual, content: filters)
+        #else
+            // A popover rather than an inspector: an inspector inside a pushed destination resets the navigation
+            // stack on macOS. On iPhone the popover becomes a sheet.
+            .popover(isPresented: $isFiltersPresented, arrowEdge: .bottom) {
+                filters()
+                    .frame(minWidth: 340, idealWidth: 380, minHeight: 440, idealHeight: 520)
+                #if os(iOS)
+                    .presentationDetents([.medium, .large])
+                    .presentationCompactAdaptation(.sheet)
+                #endif
+            }
+        #endif
+            .accessibilityLabel(Text("library.browse.filters.title"))
+            .accessibilityValue(filterCount > 0 ? Text(verbatim: String(filterCount)) : Text(verbatim: ""))
     }
 
-    private var filterOptions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: LayoutMetrics.chipSpacing) {
-                if viewModel.isJellyfinBrowse {
-                    ForEach(LibraryBrowseControlsViewModel.JellyfinFilter.allCases) { filter in
-                        let isSelected = viewModel.jellyfinFilterIsSelected(filter)
-                        LibraryBrowsePillButton(
-                            title: viewModel.jellyfinFilterLabel(filter),
-                            systemImage: isSelected && filter.isBoolean ? "checkmark" : nil,
-                            isSelected: isSelected,
-                            showsDisclosure: !filter.isBoolean,
-                        ) {
-                            viewModel.toggleJellyfinFilter(filter)
-                        }
-                    }
-                } else {
-                    ForEach(viewModel.availableFilters, id: \.filter) { filter in
-                        let selection = viewModel.filterSelection(for: filter)
-                        let isSelected = selection?.isEnabled == true
-                        let label = filterLabel(for: filter, selection: selection)
+    private var sortMenu: some View {
+        Menu {
+            Picker(selection: sortSelection) {
+                ForEach(viewModel.sortChoices) { choice in
+                    Text(verbatim: choice.title).tag(choice.id)
+                }
+            } label: {
+                Text("library.browse.sort.title")
+            }
+            .pickerStyle(.inline)
 
-                        LibraryBrowsePillButton(
-                            title: label,
-                            systemImage: isSelected ? "checkmark" : nil,
-                            isSelected: isSelected,
-                            showsDisclosure: !filter.isBoolean,
-                        ) {
-                            viewModel.toggleFilter(filter)
+            if viewModel.isSortAscending != nil {
+                Picker(selection: sortDirection) {
+                    Label("library.browse.sort.direction.asc", systemImage: "arrow.up").tag(true)
+                    Label("library.browse.sort.direction.desc", systemImage: "arrow.down").tag(false)
+                } label: {
+                    Text("library.browse.sort.direction")
+                }
+                .pickerStyle(.inline)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: sortImage)
+                Text(verbatim: viewModel.selectedSortTitle ?? String(localized: "library.browse.sort.title"))
+            }
+        }
+        // The only control allowed to shrink: a long sort name truncates instead of pushing the row off screen.
+        .modifier(BrowseControlStyle(isActive: false, isMenu: true, isFlexible: true))
+        .accessibilityLabel(Text("library.browse.sort.title"))
+        .accessibilityValue(Text(verbatim: viewModel.selectedSortTitle ?? ""))
+    }
+
+    private var viewMenu: some View {
+        Menu {
+            Picker(selection: viewModeSelection) {
+                ForEach(viewModes) { mode in
+                    Label(mode.title, systemImage: mode.systemImage).tag(mode)
+                }
+            } label: {
+                Text("library.browse.view.title")
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Image(systemName: viewMode.systemImage)
+        }
+        .modifier(BrowseControlStyle(isActive: false, isMenu: true))
+        .accessibilityLabel(Text("library.browse.view.title"))
+        .accessibilityValue(Text(viewMode.title))
+    }
+
+    private func menuLabel(title: String, systemImage: String?) -> some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+            }
+            Text(verbatim: title)
+            Image(systemName: "chevron.down")
+                .font(.caption2)
+                .opacity(0.7)
+        }
+    }
+
+    private var sortImage: String {
+        switch viewModel.isSortAscending {
+        case true?: "arrow.up"
+        case false?: "arrow.down"
+        case nil: "arrow.up.arrow.down"
+        }
+    }
+
+    private var summaryRow: some View {
+        #if os(tvOS)
+            // Plain text: removable chips would add a focus row between the controls and the grid.
+            Text(verbatim: summaryText)
+                .font(.facts)
+                .foregroundStyle(.textSecondary)
+                .lineLimit(1)
+                .padding(.horizontal, rowPadding.leading)
+        #else
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
+                    if let itemCount, itemCount > 0 {
+                        Text(String(localized: "library.browse.count.items \(itemCount)"))
+                            .font(.facts)
+                            .foregroundStyle(.textSecondary)
+                    }
+                    ForEach(activeFilters) { filter in
+                        Button(action: filter.remove) {
+                            HStack(spacing: 6) {
+                                Text(verbatim: filter.title)
+                                Image(systemName: "xmark")
+                                    .font(.caption2.weight(.bold))
+                            }
                         }
+                        .buttonStyle(.chip(isSelected: true))
+                        .accessibilityLabel(Text("library.browse.filters.remove \(filter.title)"))
+                    }
+                    if canReset, !activeFilters.isEmpty {
+                        Button("library.browse.filters.reset", action: onReset)
+                            .buttonStyle(.plain)
+                            .font(.facts.weight(.semibold))
+                            .foregroundStyle(.textSecondary)
                     }
                 }
+                .padding(rowPadding)
             }
-            .padding(rowPadding)
+            .mouseDragScrolling()
+        #endif
+    }
+
+    private var summaryText: String {
+        var parts = activeFilters.map(\.title)
+        if let itemCount, itemCount > 0 {
+            parts.append(String(localized: "library.browse.count.items \(itemCount)"))
         }
-        .mouseDragScrolling()
+        return parts.joined(separator: " · ")
     }
 
-    private var sortOptions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: LayoutMetrics.chipSpacing) {
-                if viewModel.isJellyfinBrowse {
-                    ForEach(viewModel.jellyfinSortOptions) { sort in
-                        let isSelected = viewModel.browseSessionSort == sort.id
-                        LibraryBrowsePillButton(
-                            title: sort.title,
-                            systemImage: isSelected ? viewModel.jellyfinSortDirectionImage : nil,
-                            isSelected: isSelected,
-                            showsDisclosure: false,
-                        ) {
-                            viewModel.toggleJellyfinSort(sort)
-                        }
-                    }
-                } else {
-                    ForEach(viewModel.availableSorts, id: \.key) { sort in
-                        let selection = viewModel.selectedSort
-                        let isSelected = selection?.sort.key == sort.key
-                        let systemImage = sortDirectionImage(for: selection, sort: sort)
-
-                        LibraryBrowsePillButton(
-                            title: sort.title,
-                            systemImage: systemImage,
-                            isSelected: isSelected,
-                            showsDisclosure: false,
-                        ) {
-                            viewModel.toggleSort(sort)
-                        }
-                    }
-                }
-            }
-            .padding(rowPadding)
-        }
-        .mouseDragScrolling()
+    private var typeSelection: Binding<String> {
+        Binding(
+            get: { viewModel.selectedDisplayType?.key ?? "" },
+            set: { key in
+                guard let type = viewModel.displayTypes.first(where: { $0.key == key }) else { return }
+                viewModel.selectDisplayType(type)
+            },
+        )
     }
 
-    private func filterLabel(
-        for filter: PlexSectionItemFilter,
-        selection: LibraryBrowseControlsViewModel.FilterSelection?,
-    ) -> String {
-        guard let selection, let option = selection.selectedOption else { return filter.title }
-        return filter.title + ": " + option.title
+    private var sortSelection: Binding<String> {
+        Binding(
+            get: { viewModel.selectedSortID ?? "" },
+            set: { viewModel.selectSort(id: $0) },
+        )
     }
 
-    private func sortDirectionImage(
-        for selection: LibraryBrowseControlsViewModel.SortSelection?,
-        sort: PlexSectionItemSort,
-    ) -> String? {
-        guard let selection, selection.sort.key == sort.key else { return nil }
-        switch selection.direction {
-        case .asc:
-            return "arrow.up"
-        case .desc:
-            return "arrow.down"
-        }
+    private var sortDirection: Binding<Bool> {
+        Binding(
+            get: { viewModel.isSortAscending ?? true },
+            set: { viewModel.setSortAscending($0) },
+        )
     }
 
+    private var viewModeSelection: Binding<LibraryBrowseViewMode> {
+        Binding(get: { viewMode }, set: onSelectViewMode)
+    }
+
+    private var summarySpacing: CGFloat {
+        #if os(tvOS)
+            8
+        #else
+            10
+        #endif
+    }
+
+    /// Room inside the row so focused controls are not clipped as they scale up.
     private var rowPadding: EdgeInsets {
         #if os(tvOS)
-            EdgeInsets(top: 12, leading: 36, bottom: 12, trailing: 36)
+            EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
         #else
             EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
         #endif
     }
 }
 
-private struct LibraryBrowsePillButton: View {
-    let title: String
-    let systemImage: String?
-    let isSelected: Bool
-    let showsDisclosure: Bool
-    var showsTitle = true
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                }
-                if showsTitle {
-                    Text(title)
-                }
-                if showsDisclosure {
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .opacity(0.7)
-                }
-            }
-        }
-        .buttonStyle(.chip(isSelected: isSelected))
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-private struct LibraryBrowseFilterSheetView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Bindable var viewModel: LibraryBrowseControlsViewModel
-    let filter: PlexSectionItemFilter
-
-    var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(filter.title)
-            #if !os(tvOS)
-                .toolbar {
-                    ToolbarItem(placement: leadingToolbarPlacement) {
-                        if viewModel.filterSelection(for: filter) != nil {
-                            Button("library.browse.filters.clear") {
-                                viewModel.clearFilter(filter)
-                                dismiss()
-                            }
-                        }
-                    }
-                    ToolbarItem(placement: trailingToolbarPlacement) {
-                        Button("common.actions.done") {
-                            dismiss()
-                        }
-                    }
-                }
-            #endif
-        }
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 360)
-        #endif
-    }
-
-    private var leadingToolbarPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .cancellationAction
-        #else
-            .topBarLeading
-        #endif
-    }
-
-    private var trailingToolbarPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .confirmationAction
-        #else
-            .topBarTrailing
-        #endif
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        #if os(tvOS)
-            VStack(alignment: .leading, spacing: 16) {
-                headerRow
-                contentBody
-            }
-            .padding(.top, 12)
-        #else
-            contentBody
-        #endif
-    }
-
-    @ViewBuilder
-    private var contentBody: some View {
-        if viewModel.isLoadingOptions(for: filter) {
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("library.browse.filters.loading")
-                    .font(.facts)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if let errorMessage = viewModel.optionsError(for: filter) {
-            ContentUnavailableView(
-                errorMessage,
-                systemImage: "exclamationmark.triangle.fill",
-                description: Text("common.errors.tryAgainLater"),
-            )
-            .symbolRenderingMode(.multicolor)
-        } else if viewModel.options(for: filter).isEmpty {
-            ContentUnavailableView(
-                "common.empty.nothingToShow",
-                systemImage: "line.3.horizontal.decrease.circle",
-            )
-        } else {
-            List {
-                ForEach(viewModel.options(for: filter)) { option in
-                    Button {
-                        viewModel.selectFilterOption(option, for: filter)
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Text(option.title)
-                            Spacer()
-                            if viewModel.filterSelection(for: filter)?.selectedOption?.id == option.id {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.textPrimary)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    #if os(tvOS)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    #endif
-                }
-            }
-            #if os(tvOS)
-            .padding(.horizontal, 16)
-            #endif
-            .listStyle(.plain)
-        }
-    }
-
-    private var headerRow: some View {
-        HStack {
-            if viewModel.filterSelection(for: filter) != nil {
-                Button("library.browse.filters.clear") {
-                    viewModel.clearFilter(filter)
-                    dismiss()
-                }
-            }
-            Spacer()
-            Button("common.actions.done") {
-                dismiss()
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-}
-
-private struct JellyfinLibraryBrowseFilterSheetView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Bindable var viewModel: LibraryBrowseControlsViewModel
-    let filter: LibraryBrowseControlsViewModel.JellyfinFilter
-    @State private var searchText = ""
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                #if os(tvOS)
-                    headerRow
-                #endif
-                content
-            }
-            .navigationTitle(filter.title)
-            #if !os(tvOS)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        if viewModel.jellyfinFilterIsSelected(filter) {
-                            Button("library.browse.filters.clear") {
-                                viewModel.clearJellyfinFilter(filter)
-                            }
-                        }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("common.actions.done") { dismiss() }
-                    }
-                }
-            #endif
-        }
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 420)
-        #endif
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if filter != .watchStatus, viewModel.isLoadingJellyfinFilterOptions {
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("library.browse.filters.loading")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if filter != .watchStatus, let errorMessage = viewModel.jellyfinFilterOptionsError {
-            ContentUnavailableView(
-                errorMessage,
-                systemImage: "exclamationmark.triangle.fill",
-                description: Text("common.errors.tryAgainLater"),
-            )
-            .symbolRenderingMode(.multicolor)
-        } else if filteredOptions.isEmpty {
-            ContentUnavailableView(
-                "common.empty.nothingToShow",
-                systemImage: "line.3.horizontal.decrease.circle",
-            )
-        } else {
-            optionsList
-        }
-    }
-
-    private var optionsList: some View {
-        List(filteredOptions) { option in
-            Button {
-                viewModel.selectJellyfinOption(option, for: filter)
-                if !filter.supportsMultiple {
-                    dismiss()
-                }
-            } label: {
-                HStack {
-                    Text(option.title)
-                    Spacer()
-                    if viewModel.jellyfinOptionIsSelected(option, for: filter) {
-                        Image(systemName: filter.supportsMultiple ? "checkmark.square.fill" : "checkmark")
-                            .foregroundStyle(.textPrimary)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            #if os(tvOS)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            #endif
-        }
-        .listStyle(.plain)
-        .modifier(JellyfinFilterSearchModifier(isEnabled: filter.supportsMultiple, searchText: $searchText))
-    }
-
-    private var filteredOptions: [LibraryBrowseValueOption] {
-        let options = viewModel.jellyfinOptions(for: filter)
-        guard !searchText.isEmpty else { return options }
-        return options.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
-    }
-
-    private var headerRow: some View {
-        HStack {
-            if viewModel.jellyfinFilterIsSelected(filter) {
-                Button {
-                    viewModel.clearJellyfinFilter(filter)
-                } label: {
-                    Text("library.browse.filters.clear")
-                }
-            }
-            Spacer()
-            Button("common.actions.done") { dismiss() }
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
-    }
-}
-
-private struct JellyfinFilterSearchModifier: ViewModifier {
-    let isEnabled: Bool
-    @Binding var searchText: String
+private struct BrowseControlStyle: ViewModifier {
+    let isActive: Bool
+    var isMenu = false
+    var isFlexible = false
 
     func body(content: Content) -> some View {
-        if isEnabled {
-            content.searchable(text: $searchText, prompt: Text("library.browse.filters.search"))
-        } else {
+        #if os(tvOS)
+            // Bordered keeps the native focus lift; hierarchical styles invert once focused.
             content
-        }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .foregroundStyle(isActive ? HierarchicalShapeStyle.primary : .secondary)
+                .menuIndicator(.hidden)
+        #else
+            if isMenu {
+                content
+                    .menuStyle(.button)
+                    .menuIndicator(.hidden)
+                    .buttonStyle(.chip(isSelected: isActive))
+                    .fixedSize(horizontal: !isFlexible, vertical: true)
+            } else {
+                content
+                    .buttonStyle(.chip(isSelected: isActive))
+                    .fixedSize()
+            }
+        #endif
     }
 }

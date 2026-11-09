@@ -6,8 +6,8 @@ struct LibraryDetailView: View {
     let library: Library
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    @State private var selectedTab: LibraryDetailTab = .recommended
     @State private var browseSession = LibraryBrowseSession()
+    @State private var manageController = LibraryManageController()
 
     init(
         library: Library,
@@ -15,20 +15,10 @@ struct LibraryDetailView: View {
     ) {
         self.library = library
         self.onSelectMedia = onSelectMedia
-        _selectedTab = State(
-            initialValue: library.type == .collection || library.type == .playlist ? .browse : .recommended,
-        )
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if availableTabs.count > 1 {
-                LibraryDetailTabPicker(selection: $selectedTab, tabs: availableTabs)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-            }
-
             Group {
                 switch selectedTab {
                 case .recommended:
@@ -36,6 +26,7 @@ struct LibraryDetailView: View {
                         viewModel: LibraryRecommendedViewModel(
                             library: library,
                             services: mediaServices,
+                            settingsManager: settingsManager,
                         ),
                         onSelectMedia: onSelectMedia,
                     )
@@ -71,33 +62,76 @@ struct LibraryDetailView: View {
         }
         .navigationTitle(library.title)
         .toolbarTitleDisplayMode(.inline)
-        .onChange(of: settingsManager.interface.displayCollections) { _, displayCollections in
-            if !displayCollections, selectedTab == .collections {
-                selectedTab = .recommended
+        .toolbar {
+            if availableTabs.count > 1 {
+                ToolbarItem(placement: .principal) {
+                    Picker(selection: selectedTabBinding) {
+                        ForEach(availableTabs) { tab in
+                            Text(tab.title).tag(tab)
+                        }
+                    } label: {
+                        Text("library.detail.tabPicker")
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            }
+            if !manageActions.actions(for: library).isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Section(MediaQuickAction.manage.title) {
+                            LibraryManageMenuItems(
+                                library: library,
+                                actions: manageActions,
+                                controller: manageController,
+                            )
+                        }
+                    } label: {
+                        Label("common.actions.more", systemImage: "ellipsis")
+                    }
+                    .help(Text("common.actions.more"))
+                }
             }
         }
-        .onChange(of: settingsManager.interface.displayPlaylists) { _, displayPlaylists in
-            if !displayPlaylists, selectedTab == .playlists {
-                selectedTab = .recommended
-            }
-        }
+        .libraryManagePresentation(manageController) { _ in manageActions }
+    }
+
+    private var manageActions: LibraryManageActions {
+        LibraryManageActions(
+            services: mediaServices,
+            isReachable: !OfflineCoordinator.shared.isUnreachable(mediaServices.identity),
+        )
     }
 
     private var availableTabs: [LibraryDetailTab] {
-        if mediaServices.provider == .jellyfin {
-            return library.type == .collection || library.type == .playlist
-                ? [.browse]
-                : [.recommended, .browse]
-        }
-        return LibraryDetailTab.allCases.filter { tab in
-            switch tab {
-            case .collections:
-                settingsManager.interface.displayCollections
-            case .playlists:
-                settingsManager.interface.displayPlaylists
-            default:
-                true
-            }
-        }
+        LibraryDetailTab.available(
+            for: library,
+            provider: mediaServices.provider,
+            displaysCollections: settingsManager.interface.displayCollections,
+            displaysPlaylists: settingsManager.interface.displayPlaylists,
+        )
+    }
+
+    private var preferencesKey: String {
+        LibraryBrowsePreferences.key(scopeID: mediaServices.serverPreferencesScopeID, libraryID: library.id)
+    }
+
+    private var selectedTab: LibraryDetailTab {
+        LibraryDetailTab.resolved(
+            saved: settingsManager.libraryBrowsePreferences(for: preferencesKey).selectedTab,
+            available: availableTabs,
+            library: library,
+        )
+    }
+
+    private var selectedTabBinding: Binding<LibraryDetailTab> {
+        Binding { selectedTab } set: { select($0) }
+    }
+
+    private func select(_ tab: LibraryDetailTab) {
+        var preferences = settingsManager.libraryBrowsePreferences(for: preferencesKey)
+        preferences.setSelectedTab(tab, for: library)
+        settingsManager.setLibraryBrowsePreferences(preferences, for: preferencesKey)
     }
 }

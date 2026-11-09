@@ -13,6 +13,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return cache
     }()
 
+    /// Bounds artwork requested without a size: sharp on a 4K tvOS card, small enough to decode quickly.
+    private static let defaultArtworkSide = 1080
+
     private let context: JellyfinAPIContext
     private let catalog: JellyfinCatalogService
     private let playbackService: JellyfinPlaybackService
@@ -117,6 +120,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 language: value.threeLetterISOLanguageName,
                 codec: value.format ?? "",
                 providerTitle: value.providerName,
+                isExactMatch: value.isHashMatch == true,
+                matchScore: value.downloadCount.map(Double.init),
+                isForced: value.isForced == true,
             )
         }
     }
@@ -132,37 +138,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         hiddenLibraryIDs: Set<String>,
         includesPlaylists _: Bool,
         shownRowIDs _: Set<String>,
+        mergesNextUp: Bool,
     ) async throws -> HomeContent {
+        async let watchingRows = loadWatchingRows(hiddenLibraryIDs: hiddenLibraryIDs, mergesNextUp: mergesNextUp)
         let visibleLibraries = try await catalog.libraries().filter {
             !hiddenLibraryIDs.contains($0.id)
                 && ($0.collectionType?.lowercased() == "movies" || $0.collectionType?.lowercased() == "tvshows")
         }
-        async let resumeItems = catalog.resume()
-        async let nextUpItems = catalog.nextUp()
-        let resume = try await resumeItems
-        let nextUp = try await nextUpItems
-
-        var rows: [HomeRow] = []
-        if !resume.isEmpty {
-            let resumeHub = hub(
-                id: "jellyfin.resume",
-                title: String(localized: "jellyfin.home.resume"),
-                items: resume,
-            )
-            if resumeHub.hasItems {
-                rows.append(.continueWatching(server: server, hub: resumeHub))
-            }
-        }
-        if !nextUp.isEmpty {
-            let nextUpHub = hub(
-                id: "jellyfin.nextUp",
-                title: String(localized: "jellyfin.home.nextUp"),
-                items: nextUp,
-            )
-            if nextUpHub.hasItems {
-                rows.append(.nextUp(server: server, hub: nextUpHub))
-            }
-        }
+        var rows = try await watchingRows
         let latest = try await withThrowingTaskGroup(of: (Int, JellyfinItem, [JellyfinItem]).self) { group in
             for (index, library) in visibleLibraries.enumerated() {
                 group.addTask { [catalog] in
@@ -193,6 +176,42 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         })
 
         return HomeContent(rows: rows)
+    }
+
+    func loadFeaturedCandidates(hiddenLibraryIDs: Set<String>) async throws -> [FeaturedCandidate] {
+        try await JellyfinFeaturedService(catalog: catalog, server: server)
+            .candidates(hiddenLibraryIDs: hiddenLibraryIDs)
+    }
+
+    func loadWatchingRows(hiddenLibraryIDs _: Set<String>, mergesNextUp: Bool) async throws -> [HomeRow] {
+        if mergesNextUp {
+            let continueHub = try await hub(
+                id: "jellyfin.resume",
+                title: String(localized: "jellyfin.home.resume"),
+                items: catalog.continueWatching(),
+            )
+            return continueHub.hasItems ? [.continueWatching(server: server, hub: continueHub)] : []
+        }
+        async let resumeItems = catalog.resume()
+        async let nextUpItems = catalog.nextUp()
+        let resumeHub = try await hub(
+            id: "jellyfin.resume",
+            title: String(localized: "jellyfin.home.resume"),
+            items: resumeItems,
+        )
+        let nextUpHub = try await hub(
+            id: "jellyfin.nextUp",
+            title: String(localized: "jellyfin.home.nextUp"),
+            items: nextUpItems,
+        )
+        var rows: [HomeRow] = []
+        if resumeHub.hasItems {
+            rows.append(.continueWatching(server: server, hub: resumeHub))
+        }
+        if nextUpHub.hasItems {
+            rows.append(.nextUp(server: server, hub: nextUpHub))
+        }
+        return rows
     }
 
     func libraries() async throws -> [Library] {
@@ -226,8 +245,27 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         return LibraryPreview(artworks: artworks, itemCount: result.totalRecordCount)
     }
 
-    func recommended(in library: Library) async throws -> [Hub] {
+    func recommended(in library: Library, mergesNextUp: Bool) async throws -> [Hub] {
         switch library.type {
+        case .series where mergesNextUp:
+            async let continueItems = catalog.continueWatching(parentID: library.id, resumeLimit: 3, nextUpLimit: 24)
+            async let latestItems = catalog.latest(
+                types: "Episode",
+                parentID: library.id,
+                limit: 30,
+            )
+            return try await [
+                hubIfNotEmpty(
+                    id: "jellyfin.library.inProgress.\(library.id)",
+                    title: String(localized: "jellyfin.home.resume"),
+                    items: continueItems,
+                ),
+                hubIfNotEmpty(
+                    id: "jellyfin.library.latestEpisodes.\(library.id)",
+                    title: String(localized: "jellyfin.library.recentlyAdded"),
+                    items: latestItems,
+                ),
+            ].compactMap(\.self)
         case .series:
             async let resumableItems = catalog.resumable(
                 parentID: library.id,
@@ -417,11 +455,14 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         if let descriptorTag = descriptor.tag {
             query.append(URLQueryItem(name: "tag", value: descriptorTag))
         }
-        if let width {
-            query.append(URLQueryItem(name: "maxWidth", value: String(width)))
+        // Without a size Jellyfin serves the original (often 2000×3000 posters), which made card rails decode
+        // tens of megabytes per item and stutter on focus moves; Plex likewise transcodes to a default size.
+        let isUnsized = width == nil && height == nil
+        if let maxWidth = isUnsized ? Self.defaultArtworkSide : width {
+            query.append(URLQueryItem(name: "maxWidth", value: String(maxWidth)))
         }
-        if let height {
-            query.append(URLQueryItem(name: "maxHeight", value: String(height)))
+        if let maxHeight = isUnsized ? Self.defaultArtworkSide : height {
+            query.append(URLQueryItem(name: "maxHeight", value: String(maxHeight)))
         }
         var imagePath = ["Items", descriptor.ownerID, "Images", descriptor.type]
         if let imageIndex = descriptor.index {
@@ -598,9 +639,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         let defaultAudioTrackID = source?.defaultAudioStreamIndex.flatMap { index in
             validAudioIndices.contains(index) ? index : nil
         }
-        let defaultSubtitleTrackID = source?.defaultSubtitleStreamIndex.flatMap { index in
-            validSubtitleIndices.contains(index) ? index : nil
-        }
+        let defaultSubtitleTrackID = source?.serverSubtitleIndex(validIndices: validSubtitleIndices)
         let selectedAudioTrackID = selectionOverride?.audioStreamIndex
             ?? defaultAudioTrackID
             ?? audioTracks.first(where: \.isDefault)?.id
@@ -611,7 +650,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         case let .stream(index):
             index
         case .serverDefault, nil:
-            defaultSubtitleTrackID ?? subtitleTracks.first(where: \.isDefault)?.id
+            defaultSubtitleTrackID
         }
 
         return MediaTrackSelection(
@@ -950,7 +989,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             width: video?.width,
             height: video?.height,
             aspectRatio: video?.aspectRatio,
-            videoResolution: Self.videoResolution(width: video?.width, height: video?.height),
+            videoResolution: source.videoResolution,
             videoCodec: video?.codec,
             videoProfile: video?.profile,
             videoFrameRate: frameRate.map(Self.formatFrameRate),
@@ -1046,23 +1085,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     private static func kilobitsPerSecond(_ bitsPerSecond: Int) -> Int {
         max(1, Int((Double(bitsPerSecond) / 1000).rounded()))
-    }
-
-    private static func videoResolution(width: Int?, height: Int?) -> String? {
-        guard let height else { return nil }
-        if height >= 2160 {
-            return "4K"
-        }
-        if height >= 1440 {
-            return "1440p"
-        }
-        if height >= 1080 {
-            return "1080p"
-        }
-        if height >= 720 {
-            return "720p"
-        }
-        return width.map { "\($0) × \(height)" } ?? "\(height)p"
     }
 
     private static func formatFrameRate(_ frameRate: Double) -> String {
@@ -1261,7 +1283,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 effectiveQuality: quality.isOriginal ? .original : quality,
                 request: context.mediaRequest(url: url),
                 remoteReference: nil,
-                sidecars: [],
+                sidecars: selectedSource.map {
+                    try downloadSidecars(itemID: item.id, source: $0, selectedSubtitle: nil)
+                } ?? [],
                 audioTitle: nil,
                 subtitleTitle: nil,
                 versionID: selectedSource?.id,
@@ -1297,9 +1321,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         }
 
         let url = try context.url(path: ["Videos", item.id, "stream.mp4"], query: query)
-        let sidecars = try subtitle.map {
-            try makeDownloadSidecars(itemID: item.id, source: source, subtitle: $0)
-        } ?? []
+        let sidecars = try downloadSidecars(itemID: item.id, source: source, selectedSubtitle: subtitle)
 
         return try MediaDownloadPreparation(
             media: media,
@@ -1340,25 +1362,41 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         itemID: String,
         tracks: MediaTrackPreference,
         versionID: String?,
+        isTranscoded: Bool,
     ) async throws -> [MediaDownloadSidecar] {
-        guard case .track = tracks.subtitle else { return [] }
         let item = try await catalog.item(id: itemID)
         let sources = item.mediaSources ?? []
         guard let source = Self.source(
             in: sources,
             versions: sources.map(Self.mapFileInfoVersion),
             request: versionID.map { .explicit(versionID: $0) } ?? .automatic,
-        ),
-            let stream = source.resolveSubtitleStream(preference: tracks.subtitle)
-        else { return [] }
-        return try makeDownloadSidecars(itemID: item.id, source: source, subtitle: stream)
+        ) else { return [] }
+        let selectedSubtitle: JellyfinMediaStream? = if isTranscoded, case .track = tracks.subtitle {
+            source.resolveSubtitleStream(preference: tracks.subtitle)
+        } else {
+            nil
+        }
+        return try downloadSidecars(itemID: item.id, source: source, selectedSubtitle: selectedSubtitle)
     }
 
-    private func makeDownloadSidecars(
+    /// The transcoded video carries no subtitles, so a selected embedded track is fetched as a file too.
+    private func downloadSidecars(
+        itemID: String,
+        source: JellyfinMediaSource,
+        selectedSubtitle: JellyfinMediaStream?,
+    ) throws -> [MediaDownloadSidecar] {
+        var streams = (source.mediaStreams ?? []).filter { $0.isExternal == true && $0.isDownloadableTextSubtitle }
+        if let selectedSubtitle, !streams.contains(where: { $0.index == selectedSubtitle.index }) {
+            streams.insert(selectedSubtitle, at: 0)
+        }
+        return try streams.map { try makeDownloadSidecar(itemID: itemID, source: source, subtitle: $0) }
+    }
+
+    private func makeDownloadSidecar(
         itemID: String,
         source: JellyfinMediaSource,
         subtitle stream: JellyfinMediaStream,
-    ) throws -> [MediaDownloadSidecar] {
+    ) throws -> MediaDownloadSidecar {
         let fileExtension = stream.downloadSubtitleExtension
         let subtitleURL: URL = if let deliveryURL = stream.deliveryURL,
                                   let resolved = URL(string: deliveryURL, relativeTo: context.connection?.baseURL)?
@@ -1371,14 +1409,15 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
                 "Stream.\(fileExtension)",
             ])
         }
-        return try [MediaDownloadSidecar(
+        return try MediaDownloadSidecar(
             request: context.mediaRequest(url: subtitleURL),
             fileExtension: fileExtension,
             title: stream.displayTitle ?? stream.title,
             language: stream.language,
             codec: stream.codec ?? fileExtension,
             isForced: stream.isForced == true,
-        )]
+            isHearingImpaired: stream.isHearingImpaired == true,
+        )
     }
 
     func cancelDownloadPreparation(_ reference: MediaDownloadRemoteReference) async {
@@ -1648,6 +1687,7 @@ enum JellyfinMediaServicesFactory {
             liveTV: liveTV,
             downloads: adapter,
             authorization: adapter,
+            management: JellyfinManagementService(context: context),
             trackSelectionCoordinator: trackSelectionCoordinator,
             trackSelectionAccountIdentifier: connection.userID,
             versionSelectionStore: versionSelectionStore,

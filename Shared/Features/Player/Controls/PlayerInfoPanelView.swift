@@ -186,7 +186,6 @@ struct PlayerInfoPanelView: View {
         }
     }
 
-    @ViewBuilder
     private var infoContent: some View {
         #if os(tvOS)
             mediaInfo(layout: .wide, summaryLineLimit: 4)

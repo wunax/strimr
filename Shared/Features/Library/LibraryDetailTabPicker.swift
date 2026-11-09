@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum LibraryDetailTab: String, CaseIterable, Hashable, Identifiable {
+enum LibraryDetailTab: String, CaseIterable, Codable, Hashable, Identifiable {
     case recommended
     case browse
     case collections
@@ -35,30 +35,77 @@ enum LibraryDetailTab: String, CaseIterable, Hashable, Identifiable {
             "music.note.list"
         }
     }
+
+    static func available(
+        for library: Library,
+        provider: MediaProvider,
+        displaysCollections: Bool,
+        displaysPlaylists: Bool,
+    ) -> [LibraryDetailTab] {
+        if provider == .jellyfin {
+            return library.type == .collection || library.type == .playlist
+                ? [.browse]
+                : [.recommended, .browse]
+        }
+        if library.isShared {
+            return [.browse]
+        }
+        return allCases.filter { tab in
+            switch tab {
+            case .collections:
+                displaysCollections
+            case .playlists:
+                displaysPlaylists
+            default:
+                true
+            }
+        }
+    }
+
+    static func defaultTab(for library: Library) -> LibraryDetailTab {
+        library.isShared || library.type == .collection || library.type == .playlist ? .browse : .recommended
+    }
+
+    /// Falls back to the default when the saved tab has since been hidden in settings.
+    static func resolved(
+        saved: LibraryDetailTab?,
+        available: [LibraryDetailTab],
+        library: Library,
+    ) -> LibraryDetailTab {
+        if let saved, available.contains(saved) {
+            return saved
+        }
+        return defaultTab(for: library)
+    }
 }
 
-struct LibraryDetailTabPicker: View {
+/// `accessory` ends the row, after the tabs.
+struct LibraryDetailTabPicker<Accessory: View>: View {
     @Binding private var selection: LibraryDetailTab
     let tabs: [LibraryDetailTab]
+    private let accessory: Accessory
 
     init(
         selection: Binding<LibraryDetailTab>,
         tabs: [LibraryDetailTab],
+        @ViewBuilder accessory: () -> Accessory,
     ) {
         _selection = selection
         self.tabs = tabs
+        self.accessory = accessory()
     }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(tabs) { tab in
                         tabButton(for: tab)
                             .id(tab)
                     }
+                    accessory
                 }
-                .padding(.horizontal, 2)
+                .padding(focusLiftInsets)
             }
             .mouseDragScrolling()
             .accessibilityLabel(Text("library.detail.tabPicker"))
@@ -70,6 +117,15 @@ struct LibraryDetailTabPicker: View {
         }
     }
 
+    /// Room inside the scroll view so the focused chip is not clipped as it scales up.
+    private var focusLiftInsets: EdgeInsets {
+        #if os(tvOS)
+            EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+        #else
+            EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+        #endif
+    }
+
     private func tabButton(for tab: LibraryDetailTab) -> some View {
         FilterChip(title: tab.title, systemImage: tab.systemImageName, isSelected: selection == tab) {
             withAnimation(Motion.crossfade) {
@@ -78,3 +134,71 @@ struct LibraryDetailTabPicker: View {
         }
     }
 }
+
+extension LibraryDetailTabPicker where Accessory == EmptyView {
+    init(selection: Binding<LibraryDetailTab>, tabs: [LibraryDetailTab]) {
+        self.init(selection: selection, tabs: tabs) { EmptyView() }
+    }
+}
+
+#if os(iOS)
+    /// Underlined text tabs, so the library sections read as navigation rather than as filter chips.
+    struct LibraryDetailTabBar: View {
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Binding var selection: LibraryDetailTab
+        let tabs: [LibraryDetailTab]
+        @Namespace private var indicator
+
+        var body: some View {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 24) {
+                        ForEach(tabs) { tab in
+                            tabButton(for: tab)
+                                .id(tab)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                // The selection can start off screen (a remembered tab) or move there (a hidden tab resets it).
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+                .onChange(of: selection) { _, newSelection in
+                    withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                        proxy.scrollTo(newSelection, anchor: .center)
+                    }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(.strokeSubtle)
+                    .frame(height: 1)
+            }
+            .accessibilityLabel(Text("library.detail.tabPicker"))
+        }
+
+        private func tabButton(for tab: LibraryDetailTab) -> some View {
+            let isSelected = selection == tab
+            return Button {
+                withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                    selection = tab
+                }
+            } label: {
+                Text(tab.title)
+                    .font(.rowTitle)
+                    .foregroundStyle(isSelected ? Color.textPrimary : .textSecondary)
+                    .padding(.vertical, 10)
+                    .overlay(alignment: .bottom) {
+                        if isSelected {
+                            Capsule()
+                                .fill(.selectionAccent)
+                                .frame(height: 3)
+                                .matchedGeometryEffect(id: "indicator", in: indicator)
+                        }
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        }
+    }
+#endif

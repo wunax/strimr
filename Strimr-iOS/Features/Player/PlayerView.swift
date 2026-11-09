@@ -9,6 +9,7 @@ struct PlayerView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State var viewModel: PlayerViewModel
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -25,6 +26,9 @@ struct PlayerView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    /// Set once the media is loaded, and changes with each new media, which starts the automatic subtitle search.
+    @State private var automaticSubtitleSearchKey: String?
+    @State private var automaticSubtitleToast: Toast?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var pendingRecoveryAudioTrackID: Int?
@@ -40,11 +44,15 @@ struct PlayerView: View {
     @State private var terminationAlertMessage = ""
     @State private var subtitleSearchErrorMessage = ""
     @State private var showingSubtitleSearchError = false
-    @State private var isRotationLocked = false
+    @State private var isControlsLocked = false
     @State private var didConsiderAutomaticRotation = false
     @State private var lastPinchInteraction: ContinuousClock.Instant?
     @State private var isLandscape = false
     @GestureState private var isPinching = false
+    @State private var pinchStartZoomScale: Double?
+    @State private var videoZoomFillCrossings = 0
+    @State private var videoAreaSize = CGSize.zero
+    @State private var bottomSafeAreaInset: CGFloat = 0
     @State private var layoutMode = PlayerLayoutMode.fullScreen
     @State private var hinge = PlayerHingeState.unavailable
     @State private var isTabletopLocked = false
@@ -58,6 +66,7 @@ struct PlayerView: View {
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var isShowingInfoPanel = false
+    @State private var isShowingLiveChannels = false
     @State private var infoPanelTab = PlayerInfoTab.info
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
@@ -68,12 +77,19 @@ struct PlayerView: View {
     @State private var offlineHandoff: LocalPlaybackRequest?
     @State private var isShowingOfflineInterruption = false
     @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var isTracksMenuPresented = false
+    @State private var isShowingSubtitleAppearance = false
     @State private var doubleTapSeek = DoubleTapSeek()
     @State private var tapAreaWidth = 0.0
+    @State private var showsPlaybackStatistics = false
 
     private let controlsHideDelay: TimeInterval = 3.0
     private var seekBackwardInterval: Double {
         Double(settingsManager.playback.seekBackwardSeconds)
+    }
+
+    private var timelineSkipSegments: [SkipSegment] {
+        settingsManager.playback.showSkipSegmentsOnTimeline ? viewModel.markers : []
     }
 
     private var seekForwardInterval: Double {
@@ -105,7 +121,6 @@ struct PlayerView: View {
             .statusBarHidden()
             .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape in
                 self.isLandscape = isLandscape
-                applyVideoScaleMode()
             }
             .overlay {
                 if !layoutMode.isTabletop {
@@ -123,17 +138,25 @@ struct PlayerView: View {
             base
                 .onAppear {
                     playerController.onMediaLoaded = handleMediaLoaded
+                    playerController.onLiveDemuxFailure = fallBackToServerTranscode
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     doubleTapSeek.onCommit = commitDoubleTapSeek
                     playerController.onPictureInPictureStartFailed = {
                         guard scenePhase == .background else { return }
+                        pauseForBackgroundIfNeeded()
                         preparePlaybackForBackground()
                     }
+                    playerController.setPictureInPictureEnabled(settingsManager.playback.pictureInPicture)
                     didConsiderAutomaticRotation = false
-                    applyVideoScaleMode()
                     rotateAutomaticallyIfNeeded()
                     configureSleepTimer()
                     showControls(temporarily: true)
+                    if activePlaybackURL == nil {
+                        playbackRate = viewModel.initialPlaybackRate(
+                            settings: settingsManager.playback,
+                            isSharePlay: sharePlayCoordinator.isInSession,
+                        )
+                    }
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.attachPlayer(
@@ -154,15 +177,21 @@ struct PlayerView: View {
                     doubleTapSeek.cancel()
                     playerController.stop()
                     AppDelegate.orientationLock = .all
-                    isRotationLocked = false
+                    isControlsLocked = false
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.leave()
                     }
                     sharePlayCoordinator.detachPlayer(playerController)
                 }
                 .task {
+                    viewModel.liveRoutePreference = settingsManager.playback
+                        .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
-                },
+                }
+                .task(id: automaticSubtitleSearchKey) {
+                    await searchMissingSubtitle()
+                }
+                .toast($automaticSubtitleToast),
         )
 
         let playbackObservers = AnyView(
@@ -255,6 +284,7 @@ struct PlayerView: View {
                 .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
                     if isPresented {
                         sheetPresentation.item = nil
+                        isShowingSubtitleAppearance = false
                         hideInfoPanel()
                         hideControls()
                     }
@@ -272,12 +302,8 @@ struct PlayerView: View {
                 IsolatedSheetPresentationHost(
                     presentation: sheetPresentation,
                     refreshID: PlayerSheetRefreshID(
-                        settingsAudioTracks: settingsAudioTracks,
-                        settingsSubtitleTracks: settingsSubtitleTracks,
-                        selectedAudioTrackID: selectedAudioTrackID,
-                        selectedSubtitleTrackID: selectedSubtitleTrackID,
                         playbackRate: playbackRate,
-                        syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+                        videoZoom: playerController.videoZoom,
                     ),
                     onDismiss: { showControls(temporarily: true) },
                 ) { sheet in
@@ -375,8 +401,19 @@ struct PlayerView: View {
                     hideControls()
                 }
             }
+            .onChange(of: isControlsLocked && canLockOrientation) { _, locksOrientation in
+                if locksOrientation {
+                    AppDelegate.lockToCurrentOrientation()
+                } else {
+                    AppDelegate.orientationLock = .all
+                }
+            }
             .onChange(of: layoutMode.isTabletop) { _, isTabletop in
-                if !isTabletop {
+                if isTabletop {
+                    isTabletopLocked = isControlsLocked
+                    isControlsLocked = false
+                } else {
+                    isControlsLocked = isTabletopLocked
                     isTabletopLocked = false
                 }
                 showControls(temporarily: true)
@@ -393,6 +430,8 @@ struct PlayerView: View {
             && !playerController.isPictureInPictureActive
             && !playerController.isPictureInPictureTransitioning
             && sheetPresentation.item == nil
+            && !isTracksMenuPresented
+            && !isShowingSubtitleAppearance
             && !isShowingInfoPanel
             && activeOffsetBar == nil
             && viewModel.activeSkipMarker == nil
@@ -413,10 +452,15 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerSurfaceView(controller: playerController)
+            PlayerSurfaceView(controller: playerController, zoomScale: videoZoomScale)
                 .onAppear {
                     showControls(temporarily: true)
                 }
+                .ignoresSafeArea()
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { videoAreaSize = $0 }
+
+            Color.clear
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomSafeAreaInset = $0 }
                 .ignoresSafeArea()
 
             SubtitleOverlayView(
@@ -424,14 +468,22 @@ struct PlayerView: View {
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: controlsVisible && !layoutMode.isTabletop ? 120 : 48,
+                controlsInset: subtitleControlsInset,
+                minimumBottomInset: bottomSafeAreaInset,
                 videoSize: playerController.displayVideoSize ?? playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
-                videoScaleMode: playerController.videoScaleMode,
+                videoZoomScale: videoZoomScale,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
+                textTrailingInset: subtitleAppearanceTrailingInset,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+
+            LiveTVPlayerBackdrop(viewModel: viewModel, hidesBanner: isShowingLiveChannels || areControlsShown)
+        }
+        .onChange(of: viewModel.media?.metadataRatingKey, initial: true) { _, context in
+            playerController.prepareVideoZoom(for: context, persistedMode: settingsManager.playback.videoScaleMode)
         }
     }
 
@@ -447,7 +499,9 @@ struct PlayerView: View {
                 .onTapGesture { location in
                     guard !isPinchInteractionRecent else { return }
                     pauseScreen.registerInteraction()
-                    if isShowingInfoPanel {
+                    if isControlsLocked {
+                        controlsVisible ? hideControls() : showControls(temporarily: true)
+                    } else if isShowingInfoPanel {
                         hideInfoPanel()
                     } else if !handleDoubleTapSeek(at: location) {
                         controlsVisible ? hideControls() : showControls(temporarily: true)
@@ -461,26 +515,31 @@ struct PlayerView: View {
                             showInfoPanel()
                         }
                     },
+                    isEnabled: !isControlsLocked,
                 )
                 .simultaneousGesture(
                     MagnifyGesture(minimumScaleDelta: 0.03)
                         .updating($isPinching) { _, isPinching, _ in
                             isPinching = true
                         }
-                        .onEnded { value in
+                        .onChanged { value in
+                            updateVideoZoom(magnification: value.magnification)
+                        }
+                        .onEnded { _ in
                             lastPinchInteraction = .now
-                            if value.magnification > 1.12 {
-                                selectVideoScaleMode(.fill)
-                            } else if value.magnification < 0.88 {
-                                selectVideoScaleMode(.fit)
-                            }
+                            finishVideoZoom()
                         },
+                    isEnabled: !isControlsLocked,
                 )
+                .sensoryFeedback(.impact(weight: .light), trigger: videoZoomFillCrossings)
                 .onChange(of: isPinching) { _, isPinching in
                     lastPinchInteraction = .now
                     if isPinching {
                         doubleTapSeek.cancel()
                         pauseScreen.registerInteraction()
+                    } else {
+                        // A cancelled pinch never reaches onEnded.
+                        finishVideoZoom()
                     }
                 }
 
@@ -489,7 +548,19 @@ struct PlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
-            if controlsVisible, !isShowingInfoPanel {
+            if showsPlaybackStatistics, !isShowingInfoPanel {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, areControlsShown ? 84 : 12)
+                    .padding(.bottom, 12)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: areControlsShown)
+                    .transition(.opacity)
+            }
+
+            if controlsVisible || (isControlsLocked && isVoiceOverEnabled), !isShowingInfoPanel,
+               !isShowingSubtitleAppearance
+            {
                 playerControls
                     .transition(.opacity)
             }
@@ -498,14 +569,18 @@ struct PlayerView: View {
                 offsetBar(activeOffsetBar)
             }
 
-            if !controlsVisible, let activeMarker, let skipTitle {
+            if isShowingSubtitleAppearance, !layoutMode.isTabletop {
+                subtitleAppearanceOverlay
+            }
+
+            if !controlsVisible, !isControlsLocked, let activeMarker, let skipTitle {
                 skipOverlay(marker: activeMarker, title: skipTitle)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
 
             seekFeedbackOverlay
 
-            playerFeedbackOverlay(bottomPadding: controlsVisible ? 150 : 32)
+            playerFeedbackOverlay(bottomPadding: areControlsShown ? 150 : 32)
 
             if pauseScreen.isPresented, let media = viewModel.media {
                 PauseScreenOverlay(
@@ -528,6 +603,12 @@ struct PlayerView: View {
             }
 
             promptOverlays
+
+            LiveTVChannelPanelOverlay(
+                viewModel: viewModel,
+                isPresented: $isShowingLiveChannels,
+                onSelectChannel: switchLiveChannel(to:),
+            )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
@@ -550,9 +631,12 @@ struct PlayerView: View {
             showsEndsAtTime: settingsManager.playback.showEndsAtTime,
             isScrubbing: isScrubbing,
             onDismiss: { dismissPlayer() },
+            tracksMenu: tracksMenuModel,
+            tracksMenuActions: tracksMenuActions,
             onShowSettings: showSettings,
             chapters: viewModel.chapters,
             showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+            skipSegments: timelineSkipSegments,
             scrubPreview: playerController.scrubPreview,
             onSeekBackward: { jump(by: -seekBackwardInterval) },
             onPlayPause: togglePlayPause,
@@ -564,8 +648,8 @@ struct PlayerView: View {
             onSkipMarker: activeMarker.map { marker in
                 { skipMarker(to: marker) }
             },
-            isRotationLocked: isRotationLocked,
-            onToggleRotationLock: rotationLockAction,
+            isLocked: isControlsLocked,
+            onToggleLock: toggleControlsLock,
             isSharePlay: sharePlayCoordinator.isInSession,
             showsPictureInPicture: playerController.showsPictureInPictureControl,
             isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
@@ -576,14 +660,75 @@ struct PlayerView: View {
             onShowInfoPanel: showInfoPanel,
             isLive: viewModel.isLivePlayback,
             behindLiveSeconds: playerController.behindLiveSeconds,
+            isAtLiveEdge: playerController.isAtLiveEdge,
+            lastLiveChannel: viewModel.lastLiveChannel,
             onGoLive: playerController.seekToLiveEdge,
+            onShowLiveChannels: {
+                hideControls()
+                isShowingLiveChannels = true
+            },
+            onLastLiveChannel: switchToLastLiveChannel,
             canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
             canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
             onPreviousChannel: { switchLiveChannel(by: -1) },
             onNextChannel: { switchLiveChannel(by: 1) },
-            showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
             sleepTimer: sleepTimer,
         )
+    }
+
+    private var areControlsShown: Bool {
+        controlsVisible && !isControlsLocked
+    }
+
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
+    }
+
+    private var usesSideSubtitleAppearancePanel: Bool {
+        isLandscape || horizontalSizeClass == .regular
+    }
+
+    private var subtitleControlsInset: CGFloat {
+        guard !layoutMode.isTabletop else { return 0 }
+        if isShowingSubtitleAppearance, !usesSideSubtitleAppearancePanel {
+            return PlayerSubtitleAppearancePanel.bottomHeight + 12
+        }
+        return areControlsShown ? 120 : 0
+    }
+
+    private var subtitleAppearanceTrailingInset: CGFloat {
+        guard isShowingSubtitleAppearance, usesSideSubtitleAppearancePanel, !layoutMode.isTabletop else { return 0 }
+        return PlayerSubtitleAppearancePanel.sideWidth + 16
+    }
+
+    private var subtitleAppearancePanel: some View {
+        PlayerSubtitleAppearancePanel(
+            availability: subtitleAppearanceAvailability,
+            onClose: closeSubtitleAppearance,
+        )
+        .equatable()
+    }
+
+    private var subtitleAppearanceOverlay: some View {
+        ZStack(alignment: usesSideSubtitleAppearancePanel ? .trailing : .bottom) {
+            Color.clear
+                .contentShape(Rectangle())
+                .ignoresSafeArea()
+                .onTapGesture(perform: closeSubtitleAppearance)
+
+            if usesSideSubtitleAppearancePanel {
+                subtitleAppearancePanel
+                    .frame(width: PlayerSubtitleAppearancePanel.sideWidth)
+                    .padding(.vertical, 12)
+                    .padding(.trailing, 12)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                subtitleAppearancePanel
+                    .frame(height: PlayerSubtitleAppearancePanel.bottomHeight)
+                    .ignoresSafeArea(edges: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
     }
 
     @ViewBuilder
@@ -673,6 +818,11 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(Color.black)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if isShowingSubtitleAppearance {
+                Color.black
+                subtitleAppearancePanel
+                    .padding(12)
+                    .transition(.opacity)
             } else if let activeOffsetBar {
                 Color.black
                 PlayerOffsetBar(
@@ -707,6 +857,7 @@ struct PlayerView: View {
             showsEndsAtTime: settingsManager.playback.showEndsAtTime,
             chapters: viewModel.chapters,
             showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+            skipSegments: timelineSkipSegments,
             scrubPreview: playerController.scrubPreview,
             seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
             seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
@@ -717,11 +868,13 @@ struct PlayerView: View {
             isPictureInPictureEnabled: playerController.isPictureInPictureAvailable
                 && !playerController.isPictureInPictureActive
                 && !playerController.isPictureInPictureTransitioning,
-            showsSettingsIndicator: playerController.subtitleDelayMilliseconds != 0,
+            tracksMenu: tracksMenuModel,
+            tracksMenuActions: tracksMenuActions,
             canShowInfo: canShowInfoPanel,
             canPlayNext: nextQueueIndex != nil,
             isLive: viewModel.isLivePlayback,
             behindLiveSeconds: playerController.behindLiveSeconds,
+            isAtLiveEdge: playerController.isAtLiveEdge,
             canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
             canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
             actions: PlayerTabletopActions(
@@ -829,29 +982,48 @@ struct PlayerView: View {
         .padding(.bottom, 20)
     }
 
-    private var playbackSettingsSheet: some View {
-        PlaybackSettingsView(
+    private var tracksMenuModel: PlayerTracksMenuModel {
+        PlayerTracksMenuModel(
             audioTracks: settingsAudioTracks,
             subtitleTracks: settingsSubtitleTracks,
             selectedAudioTrackID: selectedAudioTrackID,
             selectedSubtitleTrackID: selectedSubtitleTrackID,
+            nightMode: settingsManager.playback.nightMode,
+            dialogueBoost: settingsManager.playback.dialogueBoost,
+            isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+            canSearchSubtitles: viewModel.canSearchSubtitles,
+            canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
+            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
+            subtitleAppearance: subtitleAppearanceAvailability,
+        )
+    }
+
+    private var tracksMenuActions: PlayerTracksMenuActions {
+        PlayerTracksMenuActions(
+            onPresentationChanged: setTracksMenuPresented(_:),
+            onSelectAudio: selectAudioTrack(_:),
+            onSelectSubtitle: selectSubtitleTrack(_:),
+            onSetNightMode: setNightMode(_:),
+            onSelectDialogueBoost: selectDialogueBoost(_:),
+            onSearchSubtitles: showSubtitleSearch,
+            onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
+            onSelectSync: openOffsetBar(_:),
+            onShowSubtitleAppearance: showSubtitleAppearance,
+        )
+    }
+
+    private var playbackSettingsSheet: some View {
+        PlaybackSettingsView(
             playbackRate: playbackRate,
             quality: viewModel.selectedQuality,
             showsQualitySelection: !viewModel.isLocalPlayback,
             versions: viewModel.versionOptions,
             onSelectVersion: { selectVersion($0) },
-            onSelectAudio: selectAudioTrack(_:),
-            onSelectSubtitle: selectSubtitleTrack(_:),
-            onSearchSubtitles: viewModel.canSearchSubtitles
-                ? { sheetPresentation.item = .subtitleSearch }
-                : nil,
-            onResetTrackSelections: viewModel.canResetRememberedTrackSelections
-                ? { viewModel.resetRememberedTrackSelections() }
-                : nil,
             onSelectPlaybackRate: selectPlaybackRate(_:),
             onSelectQuality: { selectQuality($0) },
-            syncItems: playerController.offsetMenuItems(burnsSubtitles: viewModel.burnsSubtitles),
-            onSelectSync: openOffsetBar(_:),
+            videoZoom: playerController.videoZoom,
+            videoFillScale: videoFillScale,
+            onSelectVideoScaleMode: selectVideoScaleMode(_:),
             sleepTimer: sleepTimer,
             sleepTimerModes: SleepTimerMode.available(
                 isLive: viewModel.isLivePlayback,
@@ -860,6 +1032,7 @@ struct PlayerView: View {
             sleepTimerMediaKind: viewModel.media?.type,
             isSleepTimerAvailable: !sharePlayCoordinator.isInSession,
             onSelectSleepTimer: selectSleepTimer(_:),
+            showsPlaybackStatistics: $showsPlaybackStatistics,
             onClose: { sheetPresentation.item = nil },
         )
     }
@@ -892,8 +1065,40 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
+    private func setTracksMenuPresented(_ isPresented: Bool) {
+        guard isTracksMenuPresented != isPresented else { return }
+        isTracksMenuPresented = isPresented
+
+        if isPresented {
+            refreshTracks()
+            hideControlsWorkItem?.cancel()
+        } else if sheetPresentation.item == nil, !isShowingSubtitleAppearance {
+            showControls(temporarily: true)
+        }
+    }
+
+    /// Hides the controls, since they raise the subtitles and would misrepresent their position.
+    private func showSubtitleAppearance() {
+        hideControlsWorkItem?.cancel()
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            isShowingSubtitleAppearance = true
+            controlsVisible = false
+        }
+    }
+
+    private func closeSubtitleAppearance() {
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            isShowingSubtitleAppearance = false
+        }
+        showControls(temporarily: true)
+    }
+
+    private func showSubtitleSearch() {
+        sheetPresentation.item = .subtitleSearch
+        hideControlsWorkItem?.cancel()
+    }
+
     private func showSettings() {
-        refreshTracks()
         sheetPresentation.item = .settings
         hideControlsWorkItem?.cancel()
     }
@@ -966,23 +1171,56 @@ struct PlayerView: View {
         return ContinuousClock.now - lastPinchInteraction < .milliseconds(250)
     }
 
-    private func applyVideoScaleMode() {
-        playerController.setVideoScaleMode(isLandscape ? settingsManager.playback.videoScaleMode : .fit)
+    private var videoFillScale: Double {
+        VideoZoom.fillScale(
+            video: playerController.displayVideoSize ?? playerController.sourceVideoSize,
+            container: videoAreaSize,
+        )
+    }
+
+    /// The zoom only applies in landscape, where the picture can fill the screen.
+    private var videoZoomScale: Double {
+        isLandscape ? playerController.videoZoom.scale(fillScale: videoFillScale) : 1
+    }
+
+    private func updateVideoZoom(magnification: CGFloat) {
+        guard isLandscape else { return }
+        let fillScale = videoFillScale
+        let previousScale = videoZoomScale
+        let startScale = pinchStartZoomScale ?? previousScale
+        pinchStartZoomScale = startScale
+        let scale = min(max(startScale * magnification, 1), VideoZoom.maximumScale(fillScale: fillScale))
+        if fillScale > 1.01, (previousScale < fillScale) != (scale < fillScale) {
+            videoZoomFillCrossings += 1
+        }
+        playerController.setVideoZoom(.custom(scale))
+        let zoom = VideoZoom.snapped(scale: scale, fillScale: fillScale)
+        showFeedbackMessage(zoom.feedbackTitle(fillScale: fillScale), systemImage: zoom.feedbackSystemImage)
+    }
+
+    private func finishVideoZoom() {
+        guard pinchStartZoomScale != nil else { return }
+        pinchStartZoomScale = nil
+        let fillScale = videoFillScale
+        let zoom = VideoZoom.snapped(scale: videoZoomScale, fillScale: fillScale)
+        withAnimation(Motion.animation(Motion.focus, reduceMotion: reduceMotion)) {
+            playerController.setVideoZoom(zoom)
+        }
+        if let mode = zoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
+        }
+        showFeedbackMessage(zoom.feedbackTitle(fillScale: fillScale), systemImage: zoom.feedbackSystemImage)
     }
 
     private func selectVideoScaleMode(_ mode: PlayerVideoScaleMode) {
-        guard isLandscape,
-              playerController.videoScaleMode != mode || settingsManager.playback.videoScaleMode != mode else { return }
         settingsManager.setVideoScaleMode(mode)
-        applyVideoScaleMode()
-        showFeedbackMessage(mode.feedbackTitle, systemImage: mode.feedbackSystemImage)
+        playerController.setVideoZoom(VideoZoom(mode))
     }
 
-    /// The inner display of a foldable ignores the supported interface orientations, so locking only works while the
-    /// hinge is closed.
-    private var rotationLockAction: (() -> Void)? {
-        guard hinge == .closed || hinge == .unavailable else { return nil }
-        return { toggleRotationLock() }
+    /// The inner display of a foldable ignores the supported interface orientations, so the orientation only locks
+    /// while the hinge is closed.
+    private var canLockOrientation: Bool {
+        hinge == .closed || hinge == .unavailable
     }
 
     private func rotateAutomaticallyIfNeeded() {
@@ -995,7 +1233,7 @@ struct PlayerView: View {
         else { return }
 
         didConsiderAutomaticRotation = true
-        guard settingsManager.playback.autoRotateVideo, !isRotationLocked,
+        guard settingsManager.playback.autoRotateVideo, !isControlsLocked,
               AppDelegate.orientationLock == .all,
               size.width > size.height, scene.effectiveGeometry.interfaceOrientation.isPortrait
         else { return }
@@ -1005,15 +1243,22 @@ struct PlayerView: View {
         }
     }
 
-    private func toggleRotationLock() {
+    private func toggleControlsLock() {
+        isControlsLocked ? unlockControls() : lockControls()
+    }
+
+    private func lockControls() {
+        doubleTapSeek.commit()
         didConsiderAutomaticRotation = true
-        if isRotationLocked {
-            AppDelegate.orientationLock = .all
-            isRotationLocked = false
-        } else {
-            AppDelegate.lockToCurrentOrientation()
-            isRotationLocked = true
-        }
+        activeOffsetBar = nil
+        isControlsLocked = true
+        hideControls()
+        showFeedbackMessage(String(localized: "player.controls.touchLock.lockedFeedback"), systemImage: "lock.fill")
+    }
+
+    private func unlockControls() {
+        isControlsLocked = false
+        showControls(temporarily: true)
     }
 
     private func refreshTracks() {
@@ -1107,6 +1352,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private func selectSubtitleTrack(_ id: Int?) {
         if id != selectedSubtitleTrackID {
             playerController.setSubtitleDelay(milliseconds: 0)
@@ -1149,6 +1404,9 @@ struct PlayerView: View {
         sleepTimer.onBoundaryPause = {
             showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
         }
+        if !sharePlayCoordinator.isInSession {
+            sleepTimer.applyDefault(settingsManager.playback.defaultSleepTimer, isLive: viewModel.isLivePlayback)
+        }
     }
 
     private func selectSleepTimer(_ mode: SleepTimerMode?) {
@@ -1168,6 +1426,7 @@ struct PlayerView: View {
         let position = max(playerController.position, viewModel.position)
         let wasPaused = playerController.isPaused
         sheetPresentation.item = nil
+        isShowingSubtitleAppearance = false
         Task {
             do {
                 let url = try await viewModel.changeQuality(to: quality, force: force)
@@ -1213,16 +1472,40 @@ struct PlayerView: View {
         }
     }
 
+    private func activateExternalSubtitle(_ subtitle: PlayerExternalSubtitle) throws {
+        let id = try playerController.registerExternalSubtitleIfNeeded(
+            subtitle,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
+        playerController.setSubtitleDelay(milliseconds: 0)
+        selectedSubtitleTrackID = id
+        refreshTracks()
+    }
+
+    private func searchMissingSubtitle() async {
+        guard automaticSubtitleSearchKey != nil, !sharePlayCoordinator.isInSession else { return }
+        let searchingViewModel = viewModel
+        guard let outcome = await searchingViewModel.searchMissingSubtitle(settings: settingsManager.playback),
+              searchingViewModel === viewModel,
+              !Task.isCancelled
+        else { return }
+
+        if case let .attached(subtitle, language) = outcome {
+            do {
+                try activateExternalSubtitle(subtitle)
+            } catch {
+                ErrorReporter.capture(error)
+                automaticSubtitleToast = AutomaticSubtitleSearchOutcome.failed(language: language).toast
+                return
+            }
+        }
+        automaticSubtitleToast = outcome.toast
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
-            let id = try playerController.registerExternalSubtitleIfNeeded(
-                subtitle,
-                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-            )
-            playerController.setSubtitleDelay(milliseconds: 0)
-            selectedSubtitleTrackID = id
-            refreshTracks()
+            try activateExternalSubtitle(subtitle)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -1274,6 +1557,7 @@ struct PlayerView: View {
         awaitingMediaLoad = false
         viewModel.confirmLiveChannelSwitch()
         refreshTracks()
+        automaticSubtitleSearchKey = viewModel.currentRatingKey
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
         }
@@ -1364,6 +1648,7 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: preferredAudioTrackID,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1375,10 +1660,9 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !sharePlayCoordinator.isInSession,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1388,10 +1672,40 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func switchLiveChannel(by offset: Int) {
+    private func fallBackToServerTranscode(after error: Error) {
+        LiveTVErrorReporting.capture(error, route: viewModel.liveRoute)
         Task {
             do {
-                let url = try await viewModel.switchLiveChannel(by: offset)
+                guard let url = try await viewModel.fallBackToServerTranscode() else {
+                    showPlaybackError(String(localized: "livetv.playback.error"))
+                    return
+                }
+                playerController.stop()
+                startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showPlaybackError(String(localized: "livetv.playback.error"))
+            }
+        }
+    }
+
+    private func switchLiveChannel(by offset: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(by: offset) }
+    }
+
+    private func switchLiveChannel(to index: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
+    }
+
+    private func switchToLastLiveChannel() {
+        performLiveSwitch { try await viewModel.switchToLastLiveChannel() }
+    }
+
+    private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {
+        Task {
+            do {
+                let url = try await switching()
                 playerController.stop()
                 startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
             } catch {
@@ -1405,6 +1719,7 @@ struct PlayerView: View {
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
         switch scenePhase {
         case .background:
+            pauseForBackgroundIfNeeded()
             preparePlaybackForBackground()
         case .active:
             reloadPlaybackAfterBackgroundIfNeeded()
@@ -1413,6 +1728,23 @@ struct PlayerView: View {
         @unknown default:
             break
         }
+    }
+
+    /// A picture in picture window keeps playing: it is on screen, so the audio still belongs to it. A SharePlay
+    /// session keeps playing too, since pausing here would pause every participant.
+    private func pauseForBackgroundIfNeeded() {
+        guard !settingsManager.playback.backgroundAudio,
+              !viewModel.isLivePlayback,
+              !sharePlayCoordinator.isInSession,
+              !playerController.isPictureInPictureActive,
+              !playerController.isPictureInPictureTransitioning
+        else { return }
+        // The engine only keeps a pause sent during a reload, so a first load would still autoplay.
+        if awaitingMediaLoad {
+            shouldPauseAfterMediaLoad = true
+            shouldResumeAfterMediaLoad = false
+        }
+        playerController.pause()
     }
 
     /// On-demand playback stays loaded in the background so it keeps its Now Playing card: the engine keeps playing
@@ -1473,7 +1805,7 @@ struct PlayerView: View {
             controlsVisible = true
         }
 
-        if temporarily, !isScrubbing {
+        if temporarily || isControlsLocked, !isScrubbing {
             scheduleControlsHide()
         } else {
             hideControlsWorkItem?.cancel()
@@ -1489,7 +1821,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard activeOffsetBar == nil else { return }
+        guard activeOffsetBar == nil, !isTracksMenuPresented else { return }
 
         let workItem = DispatchWorkItem {
             // Paused, the tiles stand in for the pause screen, which the tabletop layout does not show.
@@ -1666,20 +1998,26 @@ struct PlayerView: View {
         }
     }
 
-    /// The stream is considered lost when there is no network at all, or when its server is unreachable and the
-    /// player stalls; a single failed side request must not interrupt a stream that still plays.
+    /// The stream is considered lost only once its server is unreachable and the player stalls, so a network drop
+    /// plays through what is already buffered and a single failed side request does not interrupt playback.
     private var isStreamingServerUnreachable: Bool {
-        guard let server = viewModel.streamingServer, offlineCoordinator.isUnreachable(server) else { return false }
-        return !offlineCoordinator.availability.hasNetworkPath || playerController.isBuffering
+        isStreamingServerMarkedUnreachable && playerController.isBuffering
+    }
+
+    private var isStreamingServerMarkedUnreachable: Bool {
+        guard let server = viewModel.streamingServer else { return false }
+        return offlineCoordinator.isUnreachable(server)
     }
 
     /// Streaming cannot continue without its server: stop cleanly and offer the downloaded copy when there is one.
-    private func handleStreamingServerLost() {
-        guard !sharePlayCoordinator.isInSession else { return }
+    @discardableResult
+    private func handleStreamingServerLost() -> Bool {
+        guard !sharePlayCoordinator.isInSession else { return false }
         playerController.pause()
         offlineHandoff = viewModel.prepareOfflineHandoff()
         viewModel.handleStop()
         isShowingOfflineInterruption = true
+        return true
     }
 
     private func syncPlaybackState() {
@@ -1701,6 +2039,10 @@ struct PlayerView: View {
     }
 
     private func handlePlaybackError(_ message: String) async {
+        // The engine can fail on a read from the lost server before the buffer runs out, while it is not stalled yet.
+        if isStreamingServerMarkedUnreachable, handleStreamingServerLost() {
+            return
+        }
         guard !isRecoveringServerAccess else { return }
         isRecoveringServerAccess = true
         defer { isRecoveringServerAccess = false }
@@ -1803,12 +2145,8 @@ struct PlayerView: View {
 }
 
 private struct PlayerSheetRefreshID: Hashable {
-    let settingsAudioTracks: [PlaybackSettingsTrack]
-    let settingsSubtitleTracks: [PlaybackSettingsTrack]
-    let selectedAudioTrackID: Int?
-    let selectedSubtitleTrackID: Int?
     let playbackRate: Float
-    let syncItems: [PlaybackOffsetMenuItem]
+    let videoZoom: VideoZoom
 }
 
 private enum PlayerSheet: String, Identifiable {

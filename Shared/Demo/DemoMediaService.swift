@@ -24,6 +24,9 @@
         private let contentDirectory: URL
         private var selectedAudioTrackIDs: [String: Int] = [:]
         private var selectedSubtitleTrackIDs: [String: Int?] = [:]
+        private lazy var liveTV: DemoLiveTV? = DemoLiveTV.channelCount > 0
+            ? DemoLiveTV(channelCount: DemoLiveTV.channelCount, titles: catalog.allTitles)
+            : nil
 
         init(catalog: DemoCatalog, contentDirectory: URL) {
             self.catalog = catalog
@@ -47,12 +50,40 @@
             hiddenLibraryIDs _: Set<String>,
             includesPlaylists _: Bool,
             shownRowIDs _: Set<String>,
+            mergesNextUp: Bool,
         ) async throws -> HomeContent {
-            HomeContent(rows: catalog.homeRows)
+            guard mergesNextUp,
+                  let continueRow = catalog.homeRows.first(where: { $0.kind == .continueWatching }),
+                  let nextUpRow = catalog.homeRows.first(where: { $0.kind == .nextUp })
+            else { return HomeContent(rows: catalog.homeRows) }
+            let continueIDs = Set(continueRow.items.map(\.id))
+            let items = continueRow.items + nextUpRow.items.filter { !continueIDs.contains($0.id) }
+            let hub = continueRow.hub
+            let merged = HomeRow(id: continueRow.id, kind: .continueWatching, style: continueRow.style, hub: Hub(
+                id: hub.id,
+                key: hub.key,
+                hubKey: hub.hubKey,
+                title: hub.title,
+                size: items.count,
+                more: hub.more,
+                items: items,
+                server: hub.server,
+            ))
+            return HomeContent(rows: catalog.homeRows.compactMap { row in
+                switch row.kind {
+                case .continueWatching: merged
+                case .nextUp: nil
+                default: row
+                }
+            })
         }
 
         func items(in hub: Hub, startIndex: Int, limit: Int) async throws -> MediaPage<MediaDisplayItem> {
             page(hub.items, startIndex: startIndex, limit: limit)
+        }
+
+        func loadFeaturedCandidates(hiddenLibraryIDs _: Set<String>) async throws -> [FeaturedCandidate] {
+            catalog.featuredCandidates
         }
 
         // MARK: - Library
@@ -72,7 +103,7 @@
             return LibraryPreview(artworks: artworks, itemCount: titles.count)
         }
 
-        func recommended(in library: Library) async throws -> [Hub] {
+        func recommended(in library: Library, mergesNextUp _: Bool) async throws -> [Hub] {
             catalog.recommendedHubs(in: library.id)
         }
 
@@ -483,15 +514,15 @@
         }
 
         func isAvailable() async throws -> Bool {
-            false
+            liveTV != nil
         }
 
         func channels() async throws -> [LiveTVChannel] {
-            []
+            liveTV?.channels ?? []
         }
 
-        func programs(from _: Date, to _: Date) async throws -> [LiveTVProgram] {
-            []
+        func programs(from start: Date, to end: Date) async throws -> [LiveTVProgram] {
+            liveTV?.programs(from: start, to: end) ?? []
         }
 
         func onNow() async throws -> [LiveTVOnNowSection] {
@@ -502,8 +533,15 @@
 
         func reorderFavorites(_: [LiveTVChannel]) async throws {}
 
-        func startPlayback(channel _: LiveTVChannel) async throws -> any LiveTVPlaybackSession {
-            throw DemoMediaError.unsupported
+        func startPlayback(
+            channel: LiveTVChannel,
+            route _: LiveTVRoutePreference,
+        ) async throws -> any LiveTVPlaybackSession {
+            let clip = contentDirectory.appending(path: "clip.mp4")
+            guard liveTV != nil, FileManager.default.fileExists(atPath: clip.path()) else {
+                throw DemoMediaError.unsupported
+            }
+            return DemoLiveTVPlaybackSession(channel: channel, clip: clip)
         }
 
         // MARK: - Downloads
@@ -527,6 +565,7 @@
             itemID _: String,
             tracks _: MediaTrackPreference,
             versionID _: String?,
+            isTranscoded _: Bool,
         ) async throws -> [MediaDownloadSidecar] {
             []
         }

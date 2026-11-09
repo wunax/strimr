@@ -1,0 +1,362 @@
+import SwiftUI
+
+/// Every filter of a library in one form: a popover on iPad and macOS, a sheet on iPhone, a side panel on tvOS.
+struct LibraryBrowseFiltersView: View {
+    enum ServerFilters {
+        case available
+        /// Server filters do not apply to the local downloads.
+        case downloads
+        case unreachable
+    }
+
+    let viewModel: LibraryBrowseControlsViewModel
+    var showsDownloadsToggle = false
+    var isDownloadedOnly: Binding<Bool> = .constant(false)
+    let serverFilters: ServerFilters
+    let canReset: Bool
+    let onReset: () -> Void
+    let onDone: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                // Reaching the bottom of a long list is slow with a remote, so tvOS leads with it.
+                if canReset, Self.leadsWithReset {
+                    resetSection
+                }
+
+                if showsDownloadsToggle {
+                    Section {
+                        Toggle(isOn: isDownloadedOnly) {
+                            Label("library.browse.filters.downloadedOnly", systemImage: "arrow.down.circle")
+                        }
+                    } header: {
+                        Text("library.browse.filters.availability")
+                    }
+                }
+
+                if viewModel.hasControls, viewModel.showsFilterControl {
+                    Section {
+                        if viewModel.isJellyfinBrowse {
+                            jellyfinRows
+                        } else {
+                            plexRows
+                        }
+                    } header: {
+                        Text("library.browse.filters.title")
+                    } footer: {
+                        serverFiltersFooter
+                    }
+                    .disabled(serverFilters != .available)
+                }
+
+                if canReset, !Self.leadsWithReset {
+                    resetSection
+                }
+            }
+            .focusRoom()
+            #if os(macOS)
+                .formStyle(.grouped)
+                .navigationTitle(Text("library.browse.filters.title"))
+            #endif
+            #if os(iOS)
+            .navigationTitle(Text("library.browse.filters.title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.actions.done", action: onDone)
+                }
+            }
+            #endif
+        }
+    }
+
+    private static var leadsWithReset: Bool {
+        #if os(tvOS)
+            true
+        #else
+            false
+        #endif
+    }
+
+    private var resetSection: some View {
+        Section {
+            Button("library.browse.filters.reset", role: .destructive, action: onReset)
+        }
+    }
+
+    @ViewBuilder
+    private var serverFiltersFooter: some View {
+        switch serverFilters {
+        case .available:
+            EmptyView()
+        case .downloads:
+            Text("library.browse.filters.downloadsFooter")
+        case .unreachable:
+            Text("library.browse.filters.unreachableFooter")
+        }
+    }
+
+    private var plexRows: some View {
+        ForEach(viewModel.availableFilters, id: \.filter) { filter in
+            if filter.isBoolean {
+                Toggle(
+                    filter.title,
+                    isOn: Binding(
+                        get: { viewModel.isFilterOn(filter) },
+                        set: { viewModel.setFilter(filter, isOn: $0) },
+                    ),
+                )
+            } else {
+                NavigationLink {
+                    PlexFilterOptionsView(viewModel: viewModel, filter: filter)
+                } label: {
+                    LabeledContent(
+                        filter.title,
+                        value: viewModel.filterSelection(for: filter)?.selectedOption?.title
+                            ?? String(localized: "library.browse.filters.all"),
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var jellyfinRows: some View {
+        #if os(tvOS)
+            // A form picker opens an empty page in the tvOS panel, so the choices get the same list as the others.
+            jellyfinOptionsLink(.watchStatus)
+        #else
+            watchStatusPicker
+        #endif
+
+        ForEach([LibraryBrowseControlsViewModel.JellyfinFilter.inProgress, .favorites]) { filter in
+            Toggle(
+                filter.title,
+                isOn: Binding(
+                    get: { viewModel.jellyfinFilterIsSelected(filter) },
+                    set: { viewModel.setJellyfinFlag(filter, isOn: $0) },
+                ),
+            )
+        }
+
+        ForEach([LibraryBrowseControlsViewModel.JellyfinFilter.genres, .years]) { filter in
+            jellyfinOptionsLink(filter)
+        }
+    }
+
+    private func jellyfinOptionsLink(_ filter: LibraryBrowseControlsViewModel.JellyfinFilter) -> some View {
+        NavigationLink {
+            JellyfinFilterOptionsView(viewModel: viewModel, filter: filter)
+        } label: {
+            LabeledContent(filter.title, value: jellyfinSelectionSummary(filter))
+        }
+    }
+
+    private var watchStatusPicker: some View {
+        Picker(
+            LibraryBrowseControlsViewModel.JellyfinFilter.watchStatus.title,
+            selection: Binding(
+                get: { viewModel.jellyfinWatchStatus },
+                set: { viewModel.setJellyfinWatchStatus($0) },
+            ),
+        ) {
+            Text("library.browse.filters.all").tag(LibraryBrowseWatchStatus.all)
+            Text("library.browse.filters.unplayed").tag(LibraryBrowseWatchStatus.unplayed)
+            Text("library.browse.filters.played").tag(LibraryBrowseWatchStatus.played)
+        }
+    }
+
+    private func jellyfinSelectionSummary(_ filter: LibraryBrowseControlsViewModel.JellyfinFilter) -> String {
+        if filter == .watchStatus {
+            return viewModel.jellyfinOptions(for: filter)
+                .first { $0.id == viewModel.jellyfinWatchStatus.rawValue }?.title
+                ?? String(localized: "library.browse.filters.all")
+        }
+        let count = viewModel.jellyfinSelectionCount(filter)
+        return count == 0 ? String(localized: "library.browse.filters.all") : String(count)
+    }
+}
+
+private struct PlexFilterOptionsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let viewModel: LibraryBrowseControlsViewModel
+    let filter: PlexSectionItemFilter
+
+    var body: some View {
+        FilterOptionsContent(
+            isLoading: viewModel.isLoadingOptions(for: filter)
+                || (viewModel.filterOptions[filter.filter] == nil && viewModel.optionsError(for: filter) == nil),
+            errorMessage: viewModel.optionsError(for: filter),
+            isEmpty: viewModel.options(for: filter).isEmpty,
+        ) {
+            List {
+                FilterOptionRow(
+                    title: String(localized: "library.browse.filters.all"),
+                    isSelected: viewModel.filterSelection(for: filter) == nil,
+                ) {
+                    viewModel.clearFilter(filter)
+                    dismiss()
+                }
+                ForEach(viewModel.options(for: filter)) { option in
+                    FilterOptionRow(
+                        title: option.title,
+                        isSelected: viewModel.filterSelection(for: filter)?.selectedOption?.id == option.id,
+                    ) {
+                        viewModel.selectFilterOption(option, for: filter)
+                        dismiss()
+                    }
+                }
+            }
+            .focusRoom()
+        }
+        .navigationTitle(Text(verbatim: filter.title))
+        .task { await viewModel.loadFilterOptionsIfNeeded(for: filter) }
+    }
+}
+
+private struct JellyfinFilterOptionsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let viewModel: LibraryBrowseControlsViewModel
+    let filter: LibraryBrowseControlsViewModel.JellyfinFilter
+    @State private var searchText = ""
+
+    var body: some View {
+        FilterOptionsContent(
+            isLoading: filter.supportsMultiple && isLoadingOptions,
+            errorMessage: filter.supportsMultiple ? viewModel.jellyfinFilterOptionsError : nil,
+            isEmpty: viewModel.jellyfinOptions(for: filter).isEmpty,
+        ) {
+            List {
+                // Single choices already list their own "All".
+                if filter.supportsMultiple, searchText.isEmpty {
+                    FilterOptionRow(
+                        title: String(localized: "library.browse.filters.all"),
+                        isSelected: !viewModel.jellyfinFilterIsSelected(filter),
+                    ) {
+                        viewModel.clearJellyfinFilter(filter)
+                    }
+                }
+                ForEach(filteredOptions) { option in
+                    FilterOptionRow(
+                        title: option.title,
+                        isSelected: viewModel.jellyfinOptionIsSelected(option, for: filter),
+                    ) {
+                        viewModel.selectJellyfinOption(option, for: filter)
+                        if !filter.supportsMultiple {
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            .focusRoom()
+            .modifier(OptionsSearch(isEnabled: filter.supportsMultiple, text: $searchText))
+        }
+        .navigationTitle(Text(verbatim: filter.title))
+        .task {
+            if filter.supportsMultiple {
+                await viewModel.loadJellyfinFilterOptionsIfNeeded()
+            }
+        }
+    }
+
+    private var isLoadingOptions: Bool {
+        viewModel.isLoadingJellyfinFilterOptions
+            || (viewModel.jellyfinFilterOptions == LibraryBrowseFilterOptions()
+                && viewModel.jellyfinFilterOptionsError == nil)
+    }
+
+    private var filteredOptions: [LibraryBrowseValueOption] {
+        let options = viewModel.jellyfinOptions(for: filter)
+        guard !searchText.isEmpty else { return options }
+        return options.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+}
+
+/// Not on tvOS, where the search field brings a full-width keyboard that does not fit the side panel.
+private struct OptionsSearch: ViewModifier {
+    let isEnabled: Bool
+    @Binding var text: String
+
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+            content
+        #else
+            if isEnabled {
+                content.searchable(text: $text, prompt: Text("library.browse.filters.search"))
+            } else {
+                content
+            }
+        #endif
+    }
+}
+
+private struct FilterOptionsContent<Content: View>: View {
+    let isLoading: Bool
+    let errorMessage: String?
+    let isEmpty: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if isLoading {
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("library.browse.filters.loading")
+                    .font(.facts)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let errorMessage {
+            ContentUnavailableView(
+                errorMessage,
+                systemImage: "exclamationmark.triangle.fill",
+                description: Text("common.errors.tryAgainLater"),
+            )
+            .symbolRenderingMode(.multicolor)
+        } else if isEmpty {
+            ContentUnavailableView(
+                "common.empty.nothingToShow",
+                systemImage: "line.3.horizontal.decrease",
+            )
+        } else {
+            content()
+        }
+    }
+}
+
+private struct FilterOptionRow: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(verbatim: title)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.selectionAccent)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        #if !os(tvOS)
+        .buttonStyle(.plain)
+        #endif
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private extension View {
+    /// The navigation stack clips its pages, so on tvOS the list sits a little inside it, unclipped, leaving room
+    /// for focused rows to grow.
+    func focusRoom() -> some View {
+        #if os(tvOS)
+            scrollClipDisabled()
+                .padding(.horizontal, 12)
+        #else
+            self
+        #endif
+    }
+}

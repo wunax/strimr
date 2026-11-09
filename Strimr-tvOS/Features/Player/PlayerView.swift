@@ -23,6 +23,9 @@ struct PlayerView: View {
     @State private var settingsSubtitleTracks: [PlaybackSettingsTrack] = []
     @State private var selectedAudioTrackID: Int?
     @State private var selectedSubtitleTrackID: Int?
+    /// Set once the media is loaded, and changes with each new media, which starts the automatic subtitle search.
+    @State private var automaticSubtitleSearchKey: String?
+    @State private var automaticSubtitleToast: Toast?
     @State private var pendingRecoveryAudioProviderStreamID: Int?
     @State private var pendingRecoverySubtitleProviderStreamID: Int?
     @State private var pendingRecoveryAudioTrackID: Int?
@@ -38,6 +41,7 @@ struct PlayerView: View {
     @State private var isSearchingSubtitles = false
     @State private var settingsControl: PlayerSettingsControl?
     @State private var settingsMenuFocusID: String?
+    @State private var videoAreaSize = CGSize.zero
     @State private var settingsFocusGeneration = 0
     @State private var seekFeedback: SeekFeedback?
     @State private var seekFeedbackWorkItem: DispatchWorkItem?
@@ -54,6 +58,7 @@ struct PlayerView: View {
     @State private var isRecoveringServerAccess = false
     @State private var isShowingServerRecoveryAlert = false
     @State private var isShowingInfoPanel = false
+    @State private var isShowingLiveChannels = false
     @State private var infoPanelTab = PlayerInfoTab.info
     @State private var serverRecoveryError: MediaServerAccessRecoveryError?
     @State private var lastReloadedServerAccessGeneration = -1
@@ -61,7 +66,8 @@ struct PlayerView: View {
     @State private var sleepTimer = SleepTimer()
     @State private var pauseScreen = PauseScreenPresentation()
     @State private var qualityNoticeMessage: String?
-    @State private var activeOffsetBar: PlaybackOffsetKind?
+    @State private var activeAdjustmentBar: PlayerAdjustmentBar?
+    @State private var showsPlaybackStatistics = false
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -69,6 +75,10 @@ struct PlayerView: View {
 
     private var seekBackwardInterval: Double {
         Double(settingsManager.playback.seekBackwardSeconds)
+    }
+
+    private var timelineSkipSegments: [SkipSegment] {
+        settingsManager.playback.showSkipSegmentsOnTimeline ? viewModel.markers : []
     }
 
     private var seekForwardInterval: Double {
@@ -92,7 +102,7 @@ struct PlayerView: View {
             playerScene
                 .overlay {
                     playerOverlay
-                        .disabled(sheetPresentation.item != nil || activeOffsetBar != nil)
+                        .disabled(sheetPresentation.item != nil || activeAdjustmentBar != nil)
                         .accessibilityHidden(sheetPresentation.item != nil)
                         .opacity(sheetPresentation.item != nil ? 0 : 1)
                 }
@@ -106,9 +116,14 @@ struct PlayerView: View {
                 .onAppear {
                     guard activePlaybackURL == nil else { return }
                     playerController.onMediaLoaded = handleMediaLoaded
+                    playerController.onLiveDemuxFailure = fallBackToServerTranscode
                     playerController.onPlaybackEnded = handlePlaybackEnded
                     configureSleepTimer()
                     showControls(temporarily: true)
+                    playbackRate = viewModel.initialPlaybackRate(
+                        settings: settingsManager.playback,
+                        isSharePlay: sharePlayCoordinator.isInSession,
+                    )
                     playerController.setPlaybackRate(playbackRate)
                     if sharePlayCoordinator.isInSession {
                         sharePlayCoordinator.attachPlayer(
@@ -141,8 +156,14 @@ struct PlayerView: View {
                 }
                 .task {
                     guard activePlaybackURL == nil else { return }
+                    viewModel.liveRoutePreference = settingsManager.playback
+                        .transcodeLiveTV ? .serverTranscode : .automatic
                     await viewModel.load(quality: settingsManager.playback.qualityPreset)
-                },
+                }
+                .task(id: automaticSubtitleSearchKey) {
+                    await searchMissingSubtitle()
+                }
+                .toast($automaticSubtitleToast),
         )
 
         let playbackStateObservers = AnyView(
@@ -212,8 +233,8 @@ struct PlayerView: View {
                 }
                 .onChange(of: sleepTimer.isPromptPresented) { _, isPresented in
                     if isPresented {
-                        if activeOffsetBar != nil {
-                            closeOffsetBar()
+                        if activeAdjustmentBar != nil {
+                            closeAdjustmentBar()
                         }
                         sheetPresentation.item = nil
                         hideInfoPanel()
@@ -302,8 +323,13 @@ struct PlayerView: View {
                 .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: sheetPresentation.item)
             }
             .overlay {
-                if let activeOffsetBar {
-                    offsetBar(activeOffsetBar)
+                switch activeAdjustmentBar {
+                case let .offset(kind):
+                    offsetBar(kind)
+                case .zoom:
+                    zoomBar
+                case nil:
+                    EmptyView()
                 }
             }
             .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
@@ -367,27 +393,65 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerSurfaceView(controller: playerController)
+            PlayerSurfaceView(controller: playerController, zoomScale: videoZoomScale)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { videoAreaSize = $0 }
 
             SubtitleOverlayView(
                 cues: playerController.subtitleCues,
                 currentTime: playerController.subtitlePosition,
                 maxCueDuration: playerController.subtitleMaxCueDuration,
                 appearance: settingsManager.playback.subtitleAppearance,
-                bottomPadding: subtitleBottomPadding,
+                controlsInset: subtitleControlsInset,
                 videoSize: playerController.sourceVideoSize,
                 assRenderer: playerController.assRenderer,
                 activeSubtitleCodec: playerController.activeSubtitleCodec,
+                videoZoomScale: videoZoomScale,
+                samplePreviewText: isShowingSubtitleAppearance ? subtitleAppearanceAvailability.samplePreviewText : nil,
+                textTrailingInset: isShowingSubtitleAppearance ? PlayerSubtitleAppearanceView.coveredWidth : 0,
             )
             .ignoresSafeArea()
             .opacity(pauseScreen.isPresented ? 0 : 1)
+
+            LiveTVPlayerBackdrop(viewModel: viewModel, hidesBanner: isShowingLiveChannels || controlsVisible)
+        }
+        .onChange(of: viewModel.media?.metadataRatingKey, initial: true) { _, context in
+            playerController.prepareVideoZoom(for: context, persistedMode: settingsManager.playback.videoScaleMode)
         }
     }
 
-    private var subtitleBottomPadding: CGFloat {
-        guard controlsVisible else { return 48 }
+    private var videoFillScale: Double {
+        VideoZoom.fillScale(
+            video: playerController.displayVideoSize ?? playerController.sourceVideoSize,
+            container: videoAreaSize,
+        )
+    }
+
+    private var videoZoomScale: Double {
+        playerController.videoZoom.scale(fillScale: videoFillScale)
+    }
+
+    private func selectVideoZoom(_ zoom: VideoZoom) {
+        withAnimation(Motion.animation(Motion.focus, reduceMotion: reduceMotion)) {
+            playerController.setVideoZoom(zoom)
+        }
+        if let mode = zoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
+        }
+    }
+
+    private var isShowingSubtitleAppearance: Bool {
+        sheetPresentation.item == .subtitleAppearance
+    }
+
+    private var subtitleAppearanceAvailability: SubtitleAppearanceAvailability {
+        playerController.subtitleAppearanceAvailability(burnsSubtitles: viewModel.burnsSubtitles)
+    }
+
+    private var subtitleControlsInset: CGFloat {
+        // The controls are hidden behind the settings panel, and would misrepresent the subtitle position.
+        guard controlsVisible, !isShowingSubtitleAppearance else { return 0 }
         return isShowingInfoPanel ? 440 : 380
     }
 
@@ -397,7 +461,9 @@ struct PlayerView: View {
         let hasSkipOverlay = activeMarker != nil
 
         return ZStack {
-            if !controlsVisible, !isShowingInfoPanel, !hasSkipOverlay, !sleepTimer.isPromptPresented {
+            if !controlsVisible, !isShowingInfoPanel, !isShowingLiveChannels, !hasSkipOverlay,
+               !sleepTimer.isPromptPresented
+            {
                 Color.clear
                     .contentShape(Rectangle())
                     .focusable()
@@ -412,6 +478,14 @@ struct PlayerView: View {
 
             if viewModel.isBuffering || isRecoveringServerAccess {
                 bufferingOverlay
+            }
+
+            if showsPlaybackStatistics, !isShowingInfoPanel {
+                PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
+                    .padding(.top, controlsVisible ? 150 : 0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
+                    .transition(.opacity)
             }
 
             if controlsVisible, !isShowingInfoPanel {
@@ -435,6 +509,7 @@ struct PlayerView: View {
                     sleepTimer: sleepTimer,
                     chapters: viewModel.chapters,
                     showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+                    skipSegments: timelineSkipSegments,
                     scrubPreview: playerController.scrubPreview,
                     onSeekBackward: { jump(by: -seekBackwardInterval) },
                     onPlayPause: togglePlayPause,
@@ -452,7 +527,12 @@ struct PlayerView: View {
                     onShowInfoPanel: showInfoPanel,
                     isLive: viewModel.isLivePlayback,
                     behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
                     onGoLive: playerController.seekToLiveEdge,
+                    onShowLiveChannels: {
+                        controlsVisible = false
+                        isShowingLiveChannels = true
+                    },
                     canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
                     canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
                     onPreviousChannel: { switchLiveChannel(by: -1) },
@@ -460,7 +540,7 @@ struct PlayerView: View {
                     settingsControl: settingsControl,
                     showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
                     settingsFocusGeneration: settingsFocusGeneration,
-                    isShowingPanel: sheetPresentation.item != nil || activeOffsetBar != nil,
+                    isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
                 )
                 .transition(.opacity)
             }
@@ -512,6 +592,12 @@ struct PlayerView: View {
             if sleepTimer.isPromptPresented {
                 SleepTimerPromptOverlay(sleepTimer: sleepTimer)
             }
+
+            LiveTVChannelPanelOverlay(
+                viewModel: viewModel,
+                isPresented: $isShowingLiveChannels,
+                onSelectChannel: switchLiveChannel(to:),
+            )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
     }
@@ -575,6 +661,14 @@ struct PlayerView: View {
                 onSelect: selectAudioTrack(_:),
                 syncItem: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
+                audioEnhancements: PlayerAudioEnhancements(
+                    nightMode: settingsManager.playback.nightMode,
+                    dialogueBoost: settingsManager.playback.dialogueBoost,
+                    isAvailable: playerController.isAudioShapingAvailable,
+                    onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
+                    onShowDialogueBoost: { sheetPresentation.item = .dialogueBoost },
+                ),
+                initialOptionID: settingsMenuFocusID,
             )
         case .subtitle:
             PlayerTrackSelectionView(
@@ -591,7 +685,12 @@ struct PlayerView: View {
                     : nil,
                 syncItem: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
                 onSelectSync: openOffsetBar(_:),
+                subtitleAppearance: subtitleAppearanceAvailability,
+                onShowSubtitleAppearance: { sheetPresentation.item = .subtitleAppearance },
+                initialOptionID: settingsMenuFocusID,
             )
+        case .subtitleAppearance:
+            PlayerSubtitleAppearanceView(availability: subtitleAppearanceAvailability)
         case .speed:
             PlayerSpeedSelectionView(
                 selectedRate: playbackRate,
@@ -603,12 +702,21 @@ struct PlayerView: View {
                 versionTitle: viewModel.showsVersionSelection
                     ? viewModel.versionOptions.first(where: \.isSelected)?.title ?? ""
                     : nil,
+                displayTitle: playerController.videoZoom.feedbackTitle(fillScale: videoFillScale),
                 sleepTimer: sleepTimer,
                 mediaKind: viewModel.media?.type,
                 initialOptionID: settingsMenuFocusID,
                 onShowQuality: { sheetPresentation.item = .quality },
                 onShowVersions: { sheetPresentation.item = .version },
+                onShowDisplay: { sheetPresentation.item = .display },
                 onShowSleepTimer: { sheetPresentation.item = .sleepTimer },
+                showsPlaybackStatistics: showsPlaybackStatistics,
+                onTogglePlaybackStatistics: { showsPlaybackStatistics.toggle() },
+            )
+        case .dialogueBoost:
+            PlayerDialogueBoostSelectionView(
+                selectedBoost: settingsManager.playback.dialogueBoost,
+                onSelect: selectDialogueBoost(_:),
             )
         case .quality:
             PlayerQualitySelectionView(
@@ -619,6 +727,13 @@ struct PlayerView: View {
             PlayerVersionSelectionView(
                 versions: viewModel.versionOptions,
                 onSelect: selectVersion(_:),
+            )
+        case .display:
+            PlayerDisplaySelectionView(
+                zoom: playerController.videoZoom,
+                fillScale: videoFillScale,
+                onSelect: selectVideoZoom(_:),
+                onShowZoom: openZoomBar,
             )
         case .sleepTimer:
             PlayerSleepTimerSelectionView(
@@ -651,13 +766,29 @@ struct PlayerView: View {
             controller: playerController,
             kind: kind,
             burnsSubtitles: viewModel.burnsSubtitles,
-            onDone: closeOffsetBar,
+            onDone: closeAdjustmentBar,
         )
         .focusSection()
         .padding(edge, inset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         .transition(.opacity)
-        .onExitCommand { closeOffsetBar() }
+        .onExitCommand { closeAdjustmentBar() }
+        .onPlayPauseCommand { togglePlayPause() }
+    }
+
+    private var zoomBar: some View {
+        let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
+        return PlayerZoomBar(
+            controller: playerController,
+            fillScale: videoFillScale,
+            resetZoom: VideoZoom(settingsManager.playback.videoScaleMode),
+            onDone: closeAdjustmentBar,
+        )
+        .focusSection()
+        .padding(alignment == .top ? .top : .bottom, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .transition(.opacity)
+        .onExitCommand { closeAdjustmentBar() }
         .onPlayPauseCommand { togglePlayPause() }
     }
 
@@ -674,12 +805,18 @@ struct PlayerView: View {
             return
         }
         playerController.togglePlayback()
+        // The zoom bar keeps the picture clear, and its open bar would keep the controls from hiding again.
+        if activeAdjustmentBar == .zoom {
+            pauseScreen.registerInteraction()
+            return
+        }
         showControls(temporarily: true)
     }
 
     private func showAudioSettings() {
         refreshTracks()
         settingsControl = .audio
+        settingsMenuFocusID = nil
         sheetPresentation.item = .audio
         showControls(temporarily: true)
     }
@@ -687,6 +824,7 @@ struct PlayerView: View {
     private func showSubtitleSettings() {
         refreshTracks()
         settingsControl = .subtitle
+        settingsMenuFocusID = nil
         sheetPresentation.item = .subtitle
         showControls(temporarily: true)
     }
@@ -734,6 +872,9 @@ struct PlayerView: View {
         sleepTimer.setVolumeAttenuation = { playerController.setVolumeAttenuation($0) }
         sleepTimer.onBoundaryPause = {
             showFeedbackMessage(String(localized: "player.sleepTimer.pausedFeedback"), duration: 5)
+        }
+        if !sharePlayCoordinator.isInSession {
+            sleepTimer.applyDefault(settingsManager.playback.defaultSleepTimer, isLive: viewModel.isLivePlayback)
         }
     }
 
@@ -802,15 +943,29 @@ struct PlayerView: View {
         sheetPresentation.item = nil
         hideControlsWorkItem?.cancel()
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
-            activeOffsetBar = kind
+            activeAdjustmentBar = .offset(kind)
             controlsVisible = true
         }
     }
 
-    private func closeOffsetBar() {
-        playerController.commitAudioDelay()
+    /// Hides the controls so the whole picture shows while the zoom changes.
+    private func openZoomBar() {
+        sheetPresentation.item = nil
+        hideControlsWorkItem?.cancel()
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
-            activeOffsetBar = nil
+            activeAdjustmentBar = .zoom
+            controlsVisible = false
+        }
+    }
+
+    private func closeAdjustmentBar() {
+        if case .offset = activeAdjustmentBar {
+            playerController.commitAudioDelay()
+        } else if let mode = playerController.videoZoom.persistedMode {
+            settingsManager.setVideoScaleMode(mode)
+        }
+        withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+            activeAdjustmentBar = nil
         }
         settingsFocusGeneration += 1
         showControls(temporarily: true)
@@ -830,8 +985,8 @@ struct PlayerView: View {
             sleepTimer.continueAfterPrompt()
             return
         }
-        if activeOffsetBar != nil {
-            closeOffsetBar()
+        if activeAdjustmentBar != nil {
+            closeAdjustmentBar()
             return
         }
         if sheetPresentation.item != nil {
@@ -846,6 +1001,14 @@ struct PlayerView: View {
 
         if isShowingInfoPanel {
             hideInfoPanel()
+            return
+        }
+
+        if controlsVisible, !isScrubbing {
+            hideControlsWorkItem?.cancel()
+            withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
+                controlsVisible = false
+            }
             return
         }
 
@@ -993,6 +1156,16 @@ struct PlayerView: View {
         }
     }
 
+    private func setNightMode(_ enabled: Bool) {
+        settingsManager.setNightMode(enabled)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
+    private func selectDialogueBoost(_ boost: DialogueBoost) {
+        settingsManager.setDialogueBoost(boost)
+        playerController.setAudioShaping(settingsManager.playback.audioShaping)
+    }
+
     private func selectSubtitleTrack(_ id: Int?) {
         if id != selectedSubtitleTrackID {
             playerController.setSubtitleDelay(milliseconds: 0)
@@ -1020,16 +1193,40 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
+    private func activateExternalSubtitle(_ subtitle: PlayerExternalSubtitle) throws {
+        let id = try playerController.registerExternalSubtitleIfNeeded(
+            subtitle,
+            styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
+        )
+        playerController.setSubtitleDelay(milliseconds: 0)
+        selectedSubtitleTrackID = id
+        refreshTracks()
+    }
+
+    private func searchMissingSubtitle() async {
+        guard automaticSubtitleSearchKey != nil, !sharePlayCoordinator.isInSession else { return }
+        let searchingViewModel = viewModel
+        guard let outcome = await searchingViewModel.searchMissingSubtitle(settings: settingsManager.playback),
+              searchingViewModel === viewModel,
+              !Task.isCancelled
+        else { return }
+
+        if case let .attached(subtitle, language) = outcome {
+            do {
+                try activateExternalSubtitle(subtitle)
+            } catch {
+                ErrorReporter.capture(error)
+                automaticSubtitleToast = AutomaticSubtitleSearchOutcome.failed(language: language).toast
+                return
+            }
+        }
+        automaticSubtitleToast = outcome.toast
+    }
+
     private func handleAttachedSubtitle(_: RemoteSubtitleResult) async {
         do {
             let subtitle = try await viewModel.refreshMetadataAfterSubtitleAttachment()
-            let id = try playerController.registerExternalSubtitleIfNeeded(
-                subtitle,
-                styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
-            )
-            playerController.setSubtitleDelay(milliseconds: 0)
-            selectedSubtitleTrackID = id
-            refreshTracks()
+            try activateExternalSubtitle(subtitle)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             ErrorReporter.capture(error)
@@ -1066,6 +1263,7 @@ struct PlayerView: View {
         awaitingMediaLoad = false
         viewModel.confirmLiveChannelSwitch()
         refreshTracks()
+        automaticSubtitleSearchKey = viewModel.currentRatingKey
         if sharePlayCoordinator.isInSession {
             sharePlayCoordinator.playerDidLoad(ratingKey: viewModel.currentRatingKey)
         }
@@ -1152,6 +1350,7 @@ struct PlayerView: View {
             startPosition: startPosition,
             preferredAudioTrackID: preferredAudioTrackID,
             losslessAudio: settingsManager.playback.losslessAudio,
+            readAhead: settingsManager.playback.readAhead,
             spatialAudioLayout: settingsManager.playback.spatialAudioLayout,
             styledASSSubtitles: settingsManager.playback.styledASSSubtitles,
             mediaIdentifier: viewModel.media?.id ?? url.lastPathComponent,
@@ -1163,10 +1362,9 @@ struct PlayerView: View {
             settingsManager.playback.generateMissingScrubThumbnailPreviews,
             showsSubtitlesOnSkipBack: settingsManager.playback.showSubtitlesOnSkipBack
                 && !viewModel.isTranscoding,
-            isLive: viewModel.isLivePlayback,
-            nativeRemoteHLS: viewModel.liveNativeRemoteHLS,
-            dvrWindowSeconds: viewModel.liveDVRWindowSeconds,
+            live: viewModel.liveLoadOptions(routesAudioToAirPlay: LiveLoadOptions.routesAudioToAirPlay),
             audioDelayMilliseconds: settingsManager.playback.audioDelayMilliseconds,
+            audioShaping: settingsManager.playback.audioShaping,
             autoplay: !sharePlayCoordinator.isInSession,
             nowPlaying: viewModel.nowPlayingItem(settings: settingsManager.playback),
         )
@@ -1176,10 +1374,36 @@ struct PlayerView: View {
         showControls(temporarily: true)
     }
 
-    private func switchLiveChannel(by offset: Int) {
+    private func fallBackToServerTranscode(after error: Error) {
+        LiveTVErrorReporting.capture(error, route: viewModel.liveRoute)
         Task {
             do {
-                let url = try await viewModel.switchLiveChannel(by: offset)
+                guard let url = try await viewModel.fallBackToServerTranscode() else {
+                    showPlaybackError(String(localized: "livetv.playback.error"))
+                    return
+                }
+                playerController.stop()
+                startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                LiveTVErrorReporting.capture(error)
+                showPlaybackError(String(localized: "livetv.playback.error"))
+            }
+        }
+    }
+
+    private func switchLiveChannel(by offset: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(by: offset) }
+    }
+
+    private func switchLiveChannel(to index: Int) {
+        performLiveSwitch { try await viewModel.switchLiveChannel(to: index) }
+    }
+
+    private func performLiveSwitch(_ switching: @escaping () async throws -> URL) {
+        Task {
+            do {
+                let url = try await switching()
                 playerController.stop()
                 startPlayback(url: url, startPosition: nil, resetTrackSelection: true)
             } catch {
@@ -1278,7 +1502,7 @@ struct PlayerView: View {
             && !isSearchingSubtitles
             && sheetPresentation.item == nil
             && !isShowingInfoPanel
-            && activeOffsetBar == nil
+            && activeAdjustmentBar == nil
             && viewModel.activeSkipMarker == nil
             && !nextEpisodePresentation.isPresented
             && !sleepTimer.isPromptPresented
@@ -1299,7 +1523,7 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard sheetPresentation.item == nil, activeOffsetBar == nil else { return }
+        guard sheetPresentation.item == nil, activeAdjustmentBar == nil else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
@@ -1667,6 +1891,11 @@ struct PlayerView: View {
     }
 }
 
+private enum PlayerAdjustmentBar: Hashable {
+    case offset(PlaybackOffsetKind)
+    case zoom
+}
+
 private enum PlayerSettingsSheet: String, Identifiable {
     case audio
     case subtitle
@@ -1674,7 +1903,10 @@ private enum PlayerSettingsSheet: String, Identifiable {
     case settings
     case quality
     case version
+    case display
     case sleepTimer
+    case dialogueBoost
+    case subtitleAppearance
     case subtitleSearch
 
     var id: String {
@@ -1683,8 +1915,12 @@ private enum PlayerSettingsSheet: String, Identifiable {
 
     var parent: PlayerSettingsSheet? {
         switch self {
-        case .quality, .version, .sleepTimer:
+        case .quality, .version, .display, .sleepTimer:
             .settings
+        case .dialogueBoost:
+            .audio
+        case .subtitleAppearance:
+            .subtitle
         case .audio, .subtitle, .speed, .settings, .subtitleSearch:
             nil
         }
@@ -1704,8 +1940,14 @@ private enum PlayerSettingsSheet: String, Identifiable {
             "player.settings.quality"
         case .version:
             "player.settings.version"
+        case .display:
+            "player.settings.display"
         case .sleepTimer:
             "player.sleepTimer.title"
+        case .dialogueBoost:
+            "settings.playback.dialogueBoost"
+        case .subtitleAppearance:
+            "player.settings.subtitles.appearance"
         case .subtitleSearch:
             "subtitles.search.title"
         }

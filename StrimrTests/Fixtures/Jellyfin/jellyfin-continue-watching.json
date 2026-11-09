@@ -1,0 +1,71 @@
+{
+  "resume": [
+    {
+      "Id": "movie-1",
+      "Name": "Movie",
+      "Type": "Movie",
+      "UserData": { "Played": false, "PlaybackPositionTicks": 6000000000, "PlayCount": 0, "IsFavorite": false, "LastPlayedDate": "2026-01-05T20:00:00Z" }
+    },
+    {
+      "Id": "series-a-s1e3",
+      "Name": "In Progress",
+      "Type": "Episode",
+      "SeriesId": "series-a",
+      "ParentIndexNumber": 1,
+      "IndexNumber": 3,
+      "UserData": { "Played": false, "PlaybackPositionTicks": 6000000000, "PlayCount": 0, "IsFavorite": false, "LastPlayedDate": "2026-01-03T20:00:00Z" }
+    }
+  ],
+  "nextUp": [
+    {
+      "Id": "series-b-s2e1",
+      "Name": "Season Opener",
+      "Type": "Episode",
+      "SeriesId": "series-b",
+      "ParentIndexNumber": 2,
+      "IndexNumber": 1,
+      "UserData": { "Played": false, "PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false }
+    },
+    {
+      "Id": "series-a-s1e2",
+      "Name": "Skipped",
+      "Type": "Episode",
+      "SeriesId": "series-a",
+      "ParentIndexNumber": 1,
+      "IndexNumber": 2,
+      "UserData": { "Played": false, "PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false }
+    },
+    {
+      "Id": "series-c-s1e5",
+      "Name": "Long Ago",
+      "Type": "Episode",
+      "SeriesId": "series-c",
+      "ParentIndexNumber": 1,
+      "IndexNumber": 5,
+      "UserData": { "Played": false, "PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false }
+    }
+  ],
+  "played": [
+    {
+      "Id": "series-d-s1e1",
+      "Name": "Finished Show",
+      "Type": "Episode",
+      "SeriesId": "series-d",
+      "UserData": { "Played": true, "PlaybackPositionTicks": 0, "PlayCount": 1, "IsFavorite": false, "LastPlayedDate": "2026-01-06T20:00:00Z" }
+    },
+    {
+      "Id": "series-b-s1e10",
+      "Name": "Season Finale",
+      "Type": "Episode",
+      "SeriesId": "series-b",
+      "UserData": { "Played": true, "PlaybackPositionTicks": 0, "PlayCount": 1, "IsFavorite": false, "LastPlayedDate": "2026-01-04T20:00:00Z" }
+    },
+    {
+      "Id": "series-a-s1e1",
+      "Name": "Pilot",
+      "Type": "Episode",
+      "SeriesId": "series-a",
+      "UserData": { "Played": true, "PlaybackPositionTicks": 0, "PlayCount": 1, "IsFavorite": false, "LastPlayedDate": "2026-01-01T20:00:00Z" }
+    }
+  ]
+}
