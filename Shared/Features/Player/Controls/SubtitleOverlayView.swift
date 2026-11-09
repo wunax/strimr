@@ -14,24 +14,37 @@ struct SubtitleOverlayView: View {
     let currentTime: Double
     let maxCueDuration: Double
     let appearance: SubtitleAppearance
-    let bottomPadding: CGFloat
+    /// Height the visible player controls take at the bottom, 0 when they are hidden.
+    let controlsInset: CGFloat
+    var minimumBottomInset: CGFloat = 0
     let videoSize: CGSize?
     let assRenderer: AssSubtitlesRenderer?
     let activeSubtitleCodec: String?
-    var videoScaleMode: PlayerVideoScaleMode = .fit
+    var videoZoomScale = 1.0
+    /// Shown while no cue is on screen, so the appearance settings can be judged between two lines of dialogue.
+    var samplePreviewText: String?
+    /// Width a panel covers on the trailing side, which text subtitles stay clear of.
+    var textTrailingInset: CGFloat = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if let assRenderer {
             GeometryReader { geometry in
-                let rect = videoRect(in: geometry.size)
+                // libass lays the picture out from these margins, so dialogue stays on screen when a zoom
+                // crops the picture while signs keep following it.
+                let margins = SubtitleGeometry.frameMargins(
+                    picture: videoRect(in: geometry.size),
+                    in: geometry.size,
+                )
                 // A track switch swaps renderers within one update, so the host view must be rebuilt
                 // rather than kept subscribed to the freed one.
-                ASSRenderedSubtitles(renderer: assRenderer)
-                    .id(ObjectIdentifier(assRenderer))
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
+                ASSRenderedSubtitles(
+                    renderer: assRenderer,
+                    margins: margins,
+                    useMargins: SubtitleGeometry.cropsPicture(margins),
+                )
+                .id(ObjectIdentifier(assRenderer))
             }
             .clipped()
             .allowsHitTesting(false)
@@ -45,10 +58,17 @@ struct SubtitleOverlayView: View {
             GeometryReader { geometry in
                 Color.clear
                     .overlay(alignment: .topLeading) {
-                        ForEach(activeCues, id: \.id) { cue in
-                            if case let .image(image) = cue.body {
-                                imageView(image, frame: imageFrame(image, in: geometry.size))
-                            }
+                        let images = activeImages
+                        let bounds = CGRect(origin: .zero, size: geometry.size)
+                        let frames = SubtitleGeometry.keptVisible(
+                            placedImageFrames(
+                                images.map { imageFrame($0.image, in: geometry.size) },
+                                in: bounds,
+                            ),
+                            in: bounds,
+                        )
+                        ForEach(Array(zip(images, frames)), id: \.0.id) { item, frame in
+                            imageView(item.image, frame: frame)
                         }
                     }
             }
@@ -56,29 +76,37 @@ struct SubtitleOverlayView: View {
             .ignoresSafeArea()
 
             GeometryReader { geometry in
+                let bottomInset = SubtitleGeometry.textBottomInset(
+                    margin: appearance.bottomMargin,
+                    screenHeight: geometry.size.height,
+                    controlsInset: controlsInset,
+                    minimumInset: minimumBottomInset,
+                )
                 Color.clear
                     .overlay(alignment: appearance.verticalPosition.alignment) {
-                        let lines = activeTextLines
+                        let lines = displayedTextLines
                         if !lines.isEmpty {
                             VStack(spacing: 8) {
                                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                                     SubtitleTextView(text: line, appearance: appearance)
                                 }
                             }
-                            .frame(maxWidth: max(0, geometry.size.width - 48))
+                            .frame(maxWidth: max(0, geometry.size.width - textTrailingInset - 48))
+                            .padding(.trailing, textTrailingInset)
                             .padding(.top, appearance.verticalPosition == .top ? 48 : 0)
-                            .padding(
-                                .bottom,
-                                appearance.verticalPosition == .bottom
-                                    ? bottomPadding
-                                    : 0,
-                            )
-                            .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomPadding)
+                            .padding(.bottom, appearance.verticalPosition == .bottom ? bottomInset : 0)
+                            .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: bottomInset)
                         }
                     }
             }
         }
         .allowsHitTesting(false)
+    }
+
+    private var displayedTextLines: [AttributedString] {
+        let lines = activeTextLines
+        guard lines.isEmpty, activeImages.isEmpty, let samplePreviewText else { return lines }
+        return [AttributedString(samplePreviewText)]
     }
 
     private var activeTextLines: [AttributedString] {
@@ -121,6 +149,15 @@ struct SubtitleOverlayView: View {
             result += part
         }
         return result
+    }
+
+    private var activeImages: [(id: SubtitleCue.ID, image: SubtitleImage)] {
+        activeCues.compactMap { cue in
+            if case let .image(image) = cue.body {
+                return (cue.id, image)
+            }
+            return nil
+        }
     }
 
     private var isASSTrackActive: Bool {
@@ -189,6 +226,18 @@ struct SubtitleOverlayView: View {
             )
     }
 
+    private func placedImageFrames(_ frames: [CGRect], in bounds: CGRect) -> [CGRect] {
+        guard appearance.verticalPosition == .bottom,
+              let bottomInset = SubtitleGeometry.chosenBottomInset(
+                  margin: appearance.bottomMargin,
+                  screenHeight: bounds.height,
+                  controlsInset: controlsInset,
+                  minimumInset: minimumBottomInset,
+              )
+        else { return frames }
+        return SubtitleGeometry.placingLowerFrames(frames, bottomInset: bottomInset, in: bounds)
+    }
+
     private func videoRect(in overlaySize: CGSize) -> CGRect {
         zoomedRect(aspectFitRect(for: videoSize, in: overlaySize), in: overlaySize)
     }
@@ -219,22 +268,8 @@ struct SubtitleOverlayView: View {
         )
     }
 
-    /// Apply the video's fit-to-fill transform to the existing subtitle layout.
     private func zoomedRect(_ rect: CGRect, in overlaySize: CGSize) -> CGRect {
-        guard videoScaleMode == .fill, let videoSize,
-              videoSize.width > 0, videoSize.height > 0,
-              overlaySize.width > 0, overlaySize.height > 0
-        else { return rect }
-
-        let widthScale = overlaySize.width / videoSize.width
-        let heightScale = overlaySize.height / videoSize.height
-        let zoom = max(widthScale, heightScale) / min(widthScale, heightScale)
-        return CGRect(
-            x: overlaySize.width / 2 + (rect.minX - overlaySize.width / 2) * zoom,
-            y: overlaySize.height / 2 + (rect.minY - overlaySize.height / 2) * zoom,
-            width: rect.width * zoom,
-            height: rect.height * zoom,
-        )
+        SubtitleGeometry.zoomed(rect, by: videoZoomScale, in: overlaySize)
     }
 
     private func imageFrame(_ image: SubtitleImage, in overlaySize: CGSize) -> CGRect {
@@ -266,19 +301,27 @@ struct SubtitleOverlayView: View {
 
 private struct ASSRenderedSubtitles: PlatformViewRepresentable {
     let renderer: AssSubtitlesRenderer
+    let margins: FrameMargins
+    let useMargins: Bool
 
     #if canImport(UIKit)
         func makeUIView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer)
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+            return ASSFrameHostView(renderer: renderer)
         }
 
-        func updateUIView(_: ASSFrameHostView, context _: Context) {}
+        func updateUIView(_: ASSFrameHostView, context _: Context) {
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+        }
     #elseif canImport(AppKit)
         func makeNSView(context _: Context) -> ASSFrameHostView {
-            ASSFrameHostView(renderer: renderer)
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+            return ASSFrameHostView(renderer: renderer)
         }
 
-        func updateNSView(_: ASSFrameHostView, context _: Context) {}
+        func updateNSView(_: ASSFrameHostView, context _: Context) {
+            renderer.setFrameMargins(margins, useMargins: useMargins)
+        }
     #endif
 }
 
@@ -468,19 +511,27 @@ struct SubtitleAppearancePreview: View {
                 endPoint: .bottomTrailing,
             )
 
-            SubtitleTextView(
-                text: String(localized: "settings.playback.subtitles.preview.sample"),
-                appearance: appearance,
-            )
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity,
-                alignment: appearance.verticalPosition.alignment,
-            )
-            .padding(20)
+            GeometryReader { geometry in
+                SubtitleTextView(
+                    text: String(localized: "settings.playback.subtitles.preview.sample"),
+                    appearance: appearance,
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity,
+                    alignment: appearance.verticalPosition.alignment,
+                )
+                .padding([.horizontal, .top], 20)
+                .padding(.bottom, bottomPadding(height: geometry.size.height))
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityLabel("settings.playback.subtitles.preview.title")
+    }
+
+    private func bottomPadding(height: CGFloat) -> CGFloat {
+        guard appearance.verticalPosition == .bottom, let percent = appearance.bottomMargin.percent else { return 20 }
+        return height * CGFloat(percent) / 100
     }
 }
 
@@ -609,6 +660,16 @@ extension SubtitleEdgeStyle {
             "settings.playback.subtitles.edge.outline"
         case .none:
             "settings.playback.subtitles.edge.none"
+        }
+    }
+}
+
+extension SubtitleBottomMargin {
+    var localizedName: LocalizedStringKey {
+        if let percent {
+            "settings.playback.subtitles.bottomMargin.percent \(percent)"
+        } else {
+            "settings.playback.subtitles.bottomMargin.automatic"
         }
     }
 }

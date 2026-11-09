@@ -13,6 +13,17 @@ struct JellyfinAPIContextTests {
         username: "user",
     )
 
+    @Test func `a plus sign in a query value reaches the server as a plus`() throws {
+        let url = try JellyfinAPIContext.makeURL(
+            baseURL: #require(URL(string: "https://jellyfin.example.test")),
+            path: ["Items", "1", "RemoteImages", "Download"],
+            query: [URLQueryItem(name: "ImageUrl", value: "https://images.test/a+b.jpg?size=1&w=2")],
+        )
+
+        let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedQueryItems?.first?.value
+        #expect(value == "https://images.test/a%2Bb.jpg?size%3D1%26w%3D2")
+    }
+
     @Test func `validating a server reads its public system info`() async throws {
         let stub = HTTPStub { _ in
             .json(#"{"Id": "server-1", "ServerName": "Server", "Version": "10.10.0"}"#)

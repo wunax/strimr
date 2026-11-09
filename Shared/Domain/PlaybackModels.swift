@@ -244,6 +244,21 @@ struct PlaybackPlan: Sendable {
     let versionID: String?
     /// The server draws the selected subtitle into the transcoded picture.
     var burnsSubtitles = false
+
+    /// Servers do not always name the track they picked: the player then starts on the default or the first one.
+    func audioLanguage(sourceIndex: Int?) -> String? {
+        let audio = tracks.filter { $0.kind == .audio }
+        let track = audio.first { $0.sourceIndex == sourceIndex } ?? audio.first(where: \.isDefault) ?? audio.first
+        return track?.language
+    }
+
+    var existingSubtitles: [AutomaticSubtitleSearch.ExistingSubtitle] {
+        tracks.filter { $0.kind == .subtitle }.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.language, isForced: $0.isForced)
+        } + externalSubtitles.map {
+            AutomaticSubtitleSearch.ExistingSubtitle(language: $0.track.language, isForced: $0.track.isForced)
+        }
+    }
 }
 
 struct PlaybackQueueItem: Sendable, Equatable, Identifiable {
@@ -257,4 +272,27 @@ struct PlaybackQueue: Sendable, Equatable {
     var items: [PlaybackQueueItem]
     var currentIndex: Int
     var isShuffled: Bool
+}
+
+extension PlaybackQueue {
+    /// Starts at `startID` and keeps what precedes it. Shuffled, `startID` plays first and only what follows
+    /// it is shuffled, so nothing unplayed shows up as already played.
+    init(media: [MediaItem], startingAt startID: String?, shuffle: Bool) {
+        var media = media
+        var currentIndex = media.firstIndex { $0.id == startID }
+        if shuffle {
+            if let index = currentIndex {
+                media = [media[index]] + media[(index + 1)...].shuffled()
+            } else {
+                media.shuffle()
+            }
+            currentIndex = 0
+        }
+        self.init(
+            id: UUID(),
+            items: media.map { PlaybackQueueItem(id: UUID(), media: $0, providerQueueItemID: nil) },
+            currentIndex: currentIndex ?? 0,
+            isShuffled: shuffle,
+        )
+    }
 }

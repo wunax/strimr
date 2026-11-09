@@ -78,6 +78,7 @@ extension MediaItem {
             grandparentArtPath: plexItem.grandparentArt,
             parentThumbPath: plexItem.parentThumb,
             librarySectionID: plexItem.librarySectionID.map(String.init),
+            librarySectionTitle: plexItem.librarySectionTitle,
             lastViewedAt: plexItem.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
             externalIDs: ExternalIDs(plexGuids: plexItem.guids?.map(\.id) ?? []),
             themePath: plexItem.theme ?? plexItem.parentTheme ?? plexItem.grandparentTheme,

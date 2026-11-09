@@ -176,7 +176,6 @@ struct DetailPlaybackCard: View {
 
 private extension View {
     /// The default macOS menu draws a pop-up button inside the row; the row is the control here.
-    @ViewBuilder
     func plainRowMenu() -> some View {
         #if os(macOS)
             menuStyle(.button)

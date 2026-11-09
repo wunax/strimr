@@ -283,6 +283,7 @@ def build_catalog(tmdb, selection, resolved, locale):
             for library in selection["libraries"]
         ],
         "rows": [hub(row) for row in selection["rows"]],
+        "featured": selection.get("featured", []),
         "items": items,
         "people": sorted(people.values(), key=lambda person: person["id"]),
         "player": selection.get("player"),
@@ -293,6 +294,7 @@ def validate(selection):
     item_ids = {item["id"] for item in selection["items"]}
     rows = selection["rows"] + [row for library in selection["libraries"] for row in library.get("recommended", [])]
     unknown = {item for row in rows for item in row["items"] if item not in item_ids}
+    unknown |= {entry["item"] for entry in selection.get("featured", []) if entry["item"] not in item_ids}
     if selection.get("player") and selection["player"]["item"] not in item_ids:
         unknown.add(selection["player"]["item"])
     if unknown:

@@ -86,7 +86,9 @@ private struct ExternalPlaybackCallbackHandling: ViewModifier {
             do {
                 switch update {
                 case .watched:
-                    try await services.playback.markItemWatched(itemID: item.itemID, at: Date())
+                    let date = Date()
+                    try await services.playback.markItemWatched(itemID: item.itemID, at: date)
+                    TrackerCoordinator.shared.noteWatched(itemID: item.itemID, at: date, detail: services.detail)
                 case let .position(position, duration):
                     try await services.playback.pushItemPosition(
                         itemID: item.itemID,

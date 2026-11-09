@@ -6,13 +6,14 @@ enum TaskPresentationStyle {
     case modal
     /// A narrower modal, for short forms and lists.
     case compactModal
+    /// As narrow as the compact modal but only as tall as its content, for confirmations.
+    case dialog
     case contextual
     /// Opaque and edge to edge, for flows that need full attention and keep their own navigation stack.
     case fullScreen
 }
 
 extension View {
-    @ViewBuilder
     func taskPresentation<Item: Identifiable>(
         item: Binding<Item?>,
         style: TaskPresentationStyle = .modal,
@@ -28,7 +29,6 @@ extension View {
         #endif
     }
 
-    @ViewBuilder
     func taskPresentation(
         isPresented: Binding<Bool>,
         style: TaskPresentationStyle = .modal,
@@ -48,6 +48,7 @@ extension View {
 #if os(tvOS)
     struct TVModalView<Content: View>: View {
         var maxWidth: CGFloat = 1560
+        var fitsContent = false
         @ViewBuilder var content: () -> Content
 
         private let shape = RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
@@ -58,7 +59,8 @@ extension View {
                 content()
                     // Focused rows and fields grow past their scroll view's bounds.
                     .scrollClipDisabled()
-                    .frame(maxWidth: maxWidth, maxHeight: .infinity)
+                    .frame(maxWidth: maxWidth, maxHeight: fitsContent ? nil : .infinity)
+                    .fixedSize(horizontal: false, vertical: fitsContent)
                     .padding(40)
                     .clipShape(shape)
                     .overlayPanelSurface(in: shape)
@@ -117,6 +119,10 @@ extension View {
                 TVModalView(maxWidth: 1000, content: content)
                     .presentationBackground(.clear)
                     .onExitCommand { dismiss() }
+            case .dialog:
+                TVModalView(maxWidth: 1000, fitsContent: true, content: content)
+                    .presentationBackground(.clear)
+                    .onExitCommand { dismiss() }
             case .contextual:
                 TVContextPanelView(content: content)
                     .presentationBackground(.clear)
@@ -153,7 +159,6 @@ extension View {
         taskModalTitle(Text(verbatim: title))
     }
 
-    @ViewBuilder
     private func taskModalTitle(_ title: Text) -> some View {
         #if os(tvOS)
             VStack(alignment: .leading, spacing: 24) {

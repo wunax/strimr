@@ -5,7 +5,8 @@
     #endif
 
     /// Opens the screen named by `-ScreenshotRoute` once the demo server is ready:
-    /// `home`, `library:<libraryID>`, `detail:<itemID>`, `player:<itemID>` (the catalog's player item when omitted).
+    /// `home`, `library:<libraryID>`, `detail:<itemID>`, `player:<itemID>` (the catalog's player item when omitted),
+    /// `livetv` (with `-DemoLiveTVChannels <count>`).
     @MainActor
     enum DemoRoute {
         private enum Destination {
@@ -13,6 +14,7 @@
             case library(Library)
             case media(MediaItem)
             case player(PlaybackQueue, MediaServices)
+            case liveTV
         }
 
         private static var isApplied = false
@@ -23,8 +25,7 @@
             case .home:
                 coordinator.tab = .home
             case let .library(library):
-                coordinator.tab = .library
-                coordinator.libraryPath.append(library)
+                coordinator.showLibrary(library)
             case let .media(media):
                 coordinator.tab = .home
                 coordinator.showMediaDetail(media)
@@ -33,6 +34,8 @@
                     AppDelegate.orientationLock = .landscapeRight
                 #endif
                 coordinator.showPlayer(for: queue, services: services, shouldResumeFromOffset: false, notice: nil)
+            case .liveTV:
+                coordinator.tab = .liveTV
             }
         }
 
@@ -53,6 +56,8 @@
                     appModel.showMedia(media)
                 case let .player(queue, services):
                     appModel.showPlayer(for: queue, services: services, shouldResumeFromOffset: false, notice: nil)
+                case .liveTV:
+                    appModel.selection = .liveTV
                 }
                 // The player opens in its own window, a moment after the route.
                 try? await Task.sleep(for: .seconds(1.5))
@@ -103,6 +108,9 @@
                     else { return nil }
                     let media = try await services.detail.mediaItem(id: itemID)
                     return try await .player(services.playback.queue(startingWith: media, shuffle: false), services)
+                case "livetv":
+                    await services.liveTVStore.refreshAvailability(force: true)
+                    return .liveTV
                 default:
                     return .home
                 }

@@ -38,6 +38,8 @@ struct MediaItem: Identifiable, Hashable, Codable {
     let grandparentArtPath: String?
     let parentThumbPath: String?
     let librarySectionID: String?
+    /// Only Plex reports it alongside the item.
+    let librarySectionTitle: String?
     let lastViewedAt: Date?
     /// Theme music of the item or of its series.
     let themePath: String?
@@ -97,6 +99,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         grandparentArtPath: String?,
         parentThumbPath: String?,
         librarySectionID: String? = nil,
+        librarySectionTitle: String? = nil,
         lastViewedAt: Date? = nil,
         externalIDs: ExternalIDs = ExternalIDs(),
         themePath: String? = nil,
@@ -140,6 +143,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
         self.grandparentArtPath = grandparentArtPath
         self.parentThumbPath = parentThumbPath
         self.librarySectionID = librarySectionID
+        self.librarySectionTitle = librarySectionTitle
         self.lastViewedAt = lastViewedAt
         self.themePath = themePath
         self.logoPath = logoPath
@@ -348,6 +352,19 @@ struct MediaItem: Identifiable, Hashable, Codable {
         }
 
         return min(100, (viewOffset / duration) * 100)
+    }
+
+    var resolutionRank: Int {
+        guard let value = videoResolution?.lowercased() else { return 0 }
+        if value == "4k" || value == "uhd" {
+            return 2160
+        }
+        if value == "sd" {
+            return 480
+        }
+        // Jellyfin labels unusual sizes as "640 × 480": the height ranks them.
+        let height = value.split(separator: "×").last.map(String.init) ?? value
+        return Int(height.filter(\.isNumber)) ?? 0
     }
 
     var playbackResolutionLabel: String? {

@@ -1,0 +1,6 @@
+[
+  {"Id": "season-4", "Name": "Season 4", "Type": "Season", "SeriesId": "r1", "IndexNumber": 4},
+  {"Id": "ep-10", "Name": "Episode 10", "Type": "Episode", "SeriesId": "r2", "ParentIndexNumber": 2, "IndexNumber": 10},
+  {"Id": "ep-1", "Name": "Pilot", "Type": "Episode", "SeriesId": "r3", "ParentIndexNumber": 3, "IndexNumber": 1},
+  {"Id": "new-series", "Name": "Brand New", "Type": "Series"}
+]

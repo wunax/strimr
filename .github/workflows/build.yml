@@ -33,9 +33,12 @@ jobs:
           xcodebuild \
             -project Strimr.xcodeproj \
             -scheme Strimr-tvOS \
-            -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' \
+            -destination 'generic/platform=tvOS Simulator' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
             build
 
   macos-build:

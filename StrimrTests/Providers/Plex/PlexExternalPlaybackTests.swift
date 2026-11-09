@@ -70,6 +70,23 @@ struct PlexExternalPlaybackTests {
         ])
     }
 
+    @Test func `downloads every external subtitle file next to the video`() throws {
+        let container = try Fixtures.decode(PlexItemMediaContainer.self, from: "plex-movie-versions")
+        let item = try #require(container.mediaContainer.metadata?.first)
+        let streams = try #require(item.media?.first?.parts.first?.stream)
+        let sidecars = PlexMediaServiceAdapter.downloadSidecars(in: streams) {
+            MediaRepository.mediaURL(path: $0, baseURL: baseURL, token: "test-token")
+        }
+
+        #expect(sidecars.map(\.request.url?.absoluteString) == [
+            "https://plex.example.com:32400/library/streams/403?X-Plex-Token=test-token",
+            "https://plex.example.com:32400/library/streams/404?X-Plex-Token=test-token",
+            "https://plex.example.com:32400/library/streams/405?X-Plex-Token=test-token",
+        ])
+        #expect(sidecars.map(\.fileExtension) == ["srt", "srt", "ass"])
+        #expect(sidecars.map(\.language) == ["English", "French", "German"])
+    }
+
     private func externalURL(itemIndex: Int, version: MediaVersionRequest) throws -> URL? {
         let container = try Fixtures.decode(PlexItemMediaContainer.self, from: "plex-movie-versions")
         let item = try #require(container.mediaContainer.metadata?[itemIndex])

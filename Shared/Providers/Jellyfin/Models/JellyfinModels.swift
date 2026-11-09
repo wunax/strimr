@@ -282,6 +282,9 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let runTimeTicks: Int64?
     let productionYear: Int?
     let premiereDate: String?
+    let dateCreated: String?
+    /// Of a series: when its newest episode was added. Its `DateCreated` is often unset (`0001-01-01`).
+    let dateLastMediaAdded: String?
     let communityRating: Double?
     let criticRating: Double?
     let officialRating: String?
@@ -301,10 +304,14 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
     let imageTags: [String: String]?
     let backdropImageTags: [String]?
     let parentThumbItemID: String?
+    let parentBackdropItemID: String?
+    let parentBackdropImageTags: [String]?
     let seriesPrimaryImageTag: String?
     let seriesThumbImageTag: String?
     let parentLogoItemID: String?
     let parentLogoImageTag: String?
+    let parentPrimaryImageItemID: String?
+    let parentPrimaryImageTag: String?
     let userData: JellyfinUserData?
     let people: [JellyfinPerson]?
     let mediaSources: [JellyfinMediaSource]?
@@ -326,6 +333,8 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case runTimeTicks = "RunTimeTicks"
         case productionYear = "ProductionYear"
         case premiereDate = "PremiereDate"
+        case dateCreated = "DateCreated"
+        case dateLastMediaAdded = "DateLastMediaAdded"
         case communityRating = "CommunityRating"
         case criticRating = "CriticRating"
         case officialRating = "OfficialRating"
@@ -345,10 +354,14 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
         case imageTags = "ImageTags"
         case backdropImageTags = "BackdropImageTags"
         case parentThumbItemID = "ParentThumbItemId"
+        case parentBackdropItemID = "ParentBackdropItemId"
+        case parentBackdropImageTags = "ParentBackdropImageTags"
         case seriesPrimaryImageTag = "SeriesPrimaryImageTag"
         case seriesThumbImageTag = "SeriesThumbImageTag"
         case parentLogoItemID = "ParentLogoItemId"
         case parentLogoImageTag = "ParentLogoImageTag"
+        case parentPrimaryImageItemID = "ParentPrimaryImageItemId"
+        case parentPrimaryImageTag = "ParentPrimaryImageTag"
         case userData = "UserData"
         case people = "People"
         case mediaSources = "MediaSources"
@@ -476,6 +489,8 @@ nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
     let threeLetterISOLanguageName: String?
     let isForced: Bool?
     let hearingImpaired: Bool?
+    let isHashMatch: Bool?
+    let downloadCount: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id = "Id"
@@ -483,8 +498,10 @@ nonisolated struct JellyfinRemoteSubtitle: Decodable, Sendable {
         case providerName = "ProviderName"
         case format = "Format"
         case threeLetterISOLanguageName = "ThreeLetterISOLanguageName"
-        case isForced = "IsForced"
+        case isForced = "Forced"
         case hearingImpaired = "HearingImpaired"
+        case isHashMatch = "IsHashMatch"
+        case downloadCount = "DownloadCount"
     }
 }
 
@@ -503,6 +520,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
     let unplayedItemCount: Int?
     let isFavorite: Bool?
     let lastPlayedDate: Date?
+    let playedPercentage: Double?
 
     private enum CodingKeys: String, CodingKey {
         case played = "Played"
@@ -511,6 +529,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
         case unplayedItemCount = "UnplayedItemCount"
         case isFavorite = "IsFavorite"
         case lastPlayedDate = "LastPlayedDate"
+        case playedPercentage = "PlayedPercentage"
     }
 
     init(from decoder: Decoder) throws {
@@ -522,6 +541,7 @@ nonisolated struct JellyfinUserData: Decodable, Hashable, Sendable {
         isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite)
         lastPlayedDate = try container.decodeIfPresent(String.self, forKey: .lastPlayedDate)
             .flatMap(JellyfinDate.date(from:))
+        playedPercentage = try container.decodeIfPresent(Double.self, forKey: .playedPercentage)
     }
 }
 
@@ -665,6 +685,14 @@ nonisolated struct JellyfinMediaSource: Decodable, Hashable, Sendable {
         defaultSubtitleStreamIndex = container.decodeJellyfinIntIfPresent(forKey: .defaultSubtitleStreamIndex)
         mediaStreams = try? container.decodeIfPresent([JellyfinMediaStream].self, forKey: .mediaStreams)
         mediaAttachments = try? container.decodeIfPresent([JellyfinMediaAttachment].self, forKey: .mediaAttachments)
+    }
+}
+
+extension JellyfinMediaSource {
+    /// The server already weighs the user's subtitle mode and language: no index (or -1) means subtitles stay off,
+    /// even when the file flags a track as default.
+    nonisolated func serverSubtitleIndex(validIndices: Set<Int>) -> Int? {
+        defaultSubtitleStreamIndex.flatMap { validIndices.contains($0) ? $0 : nil }
     }
 }
 
@@ -923,5 +951,95 @@ nonisolated enum JellyfinTime {
         guard seconds.isFinite, seconds > 0 else { return 0 }
         let scaled = seconds * TimeInterval(ticksPerSecond)
         return scaled >= TimeInterval(Int64.max) ? Int64.max : Int64(scaled.rounded())
+    }
+}
+
+nonisolated extension JellyfinMediaSource {
+    /// Width counts as much as height: a 4K film cropped to scope is 3840×1600.
+    var videoResolution: String? {
+        let video = mediaStreams?.first { $0.type.lowercased() == "video" }
+        guard let height = video?.height else { return nil }
+        let width = video?.width ?? 0
+        if width >= 3200 || height >= 2160 {
+            return "4K"
+        }
+        if width >= 2400 || height >= 1440 {
+            return "1440p"
+        }
+        if width >= 1700 || height >= 1080 {
+            return "1080p"
+        }
+        if width >= 1200 || height >= 720 {
+            return "720p"
+        }
+        return video?.width.map { "\($0) × \(height)" } ?? "\(height)p"
+    }
+}
+
+nonisolated struct JellyfinRemoteImageResult: Codable, Sendable {
+    let images: [JellyfinRemoteImage]?
+
+    private enum CodingKeys: String, CodingKey {
+        case images = "Images"
+    }
+}
+
+nonisolated struct JellyfinRemoteImage: Codable, Hashable, Sendable {
+    let providerName: String?
+    let url: String?
+    let thumbnailURL: String?
+    let width: Int?
+    let height: Int?
+    let language: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case providerName = "ProviderName"
+        case url = "Url"
+        case thumbnailURL = "ThumbnailUrl"
+        case width = "Width"
+        case height = "Height"
+        case language = "Language"
+    }
+}
+
+/// An image the item currently has, from `/Items/{id}/Images`.
+nonisolated struct JellyfinImageInfo: Codable, Hashable, Sendable {
+    let imageType: String
+    let imageIndex: Int?
+    let width: Int?
+    let height: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case imageType = "ImageType"
+        case imageIndex = "ImageIndex"
+        case width = "Width"
+        case height = "Height"
+    }
+}
+
+/// The values used across the server, from `/Items/Filters`.
+nonisolated struct JellyfinItemFilters: Decodable, Sendable {
+    let genres: [String]?
+    let tags: [String]?
+
+    private enum CodingKeys: String, CodingKey {
+        case genres = "Genres"
+        case tags = "Tags"
+    }
+}
+
+nonisolated struct JellyfinMetadataEditorInfo: Decodable, Sendable {
+    struct ParentalRating: Decodable, Sendable {
+        let name: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case name = "Name"
+        }
+    }
+
+    let parentalRatingOptions: [ParentalRating]?
+
+    private enum CodingKeys: String, CodingKey {
+        case parentalRatingOptions = "ParentalRatingOptions"
     }
 }

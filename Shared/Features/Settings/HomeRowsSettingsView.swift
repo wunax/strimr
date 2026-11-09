@@ -2,6 +2,8 @@ import SwiftUI
 
 @MainActor
 struct HomeRowsSettingsView: View {
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(SeerrStore.self) private var seerrStore
     @State private var viewModel: HomeViewModel
     #if os(tvOS)
         @Environment(SettingsNavigation.self) private var navigation
@@ -26,7 +28,57 @@ struct HomeRowsSettingsView: View {
             }
     }
 
-    @ViewBuilder
+    /// The hero is not a row: it always comes first, so it has its own section above them.
+    private var heroSection: some View {
+        Section {
+            heroPicker
+            if settingsManager.interface.homeHero == .discover, seerrStore.isLoggedIn {
+                Toggle(
+                    "settings.interface.homeHero.includesTrending",
+                    isOn: Binding(
+                        get: { settingsManager.interface.homeHeroIncludesTrending },
+                        set: { settingsManager.setHomeHeroIncludesTrending($0) },
+                    ),
+                )
+                #if os(tvOS)
+                .settingsFocus("homeHeroIncludesTrending")
+                #endif
+            }
+        } header: {
+            Text("settings.interface.homeHero.section")
+        } footer: {
+            if settingsManager.interface.homeHero == .continueWatching {
+                Text("settings.interface.homeHero.continueWatchingFooter")
+            }
+        }
+    }
+
+    private var heroSelection: Binding<HomeHeroSource> {
+        Binding(
+            get: { settingsManager.interface.homeHero },
+            set: { settingsManager.setHomeHero($0) },
+        )
+    }
+
+    private var heroPicker: some View {
+        #if os(tvOS)
+            SettingsPicker(
+                "settings.interface.homeHero",
+                selection: heroSelection,
+                options: Array(HomeHeroSource.allCases),
+            ) { source in
+                Text(source.title)
+            }
+            .settingsFocus("homeHero", isDefault: true)
+        #else
+            Picker("settings.interface.homeHero", selection: heroSelection) {
+                ForEach(HomeHeroSource.allCases, id: \.self) { source in
+                    Text(source.title).tag(source)
+                }
+            }
+        #endif
+    }
+
     private var settingsContainer: some View {
         #if os(tvOS)
             SettingsList { sections }
@@ -39,6 +91,8 @@ struct HomeRowsSettingsView: View {
 
     @ViewBuilder
     private var sections: some View {
+        heroSection
+
         Section {
             Text("settings.interface.homeRows.description")
                 .foregroundStyle(.secondary)
@@ -78,7 +132,6 @@ struct HomeRowsSettingsView: View {
 
     // MARK: - Shown rows
 
-    @ViewBuilder
     private func shownRowControls(at index: Int, row: HomeRow, count: Int) -> some View {
         #if os(tvOS)
             HStack(spacing: 24) {
@@ -203,7 +256,6 @@ struct HomeRowsSettingsView: View {
     }
 
     #if !os(macOS)
-        @ViewBuilder
         private func rowGroupLink(_ group: HomeRowGroup) -> some View {
             #if os(tvOS)
                 Button {

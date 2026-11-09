@@ -12,11 +12,20 @@ struct MainTabView: View {
     @StateObject var coordinator: MainCoordinator
     @State private var homeViewModel: HomeViewModel
     @State private var libraryViewModel: LibraryViewModel
+    @State private var settingsNavigationCache = SettingsNavigationCache()
 
     init(homeViewModel: HomeViewModel, libraryViewModel: LibraryViewModel, settingsManager: SettingsManager) {
         _coordinator = StateObject(wrappedValue: MainCoordinator(settingsManager: settingsManager))
         _homeViewModel = State(initialValue: homeViewModel)
         _libraryViewModel = State(initialValue: libraryViewModel)
+    }
+
+    private var isDiscoverAvailable: Bool {
+        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    }
+
+    private var isLiveTVAvailable: Bool {
+        !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab
     }
 
     var body: some View {
@@ -33,7 +42,7 @@ struct MainTabView: View {
                 }
             }
 
-            if settingsManager.interface.displaySeerrDiscoverTab, seerrStore.isLoggedIn {
+            if isDiscoverAvailable {
                 Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
                     NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
                         SeerrDiscoverView(
@@ -61,7 +70,7 @@ struct MainTabView: View {
             Tab("tabs.search", systemImage: "magnifyingglass", value: MainCoordinator.Tab.search, role: .search) {
                 NavigationStack(path: coordinator.pathBinding(for: .search)) {
                     SearchView(
-                        viewModel: SearchViewModel(sessionManager: sessionManager),
+                        viewModel: SearchViewModel(sessionManager: sessionManager, settingsManager: settingsManager),
                         onSelectMedia: { coordinator.showMediaDetail($0.media) },
                     )
                     .navigationDestination(for: MainCoordinator.Route.self) { route in
@@ -90,7 +99,7 @@ struct MainTabView: View {
                 }
             }
 
-            if !registry.liveTVServices.isEmpty, settingsManager.interface.displayLiveTVTab {
+            if isLiveTVAvailable {
                 Tab("livetv.title", systemImage: "tv", value: MainCoordinator.Tab.liveTV) {
                     NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
                         LiveTVServersView(
@@ -151,7 +160,11 @@ struct MainTabView: View {
                         .navigationDestination(for: MoreRoute.self) { route in
                             switch route {
                             case .settings:
-                                SettingsView(canManageAccounts: sessionManager.canManageAccounts)
+                                SettingsView(
+                                    navigation: settingsNavigationCache.navigation(
+                                        canManageAccounts: sessionManager.canManageAccounts,
+                                    ),
+                                )
                             case .favorites:
                                 FavoritesView(
                                     sessionManager: sessionManager,
@@ -165,6 +178,16 @@ struct MainTabView: View {
                 }
             }
         }
+        .modifier(TabBarPlacementStyle(placement: settingsManager.interface.tabBarPlacement))
+        .background(
+            TabBarBackPressHandler(
+                canGoBack: {
+                    !coordinator.isPresentingPlayer && !coordinator.pathBinding(for: coordinator.tab).wrappedValue
+                        .isEmpty
+                },
+                goBack: { coordinator.pathBinding(for: coordinator.tab).wrappedValue.removeLast() },
+            ),
+        )
         .environmentObject(coordinator)
         .mediaCardActions(registry: registry, presenter: coordinator, showMedia: coordinator.showMediaDetail)
         .task {
@@ -183,6 +206,21 @@ struct MainTabView: View {
             guard phase == .active else { return }
             Task { await refreshLiveTVAvailability() }
         }
+        .onChange(of: coordinator.morePath.isEmpty) { _, isEmpty in
+            if isEmpty {
+                settingsNavigationCache.reset()
+            }
+        }
+        .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                coordinator.openPendingStartupTab(.seerrDiscover)
+            }
+        }
+        .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
+            if isAvailable {
+                coordinator.openPendingStartupTab(.liveTV)
+            }
+        }
         .onChange(of: settingsManager.interface.displayLiveTVTab) { _, isDisplayed in
             if !isDisplayed {
                 coordinator.resetLiveTVNavigation()
@@ -190,6 +228,9 @@ struct MainTabView: View {
         }
         .handlesExternalPlaybackCallbacks { server in
             Task { await homeViewModel.refresh(server: server) }
+        }
+        .onChange(of: coordinator.isPresentingPlayer, initial: true) { _, isPresenting in
+            homeViewModel.isPlaybackActive = isPresenting
         }
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }
@@ -361,6 +402,20 @@ struct MainTabView: View {
                 viewModel: PersonDetailViewModel(person: person, services: routeServices),
                 onSelectMedia: coordinator.showMediaDetail,
             )
+        }
+    }
+}
+
+/// Tab view styles have distinct types, so switching between them needs two branches.
+private struct TabBarPlacementStyle: ViewModifier {
+    let placement: TabBarPlacement
+
+    func body(content: Content) -> some View {
+        switch placement {
+        case .top:
+            content.tabViewStyle(.automatic)
+        case .sidebar:
+            content.tabViewStyle(.sidebarAdaptable)
         }
     }
 }

@@ -127,11 +127,11 @@ final class OfflineStore {
             allowsCellularAccess: item.allowsCellularAccess,
             errorMessage: item.errorMessage,
             videoFileName: metadata.videoFileName,
-            subtitleFileName: metadata.subtitleFileName,
+            subtitleFileName: metadata.subtitleFiles.first?.fileName,
             subtitleTitle: metadata.subtitleTitle,
-            subtitleLanguage: metadata.subtitleLanguage,
-            subtitleCodec: metadata.subtitleCodec,
-            subtitleIsForced: metadata.subtitleIsForced,
+            subtitleLanguage: metadata.subtitleFiles.first?.language,
+            subtitleCodec: metadata.subtitleFiles.first?.codec,
+            subtitleIsForced: metadata.subtitleFiles.first?.isForced ?? false,
             fileSize: metadata.fileSize,
             requestedQuality: metadata.requestedQuality.rawValue,
             effectiveQuality: metadata.effectiveQuality.rawValue,
@@ -149,11 +149,17 @@ final class OfflineStore {
               let status = DownloadStatus(rawValue: record.status)
         else { return nil }
         metadata.videoFileName = record.videoFileName
-        metadata.subtitleFileName = record.subtitleFileName
         metadata.subtitleTitle = record.subtitleTitle
-        metadata.subtitleLanguage = record.subtitleLanguage
-        metadata.subtitleCodec = record.subtitleCodec
-        metadata.subtitleIsForced = record.subtitleIsForced
+        if metadata.subtitleFiles.isEmpty, let fileName = record.subtitleFileName {
+            metadata.subtitleFiles = [DownloadedSubtitleFile(
+                fileName: fileName,
+                title: record.subtitleTitle,
+                language: record.subtitleLanguage,
+                codec: record.subtitleCodec,
+                isForced: record.subtitleIsForced,
+                isHearingImpaired: false,
+            )]
+        }
         metadata.fileSize = record.fileSize
         metadata.requestedQuality = TranscodeQualityPreset(rawValue: record.requestedQuality) ?? .original
         metadata.effectiveQuality = TranscodeQualityPreset(rawValue: record.effectiveQuality)

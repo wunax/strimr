@@ -32,6 +32,10 @@ struct SettingsView: View {
                     SettingsSubtitlesView()
                 }
 
+                NavigationLink("settings.accountPreferences.title") {
+                    AccountPreferencesView()
+                }
+
                 NavigationLink("settings.interface.title") {
                     SettingsInterfaceView(
                         settingsManager: settingsManager,

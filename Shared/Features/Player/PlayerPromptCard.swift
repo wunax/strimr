@@ -56,7 +56,6 @@ struct PlayerPromptCard<Artwork: View, Details: View, PrimaryAction: View, Secon
         .zIndex(100)
     }
 
-    @ViewBuilder
     private var content: some View {
         #if os(iOS)
             VStack(alignment: .leading, spacing: 16) {

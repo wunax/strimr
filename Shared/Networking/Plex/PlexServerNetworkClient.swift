@@ -12,11 +12,11 @@ final class PlexServerNetworkClient {
     private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     private let platform: String = {
         #if os(tvOS)
-            return "tvOS"
+            "tvOS"
         #elseif os(iOS)
-            return "iOS"
+            "iOS"
         #else
-            return "Unknown"
+            "Unknown"
         #endif
     }()
 
@@ -31,12 +31,14 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        encodesPlusSign: Bool = false,
     ) async throws -> Response {
         let result = try await data(
             path: path,
             queryItems: queryItems,
             method: method,
             headers: headers,
+            encodesPlusSign: encodesPlusSign,
         )
         let data = result.data
         let response = result.response
@@ -74,12 +76,18 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        body: Data? = nil,
+        encodesPlusSign: Bool = false,
+        percentEncodedQuery: String? = nil,
     ) async throws {
         let result = try await data(
             path: path,
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
+            encodesPlusSign: encodesPlusSign,
+            percentEncodedQuery: percentEncodedQuery,
         )
         let response = result.response
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -93,6 +101,7 @@ final class PlexServerNetworkClient {
     func json(
         path: String,
         queryItems: [URLQueryItem]? = nil,
+        percentEncodedQuery: String? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
     ) async throws -> [String: Any] {
@@ -101,6 +110,7 @@ final class PlexServerNetworkClient {
             queryItems: queryItems,
             method: method,
             headers: headers,
+            percentEncodedQuery: percentEncodedQuery,
         )
         guard let response = result.response as? HTTPURLResponse,
               200 ..< 300 ~= response.statusCode
@@ -158,6 +168,9 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]?,
         method: String,
         headers: [String: String],
+        body: Data? = nil,
+        encodesPlusSign: Bool = false,
+        percentEncodedQuery: String? = nil,
     ) async throws -> (data: Data, response: URLResponse) {
         let context = try requireContext()
         let snapshot = try context.serverAccessSnapshot()
@@ -167,6 +180,9 @@ final class PlexServerNetworkClient {
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
+            encodesPlusSign: encodesPlusSign,
+            percentEncodedQuery: percentEncodedQuery,
         )
         let result = try await session.data(for: request)
         guard (result.1 as? HTTPURLResponse)?.statusCode == 401 else {
@@ -181,6 +197,9 @@ final class PlexServerNetworkClient {
             queryItems: queryItems,
             method: method,
             headers: headers,
+            body: body,
+            encodesPlusSign: encodesPlusSign,
+            percentEncodedQuery: percentEncodedQuery,
         )
         return try await session.data(for: retryRequest)
     }
@@ -230,6 +249,9 @@ final class PlexServerNetworkClient {
         queryItems: [URLQueryItem]? = nil,
         method: String = "GET",
         headers: [String: String] = [:],
+        body: Data? = nil,
+        encodesPlusSign: Bool = false,
+        percentEncodedQuery: String? = nil,
     ) throws -> URLRequest {
         guard var components = URLComponents(
             url: snapshot.baseURL.appendingPathComponent(path),
@@ -241,12 +263,22 @@ final class PlexServerNetworkClient {
         if let queryItems {
             components.queryItems = queryItems
         }
+        // URLComponents leaves `+` as is, which Plex reads as a space. Off by default so the other requests, such as
+        // the client profiles joined with `+`, keep the encoding they were tested with.
+        if let percentEncodedQuery {
+            components.percentEncodedQuery = percentEncodedQuery
+        }
+        if encodesPlusSign {
+            components.percentEncodedQuery = components.percentEncodedQuery?
+                .replacingOccurrences(of: "+", with: "%2B")
+        }
         guard let url = components.url else {
             throw PlexAPIError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Strimr", forHTTPHeaderField: "X-Plex-Product")
         request.setValue(platform, forHTTPHeaderField: "X-Plex-Platform")

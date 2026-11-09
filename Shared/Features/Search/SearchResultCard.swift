@@ -4,8 +4,10 @@ import SwiftUI
 struct SearchResultCard: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(ServerRegistry.self) private var registry
+    @Environment(LibraryStore.self) private var libraryStore
     let result: MergedSearchResult
     let onTap: () -> Void
+    @State private var loadedLibraryTitle: String?
 
     private var media: MediaDisplayItem {
         result.media
@@ -38,8 +40,8 @@ struct SearchResultCard: View {
                         .font(.facts)
                         .foregroundStyle(.secondary)
 
-                    if result.sources.count > 1 {
-                        Label(result.serverNames.joined(separator: ", "), systemImage: "server.rack")
+                    if let sourceLabel {
+                        Label(sourceLabel, systemImage: "server.rack")
                             .font(.cardMetadata)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -70,6 +72,18 @@ struct SearchResultCard: View {
         }
         .buttonStyle(.plain)
         .offlineAvailability(of: media)
+        .task(id: result.id) { await loadLibraryTitle() }
+    }
+
+    /// Jellyfin results do not carry their library; it is only fetched for copies whose label needs it.
+    private func loadLibraryTitle() async {
+        guard result.hasSeparateCopies, result.sources.count == 1,
+              let item = media.playableItem, item.librarySectionTitle == nil,
+              let detail = registry.services(for: item.identity.server)?.detail,
+              let libraryID = try? await detail.libraryID(for: item)
+        else { return }
+        loadedLibraryTitle = libraryStore.library(LibraryIdentity(server: item.identity.server, libraryID: libraryID))?
+            .title
     }
 }
 
@@ -93,20 +107,100 @@ struct SearchServerSelectionView: View {
     let result: MergedSearchResult
     let onSelect: (SearchResultSource) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(ServerRegistry.self) private var registry
+    @Environment(LibraryStore.self) private var libraryStore
+    @State private var libraryIDs: [String: String] = [:]
 
     var body: some View {
-        NavigationStack {
-            List(result.sources) { source in
+        TaskModalNavigationView {
+            List(result.sourcesByQuality) { source in
                 Button {
                     dismiss()
                     onSelect(source)
                 } label: {
-                    Label(source.serverName, systemImage: "server.rack")
+                    row(for: source)
                 }
             }
-            .navigationTitle("search.serverSelection.title")
+            // Buttons in a list draw their label in the accent color.
+            .tint(Color.primary)
+            #if os(tvOS)
+                .scrollClipDisabled()
+                // Room for the focused row to grow below the title's divider.
+                .contentMargins(.top, 24, for: .scrollContent)
+            #endif
+                .taskModalTitle("search.serverSelection.title")
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+        .task { await loadLibraryIDs() }
+    }
+
+    private func row(for source: SearchResultSource) -> some View {
+        HStack(spacing: Self.spacing) {
+            Image(systemName: "server.rack")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color.primary)
+                .frame(width: Self.iconSize, height: Self.iconSize)
+                .background(Circle().fill(.quaternary))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(source.serverName)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+                if let library = libraryTitle(for: source) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "books.vertical")
+                        Text(library)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondary)
+                    .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: Self.spacing)
+
+            if let resolution = source.media.playableItem?.playbackResolutionLabel {
+                Text(resolution)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Color.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().strokeBorder(Color.primary, lineWidth: 1.5))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    #if os(tvOS)
+        private static let iconSize: CGFloat = 64
+        private static let spacing: CGFloat = 24
+    #else
+        private static let iconSize: CGFloat = 36
+        private static let spacing: CGFloat = 12
+    #endif
+
+    private func libraryTitle(for source: SearchResultSource) -> String? {
+        if let title = source.media.playableItem?.librarySectionTitle {
+            return title
+        }
+        guard let libraryID = source.media.playableItem?.librarySectionID ?? libraryIDs[source.id] else { return nil }
+        return libraryStore.library(LibraryIdentity(server: source.server, libraryID: libraryID))?.title
+    }
+
+    /// Jellyfin search results do not carry their library; it takes one request per copy.
+    private func loadLibraryIDs() async {
+        await withTaskGroup(of: (String, String?).self) { group in
+            for source in result.sources {
+                guard let item = source.media.playableItem, item.librarySectionID == nil,
+                      let detail = registry.services(for: source.server)?.detail
+                else { continue }
+                group.addTask { await (source.id, try? detail.libraryID(for: item)) }
+            }
+            for await (id, libraryID) in group {
+                libraryIDs[id] = libraryID
+            }
+        }
     }
 }
 
@@ -170,6 +264,23 @@ struct MediaTypeBadge: View {
 }
 
 private extension SearchResultCard {
+    /// Grouped copies name their servers; with grouping off, copies of one title say where they are and in which
+    /// quality, so they can be told apart.
+    private var sourceLabel: String? {
+        if result.sources.count > 1 {
+            return result.serverNames.joined(separator: ", ")
+        }
+        guard result.hasSeparateCopies else { return nil }
+        let item = media.playableItem
+        return [
+            result.primarySource.serverName,
+            item?.librarySectionTitle ?? loadedLibraryTitle,
+            item?.playbackResolutionLabel,
+        ]
+        .compactMap(\.self)
+        .joined(separator: " · ")
+    }
+
     var subtitle: String {
         switch media.type {
         case .movie:

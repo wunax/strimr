@@ -27,6 +27,7 @@ Strimr is a third-party client for Plex and Jellyfin, built in Swift with native
 - **Plex and Jellyfin**, with several servers at once in a unified home, libraries, and search
 - Strimr profiles with optional PIN, alongside Plex Home users, each with their own connections and settings
 - Seerr integration
+- Trakt and Simkl: playback progress and watched sync
 
 ### Browsing
 - Customizable home rows, library visibility, and navigation order

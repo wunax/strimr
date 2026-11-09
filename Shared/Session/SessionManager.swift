@@ -60,7 +60,9 @@ final class SessionManager {
 
     private(set) var status: Status = .hydrating
     private(set) var loadingPhase: LoadingPhase = .preparing
-    private(set) var activeProfile: StrimrProfile?
+    private(set) var activeProfile: StrimrProfile? {
+        didSet { TrackerCoordinator.shared.activate(profileID: activeProfile?.id) }
+    }
 
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     #if os(tvOS)
@@ -433,6 +435,7 @@ final class SessionManager {
         for profileID in profileIDs {
             settingsManager.removeSettings(profileID: profileID)
             favoritesStore.removeProfile(profileID)
+            TrackerCoordinator.shared.removeProfile(profileID)
         }
     }
 

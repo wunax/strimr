@@ -80,9 +80,9 @@ struct FavoritesView: View {
 
     private func carouselViewAllAction(for category: FavoriteCategory) -> (() -> Void)? {
         #if os(tvOS)
-            return { selectedCategory = category }
+            { selectedCategory = category }
         #else
-            return nil
+            nil
         #endif
     }
 }

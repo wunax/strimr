@@ -1,0 +1,32 @@
+{
+  "Items": [
+    {
+      "Id": "program-1",
+      "Name": "Example Match",
+      "ChannelId": "channel-1",
+      "StartDate": "2026-11-03T20:00:00.0000000Z",
+      "EndDate": "2026-11-03T22:00:00.0000000Z",
+      "IsSports": true,
+      "IsLive": true
+    },
+    {
+      "Id": "program-2",
+      "Name": "Example Film",
+      "ChannelId": "channel-2",
+      "StartDate": "2026-11-03T20:40:00.0000000Z",
+      "EndDate": "2026-11-03T22:30:00.0000000Z",
+      "IsMovie": true,
+      "IsKids": true
+    },
+    {
+      "Id": "program-3",
+      "Name": "Example Show",
+      "ChannelId": "channel-3",
+      "StartDate": "2026-11-03T21:00:00.0000000Z",
+      "EndDate": "2026-11-03T21:30:00.0000000Z",
+      "IsSeries": true,
+      "IsNews": false
+    }
+  ],
+  "TotalRecordCount": 3
+}

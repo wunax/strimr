@@ -109,6 +109,17 @@ struct MediaArtworkPlaceholder: View {
 }
 
 struct MediaImageView: View {
+    let viewModel: MediaImageViewModel
+
+    var body: some View {
+        // The content keeps its first model in `@State`. Lists keyed by position reuse a cell for another item
+        // when they reorder, which would leave the previous item's artwork next to the new title.
+        MediaImageContent(viewModel: viewModel)
+            .id(viewModel.media.id)
+    }
+}
+
+private struct MediaImageContent: View {
     @Environment(SettingsManager.self) private var settingsManager
     @State private var viewModel: MediaImageViewModel
 
@@ -120,8 +131,20 @@ struct MediaImageView: View {
         settingsManager.interface.spoilerProtection
     }
 
+    private var landscapeEpisodeArtwork: LandscapeEpisodeArtwork {
+        settingsManager.interface.landscapeEpisodeArtwork
+    }
+
+    private var portraitEpisodeArtwork: PortraitEpisodeArtwork {
+        settingsManager.interface.portraitEpisodeArtwork
+    }
+
     private var isSpoilerProtected: Bool {
-        viewModel.media.playableItem?.isSpoilerProtected(at: spoilerProtection) == true
+        viewModel.hidesSpoiler(
+            at: spoilerProtection,
+            landscape: landscapeEpisodeArtwork,
+            portrait: portraitEpisodeArtwork,
+        )
     }
 
     var body: some View {
@@ -138,10 +161,22 @@ struct MediaImageView: View {
                     .padding(8)
             }
         }
-        .task(id: "\(viewModel.media.id)-\(viewModel.artworkKind.rawValue)-\(spoilerProtection.rawValue)") {
+        .task(id: taskID) {
             viewModel.spoilerProtection = spoilerProtection
+            viewModel.landscapeEpisodeArtwork = landscapeEpisodeArtwork
+            viewModel.portraitEpisodeArtwork = portraitEpisodeArtwork
             await viewModel.load()
         }
+    }
+
+    private var taskID: String {
+        [
+            viewModel.media.id,
+            viewModel.artworkKind.rawValue,
+            spoilerProtection.rawValue,
+            landscapeEpisodeArtwork.rawValue,
+            portraitEpisodeArtwork.rawValue,
+        ].joined(separator: "-")
     }
 
     private var placeholder: some View {

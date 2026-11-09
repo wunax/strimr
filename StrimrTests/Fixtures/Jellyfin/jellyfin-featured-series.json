@@ -1,0 +1,9 @@
+{
+  "TotalRecordCount": 4,
+  "Items": [
+    {"Id": "s1", "Name": "Fresh Series", "Type": "Series", "DateCreated": "0001-01-01T00:00:00.0000000Z", "DateLastMediaAdded": "2027-01-10T10:00:00.0000000Z", "CommunityRating": 8.0, "BackdropImageTags": ["b1"], "ProviderIds": {"Tmdb": "7001"}, "UserData": {"Played": false, "PlayedPercentage": 0, "UnplayedItemCount": 8}},
+    {"Id": "s2", "Name": "Started Series", "Type": "Series", "DateCreated": "2026-01-22T10:00:00.0000000Z", "DateLastMediaAdded": "2027-01-12T10:00:00.0000000Z", "CommunityRating": 8.0, "BackdropImageTags": ["b2"], "UserData": {"Played": false, "PlayedPercentage": 6.06, "UnplayedItemCount": 31}},
+    {"Id": "s3", "Name": "Old Gem Series", "Type": "Series", "DateCreated": "0001-01-01T00:00:00.0000000Z", "DateLastMediaAdded": "2026-03-01T10:00:00.0000000Z", "CommunityRating": 8.6, "BackdropImageTags": ["b3"], "UserData": {"Played": false, "PlayedPercentage": 0, "UnplayedItemCount": 6}},
+    {"Id": "s4", "Name": "Edition Without Art", "Type": "Series", "DateCreated": "2027-01-10T10:00:00.0000000Z", "UserData": {"Played": false, "PlayedPercentage": 0}}
+  ]
+}

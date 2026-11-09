@@ -14,9 +14,12 @@ struct PlayerControlsView: View {
     var showsEndsAtTime: Bool
     var isScrubbing: Bool
     var onDismiss: () -> Void
+    var tracksMenu: PlayerTracksMenuModel
+    var tracksMenuActions: PlayerTracksMenuActions
     var onShowSettings: () -> Void
     var chapters: [MediaChapter]
     var showsChaptersOnTimeline: Bool
+    var skipSegments: [SkipSegment]
     var scrubPreview: PlayerScrubPreview?
     var onSeekBackward: () -> Void
     var onPlayPause: () -> Void
@@ -26,8 +29,8 @@ struct PlayerControlsView: View {
     var onScrubbingChanged: (Bool) -> Void
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
-    var isRotationLocked: Bool
-    var onToggleRotationLock: (() -> Void)?
+    var isLocked: Bool
+    var onToggleLock: () -> Void
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
     var isPictureInPictureEnabled: Bool
@@ -36,12 +39,15 @@ struct PlayerControlsView: View {
     var onShowInfoPanel: () -> Void
     var isLive: Bool
     var behindLiveSeconds: Double
+    var isAtLiveEdge: Bool
+    var lastLiveChannel: LiveTVChannel?
     var onGoLive: () -> Void
+    var onShowLiveChannels: () -> Void
+    var onLastLiveChannel: () -> Void
     var canSwitchPreviousChannel: Bool
     var canSwitchNextChannel: Bool
     var onPreviousChannel: () -> Void
     var onNextChannel: () -> Void
-    var showsSettingsIndicator = false
     var sleepTimer: SleepTimer?
     private var playbackBadges: [PlayerControlBadge] {
         var badges: [PlayerControlBadge] = []
@@ -75,21 +81,23 @@ struct PlayerControlsView: View {
                 PlayerControlsHeader(
                     media: media,
                     onDismiss: onDismiss,
+                    tracksMenu: tracksMenu,
+                    tracksMenuActions: tracksMenuActions,
                     onShowSettings: onShowSettings,
-                    showsSettingsIndicator: showsSettingsIndicator,
                     sleepTimer: sleepTimer,
                     isSharePlay: isSharePlay,
                     showsPictureInPicture: showsPictureInPicture,
                     isPictureInPictureEnabled: isPictureInPictureEnabled,
                     onStartPictureInPicture: onStartPictureInPicture,
                 )
+                .hiddenWhenLocked(isLocked)
 
                 Spacer(minLength: 0)
 
                 VStack(spacing: 18) {
                     PlayerAuxiliaryControlsRow(
-                        isRotationLocked: isRotationLocked,
-                        onToggleRotationLock: onToggleRotationLock,
+                        isLocked: isLocked,
+                        onToggleLock: onToggleLock,
                         skipMarkerTitle: skipMarkerTitle,
                         onSkipMarker: onSkipMarker,
                         badges: playbackBadges,
@@ -98,48 +106,44 @@ struct PlayerControlsView: View {
                     .opacity(isScrubbing ? 0 : 1)
                     .allowsHitTesting(!isScrubbing)
 
-                    if isLive {
-                        HStack {
-                            if behindLiveSeconds < 2 {
-                                Text("livetv.player.live").font(.headline.monospacedDigit())
-                            } else {
-                                Text("livetv.player.behind \(Int(behindLiveSeconds / 60))")
-                                    .font(.headline.monospacedDigit())
-                            }
-                            Spacer()
-                            Button(
-                                "livetv.player.goLive",
-                                systemImage: "dot.radiowaves.left.and.right",
-                                action: onGoLive,
+                    Group {
+                        if isLive {
+                            LiveTVPlayerStatusRow(
+                                behindLiveSeconds: behindLiveSeconds,
+                                isAtLiveEdge: isAtLiveEdge,
+                                onGoLive: onGoLive,
+                                lastChannel: lastLiveChannel,
+                                onShowChannels: onShowLiveChannels,
+                                onLastChannel: onLastLiveChannel,
                             )
-                            .actionButtonStyle(.primary)
-                            .disabled(behindLiveSeconds < 2)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                    } else {
-                        ZStack(alignment: .bottom) {
-                            PlayerTimelineView(
-                                position: $position,
-                                duration: duration,
-                                bufferedAhead: bufferedAhead,
-                                playbackPosition: bufferBasePosition,
-                                playbackRate: playbackRate,
-                                showsEndsAtTime: showsEndsAtTime,
-                                chapters: chapters,
-                                showsChaptersOnTimeline: showsChaptersOnTimeline,
-                                scrubPreview: scrubPreview,
-                                onEditingChanged: onScrubbingChanged,
-                            )
+                            .controlSize(.small)
+                            .padding(.horizontal, 12)
+                        } else {
+                            ZStack(alignment: .bottom) {
+                                PlayerTimelineView(
+                                    position: $position,
+                                    duration: duration,
+                                    bufferedAhead: bufferedAhead,
+                                    playbackPosition: bufferBasePosition,
+                                    playbackRate: playbackRate,
+                                    showsEndsAtTime: showsEndsAtTime,
+                                    chapters: chapters,
+                                    showsChaptersOnTimeline: showsChaptersOnTimeline,
+                                    skipSegments: skipSegments,
+                                    scrubPreview: scrubPreview,
+                                    onEditingChanged: onScrubbingChanged,
+                                )
 
-                            if hasInfoPanel {
-                                PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
-                                    .opacity(isScrubbing ? 0 : 1)
-                                    .allowsHitTesting(!isScrubbing)
-                                    .offset(y: 18)
+                                if hasInfoPanel {
+                                    PlayerInfoPanelDisclosureButton(action: onShowInfoPanel)
+                                        .opacity(isScrubbing ? 0 : 1)
+                                        .allowsHitTesting(!isScrubbing)
+                                        .offset(y: 18)
+                                }
                             }
                         }
                     }
+                    .hiddenWhenLocked(isLocked)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -160,10 +164,21 @@ struct PlayerControlsView: View {
                 onNextChannel: onNextChannel,
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .hiddenWhenLocked(isLocked)
         }
         .background {
             PlayerControlsBackground()
+                .hiddenWhenLocked(isLocked)
         }
+    }
+}
+
+private extension View {
+    /// Keeps the hidden controls in the layout, so the lock button stays exactly where it was pressed.
+    func hiddenWhenLocked(_ isLocked: Bool) -> some View {
+        opacity(isLocked ? 0 : 1)
+            .allowsHitTesting(!isLocked)
+            .accessibilityHidden(isLocked)
     }
 }
 
@@ -174,17 +189,15 @@ private struct PlayerControlBadge: Identifiable {
 }
 
 private struct PlayerAuxiliaryControlsRow: View {
-    var isRotationLocked: Bool
-    var onToggleRotationLock: (() -> Void)?
+    var isLocked: Bool
+    var onToggleLock: () -> Void
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
     var badges: [PlayerControlBadge]
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 16) {
-            if let onToggleRotationLock {
-                RotationLockButton(isLocked: isRotationLocked, action: onToggleRotationLock)
-            }
+            ControlsLockButton(isLocked: isLocked, action: onToggleLock)
 
             Spacer(minLength: 12)
 
@@ -201,6 +214,7 @@ private struct PlayerAuxiliaryControlsRow: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .hiddenWhenLocked(isLocked)
         }
     }
 
@@ -220,8 +234,9 @@ private struct PlayerAuxiliaryControlsRow: View {
 private struct PlayerControlsHeader: View {
     var media: MediaItem?
     var onDismiss: () -> Void
+    var tracksMenu: PlayerTracksMenuModel
+    var tracksMenuActions: PlayerTracksMenuActions
     var onShowSettings: () -> Void
-    var showsSettingsIndicator: Bool
     var sleepTimer: SleepTimer?
     var isSharePlay: Bool
     var showsPictureInPicture: Bool
@@ -271,7 +286,9 @@ private struct PlayerControlsHeader: View {
                     .disabled(!isPictureInPictureEnabled)
             }
 
-            PlayerSettingsButton(showsIndicator: showsSettingsIndicator, action: onShowSettings)
+            PlayerTracksMenuButton(model: tracksMenu, actions: tracksMenuActions)
+
+            PlayerSettingsButton(action: onShowSettings)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)

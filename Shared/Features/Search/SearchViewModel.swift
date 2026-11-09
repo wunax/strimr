@@ -56,6 +56,8 @@ struct SearchResultSource: Identifiable {
 struct MergedSearchResult: Identifiable {
     let id: String
     var sources: [SearchResultSource]
+    /// With grouping off, other results are copies of the same title.
+    var hasSeparateCopies = false
 
     var primarySource: SearchResultSource {
         sources[0]
@@ -68,20 +70,38 @@ struct MergedSearchResult: Identifiable {
     var serverNames: [String] {
         sources.map(\.serverName)
     }
+
+    /// Highest resolution first; equal resolutions keep the servers' order.
+    var sourcesByQuality: [SearchResultSource] {
+        sources.enumerated().sorted { lhs, rhs in
+            let left = lhs.element.media.playableItem?.resolutionRank ?? 0
+            let right = rhs.element.media.playableItem?.resolutionRank ?? 0
+            return left == right ? lhs.offset < rhs.offset : left > right
+        }.map(\.element)
+    }
 }
 
 enum SearchRanking {
     /// Copies of the same title on several servers become one result (§5.6); results are then ordered by relevance
     /// (exact match, prefix, contains), then by year, newest first, the title only breaking ties.
-    static func merge(_ sources: [SearchResultSource], query: String) -> [MergedSearchResult] {
+    static func merge(
+        _ sources: [SearchResultSource],
+        query: String,
+        groupsCopies: Bool = true,
+    ) -> [MergedSearchResult] {
         let groups = MediaMatching.group(sources) { source in
             source.media.playableItem?.matchDescriptor
                 ?? MediaMatchDescriptor(kind: .other, guid: nil, externalIDs: ExternalIDs())
         }
-        let results = groups.map { group in
+        let results = groups.flatMap { group in
             var seen = Set<String>()
             let unique = group.filter { seen.insert($0.id).inserted }
-            return MergedSearchResult(id: unique[0].id, sources: unique)
+            guard groupsCopies else {
+                return unique.map {
+                    MergedSearchResult(id: $0.id, sources: [$0], hasSeparateCopies: unique.count > 1)
+                }
+            }
+            return [MergedSearchResult(id: unique[0].id, sources: unique)]
         }
         let normalizedQuery = normalize(query)
         return results.enumerated().sorted { lhs, rhs in
@@ -130,17 +150,29 @@ enum SearchRanking {
 @Observable
 final class SearchViewModel {
     var query = ""
-    var items: [MergedSearchResult] = []
+    private var sources: [SearchResultSource] = []
+    private var rankedQuery = ""
     var isLoading = false
     var errorMessage: String?
     var unavailableServerNames: [String] = []
     var activeFilters: Set<SearchFilter> = []
 
     @ObservationIgnored private let sessionManager: SessionManager
+    @ObservationIgnored private let settingsManager: SettingsManager
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
-    init(sessionManager: SessionManager) {
+    init(sessionManager: SessionManager, settingsManager: SettingsManager) {
         self.sessionManager = sessionManager
+        self.settingsManager = settingsManager
+    }
+
+    /// Ranked on read so that toggling the grouping setting applies to the results already shown.
+    var items: [MergedSearchResult] {
+        SearchRanking.merge(
+            sources,
+            query: rankedQuery,
+            groupsCopies: settingsManager.interface.groupsSearchResults,
+        )
     }
 
     deinit { searchTask?.cancel() }
@@ -223,9 +255,10 @@ final class SearchViewModel {
                 SearchResultSource(server: server, serverName: names[server] ?? server.id, media: $0)
             }
         }
-        items = SearchRanking.merge(sources, query: query)
+        self.sources = sources
+        rankedQuery = query
         unavailableServerNames = result.failed.compactMap { names[$0] }.sorted()
-        if items.isEmpty, result.succeeded.isEmpty, !result.failed.isEmpty {
+        if sources.isEmpty, result.succeeded.isEmpty, !result.failed.isEmpty {
             errorMessage = String(localized: "search.error.unavailable")
         }
     }
@@ -237,7 +270,7 @@ final class SearchViewModel {
     }
 
     private func resetState() {
-        items = []
+        sources = []
         errorMessage = nil
         unavailableServerNames = []
         isLoading = false

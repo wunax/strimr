@@ -41,6 +41,12 @@ nonisolated enum TopShelfSessions {
         return ([session], [session.tokenKey: legacyTokenKey])
     }
 
+    /// Fraction watched for the Top Shelf progress bar, or nil when the item has not been started.
+    static func playbackProgress(position: Double?, duration: Double?) -> Double? {
+        guard let position, let duration, position > 0, duration > 0 else { return nil }
+        return min(position / duration, 1)
+    }
+
     /// Merges the rows of several servers: newest first, one entry per title. Servers that failed contribute nothing.
     static func merge<Item>(
         _ rows: [[Item]],

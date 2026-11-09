@@ -1,0 +1,18 @@
+[
+  {
+    "ImageType": "Primary",
+    "ImageTag": "00000000000000000000000000000000",
+    "Path": "/config/metadata/library/00/00000000000000000000000000000000/poster.jpg",
+    "Height": 1500,
+    "Width": 1000,
+    "Size": 254000
+  },
+  {
+    "ImageType": "Backdrop",
+    "ImageIndex": 0,
+    "ImageTag": "11111111111111111111111111111111",
+    "Height": 1080,
+    "Width": 1920,
+    "Size": 512000
+  }
+]

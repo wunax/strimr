@@ -212,4 +212,46 @@ struct SleepTimerTests {
         let withChapters = SleepTimerMode.available(isLive: false, hasChapters: true)
         #expect(withChapters.prefix(2) == [.endOfItem, .endOfChapter])
     }
+
+    @Test func `a two hour timer keeps its deadline across the next items of the queue`() {
+        let timer = makeTimer()
+        defer { timer.cancel() }
+        timer.start(.duration(minutes: 120))
+        let deadline = timer.deadline
+
+        timer.handlePosition(2400, duration: 2400, chapters: [])
+        #expect(!timer.consumePlaybackEnd())
+        timer.handlePosition(0, duration: 2700, chapters: [])
+        timer.handlePosition(1, duration: 2700, chapters: [])
+
+        #expect(timer.mode == .duration(minutes: 120))
+        #expect(timer.deadline == deadline)
+    }
+
+    @Test func `the default timer starts once per player session`() {
+        let timer = makeTimer()
+        defer { timer.cancel() }
+
+        timer.applyDefault(.duration(minutes: 120), isLive: false)
+        #expect(timer.deadline == clock.now.addingTimeInterval(120 * 60))
+
+        timer.cancel()
+        timer.applyDefault(.duration(minutes: 120), isLive: false)
+        #expect(!timer.isActive)
+    }
+
+    @Test func `the default timer skips modes the item cannot use`() {
+        let timer = makeTimer()
+        timer.applyDefault(.endOfItem, isLive: true)
+        #expect(!timer.isActive)
+    }
+
+    @Test func `the default timer round-trips through the settings`() throws {
+        var settings = PlaybackSettings()
+        settings.defaultSleepTimer = .duration(minutes: 120)
+        let data = try JSONEncoder().encode(settings)
+        #expect(try JSONDecoder().decode(PlaybackSettings.self, from: data)
+            .defaultSleepTimer == .duration(minutes: 120))
+        #expect(try JSONDecoder().decode(PlaybackSettings.self, from: Data("{}".utf8)).defaultSleepTimer == nil)
+    }
 }
