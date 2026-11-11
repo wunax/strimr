@@ -43,14 +43,10 @@ struct MainTabView: View {
                 guard phase == .active else { return }
                 Task { await refreshLiveTVAvailability() }
             }
-            .onChange(of: settingsManager.interface.displayLibrariesTab) { _, _ in
-                coordinator.reconcileLibraryNavigation(libraryStore: libraryStore)
-            }
-            .onChange(of: settingsManager.interface.librariesByProfile) { _, _ in
-                coordinator.reconcileLibraryNavigation(libraryStore: libraryStore)
-            }
-            .onChange(of: libraryStore.navigationLibraries.map(\.identity)) { _, _ in
-                coordinator.reconcileLibraryNavigation(libraryStore: libraryStore)
+            .onChange(of: libraryStore.showsLibrariesTab, initial: true) { _, isShown in
+                if !isShown {
+                    coordinator.leaveLibrariesTab()
+                }
             }
             .handlesExternalPlaybackCallbacks { server in
                 Task { await homeViewModel.refresh(server: server) }
@@ -129,7 +125,7 @@ struct MainTabView: View {
         if settingsManager.interface.displayDownloadsTab {
             tabs.append(.downloads)
         }
-        if settingsManager.interface.displayLibrariesTab {
+        if libraryStore.showsLibrariesTab {
             tabs.append(.library)
         }
         if isLiveTVAvailable {
@@ -342,20 +338,14 @@ struct MainTabView: View {
 
     private var libraryTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .library)) {
-            libraryBrowserContent
-                .tabRootChrome()
+            libraryRoot
+                .navigationDestination(for: Library.self) {
+                    libraryDetailRoot($0)
+                }
                 .navigationDestination(for: MainCoordinator.Route.self) {
                     destination(for: $0)
                 }
         }
-    }
-
-    private var libraryBrowserContent: some View {
-        libraryRoot
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Library.self) {
-                libraryDetailRoot($0)
-            }
     }
 
     private var libraryRoot: some View {
@@ -391,9 +381,6 @@ struct MainTabView: View {
     private var liveTVTabContent: some View {
         NavigationStack(path: coordinator.pathBinding(for: .liveTV)) {
             liveTVRoot
-                .navigationDestination(for: MainCoordinator.Route.self) {
-                    destination(for: $0)
-                }
         }
     }
 
@@ -407,8 +394,10 @@ struct MainTabView: View {
                 ) }
             },
             onOpenLibrary: { identity in
-                guard let library = libraryStore.library(identity) else { return }
-                coordinator.showLibrary(library)
+                guard let library = libraryStore.library(identity),
+                      libraryStore.showsLibrariesTab || libraryStore.isPinned(identity)
+                else { return }
+                coordinator.showLibrary(library, isLibrariesTabShown: libraryStore.showsLibrariesTab)
             },
         )
         .unavailableWhenOffline()
@@ -417,7 +406,6 @@ struct MainTabView: View {
     private func libraryDetailTabContent(_ library: Library) -> some View {
         NavigationStack(path: coordinator.pathBinding(for: .libraryDetail(library.identity))) {
             libraryDetailRoot(library)
-                .tabRootChrome()
                 .navigationDestination(for: MainCoordinator.Route.self) {
                     destination(for: $0)
                 }
@@ -433,15 +421,10 @@ struct MainTabView: View {
         }
     }
 
-    /// The browser spans servers; other destinations use the services of their own server.
-    @ViewBuilder
+    /// Every destination is shown with the services of its own server.
     private func destination(for route: MainCoordinator.Route) -> some View {
-        if case .libraryBrowser = route {
-            libraryBrowserContent
-        } else {
-            ServerScopedView(server: route.server) { services in
-                routeContent(route, services: services)
-            }
+        ServerScopedView(server: route.server) { services in
+            routeContent(route, services: services)
         }
     }
 
@@ -539,10 +522,6 @@ struct MainTabView: View {
                 viewModel: HubDetailViewModel(hub: hub, services: services),
                 onSelectMedia: coordinator.showMediaDetail,
             )
-        case .libraryBrowser:
-            EmptyView()
-        case let .libraryDetail(library):
-            LibraryDetailView(library: library, onSelectMedia: coordinator.showMediaDetail)
         case let .personDetail(person, _):
             PersonDetailView(
                 viewModel: PersonDetailViewModel(person: person, services: services),

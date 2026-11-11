@@ -50,14 +50,24 @@ final class LibraryStore {
             .compactMap { byIdentity[$0] }
     }
 
-    var showsServerNames: Bool {
-        Set(libraries.map(\.server)).count > 1
+    /// The Libraries tab can only be hidden once every displayed library is pinned, so none of them becomes
+    /// unreachable. Until libraries have loaded, it stays.
+    var canHideLibrariesTab: Bool {
+        let preferences = settingsManager.libraryPreferences(profileID: profileID)
+        let visible = visibleLibraries
+        return !visible.isEmpty && visible.allSatisfy { preferences.isPinned($0.identity) }
     }
 
-    /// Uses saved pins and enabled servers so temporary loading failures do not remove the selection.
-    func isNavigationLibraryEnabled(_ identity: LibraryIdentity) -> Bool {
+    var showsLibrariesTab: Bool {
+        settingsManager.interface.displayLibrariesTab || !canHideLibrariesTab
+    }
+
+    func isPinned(_ identity: LibraryIdentity) -> Bool {
         settingsManager.libraryPreferences(profileID: profileID).isPinned(identity)
-            && registry.enabledSessions.contains { $0.identity == identity.server }
+    }
+
+    var showsServerNames: Bool {
+        Set(libraries.map(\.server)).count > 1
     }
 
     func library(_ identity: LibraryIdentity) -> Library? {

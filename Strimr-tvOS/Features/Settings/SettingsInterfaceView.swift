@@ -91,13 +91,16 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayFavoritesTab")
-                Toggle(
-                    "settings.interface.displayLibrariesTab",
-                    isOn: Binding(
-                        get: { settingsManager.interface.displayLibrariesTab },
-                        set: { settingsManager.setDisplayLibrariesTab($0) },
-                    ),
-                )
+                Toggle(isOn: Binding(
+                    get: { libraryStore.showsLibrariesTab },
+                    set: { settingsManager.setDisplayLibrariesTab($0) },
+                )) {
+                    Text("settings.interface.displayLibrariesTab")
+                    if !libraryStore.canHideLibrariesTab {
+                        Text("settings.interface.displayLibrariesTab.pinAll")
+                    }
+                }
+                .disabled(!libraryStore.canHideLibrariesTab)
                 .settingsFocus("settings.interface.displayLibrariesTab")
                 Toggle(
                     "settings.interface.displayLiveTVTab",

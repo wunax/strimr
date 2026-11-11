@@ -20,15 +20,13 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case libraryDetail(LibraryIdentity)
     }
 
-    /// Server-bound routes carry their server; the library browser spans all enabled servers.
+    /// Every route carries its server: the destination is shown with that server's services.
     enum Route: Hashable {
         case mediaDetail(PlayableMediaItem)
         case collectionDetail(CollectionMediaItem)
         case playlistDetail(PlaylistMediaItem)
         case hubDetail(Hub)
         case personDetail(Person, ServerIdentity)
-        case libraryBrowser
-        case libraryDetail(Library)
 
         var server: ServerIdentity? {
             switch self {
@@ -42,10 +40,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                 hub.server
             case let .personDetail(_, server):
                 server
-            case .libraryBrowser:
-                nil
-            case let .libraryDetail(library):
-                library.server
             }
         }
     }
@@ -98,9 +92,7 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .search:
             tab = .search
         case .libraries:
-            if interface.displayLibrariesTab {
-                tab = .library
-            }
+            tab = .library
         case .favorites:
             if interface.displayFavoritesTab {
                 tab = .favorites
@@ -139,18 +131,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             return
         }
 
-        // The library browser opened from the More list has no overflow root. It stays while More exists, and moves
-        // to Home when More goes away under it.
-        if root == nil, !morePath.isEmpty {
-            if !overflowTabs.isEmpty {
-                return
-            }
-            if tab == .more {
-                moveMoreStackToHome()
-                return
-            }
-        }
-
         morePath = NavigationPath()
         moreRootTab = nil
         pruneMediaRouteEntries(for: .more, maximumDepth: 0)
@@ -159,27 +139,32 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
-    /// Home keeps its own stack. When it has one, only the library browser carries over and the routes opened inside
-    /// it are dropped, as when an overflow tab returns to the bar.
-    private func moveMoreStackToHome() {
-        if homePath.isEmpty {
-            homePath = morePath
-            mediaRouteEntries[.home] = mediaRouteEntries[.more]
-        } else {
-            homePath.append(Route.libraryBrowser)
-        }
-        morePath = NavigationPath()
-        moreRootTab = nil
-        mediaRouteEntries[.more] = nil
-        tab = .home
-    }
-
     private func showInMore(_ overflowTab: Tab) {
         tab = .more
         moreRootTab = overflowTab
         morePath = NavigationPath([overflowTab])
         pruneMediaRouteEntries(for: .more, maximumDepth: 1)
         pathBinding(for: overflowTab).wrappedValue = NavigationPath()
+    }
+
+    /// Opens the library in the Libraries tab, or in its own pinned tab when the Libraries tab is hidden.
+    func showLibrary(_ library: Library, isLibrariesTabShown: Bool = true) {
+        guard isLibrariesTabShown else {
+            tab = .libraryDetail(library.identity)
+            return
+        }
+        tab = .library
+        if tab == .more {
+            morePath.append(library)
+        } else {
+            libraryPath = NavigationPath([library])
+        }
+    }
+
+    func leaveLibrariesTab() {
+        if tab == .library {
+            tab = .home
+        }
     }
 
     @Published var isPresentingPlayer = false {
@@ -247,45 +232,6 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
                 self.pruneMediaRouteEntries(for: tab, maximumDepth: newValue.count)
             },
         )
-    }
-
-    func showLibraryBrowser() {
-        // Opened from the More list, the browser becomes the root of the More stack instead of an overflow tab.
-        if tab == .more, morePath.isEmpty {
-            moreRootTab = nil
-        }
-        appendNavigationRoute(.libraryBrowser)
-    }
-
-    /// Opens the library in the Libraries tab, or on the current tab when the Libraries tab is hidden.
-    func showLibrary(_ library: Library) {
-        guard settingsManager.interface.displayLibrariesTab else {
-            appendNavigationRoute(.libraryDetail(library))
-            return
-        }
-        tab = .library
-        if tab == .more {
-            morePath.append(library)
-        } else {
-            libraryPath = NavigationPath([library])
-        }
-    }
-
-    private func appendNavigationRoute(_ route: Route) {
-        let binding = pathBinding(for: tab)
-        var path = binding.wrappedValue
-        path.append(route)
-        binding.wrappedValue = path
-    }
-
-    func reconcileLibraryNavigation(libraryStore: LibraryStore) {
-        if tab == .library, !settingsManager.interface.displayLibrariesTab {
-            tab = .home
-        } else if case let .libraryDetail(identity) = tab,
-                  !libraryStore.isNavigationLibraryEnabled(identity)
-        {
-            tab = .home
-        }
     }
 
     func showMediaDetail(_ media: PlayableMediaItem) {
@@ -474,7 +420,22 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     func showPersonDetail(_ person: Person, server: ServerIdentity) {
         let route = Route.personDetail(person, server)
 
-        appendNavigationRoute(route)
+        switch tab {
+        case .home:
+            homePath.append(route)
+        case .search:
+            searchPath.append(route)
+        case .library:
+            libraryPath.append(route)
+        case .more:
+            morePath.append(route)
+        case .favorites, .liveTV, .seerrDiscover, .downloads:
+            break
+        case let .libraryDetail(libraryId):
+            var path = libraryDetailPaths[libraryId] ?? NavigationPath()
+            path.append(route)
+            libraryDetailPaths[libraryId] = path
+        }
     }
 
     func showSeerrRequests() {

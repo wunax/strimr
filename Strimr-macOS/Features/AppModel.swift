@@ -46,7 +46,6 @@ final class AppModel: PlaybackPresenting {
         case hub(Hub)
         case person(Person, ServerIdentity)
         case library(Library)
-        case libraryBrowser
         case seerr(SeerrMedia)
         case seerrRequests
 
@@ -58,7 +57,7 @@ final class AppModel: PlaybackPresenting {
             case let .hub(hub): hub.server
             case let .person(_, server): server
             case let .library(library): library.server
-            case .seerr, .seerrRequests, .libraryBrowser: nil
+            case .seerr, .seerrRequests: nil
             }
         }
     }
@@ -173,9 +172,7 @@ final class AppModel: PlaybackPresenting {
         case .downloads:
             selection = .downloads
         case .libraries:
-            if interface.displayLibrariesTab {
-                selection = .libraries
-            }
+            selection = .libraries
         case .favorites:
             selection = .favorites
         case .discover:
@@ -250,20 +247,6 @@ final class AppModel: PlaybackPresenting {
         append(.person(person, server))
     }
 
-    func showLibraryBrowser() {
-        append(.libraryBrowser)
-    }
-
-    func reconcileLibraryNavigation(libraryStore: LibraryStore) {
-        if selection == .libraries, !settingsManager.interface.displayLibrariesTab {
-            selection = .home
-        } else if case let .library(identity) = selection,
-                  !libraryStore.isNavigationLibraryEnabled(identity)
-        {
-            selection = .home
-        }
-    }
-
     func showLibrary(_ library: Library) {
         append(.library(library))
     }
@@ -314,6 +297,12 @@ final class AppModel: PlaybackPresenting {
 
     func showLivePlayer(context: LiveTVLaunchContext, services: MediaServices) {
         playerPresentation = PlayerPresentation(liveTVContext: context, services: services)
+    }
+
+    func leaveLibrariesTab() {
+        if selection == .libraries {
+            selection = .home
+        }
     }
 
     func resetLiveTVNavigation() {

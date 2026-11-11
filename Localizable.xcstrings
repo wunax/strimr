@@ -23255,6 +23255,28 @@
         }
       }
     },
+    "settings.interface.displayLibrariesTab.pinAll" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pin all displayed libraries to hide it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épinglez toutes les bibliothèques affichées pour la masquer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定所有显示的媒体库后即可隐藏。"
+          }
+        }
+      }
+    },
     "settings.interface.displayLiveTVTab" : {
       "localizations" : {
         "en" : {
