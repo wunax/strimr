@@ -98,7 +98,9 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         case .search:
             tab = .search
         case .libraries:
-            tab = .library
+            if interface.displayLibrariesTab {
+                tab = .library
+            }
         case .favorites:
             if interface.displayFavoritesTab {
                 tab = .favorites
@@ -137,12 +139,33 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             return
         }
 
+        // A stack opened from the More list itself, such as the library browser, has no overflow root. It stays
+        // while More exists, and moves to Home when More goes away under it.
+        if root == nil, !morePath.isEmpty {
+            if !overflowTabs.isEmpty {
+                return
+            }
+            if tab == .more {
+                moveMoreStackToHome()
+                return
+            }
+        }
+
         morePath = NavigationPath()
         moreRootTab = nil
         pruneMediaRouteEntries(for: .more, maximumDepth: 0)
         if tab == .more, overflowTabs.isEmpty {
             tab = root.flatMap { layout.bar.contains($0) ? $0 : nil } ?? .home
         }
+    }
+
+    private func moveMoreStackToHome() {
+        homePath = morePath
+        mediaRouteEntries[.home] = mediaRouteEntries[.more]
+        morePath = NavigationPath()
+        moreRootTab = nil
+        mediaRouteEntries[.more] = nil
+        tab = .home
     }
 
     private func showInMore(_ overflowTab: Tab) {
@@ -221,6 +244,10 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
     }
 
     func showLibraryBrowser() {
+        // Opened from the More list, the browser becomes the root of the More stack instead of an overflow tab.
+        if tab == .more, morePath.isEmpty {
+            moreRootTab = nil
+        }
         appendNavigationRoute(.libraryBrowser)
     }
 

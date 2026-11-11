@@ -173,7 +173,9 @@ final class AppModel: PlaybackPresenting {
         case .downloads:
             selection = .downloads
         case .libraries:
-            selection = .libraries
+            if interface.displayLibrariesTab {
+                selection = .libraries
+            }
         case .favorites:
             selection = .favorites
         case .discover:
