@@ -33,12 +33,21 @@ struct PlexLenientDecodingTests {
         #expect(item.minYear == nil)
     }
 
-    @Test func `skips the malformed item and keeps the others`() throws {
-        let malformed = collection(ratingKey: "2", extra: #", "childCount": {"unexpected": true}"#)
+    @Test func `skips an item without a rating key and keeps the others`() throws {
+        let malformed = #"{"key": "/library/metadata/2", "type": "movie", "title": "No rating key"}"#
         let items =
             try decodeCollections("[\(collection(ratingKey: "1")), \(malformed), \(collection(ratingKey: "3"))]")
 
         #expect(items.map(\.ratingKey) == ["1", "3"])
+    }
+
+    @Test func `keeps an item whose secondary field has an unexpected type`() throws {
+        let item = collection(ratingKey: "2", extra: #", "childCount": {"unexpected": true}, "year": "2004""#)
+        let items = try decodeCollections("[\(item)]")
+
+        let decoded = try #require(items.first)
+        #expect(decoded.childCount == nil)
+        #expect(decoded.year == 2004)
     }
 
     @Test func `keeps a missing metadata array empty`() throws {
