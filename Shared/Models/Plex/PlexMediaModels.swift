@@ -704,12 +704,18 @@ nonisolated struct PlexSubtitleSearchResponse: Decodable {
     let mediaContainer: MediaContainer
 
     struct MediaContainer: Decodable {
-        let size: Int
+        let size: Int?
         let streams: [PlexSubtitleSearchResult]?
 
         private enum CodingKeys: String, CodingKey {
             case size
             case streams = "Stream"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            size = container.decodePlexIntIfPresent(forKey: .size)
+            streams = try container.decodeLossyArrayIfPresent(PlexSubtitleSearchResult.self, forKey: .streams)
         }
     }
 
@@ -727,13 +733,44 @@ nonisolated struct PlexSubtitleSearchResult: Decodable, Hashable, Identifiable, 
     let languageCode: String?
     let format: String?
     let providerTitle: String?
-    let score: String?
+    let score: Double?
     let sourceKey: String?
     let title: String?
     let displayTitle: String
     let extendedDisplayTitle: String?
     let forced: Bool?
     let hearingImpaired: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, key, codec, language, languageTag, languageCode, format, providerTitle, score, sourceKey, title
+        case displayTitle, extendedDisplayTitle, forced, hearingImpaired
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard let id = container.decodePlexIntIfPresent(forKey: .id) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                .init(codingPath: container.codingPath, debugDescription: "Missing subtitle result id."),
+            )
+        }
+        self.id = id
+        key = try container.decode(String.self, forKey: .key)
+        codec = try container.decode(String.self, forKey: .codec)
+        language = container.decodePlexStringIfPresent(forKey: .language)
+        languageTag = container.decodePlexStringIfPresent(forKey: .languageTag)
+        languageCode = container.decodePlexStringIfPresent(forKey: .languageCode)
+        format = container.decodePlexStringIfPresent(forKey: .format)
+        providerTitle = container.decodePlexStringIfPresent(forKey: .providerTitle)
+        score = container.decodePlexDoubleIfPresent(forKey: .score)
+        sourceKey = container.decodePlexStringIfPresent(forKey: .sourceKey)
+        title = container.decodePlexStringIfPresent(forKey: .title)
+        extendedDisplayTitle = container.decodePlexStringIfPresent(forKey: .extendedDisplayTitle)
+        displayTitle = container.decodePlexStringIfPresent(forKey: .displayTitle)
+            ?? extendedDisplayTitle ?? title ?? codec.uppercased()
+        forced = container.decodePlexBoolIfPresent(forKey: .forced)
+        hearingImpaired = container.decodePlexBoolIfPresent(forKey: .hearingImpaired)
+    }
 }
 
 nonisolated struct PlexMedia: Codable, Equatable {
