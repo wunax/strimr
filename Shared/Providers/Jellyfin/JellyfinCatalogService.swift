@@ -245,7 +245,11 @@ struct JellyfinCatalogService {
         if let parentID {
             query.append(URLQueryItem(name: "ParentId", value: parentID))
         }
-        return try await context.get(path: ["Users", userID, "Items", "Latest"], query: query)
+        let list: JellyfinItemList<JellyfinItem> = try await context.get(
+            path: ["Users", userID, "Items", "Latest"],
+            query: query,
+        )
+        return list.items
     }
 
     func movieRecommendations(
@@ -390,11 +394,11 @@ struct JellyfinCatalogService {
 
     /// The library (`CollectionFolder`) an item belongs to, found through its ancestors.
     func libraryID(itemID: String) async throws -> String? {
-        let ancestors: [JellyfinItem] = try await context.get(
+        let ancestors: JellyfinItemList<JellyfinItem> = try await context.get(
             path: ["Items", itemID, "Ancestors"],
             query: commonUserQuery,
         )
-        return ancestors.first { $0.type?.lowercased() == "collectionfolder" }?.id
+        return ancestors.items.first { $0.type?.lowercased() == "collectionfolder" }?.id
     }
 
     func extras(for itemID: String) async throws -> [JellyfinItem] {
@@ -639,7 +643,7 @@ struct JellyfinCatalogService {
     }
 
     private func fetchExtraItems(path: [String]) async throws -> [JellyfinItem] {
-        try await context.get(
+        let list: JellyfinItemList<JellyfinItem> = try await context.get(
             path: path,
             query: commonUserQuery + [
                 URLQueryItem(name: "Fields", value: Self.playbackFields),
@@ -647,6 +651,7 @@ struct JellyfinCatalogService {
                 URLQueryItem(name: "EnableImageTypes", value: "Primary,Backdrop,Logo"),
             ],
         )
+        return list.items
     }
 
     private func collectionPlaybackItems(id: String) async throws -> [JellyfinItem] {

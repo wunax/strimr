@@ -1,0 +1,4 @@
+[
+  { "Id": "trailer-1", "Name": "Example Trailer", "Type": "Trailer" },
+  { "Id": "extra-1", "Name": "Example Featurette", "Type": "Video" }
+]
