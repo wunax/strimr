@@ -1,5 +1,13 @@
 import Foundation
 
+private nonisolated extension BinaryInteger {
+    /// `Double(Int.max)` rounds up to 2^63, so a range check against it still lets `Int(_:)` trap on that value;
+    /// `exactly` returns nil instead for any value out of range or not finite.
+    init?(truncating value: Double) {
+        self.init(exactly: value.rounded(.towardZero))
+    }
+}
+
 private nonisolated extension KeyedDecodingContainer {
     /// Failed `decode` calls build a `DecodingError` with its full coding path, which is costly in large payloads; most
     /// optional Plex keys are absent, so check presence before trying each type.
@@ -34,20 +42,12 @@ private nonisolated extension KeyedDecodingContainer {
             if let integer = Int(trimmed) {
                 return integer
             }
-            if let decimal = Double(trimmed),
-               decimal.isFinite,
-               decimal >= Double(Int.min),
-               decimal <= Double(Int.max)
-            {
-                return Int(decimal)
+            if let decimal = Double(trimmed) {
+                return Int(truncating: decimal)
             }
         }
-        if let value = try? decode(Double.self, forKey: key),
-           value.isFinite,
-           value >= Double(Int.min),
-           value <= Double(Int.max)
-        {
-            return Int(value)
+        if let value = try? decode(Double.self, forKey: key) {
+            return Int(truncating: value)
         }
         return nil
     }
@@ -62,20 +62,12 @@ private nonisolated extension KeyedDecodingContainer {
             if let integer = Int64(trimmed) {
                 return integer
             }
-            if let decimal = Double(trimmed),
-               decimal.isFinite,
-               decimal >= Double(Int64.min),
-               decimal <= Double(Int64.max)
-            {
-                return Int64(decimal)
+            if let decimal = Double(trimmed) {
+                return Int64(truncating: decimal)
             }
         }
-        if let value = try? decode(Double.self, forKey: key),
-           value.isFinite,
-           value >= Double(Int64.min),
-           value <= Double(Int64.max)
-        {
-            return Int64(value)
+        if let value = try? decode(Double.self, forKey: key) {
+            return Int64(truncating: value)
         }
         return nil
     }

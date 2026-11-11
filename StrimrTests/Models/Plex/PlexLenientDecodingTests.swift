@@ -50,6 +50,16 @@ struct PlexLenientDecodingTests {
         #expect(decoded.year == 2004)
     }
 
+    @Test func `drops out of range numbers instead of crashing`() throws {
+        let extra = #", "year": "9223372036854775808", "duration": 1e30, "addedAt": "1700000000.9""#
+        let items = try decodeCollections("[\(collection(ratingKey: "1", extra: extra))]")
+
+        let item = try #require(items.first)
+        #expect(item.year == nil)
+        #expect(item.duration == nil)
+        #expect(item.addedAt == 1_700_000_000)
+    }
+
     @Test func `keeps a missing metadata array empty`() throws {
         let json = #"{"MediaContainer": {"size": 0}}"#
         let container = try JSONDecoder().decode(PlexItemMediaContainer.self, from: Data(json.utf8))
