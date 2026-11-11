@@ -1,5 +1,13 @@
 import Foundation
 
+private nonisolated extension BinaryInteger {
+    /// `Double(Int.max)` rounds up to 2^63, so a range check against it still lets `Int(_:)` trap on that value;
+    /// `exactly` returns nil instead for any value out of range or not finite.
+    init?(truncating value: Double) {
+        self.init(exactly: value.rounded(.towardZero))
+    }
+}
+
 private nonisolated extension KeyedDecodingContainer {
     /// Failed `decode` calls build a `DecodingError` with its full coding path, which is costly in large payloads; most
     /// optional Plex keys are absent, so check presence before trying each type.
@@ -34,20 +42,12 @@ private nonisolated extension KeyedDecodingContainer {
             if let integer = Int(trimmed) {
                 return integer
             }
-            if let decimal = Double(trimmed),
-               decimal.isFinite,
-               decimal >= Double(Int.min),
-               decimal <= Double(Int.max)
-            {
-                return Int(decimal)
+            if let decimal = Double(trimmed) {
+                return Int(truncating: decimal)
             }
         }
-        if let value = try? decode(Double.self, forKey: key),
-           value.isFinite,
-           value >= Double(Int.min),
-           value <= Double(Int.max)
-        {
-            return Int(value)
+        if let value = try? decode(Double.self, forKey: key) {
+            return Int(truncating: value)
         }
         return nil
     }
@@ -62,20 +62,12 @@ private nonisolated extension KeyedDecodingContainer {
             if let integer = Int64(trimmed) {
                 return integer
             }
-            if let decimal = Double(trimmed),
-               decimal.isFinite,
-               decimal >= Double(Int64.min),
-               decimal <= Double(Int64.max)
-            {
-                return Int64(decimal)
+            if let decimal = Double(trimmed) {
+                return Int64(truncating: decimal)
             }
         }
-        if let value = try? decode(Double.self, forKey: key),
-           value.isFinite,
-           value >= Double(Int64.min),
-           value <= Double(Int64.max)
-        {
-            return Int64(value)
+        if let value = try? decode(Double.self, forKey: key) {
+            return Int64(truncating: value)
         }
         return nil
     }
@@ -217,9 +209,9 @@ nonisolated extension PlexHub {
         title = try container.decode(String.self, forKey: .title)
         hubIdentifier = try container.decode(String.self, forKey: .hubIdentifier)
         type = container.decodePlexStringIfPresent(forKey: .type)
-        size = try container.decode(Int.self, forKey: .size)
-        more = try container.decodeIfPresent(Bool.self, forKey: .more)
         metadata = try container.decodeLossyArrayIfPresent(PlexItem.self, forKey: .metadata)
+        size = container.decodePlexIntIfPresent(forKey: .size) ?? metadata?.count ?? 0
+        more = container.decodePlexBoolIfPresent(forKey: .more)
     }
 }
 
@@ -959,6 +951,104 @@ nonisolated struct PlexItem: Codable, Equatable {
     }
 }
 
+/// Servers that mimic Plex send partial or differently typed metadata; only the keys that identify the item are
+/// required, so one odd field doesn't drop the item, and a missing `ratingKey` still tells it apart from a folder.
+nonisolated extension PlexItem {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard let ratingKey = container.decodePlexStringIfPresent(forKey: .ratingKey), !ratingKey.isEmpty else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.ratingKey,
+                .init(codingPath: container.codingPath, debugDescription: "Missing Plex ratingKey."),
+            )
+        }
+        self.ratingKey = ratingKey
+        key = try container.decode(String.self, forKey: .key)
+        // Plex itself gives unmatched personal media a `local://` guid, which the app already treats as unmatched.
+        guid = container.decodePlexStringIfPresent(forKey: .guid).flatMap { $0.isEmpty ? nil : $0 }
+            ?? "local://\(ratingKey)"
+        librarySectionID = container.decodePlexIntIfPresent(forKey: .librarySectionID)
+        librarySectionTitle = container.decodePlexStringIfPresent(forKey: .librarySectionTitle)
+        type = (try? container.decodeIfPresent(PlexItemType.self, forKey: .type)) ?? .unknown
+        title = container.decodePlexStringIfPresent(forKey: .title) ?? ""
+        editionTitle = container.decodePlexStringIfPresent(forKey: .editionTitle)
+        summary = container.decodePlexStringIfPresent(forKey: .summary)
+        thumb = container.decodePlexStringIfPresent(forKey: .thumb)
+        art = container.decodePlexStringIfPresent(forKey: .art)
+        theme = container.decodePlexStringIfPresent(forKey: .theme)
+        year = container.decodePlexIntIfPresent(forKey: .year)
+        viewOffset = container.decodePlexIntIfPresent(forKey: .viewOffset)
+        lastViewedAt = container.decodePlexIntIfPresent(forKey: .lastViewedAt)
+        addedAt = container.decodePlexIntIfPresent(forKey: .addedAt)
+        viewCount = container.decodePlexIntIfPresent(forKey: .viewCount)
+        originallyAvailableAt = container.decodePlexStringIfPresent(forKey: .originallyAvailableAt)
+        duration = container.decodePlexIntIfPresent(forKey: .duration)
+        audienceRating = container.decodePlexDoubleIfPresent(forKey: .audienceRating)
+        audienceRatingImage = container.decodePlexStringIfPresent(forKey: .audienceRatingImage)
+        contentRating = container.decodePlexStringIfPresent(forKey: .contentRating)
+        contentRatingAge = container.decodePlexIntIfPresent(forKey: .contentRatingAge)
+        tagline = container.decodePlexStringIfPresent(forKey: .tagline)
+        ultraBlurColors = try? container.decodeIfPresent(ArtworkCornerColors.self, forKey: .ultraBlurColors)
+        images = container.decodeCompactArrayIfPresent(PlexImage.self, forKey: .images)
+        guids = container.decodeCompactArrayIfPresent(PlexGuid.self, forKey: .guids)
+        genres = container.decodeCompactArrayIfPresent(PlexTag.self, forKey: .genres)
+        countries = container.decodeCompactArrayIfPresent(PlexTag.self, forKey: .countries)
+        directors = container.decodeCompactArrayIfPresent(PlexTagPerson.self, forKey: .directors)
+        writers = container.decodeCompactArrayIfPresent(PlexTagPerson.self, forKey: .writers)
+        roles = container.decodeCompactArrayIfPresent(PlexTagPerson.self, forKey: .roles)
+        ratings = container.decodeCompactArrayIfPresent(PlexRating.self, forKey: .ratings)
+        media = container.decodeCompactArrayIfPresent(PlexMedia.self, forKey: .media)
+        markers = container.decodeCompactArrayIfPresent(PlexMarker.self, forKey: .markers)
+        chapters = container.decodeCompactArrayIfPresent(PlexChapter.self, forKey: .chapters)
+
+        slug = container.decodePlexStringIfPresent(forKey: .slug)
+        studio = container.decodePlexStringIfPresent(forKey: .studio)
+        rating = container.decodePlexDoubleIfPresent(forKey: .rating)
+        chapterSource = container.decodePlexStringIfPresent(forKey: .chapterSource)
+        primaryExtraKey = container.decodePlexStringIfPresent(forKey: .primaryExtraKey)
+        ratingImage = container.decodePlexStringIfPresent(forKey: .ratingImage)
+
+        index = container.decodePlexIntIfPresent(forKey: .index)
+        leafCount = container.decodePlexIntIfPresent(forKey: .leafCount)
+        viewedLeafCount = container.decodePlexIntIfPresent(forKey: .viewedLeafCount)
+        childCount = container.decodePlexIntIfPresent(forKey: .childCount)
+
+        parentRatingKey = container.decodePlexStringIfPresent(forKey: .parentRatingKey)
+        parentGuid = container.decodePlexStringIfPresent(forKey: .parentGuid)
+        parentSlug = container.decodePlexStringIfPresent(forKey: .parentSlug)
+        parentStudio = container.decodePlexStringIfPresent(forKey: .parentStudio)
+        parentKey = container.decodePlexStringIfPresent(forKey: .parentKey)
+        parentTitle = container.decodePlexStringIfPresent(forKey: .parentTitle)
+        parentThumb = container.decodePlexStringIfPresent(forKey: .parentThumb)
+        parentTheme = container.decodePlexStringIfPresent(forKey: .parentTheme)
+        parentYear = container.decodePlexIntIfPresent(forKey: .parentYear)
+        parentIndex = container.decodePlexIntIfPresent(forKey: .parentIndex)
+
+        grandparentRatingKey = container.decodePlexStringIfPresent(forKey: .grandparentRatingKey)
+        grandparentGuid = container.decodePlexStringIfPresent(forKey: .grandparentGuid)
+        grandparentSlug = container.decodePlexStringIfPresent(forKey: .grandparentSlug)
+        titleSort = container.decodePlexStringIfPresent(forKey: .titleSort)
+        grandparentKey = container.decodePlexStringIfPresent(forKey: .grandparentKey)
+        grandparentTitle = container.decodePlexStringIfPresent(forKey: .grandparentTitle)
+        originalTitle = container.decodePlexStringIfPresent(forKey: .originalTitle)
+        grandparentThumb = container.decodePlexStringIfPresent(forKey: .grandparentThumb)
+        grandparentArt = container.decodePlexStringIfPresent(forKey: .grandparentArt)
+        grandparentTheme = container.decodePlexStringIfPresent(forKey: .grandparentTheme)
+
+        onDeck = try? container.decodeIfPresent(PlexOnDeck.self, forKey: .onDeck)
+        playQueueItemID = container.decodePlexIntIfPresent(forKey: .playQueueItemID)
+
+        subtype = try? container.decodeIfPresent(PlexItemType.self, forKey: .subtype)
+        minYear = try? container.decodeIfPresent(PlexLenient<String>.self, forKey: .minYear)
+        maxYear = try? container.decodeIfPresent(PlexLenient<String>.self, forKey: .maxYear)
+
+        composite = container.decodePlexStringIfPresent(forKey: .composite)
+        playlistType = container.decodePlexStringIfPresent(forKey: .playlistType)
+        smart = try? container.decodeIfPresent(PlexLenient<Bool>.self, forKey: .smart)
+        playlistItemID = container.decodePlexIntIfPresent(forKey: .playlistItemID)
+    }
+}
+
 nonisolated struct PlexHubMediaContainer: Codable, Equatable {
     struct MediaContainer: Codable, Equatable {
         let size: Int?
@@ -967,6 +1057,12 @@ nonisolated struct PlexHubMediaContainer: Codable, Equatable {
         private enum CodingKeys: String, CodingKey {
             case size
             case hub = "Hub"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            size = container.decodePlexIntIfPresent(forKey: .size)
+            hub = try container.decodeLossyArrayIfPresent(PlexHub.self, forKey: .hub)
         }
     }
 
