@@ -139,8 +139,8 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
             return
         }
 
-        // A stack opened from the More list itself, such as the library browser, has no overflow root. It stays
-        // while More exists, and moves to Home when More goes away under it.
+        // The library browser opened from the More list has no overflow root. It stays while More exists, and moves
+        // to Home when More goes away under it.
         if root == nil, !morePath.isEmpty {
             if !overflowTabs.isEmpty {
                 return
@@ -159,9 +159,15 @@ final class MainCoordinator: ObservableObject, PlaybackPresenting {
         }
     }
 
+    /// Home keeps its own stack. When it has one, only the library browser carries over and the routes opened inside
+    /// it are dropped, as when an overflow tab returns to the bar.
     private func moveMoreStackToHome() {
-        homePath = morePath
-        mediaRouteEntries[.home] = mediaRouteEntries[.more]
+        if homePath.isEmpty {
+            homePath = morePath
+            mediaRouteEntries[.home] = mediaRouteEntries[.more]
+        } else {
+            homePath.append(Route.libraryBrowser)
+        }
         morePath = NavigationPath()
         moreRootTab = nil
         mediaRouteEntries[.more] = nil
