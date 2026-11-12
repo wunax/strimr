@@ -214,6 +214,22 @@ nonisolated struct JellyfinQueryResult<Element: Decodable & Sendable>: Decodable
     }
 }
 
+/// Jellyfin answers some endpoints (`Latest`, `LocalTrailers`, `SpecialFeatures`, `Ancestors`) with a bare array,
+/// while servers that mimic it wrap the same items in a query result.
+nonisolated struct JellyfinItemList<Element: Decodable & Sendable>: Decodable, Sendable {
+    let items: [Element]
+
+    init(from decoder: Decoder) throws {
+        do {
+            items = try decoder.singleValueContainer().decode([Element].self)
+        } catch {
+            // Keep the array error when the payload isn't a query result either: it names the failing item.
+            guard let result = try? JellyfinQueryResult<Element>(from: decoder) else { throw error }
+            items = result.items
+        }
+    }
+}
+
 nonisolated struct JellyfinNameIDPair: Decodable, Sendable {
     let name: String
     let id: String

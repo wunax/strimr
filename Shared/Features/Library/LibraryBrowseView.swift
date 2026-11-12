@@ -6,11 +6,7 @@ struct LibraryBrowseView: View {
     @State var viewModel: LibraryBrowseViewModel
     let onSelectMedia: (MediaDisplayItem) -> Void
 
-    #if os(iOS)
-        @State private var scrollMetrics = LibraryScrollMetrics()
-        @State private var isScrolling = false
-        @State private var isPointerNearEdge = false
-    #elseif os(macOS)
+    #if os(macOS)
         @State private var firstVisibleIndex: Int?
         @FocusState private var isGridFocused: Bool
     #endif
@@ -82,28 +78,17 @@ struct LibraryBrowseView: View {
                 #endif
             }
             #if os(iOS)
-            .scrollIndicators(showsScrubber ? .hidden : .automatic)
-            .onScrollGeometryChange(for: LibraryScrollMetrics.self) { geometry in
-                LibraryScrollMetrics(geometry)
-            } action: { _, metrics in
-                scrollMetrics = metrics
-            }
-            .onScrollPhaseChange { _, phase in
-                isScrolling = phase.isScrolling
-            }
-            .onContinuousHover { phase in
-                switch phase {
-                case let .active(location):
-                    isPointerNearEdge = location.x > scrollMetrics.containerSize.width - 44
-                case .ended:
-                    isPointerNearEdge = false
-                }
-            }
-            .overlay(alignment: .trailing) {
-                if showsScrubber {
-                    scrubber(proxy: proxy)
-                }
-            }
+            .libraryScrubber(
+                isEnabled: viewModel.canScrub,
+                totalCount: viewModel.totalItemCount,
+                sectionIndex: viewModel.visibleSectionIndex,
+                onBegin: viewModel.beginScrubbing,
+                onScrub: { index in
+                    viewModel.scrub(to: index)
+                    proxy.scrollTo(index, anchor: .top)
+                },
+                onEnd: viewModel.endScrubbing,
+            )
             #elseif os(macOS)
             .onScrollTargetVisibilityChange(idType: Int.self) { indexes in
                 firstVisibleIndex = indexes.min()
@@ -236,26 +221,6 @@ struct LibraryBrowseView: View {
     #if os(iOS)
         private var sectionIndexInset: CGFloat {
             0
-        }
-
-        private var showsScrubber: Bool {
-            viewModel.canScrub && scrollMetrics.isLongEnoughToScrub
-        }
-
-        private func scrubber(proxy: ScrollViewProxy) -> some View {
-            LibraryScrubber(
-                totalCount: viewModel.totalItemCount,
-                sectionIndex: viewModel.visibleSectionIndex,
-                scrollFraction: scrollMetrics.fraction,
-                isScrolling: isScrolling,
-                isPointerNearby: isPointerNearEdge,
-                onBegin: viewModel.beginScrubbing,
-                onScrub: { index in
-                    viewModel.scrub(to: index)
-                    proxy.scrollTo(index, anchor: .top)
-                },
-                onEnd: viewModel.endScrubbing,
-            )
         }
     #elseif os(macOS)
         /// Keeps the letters clear of the overlay scroll bar.
