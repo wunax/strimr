@@ -48,7 +48,9 @@ final class SubtitleSearchViewModel {
 
     private let itemID: String
     private let services: MediaServices
-    private let deviceLanguage: String
+    /// The device language until the account's subtitle language is known.
+    private var defaultLanguage: String
+    private var hasResolvedAccountLanguage = false
     private let onPreferencesChange: (SubtitleSearchPreferences) -> Void
     private var preferences: SubtitleSearchPreferences
     private var completedOptions: SearchOptions?
@@ -65,7 +67,8 @@ final class SubtitleSearchViewModel {
         self.preferences = preferences
         self.onPreferencesChange = onPreferencesChange
         let preferred = Locale.preferredLanguages.first ?? "en"
-        deviceLanguage = Locale.Language(identifier: preferred).languageCode?.identifier ?? "en"
+        let deviceLanguage = Locale.Language(identifier: preferred).languageCode?.identifier ?? "en"
+        defaultLanguage = deviceLanguage
         selectedLanguage = preferences.language ?? deviceLanguage
         // Servers without these options hide their toggles, so a saved value could not be turned off there.
         let supportsAdvancedOptions = services.detail.supportsAdvancedSubtitleSearch
@@ -83,7 +86,8 @@ final class SubtitleSearchViewModel {
 
     /// Reappearing after the language list was pushed must not repeat a search that already completed.
     func searchIfNeeded() async {
-        guard completedOptions != searchOptions || !hasSearched else { return }
+        await resolveAccountLanguageIfNeeded()
+        guard !Task.isCancelled, completedOptions != searchOptions || !hasSearched else { return }
         await search()
     }
 
@@ -124,10 +128,33 @@ final class SubtitleSearchViewModel {
         }
     }
 
+    private func resolveAccountLanguageIfNeeded() async {
+        guard !hasResolvedAccountLanguage else { return }
+        guard let service = services.accountPreferences else {
+            hasResolvedAccountLanguage = true
+            return
+        }
+        do {
+            let account = try await service.load()
+            hasResolvedAccountLanguage = true
+            guard let language = AccountLanguageCode.normalized(account.subtitleLanguage) else { return }
+            // A language picked while the account was loading wins over it.
+            if preferences.language == nil, selectedLanguage == defaultLanguage {
+                selectedLanguage = language
+            }
+            defaultLanguage = language
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { return }
+            hasResolvedAccountLanguage = true
+            ErrorReporter.capture(error)
+        }
+    }
+
     private func rememberPreferences() {
         var updated = preferences
-        if selectedLanguage != preferences.language ?? deviceLanguage {
-            updated.language = selectedLanguage
+        if selectedLanguage != preferences.language ?? defaultLanguage {
+            // Picking the default again drops the saved language, so the sheet follows later account changes.
+            updated.language = selectedLanguage == defaultLanguage ? nil : selectedLanguage
         }
         if services.detail.supportsAdvancedSubtitleSearch {
             updated.hearingImpaired = hearingImpaired

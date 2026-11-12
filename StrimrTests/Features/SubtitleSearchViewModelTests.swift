@@ -43,14 +43,38 @@ struct SubtitleSearchViewModelTests {
         }
     }
 
+    private struct AccountPreferencesStub: AccountPreferencesService {
+        var subtitleLanguage: String?
+
+        var subtitleModes: [AccountSubtitleMode] {
+            []
+        }
+
+        func load() async throws -> AccountPreferences {
+            AccountPreferences(
+                audioLanguage: nil,
+                selectsAudioByLanguage: false,
+                subtitleLanguage: subtitleLanguage,
+                subtitleMode: .fromFile,
+            )
+        }
+
+        func apply(_: AccountPreferenceChange) async throws -> AccountPreferences {
+            try await load()
+        }
+    }
+
     private func viewModel(
         _ service: SubtitleService,
         preferences: SubtitleSearchPreferences = SubtitleSearchPreferences(),
+        accountSubtitleLanguage: String? = nil,
         onPreferencesChange: @escaping (SubtitleSearchPreferences) -> Void = { _ in },
     ) -> SubtitleSearchViewModel {
-        SubtitleSearchViewModel(
+        let services = MediaServices.fake(service)
+        services.accountPreferences = AccountPreferencesStub(subtitleLanguage: accountSubtitleLanguage)
+        return SubtitleSearchViewModel(
             itemID: "item",
-            services: .fake(service),
+            services: services,
             preferences: preferences,
             onPreferencesChange: onPreferencesChange,
         )
@@ -101,6 +125,62 @@ struct SubtitleSearchViewModelTests {
         await model.searchIfNeeded()
 
         #expect(saved.isEmpty)
+    }
+
+    @Test func `opening without a remembered language searches in the account language`() async {
+        let service = SubtitleService()
+        var saved: [SubtitleSearchPreferences] = []
+        let model = viewModel(service, accountSubtitleLanguage: "rum") { saved.append($0) }
+
+        await model.searchIfNeeded()
+
+        #expect(model.selectedLanguage == "ro")
+        #expect(service.searches.map(\.language) == ["ro"])
+        #expect(saved.isEmpty)
+    }
+
+    @Test func `a remembered language wins over the account language`() async {
+        let service = SubtitleService()
+        let model = viewModel(
+            service,
+            preferences: SubtitleSearchPreferences(language: "fr"),
+            accountSubtitleLanguage: "ro",
+        )
+
+        await model.searchIfNeeded()
+
+        #expect(service.searches.map(\.language) == ["fr"])
+    }
+
+    @Test func `a language other than the account one is remembered`() async {
+        var saved: [SubtitleSearchPreferences] = []
+        let model = viewModel(SubtitleService(), accountSubtitleLanguage: "ro") { saved.append($0) }
+        await model.searchIfNeeded()
+
+        model.selectedLanguage = "de"
+        await model.searchIfNeeded()
+
+        #expect(saved == [SubtitleSearchPreferences(language: "de")])
+    }
+
+    @Test func `picking the account language again stops remembering a language`() async {
+        var saved: [SubtitleSearchPreferences] = []
+        let model = viewModel(
+            SubtitleService(),
+            preferences: SubtitleSearchPreferences(language: "pt"),
+            accountSubtitleLanguage: "ro",
+        ) { saved.append($0) }
+        await model.searchIfNeeded()
+        #expect(model.selectedLanguage == "pt")
+
+        model.selectedLanguage = "ro"
+        await model.searchIfNeeded()
+        #expect(saved == [SubtitleSearchPreferences()])
+
+        let reopened = viewModel(SubtitleService(), preferences: saved[0], accountSubtitleLanguage: "de")
+        await reopened.searchIfNeeded()
+
+        #expect(reopened.selectedLanguage == "de")
     }
 
     @Test func `servers without advanced options ignore but keep the saved ones`() async {
