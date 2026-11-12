@@ -107,14 +107,10 @@ struct ProfileAvatarView: View {
     private var image: some View {
         if choice.isLocal {
             ProfileInitialsAvatar(initials: choice.initials, tint: choice.tint)
-        } else if let url = choice.avatarURL {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
+        } else {
+            CachedProfileAvatar(profileID: choice.avatarProfileID, url: choice.avatarURL) {
                 placeholder
             }
-        } else {
-            placeholder
         }
     }
 
