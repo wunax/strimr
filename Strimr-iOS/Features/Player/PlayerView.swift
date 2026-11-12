@@ -46,6 +46,8 @@ struct PlayerView: View {
     @State private var showingSubtitleSearchError = false
     @State private var isControlsLocked = false
     @State private var didConsiderAutomaticRotation = false
+    @State private var wasLandscapeWhenLeavingForeground = false
+    @State private var restoresAutomaticRotationOnReturn = false
     @State private var lastPinchInteraction: ContinuousClock.Instant?
     @State private var isLandscape = false
     @GestureState private var isPinching = false
@@ -252,8 +254,9 @@ struct PlayerView: View {
                     guard let error else { return }
                     presentServerRecoveryError(error)
                 }
-                .onChange(of: scenePhase) { _, newValue in
+                .onChange(of: scenePhase) { oldValue, newValue in
                     handleScenePhaseChange(newValue)
+                    prepareAutomaticRotation(from: oldValue, to: newValue)
                     rotateAutomaticallyIfNeeded()
                 }
                 .onChange(of: playerController.displayVideoSize) { _, _ in
@@ -1240,6 +1243,28 @@ struct PlayerView: View {
 
         scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape)) { error in
             Task { @MainActor in ErrorReporter.capture(error) }
+        }
+    }
+
+    /// The rotation is a one-time request, so the Home Screen leaves the app in portrait. A player that left the
+    /// foreground in landscape is considered again on return; one the user turned to portrait stays in portrait.
+    /// The orientation is read before the background, where iOS can rotate the scene for its snapshots.
+    private func prepareAutomaticRotation(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+        if oldPhase == .active {
+            wasLandscapeWhenLeavingForeground = isLandscape
+        }
+        switch newPhase {
+        case .background:
+            restoresAutomaticRotationOnReturn = wasLandscapeWhenLeavingForeground
+        case .active:
+            if restoresAutomaticRotationOnReturn {
+                didConsiderAutomaticRotation = false
+            }
+            restoresAutomaticRotationOnReturn = false
+        case .inactive:
+            break
+        @unknown default:
+            break
         }
     }
 
