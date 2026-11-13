@@ -7,27 +7,21 @@ struct EpisodeCardView: View {
     let progress: Double?
     let onSelect: () -> Void
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var rowWidth: CGFloat = 0
 
     private var isRegularWidth: Bool {
         horizontalSizeClass == .regular
-    }
-
-    private var regularImageWidth: CGFloat {
-        rowWidth / 3
     }
 
     var body: some View {
         Button(action: onSelect) {
             Group {
                 if isRegularWidth {
-                    HStack(alignment: .top, spacing: 16) {
-                        // The artwork width also sizes the image request, so wait for the row to be measured.
-                        if rowWidth > 0 {
+                    EpisodeRowLayout {
+                        GeometryReader { proxy in
                             EpisodeArtworkView(
                                 episode: episode,
                                 artworkPath: artworkPath,
-                                width: regularImageWidth,
+                                width: proxy.size.width,
                                 progress: progress,
                             )
                         }
@@ -51,7 +45,6 @@ struct EpisodeCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
