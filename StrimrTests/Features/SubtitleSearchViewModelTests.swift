@@ -183,6 +183,19 @@ struct SubtitleSearchViewModelTests {
         #expect(reopened.selectedLanguage == "de")
     }
 
+    @Test func `a remembered language that became the account language stops being remembered`() async {
+        var saved: [SubtitleSearchPreferences] = []
+        let model = viewModel(
+            SubtitleService(),
+            preferences: SubtitleSearchPreferences(language: "ro"),
+            accountSubtitleLanguage: "ro",
+        ) { saved.append($0) }
+
+        await model.searchIfNeeded()
+
+        #expect(saved == [SubtitleSearchPreferences()])
+    }
+
     @Test func `servers without advanced options ignore but keep the saved ones`() async {
         let service = SubtitleService()
         service.advancedSearch = false

@@ -51,6 +51,7 @@ final class SubtitleSearchViewModel {
     /// The device language until the account's subtitle language is known.
     private var defaultLanguage: String
     private var hasResolvedAccountLanguage = false
+    private var hasAccountLanguage = false
     private let onPreferencesChange: (SubtitleSearchPreferences) -> Void
     private var preferences: SubtitleSearchPreferences
     private var completedOptions: SearchOptions?
@@ -143,6 +144,7 @@ final class SubtitleSearchViewModel {
                 selectedLanguage = language
             }
             defaultLanguage = language
+            hasAccountLanguage = true
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
             hasResolvedAccountLanguage = true
@@ -152,8 +154,8 @@ final class SubtitleSearchViewModel {
 
     private func rememberPreferences() {
         var updated = preferences
-        if selectedLanguage != preferences.language ?? defaultLanguage {
-            // Picking the default again drops the saved language, so the sheet follows later account changes.
+        // A saved language matching the account one is dropped too, so the sheet follows later account changes.
+        if hasAccountLanguage || selectedLanguage != preferences.language ?? defaultLanguage {
             updated.language = selectedLanguage == defaultLanguage ? nil : selectedLanguage
         }
         if services.detail.supportsAdvancedSubtitleSearch {
