@@ -100,6 +100,25 @@ final class SettingsViewModel {
         )
     }
 
+    var autoSkipCountdownBinding: Binding<Int> {
+        Binding(
+            get: { self.settingsManager.playback.autoSkipCountdownSeconds },
+            set: { self.settingsManager.setAutoSkipCountdownSeconds($0) },
+        )
+    }
+
+    func isAutoSkipEnabled(includingCommercials: Bool) -> Bool {
+        let playback = settingsManager.playback
+        return playback.autoSkipIntros || playback.autoSkipCredits
+            || (includingCommercials && playback.autoSkipCommercials)
+    }
+
+    func autoSkipCountdownTitle(_ seconds: Int) -> String {
+        seconds == 0
+            ? String(localized: "settings.playback.autoSkipCountdown.off")
+            : String(localized: "settings.playback.seconds \(seconds)")
+    }
+
     var transcodeLiveTVBinding: Binding<Bool> {
         Binding(
             get: { self.settingsManager.playback.transcodeLiveTV },

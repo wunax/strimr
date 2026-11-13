@@ -37,6 +37,7 @@ struct PlayPauseButton: View {
 
 struct SkipMarkerButton: View {
     let title: String
+    var countdown: AutomaticMarkerSkip.Countdown?
     let action: () -> Void
 
     var body: some View {
@@ -50,8 +51,14 @@ struct SkipMarkerButton: View {
             .foregroundStyle(.foreground)
             .padding(.horizontal, 22)
             .padding(.vertical, 14)
+            // Inside the label so the fill lifts with the focused platter.
+            .background {
+                SkipCountdownFill(countdown: countdown)
+                    .clipShape(Capsule(style: .continuous))
+            }
         }
         .accessibilityLabel(title)
+        .accessibilityValue(countdown?.accessibilityValue ?? "")
     }
 }
 

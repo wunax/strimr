@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SkipMarkerButton: View {
     let title: String
+    var countdown: AutomaticMarkerSkip.Countdown?
     let action: () -> Void
 
     var body: some View {
@@ -13,7 +14,9 @@ struct SkipMarkerButton: View {
             }
         }
         .actionButtonStyle(.primary)
+        .skipCountdownOverlay(countdown)
         .accessibilityLabel(title)
+        .accessibilityValue(countdown?.accessibilityValue ?? "")
     }
 }
 
