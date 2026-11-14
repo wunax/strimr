@@ -16,10 +16,11 @@ struct AutomaticRefreshGate {
         return true
     }
 
-    mutating func shouldRefresh(now: Date = Date(), isLoading: Bool) -> Bool {
+    mutating func shouldRefresh(now: Date = Date(), isLoading: Bool, ignoringDebounce: Bool = false) -> Bool {
         guard hasStartedInitialLoad, !isLoading else { return false }
 
-        if let lastRefreshStartedAt,
+        if !ignoringDebounce,
+           let lastRefreshStartedAt,
            now.timeIntervalSince(lastRefreshStartedAt) < debounceInterval
         {
             return false
