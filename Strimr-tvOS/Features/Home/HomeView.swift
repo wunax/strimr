@@ -77,8 +77,10 @@ struct HomeView: View {
                 heroMode = .browsing
             }
         }
-        .onChange(of: focusModel.cardFocusCount) {
-            setHeroMode(.browsing)
+        .background {
+            CardFocusObserver {
+                setHeroMode(.browsing)
+            }
         }
         .onChange(of: focusedHeroButton) { previous, button in
             if button == .pageBack {
@@ -392,5 +394,19 @@ struct HomeView: View {
             return
         }
         focusModel.focusedMedia = heroMedia
+    }
+}
+
+/// Reads `cardFocusCount` apart from `HomeView`, which re-rendered the whole home and all of its cards on every focus
+/// move along a row when it read it itself.
+private struct CardFocusObserver: View {
+    @Environment(MediaFocusModel.self) private var focusModel
+    let onCardFocus: () -> Void
+
+    var body: some View {
+        Color.clear
+            .onChange(of: focusModel.cardFocusCount) {
+                onCardFocus()
+            }
     }
 }
