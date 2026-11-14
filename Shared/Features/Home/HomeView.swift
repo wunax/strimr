@@ -9,6 +9,7 @@ struct HomeView: View {
     @State var viewModel: HomeViewModel
     @State private var selectedHub: Hub?
     @State private var scrollInteractionCount = 0
+    @State private var horizontalSafeArea = EdgeInsets()
     let onSelectMedia: (MediaDisplayItem) -> Void
 
     init(
@@ -25,6 +26,7 @@ struct HomeView: View {
                 HomeHeroCarousel(
                     slides: viewModel.heroSlides,
                     interactionCount: scrollInteractionCount,
+                    horizontalSafeArea: horizontalSafeArea,
                     onPlay: { mediaCardActions?.play($0, false) },
                     onDetails: { onSelectMedia(.playable($0)) },
                 )
@@ -59,6 +61,11 @@ struct HomeView: View {
             if phase != .idle {
                 scrollInteractionCount += 1
             }
+        }
+        .onGeometryChange(for: EdgeInsets.self) {
+            EdgeInsets(top: 0, leading: $0.safeAreaInsets.leading, bottom: 0, trailing: $0.safeAreaInsets.trailing)
+        } action: {
+            horizontalSafeArea = $0
         }
         #if os(iOS)
         // The hero artwork runs up behind the status and navigation bars.
