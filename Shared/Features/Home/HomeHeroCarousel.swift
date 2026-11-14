@@ -57,6 +57,8 @@
                 if slides.count > 1 {
                     pageIndicator
                         .padding(.bottom, 12)
+                        // Centers under the full-width artwork rather than the safe area.
+                        .offset(x: (horizontalSafeArea.trailing - horizontalSafeArea.leading) / 2)
                 }
             }
             #if os(macOS)
