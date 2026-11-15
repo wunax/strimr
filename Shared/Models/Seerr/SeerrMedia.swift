@@ -289,6 +289,18 @@ struct SeerrSeason: Identifiable, Hashable, Decodable {
     let episodes: [SeerrEpisode]?
 }
 
+extension SeerrSeason {
+    /// Seerr's TVDB provider names seasons with their bare number, so those get the regular title too.
+    var displayTitle: String {
+        let label = String(localized: "media.detail.season")
+        if let name, !name.isEmpty, name != seasonNumber.map(String.init) {
+            return name
+        }
+        guard let seasonNumber else { return label }
+        return "\(label) \(seasonNumber)"
+    }
+}
+
 struct SeerrEpisode: Identifiable, Hashable, Decodable {
     let id: Int
     let episodeNumber: Int?
