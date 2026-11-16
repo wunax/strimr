@@ -53,18 +53,21 @@ private struct PlayerScrubInteraction: ViewModifier {
     @State private var session = PlayerScrubSession()
     @State private var panStartPosition: Double?
     @State private var lastPanEnd: Date?
+    @State private var isSwiping = false
     @State private var lastSurfaceSelect: Date?
 
     /// Share of the video a swipe across the whole touch surface covers.
     private let swipeSpan = 0.06
-    /// A swipe can also reach the focus engine as a move command, which would add a step to the drag.
+    /// A swipe can also reach the focus engine as a move command, which would add a step to the drag or, outside a
+    /// scrub, seek by 10 seconds where the system player does nothing.
     private let movesIgnoredAfterSwipe: TimeInterval = 0.3
 
     func body(content: Content) -> some View {
         content
             .background {
                 PlayerTouchSurfacePan(
-                    isEnabled: isFocused && (swipesScrub || session.isActive),
+                    // Stays on when swipes do not scrub, to tell their move commands from clickpad presses.
+                    isEnabled: isFocused,
                     isSelectEnabled: isFocused && session.isActive,
                     onChanged: handlePan(translation:width:),
                     onEnded: endPan,
@@ -90,7 +93,7 @@ private struct PlayerScrubInteraction: ViewModifier {
 
     private func handleMove(_ direction: MoveCommandDirection) {
         guard isFocused, direction == .left || direction == .right else { return }
-        if panStartPosition != nil {
+        if isSwiping {
             return
         }
         if let lastPanEnd, Date().timeIntervalSince(lastPanEnd) < movesIgnoredAfterSwipe {
@@ -137,6 +140,8 @@ private struct PlayerScrubInteraction: ViewModifier {
 
     private func handlePan(translation: CGFloat, width: CGFloat) {
         guard isFocused, upperBound > 0, width > 0 else { return }
+        isSwiping = true
+        guard swipesScrub || session.isActive else { return }
         if panStartPosition == nil {
             panStartPosition = position
             if session.begin(at: position) {
@@ -150,7 +155,8 @@ private struct PlayerScrubInteraction: ViewModifier {
 
     /// The playhead stays where the swipe left it, previewing, until a click commits it.
     private func endPan() {
-        guard panStartPosition != nil else { return }
+        guard isSwiping else { return }
+        isSwiping = false
         panStartPosition = nil
         lastPanEnd = Date()
     }
