@@ -140,6 +140,15 @@ struct SettingsPlaybackView: View {
 
             Section("settings.playback.overlay.title") {
                 SettingsPicker(
+                    "settings.playback.playerStyle",
+                    selection: viewModel.playerControlsStyleBinding,
+                    options: PlayerControlsStyle.allCases,
+                ) { style in
+                    Text(style.title)
+                }
+                .settingsFocus("settings.playback.playerStyle")
+
+                SettingsPicker(
                     "settings.playback.centerClick",
                     selection: viewModel.centerClickActionBinding,
                     options: PlayerCenterClickAction.allCases,

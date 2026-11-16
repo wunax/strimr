@@ -8,6 +8,8 @@ struct PlayerView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State var viewModel: PlayerViewModel
+    /// Read once when the player opens: switching styles mid-playback is not supported.
+    @State private var controlsStyle: PlayerControlsStyle
     let onExit: () -> Void
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -87,9 +89,11 @@ struct PlayerView: View {
 
     init(
         viewModel: PlayerViewModel,
+        controlsStyle: PlayerControlsStyle,
         onExit: @escaping () -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
+        _controlsStyle = State(initialValue: controlsStyle)
         self.onExit = onExit
     }
 
@@ -522,6 +526,16 @@ struct PlayerView: View {
         )
     }
 
+    @ViewBuilder
+    private var controlsLayer: some View {
+        switch controlsStyle {
+        case .classic:
+            PlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+        case .system:
+            SystemPlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+        }
+    }
+
     private var playerOverlay: some View {
         let activeMarker = viewModel.activeSkipMarker
         let skipTitle = activeMarker?.skipTitle
@@ -554,7 +568,7 @@ struct PlayerView: View {
             }
 
             if controlsVisible, !isShowingInfoPanel {
-                PlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+                controlsLayer
                     .transition(.opacity)
             }
 

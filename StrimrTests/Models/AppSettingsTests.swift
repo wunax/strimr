@@ -370,6 +370,16 @@ struct AppSettingsTests {
         #expect(try decode(#"{"playback":{"automaticSubtitleSearch":true}}"#).playback.automaticSubtitleSearch)
     }
 
+    @Test func `player controls use the system style unless changed`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.playerControlsStyle == .system)
+        #expect(try decode(#"{"playback":{"playerControlsStyle":"x"}}"#).playback.playerControlsStyle == .system)
+
+        var settings = AppSettings()
+        settings.playback.playerControlsStyle = .classic
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.playback.playerControlsStyle == .classic)
+    }
+
     @Test func `center click plays and pauses unless changed`() throws {
         #expect(try decode(#"{"playback":{}}"#).playback.centerClickAction == .playPause)
         #expect(try decode(#"{"playback":{"centerClickAction":"x"}}"#).playback.centerClickAction == .playPause)

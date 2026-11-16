@@ -40,6 +40,13 @@ final class SettingsViewModel {
         )
     }
 
+    var playerControlsStyleBinding: Binding<PlayerControlsStyle> {
+        Binding(
+            get: { self.settingsManager.playback.playerControlsStyle },
+            set: { self.settingsManager.setPlayerControlsStyle($0) },
+        )
+    }
+
     var centerClickActionBinding: Binding<PlayerCenterClickAction> {
         Binding(
             get: { self.settingsManager.playback.centerClickAction },

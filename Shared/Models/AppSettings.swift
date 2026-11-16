@@ -390,6 +390,23 @@ enum PlaybackReadAhead: String, Codable, CaseIterable, Hashable, Identifiable {
     }
 }
 
+/// Look of the tvOS player controls.
+enum PlayerControlsStyle: String, Codable, CaseIterable, Hashable, Identifiable {
+    case classic
+    case system
+
+    var id: Self {
+        self
+    }
+
+    var title: String {
+        switch self {
+        case .classic: String(localized: "settings.playback.playerStyle.classic")
+        case .system: String(localized: "settings.playback.playerStyle.system")
+        }
+    }
+}
+
 /// What a center click does on tvOS while the player controls are hidden.
 enum PlayerCenterClickAction: String, Codable, CaseIterable, Hashable, Identifiable {
     case playPause
@@ -456,6 +473,7 @@ struct PlaybackSettings: Codable, Equatable {
     /// Forces the server-side transcode for Live TV, the route used before the engine played broadcast streams.
     var transcodeLiveTV = false
     var readAhead = PlaybackReadAhead.standard
+    var playerControlsStyle = PlayerControlsStyle.system
     var centerClickAction = PlayerCenterClickAction.playPause
 
     init() {}
@@ -559,6 +577,9 @@ struct PlaybackSettings: Codable, Equatable {
         )
         transcodeLiveTV = (try? container.decodeIfPresent(Bool.self, forKey: .transcodeLiveTV)) ?? false
         readAhead = (try? container.decodeIfPresent(PlaybackReadAhead.self, forKey: .readAhead)) ?? .standard
+        playerControlsStyle = (
+            try? container.decodeIfPresent(PlayerControlsStyle.self, forKey: .playerControlsStyle),
+        ) ?? .system
         centerClickAction = (
             try? container.decodeIfPresent(PlayerCenterClickAction.self, forKey: .centerClickAction),
         ) ?? .playPause
