@@ -4,11 +4,12 @@ import UIKit
 extension View {
     /// Remote input of a focusable playback timeline: presses step through the video, a swipe on the touch surface
     /// drags the playhead, a click commits the previewed position, Back cancels it and focus leaving commits it.
+    /// The caller binds the focus with `focused(_:)` after this modifier, which makes the view focusable.
     func playerScrubInteraction(
         position: Binding<Double>,
         upperBound: Double,
         stepSize: Double,
-        isFocused: FocusState<Bool>.Binding,
+        isFocused: Bool,
         pressesScrub: Bool = true,
         onEditingChanged: @escaping (Bool) -> Void,
         onCancel: @escaping () -> Void,
@@ -33,7 +34,7 @@ private struct PlayerScrubInteraction: ViewModifier {
     @Binding var position: Double
     var upperBound: Double
     var stepSize: Double
-    var isFocused: FocusState<Bool>.Binding
+    var isFocused: Bool
     /// When false, left and right presses go to `onIdleMove` until a swipe has started a scrub.
     var pressesScrub: Bool
     var onEditingChanged: (Bool) -> Void
@@ -54,17 +55,16 @@ private struct PlayerScrubInteraction: ViewModifier {
         content
             .background {
                 PlayerTouchSurfacePan(
-                    isEnabled: isFocused.wrappedValue,
+                    isEnabled: isFocused,
                     onChanged: handlePan(translation:width:),
                     onEnded: endPan,
                 )
             }
             .focusable(true)
-            .focused(isFocused)
             .onMoveCommand(perform: handleMove)
             .onTapGesture(perform: handleSelect)
             .onExitCommand(perform: exitAction)
-            .onChange(of: isFocused.wrappedValue) { _, focused in
+            .onChange(of: isFocused) { _, focused in
                 if !focused {
                     commit()
                 }
@@ -78,7 +78,7 @@ private struct PlayerScrubInteraction: ViewModifier {
     }
 
     private func handleMove(_ direction: MoveCommandDirection) {
-        guard isFocused.wrappedValue, direction == .left || direction == .right else { return }
+        guard isFocused, direction == .left || direction == .right else { return }
         if panStartPosition != nil {
             return
         }
@@ -109,7 +109,7 @@ private struct PlayerScrubInteraction: ViewModifier {
     }
 
     private func handlePan(translation: CGFloat, width: CGFloat) {
-        guard isFocused.wrappedValue, upperBound > 0, width > 0 else { return }
+        guard isFocused, upperBound > 0, width > 0 else { return }
         if panStartPosition == nil {
             panStartPosition = position
             if session.begin(at: position) {

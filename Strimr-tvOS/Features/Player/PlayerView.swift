@@ -457,7 +457,7 @@ struct PlayerView: View {
     private var subtitleControlsInset: CGFloat {
         // The controls are hidden behind the settings panel, and would misrepresent the subtitle position.
         guard controlsVisible, !isShowingSubtitleAppearance else { return 0 }
-        return isShowingInfoPanel ? 440 : 380
+        return isShowingInfoPanel ? controlsStyle.metrics.expandedSubtitleInset : controlsStyle.metrics.subtitleInset
     }
 
     private var controlsState: PlayerControlsState {
@@ -561,7 +561,7 @@ struct PlayerView: View {
 
             if showsPlaybackStatistics, !isShowingInfoPanel {
                 PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
-                    .padding(.top, controlsVisible ? 150 : 0)
+                    .padding(.top, controlsVisible ? controlsStyle.metrics.statisticsTopInset : 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
                     .transition(.opacity)
@@ -586,7 +586,7 @@ struct PlayerView: View {
             if let feedbackMessage {
                 PlayerFeedbackView(message: feedbackMessage, systemImage: feedbackSystemImage)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, controlsVisible ? 330 : 48)
+                    .padding(.bottom, controlsVisible ? controlsStyle.metrics.feedbackBottomInset : 48)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     .allowsHitTesting(false)
             }
@@ -788,7 +788,9 @@ struct PlayerView: View {
     private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
         let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
         let edge: Edge.Set = alignment == .top ? .top : .bottom
-        let inset: CGFloat = alignment == .top || !controlsVisible ? 40 : 380
+        let inset: CGFloat = alignment == .top || !controlsVisible
+            ? 40
+            : controlsStyle.metrics.adjustmentBarBottomInset
         return PlayerOffsetBar(
             controller: playerController,
             kind: kind,

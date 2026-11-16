@@ -76,3 +76,38 @@ struct PlayerControlBadge: Identifiable {
 enum PlayerSettingsControl {
     case audio, subtitle, speed, settings
 }
+
+/// Room the controls of a style take over the video, so subtitles, messages and statistics stay clear of them.
+struct PlayerControlsMetrics {
+    var subtitleInset: CGFloat
+    /// With the info panel or the tabs open.
+    var expandedSubtitleInset: CGFloat
+    var feedbackBottomInset: CGFloat
+    var statisticsTopInset: CGFloat
+    var adjustmentBarBottomInset: CGFloat
+
+    static let classic = PlayerControlsMetrics(
+        subtitleInset: 380,
+        expandedSubtitleInset: 440,
+        feedbackBottomInset: 330,
+        statisticsTopInset: 150,
+        adjustmentBarBottomInset: 380,
+    )
+
+    static let system = PlayerControlsMetrics(
+        subtitleInset: 340,
+        expandedSubtitleInset: 560,
+        feedbackBottomInset: 340,
+        statisticsTopInset: 110,
+        adjustmentBarBottomInset: 340,
+    )
+}
+
+extension PlayerControlsStyle {
+    var metrics: PlayerControlsMetrics {
+        switch self {
+        case .classic: .classic
+        case .system: .system
+        }
+    }
+}

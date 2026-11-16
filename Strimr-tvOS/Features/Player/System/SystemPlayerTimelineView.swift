@@ -1,0 +1,201 @@
+import SwiftUI
+
+/// Thin timeline of the system style: the elapsed time follows the playhead, and a scrub shows its target above it
+/// with a mark at the position it started from.
+struct SystemPlayerTimelineView: View {
+    @Binding var position: Double
+    var state: PlayerControlsState
+    var isFocused: Bool
+    var onEditingChanged: (Bool) -> Void
+    var onCancel: () -> Void
+    var onSeekBackward: () -> Void
+    var onSeekForward: () -> Void
+    var onPlayPause: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var scrubOrigin: Double?
+
+    private let barAreaHeight: CGFloat = 24
+    private let labelsHeight: CGFloat = 34
+    private let previewHeight: CGFloat = 200
+    private let previewGap: CGFloat = 18
+
+    private var upperBound: Double {
+        max(state.duration ?? 0, position, state.bufferBasePosition, 1)
+    }
+
+    private var bufferedEnd: Double {
+        let end = state.bufferBasePosition + state.bufferedAhead
+        return state.duration.map { min(end, $0) } ?? end
+    }
+
+    /// Same pace as the classic timeline: about 300 presses across the video.
+    private var stepSize: Double {
+        guard let duration = state.duration else { return 10 }
+        return min(max(duration / 300, 5), 60)
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let playheadX = x(for: position, width: width)
+
+            VStack(spacing: 0) {
+                ZStack(alignment: .leading) {
+                    PlayerSegmentedTimelineRail(
+                        chapters: state.showsChaptersOnTimeline ? state.chapters : [],
+                        skipSegments: state.skipSegments,
+                        duration: state.duration,
+                        position: position,
+                        bufferedEnd: bufferedEnd,
+                        horizontalInset: 0,
+                        trackHeight: isFocused ? 12 : 6,
+                        preferredGap: 4,
+                    )
+                    .opacity(isFocused ? 1 : 0.75)
+
+                    if let scrubOrigin {
+                        Capsule()
+                            .fill(.textSecondary)
+                            .frame(width: 3, height: 22)
+                            .offset(x: x(for: scrubOrigin, width: width) - 1.5)
+                    }
+
+                    Capsule()
+                        .fill(.progressFill)
+                        .frame(width: 4, height: isFocused ? 26 : 16)
+                        .shadow(color: .black.opacity(0.35), radius: 4)
+                        .offset(x: playheadX - 2)
+                }
+                .frame(height: barAreaHeight)
+                .animation(Motion.animation(Motion.focus, reduceMotion: reduceMotion), value: isFocused)
+
+                timeLabels(width: width, playheadX: playheadX)
+            }
+            .overlay(alignment: .topLeading) {
+                if scrubOrigin != nil, let preview = state.scrubPreview, let image = preview.image {
+                    let size = previewSize(for: image)
+                    SystemPlayerScrubThumbnail(image: image, size: size)
+                        .offset(
+                            x: clamped(playheadX - size.width / 2, width: size.width, in: width),
+                            y: -size.height - previewGap,
+                        )
+                        .transition(.opacity)
+                }
+            }
+        }
+        .frame(height: barAreaHeight + labelsHeight)
+        .contentShape(Rectangle())
+        .playerScrubInteraction(
+            position: $position,
+            upperBound: upperBound,
+            stepSize: stepSize,
+            isFocused: isFocused,
+            pressesScrub: state.isPaused,
+            onEditingChanged: handleEditingChanged(_:),
+            onCancel: handleCancel,
+            onIdleMove: { direction in
+                direction == .left ? onSeekBackward() : onSeekForward()
+            },
+            onIdleSelect: onPlayPause,
+        )
+        .accessibilityElement()
+        .accessibilityLabel(Text("player.timeline.accessibilityLabel"))
+        .accessibilityValue(Text(verbatim: "\(elapsedText), \(remainingText)"))
+    }
+
+    private func timeLabels(width: CGFloat, playheadX: CGFloat) -> some View {
+        let elapsedWidth: CGFloat = state.isPaused ? 150 : 110
+        return ZStack(alignment: .topLeading) {
+            HStack(spacing: 8) {
+                Text(elapsedText)
+                if state.isPaused {
+                    Image(systemName: "pause.circle")
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(width: elapsedWidth)
+            .offset(x: clamped(playheadX - elapsedWidth / 2, width: elapsedWidth, in: width))
+
+            HStack(spacing: 6) {
+                Text(remainingText)
+                if state.showsEndsAtTime, scrubOrigin == nil {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        if let endsAt = playerEndsAtText(
+                            position: position,
+                            duration: state.duration,
+                            playbackRate: state.playbackRate,
+                            now: context.date,
+                        ) {
+                            Text(verbatim: "· \(endsAt)")
+                                .foregroundStyle(.textSecondary)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .font(.facts.weight(.semibold).monospacedDigit())
+        .foregroundStyle(.textPrimary)
+        .videoTextShadow()
+        .frame(height: labelsHeight)
+        .padding(.top, 6)
+    }
+
+    private var elapsedText: String {
+        playerTimestampText(position)
+    }
+
+    private var remainingText: String {
+        guard let duration = state.duration else { return "--:--" }
+        return "-\(playerTimestampText(max(duration - position, 0)))"
+    }
+
+    private func x(for time: Double, width: CGFloat) -> CGFloat {
+        width * CGFloat(min(max(time / upperBound, 0), 1))
+    }
+
+    /// Keeps something `itemWidth` wide, centered on a point of the timeline, inside the timeline.
+    private func clamped(_ x: CGFloat, width itemWidth: CGFloat, in width: CGFloat) -> CGFloat {
+        min(max(x, 0), max(width - itemWidth, 0))
+    }
+
+    private func previewSize(for image: CGImage) -> CGSize {
+        let aspect = image.height > 0 ? CGFloat(image.width) / CGFloat(image.height) : 16 / 9
+        let width = min(previewHeight * aspect, 420)
+        return CGSize(width: width, height: width / aspect)
+    }
+
+    private func handleEditingChanged(_ editing: Bool) {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+            scrubOrigin = editing ? position : nil
+        }
+        onEditingChanged(editing)
+    }
+
+    private func handleCancel() {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+            scrubOrigin = nil
+        }
+        onCancel()
+    }
+}
+
+private struct SystemPlayerScrubThumbnail: View {
+    var image: CGImage
+    var size: CGSize
+
+    var body: some View {
+        Image(decorative: image, scale: 1)
+            .resizable()
+            .scaledToFill()
+            .frame(width: size.width, height: size.height)
+            .clipShape(RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous)
+                    .stroke(.strokeSubtle, lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.45), radius: 12, y: 6)
+            .animation(Motion.crossfade, value: ObjectIdentifier(image))
+    }
+}

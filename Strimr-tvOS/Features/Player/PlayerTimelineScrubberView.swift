@@ -60,10 +60,11 @@ struct PlayerTimelineScrubberView: View {
             position: $position,
             upperBound: upperBound,
             stepSize: scrubStep,
-            isFocused: $isFocused,
+            isFocused: isFocused,
             onEditingChanged: onEditingChanged,
             onCancel: onCancel,
         )
+        .focused($isFocused)
         .accessibilityHidden(true)
     }
 }
