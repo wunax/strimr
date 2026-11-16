@@ -16,6 +16,7 @@ extension View {
         onCancel: @escaping () -> Void,
         onIdleMove: ((MoveCommandDirection) -> Void)? = nil,
         onIdleSelect: (() -> Void)? = nil,
+        onClickCommit: (() -> Void)? = nil,
     ) -> some View {
         modifier(PlayerScrubInteraction(
             position: position,
@@ -28,6 +29,7 @@ extension View {
             onCancel: onCancel,
             onIdleMove: onIdleMove,
             onIdleSelect: onIdleSelect,
+            onClickCommit: onClickCommit,
         ))
     }
 }
@@ -45,6 +47,8 @@ private struct PlayerScrubInteraction: ViewModifier {
     var onCancel: () -> Void
     var onIdleMove: ((MoveCommandDirection) -> Void)?
     var onIdleSelect: (() -> Void)?
+    /// Called after a click committed a scrub, unlike focus leaving the timeline.
+    var onClickCommit: (() -> Void)?
 
     @State private var session = PlayerScrubSession()
     @State private var panStartPosition: Double?
@@ -117,6 +121,7 @@ private struct PlayerScrubInteraction: ViewModifier {
         }
         if session.isActive {
             commit()
+            onClickCommit?()
         } else {
             onIdleSelect?()
         }
@@ -127,6 +132,7 @@ private struct PlayerScrubInteraction: ViewModifier {
         guard isFocused, session.isActive else { return }
         lastSurfaceSelect = Date()
         commit()
+        onClickCommit?()
     }
 
     private func handlePan(translation: CGFloat, width: CGFloat) {

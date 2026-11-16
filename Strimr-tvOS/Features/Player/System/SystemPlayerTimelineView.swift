@@ -100,6 +100,12 @@ struct SystemPlayerTimelineView: View {
                 direction == .left ? onSeekBackward() : onSeekForward()
             },
             onIdleSelect: onPlayPause,
+            // Like the system player, confirming a scrub made while paused resumes playback.
+            onClickCommit: {
+                if state.isPaused {
+                    onPlayPause()
+                }
+            },
         )
         .accessibilityElement()
         .accessibilityLabel(Text("player.timeline.accessibilityLabel"))
