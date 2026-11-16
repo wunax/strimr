@@ -70,6 +70,7 @@ struct PlayerView: View {
     @State private var qualityNoticeMessage: String?
     @State private var activeAdjustmentBar: PlayerAdjustmentBar?
     @State private var showsPlaybackStatistics = false
+    @State private var isSystemMenuPresented = false
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -497,6 +498,70 @@ struct PlayerView: View {
             showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
             settingsFocusGeneration: settingsFocusGeneration,
             isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
+            menus: controlsStyle == .system ? systemMenus : nil,
+        )
+    }
+
+    private var systemMenus: PlayerSystemMenus {
+        let playback = settingsManager.playback
+        return PlayerSystemMenus(
+            subtitles: PlayerMenus.subtitles(PlayerMenus.Subtitles(
+                tracks: settingsSubtitleTracks,
+                selectedTrackID: selectedSubtitleTrackID,
+                canSearch: viewModel.canSearchSubtitles,
+                canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
+                sync: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
+                appearance: subtitleAppearanceAvailability,
+                onSelect: selectSubtitleTrack(_:),
+                onSearch: { isSearchingSubtitles = true },
+                onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
+                onSync: openOffsetBar(_:),
+                onAppearance: {
+                    settingsControl = .subtitle
+                    sheetPresentation.item = .subtitleAppearance
+                },
+            )),
+            audio: PlayerMenus.audio(PlayerMenus.Audio(
+                tracks: settingsAudioTracks,
+                selectedTrackID: selectedAudioTrackID,
+                nightMode: playback.nightMode,
+                dialogueBoost: playback.dialogueBoost,
+                isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+                sync: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
+                onSelect: selectAudioTrack(_:),
+                onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
+                onSelectDialogueBoost: selectDialogueBoost(_:),
+                onSync: openOffsetBar(_:),
+            )),
+            more: PlayerMenus.more(PlayerMenus.More(
+                isLive: viewModel.isLivePlayback,
+                playbackRate: playbackRate,
+                quality: viewModel.selectedQuality,
+                versions: viewModel.showsVersionSelection ? viewModel.versionOptions : [],
+                zoom: playerController.videoZoom,
+                fillScale: videoFillScale,
+                sleepTimerMode: sleepTimer.mode,
+                sleepTimerDeadline: sleepTimer.deadline,
+                sleepTimerModes: SleepTimerMode.available(
+                    isLive: viewModel.isLivePlayback,
+                    hasChapters: viewModel.hasNavigableChapters,
+                ),
+                mediaKind: viewModel.media?.type,
+                isSharePlay: sharePlayCoordinator.isInSession,
+                showsStatistics: showsPlaybackStatistics,
+                canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+                canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+                onSelectRate: selectPlaybackRate(_:),
+                onSelectQuality: { selectQuality($0) },
+                onSelectVersion: selectVersion(_:),
+                onSelectZoom: selectVideoZoom(_:),
+                onCustomZoom: openZoomBar,
+                onSelectSleepTimer: selectSleepTimer(_:),
+                onExtendSleepTimer: { sleepTimer.extend() },
+                onToggleStatistics: { showsPlaybackStatistics.toggle() },
+                onPreviousChannel: { switchLiveChannel(by: -1) },
+                onNextChannel: { switchLiveChannel(by: 1) },
+            )),
         )
     }
 
@@ -523,6 +588,7 @@ struct PlayerView: View {
             },
             previousChannel: { switchLiveChannel(by: -1) },
             nextChannel: { switchLiveChannel(by: 1) },
+            menuPresentationChanged: handleSystemMenuPresentation(_:),
         )
     }
 
@@ -878,8 +944,9 @@ struct PlayerView: View {
         return .move(edge: edge).combined(with: .opacity)
     }
 
+    /// The system style opens panels straight from its menus, so Back closes them instead of showing a parent page.
     private func navigateBackInSettingsPanel() {
-        guard let sheet = sheetPresentation.item, let parent = sheet.parent else {
+        guard let sheet = sheetPresentation.item, let parent = sheet.parent, controlsStyle == .classic else {
             closeSettingsPanel()
             return
         }
@@ -1587,10 +1654,21 @@ struct PlayerView: View {
         return true
     }
 
+    private func handleSystemMenuPresentation(_ isPresented: Bool) {
+        isSystemMenuPresented = isPresented
+        if isPresented {
+            hideControlsWorkItem?.cancel()
+        } else {
+            scheduleControlsHide()
+        }
+    }
+
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
         // The controls stay up for the whole pause, until the pause screen takes their place.
-        guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused else { return }
+        guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused,
+              !isSystemMenuPresented
+        else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {

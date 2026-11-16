@@ -100,7 +100,10 @@ private struct PlayerScrubInteraction: ViewModifier {
         )
     }
 
+    /// A click on a menu button can end on the timeline while focus moves into the menu, so only a click the
+    /// timeline holds the focus for counts.
     private func handleSelect() {
+        guard isFocused else { return }
         if session.isActive {
             commit()
         } else {

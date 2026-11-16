@@ -27,6 +27,14 @@ struct PlayerControlsState {
     var showsSubtitleOffsetIndicator: Bool
     var settingsFocusGeneration: Int
     var isShowingPanel: Bool
+    /// Only built for the system style, which shows the settings as anchored menus.
+    var menus: PlayerSystemMenus?
+}
+
+struct PlayerSystemMenus {
+    var subtitles: [PlayerMenuSection]
+    var audio: [PlayerMenuSection]
+    var more: [PlayerMenuSection]
 }
 
 struct PlayerLiveState {
@@ -54,6 +62,8 @@ struct PlayerControlsActions {
     var showLiveChannels: () -> Void
     var previousChannel: () -> Void
     var nextChannel: () -> Void
+    /// A system style menu opened or closed, which holds the controls on screen meanwhile.
+    var menuPresentationChanged: (Bool) -> Void
 }
 
 struct PlayerControlBadge: Identifiable {

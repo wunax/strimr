@@ -9,6 +9,11 @@ struct SystemPlayerControlsView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: SystemPlayerFocus?
+    @State private var presentedMenu: String?
+    @State private var lastFocusedButton: String?
+    /// Focus leaving an adjustment bar or a panel falls on the full-width timeline, where a stray press would seek.
+    /// The timeline stays out of reach until a button has taken the focus back.
+    @State private var isTimelineFocusSuspended = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,6 +29,9 @@ struct SystemPlayerControlsView: View {
 
             timeline
         }
+        // The open menu keeps the focus; the controls under it stay out of reach until it closes.
+        .disabled(presentedMenu != nil)
+        .systemPlayerMenus(presentedMenu: $presentedMenu, sections: menuSections(for:))
         .padding(.horizontal, SystemPlayerMetrics.horizontalMargin)
         .padding(.top, SystemPlayerMetrics.topMargin)
         .padding(.bottom, SystemPlayerMetrics.bottomMargin)
@@ -39,6 +47,51 @@ struct SystemPlayerControlsView: View {
         }
         .onMoveCommand { _ in
             actions.userInteraction()
+        }
+        .onChange(of: focus) { previous, current in
+            handleFocusChange(from: previous, to: current)
+        }
+        .onChange(of: state.isShowingPanel, initial: true) { _, isShowing in
+            if isShowing {
+                isTimelineFocusSuspended = true
+            }
+        }
+        .onChange(of: state.settingsFocusGeneration) { _, _ in
+            DispatchQueue.main.async {
+                if let lastFocusedButton {
+                    focus = .button(lastFocusedButton)
+                }
+            }
+        }
+        .onChange(of: presentedMenu) { previous, current in
+            actions.menuPresentationChanged(current != nil)
+            if current == nil, let previous {
+                DispatchQueue.main.async {
+                    focus = .button(previous)
+                }
+            }
+        }
+        .onDisappear {
+            if presentedMenu != nil {
+                actions.menuPresentationChanged(false)
+            }
+        }
+    }
+
+    private func menuSections(for menuID: String) -> [PlayerMenuSection] {
+        switch menuID {
+        case "subtitles": state.menus?.subtitles ?? []
+        case "audio": state.menus?.audio ?? []
+        default: state.menus?.more ?? []
+        }
+    }
+
+    private func handleFocusChange(from _: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
+        if case let .button(id) = current {
+            lastFocusedButton = id
+            if !state.isShowingPanel {
+                isTimelineFocusSuspended = false
+            }
         }
     }
 
@@ -80,6 +133,50 @@ struct SystemPlayerControlsView: View {
             .accessibilityElement(children: .combine)
 
             Spacer(minLength: 0)
+
+            buttons
+        }
+    }
+
+    @ViewBuilder
+    private var buttons: some View {
+        if state.menus != nil {
+            HStack(spacing: 24) {
+                if state.live != nil {
+                    SystemPlayerActionButton(
+                        systemImage: "list.bullet",
+                        accessibilityLabel: String(localized: "livetv.player.channels"),
+                        action: actions.showLiveChannels,
+                    )
+                    .focused($focus, equals: .button("channels"))
+                }
+
+                SystemPlayerMenuButton(
+                    systemImage: "captions.bubble",
+                    accessibilityLabel: String(localized: "player.settings.subtitles"),
+                    menuID: "subtitles",
+                    presentedMenu: $presentedMenu,
+                    showsIndicator: state.showsSubtitleOffsetIndicator,
+                )
+                .focused($focus, equals: .button("subtitles"))
+
+                SystemPlayerMenuButton(
+                    systemImage: "waveform",
+                    accessibilityLabel: String(localized: "player.settings.audio"),
+                    menuID: "audio",
+                    presentedMenu: $presentedMenu,
+                )
+                .focused($focus, equals: .button("audio"))
+
+                SystemPlayerMenuButton(
+                    systemImage: "ellipsis",
+                    accessibilityLabel: String(localized: "settings.title"),
+                    menuID: "more",
+                    presentedMenu: $presentedMenu,
+                )
+                .focused($focus, equals: .button("more"))
+            }
+            .focusSection()
         }
     }
 
@@ -103,6 +200,7 @@ struct SystemPlayerControlsView: View {
                 onPlayPause: actions.playPause,
             )
             .focused($focus, equals: .timeline)
+            .disabled(isTimelineFocusSuspended)
         }
     }
 
