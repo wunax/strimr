@@ -49,10 +49,11 @@ struct SystemPlayerTimelineView: View {
                         position: position,
                         bufferedEnd: bufferedEnd,
                         horizontalInset: 0,
-                        trackHeight: isFocused ? 12 : 6,
+                        trackHeight: 12,
                         preferredGap: 4,
                     )
-                    .opacity(isFocused ? 1 : 0.75)
+                    // The system bar keeps its size when focus leaves it and only fades.
+                    .opacity(isFocused ? 1 : 0.55)
 
                     if let scrubOrigin {
                         Capsule()
@@ -63,7 +64,7 @@ struct SystemPlayerTimelineView: View {
 
                     Capsule()
                         .fill(.progressFill)
-                        .frame(width: 4, height: isFocused ? 26 : 16)
+                        .frame(width: 4, height: 26)
                         .shadow(color: .black.opacity(0.35), radius: 4)
                         .offset(x: playheadX - 2)
                 }
@@ -143,7 +144,7 @@ struct SystemPlayerTimelineView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .font(.facts.weight(.semibold).monospacedDigit())
-        .foregroundStyle(.textPrimary)
+        .foregroundStyle(isFocused ? .textPrimary : .textSecondary)
         .videoTextShadow()
         .frame(height: labelsHeight)
         .padding(.top, 6)
