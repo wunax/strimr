@@ -10,6 +10,7 @@ struct PlayerTimelineScrubberView: View {
     var onEditingChanged: (Bool) -> Void
     var onCancel: () -> Void
     var swipesScrub: Bool
+    var onIdleSwipe: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
@@ -65,6 +66,7 @@ struct PlayerTimelineScrubberView: View {
             swipesScrub: swipesScrub,
             onEditingChanged: onEditingChanged,
             onCancel: onCancel,
+            onIdleSwipe: onIdleSwipe,
         )
         .focused($isFocused)
         .accessibilityHidden(true)

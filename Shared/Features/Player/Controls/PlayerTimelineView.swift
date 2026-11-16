@@ -25,6 +25,8 @@ struct PlayerTimelineView: View {
     var onCancel: () -> Void = {}
     /// Whether a swipe on the tvOS touch surface scrubs; the players allow it only while paused.
     var swipesScrub = true
+    /// A tvOS swipe that does not scrub, which still counts as an interaction with the controls.
+    var onIdleSwipe: () -> Void = {}
     @State private var isEditing = false
 
     private var sliderUpperBound: Double {
@@ -65,6 +67,7 @@ struct PlayerTimelineView: View {
                     onEditingChanged: handleEditingChanged(_:),
                     onCancel: handleCancel,
                     swipesScrub: swipesScrub,
+                    onIdleSwipe: onIdleSwipe,
                 )
             #else
                 ZStack {

@@ -287,6 +287,7 @@ struct SystemPlayerControlsView: View {
                 onSeekBackward: actions.seekBackward,
                 onSeekForward: actions.seekForward,
                 onPlayPause: actions.playPause,
+                onIdleSwipe: actions.userInteraction,
             )
             .focused($focus, equals: .timeline)
             .disabled(isTimelineFocusSuspended)

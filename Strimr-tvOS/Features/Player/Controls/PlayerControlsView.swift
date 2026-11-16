@@ -78,6 +78,7 @@ struct PlayerControlsView: View {
                     onEditingChanged: actions.scrubbingChanged,
                     onCancel: actions.scrubbingCancelled,
                     swipesScrub: state.isPaused,
+                    onIdleSwipe: actions.userInteraction,
                 )
                 .disabled(isTimelineFocusSuspended)
             }

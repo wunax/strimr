@@ -17,6 +17,7 @@ extension View {
         onIdleMove: ((MoveCommandDirection) -> Void)? = nil,
         onIdleSelect: (() -> Void)? = nil,
         onClickCommit: (() -> Void)? = nil,
+        onIdleSwipe: (() -> Void)? = nil,
     ) -> some View {
         modifier(PlayerScrubInteraction(
             position: position,
@@ -30,6 +31,7 @@ extension View {
             onIdleMove: onIdleMove,
             onIdleSelect: onIdleSelect,
             onClickCommit: onClickCommit,
+            onIdleSwipe: onIdleSwipe,
         ))
     }
 }
@@ -49,6 +51,8 @@ private struct PlayerScrubInteraction: ViewModifier {
     var onIdleSelect: (() -> Void)?
     /// Called after a click committed a scrub, unlike focus leaving the timeline.
     var onClickCommit: (() -> Void)?
+    /// Called when a swipe that does not scrub starts and ends, so it still keeps the controls on screen.
+    var onIdleSwipe: (() -> Void)?
 
     @State private var session = PlayerScrubSession()
     @State private var panStartPosition: Double?
@@ -129,8 +133,14 @@ private struct PlayerScrubInteraction: ViewModifier {
 
     private func handlePan(translation: CGFloat, width: CGFloat) {
         guard isFocused, upperBound > 0, width > 0 else { return }
+        let isStart = !isSwiping
         isSwiping = true
-        guard !ignoresCurrentSwipe, swipesScrub || session.isActive else { return }
+        guard !ignoresCurrentSwipe, swipesScrub || session.isActive else {
+            if isStart {
+                onIdleSwipe?()
+            }
+            return
+        }
         if panStartPosition == nil {
             panStartPosition = position
             if session.begin(at: position) {
@@ -145,6 +155,9 @@ private struct PlayerScrubInteraction: ViewModifier {
     /// The playhead stays where the swipe left it, previewing, until a click commits it.
     private func endPan() {
         guard isSwiping else { return }
+        if panStartPosition == nil {
+            onIdleSwipe?()
+        }
         isSwiping = false
         ignoresCurrentSwipe = false
         panStartPosition = nil

@@ -11,6 +11,7 @@ struct SystemPlayerTimelineView: View {
     var onSeekBackward: () -> Void
     var onSeekForward: () -> Void
     var onPlayPause: () -> Void
+    var onIdleSwipe: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrubOrigin: Double?
@@ -106,6 +107,7 @@ struct SystemPlayerTimelineView: View {
                     onPlayPause()
                 }
             },
+            onIdleSwipe: onIdleSwipe,
         )
         .accessibilityElement()
         .accessibilityLabel(Text("player.timeline.accessibilityLabel"))
