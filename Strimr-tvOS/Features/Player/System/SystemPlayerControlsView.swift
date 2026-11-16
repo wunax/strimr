@@ -15,6 +15,8 @@ struct SystemPlayerControlsView: View {
     /// The timeline stays out of reach until a button has taken the focus back.
     @State private var isTimelineFocusSuspended = false
     @State private var selectedTab = PlayerInfoTab.info
+    /// Follows `isShowingTabs` through an explicit animation, so the focus can return to the timeline once it ends.
+    @State private var areTabsExpanded = false
 
     private var isShowingTabs: Bool {
         state.isShowingTabs && state.tabs != nil
@@ -26,13 +28,13 @@ struct SystemPlayerControlsView: View {
 
             Spacer(minLength: 0)
 
-            if !state.isScrubbing, !isShowingTabs {
+            if !state.isScrubbing, !areTabsExpanded {
                 titleRow
                     .padding(.bottom, 22)
                     .transition(.opacity)
             }
 
-            if !isShowingTabs {
+            if !areTabsExpanded {
                 timeline
                     .transition(.opacity)
             }
@@ -50,21 +52,30 @@ struct SystemPlayerControlsView: View {
         }
         .ignoresSafeArea()
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: state.isScrubbing)
-        .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: isShowingTabs)
         .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: presentedMenu)
         .onAppear {
             DispatchQueue.main.async {
                 focus = initialFocus
             }
         }
-        .onChange(of: isShowingTabs) { _, isShowing in
-            DispatchQueue.main.async {
-                if isShowing {
+        .onChange(of: isShowingTabs, initial: true) { _, isShowing in
+            if !isShowing {
+                // Opening the tabs suspended the timeline, which would leave the focus on the first tab.
+                isTimelineFocusSuspended = false
+            }
+            withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
+                areTabsExpanded = isShowing
+            } completion: {
+                // The timeline cannot take the focus while the tabs are still closing.
+                if !isShowing, !isShowingTabs {
+                    focus = initialFocus
+                }
+            }
+            if isShowing {
+                DispatchQueue.main.async {
                     if !focus.isTab {
                         focus = .tab(.info)
                     }
-                } else {
-                    focus = .timeline
                 }
             }
         }
@@ -111,19 +122,23 @@ struct SystemPlayerControlsView: View {
 
     private func handleFocusChange(from previous: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
         if case let .tab(tab) = current {
-            // Coming down from the full-width timeline lands on whichever tab is nearest the playhead; the tabs
-            // always open on Info instead.
-            if tab != .info, !previous.isTab {
-                DispatchQueue.main.async {
-                    focus = .tab(.info)
+            if !state.isShowingTabs {
+                // Only coming down from the controls opens the tabs. As they close, the focus engine falls back on
+                // the first tab until the timeline can take it back, which must not reopen them.
+                guard previous != nil, !previous.isTab else { return }
+                // Coming down from the full-width timeline lands on whichever tab is nearest the playhead; the tabs
+                // always open on Info instead.
+                selectedTab = .info
+                actions.tabsPresentationChanged(true)
+                if tab != .info {
+                    DispatchQueue.main.async {
+                        focus = .tab(.info)
+                    }
                 }
                 return
             }
             withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 selectedTab = tab
-            }
-            if !state.isShowingTabs {
-                actions.tabsPresentationChanged(true)
             }
         }
         if case let .button(id) = current {
@@ -150,7 +165,7 @@ struct SystemPlayerControlsView: View {
                 SystemPlayerTabsRow(
                     tabs: tabs,
                     selectedTab: selectedTab,
-                    isExpanded: isShowingTabs,
+                    isExpanded: areTabsExpanded,
                     focus: $focus,
                 )
                 .onMoveCommand { direction in
@@ -159,7 +174,7 @@ struct SystemPlayerControlsView: View {
                     }
                 }
 
-                if isShowingTabs {
+                if areTabsExpanded {
                     SystemPlayerTabContent(
                         tab: tabs.contains(selectedTab) ? selectedTab : .info,
                         media: media,
@@ -173,7 +188,7 @@ struct SystemPlayerControlsView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .padding(.top, isShowingTabs ? 0 : 20)
+            .padding(.top, areTabsExpanded ? 0 : 20)
             // Hidden rather than removed while scrubbing, so the timeline above keeps its place.
             .opacity(state.isScrubbing ? 0 : 1)
             .disabled(state.isScrubbing)
