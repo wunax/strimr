@@ -76,6 +76,7 @@ struct PlayerControlsView: View {
                     skipSegments: state.skipSegments,
                     scrubPreview: state.scrubPreview,
                     onEditingChanged: actions.scrubbingChanged,
+                    onCancel: actions.scrubbingCancelled,
                 )
                 .disabled(isTimelineFocusSuspended)
             }

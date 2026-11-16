@@ -42,6 +42,7 @@ struct PlayerControlsActions {
     var seekBackward: () -> Void
     var seekForward: () -> Void
     var scrubbingChanged: (Bool) -> Void
+    var scrubbingCancelled: () -> Void
     var skipMarker: (() -> Void)?
     var showInfoPanel: () -> Void
     var userInteraction: () -> Void

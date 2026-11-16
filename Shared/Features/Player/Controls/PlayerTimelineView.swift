@@ -21,6 +21,8 @@ struct PlayerTimelineView: View {
     /// Draws the scrub preview and chapter title above the timeline instead of inserting them, so a timeline laid out
     /// among other controls keeps its height while scrubbing.
     var floatsScrubDetails = false
+    /// Back during a tvOS scrub: the preview ends without seeking.
+    var onCancel: () -> Void = {}
     @State private var isEditing = false
 
     private var sliderUpperBound: Double {
@@ -59,6 +61,7 @@ struct PlayerTimelineView: View {
                     chapters: timelineChapters,
                     skipSegments: skipSegments,
                     onEditingChanged: handleEditingChanged(_:),
+                    onCancel: handleCancel,
                 )
             #else
                 ZStack {
@@ -180,6 +183,13 @@ struct PlayerTimelineView: View {
 
     private func chapter(at time: Double) -> MediaChapter? {
         chapters.first { $0.contains(time: time) }
+    }
+
+    private func handleCancel() {
+        withAnimation(Motion.crossfade) {
+            isEditing = false
+        }
+        onCancel()
     }
 
     private func handleEditingChanged(_ editing: Bool) {

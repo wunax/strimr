@@ -8,14 +8,11 @@ struct PlayerTimelineScrubberView: View {
     var chapters: [MediaChapter]
     var skipSegments: [SkipSegment]
     var onEditingChanged: (Bool) -> Void
+    var onCancel: () -> Void
 
-    @State private var consecutiveMoves = 0
-    @State private var isScrubbing = false
-    @State private var commitWorkItem: DispatchWorkItem?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
-    private let scrubCommitDelay: TimeInterval = 0.4
     private let horizontalInset: CGFloat = 14
     private let thumbDiameter: CGFloat = 28
 
@@ -59,62 +56,14 @@ struct PlayerTimelineScrubberView: View {
         }
         .contentShape(Rectangle())
         .frame(maxWidth: .infinity, maxHeight: 32)
-        .focusable()
-        .focused($isFocused)
-        .onMoveCommand { direction in
-            guard isFocused else { return }
-
-            startScrubbingIfNeeded()
-            consecutiveMoves += 1
-            let multiplier = min(Double(consecutiveMoves), 5)
-            let delta = scrubStep * multiplier
-
-            switch direction {
-            case .left:
-                position = max(0, position - delta)
-            case .right:
-                position = min(upperBound, position + delta)
-            default:
-                break
-            }
-
-            scheduleCommit()
-        }
-        .onChange(of: isFocused) { _, focused in
-            if !focused {
-                finishScrubbingIfNeeded()
-            }
-        }
-        .onDisappear {
-            commitWorkItem?.cancel()
-        }
+        .playerScrubInteraction(
+            position: $position,
+            upperBound: upperBound,
+            stepSize: scrubStep,
+            isFocused: $isFocused,
+            onEditingChanged: onEditingChanged,
+            onCancel: onCancel,
+        )
         .accessibilityHidden(true)
-    }
-
-    private func startScrubbingIfNeeded() {
-        guard !isScrubbing else { return }
-        isScrubbing = true
-        onEditingChanged(true)
-    }
-
-    private func scheduleCommit() {
-        commitWorkItem?.cancel()
-        let workItem = DispatchWorkItem {
-            isScrubbing = false
-            consecutiveMoves = 0
-            onEditingChanged(false)
-        }
-        commitWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + scrubCommitDelay, execute: workItem)
-    }
-
-    private func finishScrubbingIfNeeded() {
-        consecutiveMoves = 0
-        commitWorkItem?.cancel()
-        commitWorkItem = nil
-
-        guard isScrubbing else { return }
-        isScrubbing = false
-        onEditingChanged(false)
     }
 }

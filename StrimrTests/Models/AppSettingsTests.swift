@@ -370,6 +370,16 @@ struct AppSettingsTests {
         #expect(try decode(#"{"playback":{"automaticSubtitleSearch":true}}"#).playback.automaticSubtitleSearch)
     }
 
+    @Test func `center click plays and pauses unless changed`() throws {
+        #expect(try decode(#"{"playback":{}}"#).playback.centerClickAction == .playPause)
+        #expect(try decode(#"{"playback":{"centerClickAction":"x"}}"#).playback.centerClickAction == .playPause)
+
+        var settings = AppSettings()
+        settings.playback.centerClickAction = .showControls
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.playback.centerClickAction == .showControls)
+    }
+
     private func decode(_ json: String) throws -> AppSettings {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }

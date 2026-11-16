@@ -40,6 +40,13 @@ final class SettingsViewModel {
         )
     }
 
+    var centerClickActionBinding: Binding<PlayerCenterClickAction> {
+        Binding(
+            get: { self.settingsManager.playback.centerClickAction },
+            set: { self.settingsManager.setCenterClickAction($0) },
+        )
+    }
+
     var nextEpisodeAutoplayBinding: Binding<NextEpisodeAutoplay> {
         Binding(
             get: { self.settingsManager.playback.nextEpisodeAutoplay },

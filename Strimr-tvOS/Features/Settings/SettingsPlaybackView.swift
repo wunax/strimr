@@ -139,6 +139,15 @@ struct SettingsPlaybackView: View {
             }
 
             Section("settings.playback.overlay.title") {
+                SettingsPicker(
+                    "settings.playback.centerClick",
+                    selection: viewModel.centerClickActionBinding,
+                    options: PlayerCenterClickAction.allCases,
+                ) { action in
+                    Text(action.title)
+                }
+                .settingsFocus("settings.playback.centerClick")
+
                 Toggle(
                     "settings.playback.showClock",
                     isOn: viewModel.showClockBinding,

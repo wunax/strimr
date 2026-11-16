@@ -174,6 +174,7 @@ struct PlayerView: View {
                 .onChange(of: playerController.isPaused) { _, isPaused in
                     syncPlaybackState()
                     sleepTimer.handlePlaybackStateChange(isPaused: isPaused)
+                    handlePauseChangeForControls(isPaused: isPaused)
                 }
                 .onChange(of: playerController.isBuffering) { _, _ in
                     syncPlaybackState()
@@ -501,6 +502,7 @@ struct PlayerView: View {
             seekBackward: { jump(by: -seekBackwardInterval) },
             seekForward: { jump(by: seekForwardInterval) },
             scrubbingChanged: handleScrubbing(editing:),
+            scrubbingCancelled: cancelScrubbing,
             skipMarker: viewModel.activeSkipMarker.map { marker in
                 { skipMarker(to: marker) }
             },
@@ -533,9 +535,7 @@ struct PlayerView: View {
                     .contentShape(Rectangle())
                     .focusable()
                     .focused($focusedPlayerSurface, equals: .controlsProxy)
-                    .onTapGesture {
-                        showControls(temporarily: true)
-                    }
+                    .onTapGesture(perform: handleHiddenControlsClick)
                     .onMoveCommand { direction in
                         handleMoveCommand(direction)
                     }
@@ -1319,6 +1319,13 @@ struct PlayerView: View {
         }
     }
 
+    private func cancelScrubbing() {
+        isScrubbing = false
+        playerController.endScrubPreviewing()
+        timelinePosition = viewModel.position
+        scheduleControlsHide()
+    }
+
     private func startPlaybackIfNeeded(url: URL?) {
         guard let url, activePlaybackURL != url else { return }
 
@@ -1527,6 +1534,36 @@ struct PlayerView: View {
             && viewModel.launchNotice == nil
     }
 
+    private func handlePauseChangeForControls(isPaused: Bool) {
+        if isPaused {
+            guard !pauseScreen.isPresented, !isShowingInfoPanel, !isShowingLiveChannels else { return }
+            showControls(temporarily: false)
+        } else if controlsVisible {
+            scheduleControlsHide()
+        }
+    }
+
+    private func handleHiddenControlsClick() {
+        let result = PlayerCenterClickResult.resolve(
+            setting: settingsManager.playback.centerClickAction,
+            hasContextualAction: viewModel.activeSkipMarker != nil,
+            isPauseScreenPresented: pauseScreen.isPresented,
+        )
+        switch result {
+        case .activateContextualAction:
+            if let marker = viewModel.activeSkipMarker {
+                skipMarker(to: marker)
+            }
+        case .resumeFromPauseScreen:
+            _ = dismissPauseScreen()
+            playerController.resume()
+        case .togglePlayPause:
+            togglePlayPause()
+        case .showControls:
+            showControls(temporarily: true)
+        }
+    }
+
     /// Returns whether the pause screen was visible, in which case the input only dismisses it.
     private func dismissPauseScreen() -> Bool {
         guard pauseScreen.registerInteraction() else { return false }
@@ -1536,7 +1573,8 @@ struct PlayerView: View {
 
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard sheetPresentation.item == nil, activeAdjustmentBar == nil else { return }
+        // The controls stay up for the whole pause, until the pause screen takes their place.
+        guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {

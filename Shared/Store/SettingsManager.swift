@@ -124,6 +124,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setCenterClickAction(_ action: PlayerCenterClickAction) {
+        settings.playback.centerClickAction = action
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()
