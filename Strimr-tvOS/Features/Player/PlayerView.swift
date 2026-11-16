@@ -455,6 +455,71 @@ struct PlayerView: View {
         return isShowingInfoPanel ? 440 : 380
     }
 
+    private var controlsState: PlayerControlsState {
+        PlayerControlsState(
+            media: viewModel.media,
+            isPaused: viewModel.isPaused,
+            badges: PlayerControlBadge.playback(
+                resolution: viewModel.media?.playbackResolutionLabel,
+                format: videoFormatBadge,
+            ),
+            duration: viewModel.duration,
+            bufferedAhead: viewModel.bufferedAhead,
+            bufferBasePosition: viewModel.position,
+            playbackRate: playbackRate,
+            showsEndsAtTime: settingsManager.playback.showEndsAtTime,
+            showsClock: settingsManager.playback.showClock,
+            isScrubbing: isScrubbing,
+            sleepTimer: sleepTimer,
+            chapters: viewModel.chapters,
+            showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+            skipSegments: timelineSkipSegments,
+            scrubPreview: playerController.scrubPreview,
+            seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+            seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+            skipMarkerTitle: viewModel.activeSkipMarker?.skipTitle,
+            isSharePlay: sharePlayCoordinator.isInSession,
+            hasInfoPanel: canShowInfoPanel,
+            live: viewModel.isLivePlayback
+                ? PlayerLiveState(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                    canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+                    canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+                )
+                : nil,
+            settingsControl: settingsControl,
+            showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
+            settingsFocusGeneration: settingsFocusGeneration,
+            isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
+        )
+    }
+
+    private var controlsActions: PlayerControlsActions {
+        PlayerControlsActions(
+            playPause: togglePlayPause,
+            seekBackward: { jump(by: -seekBackwardInterval) },
+            seekForward: { jump(by: seekForwardInterval) },
+            scrubbingChanged: handleScrubbing(editing:),
+            skipMarker: viewModel.activeSkipMarker.map { marker in
+                { skipMarker(to: marker) }
+            },
+            showInfoPanel: showInfoPanel,
+            userInteraction: { showControls(temporarily: true) },
+            showAudioSettings: showAudioSettings,
+            showSubtitleSettings: showSubtitleSettings,
+            showSpeedSettings: showSpeedSettings,
+            showSettings: showSettings,
+            goLive: playerController.seekToLiveEdge,
+            showLiveChannels: {
+                controlsVisible = false
+                isShowingLiveChannels = true
+            },
+            previousChannel: { switchLiveChannel(by: -1) },
+            nextChannel: { switchLiveChannel(by: 1) },
+        )
+    }
+
     private var playerOverlay: some View {
         let activeMarker = viewModel.activeSkipMarker
         let skipTitle = activeMarker?.skipTitle
@@ -489,60 +554,8 @@ struct PlayerView: View {
             }
 
             if controlsVisible, !isShowingInfoPanel {
-                PlayerControlsView(
-                    media: viewModel.media,
-                    isPaused: viewModel.isPaused,
-                    videoResolution: viewModel.media?.playbackResolutionLabel,
-                    videoFormatBadge: videoFormatBadge,
-                    position: timelineBinding,
-                    duration: viewModel.duration,
-                    bufferedAhead: viewModel.bufferedAhead,
-                    bufferBasePosition: viewModel.position,
-                    playbackRate: playbackRate,
-                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
-                    showsClock: settingsManager.playback.showClock,
-                    isScrubbing: isScrubbing,
-                    onShowAudioSettings: showAudioSettings,
-                    onShowSubtitleSettings: showSubtitleSettings,
-                    onShowSpeedSettings: showSpeedSettings,
-                    onShowSettings: showSettings,
-                    sleepTimer: sleepTimer,
-                    chapters: viewModel.chapters,
-                    showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
-                    skipSegments: timelineSkipSegments,
-                    scrubPreview: playerController.scrubPreview,
-                    onSeekBackward: { jump(by: -seekBackwardInterval) },
-                    onPlayPause: togglePlayPause,
-                    onSeekForward: { jump(by: seekForwardInterval) },
-                    seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
-                    seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
-                    onScrubbingChanged: handleScrubbing(editing:),
-                    skipMarkerTitle: skipTitle,
-                    onSkipMarker: activeMarker.map { marker in
-                        { skipMarker(to: marker) }
-                    },
-                    onUserInteraction: { showControls(temporarily: true) },
-                    isSharePlay: sharePlayCoordinator.isInSession,
-                    hasInfoPanel: canShowInfoPanel,
-                    onShowInfoPanel: showInfoPanel,
-                    isLive: viewModel.isLivePlayback,
-                    behindLiveSeconds: playerController.behindLiveSeconds,
-                    isAtLiveEdge: playerController.isAtLiveEdge,
-                    onGoLive: playerController.seekToLiveEdge,
-                    onShowLiveChannels: {
-                        controlsVisible = false
-                        isShowingLiveChannels = true
-                    },
-                    canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
-                    canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
-                    onPreviousChannel: { switchLiveChannel(by: -1) },
-                    onNextChannel: { switchLiveChannel(by: 1) },
-                    settingsControl: settingsControl,
-                    showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
-                    settingsFocusGeneration: settingsFocusGeneration,
-                    isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
-                )
-                .transition(.opacity)
+                PlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+                    .transition(.opacity)
             }
 
             if !controlsVisible, !isShowingInfoPanel, let activeMarker, let skipTitle {
