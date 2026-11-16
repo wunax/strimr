@@ -144,7 +144,7 @@ struct SystemPlayerControlsView: View {
 
     @ViewBuilder
     private var tabs: some View {
-        if let content = state.tabs, let media = state.media, !state.isScrubbing {
+        if let content = state.tabs, let media = state.media {
             let tabs = content.tabs(chapters: state.chapters)
             VStack(alignment: .leading, spacing: 28) {
                 SystemPlayerTabsRow(
@@ -174,6 +174,10 @@ struct SystemPlayerControlsView: View {
                 }
             }
             .padding(.top, isShowingTabs ? 0 : 20)
+            // Hidden rather than removed while scrubbing, so the timeline above keeps its place.
+            .opacity(state.isScrubbing ? 0 : 1)
+            .disabled(state.isScrubbing)
+            .accessibilityHidden(state.isScrubbing)
             .onExitCommand(perform: isShowingTabs ? { actions.tabsPresentationChanged(false) } : nil)
         }
     }
