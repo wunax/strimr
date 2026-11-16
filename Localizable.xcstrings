@@ -24827,6 +24827,28 @@
         }
       }
     },
+    "settings.playback.appearance.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
     "settings.playback.audio.title" : {
       "localizations" : {
         "en" : {
@@ -26109,6 +26131,28 @@
         }
       }
     },
+    "settings.playback.playerStyle.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System matches the Apple TV player. Classic keeps Strimr's previous layout."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système reprend le lecteur de l’Apple TV, Classique garde l’ancien affichage de Strimr."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“系统”与 Apple TV 播放器一致，“经典”保留 Strimr 以前的布局。"
+          }
+        }
+      }
+    },
     "settings.playback.playerStyle.system" : {
       "localizations" : {
         "en" : {
@@ -26325,6 +26369,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当存在匹配的音轨时，在此电影或剧集中重复使用手动选择。"
+          }
+        }
+      }
+    },
+    "settings.playback.remote.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécommande"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遥控器"
           }
         }
       }
