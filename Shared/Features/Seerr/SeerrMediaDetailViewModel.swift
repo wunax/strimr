@@ -299,16 +299,6 @@ final class SeerrMediaDetailViewModel {
         await loadSeason(number: number)
     }
 
-    func seasonTitle(for season: SeerrSeason) -> String {
-        if let name = season.name, !name.isEmpty {
-            return name
-        }
-        if let number = season.seasonNumber {
-            return String(localized: "media.detail.season") + " \(number)"
-        }
-        return String(localized: "media.detail.season")
-    }
-
     func episodeLabel(for episode: SeerrEpisode) -> String? {
         let seasonNumber = episode.seasonNumber ?? selectedSeasonNumber
         guard let seasonNumber, let episodeNumber = episode.episodeNumber else { return nil }

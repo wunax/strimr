@@ -166,9 +166,9 @@ struct SeerrMediaDetailView: View {
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: LayoutMetrics.chipSpacing) {
-                    ForEach(viewModel.seasons) { season in
+                    ForEach(viewModel.seasons, id: \.seasonNumber) { season in
                         SeasonPillButton(
-                            title: viewModel.seasonTitle(for: season),
+                            title: season.displayTitle,
                             isSelected: season.seasonNumber == viewModel.selectedSeasonNumber,
                             onSelect: {
                                 guard let number = season.seasonNumber else { return }

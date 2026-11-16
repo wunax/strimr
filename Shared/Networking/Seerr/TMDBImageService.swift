@@ -19,7 +19,14 @@ enum TMDBImageService {
     private static let baseURL = URL(string: "https://image.tmdb.org/t/p/")
 
     static func imageURL(path: String?, size: Size) -> URL? {
-        guard let path, !path.isEmpty, let baseURL else {
+        guard let path, !path.isEmpty else {
+            return nil
+        }
+        // Seerr's TVDB provider sends episode stills as absolute artwork URLs.
+        if path.hasPrefix("https://") || path.hasPrefix("http://") {
+            return URL(string: path)
+        }
+        guard let baseURL else {
             return nil
         }
 
