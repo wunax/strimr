@@ -88,6 +88,7 @@ private enum SystemPlayerMenuMetrics {
     static let maxHeight: CGFloat = 620
     static let cornerRadius: CGFloat = 36
     static let rowCornerRadius: CGFloat = 22
+    static let edgeFade: CGFloat = 40
 }
 
 private struct SystemPlayerButtonLabel: View {
@@ -111,6 +112,8 @@ private struct SystemPlayerMenuPanel: View {
     @State private var path: [String] = []
     @FocusState private var focusedOption: String?
     @State private var contentHeight: CGFloat = 0
+    @State private var isClippedAbove = false
+    @State private var isClippedBelow = false
 
     private var visibleSections: [PlayerMenuSection] {
         var current = sections
@@ -151,6 +154,25 @@ private struct SystemPlayerMenuPanel: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollIndicators(.hidden)
+        .onScrollGeometryChange(for: [Bool].self) { geometry in
+            [
+                geometry.contentOffset.y > 1,
+                geometry.contentOffset.y + geometry.containerSize.height < geometry.contentSize.height - 1,
+            ]
+        } action: { _, clipped in
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                isClippedAbove = clipped[0]
+                isClippedBelow = clipped[1]
+            }
+        }
+        // Rows scrolled past an edge fade out instead of being cut in the middle of their text.
+        .mask {
+            VStack(spacing: 0) {
+                edgeFade(towards: .top, isActive: isClippedAbove)
+                Color.black
+                edgeFade(towards: .bottom, isActive: isClippedBelow)
+            }
+        }
         .frame(width: SystemPlayerMenuMetrics.width)
         .frame(height: min(contentHeight, SystemPlayerMenuMetrics.maxHeight))
         .background(Color.black.opacity(0.35), in: shape)
@@ -167,6 +189,14 @@ private struct SystemPlayerMenuPanel: View {
                 focus(parent)
             }
         }
+    }
+
+    private func edgeFade(towards edge: UnitPoint, isActive: Bool) -> some View {
+        ZStack {
+            LinearGradient(colors: [.black, .clear], startPoint: edge == .top ? .bottom : .top, endPoint: edge)
+            Color.black.opacity(isActive ? 0 : 1)
+        }
+        .frame(height: SystemPlayerMenuMetrics.edgeFade)
     }
 
     private func header(_ title: String) -> some View {
