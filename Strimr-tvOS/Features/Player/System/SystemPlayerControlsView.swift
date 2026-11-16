@@ -53,7 +53,7 @@ struct SystemPlayerControlsView: View {
         .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: isShowingTabs)
         .onAppear {
             DispatchQueue.main.async {
-                focus = isShowingTabs ? .tab(.info) : .timeline
+                focus = initialFocus
             }
         }
         .onChange(of: isShowingTabs) { _, isShowing in
@@ -125,6 +125,14 @@ struct SystemPlayerControlsView: View {
         }
     }
 
+    /// Live TV has no timeline to land on: its buttons take the focus instead.
+    private var initialFocus: SystemPlayerFocus {
+        if state.live != nil {
+            return .button("channels")
+        }
+        return isShowingTabs ? .tab(.info) : .timeline
+    }
+
     @ViewBuilder
     private var tabs: some View {
         if let content = state.tabs, let media = state.media, !state.isScrubbing {
@@ -181,11 +189,16 @@ struct SystemPlayerControlsView: View {
     private var titleRow: some View {
         HStack(alignment: .bottom, spacing: 32) {
             VStack(alignment: .leading, spacing: 10) {
-                if !eyebrowParts.isEmpty {
-                    Text(eyebrowParts.joined(separator: " · "))
-                        .font(.bodyText.weight(.medium))
-                        .foregroundStyle(.textPrimary)
-                        .lineLimit(1)
+                if state.live != nil || !eyebrowParts.isEmpty {
+                    HStack(spacing: 14) {
+                        if let live = state.live {
+                            SystemPlayerLiveBadge(live: live)
+                        }
+                        Text(eyebrowParts.joined(separator: " · "))
+                            .font(.bodyText.weight(.medium))
+                            .foregroundStyle(.textPrimary)
+                            .lineLimit(1)
+                    }
                 }
 
                 if let title {
@@ -249,11 +262,12 @@ struct SystemPlayerControlsView: View {
     @ViewBuilder
     private var timeline: some View {
         if let live = state.live {
-            LiveTVPlayerStatusRow(
-                behindLiveSeconds: live.behindLiveSeconds,
-                isAtLiveEdge: live.isAtLiveEdge,
-                onGoLive: actions.goLive,
-            )
+            if !LiveTVLiveBadge.isLive(behindLiveSeconds: live.behindLiveSeconds, isAtLiveEdge: live.isAtLiveEdge) {
+                Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: actions.goLive)
+                    .actionButtonStyle(.secondary)
+                    .focused($focus, equals: .button("goLive"))
+                    .focusSection()
+            }
         } else {
             SystemPlayerTimelineView(
                 position: $position,
@@ -322,6 +336,29 @@ struct SystemPlayerContextualAction: View {
             .padding(.bottom, SystemPlayerMetrics.bottomMargin)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             .ignoresSafeArea()
+    }
+}
+
+/// Red "LIVE" capsule at the live edge, how far behind otherwise, as the system player shows it before the title.
+private struct SystemPlayerLiveBadge: View {
+    var live: PlayerLiveState
+
+    var body: some View {
+        let isLive = LiveTVLiveBadge.isLive(behindLiveSeconds: live.behindLiveSeconds, isAtLiveEdge: live.isAtLiveEdge)
+        Group {
+            if isLive {
+                Text("livetv.player.live")
+                    .textCase(.uppercase)
+            } else {
+                Text("livetv.player.behindShort \(max(1, Int((live.behindLiveSeconds / 60).rounded())))")
+                    .monospacedDigit()
+            }
+        }
+        .font(.badge)
+        .foregroundStyle(.textPrimary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(isLive ? Color.liveIndicator : .surfaceRaised, in: Capsule(style: .continuous))
     }
 }
 
