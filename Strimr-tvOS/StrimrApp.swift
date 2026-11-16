@@ -17,6 +17,9 @@ struct StrimrApp: App {
         #if DEBUG
             let demoStores = DemoStores.makeIfEnabled()
             let settingsManager = demoStores.map { SettingsManager(userDefaults: $0.defaults) } ?? SettingsManager()
+            if demoStores != nil, let style = DemoMode.playerControlsStyle {
+                settingsManager.setPlayerControlsStyle(style)
+            }
         #else
             let settingsManager = SettingsManager()
         #endif

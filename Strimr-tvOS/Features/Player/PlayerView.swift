@@ -342,6 +342,10 @@ struct PlayerView: View {
             }
             .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
                 refreshTracks()
+                // The system style opens the search straight from its menu: the focus goes back to its button.
+                if controlsStyle == .system {
+                    settingsFocusGeneration += 1
+                }
             }) {
                 playbackSettingsSheet(.subtitleSearch)
             }

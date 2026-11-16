@@ -51,6 +51,7 @@ struct SystemPlayerControlsView: View {
         .ignoresSafeArea()
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: state.isScrubbing)
         .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: isShowingTabs)
+        .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: presentedMenu)
         .onAppear {
             DispatchQueue.main.async {
                 focus = initialFocus

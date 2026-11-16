@@ -102,6 +102,13 @@ struct SystemPlayerTimelineView: View {
         .accessibilityElement()
         .accessibilityLabel(Text("player.timeline.accessibilityLabel"))
         .accessibilityValue(Text(verbatim: "\(elapsedText), \(remainingText)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: onSeekForward()
+            case .decrement: onSeekBackward()
+            @unknown default: break
+            }
+        }
     }
 
     private func timeLabels(width: CGFloat, playheadX: CGFloat) -> some View {
