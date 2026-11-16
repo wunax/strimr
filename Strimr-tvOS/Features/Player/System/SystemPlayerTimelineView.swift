@@ -15,6 +15,9 @@ struct SystemPlayerTimelineView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrubOrigin: Double?
+    /// Direction of the last left or right jump during playback, shown beside the elapsed time as in the system player.
+    @State private var jumpDirection: MoveCommandDirection?
+    @State private var jumpIndicatorHide: DispatchWorkItem?
 
     private let barAreaHeight: CGFloat = 24
     private let labelsHeight: CGFloat = 34
@@ -97,9 +100,7 @@ struct SystemPlayerTimelineView: View {
             swipesScrub: state.isPaused,
             onEditingChanged: handleEditingChanged(_:),
             onCancel: handleCancel,
-            onIdleMove: { direction in
-                direction == .left ? onSeekBackward() : onSeekForward()
-            },
+            onIdleMove: handleJump(_:),
             onIdleSelect: onPlayPause,
             // Like the system player, confirming a scrub made while paused resumes playback.
             onClickCommit: {
@@ -122,13 +123,18 @@ struct SystemPlayerTimelineView: View {
     }
 
     private func timeLabels(width: CGFloat, playheadX: CGFloat) -> some View {
-        let elapsedWidth: CGFloat = state.isPaused ? 150 : 110
+        let elapsedWidth: CGFloat = state.isPaused || jumpDirection != nil ? 150 : 110
         return ZStack(alignment: .topLeading) {
             HStack(spacing: 8) {
+                if jumpDirection == .left {
+                    jumpIndicator(.left)
+                }
                 Text(elapsedText)
                 if state.isPaused {
                     Image(systemName: "pause.circle")
                         .accessibilityHidden(true)
+                } else if jumpDirection == .right {
+                    jumpIndicator(.right)
                 }
             }
             .frame(width: elapsedWidth)
@@ -157,6 +163,30 @@ struct SystemPlayerTimelineView: View {
         .videoTextShadow()
         .frame(height: labelsHeight)
         .padding(.top, 6)
+    }
+
+    private func jumpIndicator(_ direction: MoveCommandDirection) -> some View {
+        let isBackward = direction == .left
+        let name = isBackward ? "gobackward" : "goforward"
+        let seconds = isBackward ? state.seekBackwardSeconds : state.seekForwardSeconds
+        return Image(systemName: "\(name).\(seconds)")
+            .transition(.opacity)
+            .accessibilityHidden(true)
+    }
+
+    private func handleJump(_ direction: MoveCommandDirection) {
+        direction == .left ? onSeekBackward() : onSeekForward()
+        jumpIndicatorHide?.cancel()
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+            jumpDirection = direction
+        }
+        let hide = DispatchWorkItem {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                jumpDirection = nil
+            }
+        }
+        jumpIndicatorHide = hide
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: hide)
     }
 
     private var elapsedText: String {
