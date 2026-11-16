@@ -29,6 +29,17 @@ struct PlayerControlsState {
     var isShowingPanel: Bool
     /// Only built for the system style, which shows the settings as anchored menus.
     var menus: PlayerSystemMenus?
+    /// What the system style tabs show below the timeline. Nil without tabs, as in Live TV.
+    var tabs: PlayerTabsContent?
+    /// The system style tabs are open, or asked to open with the remote while the controls were hidden.
+    var isShowingTabs = false
+}
+
+struct PlayerTabsContent {
+    var services: MediaServices?
+    var queueItems: [PlaybackQueueItem]
+    var queueCurrentIndex: Int
+    var showsQueue: Bool
 }
 
 struct PlayerSystemMenus {
@@ -64,6 +75,9 @@ struct PlayerControlsActions {
     var nextChannel: () -> Void
     /// A system style menu opened or closed, which holds the controls on screen meanwhile.
     var menuPresentationChanged: (Bool) -> Void
+    var tabsPresentationChanged: (Bool) -> Void
+    var selectChapter: (MediaChapter) -> Void
+    var selectQueueItem: (Int) -> Void
 }
 
 struct PlayerControlBadge: Identifiable {

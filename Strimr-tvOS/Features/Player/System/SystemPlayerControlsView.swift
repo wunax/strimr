@@ -14,6 +14,11 @@ struct SystemPlayerControlsView: View {
     /// Focus leaving an adjustment bar or a panel falls on the full-width timeline, where a stray press would seek.
     /// The timeline stays out of reach until a button has taken the focus back.
     @State private var isTimelineFocusSuspended = false
+    @State private var selectedTab = PlayerInfoTab.info
+
+    private var isShowingTabs: Bool {
+        state.isShowingTabs && state.tabs != nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,13 +26,18 @@ struct SystemPlayerControlsView: View {
 
             Spacer(minLength: 0)
 
-            if !state.isScrubbing {
+            if !state.isScrubbing, !isShowingTabs {
                 titleRow
                     .padding(.bottom, 22)
                     .transition(.opacity)
             }
 
-            timeline
+            if !isShowingTabs {
+                timeline
+                    .transition(.opacity)
+            }
+
+            tabs
         }
         // The open menu keeps the focus; the controls under it stay out of reach until it closes.
         .disabled(presentedMenu != nil)
@@ -40,9 +50,21 @@ struct SystemPlayerControlsView: View {
         }
         .ignoresSafeArea()
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: state.isScrubbing)
+        .animation(Motion.animation(Motion.panel, reduceMotion: reduceMotion), value: isShowingTabs)
         .onAppear {
             DispatchQueue.main.async {
-                focus = .timeline
+                focus = isShowingTabs ? .tab(.info) : .timeline
+            }
+        }
+        .onChange(of: isShowingTabs) { _, isShowing in
+            DispatchQueue.main.async {
+                if isShowing {
+                    if case .tab = focus {} else {
+                        focus = .tab(selectedTab)
+                    }
+                } else {
+                    focus = .timeline
+                }
             }
         }
         .onMoveCommand { _ in
@@ -87,11 +109,55 @@ struct SystemPlayerControlsView: View {
     }
 
     private func handleFocusChange(from _: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
+        if case let .tab(tab) = current {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                selectedTab = tab
+            }
+            if !state.isShowingTabs {
+                actions.tabsPresentationChanged(true)
+            }
+        }
         if case let .button(id) = current {
             lastFocusedButton = id
             if !state.isShowingPanel {
                 isTimelineFocusSuspended = false
             }
+        }
+    }
+
+    @ViewBuilder
+    private var tabs: some View {
+        if let content = state.tabs, let media = state.media, !state.isScrubbing {
+            let tabs = content.tabs(chapters: state.chapters)
+            VStack(alignment: .leading, spacing: 28) {
+                SystemPlayerTabsRow(
+                    tabs: tabs,
+                    selectedTab: selectedTab,
+                    isExpanded: isShowingTabs,
+                    focus: $focus,
+                )
+                .onMoveCommand { direction in
+                    if direction == .up, isShowingTabs {
+                        actions.tabsPresentationChanged(false)
+                    }
+                }
+
+                if isShowingTabs {
+                    SystemPlayerTabContent(
+                        tab: tabs.contains(selectedTab) ? selectedTab : .info,
+                        media: media,
+                        content: content,
+                        chapters: state.chapters,
+                        position: state.bufferBasePosition,
+                        onSelectChapter: actions.selectChapter,
+                        onSelectQueueItem: actions.selectQueueItem,
+                        onClose: { actions.tabsPresentationChanged(false) },
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .padding(.top, isShowingTabs ? 0 : 20)
+            .onExitCommand(perform: isShowingTabs ? { actions.tabsPresentationChanged(false) } : nil)
         }
     }
 
@@ -240,6 +306,23 @@ enum SystemPlayerMetrics {
     static let horizontalMargin: CGFloat = 80
     static let topMargin: CGFloat = 50
     static let bottomMargin: CGFloat = 48
+}
+
+/// Contextual action of the system style, such as "Skip Intro": a white capsule at the bottom right, shown while the
+/// controls are hidden, as in the system player.
+struct SystemPlayerContextualAction: View {
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(title, action: action)
+            .font(.bodyText.weight(.semibold))
+            .actionButtonStyle(.primary)
+            .padding(.trailing, SystemPlayerMetrics.horizontalMargin)
+            .padding(.bottom, SystemPlayerMetrics.bottomMargin)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            .ignoresSafeArea()
+    }
 }
 
 /// Darkens the lower part of the video only, where the system style draws its controls.

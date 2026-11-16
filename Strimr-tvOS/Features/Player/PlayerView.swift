@@ -71,6 +71,7 @@ struct PlayerView: View {
     @State private var activeAdjustmentBar: PlayerAdjustmentBar?
     @State private var showsPlaybackStatistics = false
     @State private var isSystemMenuPresented = false
+    @State private var isShowingSystemTabs = false
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -220,6 +221,7 @@ struct PlayerView: View {
                         focusedPlayerSurface = nil
                         return
                     }
+                    isShowingSystemTabs = false
 
                     focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
                 }
@@ -458,7 +460,9 @@ struct PlayerView: View {
     private var subtitleControlsInset: CGFloat {
         // The controls are hidden behind the settings panel, and would misrepresent the subtitle position.
         guard controlsVisible, !isShowingSubtitleAppearance else { return 0 }
-        return isShowingInfoPanel ? controlsStyle.metrics.expandedSubtitleInset : controlsStyle.metrics.subtitleInset
+        return isShowingInfoPanel || isShowingSystemTabs
+            ? controlsStyle.metrics.expandedSubtitleInset
+            : controlsStyle.metrics.subtitleInset
     }
 
     private var controlsState: PlayerControlsState {
@@ -499,6 +503,15 @@ struct PlayerView: View {
             settingsFocusGeneration: settingsFocusGeneration,
             isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
             menus: controlsStyle == .system ? systemMenus : nil,
+            tabs: controlsStyle == .system && canShowInfoPanel
+                ? PlayerTabsContent(
+                    services: viewModel.artworkServices,
+                    queueItems: viewModel.queueItems,
+                    queueCurrentIndex: viewModel.queueCurrentIndex ?? 0,
+                    showsQueue: showsQueueTab,
+                )
+                : nil,
+            isShowingTabs: isShowingSystemTabs,
         )
     }
 
@@ -589,6 +602,9 @@ struct PlayerView: View {
             previousChannel: { switchLiveChannel(by: -1) },
             nextChannel: { switchLiveChannel(by: 1) },
             menuPresentationChanged: handleSystemMenuPresentation(_:),
+            tabsPresentationChanged: handleSystemTabsPresentation(_:),
+            selectChapter: selectChapter(_:),
+            selectQueueItem: selectQueueItem(at:),
         )
     }
 
@@ -1123,6 +1139,11 @@ struct PlayerView: View {
 
     private func showInfoPanel() {
         guard canShowInfoPanel else { return }
+        if controlsStyle == .system {
+            isShowingSystemTabs = true
+            showControls(temporarily: false)
+            return
+        }
 
         hideControlsWorkItem?.cancel()
         focusedPlayerSurface = nil
@@ -1133,6 +1154,11 @@ struct PlayerView: View {
     }
 
     private func hideInfoPanel() {
+        if isShowingSystemTabs {
+            isShowingSystemTabs = false
+            showControls(temporarily: true)
+            return
+        }
         guard isShowingInfoPanel else { return }
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = false
@@ -1605,6 +1631,7 @@ struct PlayerView: View {
             && !isSearchingSubtitles
             && sheetPresentation.item == nil
             && !isShowingInfoPanel
+            && !isShowingSystemTabs
             && activeAdjustmentBar == nil
             && viewModel.activeSkipMarker == nil
             && !nextEpisodePresentation.isPresented
@@ -1654,6 +1681,16 @@ struct PlayerView: View {
         return true
     }
 
+    private func handleSystemTabsPresentation(_ isPresented: Bool) {
+        guard isShowingSystemTabs != isPresented else { return }
+        isShowingSystemTabs = isPresented
+        if isPresented {
+            hideControlsWorkItem?.cancel()
+        } else {
+            scheduleControlsHide()
+        }
+    }
+
     private func handleSystemMenuPresentation(_ isPresented: Bool) {
         isSystemMenuPresented = isPresented
         if isPresented {
@@ -1667,7 +1704,7 @@ struct PlayerView: View {
         hideControlsWorkItem?.cancel()
         // The controls stay up for the whole pause, until the pause screen takes their place.
         guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused,
-              !isSystemMenuPresented
+              !isSystemMenuPresented, !isShowingSystemTabs
         else { return }
 
         let workItem = DispatchWorkItem {
@@ -1749,18 +1786,27 @@ struct PlayerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
+    @ViewBuilder
     private func skipOverlay(marker: SkipSegment, title: String) -> some View {
-        VStack {
-            Spacer()
-            HStack {
+        switch controlsStyle {
+        case .classic:
+            VStack {
                 Spacer()
-                SkipMarkerButton(title: title) {
-                    skipMarker(to: marker)
+                HStack {
+                    Spacer()
+                    SkipMarkerButton(title: title) {
+                        skipMarker(to: marker)
+                    }
+                    .focused($focusedPlayerSurface, equals: .skipOverlay)
                 }
-                .focused($focusedPlayerSurface, equals: .skipOverlay)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 40)
+        case .system:
+            SystemPlayerContextualAction(title: title) {
+                skipMarker(to: marker)
+            }
+            .focused($focusedPlayerSurface, equals: .skipOverlay)
         }
     }
 
