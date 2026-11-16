@@ -60,8 +60,8 @@ struct SystemPlayerControlsView: View {
         .onChange(of: isShowingTabs) { _, isShowing in
             DispatchQueue.main.async {
                 if isShowing {
-                    if case .tab = focus {} else {
-                        focus = .tab(selectedTab)
+                    if !focus.isTab {
+                        focus = .tab(.info)
                     }
                 } else {
                     focus = .timeline
@@ -109,8 +109,16 @@ struct SystemPlayerControlsView: View {
         }
     }
 
-    private func handleFocusChange(from _: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
+    private func handleFocusChange(from previous: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
         if case let .tab(tab) = current {
+            // Coming down from the full-width timeline lands on whichever tab is nearest the playhead; the tabs
+            // always open on Info instead.
+            if tab != .info, !previous.isTab {
+                DispatchQueue.main.async {
+                    focus = .tab(.info)
+                }
+                return
+            }
             withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
                 selectedTab = tab
             }
@@ -315,6 +323,16 @@ enum SystemPlayerFocus: Hashable {
     case button(String)
     case tab(PlayerInfoTab)
     case contextualAction
+}
+
+private extension SystemPlayerFocus? {
+    var isTab: Bool {
+        if case .tab = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 enum SystemPlayerMetrics {
