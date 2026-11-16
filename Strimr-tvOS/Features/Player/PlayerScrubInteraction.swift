@@ -11,6 +11,7 @@ extension View {
         stepSize: Double,
         isFocused: Bool,
         pressesScrub: Bool = true,
+        swipesScrub: Bool = true,
         onEditingChanged: @escaping (Bool) -> Void,
         onCancel: @escaping () -> Void,
         onIdleMove: ((MoveCommandDirection) -> Void)? = nil,
@@ -22,6 +23,7 @@ extension View {
             stepSize: stepSize,
             isFocused: isFocused,
             pressesScrub: pressesScrub,
+            swipesScrub: swipesScrub,
             onEditingChanged: onEditingChanged,
             onCancel: onCancel,
             onIdleMove: onIdleMove,
@@ -37,6 +39,8 @@ private struct PlayerScrubInteraction: ViewModifier {
     var isFocused: Bool
     /// When false, left and right presses go to `onIdleMove` until a swipe has started a scrub.
     var pressesScrub: Bool
+    /// When false, the touch surface does nothing until a press has started a scrub.
+    var swipesScrub: Bool
     var onEditingChanged: (Bool) -> Void
     var onCancel: () -> Void
     var onIdleMove: ((MoveCommandDirection) -> Void)?
@@ -45,9 +49,10 @@ private struct PlayerScrubInteraction: ViewModifier {
     @State private var session = PlayerScrubSession()
     @State private var panStartPosition: Double?
     @State private var lastPanEnd: Date?
+    @State private var lastSurfaceSelect: Date?
 
     /// Share of the video a swipe across the whole touch surface covers.
-    private let swipeSpan = 0.25
+    private let swipeSpan = 0.06
     /// A swipe can also reach the focus engine as a move command, which would add a step to the drag.
     private let movesIgnoredAfterSwipe: TimeInterval = 0.3
 
@@ -55,9 +60,11 @@ private struct PlayerScrubInteraction: ViewModifier {
         content
             .background {
                 PlayerTouchSurfacePan(
-                    isEnabled: isFocused,
+                    isEnabled: isFocused && (swipesScrub || session.isActive),
+                    isSelectEnabled: isFocused && session.isActive,
                     onChanged: handlePan(translation:width:),
                     onEnded: endPan,
+                    onSelect: handleSurfaceSelect,
                 )
             }
             .focusable(true)
@@ -104,11 +111,22 @@ private struct PlayerScrubInteraction: ViewModifier {
     /// timeline holds the focus for counts.
     private func handleSelect() {
         guard isFocused else { return }
+        // The same click already committed the scrub through the window recognizer.
+        if let lastSurfaceSelect, Date().timeIntervalSince(lastSurfaceSelect) < 0.5 {
+            return
+        }
         if session.isActive {
             commit()
         } else {
             onIdleSelect?()
         }
+    }
+
+    /// A click right after a swipe does not always reach the SwiftUI tap, so the window recognizer commits too.
+    private func handleSurfaceSelect() {
+        guard isFocused, session.isActive else { return }
+        lastSurfaceSelect = Date()
+        commit()
     }
 
     private func handlePan(translation: CGFloat, width: CGFloat) {
@@ -150,8 +168,10 @@ private struct PlayerScrubInteraction: ViewModifier {
 /// view's window, not the SwiftUI view, so the recognizer sits on the window. Clickpad presses stay move commands.
 private struct PlayerTouchSurfacePan: UIViewRepresentable {
     var isEnabled: Bool
+    var isSelectEnabled: Bool
     var onChanged: (CGFloat, CGFloat) -> Void
     var onEnded: () -> Void
+    var onSelect: () -> Void
 
     func makeUIView(context _: Context) -> PlayerTouchSurfacePanView {
         PlayerTouchSurfacePanView()
@@ -160,18 +180,23 @@ private struct PlayerTouchSurfacePan: UIViewRepresentable {
     func updateUIView(_ view: PlayerTouchSurfacePanView, context _: Context) {
         view.onChanged = onChanged
         view.onEnded = onEnded
+        view.onSelect = onSelect
         view.recognizer.isEnabled = isEnabled
+        view.selectRecognizer.isEnabled = isSelectEnabled
     }
 
     static func dismantleUIView(_ view: PlayerTouchSurfacePanView, coordinator _: ()) {
         view.recognizer.view?.removeGestureRecognizer(view.recognizer)
+        view.selectRecognizer.view?.removeGestureRecognizer(view.selectRecognizer)
     }
 }
 
 final class PlayerTouchSurfacePanView: UIView, UIGestureRecognizerDelegate {
     let recognizer = UIPanGestureRecognizer()
+    let selectRecognizer = UITapGestureRecognizer()
     var onChanged: (CGFloat, CGFloat) -> Void = { _, _ in }
     var onEnded: () -> Void = {}
+    var onSelect: () -> Void = {}
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -180,6 +205,11 @@ final class PlayerTouchSurfacePanView: UIView, UIGestureRecognizerDelegate {
         recognizer.cancelsTouchesInView = false
         recognizer.delegate = self
         recognizer.addTarget(self, action: #selector(handlePan(_:)))
+        selectRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.select.rawValue)]
+        selectRecognizer.allowedTouchTypes = []
+        selectRecognizer.cancelsTouchesInView = false
+        selectRecognizer.delegate = self
+        selectRecognizer.addTarget(self, action: #selector(handleSelect))
     }
 
     @available(*, unavailable)
@@ -190,7 +220,13 @@ final class PlayerTouchSurfacePanView: UIView, UIGestureRecognizerDelegate {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         recognizer.view?.removeGestureRecognizer(recognizer)
+        selectRecognizer.view?.removeGestureRecognizer(selectRecognizer)
         window?.addGestureRecognizer(recognizer)
+        window?.addGestureRecognizer(selectRecognizer)
+    }
+
+    @objc private func handleSelect() {
+        onSelect()
     }
 
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {

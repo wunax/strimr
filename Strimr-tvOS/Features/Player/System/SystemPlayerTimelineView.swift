@@ -93,6 +93,7 @@ struct SystemPlayerTimelineView: View {
             stepSize: stepSize,
             isFocused: isFocused,
             pressesScrub: state.isPaused,
+            swipesScrub: state.isPaused,
             onEditingChanged: handleEditingChanged(_:),
             onCancel: handleCancel,
             onIdleMove: { direction in
