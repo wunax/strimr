@@ -65,7 +65,10 @@ private struct PlayerScrubInteraction: ViewModifier {
     private let movesIgnoredAfterSwipe: TimeInterval = 0.3
 
     func body(content: Content) -> some View {
-        content
+        // A button rather than a tap gesture: the tap fails when the finger moves on the clickpad while it clicks,
+        // which happens most right after a swipe.
+        Button(action: handleSelect) { content }
+            .buttonStyle(PlayerScrubButtonStyle())
             .background {
                 PlayerTouchSurfacePan(
                     // Stays on when swipes do not scrub, to tell their move commands from clickpad presses.
@@ -74,9 +77,7 @@ private struct PlayerScrubInteraction: ViewModifier {
                     onEnded: endPan,
                 )
             }
-            .focusable(true)
             .onMoveCommand(perform: handleMove)
-            .onTapGesture(perform: handleSelect)
             .onExitCommand(perform: exitAction)
             .onChange(of: isFocused) { _, focused in
                 if !focused {
@@ -167,6 +168,13 @@ private struct PlayerScrubInteraction: ViewModifier {
     }
 }
 
+/// Leaves the timeline to draw its own focus, without the system lift and highlight.
+private struct PlayerScrubButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
+
 /// Follows a finger on the Siri Remote touch surface while the timeline holds the focus. Touches reach the focused
 /// view's window, not the SwiftUI view, so the recognizer sits on the window. Clickpad presses stay move commands.
 private struct PlayerTouchSurfacePan: UIViewRepresentable {
@@ -199,6 +207,9 @@ final class PlayerTouchSurfacePanView: UIView, UIGestureRecognizerDelegate {
         isUserInteractionEnabled = false
         recognizer.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirect.rawValue)]
         recognizer.cancelsTouchesInView = false
+        // Clickpad presses must reach the focused view right away, even while a finger rests on the surface.
+        recognizer.allowedPressTypes = []
+        recognizer.delaysTouchesEnded = false
         recognizer.delegate = self
         recognizer.addTarget(self, action: #selector(handlePan(_:)))
     }
