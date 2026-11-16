@@ -23,6 +23,8 @@ struct PlayerTimelineView: View {
     var floatsScrubDetails = false
     /// Back during a tvOS scrub: the preview ends without seeking.
     var onCancel: () -> Void = {}
+    /// Whether a swipe on the tvOS touch surface scrubs; the players allow it only while paused.
+    var swipesScrub = true
     @State private var isEditing = false
 
     private var sliderUpperBound: Double {
@@ -62,6 +64,7 @@ struct PlayerTimelineView: View {
                     skipSegments: skipSegments,
                     onEditingChanged: handleEditingChanged(_:),
                     onCancel: handleCancel,
+                    swipesScrub: swipesScrub,
                 )
             #else
                 ZStack {

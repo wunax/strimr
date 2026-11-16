@@ -9,6 +9,7 @@ struct PlayerTimelineScrubberView: View {
     var skipSegments: [SkipSegment]
     var onEditingChanged: (Bool) -> Void
     var onCancel: () -> Void
+    var swipesScrub: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
@@ -61,6 +62,7 @@ struct PlayerTimelineScrubberView: View {
             upperBound: upperBound,
             stepSize: scrubStep,
             isFocused: isFocused,
+            swipesScrub: swipesScrub,
             onEditingChanged: onEditingChanged,
             onCancel: onCancel,
         )
