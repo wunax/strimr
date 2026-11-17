@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import OSLog
 
 @MainActor
 @Observable
@@ -124,12 +123,8 @@ final class SeerrDiscoverViewModel {
             upcomingMovies = upcomingMoviesPage.results
             upcomingTV = upcomingTVPage.results
         } catch {
-            // The description of a transport error can contain the server address, so only domain and code are public.
-            let nsError = error as NSError
-            let details = String(describing: error)
-            Self.logger.error(
-                "Load failed: \(nsError.domain, privacy: .public) \(nsError.code) \(details, privacy: .private)",
-            )
+            guard !error.isCancellation else { return }
+            ErrorReporter.capture(error)
             handleLoadError(preservingExistingContent: preservingExistingContent)
         }
     }
@@ -169,8 +164,6 @@ final class SeerrDiscoverViewModel {
             pendingRequestsCount = 0
         }
     }
-
-    private static let logger = Logger(subsystem: "Strimr", category: "SeerrDiscover")
 
     private static let upcomingDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
