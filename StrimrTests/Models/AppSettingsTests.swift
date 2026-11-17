@@ -355,6 +355,13 @@ struct AppSettingsTests {
         #expect(try decode(#"{"playback":{"autoSkipCommercials":true}}"#).playback.autoSkipCommercials)
     }
 
+    @Test func `auto skip countdown is off unless a supported value is chosen`() throws {
+        #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.autoSkipCountdownSeconds == 0)
+        #expect(try decode(#"{"playback":{"autoSkipCountdownSeconds":5}}"#).playback.autoSkipCountdownSeconds == 5)
+        #expect(try decode(#"{"playback":{"autoSkipCountdownSeconds":7}}"#).playback.autoSkipCountdownSeconds == 0)
+        #expect(try decode(#"{"playback":{"autoSkipCountdownSeconds":"5"}}"#).playback.autoSkipCountdownSeconds == 0)
+    }
+
     @Test func `double tap to seek is on unless turned off`() throws {
         #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.doubleTapToSeek)
         #expect(try !decode(#"{"playback":{"doubleTapToSeek":false}}"#).playback.doubleTapToSeek)

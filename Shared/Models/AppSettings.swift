@@ -402,6 +402,8 @@ struct PlaybackSettings: Codable, Equatable {
     var autoSkipIntros = false
     var autoSkipCredits = false
     var autoSkipCommercials = false
+    /// Played seconds before an automatic skip. Zero skips as soon as the marker starts.
+    var autoSkipCountdownSeconds = 0
     var losslessAudio = false
     /// Nil keeps TrueHD Atmos and DTS:X on the channel bridge.
     var spatialAudioLayout: SpatialSpeakerLayout?
@@ -460,6 +462,8 @@ struct PlaybackSettings: Codable, Equatable {
         autoSkipIntros = try container.decodeIfPresent(Bool.self, forKey: .autoSkipIntros) ?? false
         autoSkipCredits = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCredits) ?? false
         autoSkipCommercials = try container.decodeIfPresent(Bool.self, forKey: .autoSkipCommercials) ?? false
+        let decodedCountdown = (try? container.decodeIfPresent(Int.self, forKey: .autoSkipCountdownSeconds)) ?? 0
+        autoSkipCountdownSeconds = Self.autoSkipCountdownOptions.contains(decodedCountdown) ? decodedCountdown : 0
         losslessAudio = try container.decodeIfPresent(Bool.self, forKey: .losslessAudio) ?? false
         spatialAudioLayout = try? container.decodeIfPresent(
             SpatialSpeakerLayout.self,
@@ -542,6 +546,8 @@ struct PlaybackSettings: Codable, Equatable {
         transcodeLiveTV = (try? container.decodeIfPresent(Bool.self, forKey: .transcodeLiveTV)) ?? false
         readAhead = (try? container.decodeIfPresent(PlaybackReadAhead.self, forKey: .readAhead)) ?? .standard
     }
+
+    static let autoSkipCountdownOptions = [0, 3, 5, 10]
 
     var audioShaping: AudioShaping {
         AudioShaping(dialogueGainDB: dialogueBoost.gainDB, compressor: nightMode ? .night : nil)

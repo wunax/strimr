@@ -29,6 +29,7 @@ struct PlayerControlsView: View {
     var onScrubbingChanged: (Bool) -> Void
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
+    var skipMarkerCountdown: AutomaticMarkerSkip.Countdown?
     var isLocked: Bool
     var onToggleLock: () -> Void
     var isSharePlay: Bool
@@ -100,6 +101,7 @@ struct PlayerControlsView: View {
                         onToggleLock: onToggleLock,
                         skipMarkerTitle: skipMarkerTitle,
                         onSkipMarker: onSkipMarker,
+                        skipMarkerCountdown: skipMarkerCountdown,
                         badges: playbackBadges,
                     )
                     .padding(.horizontal, 24)
@@ -193,6 +195,7 @@ private struct PlayerAuxiliaryControlsRow: View {
     var onToggleLock: () -> Void
     var skipMarkerTitle: String?
     var onSkipMarker: (() -> Void)?
+    var skipMarkerCountdown: AutomaticMarkerSkip.Countdown?
     var badges: [PlayerControlBadge]
 
     var body: some View {
@@ -207,7 +210,11 @@ private struct PlayerAuxiliaryControlsRow: View {
                         badgesRow
                     }
                     if let skipMarkerTitle, let onSkipMarker {
-                        SkipMarkerButton(title: skipMarkerTitle, action: onSkipMarker)
+                        SkipMarkerButton(
+                            title: skipMarkerTitle,
+                            countdown: skipMarkerCountdown,
+                            action: onSkipMarker,
+                        )
                     }
                 } else if !badges.isEmpty {
                     badgesRow

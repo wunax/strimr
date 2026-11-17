@@ -651,6 +651,7 @@ struct PlayerView: View {
             onSkipMarker: activeMarker.map { marker in
                 { skipMarker(to: marker) }
             },
+            skipMarkerCountdown: activeMarker.flatMap(viewModel.automaticSkipCountdown(for:)),
             isLocked: isControlsLocked,
             onToggleLock: toggleControlsLock,
             isSharePlay: sharePlayCoordinator.isInSession,
@@ -1890,10 +1891,15 @@ struct PlayerView: View {
     }
 
     private func handleAutomaticMarkerSkipIfNeeded() {
-        guard !isScrubbing, !sharePlayCoordinator.isInSession, let marker = viewModel.automaticSkipMarker(
+        guard !isScrubbing, !sharePlayCoordinator.isInSession else {
+            viewModel.cancelAutomaticSkipCountdown()
+            return
+        }
+        guard let marker = viewModel.automaticSkipMarker(
             autoSkipIntros: settingsManager.playback.autoSkipIntros,
             autoSkipCredits: settingsManager.playback.autoSkipCredits,
             autoSkipCommercials: settingsManager.playback.autoSkipCommercials,
+            countdownSeconds: settingsManager.playback.autoSkipCountdownSeconds,
         ) else {
             return
         }
@@ -1930,7 +1936,7 @@ struct PlayerView: View {
     }
 
     private func skipOverlay(marker: SkipSegment, title: String) -> some View {
-        SkipMarkerButton(title: title) {
+        SkipMarkerButton(title: title, countdown: viewModel.automaticSkipCountdown(for: marker)) {
             skipMarker(to: marker)
         }
         .padding(.trailing, 20)

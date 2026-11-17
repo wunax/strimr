@@ -83,6 +83,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setAutoSkipCountdownSeconds(_ seconds: Int) {
+        settings.playback.autoSkipCountdownSeconds = seconds
+        persist()
+    }
+
     func setTranscodeLiveTV(_ enabled: Bool) {
         settings.playback.transcodeLiveTV = enabled
         persist()
