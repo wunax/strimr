@@ -202,12 +202,15 @@ final class LibraryBrowseViewModel {
 
     func refresh() async {
         scrollResetID &+= 1
+        let generation = scrollResetID
         resetState()
         folderTree = nil
         // Meta decides whether the selected display type is a folder listing, so it is fetched first.
         if !(hasLoadedMeta && isFolderTreeActive) {
             isLoading = true
             await loadPage(start: 0)
+            // A newer refresh owns the loading state and the rest of the work.
+            guard generation == scrollResetID else { return }
             isLoading = false
         }
         if isFolderTreeActive {

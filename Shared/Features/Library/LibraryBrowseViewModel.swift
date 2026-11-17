@@ -222,7 +222,9 @@ final class LibraryBrowseViewModel {
 
     func load() async {
         guard totalItemCount == 0, folderTree == nil else { return }
+        let generation = scrollResetID
         await loadFirstPage()
+        guard generation == scrollResetID else { return }
         if isFolderTreeActive, folderTree == nil {
             await reloadFolderTree()
         } else {
@@ -304,11 +306,14 @@ final class LibraryBrowseViewModel {
 
     func refresh() async {
         scrollResetID &+= 1
+        let generation = scrollResetID
         resetItems()
         folderTree = nil
         // Meta decides whether the selected display type is a folder listing, so it is fetched first.
         if !(hasLoadedMeta && isFolderTreeActive) {
             await loadFirstPage()
+            // A newer refresh owns the rest of the work.
+            guard generation == scrollResetID else { return }
         }
         if isFolderTreeActive {
             await reloadFolderTree()
@@ -405,8 +410,11 @@ final class LibraryBrowseViewModel {
             resetItems(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
+        let generation = scrollResetID
         isLoading = true
         await loadPage(start: 0)
+        // A newer refresh owns the loading state.
+        guard generation == scrollResetID else { return }
         isLoading = false
     }
 
