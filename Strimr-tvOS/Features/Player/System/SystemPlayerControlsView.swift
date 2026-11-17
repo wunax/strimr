@@ -118,17 +118,11 @@ struct SystemPlayerControlsView: View {
 
     private func handleFocusChange(from previous: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
         if case let .tab(tab) = current {
-            // Going up from the restart button lands on the tab nearest to it, not on the open one.
-            if previous == .restart, tab != selectedTab {
-                DispatchQueue.main.async {
-                    focus = .tab(selectedTab)
-                }
-                return
-            }
             if !state.isShowingTabs {
                 // Only coming down from the controls opens the tabs. As they close, the focus engine falls back on
-                // the first tab until the timeline can take it back, which must not reopen them.
-                guard previous != nil, !previous.isTab else { return }
+                // the first tab until the timeline can take it back, which must not reopen them. Restarting closes
+                // them from the restart button.
+                guard previous != nil, !previous.isTab, previous != .restart else { return }
                 // Coming down from the full-width timeline lands on whichever tab is nearest the playhead; the tabs
                 // always open on Info instead.
                 selectedTab = .info
@@ -137,6 +131,13 @@ struct SystemPlayerControlsView: View {
                     DispatchQueue.main.async {
                         focus = .tab(.info)
                     }
+                }
+                return
+            }
+            // Going up from the restart button lands on the tab nearest to it, not on the open one.
+            if previous == .restart, tab != selectedTab {
+                DispatchQueue.main.async {
+                    focus = .tab(selectedTab)
                 }
                 return
             }
