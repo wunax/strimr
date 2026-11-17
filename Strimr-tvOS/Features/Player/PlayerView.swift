@@ -1708,7 +1708,7 @@ struct PlayerView: View {
         hideControlsWorkItem?.cancel()
         // The controls stay up for the whole pause, until the pause screen takes their place.
         guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused,
-              !isSystemMenuPresented, !isShowingSystemTabs
+              !isScrubbing, !isSystemMenuPresented, !isShowingSystemTabs
         else { return }
 
         let workItem = DispatchWorkItem {
