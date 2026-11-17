@@ -342,7 +342,6 @@ enum SystemPlayerFocus: Hashable {
     case timeline
     case button(String)
     case tab(PlayerInfoTab)
-    case contextualAction
 }
 
 private extension SystemPlayerFocus? {
