@@ -120,6 +120,7 @@ private struct SystemPlayerMenuPanel: View {
     /// so tracks or values changing while the menu is open show up right away.
     @State private var path: [String] = []
     @FocusState private var focusedOption: String?
+    @FocusState private var isPanelFocused: Bool
     @State private var contentHeight: CGFloat = 0
     @State private var isClippedAbove = false
     @State private var isClippedBelow = false
@@ -187,6 +188,10 @@ private struct SystemPlayerMenuPanel: View {
         .background(Color.black.opacity(0.35), in: shape)
         .videoOverlayGlass(in: shape)
         .clipShape(shape)
+        // With every row disabled, the panel holds the focus itself so Back still reaches it and closes the menu.
+        .focusable(visibleSections.initialFocusOption == nil)
+        .focusEffectDisabled()
+        .focused($isPanelFocused)
         .focusSection()
         .environment(\.colorScheme, .dark)
         .onAppear(perform: focusInitialOption)
@@ -283,7 +288,13 @@ private struct SystemPlayerMenuPanel: View {
     }
 
     private func focusInitialOption() {
-        focus(visibleSections.initialFocusOption?.id)
+        guard let option = visibleSections.initialFocusOption else {
+            DispatchQueue.main.async {
+                isPanelFocused = true
+            }
+            return
+        }
+        focus(option.id)
     }
 
     private func focus(_ id: String?) {
