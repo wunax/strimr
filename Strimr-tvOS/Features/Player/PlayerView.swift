@@ -8,6 +8,8 @@ struct PlayerView: View {
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State var viewModel: PlayerViewModel
+    /// Read once when the player opens: switching styles mid-playback is not supported.
+    @State private var controlsStyle: PlayerControlsStyle
     let onExit: () -> Void
     @State private var playerController = PlayerController()
     @State private var controlsVisible = true
@@ -68,6 +70,8 @@ struct PlayerView: View {
     @State private var qualityNoticeMessage: String?
     @State private var activeAdjustmentBar: PlayerAdjustmentBar?
     @State private var showsPlaybackStatistics = false
+    @State private var isSystemMenuPresented = false
+    @State private var isShowingSystemTabs = false
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -87,9 +91,11 @@ struct PlayerView: View {
 
     init(
         viewModel: PlayerViewModel,
+        controlsStyle: PlayerControlsStyle,
         onExit: @escaping () -> Void,
     ) {
         _viewModel = State(initialValue: viewModel)
+        _controlsStyle = State(initialValue: controlsStyle)
         self.onExit = onExit
     }
 
@@ -174,6 +180,7 @@ struct PlayerView: View {
                 .onChange(of: playerController.isPaused) { _, isPaused in
                     syncPlaybackState()
                     sleepTimer.handlePlaybackStateChange(isPaused: isPaused)
+                    handlePauseChangeForControls(isPaused: isPaused)
                 }
                 .onChange(of: playerController.isBuffering) { _, _ in
                     syncPlaybackState()
@@ -214,6 +221,7 @@ struct PlayerView: View {
                         focusedPlayerSurface = nil
                         return
                     }
+                    isShowingSystemTabs = false
 
                     focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
                 }
@@ -334,6 +342,10 @@ struct PlayerView: View {
             }
             .taskPresentation(isPresented: $isSearchingSubtitles, onDismiss: {
                 refreshTracks()
+                // The system style opens the search straight from its menu: the focus goes back to its button.
+                if controlsStyle == .system {
+                    settingsFocusGeneration += 1
+                }
             }) {
                 playbackSettingsSheet(.subtitleSearch)
             }
@@ -452,7 +464,176 @@ struct PlayerView: View {
     private var subtitleControlsInset: CGFloat {
         // The controls are hidden behind the settings panel, and would misrepresent the subtitle position.
         guard controlsVisible, !isShowingSubtitleAppearance else { return 0 }
-        return isShowingInfoPanel ? 440 : 380
+        return isShowingInfoPanel || isShowingSystemTabs
+            ? controlsStyle.metrics.expandedSubtitleInset
+            : controlsStyle.metrics.subtitleInset
+    }
+
+    private var controlsState: PlayerControlsState {
+        PlayerControlsState(
+            media: viewModel.media,
+            isPaused: viewModel.isPaused,
+            badges: PlayerControlBadge.playback(
+                resolution: viewModel.media?.playbackResolutionLabel,
+                format: videoFormatBadge,
+            ),
+            duration: viewModel.duration,
+            bufferedAhead: viewModel.bufferedAhead,
+            bufferBasePosition: viewModel.position,
+            playbackRate: playbackRate,
+            showsEndsAtTime: settingsManager.playback.showEndsAtTime,
+            showsClock: settingsManager.playback.showClock,
+            isScrubbing: isScrubbing,
+            sleepTimer: sleepTimer,
+            chapters: viewModel.chapters,
+            showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
+            skipSegments: timelineSkipSegments,
+            scrubPreview: playerController.scrubPreview,
+            seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
+            seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
+            skipMarkerTitle: viewModel.activeSkipMarker?.skipTitle,
+            isSharePlay: sharePlayCoordinator.isInSession,
+            hasInfoPanel: canShowInfoPanel,
+            live: viewModel.isLivePlayback
+                ? PlayerLiveState(
+                    behindLiveSeconds: playerController.behindLiveSeconds,
+                    isAtLiveEdge: playerController.isAtLiveEdge,
+                    canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+                    canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+                )
+                : nil,
+            settingsControl: settingsControl,
+            showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
+            settingsFocusGeneration: settingsFocusGeneration,
+            isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
+            menus: controlsStyle == .system ? systemMenus : nil,
+            tabs: controlsStyle == .system && canShowInfoPanel
+                ? PlayerTabsContent(
+                    services: viewModel.artworkServices,
+                    queueItems: viewModel.queueItems,
+                    queueCurrentIndex: viewModel.queueCurrentIndex ?? 0,
+                    showsQueue: showsQueueTab,
+                )
+                : nil,
+            isShowingTabs: isShowingSystemTabs,
+        )
+    }
+
+    private var systemMenus: PlayerSystemMenus {
+        PlayerSystemMenus { menu in
+            switch menu {
+            case .subtitles: systemSubtitlesMenu
+            case .audio: systemAudioMenu
+            case .more: systemMoreMenu
+            }
+        }
+    }
+
+    private var systemSubtitlesMenu: [PlayerMenuSection] {
+        PlayerMenus.subtitles(PlayerMenus.Subtitles(
+            tracks: settingsSubtitleTracks,
+            selectedTrackID: selectedSubtitleTrackID,
+            canSearch: viewModel.canSearchSubtitles,
+            canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
+            sync: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
+            appearance: subtitleAppearanceAvailability,
+            onSelect: selectSubtitleTrack(_:),
+            onSearch: { isSearchingSubtitles = true },
+            onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
+            onSync: openOffsetBar(_:),
+            onAppearance: {
+                settingsControl = .subtitle
+                sheetPresentation.item = .subtitleAppearance
+            },
+        ))
+    }
+
+    private var systemAudioMenu: [PlayerMenuSection] {
+        let playback = settingsManager.playback
+        return PlayerMenus.audio(PlayerMenus.Audio(
+            tracks: settingsAudioTracks,
+            selectedTrackID: selectedAudioTrackID,
+            nightMode: playback.nightMode,
+            dialogueBoost: playback.dialogueBoost,
+            isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+            sync: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
+            onSelect: selectAudioTrack(_:),
+            onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
+            onSelectDialogueBoost: selectDialogueBoost(_:),
+            onSync: openOffsetBar(_:),
+        ))
+    }
+
+    private var systemMoreMenu: [PlayerMenuSection] {
+        PlayerMenus.more(PlayerMenus.More(
+            isLive: viewModel.isLivePlayback,
+            playbackRate: playbackRate,
+            quality: viewModel.selectedQuality,
+            versions: viewModel.showsVersionSelection ? viewModel.versionOptions : [],
+            zoom: playerController.videoZoom,
+            fillScale: videoFillScale,
+            sleepTimerMode: sleepTimer.mode,
+            sleepTimerDeadline: sleepTimer.deadline,
+            sleepTimerModes: SleepTimerMode.available(
+                isLive: viewModel.isLivePlayback,
+                hasChapters: viewModel.hasNavigableChapters,
+            ),
+            mediaKind: viewModel.media?.type,
+            isSharePlay: sharePlayCoordinator.isInSession,
+            showsStatistics: showsPlaybackStatistics,
+            canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+            canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+            onSelectRate: selectPlaybackRate(_:),
+            onSelectQuality: { selectQuality($0) },
+            onSelectVersion: selectVersion(_:),
+            onSelectZoom: selectVideoZoom(_:),
+            onCustomZoom: openZoomBar,
+            onSelectSleepTimer: selectSleepTimer(_:),
+            onExtendSleepTimer: { sleepTimer.extend() },
+            onToggleStatistics: { showsPlaybackStatistics.toggle() },
+            onPreviousChannel: { switchLiveChannel(by: -1) },
+            onNextChannel: { switchLiveChannel(by: 1) },
+        ))
+    }
+
+    private var controlsActions: PlayerControlsActions {
+        PlayerControlsActions(
+            playPause: togglePlayPause,
+            seekBackward: { jump(by: -seekBackwardInterval) },
+            seekForward: { jump(by: seekForwardInterval) },
+            scrubbingChanged: handleScrubbing(editing:),
+            scrubbingCancelled: cancelScrubbing,
+            skipMarker: viewModel.activeSkipMarker.map { marker in
+                { skipMarker(to: marker) }
+            },
+            showInfoPanel: showInfoPanel,
+            userInteraction: { showControls(temporarily: true) },
+            showAudioSettings: showAudioSettings,
+            showSubtitleSettings: showSubtitleSettings,
+            showSpeedSettings: showSpeedSettings,
+            showSettings: showSettings,
+            goLive: playerController.seekToLiveEdge,
+            showLiveChannels: {
+                controlsVisible = false
+                isShowingLiveChannels = true
+            },
+            previousChannel: { switchLiveChannel(by: -1) },
+            nextChannel: { switchLiveChannel(by: 1) },
+            menuPresentationChanged: handleSystemMenuPresentation(_:),
+            tabsPresentationChanged: handleSystemTabsPresentation(_:),
+            selectChapter: selectChapter(_:),
+            selectQueueItem: selectQueueItem(at:),
+        )
+    }
+
+    @ViewBuilder
+    private var controlsLayer: some View {
+        switch controlsStyle {
+        case .classic:
+            PlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+        case .system:
+            SystemPlayerControlsView(state: controlsState, actions: controlsActions, position: timelineBinding)
+        }
     }
 
     private var playerOverlay: some View {
@@ -468,9 +649,7 @@ struct PlayerView: View {
                     .contentShape(Rectangle())
                     .focusable()
                     .focused($focusedPlayerSurface, equals: .controlsProxy)
-                    .onTapGesture {
-                        showControls(temporarily: true)
-                    }
+                    .onTapGesture(perform: handleHiddenControlsClick)
                     .onMoveCommand { direction in
                         handleMoveCommand(direction)
                     }
@@ -482,67 +661,15 @@ struct PlayerView: View {
 
             if showsPlaybackStatistics, !isShowingInfoPanel {
                 PlaybackStatisticsOverlay(controller: playerController, viewModel: viewModel)
-                    .padding(.top, controlsVisible ? 150 : 0)
+                    .padding(.top, controlsVisible ? controlsStyle.metrics.statisticsTopInset : 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: controlsVisible)
                     .transition(.opacity)
             }
 
             if controlsVisible, !isShowingInfoPanel {
-                PlayerControlsView(
-                    media: viewModel.media,
-                    isPaused: viewModel.isPaused,
-                    videoResolution: viewModel.media?.playbackResolutionLabel,
-                    videoFormatBadge: videoFormatBadge,
-                    position: timelineBinding,
-                    duration: viewModel.duration,
-                    bufferedAhead: viewModel.bufferedAhead,
-                    bufferBasePosition: viewModel.position,
-                    playbackRate: playbackRate,
-                    showsEndsAtTime: settingsManager.playback.showEndsAtTime,
-                    showsClock: settingsManager.playback.showClock,
-                    isScrubbing: isScrubbing,
-                    onShowAudioSettings: showAudioSettings,
-                    onShowSubtitleSettings: showSubtitleSettings,
-                    onShowSpeedSettings: showSpeedSettings,
-                    onShowSettings: showSettings,
-                    sleepTimer: sleepTimer,
-                    chapters: viewModel.chapters,
-                    showsChaptersOnTimeline: settingsManager.playback.showChaptersOnTimeline,
-                    skipSegments: timelineSkipSegments,
-                    scrubPreview: playerController.scrubPreview,
-                    onSeekBackward: { jump(by: -seekBackwardInterval) },
-                    onPlayPause: togglePlayPause,
-                    onSeekForward: { jump(by: seekForwardInterval) },
-                    seekBackwardSeconds: settingsManager.playback.seekBackwardSeconds,
-                    seekForwardSeconds: settingsManager.playback.seekForwardSeconds,
-                    onScrubbingChanged: handleScrubbing(editing:),
-                    skipMarkerTitle: skipTitle,
-                    onSkipMarker: activeMarker.map { marker in
-                        { skipMarker(to: marker) }
-                    },
-                    onUserInteraction: { showControls(temporarily: true) },
-                    isSharePlay: sharePlayCoordinator.isInSession,
-                    hasInfoPanel: canShowInfoPanel,
-                    onShowInfoPanel: showInfoPanel,
-                    isLive: viewModel.isLivePlayback,
-                    behindLiveSeconds: playerController.behindLiveSeconds,
-                    isAtLiveEdge: playerController.isAtLiveEdge,
-                    onGoLive: playerController.seekToLiveEdge,
-                    onShowLiveChannels: {
-                        controlsVisible = false
-                        isShowingLiveChannels = true
-                    },
-                    canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
-                    canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
-                    onPreviousChannel: { switchLiveChannel(by: -1) },
-                    onNextChannel: { switchLiveChannel(by: 1) },
-                    settingsControl: settingsControl,
-                    showsSubtitleOffsetIndicator: playerController.subtitleDelayMilliseconds != 0,
-                    settingsFocusGeneration: settingsFocusGeneration,
-                    isShowingPanel: sheetPresentation.item != nil || activeAdjustmentBar != nil,
-                )
-                .transition(.opacity)
+                controlsLayer
+                    .transition(.opacity)
             }
 
             if !controlsVisible, !isShowingInfoPanel, let activeMarker, let skipTitle {
@@ -559,7 +686,7 @@ struct PlayerView: View {
             if let feedbackMessage {
                 PlayerFeedbackView(message: feedbackMessage, systemImage: feedbackSystemImage)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, controlsVisible ? 330 : 48)
+                    .padding(.bottom, controlsVisible ? controlsStyle.metrics.feedbackBottomInset : 48)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     .allowsHitTesting(false)
             }
@@ -761,7 +888,9 @@ struct PlayerView: View {
     private func offsetBar(_ kind: PlaybackOffsetKind) -> some View {
         let alignment = PlayerOffsetBar.alignment(for: settingsManager.playback.subtitleVerticalPosition)
         let edge: Edge.Set = alignment == .top ? .top : .bottom
-        let inset: CGFloat = alignment == .top || !controlsVisible ? 40 : 380
+        let inset: CGFloat = alignment == .top || !controlsVisible
+            ? 40
+            : controlsStyle.metrics.adjustmentBarBottomInset
         return PlayerOffsetBar(
             controller: playerController,
             kind: kind,
@@ -849,8 +978,9 @@ struct PlayerView: View {
         return .move(edge: edge).combined(with: .opacity)
     }
 
+    /// The system style opens panels straight from its menus, so Back closes them instead of showing a parent page.
     private func navigateBackInSettingsPanel() {
-        guard let sheet = sheetPresentation.item, let parent = sheet.parent else {
+        guard let sheet = sheetPresentation.item, let parent = sheet.parent, controlsStyle == .classic else {
             closeSettingsPanel()
             return
         }
@@ -1027,6 +1157,11 @@ struct PlayerView: View {
 
     private func showInfoPanel() {
         guard canShowInfoPanel else { return }
+        if controlsStyle == .system {
+            isShowingSystemTabs = true
+            showControls(temporarily: false)
+            return
+        }
 
         hideControlsWorkItem?.cancel()
         focusedPlayerSurface = nil
@@ -1037,6 +1172,11 @@ struct PlayerView: View {
     }
 
     private func hideInfoPanel() {
+        if isShowingSystemTabs {
+            isShowingSystemTabs = false
+            showControls(temporarily: true)
+            return
+        }
         guard isShowingInfoPanel else { return }
         withAnimation(Motion.animation(Motion.panel, reduceMotion: reduceMotion)) {
             isShowingInfoPanel = false
@@ -1306,6 +1446,13 @@ struct PlayerView: View {
         }
     }
 
+    private func cancelScrubbing() {
+        isScrubbing = false
+        playerController.endScrubPreviewing()
+        timelinePosition = viewModel.position
+        scheduleControlsHide()
+    }
+
     private func startPlaybackIfNeeded(url: URL?) {
         guard let url, activePlaybackURL != url else { return }
 
@@ -1502,6 +1649,8 @@ struct PlayerView: View {
             && !isSearchingSubtitles
             && sheetPresentation.item == nil
             && !isShowingInfoPanel
+            && !isShowingSystemTabs
+            && !isSystemMenuPresented
             && activeAdjustmentBar == nil
             && viewModel.activeSkipMarker == nil
             && !nextEpisodePresentation.isPresented
@@ -1514,6 +1663,38 @@ struct PlayerView: View {
             && viewModel.launchNotice == nil
     }
 
+    private func handlePauseChangeForControls(isPaused: Bool) {
+        if isPaused {
+            guard !pauseScreen.isPresented, !isShowingInfoPanel, !isShowingLiveChannels,
+                  activeAdjustmentBar != .zoom
+            else { return }
+            showControls(temporarily: false)
+        } else if controlsVisible {
+            scheduleControlsHide()
+        }
+    }
+
+    private func handleHiddenControlsClick() {
+        let result = PlayerCenterClickResult.resolve(
+            setting: settingsManager.playback.centerClickAction,
+            hasContextualAction: viewModel.activeSkipMarker != nil,
+            isPauseScreenPresented: pauseScreen.isPresented,
+        )
+        switch result {
+        case .activateContextualAction:
+            if let marker = viewModel.activeSkipMarker {
+                skipMarker(to: marker)
+            }
+        case .resumeFromPauseScreen:
+            _ = dismissPauseScreen()
+            playerController.resume()
+        case .togglePlayPause:
+            togglePlayPause()
+        case .showControls:
+            showControls(temporarily: true)
+        }
+    }
+
     /// Returns whether the pause screen was visible, in which case the input only dismisses it.
     private func dismissPauseScreen() -> Bool {
         guard pauseScreen.registerInteraction() else { return false }
@@ -1521,9 +1702,31 @@ struct PlayerView: View {
         return true
     }
 
+    private func handleSystemTabsPresentation(_ isPresented: Bool) {
+        guard isShowingSystemTabs != isPresented else { return }
+        isShowingSystemTabs = isPresented
+        if isPresented {
+            hideControlsWorkItem?.cancel()
+        } else {
+            scheduleControlsHide()
+        }
+    }
+
+    private func handleSystemMenuPresentation(_ isPresented: Bool) {
+        isSystemMenuPresented = isPresented
+        if isPresented {
+            hideControlsWorkItem?.cancel()
+        } else {
+            scheduleControlsHide()
+        }
+    }
+
     private func scheduleControlsHide() {
         hideControlsWorkItem?.cancel()
-        guard sheetPresentation.item == nil, activeAdjustmentBar == nil else { return }
+        // The controls stay up for the whole pause, until the pause screen takes their place.
+        guard sheetPresentation.item == nil, activeAdjustmentBar == nil, !playerController.isPaused,
+              !isScrubbing, !isSystemMenuPresented, !isShowingSystemTabs
+        else { return }
 
         let workItem = DispatchWorkItem {
             withAnimation(Motion.animation(Motion.controls, reduceMotion: reduceMotion)) {
@@ -1604,18 +1807,27 @@ struct PlayerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
+    @ViewBuilder
     private func skipOverlay(marker: SkipSegment, title: String) -> some View {
-        VStack {
-            Spacer()
-            HStack {
+        switch controlsStyle {
+        case .classic:
+            VStack {
                 Spacer()
-                SkipMarkerButton(title: title) {
-                    skipMarker(to: marker)
+                HStack {
+                    Spacer()
+                    SkipMarkerButton(title: title) {
+                        skipMarker(to: marker)
+                    }
+                    .focused($focusedPlayerSurface, equals: .skipOverlay)
                 }
-                .focused($focusedPlayerSurface, equals: .skipOverlay)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 40)
+        case .system:
+            SystemPlayerContextualAction(title: title) {
+                skipMarker(to: marker)
+            }
+            .focused($focusedPlayerSurface, equals: .skipOverlay)
         }
     }
 

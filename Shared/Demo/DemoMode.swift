@@ -13,6 +13,11 @@
             UserDefaults.standard.string(forKey: "ScreenshotRoute")
         }
 
+        /// Set by `-PlayerControlsStyle classic|system`, so screenshots can show either tvOS player style.
+        static var playerControlsStyle: PlayerControlsStyle? {
+            UserDefaults.standard.string(forKey: "PlayerControlsStyle").flatMap(PlayerControlsStyle.init(rawValue:))
+        }
+
         /// The film position the player timeline shows at the start of the demo clip.
         @MainActor static let playerOffset: TimeInterval = (try? DemoCatalog.load(server: server))?.player?.pauseAt ?? 0
 

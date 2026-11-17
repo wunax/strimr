@@ -21,6 +21,21 @@ struct SettingsPlaybackView: View {
 
             Section {
                 SettingsPicker(
+                    "settings.playback.playerStyle",
+                    selection: viewModel.playerControlsStyleBinding,
+                    options: PlayerControlsStyle.allCases,
+                ) { style in
+                    Text(style.title)
+                }
+                .settingsFocus("settings.playback.playerStyle")
+            } header: {
+                Text("settings.playback.appearance.title")
+            } footer: {
+                Text("settings.playback.playerStyle.footer")
+            }
+
+            Section {
+                SettingsPicker(
                     "settings.playback.quality",
                     selection: viewModel.qualityPresetBinding,
                     options: Array(TranscodeQualityPreset.displayOrder),
@@ -72,24 +87,6 @@ struct SettingsPlaybackView: View {
                     Text(viewModel.defaultSleepTimerTitle(option))
                 }
                 .settingsFocus("settings.playback.defaultSleepTimer")
-
-                SettingsPicker(
-                    "settings.playback.rewind",
-                    selection: viewModel.rewindBinding,
-                    options: Array(viewModel.seekOptions),
-                ) { seconds in
-                    Text("settings.playback.seconds \(seconds)")
-                }
-                .settingsFocus("settings.playback.rewind")
-
-                SettingsPicker(
-                    "settings.playback.fastForward",
-                    selection: viewModel.fastForwardBinding,
-                    options: Array(viewModel.seekOptions),
-                ) { seconds in
-                    Text("settings.playback.seconds \(seconds)")
-                }
-                .settingsFocus("settings.playback.fastForward")
             }
 
             Section {
@@ -118,6 +115,35 @@ struct SettingsPlaybackView: View {
                 } footer: {
                     Text("settings.playback.transcodeLiveTV.footer")
                 }
+            }
+
+            Section("settings.playback.remote.title") {
+                SettingsPicker(
+                    "settings.playback.rewind",
+                    selection: viewModel.rewindBinding,
+                    options: Array(viewModel.seekOptions),
+                ) { seconds in
+                    Text("settings.playback.seconds \(seconds)")
+                }
+                .settingsFocus("settings.playback.rewind")
+
+                SettingsPicker(
+                    "settings.playback.fastForward",
+                    selection: viewModel.fastForwardBinding,
+                    options: Array(viewModel.seekOptions),
+                ) { seconds in
+                    Text("settings.playback.seconds \(seconds)")
+                }
+                .settingsFocus("settings.playback.fastForward")
+
+                SettingsPicker(
+                    "settings.playback.centerClick",
+                    selection: viewModel.centerClickActionBinding,
+                    options: PlayerCenterClickAction.allCases,
+                ) { action in
+                    Text(action.title)
+                }
+                .settingsFocus("settings.playback.centerClick")
             }
 
             Section("settings.playback.timeline.title") {

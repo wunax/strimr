@@ -124,6 +124,16 @@ final class SettingsManager {
         persist()
     }
 
+    func setPlayerControlsStyle(_ style: PlayerControlsStyle) {
+        settings.playback.playerControlsStyle = style
+        persist()
+    }
+
+    func setCenterClickAction(_ action: PlayerCenterClickAction) {
+        settings.playback.centerClickAction = action
+        persist()
+    }
+
     func setLosslessAudio(_ enabled: Bool) {
         settings.playback.losslessAudio = enabled
         persist()
