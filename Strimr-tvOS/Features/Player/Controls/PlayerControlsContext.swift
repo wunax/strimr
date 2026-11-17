@@ -91,6 +91,7 @@ struct PlayerControlsActions {
     var menuPresentationChanged: (Bool) -> Void
     var tabsPresentationChanged: (Bool) -> Void
     var selectChapter: (MediaChapter) -> Void
+    var restartFromBeginning: () -> Void
     var selectQueueItem: (Int) -> Void
 }
 

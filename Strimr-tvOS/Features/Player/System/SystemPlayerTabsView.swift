@@ -34,23 +34,32 @@ struct SystemPlayerTabContent: View {
     var chapters: [MediaChapter]
     var position: Double
     var onSelectChapter: (MediaChapter) -> Void
+    var onRestart: () -> Void
+    var focus: FocusState<SystemPlayerFocus?>.Binding
     var onSelectQueueItem: (Int) -> Void
     var onClose: () -> Void
 
     var body: some View {
         switch tab {
         case .info:
-            PlayerMediaInfoView(media: media, services: content.services, layout: .wide, summaryLineLimit: 4)
-                .padding(28)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color.black.opacity(0.35),
-                    in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
-                )
-                .videoOverlayGlass(in: RoundedRectangle(
-                    cornerRadius: LayoutMetrics.overlayCornerRadius,
-                    style: .continuous,
-                ))
+            PlayerMediaInfoView(media: media, services: content.services, layout: .wide, summaryLineLimit: 4) {
+                if PlayerRestartButton.isAvailable(at: position) {
+                    PlayerRestartButton(action: onRestart)
+                        .focused(focus, equals: .restart)
+                }
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                Color.black.opacity(0.35),
+                in: RoundedRectangle(cornerRadius: LayoutMetrics.overlayCornerRadius, style: .continuous),
+            )
+            .videoOverlayGlass(in: RoundedRectangle(
+                cornerRadius: LayoutMetrics.overlayCornerRadius,
+                style: .continuous,
+            ))
+            // The button sits on the far side of the card, out of line with the tabs above it.
+            .focusSection()
         case .chapters:
             PlayerChapterTrayView(chapters: chapters, currentPosition: position, onSelect: onSelectChapter)
                 .padding(.horizontal, -12)

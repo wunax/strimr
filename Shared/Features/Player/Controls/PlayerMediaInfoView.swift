@@ -8,11 +8,13 @@ enum PlayerMediaInfoLayout {
 }
 
 @MainActor
-struct PlayerMediaInfoView: View {
+struct PlayerMediaInfoView<Accessory: View>: View {
     let media: MediaItem
     let services: MediaServices?
     var layout: PlayerMediaInfoLayout = .stacked
     var summaryLineLimit: Int?
+    /// Actions such as restarting from the beginning: beside the details in the wide layout, below them otherwise.
+    @ViewBuilder var accessory: Accessory
 
     @Environment(SettingsManager.self) private var settingsManager
 
@@ -23,13 +25,16 @@ struct PlayerMediaInfoView: View {
     var body: some View {
         switch layout {
         case .wide:
-            HStack(alignment: .top, spacing: artworkSpacing) {
-                artwork
-                VStack(alignment: .leading, spacing: 14) {
-                    headline
-                    descriptiveDetails
+            HStack(spacing: artworkSpacing) {
+                HStack(alignment: .top, spacing: artworkSpacing) {
+                    artwork
+                    VStack(alignment: .leading, spacing: 14) {
+                        headline
+                        descriptiveDetails
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                accessory
             }
         case .stacked:
             VStack(alignment: .leading, spacing: 18) {
@@ -39,6 +44,7 @@ struct PlayerMediaInfoView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 descriptiveDetails
+                accessory
             }
         }
     }
@@ -157,6 +163,38 @@ struct PlayerMediaInfoView: View {
         #else
             16
         #endif
+    }
+}
+
+extension PlayerMediaInfoView where Accessory == EmptyView {
+    init(
+        media: MediaItem,
+        services: MediaServices?,
+        layout: PlayerMediaInfoLayout = .stacked,
+        summaryLineLimit: Int? = nil,
+    ) {
+        self.init(media: media, services: services, layout: layout, summaryLineLimit: summaryLineLimit) {
+            EmptyView()
+        }
+    }
+}
+
+/// Seeks back to the start without leaving the player, as the info tab of the tvOS system player does.
+struct PlayerRestartButton: View {
+    /// Close to the start, the timeline already gets there in one move.
+    static let minimumPosition: Double = 30
+
+    static func isAvailable(at position: Double) -> Bool {
+        position >= minimumPosition
+    }
+
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("common.actions.playFromStart", systemImage: "arrow.counterclockwise")
+        }
+        .actionButtonStyle(.secondary)
     }
 }
 

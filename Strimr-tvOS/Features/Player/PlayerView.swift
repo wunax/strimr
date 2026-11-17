@@ -622,6 +622,7 @@ struct PlayerView: View {
             menuPresentationChanged: handleSystemMenuPresentation(_:),
             tabsPresentationChanged: handleSystemTabsPresentation(_:),
             selectChapter: selectChapter(_:),
+            restartFromBeginning: restartFromBeginning,
             selectQueueItem: selectQueueItem(at:),
         )
     }
@@ -743,6 +744,7 @@ struct PlayerView: View {
                 selectedTab: $infoPanelTab,
                 onSelectQueueItem: selectQueueItem(at:),
                 onSelectChapter: selectChapter(_:),
+                onRestart: restartFromBeginning,
                 onClose: hideInfoPanel,
             )
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1146,6 +1148,16 @@ struct PlayerView: View {
             sharePlayCoordinator.leave()
         }
         dismissPlayer(force: true)
+    }
+
+    private func restartFromBeginning() {
+        playerController.seek(to: 0)
+        viewModel.position = 0
+        timelinePosition = 0
+        if playerController.isPaused {
+            playerController.resume()
+        }
+        hideInfoPanel()
     }
 
     private func selectChapter(_ chapter: MediaChapter) {
