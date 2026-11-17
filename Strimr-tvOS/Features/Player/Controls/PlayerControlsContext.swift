@@ -33,6 +33,21 @@ struct PlayerControlsState {
     var tabs: PlayerTabsContent?
     /// The system style tabs are open, or asked to open with the remote while the controls were hidden.
     var isShowingTabs = false
+
+    var seekBackwardSymbol: String {
+        Self.seekSymbol(prefix: "gobackward", seconds: seekBackwardSeconds)
+    }
+
+    var seekForwardSymbol: String {
+        Self.seekSymbol(prefix: "goforward", seconds: seekForwardSeconds)
+    }
+
+    /// SF Symbols only number some intervals; the others fall back on the plain arrow.
+    private static func seekSymbol(prefix: String, seconds: Int) -> String {
+        let supported = [5, 10, 15, 30, 45, 60]
+        guard supported.contains(seconds) else { return prefix }
+        return "\(prefix).\(seconds)"
+    }
 }
 
 struct PlayerTabsContent {

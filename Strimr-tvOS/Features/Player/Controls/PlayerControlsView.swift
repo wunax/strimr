@@ -118,7 +118,7 @@ struct PlayerControlsView: View {
                     }
 
                     PlayerIconButton(
-                        systemName: iconName(prefix: "gobackward", seconds: state.seekBackwardSeconds),
+                        systemName: state.seekBackwardSymbol,
                         accessibilityLabel: String(
                             localized: "player.controls.rewindSeconds \(state.seekBackwardSeconds)",
                         ),
@@ -129,7 +129,7 @@ struct PlayerControlsView: View {
                         .focused($focusedControl, equals: .playPause)
 
                     PlayerIconButton(
-                        systemName: iconName(prefix: "goforward", seconds: state.seekForwardSeconds),
+                        systemName: state.seekForwardSymbol,
                         accessibilityLabel: String(
                             localized: "player.controls.skipForwardSeconds \(state.seekForwardSeconds)",
                         ),
@@ -227,12 +227,6 @@ struct PlayerControlsView: View {
         case .settings: .settings
         case nil: nil
         }
-    }
-
-    private func iconName(prefix: String, seconds: Int) -> String {
-        let supported = [5, 10, 15, 30, 45, 60]
-        guard supported.contains(seconds) else { return prefix }
-        return "\(prefix).\(seconds)"
     }
 }
 

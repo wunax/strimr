@@ -187,10 +187,7 @@ struct SystemPlayerTimelineView: View {
     }
 
     private func jumpIndicator(_ direction: MoveCommandDirection) -> some View {
-        let isBackward = direction == .left
-        let name = isBackward ? "gobackward" : "goforward"
-        let seconds = isBackward ? state.seekBackwardSeconds : state.seekForwardSeconds
-        return Image(systemName: "\(name).\(seconds)")
+        Image(systemName: direction == .left ? state.seekBackwardSymbol : state.seekForwardSymbol)
             .transition(.opacity)
             .accessibilityHidden(true)
     }
