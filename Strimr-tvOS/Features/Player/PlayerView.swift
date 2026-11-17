@@ -520,66 +520,80 @@ struct PlayerView: View {
     }
 
     private var systemMenus: PlayerSystemMenus {
+        PlayerSystemMenus { menu in
+            switch menu {
+            case .subtitles: systemSubtitlesMenu
+            case .audio: systemAudioMenu
+            case .more: systemMoreMenu
+            }
+        }
+    }
+
+    private var systemSubtitlesMenu: [PlayerMenuSection] {
+        PlayerMenus.subtitles(PlayerMenus.Subtitles(
+            tracks: settingsSubtitleTracks,
+            selectedTrackID: selectedSubtitleTrackID,
+            canSearch: viewModel.canSearchSubtitles,
+            canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
+            sync: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
+            appearance: subtitleAppearanceAvailability,
+            onSelect: selectSubtitleTrack(_:),
+            onSearch: { isSearchingSubtitles = true },
+            onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
+            onSync: openOffsetBar(_:),
+            onAppearance: {
+                settingsControl = .subtitle
+                sheetPresentation.item = .subtitleAppearance
+            },
+        ))
+    }
+
+    private var systemAudioMenu: [PlayerMenuSection] {
         let playback = settingsManager.playback
-        return PlayerSystemMenus(
-            subtitles: PlayerMenus.subtitles(PlayerMenus.Subtitles(
-                tracks: settingsSubtitleTracks,
-                selectedTrackID: selectedSubtitleTrackID,
-                canSearch: viewModel.canSearchSubtitles,
-                canResetTrackSelections: viewModel.canResetRememberedTrackSelections,
-                sync: playerController.offsetMenuItem(.subtitles, burnsSubtitles: viewModel.burnsSubtitles),
-                appearance: subtitleAppearanceAvailability,
-                onSelect: selectSubtitleTrack(_:),
-                onSearch: { isSearchingSubtitles = true },
-                onResetTrackSelections: { viewModel.resetRememberedTrackSelections() },
-                onSync: openOffsetBar(_:),
-                onAppearance: {
-                    settingsControl = .subtitle
-                    sheetPresentation.item = .subtitleAppearance
-                },
-            )),
-            audio: PlayerMenus.audio(PlayerMenus.Audio(
-                tracks: settingsAudioTracks,
-                selectedTrackID: selectedAudioTrackID,
-                nightMode: playback.nightMode,
-                dialogueBoost: playback.dialogueBoost,
-                isAudioShapingAvailable: playerController.isAudioShapingAvailable,
-                sync: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
-                onSelect: selectAudioTrack(_:),
-                onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
-                onSelectDialogueBoost: selectDialogueBoost(_:),
-                onSync: openOffsetBar(_:),
-            )),
-            more: PlayerMenus.more(PlayerMenus.More(
+        return PlayerMenus.audio(PlayerMenus.Audio(
+            tracks: settingsAudioTracks,
+            selectedTrackID: selectedAudioTrackID,
+            nightMode: playback.nightMode,
+            dialogueBoost: playback.dialogueBoost,
+            isAudioShapingAvailable: playerController.isAudioShapingAvailable,
+            sync: playerController.offsetMenuItem(.audio, burnsSubtitles: viewModel.burnsSubtitles),
+            onSelect: selectAudioTrack(_:),
+            onToggleNightMode: { setNightMode(!settingsManager.playback.nightMode) },
+            onSelectDialogueBoost: selectDialogueBoost(_:),
+            onSync: openOffsetBar(_:),
+        ))
+    }
+
+    private var systemMoreMenu: [PlayerMenuSection] {
+        PlayerMenus.more(PlayerMenus.More(
+            isLive: viewModel.isLivePlayback,
+            playbackRate: playbackRate,
+            quality: viewModel.selectedQuality,
+            versions: viewModel.showsVersionSelection ? viewModel.versionOptions : [],
+            zoom: playerController.videoZoom,
+            fillScale: videoFillScale,
+            sleepTimerMode: sleepTimer.mode,
+            sleepTimerDeadline: sleepTimer.deadline,
+            sleepTimerModes: SleepTimerMode.available(
                 isLive: viewModel.isLivePlayback,
-                playbackRate: playbackRate,
-                quality: viewModel.selectedQuality,
-                versions: viewModel.showsVersionSelection ? viewModel.versionOptions : [],
-                zoom: playerController.videoZoom,
-                fillScale: videoFillScale,
-                sleepTimerMode: sleepTimer.mode,
-                sleepTimerDeadline: sleepTimer.deadline,
-                sleepTimerModes: SleepTimerMode.available(
-                    isLive: viewModel.isLivePlayback,
-                    hasChapters: viewModel.hasNavigableChapters,
-                ),
-                mediaKind: viewModel.media?.type,
-                isSharePlay: sharePlayCoordinator.isInSession,
-                showsStatistics: showsPlaybackStatistics,
-                canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
-                canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
-                onSelectRate: selectPlaybackRate(_:),
-                onSelectQuality: { selectQuality($0) },
-                onSelectVersion: selectVersion(_:),
-                onSelectZoom: selectVideoZoom(_:),
-                onCustomZoom: openZoomBar,
-                onSelectSleepTimer: selectSleepTimer(_:),
-                onExtendSleepTimer: { sleepTimer.extend() },
-                onToggleStatistics: { showsPlaybackStatistics.toggle() },
-                onPreviousChannel: { switchLiveChannel(by: -1) },
-                onNextChannel: { switchLiveChannel(by: 1) },
-            )),
-        )
+                hasChapters: viewModel.hasNavigableChapters,
+            ),
+            mediaKind: viewModel.media?.type,
+            isSharePlay: sharePlayCoordinator.isInSession,
+            showsStatistics: showsPlaybackStatistics,
+            canSwitchPreviousChannel: viewModel.canSwitchToPreviousLiveChannel,
+            canSwitchNextChannel: viewModel.canSwitchToNextLiveChannel,
+            onSelectRate: selectPlaybackRate(_:),
+            onSelectQuality: { selectQuality($0) },
+            onSelectVersion: selectVersion(_:),
+            onSelectZoom: selectVideoZoom(_:),
+            onCustomZoom: openZoomBar,
+            onSelectSleepTimer: selectSleepTimer(_:),
+            onExtendSleepTimer: { sleepTimer.extend() },
+            onToggleStatistics: { showsPlaybackStatistics.toggle() },
+            onPreviousChannel: { switchLiveChannel(by: -1) },
+            onNextChannel: { switchLiveChannel(by: 1) },
+        ))
     }
 
     private var controlsActions: PlayerControlsActions {

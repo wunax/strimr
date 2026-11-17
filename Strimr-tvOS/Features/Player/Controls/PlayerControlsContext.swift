@@ -58,9 +58,8 @@ struct PlayerTabsContent {
 }
 
 struct PlayerSystemMenus {
-    var subtitles: [PlayerMenuSection]
-    var audio: [PlayerMenuSection]
-    var more: [PlayerMenuSection]
+    /// Resolved only for the open menu, since the player body runs on every position update.
+    var sections: (SystemPlayerMenu) -> [PlayerMenuSection]
 }
 
 struct PlayerLiveState {

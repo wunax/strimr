@@ -113,11 +113,7 @@ struct SystemPlayerControlsView: View {
     }
 
     private func menuSections(for menu: SystemPlayerMenu) -> [PlayerMenuSection] {
-        switch menu {
-        case .subtitles: state.menus?.subtitles ?? []
-        case .audio: state.menus?.audio ?? []
-        case .more: state.menus?.more ?? []
-        }
+        state.menus?.sections(menu) ?? []
     }
 
     private func handleFocusChange(from previous: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
