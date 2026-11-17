@@ -57,6 +57,19 @@ extension [PlayerMenuSection] {
         }
         return nil
     }
+
+    /// The menu opens on its checked choice, or on its first row. A switched-on toggle is checked too, but landing on
+    /// it would let one stray click turn it off.
+    var initialFocusOption: PlayerMenuOption? {
+        let options = flatMap(\.options).filter { !$0.isDisabled }
+        let checkedChoice = options.first { option in
+            if case .choice(isSelected: true) = option.kind {
+                return true
+            }
+            return false
+        }
+        return checkedChoice ?? options.first
+    }
 }
 
 enum PlayerMenus {

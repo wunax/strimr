@@ -101,6 +101,20 @@ struct PlayerMenuOptionTests {
         #expect(wide.map(\.id) == ["display.fit", "display.fill", "display.zoom"])
     }
 
+    @Test func `a menu opens on its checked choice`() {
+        let sections = PlayerMenus.subtitles(subtitles(selectedTrackID: 2))
+
+        #expect(sections.initialFocusOption?.id == "track.2")
+    }
+
+    @Test func `a switched-on toggle does not take the initial focus`() {
+        var input = more()
+        input.showsStatistics = true
+        let sections = PlayerMenus.more(input)
+
+        #expect(sections.initialFocusOption?.id == "speed")
+    }
+
     private func subtitles(selectedTrackID: Int? = nil, canSearch: Bool = false) -> PlayerMenus.Subtitles {
         PlayerMenus.Subtitles(
             tracks: [track(id: 1), track(id: 2)],

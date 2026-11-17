@@ -274,8 +274,7 @@ private struct SystemPlayerMenuPanel: View {
     }
 
     private func focusInitialOption() {
-        let options = visibleSections.flatMap(\.options).filter { !$0.isDisabled }
-        focus((options.first(where: \.isSelected) ?? options.first)?.id)
+        focus(visibleSections.initialFocusOption?.id)
     }
 
     private func focus(_ id: String?) {
