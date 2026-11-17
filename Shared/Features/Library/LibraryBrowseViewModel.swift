@@ -420,7 +420,9 @@ final class LibraryBrowseViewModel {
                 pages.finish(start, loaded: loaded)
             }
         }
-        errorMessage = nil
+        if errorMessage != nil {
+            errorMessage = nil
+        }
         if let advancedService {
             loaded = await loadPlexPage(start: start, generation: generation, service: advancedService)
         } else {
@@ -504,21 +506,22 @@ final class LibraryBrowseViewModel {
         }
     }
 
+    /// One mutation per page: inserting item by item invalidated every visible card once per item, and
+    /// Observation notifies on every assignment, even of an unchanged value.
     private func store(_ items: [LibraryBrowseItem], at start: Int, reportedTotal: Int?) {
-        for (offset, item) in items.enumerated() {
-            itemsByIndex[start + offset] = item
+        let page = Dictionary(uniqueKeysWithValues: items.enumerated().map { (start + $0.offset, $0.element) })
+        itemsByIndex.merge(page) { _, new in new }
+        let total = reportedTotal ?? LibraryBrowsePageTracker.estimatedTotal(
+            current: totalItemCount,
+            start: start,
+            received: items.count,
+            pageSize: pages.pageSize,
+        )
+        if isTotalKnown != (reportedTotal != nil) {
+            isTotalKnown = reportedTotal != nil
         }
-        if let reportedTotal {
-            isTotalKnown = true
-            totalItemCount = reportedTotal
-        } else {
-            isTotalKnown = false
-            totalItemCount = LibraryBrowsePageTracker.estimatedTotal(
-                current: totalItemCount,
-                start: start,
-                received: items.count,
-                pageSize: pages.pageSize,
-            )
+        if totalItemCount != total {
+            totalItemCount = total
         }
     }
 

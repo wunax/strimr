@@ -135,17 +135,18 @@ struct LibraryBrowseView: View {
             Group {
                 if let item = viewModel.itemsByIndex[index] {
                     browseItem(item, cardWidth: cardWidth)
+                } else if viewModel.layout == .grid {
+                    // Sized like a card so rows keep their height and the grid does not jump when the page arrives.
+                    PosterSkeletonCard(width: cardWidth, showsLabels: settingsManager.interface.showsCardLabels)
                 } else {
-                    ProgressView()
-                        .frame(maxWidth: viewModel.layout == .list ? .infinity : nil)
+                    ListRowSkeleton()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(height: viewModel.layout == .list ? listRowMetrics.rowHeight : nil)
             .id(index)
             .onAppear {
-                Task {
-                    await viewModel.loadPagesAround(index: index)
-                }
+                viewModel.itemAppeared(at: index)
             }
         }
     }

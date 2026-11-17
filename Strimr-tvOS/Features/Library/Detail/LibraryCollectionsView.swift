@@ -32,7 +32,10 @@ struct LibraryCollectionsView: View {
                                         onSelectMedia(media)
                                     }
                                 } else {
-                                    ProgressView()
+                                    PosterSkeletonCard(
+                                        width: cardWidth,
+                                        showsLabels: settingsManager.interface.showsCardLabels,
+                                    )
                                 }
                             }
                             .id(index)

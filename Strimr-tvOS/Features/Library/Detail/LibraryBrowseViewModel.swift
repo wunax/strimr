@@ -22,8 +22,7 @@ final class LibraryBrowseViewModel {
     private(set) var showsFolderTree: Bool
     private(set) var folderTree: FolderTreeModel?
 
-    private var loadedPageStarts: Set<Int> = []
-    private var loadingPageStarts: Set<Int> = []
+    @ObservationIgnored private var pages = LibraryBrowsePageTracker(pageSize: 40)
     private var folderStack: [FolderBreadcrumb] = []
     private var hasLoadedMeta = false
 
@@ -34,7 +33,6 @@ final class LibraryBrowseViewModel {
     @ObservationIgnored private let browseSession: LibraryBrowseSession
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private let preferencesKey: String
-    private let pageSize = 40
 
     init(
         library: Library,
@@ -141,23 +139,27 @@ final class LibraryBrowseViewModel {
         await refresh()
     }
 
+    /// Called for every card that appears, so it only starts a task when a page is actually missing.
+    func itemAppeared(at index: Int) {
+        let starts = pagesToLoad(around: index)
+        guard !starts.isEmpty else { return }
+        Task { await loadPages(starts) }
+    }
+
     func loadPagesAround(index: Int) async {
-        guard index >= 0 else { return }
-        let pageStart = max(0, (index / pageSize) * pageSize)
-        if itemsByIndex[index] == nil,
-           loadedPageStarts.contains(pageStart),
-           !loadingPageStarts.contains(pageStart)
-        {
-            loadedPageStarts.remove(pageStart)
-        }
-        let pageStarts = [
-            pageStart - (pageSize * 2),
-            pageStart - pageSize,
-            pageStart,
-            pageStart + pageSize,
-            pageStart + (pageSize * 2),
-        ]
-        for start in pageStarts where start >= 0 && (totalItemCount == 0 || start < totalItemCount) {
+        await loadPages(pagesToLoad(around: index))
+    }
+
+    private func pagesToLoad(around index: Int) -> [Int] {
+        pages.pagesToLoad(
+            around: index,
+            totalCount: totalItemCount > 0 ? totalItemCount : nil,
+            isIndexLoaded: itemsByIndex[index] != nil,
+        )
+    }
+
+    private func loadPages(_ starts: [Int]) async {
+        for start in starts {
             await loadPage(start: start)
         }
     }
@@ -195,7 +197,7 @@ final class LibraryBrowseViewModel {
         totalItemCount = max(totalItemCount - removed.count, 0)
         sectionIndex = sectionIndex?.removingIndexes(removed)
         // Every page past a removal now starts one item later on the server, so pages load again when shown.
-        loadedPageStarts.removeAll()
+        pages.invalidateLoaded()
     }
 
     func refresh() async {
@@ -311,21 +313,38 @@ final class LibraryBrowseViewModel {
     }
 
     private func loadPage(start: Int) async {
-        guard !loadedPageStarts.contains(start), !loadingPageStarts.contains(start) else { return }
-        guard let advancedService else {
-            await loadCommonPage(start: start)
-            return
-        }
-        guard let browsePath = library.plexBrowsePath else {
+        if advancedService != nil, library.plexBrowsePath == nil {
             resetState(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
-        errorMessage = nil
-        loadingPageStarts.insert(start)
+        guard pages.begin(start) else { return }
+        let generation = scrollResetID
+        var loaded = false
         defer {
-            loadingPageStarts.remove(start)
+            // A refresh in the meantime already reset the tracker.
+            if generation == scrollResetID {
+                pages.finish(start, loaded: loaded)
+            }
         }
+        clearError()
+        if let advancedService, let browsePath = library.plexBrowsePath {
+            loaded = await loadPlexPage(
+                start: start,
+                browsePath: browsePath,
+                generation: generation,
+                service: advancedService,
+            )
+        } else {
+            loaded = await loadCommonPage(start: start, generation: generation)
+        }
+    }
 
+    private func loadPlexPage(
+        start: Int,
+        browsePath: String,
+        generation: Int,
+        service advancedService: any PlexAdvancedLibraryService,
+    ) async -> Bool {
         do {
             let endpoint = resolvedEndpoint(browsePath: browsePath)
             let includeCollections = settingsManager.interface.displayCollections ? true : nil
@@ -340,8 +359,9 @@ final class LibraryBrowseViewModel {
                 path: endpoint.path,
                 queryItems: queryItems,
                 startIndex: start,
-                limit: pageSize,
+                limit: pages.pageSize,
             )
+            guard generation == scrollResetID else { return false }
 
             if includeMeta, let meta = response.meta {
                 let restoreChanged = controls.applyMeta(meta)
@@ -352,24 +372,16 @@ final class LibraryBrowseViewModel {
                 }
             }
 
-            let newItems = response.items
-            let total = response.totalCount
-
-            for (offset, item) in newItems.enumerated() {
-                itemsByIndex[start + offset] = item
-            }
-            loadedPageStarts.insert(start)
-            totalItemCount = max(totalItemCount, total)
+            store(response.items, at: start, total: max(totalItemCount, response.totalCount))
+            return true
         } catch {
+            guard !error.isCancellation, generation == scrollResetID else { return false }
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
-    private func loadCommonPage(start: Int) async {
-        errorMessage = nil
-        loadingPageStarts.insert(start)
-        defer { loadingPageStarts.remove(start) }
-
+    private func loadCommonPage(start: Int, generation: Int) async -> Bool {
         do {
             let requestedQuery = browseSession.query
             let page: MediaPage<MediaDisplayItem> = if let browseService {
@@ -378,27 +390,45 @@ final class LibraryBrowseViewModel {
                     parentID: nil,
                     query: requestedQuery,
                     startIndex: start,
-                    limit: pageSize,
+                    limit: pages.pageSize,
                 )
             } else {
                 try await service.items(
                     in: library,
                     parentID: nil,
                     startIndex: start,
-                    limit: pageSize,
+                    limit: pages.pageSize,
                 )
             }
-            guard !Task.isCancelled, browseService == nil || requestedQuery == browseSession.query else { return }
-            for (offset, item) in page.items.enumerated() {
-                itemsByIndex[start + offset] = .media(item)
-            }
-            loadedPageStarts.insert(start)
-            totalItemCount = page.totalCount ?? (start + page.items.count)
+            guard !Task.isCancelled, generation == scrollResetID,
+                  browseService == nil || requestedQuery == browseSession.query else { return false }
+            store(
+                page.items.map(LibraryBrowseItem.media),
+                at: start,
+                total: page.totalCount ?? (start + page.items.count),
+            )
+            return true
         } catch {
-            if !error.isCancellation {
-                ErrorReporter.capture(error)
-                errorMessage = error.localizedDescription
-            }
+            guard !error.isCancellation, generation == scrollResetID else { return false }
+            ErrorReporter.capture(error)
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// One mutation per page: inserting item by item invalidated every visible card once per item, and
+    /// Observation notifies on every assignment, even of an unchanged count.
+    private func store(_ items: [LibraryBrowseItem], at start: Int, total: Int) {
+        let page = Dictionary(uniqueKeysWithValues: items.enumerated().map { (start + $0.offset, $0.element) })
+        itemsByIndex.merge(page) { _, new in new }
+        if totalItemCount != total {
+            totalItemCount = total
+        }
+    }
+
+    private func clearError() {
+        if errorMessage != nil {
+            errorMessage = nil
         }
     }
 
@@ -456,7 +486,6 @@ final class LibraryBrowseViewModel {
         sectionIndex = nil
         errorMessage = error
         isLoading = false
-        loadedPageStarts = []
-        loadingPageStarts = []
+        pages.reset()
     }
 }
