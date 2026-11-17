@@ -9,8 +9,8 @@ struct SystemPlayerControlsView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: SystemPlayerFocus?
-    @State private var presentedMenu: String?
-    @State private var lastFocusedButton: String?
+    @State private var presentedMenu: SystemPlayerMenu?
+    @State private var lastFocusedButton: SystemPlayerButton?
     /// Focus leaving an adjustment bar or a panel falls on the full-width timeline, where a stray press would seek.
     /// The timeline stays out of reach until a button has taken the focus back.
     @State private var isTimelineFocusSuspended = false
@@ -101,7 +101,7 @@ struct SystemPlayerControlsView: View {
             actions.menuPresentationChanged(current != nil)
             if current == nil, let previous {
                 DispatchQueue.main.async {
-                    focus = .button(previous)
+                    focus = .button(.menu(previous))
                 }
             }
         }
@@ -112,11 +112,11 @@ struct SystemPlayerControlsView: View {
         }
     }
 
-    private func menuSections(for menuID: String) -> [PlayerMenuSection] {
-        switch menuID {
-        case "subtitles": state.menus?.subtitles ?? []
-        case "audio": state.menus?.audio ?? []
-        default: state.menus?.more ?? []
+    private func menuSections(for menu: SystemPlayerMenu) -> [PlayerMenuSection] {
+        switch menu {
+        case .subtitles: state.menus?.subtitles ?? []
+        case .audio: state.menus?.audio ?? []
+        case .more: state.menus?.more ?? []
         }
     }
 
@@ -152,7 +152,7 @@ struct SystemPlayerControlsView: View {
     /// Live TV has no timeline to land on: its buttons take the focus instead.
     private var initialFocus: SystemPlayerFocus {
         if state.live != nil {
-            return .button("channels")
+            return .button(.channels)
         }
         return isShowingTabs ? .tab(.info) : .timeline
     }
@@ -255,33 +255,33 @@ struct SystemPlayerControlsView: View {
                         accessibilityLabel: String(localized: "livetv.player.channels"),
                         action: actions.showLiveChannels,
                     )
-                    .focused($focus, equals: .button("channels"))
+                    .focused($focus, equals: .button(.channels))
                 }
 
                 SystemPlayerMenuButton(
                     systemImage: "captions.bubble",
                     accessibilityLabel: String(localized: "player.settings.subtitles"),
-                    menuID: "subtitles",
+                    menu: .subtitles,
                     presentedMenu: $presentedMenu,
                     showsIndicator: state.showsSubtitleOffsetIndicator,
                 )
-                .focused($focus, equals: .button("subtitles"))
+                .focused($focus, equals: .button(.menu(.subtitles)))
 
                 SystemPlayerMenuButton(
                     systemImage: "waveform",
                     accessibilityLabel: String(localized: "player.settings.audio"),
-                    menuID: "audio",
+                    menu: .audio,
                     presentedMenu: $presentedMenu,
                 )
-                .focused($focus, equals: .button("audio"))
+                .focused($focus, equals: .button(.menu(.audio)))
 
                 SystemPlayerMenuButton(
                     systemImage: "ellipsis",
                     accessibilityLabel: String(localized: "settings.title"),
-                    menuID: "more",
+                    menu: .more,
                     presentedMenu: $presentedMenu,
                 )
-                .focused($focus, equals: .button("more"))
+                .focused($focus, equals: .button(.menu(.more)))
             }
             .focusSection()
         }
@@ -293,7 +293,7 @@ struct SystemPlayerControlsView: View {
             if !LiveTVLiveBadge.isLive(behindLiveSeconds: live.behindLiveSeconds, isAtLiveEdge: live.isAtLiveEdge) {
                 Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: actions.goLive)
                     .actionButtonStyle(.secondary)
-                    .focused($focus, equals: .button("goLive"))
+                    .focused($focus, equals: .button(.goLive))
                     .focusSection()
             }
         } else {
@@ -340,8 +340,14 @@ struct SystemPlayerControlsView: View {
 
 enum SystemPlayerFocus: Hashable {
     case timeline
-    case button(String)
+    case button(SystemPlayerButton)
     case tab(PlayerInfoTab)
+}
+
+enum SystemPlayerButton: Hashable {
+    case channels
+    case goLive
+    case menu(SystemPlayerMenu)
 }
 
 private extension SystemPlayerFocus? {

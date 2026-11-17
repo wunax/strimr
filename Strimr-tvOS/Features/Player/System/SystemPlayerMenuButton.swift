@@ -3,16 +3,22 @@ import SwiftUI
 /// Round glass button of the system style that opens an anchored menu. The menu is drawn by Strimr rather than by
 /// SwiftUI's `Menu`, which on tvOS took the focus out of the player: a click could miss the menu and reach the system
 /// as play/pause, and Back could leave the app. Everything about menus stays in this file.
+enum SystemPlayerMenu: Hashable {
+    case subtitles
+    case audio
+    case more
+}
+
 struct SystemPlayerMenuButton: View {
     var systemImage: String
     var accessibilityLabel: String
-    var menuID: String
-    @Binding var presentedMenu: String?
+    var menu: SystemPlayerMenu
+    @Binding var presentedMenu: SystemPlayerMenu?
     var showsIndicator = false
 
     var body: some View {
         Button {
-            presentedMenu = menuID
+            presentedMenu = menu
         } label: {
             SystemPlayerButtonLabel(systemImage: systemImage)
         }
@@ -25,7 +31,7 @@ struct SystemPlayerMenuButton: View {
                     .allowsHitTesting(false)
             }
         }
-        .anchorPreference(key: SystemPlayerMenuAnchors.self, value: .bounds) { [menuID: $0] }
+        .anchorPreference(key: SystemPlayerMenuAnchors.self, value: .bounds) { [menu: $0] }
         .accessibilityLabel(accessibilityLabel)
     }
 }
@@ -49,18 +55,18 @@ struct SystemPlayerActionButton: View {
 extension View {
     /// Draws the presented menu above the button that opened it, aligned on its trailing edge like the system menus.
     func systemPlayerMenus(
-        presentedMenu: Binding<String?>,
-        sections: @escaping (String) -> [PlayerMenuSection],
+        presentedMenu: Binding<SystemPlayerMenu?>,
+        sections: @escaping (SystemPlayerMenu) -> [PlayerMenuSection],
     ) -> some View {
         overlayPreferenceValue(SystemPlayerMenuAnchors.self) { anchors in
             GeometryReader { proxy in
-                if let menuID = presentedMenu.wrappedValue, let anchor = anchors[menuID] {
+                if let menu = presentedMenu.wrappedValue, let anchor = anchors[menu] {
                     let button = proxy[anchor]
                     SystemPlayerMenuPanel(
-                        sections: sections(menuID),
+                        sections: sections(menu),
                         onClose: { presentedMenu.wrappedValue = nil },
                     )
-                    .id(menuID)
+                    .id(menu)
                     .padding(.trailing, max(proxy.size.width - button.maxX, 0))
                     .frame(
                         width: proxy.size.width,
@@ -75,9 +81,12 @@ extension View {
 }
 
 private struct SystemPlayerMenuAnchors: PreferenceKey {
-    static let defaultValue: [String: Anchor<CGRect>] = [:]
+    static let defaultValue: [SystemPlayerMenu: Anchor<CGRect>] = [:]
 
-    static func reduce(value: inout [String: Anchor<CGRect>], nextValue: () -> [String: Anchor<CGRect>]) {
+    static func reduce(
+        value: inout [SystemPlayerMenu: Anchor<CGRect>],
+        nextValue: () -> [SystemPlayerMenu: Anchor<CGRect>],
+    ) {
         value.merge(nextValue()) { $1 }
     }
 }
