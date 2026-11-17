@@ -88,6 +88,9 @@ private struct PlayerScrubInteraction: ViewModifier {
                     commit()
                 }
             }
+            // The timeline goes away without losing the focus when a prompt or the zoom bar hides the controls;
+            // the scrub was not the user's choice to commit then.
+            .onDisappear(perform: cancel)
     }
 
     /// Back only belongs to the timeline during a scrub; otherwise it reaches the player.
