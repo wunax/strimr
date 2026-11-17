@@ -815,6 +815,7 @@ struct PlayerView: View {
                     selectedTab: $infoPanelTab,
                     onSelectQueueItem: selectQueueItem(at:),
                     onSelectChapter: selectChapter(_:),
+                    onRestart: restartFromBeginning,
                     onClose: hideInfoPanel,
                     isEmbedded: true,
                 )
@@ -961,6 +962,7 @@ struct PlayerView: View {
                     selectedTab: $infoPanelTab,
                     onSelectQueueItem: selectQueueItem(at:),
                     onSelectChapter: selectChapter(_:),
+                    onRestart: restartFromBeginning,
                     onClose: hideInfoPanel,
                 )
                 // Keeps at least the upper part of the video visible.
@@ -1157,6 +1159,16 @@ struct PlayerView: View {
         Task {
             await startPlayback(using: nextViewModel)
         }
+    }
+
+    private func restartFromBeginning() {
+        playerController.seek(to: 0)
+        viewModel.position = 0
+        timelinePosition = 0
+        if playerController.isPaused {
+            playerController.resume()
+        }
+        hideInfoPanel()
     }
 
     private func selectChapter(_ chapter: MediaChapter) {

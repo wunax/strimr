@@ -25,11 +25,12 @@ struct PlayerInfoPanelView: View {
     @Binding var selectedTab: PlayerInfoTab
     let onSelectQueueItem: (Int) -> Void
     let onSelectChapter: (MediaChapter) -> Void
+    let onRestart: () -> Void
     let onClose: () -> Void
     /// Shown below the video on a foldable propped up like a laptop, on its own black half: no backdrop.
     var isEmbedded = false
 
-    @FocusState private var focusedTab: PlayerInfoTab?
+    @FocusState private var focusedTarget: FocusTarget?
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -75,11 +76,18 @@ struct PlayerInfoPanelView: View {
         #if os(tvOS)
             .onAppear {
                 DispatchQueue.main.async {
-                    focusedTab = selectedTab
+                    focusedTarget = .tab(selectedTab)
                 }
             }
-            .onChange(of: focusedTab) { _, tab in
-                guard let tab else { return }
+            .onChange(of: focusedTarget) { previous, current in
+                guard case let .tab(tab) = current else { return }
+                // Going up from the restart button lands on the tab nearest to it, not on the open one.
+                if previous == .restart, tab != selectedTab {
+                    DispatchQueue.main.async {
+                        focusedTarget = .tab(selectedTab)
+                    }
+                    return
+                }
                 select(tab)
             }
         #else
@@ -103,6 +111,10 @@ struct PlayerInfoPanelView: View {
 
             #if !os(tvOS)
                 Spacer(minLength: 0)
+
+                if PlayerRestartButton.isAvailable(at: currentPosition) {
+                    compactRestartButton
+                }
 
                 Button(action: onClose) {
                     Image(systemName: "chevron.down")
@@ -132,9 +144,9 @@ struct PlayerInfoPanelView: View {
         let isSelected = selectedTab == tab
         #if os(tvOS)
             Text(tab.titleKey)
-                .chipAppearance(isSelected: isSelected, isFocused: focusedTab == tab)
+                .chipAppearance(isSelected: isSelected, isFocused: focusedTarget == .tab(tab))
                 .focusable()
-                .focused($focusedTab, equals: tab)
+                .focused($focusedTarget, equals: .tab(tab))
                 .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
         #else
             Button {
@@ -207,9 +219,41 @@ struct PlayerInfoPanelView: View {
             services: services,
             layout: layout,
             summaryLineLimit: summaryLineLimit,
-        )
+        ) {
+            // Beside the details it would narrow the synopsis on a phone; there it sits in the tab bar instead.
+            #if os(tvOS)
+                if PlayerRestartButton.isAvailable(at: currentPosition) {
+                    PlayerRestartButton(action: onRestart)
+                        .focused($focusedTarget, equals: .restart)
+                }
+            #endif
+        }
         .padding(.horizontal, Metrics.horizontalPadding)
+        #if os(tvOS)
+            // The button sits on the far side of the panel, out of line with the tabs above it.
+            .focusSection()
+        #endif
     }
+
+    #if !os(tvOS)
+        private var compactRestartButton: some View {
+            Button(action: onRestart) {
+                ViewThatFits(in: .horizontal) {
+                    Label("common.actions.playFromStart", systemImage: "arrow.counterclockwise")
+                        .padding(.horizontal, 12)
+                    Image(systemName: "arrow.counterclockwise")
+                        .frame(width: 36)
+                }
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.textPrimary)
+                .lineLimit(1)
+                .frame(height: 30)
+                .background(.surfaceRaised, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("common.actions.playFromStart"))
+        }
+    #endif
 
     #if os(iOS)
         private var infoLayout: PlayerMediaInfoLayout {
@@ -220,6 +264,11 @@ struct PlayerInfoPanelView: View {
             .wide
         }
     #endif
+}
+
+private enum FocusTarget: Hashable {
+    case tab(PlayerInfoTab)
+    case restart
 }
 
 struct PlayerInfoPanelDisclosureButton: View {

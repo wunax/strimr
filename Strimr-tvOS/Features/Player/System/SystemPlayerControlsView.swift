@@ -118,6 +118,13 @@ struct SystemPlayerControlsView: View {
 
     private func handleFocusChange(from previous: SystemPlayerFocus?, to current: SystemPlayerFocus?) {
         if case let .tab(tab) = current {
+            // Going up from the restart button lands on the tab nearest to it, not on the open one.
+            if previous == .restart, tab != selectedTab {
+                DispatchQueue.main.async {
+                    focus = .tab(selectedTab)
+                }
+                return
+            }
             if !state.isShowingTabs {
                 // Only coming down from the controls opens the tabs. As they close, the focus engine falls back on
                 // the first tab until the timeline can take it back, which must not reopen them.
@@ -178,6 +185,8 @@ struct SystemPlayerControlsView: View {
                         chapters: state.chapters,
                         position: state.bufferBasePosition,
                         onSelectChapter: actions.selectChapter,
+                        onRestart: actions.restartFromBeginning,
+                        focus: $focus,
                         onSelectQueueItem: actions.selectQueueItem,
                         onClose: { actions.tabsPresentationChanged(false) },
                     )
@@ -338,6 +347,7 @@ enum SystemPlayerFocus: Hashable {
     case timeline
     case button(SystemPlayerButton)
     case tab(PlayerInfoTab)
+    case restart
 }
 
 enum SystemPlayerButton: Hashable {
