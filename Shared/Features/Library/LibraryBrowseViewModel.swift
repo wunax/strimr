@@ -222,7 +222,9 @@ final class LibraryBrowseViewModel {
 
     func load() async {
         guard totalItemCount == 0, folderTree == nil else { return }
+        let generation = scrollResetID
         await loadFirstPage()
+        guard generation == scrollResetID else { return }
         if isFolderTreeActive, folderTree == nil {
             await reloadFolderTree()
         } else {
@@ -304,11 +306,14 @@ final class LibraryBrowseViewModel {
 
     func refresh() async {
         scrollResetID &+= 1
+        let generation = scrollResetID
         resetItems()
         folderTree = nil
         // Meta decides whether the selected display type is a folder listing, so it is fetched first.
         if !(hasLoadedMeta && isFolderTreeActive) {
             await loadFirstPage()
+            // A newer refresh owns the rest of the work.
+            guard generation == scrollResetID else { return }
         }
         if isFolderTreeActive {
             await reloadFolderTree()
@@ -405,8 +410,11 @@ final class LibraryBrowseViewModel {
             resetItems(error: String(localized: "errors.missingLibraryIdentifier"))
             return
         }
+        let generation = scrollResetID
         isLoading = true
         await loadPage(start: 0)
+        // A newer refresh owns the loading state.
+        guard generation == scrollResetID else { return }
         isLoading = false
     }
 
@@ -420,7 +428,9 @@ final class LibraryBrowseViewModel {
                 pages.finish(start, loaded: loaded)
             }
         }
-        errorMessage = nil
+        if errorMessage != nil {
+            errorMessage = nil
+        }
         if let advancedService {
             loaded = await loadPlexPage(start: start, generation: generation, service: advancedService)
         } else {
@@ -504,21 +514,22 @@ final class LibraryBrowseViewModel {
         }
     }
 
+    /// One mutation per page: inserting item by item invalidated every visible card once per item, and
+    /// Observation notifies on every assignment, even of an unchanged value.
     private func store(_ items: [LibraryBrowseItem], at start: Int, reportedTotal: Int?) {
-        for (offset, item) in items.enumerated() {
-            itemsByIndex[start + offset] = item
+        let page = Dictionary(uniqueKeysWithValues: items.enumerated().map { (start + $0.offset, $0.element) })
+        itemsByIndex.merge(page) { _, new in new }
+        let total = reportedTotal ?? LibraryBrowsePageTracker.estimatedTotal(
+            current: totalItemCount,
+            start: start,
+            received: items.count,
+            pageSize: pages.pageSize,
+        )
+        if isTotalKnown != (reportedTotal != nil) {
+            isTotalKnown = reportedTotal != nil
         }
-        if let reportedTotal {
-            isTotalKnown = true
-            totalItemCount = reportedTotal
-        } else {
-            isTotalKnown = false
-            totalItemCount = LibraryBrowsePageTracker.estimatedTotal(
-                current: totalItemCount,
-                start: start,
-                received: items.count,
-                pageSize: pages.pageSize,
-            )
+        if totalItemCount != total {
+            totalItemCount = total
         }
     }
 
