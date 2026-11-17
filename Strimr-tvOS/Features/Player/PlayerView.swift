@@ -1651,7 +1651,9 @@ struct PlayerView: View {
 
     private func handlePauseChangeForControls(isPaused: Bool) {
         if isPaused {
-            guard !pauseScreen.isPresented, !isShowingInfoPanel, !isShowingLiveChannels else { return }
+            guard !pauseScreen.isPresented, !isShowingInfoPanel, !isShowingLiveChannels,
+                  activeAdjustmentBar != .zoom
+            else { return }
             showControls(temporarily: false)
         } else if controlsVisible {
             scheduleControlsHide()
