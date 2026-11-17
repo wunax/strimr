@@ -1636,6 +1636,7 @@ struct PlayerView: View {
             && sheetPresentation.item == nil
             && !isShowingInfoPanel
             && !isShowingSystemTabs
+            && !isSystemMenuPresented
             && activeAdjustmentBar == nil
             && viewModel.activeSkipMarker == nil
             && !nextEpisodePresentation.isPresented
