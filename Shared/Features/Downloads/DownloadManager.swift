@@ -497,7 +497,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     func delete(_ item: DownloadItem) async {
         let server = item.identity?.server
         preparationTasks.removeValue(forKey: item.id)?.cancel()
-        if let taskIdentifier = item.taskIdentifier {
+        if let taskIdentifier = item.taskIdentifier, item.status.isActive {
             ignoredCompletionIDs.insert(item.id)
             await cancelTask(with: taskIdentifier)
         }
@@ -541,6 +541,85 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     func setBackgroundEventsCompletionHandler(_ handler: @escaping () -> Void) {
         backgroundEventsCompletionHandler = handler
+    }
+
+    func canRetry(_ item: DownloadItem) -> Bool {
+        guard let current = items.first(where: { $0.id == item.id }),
+              isOwnedByActiveUser(current),
+              let server = current.identity?.server,
+              servicesByServer[server] != nil
+        else { return false }
+        return current.canRetry(among: items)
+    }
+
+    /// Resumes a failed direct download from its partial data when iOS kept some, else prepares it from scratch.
+    func retry(_ item: DownloadItem) {
+        guard canRetry(item),
+              let index = items.firstIndex(where: { $0.id == item.id }),
+              let server = items[index].identity?.server
+        else { return }
+
+        items[index].errorMessage = nil
+        if let resumeData = takeResumeData(for: item.id) {
+            let task = backgroundSession.downloadTask(withResumeData: resumeData)
+            task.taskDescription = item.id
+            freshTaskIdentifiers.insert(task.taskIdentifier)
+            items[index].status = .downloading
+            items[index].taskIdentifier = task.taskIdentifier
+            persistState()
+            task.resume()
+            return
+        }
+
+        let staleReference = items[index].remoteReference
+        items[index].status = .queued
+        items[index].progress = 0
+        items[index].bytesWritten = 0
+        items[index].totalBytes = 0
+        items[index].taskIdentifier = nil
+        items[index].remoteReference = nil
+        persistState()
+
+        guard let staleReference, let services = servicesByServer[server] else {
+            startNextQueuedTransfer(on: server)
+            return
+        }
+        // Plex may hand the same queue entry back, so the stale one is removed before preparing again.
+        preparationTasks[item.id] = Task { [weak self] in
+            await services.downloads.cancelDownloadPreparation(staleReference)
+            guard let self, !Task.isCancelled else { return }
+            preparationTasks[item.id] = nil
+            startNextQueuedTransfer(on: server)
+        }
+    }
+
+    private func resumeDataURL(for itemID: String) -> URL {
+        downloadsDirectory
+            .appendingPathComponent(itemID, isDirectory: true)
+            .appendingPathComponent("resume.data", isDirectory: false)
+    }
+
+    private func takeResumeData(for itemID: String) -> Data? {
+        let url = resumeDataURL(for: itemID)
+        defer { try? FileManager.default.removeItem(at: url) }
+        guard let data = try? Data(contentsOf: url), !data.isEmpty else { return nil }
+        return data
+    }
+
+    private func saveResumeData(from error: Error, itemID: String) {
+        let url = resumeDataURL(for: itemID)
+        guard let data = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data,
+              !data.isEmpty
+        else {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+        do {
+            try data.write(to: url, options: .atomic)
+            try setExcludedFromBackup(at: url)
+        } catch {
+            ErrorReporter.capture(error)
+        }
     }
 
     private func startNetworkMonitoring() {
@@ -753,9 +832,10 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             } else if items[index].status == .preparing {
                 continue
             } else if items[index].status.isActive {
+                // The task identifier is kept so the cancellation iOS delivers after a force quit, which
+                // carries the resume data, still finds this download.
                 items[index].status = .failed
                 items[index].errorMessage = String(localized: "downloads.status.interrupted")
-                items[index].taskIdentifier = nil
             }
         }
 
@@ -818,9 +898,11 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                     case let .failed(message):
                         items[index].status = .failed
                         items[index].errorMessage = message
+                        items[index].remoteReference = nil
+                        let server = items[index].identity?.server
                         persistState()
                         await services.downloads.cancelDownloadPreparation(reference)
-                        if let server = items[index].identity?.server {
+                        if let server {
                             startNextQueuedTransfer(on: server)
                         }
                         return
@@ -857,42 +939,54 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
         preparationTasks[item.id] = Task { [weak self] in
             guard let self else { return }
-            defer { preparationTasks[item.id] = nil }
-            do {
-                let preparation = try await services.downloads.prepareDownload(
-                    itemID: item.itemID,
-                    quality: item.metadata.requestedQuality,
-                    tracks: item.trackPreference ?? .serverDefault,
-                    version: item.metadata.versionID.map { .explicit(versionID: $0) } ?? .automatic,
-                )
-                guard let index = items.firstIndex(where: { $0.id == item.id }),
-                      items[index].status == .queued
-                else { return }
-                items[index].remoteReference = preparation.remoteReference
-                items[index].metadata.effectiveQuality = preparation.effectiveQuality
-                items[index].metadata.audioTitle = preparation.audioTitle
-                items[index].metadata.subtitleTitle = preparation.subtitleTitle
-                items[index].metadata.versionID = preparation.versionID
-                items[index].metadata.versionLabel = preparation.versionLabel
-                sidecarsByItemID[item.id] = preparation.sidecars
-                persistState()
-                if let request = preparation.request {
-                    startTransfer(itemID: item.id, request: request)
-                } else {
-                    items[index].status = .preparing
-                    persistState()
-                    startPreparationPolling(for: item.id, services: services)
-                }
-            } catch {
-                guard !Task.isCancelled, !error.isCancellation,
-                      let index = items.firstIndex(where: { $0.id == item.id })
-                else { return }
-                items[index].status = .failed
-                items[index].errorMessage = error.localizedDescription
-                persistState()
-                ErrorReporter.capture(error)
+            let needsPolling = await prepareQueuedDownload(item, services: services)
+            // Released before polling starts, since the polling task takes over this slot.
+            preparationTasks[item.id] = nil
+            if needsPolling {
+                startPreparationPolling(for: item.id, services: services)
+            }
+        }
+    }
+
+    /// Returns whether the server is still preparing the file and must be polled.
+    private func prepareQueuedDownload(_ item: DownloadItem, services: MediaServices) async -> Bool {
+        do {
+            let preparation = try await services.downloads.prepareDownload(
+                itemID: item.itemID,
+                quality: item.metadata.requestedQuality,
+                tracks: item.trackPreference ?? .serverDefault,
+                version: item.metadata.versionID.map { .explicit(versionID: $0) } ?? .automatic,
+            )
+            guard let index = items.firstIndex(where: { $0.id == item.id }),
+                  items[index].status == .queued
+            else { return false }
+            items[index].remoteReference = preparation.remoteReference
+            items[index].metadata.effectiveQuality = preparation.effectiveQuality
+            items[index].metadata.audioTitle = preparation.audioTitle
+            items[index].metadata.subtitleTitle = preparation.subtitleTitle
+            items[index].metadata.versionID = preparation.versionID
+            items[index].metadata.versionLabel = preparation.versionLabel
+            sidecarsByItemID[item.id] = preparation.sidecars
+            persistState()
+            if let request = preparation.request {
+                startTransfer(itemID: item.id, request: request)
+                return false
+            }
+            items[index].status = .preparing
+            persistState()
+            return true
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation,
+                  let index = items.firstIndex(where: { $0.id == item.id })
+            else { return false }
+            items[index].status = .failed
+            items[index].errorMessage = error.localizedDescription
+            persistState()
+            ErrorReporter.capture(error)
+            if let server = item.identity?.server {
                 startNextQueuedTransfer(on: server)
             }
+            return false
         }
     }
 
@@ -922,6 +1016,19 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             try? FileManager.default.removeItem(at: stagedLocation)
             return
         }
+        // URLSession hands over the body of an error response as a finished file.
+        let stagedSize = (try? FileManager.default.attributesOfItem(atPath: stagedLocation.path)[.size] as? NSNumber)?
+            .int64Value ?? 0
+        if let message = DownloadedFileValidation.failureMessage(response: task.response, fileSize: stagedSize) {
+            try? FileManager.default.removeItem(at: stagedLocation)
+            failDownload(task: task, error: NSError(
+                domain: "Strimr.DownloadManager",
+                code: (task.response as? HTTPURLResponse)?.statusCode ?? 0,
+                userInfo: [NSLocalizedDescriptionKey: message],
+            ))
+            return
+        }
+
         let item = items[index]
         let destination = resolveDownloadDestination(for: item, response: task.response)
 
@@ -946,6 +1053,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             items[index].errorMessage = nil
             items[index].metadata.videoFileName = destination.lastPathComponent
             items[index].metadata.fileSize = fileSize
+            try? FileManager.default.removeItem(at: resumeDataURL(for: item.id))
 
             await persistSidecars(forItemID: item.id, folderURL: destination.deletingLastPathComponent())
 
@@ -1062,10 +1170,18 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             return
         }
 
+        let reference = items[index].remoteReference
+        // A transcode is torn down on the server below, so only a direct download can resume.
+        if reference == nil {
+            saveResumeData(from: error, itemID: itemID)
+        }
         items[index].status = .failed
         items[index].taskIdentifier = nil
-        items[index].errorMessage = error.localizedDescription
-        let reference = items[index].remoteReference
+        items[index].remoteReference = nil
+        // A force quit surfaces as a cancellation once the app is relaunched.
+        items[index].errorMessage = error.isCancellation
+            ? String(localized: "downloads.status.interrupted")
+            : error.localizedDescription
         let server = items[index].identity?.server
         persistState()
         if let reference, let server, let services = servicesByServer[server] {
