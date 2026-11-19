@@ -45,6 +45,7 @@ struct MediaDetailVersionMenuItems: View {
 
 /// Copies on other servers or libraries open their own page; offline copies are greyed out.
 struct MediaCopiesMenuItems: View {
+    @Environment(LibraryStore.self) private var libraryStore
     let viewModel: MediaDetailViewModel
 
     var body: some View {
@@ -54,15 +55,26 @@ struct MediaCopiesMenuItems: View {
                     Button {
                         viewModel.selectCopy(copy)
                     } label: {
-                        Label(copy.media.playbackResolutionLabel ?? copy.media.title, systemImage: "server.rack")
-                        if !copy.isReachable {
-                            Text("media.availableOn.offline")
+                        Label(
+                            copy.details.title(for: copy.media, libraryStore: libraryStore),
+                            systemImage: "server.rack",
+                        )
+                        if let subtitle = subtitle(for: copy) {
+                            Text(subtitle)
                         }
                     }
                     .disabled(!copy.isReachable)
                 }
             }
         }
+    }
+
+    private func subtitle(for copy: MediaCopy) -> String? {
+        let parts = [
+            copy.details.subtitle(for: copy.media, libraryStore: libraryStore),
+            copy.isReachable ? nil : String(localized: "media.availableOn.offline"),
+        ].compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
 
