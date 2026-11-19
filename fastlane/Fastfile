@@ -220,6 +220,15 @@ platform :ios do
         UI.success("Latest TestFlight builds — iOS: #{ios_build_number}, tvOS: #{tvos_build_number}, macOS: #{macos_build_number}")
     end
 
+    desc "Resolve the shared TestFlight build number and expose it as a GitHub Actions output"
+    lane :resolve_build_number do
+        build_number = testflight_build_number(api_key: app_store_connect_key)
+        UI.success("Resolved TestFlight build number #{build_number}")
+
+        output_path = ENV["GITHUB_OUTPUT"]
+        File.open(output_path, "a") { |file| file.puts("build_number=#{build_number}") } if output_path
+    end
+
     desc "Build a signed iOS TestFlight IPA without uploading it"
     lane :build_ios_testflight do
         api_key = app_store_connect_key
