@@ -1,0 +1,25 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Channel": [
+      {
+        "id": "channel-one",
+        "gridKey": "channel-one",
+        "vcn": "001",
+        "isHd": true,
+        "title": "Zed HD",
+        "callSign": "ZEDHD",
+        "language": "fr"
+      },
+      {
+        "id": "channel-two",
+        "gridKey": "channel-two",
+        "vcn": "012",
+        "isHd": false,
+        "title": "Alpha",
+        "callSign": "ALPHA",
+        "language": "fr"
+      }
+    ]
+  }
+}
