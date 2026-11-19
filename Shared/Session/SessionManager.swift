@@ -64,6 +64,11 @@ final class SessionManager {
         didSet { TrackerCoordinator.shared.activate(profileID: activeProfile?.id) }
     }
 
+    /// Set by the main view while the player is shown, so a return from the background never interrupts playback.
+    @ObservationIgnored var isPlaybackActive = false
+    @ObservationIgnored private var profilePromptOnReturn = ProfilePromptOnReturn()
+    @ObservationIgnored private var isPromptingProfileOnReturn = false
+
     @ObservationIgnored private let keychain = Keychain(service: Bundle.main.bundleIdentifier!)
     #if os(tvOS)
         @ObservationIgnored private let topShelfSessionStore = TopShelfSessionStore()
@@ -220,6 +225,7 @@ final class SessionManager {
     /// Activates a profile and shows the app as soon as one server is ready, after three seconds at most; the other
     /// servers join when they connect. A Plex Home token, when given, comes from a fresh `/switch`.
     func activate(_ profile: StrimrProfile, plexHomeToken: String? = nil) async {
+        isPromptingProfileOnReturn = false
         let links = profileStore.links(for: profile)
         guard !links.isEmpty else {
             status = .needsProfileSelection
@@ -239,11 +245,13 @@ final class SessionManager {
     }
 
     func requestProfileSelection() {
+        isPromptingProfileOnReturn = false
         status = .needsProfileSelection
     }
 
     func cancelProfileSelection() {
         guard activeProfile != nil else { return }
+        isPromptingProfileOnReturn = false
         status = .ready
     }
 
@@ -258,6 +266,30 @@ final class SessionManager {
 
     func setAsksProfileOnLaunch(_ value: Bool) {
         profileStore.setAsksProfileOnLaunch(value)
+    }
+
+    // MARK: - Return from background
+
+    func sceneDidEnterBackground() {
+        profilePromptOnReturn.didEnterBackground(at: .now)
+    }
+
+    /// Shows the profile picker when the app comes back after a long absence. Also called before handling a Top Shelf
+    /// link, which can arrive before the scene turns active, so the link waits for the chosen profile.
+    func sceneWillReturnFromBackground() {
+        guard profilePromptOnReturn.shouldPrompt(at: .now, isPlaybackActive: isPlaybackActive),
+              status == .ready, profileStore.asksProfileOnLaunch, profiles.count > 1
+        else { return }
+        isPromptingProfileOnReturn = true
+        status = .needsProfileSelection
+    }
+
+    /// An external player calling back means the user was watching in it, not away.
+    func didReturnFromExternalPlayback() {
+        profilePromptOnReturn.cancel()
+        if isPromptingProfileOnReturn, status == .needsProfileSelection {
+            cancelProfileSelection()
+        }
     }
 
     // MARK: - Plex accounts

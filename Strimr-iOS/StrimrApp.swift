@@ -74,7 +74,11 @@ struct StrimrApp: App {
                 .flushesTrackerQueue()
                 .toastHost()
                 .preferredColorScheme(.dark)
-                .onOpenURL { externalPlaybackCallbackRouter.receive($0) }
+                .onOpenURL { url in
+                    if externalPlaybackCallbackRouter.receive(url) {
+                        sessionManager.didReturnFromExternalPlayback()
+                    }
+                }
         }
     }
 }

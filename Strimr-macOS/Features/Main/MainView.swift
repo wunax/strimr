@@ -111,8 +111,9 @@ struct MainView: View {
         .handlesExternalPlaybackCallbacks { server in
             Task { await homeViewModel.refresh(server: server) }
         }
-        .onChange(of: appModel.playerPresentation?.id) { previous, current in
+        .onChange(of: appModel.playerPresentation?.id, initial: true) { previous, current in
             homeViewModel.isPlaybackActive = current != nil
+            sessionManager.isPlaybackActive = current != nil
             // Only the server of the item that was played is reloaded, to update Reprendre and Next Up.
             guard previous != nil, current == nil, let server = lastPlayedServer else { return }
             Task { await homeViewModel.refresh(server: server) }

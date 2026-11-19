@@ -61,12 +61,14 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
+                sessionManager.sceneWillReturnFromBackground()
                 offlineCoordinator.availability.refresh()
                 registry.retryUnavailable()
             case .background:
+                sessionManager.sceneDidEnterBackground()
                 offlineCoordinator.evictCacheIfNeeded()
             case .inactive:
-                break
+                sessionManager.sceneWillReturnFromBackground()
             @unknown default:
                 break
             }

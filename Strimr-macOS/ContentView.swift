@@ -35,12 +35,14 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
+                sessionManager.sceneWillReturnFromBackground()
                 offlineCoordinator.availability.refresh()
                 registry.retryUnavailable()
             case .background:
+                sessionManager.sceneDidEnterBackground()
                 offlineCoordinator.evictCacheIfNeeded()
             case .inactive:
-                break
+                sessionManager.sceneWillReturnFromBackground()
             @unknown default:
                 break
             }
@@ -56,7 +58,11 @@ struct ContentView: View {
             downloadManager.activateSession(services: registry.connectedServices)
         }
         // This window takes the external player callbacks so the window group does not open a new one.
-        .onOpenURL { externalPlaybackCallbackRouter.receive($0) }
+        .onOpenURL { url in
+            if externalPlaybackCallbackRouter.receive(url) {
+                sessionManager.didReturnFromExternalPlayback()
+            }
+        }
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
 
