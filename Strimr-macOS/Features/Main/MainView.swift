@@ -113,6 +113,7 @@ struct MainView: View {
         }
         .onChange(of: appModel.playerPresentation?.id) { previous, current in
             homeViewModel.isPlaybackActive = current != nil
+            sessionManager.isPlaybackActive = current != nil
             // Only the server of the item that was played is reloaded, to update Reprendre and Next Up.
             guard previous != nil, current == nil, let server = lastPlayedServer else { return }
             Task { await homeViewModel.refresh(server: server) }

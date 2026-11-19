@@ -18045,19 +18045,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otherwise Strimr opens the last profile used."
+            "value" : "Also asked when you come back to the app after 15 minutes away. Otherwise Strimr opens the last profile used."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sinon, Strimr reprend le dernier profil utilisé."
+            "value" : "Aussi demandé au retour dans l’app après 15 minutes d’absence. Sinon, Strimr reprend le dernier profil utilisé."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "否则 Strimr 将打开上次使用的个人资料。"
+            "value" : "离开应用 15 分钟后返回时也会询问。否则 Strimr 将打开上次使用的个人资料。"
           }
         }
       }
