@@ -59,6 +59,7 @@ struct DownloadRow: View {
     let isSpoilerProtected: Bool
     var isWaitingForWiFi = false
     var onUseCellular: (() -> Void)?
+    var onRetry: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -161,11 +162,31 @@ struct DownloadRow: View {
         case .completed:
             statusText("downloads.status.completed \(formattedBytes(item.metadata.fileSize ?? item.totalBytes))")
         case .failed:
-            Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
-                .font(.cardMetadata)
-                .foregroundStyle(.red)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
+                    .font(.cardMetadata)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+
+                if let onRetry {
+                    rowActionButton("common.actions.retry", systemImage: "arrow.clockwise", action: onRetry)
+                }
+            }
         }
+    }
+
+    private func rowActionButton(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        action: @escaping () -> Void,
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.cardMetadata)
+        }
+        .actionButtonStyle(.secondary)
+        .controlSize(.small)
+        .padding(.top, 4)
     }
 
     private var percent: Int {
@@ -198,15 +219,7 @@ struct DownloadRow: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if let onUseCellular {
-                Button(action: onUseCellular) {
-                    Label("downloads.action.cellular", systemImage: "cellularbars")
-                        .font(.cardMetadata.weight(.semibold))
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .controlSize(.small)
-                .tint(.textPrimary)
-                .padding(.top, 2)
+                rowActionButton("downloads.action.cellular", systemImage: "cellularbars", action: onUseCellular)
             }
         }
     }

@@ -1442,6 +1442,28 @@
         }
       }
     },
+    "downloads.status.serverError %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned an error (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur a renvoyé une erreur (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器返回错误（%lld）"
+          }
+        }
+      }
+    },
     "downloads.status.waitingForWiFi" : {
       "localizations" : {
         "en" : {

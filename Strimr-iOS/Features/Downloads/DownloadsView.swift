@@ -119,6 +119,15 @@ struct DownloadsView: View {
                     Label("common.actions.delete", systemImage: "trash")
                 }
             }
+            .swipeActions(edge: .leading) {
+                if downloadManager.canRetry(item) {
+                    Button {
+                        downloadManager.retry(item)
+                    } label: {
+                        Label("common.actions.retry", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
     }
 
     private func downloadRow(_ item: DownloadItem) -> some View {
@@ -128,6 +137,7 @@ struct DownloadsView: View {
             isSpoilerProtected: isSpoilerProtected(item),
             isWaitingForWiFi: isWaitingForWiFi(item),
             onUseCellular: { downloadUsingCellular = item },
+            onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,
         )
     }
 
