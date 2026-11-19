@@ -78,23 +78,11 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
                 else { continue }
                 let raw = dictionaries(container["Channel"] ?? container["Metadata"])
                 let parsed = raw.compactMap { item -> LiveTVChannel? in
-                    let providerID = string(item["key"] ?? item["ratingKey"] ?? item["identifier"] ?? item["id"])
-                    guard let providerID, !providerID.isEmpty else { return nil }
-                    if let enabled, !enabled.contains(providerID) {
+                    guard var channel = Self.channel(from: item, lineupID: provider.identifier, dvrID: dvrID)
+                    else { return nil }
+                    if let enabled, !enabled.contains(channel.providerID) {
                         return nil
                     }
-                    var channel = LiveTVChannel(
-                        providerID: providerID,
-                        title: string(item["title"] ?? item["callSign"]) ?? String(localized: "livetv.channel.unknown"),
-                        callSign: string(item["callSign"]),
-                        number: string(item["number"] ?? item["channelNumber"] ?? item["channelVcn"]),
-                        thumbPath: string(item["thumb"]),
-                        artPath: string(item["art"]),
-                        lineupID: provider.identifier,
-                        dvrID: dvrID,
-                        isHD: bool(item["hd"]) ?? false,
-                        isFavorite: false,
-                    )
                     channel.isFavorite = favoriteRank[favoriteKey(for: channel)] != nil
                     return channel
                 }
@@ -113,6 +101,23 @@ final class PlexLiveTVService: MediaLiveTVService, MediaDVRService {
             case (nil, nil): channelSort(lhs, rhs)
             }
         }
+    }
+
+    static func channel(from item: [String: Any], lineupID: String, dvrID: String) -> LiveTVChannel? {
+        let providerID = string(item["key"] ?? item["ratingKey"] ?? item["identifier"] ?? item["id"])
+        guard let providerID, !providerID.isEmpty else { return nil }
+        return LiveTVChannel(
+            providerID: providerID,
+            title: string(item["title"] ?? item["callSign"]) ?? String(localized: "livetv.channel.unknown"),
+            callSign: string(item["callSign"]),
+            number: string(item["vcn"] ?? item["number"] ?? item["channelNumber"] ?? item["channelVcn"]),
+            thumbPath: string(item["thumb"]),
+            artPath: string(item["art"]),
+            lineupID: lineupID,
+            dvrID: dvrID,
+            isHD: bool(item["isHd"] ?? item["hd"]) ?? false,
+            isFavorite: false,
+        )
     }
 
     func programs(from: Date, to: Date) async throws -> [LiveTVProgram] {
