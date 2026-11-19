@@ -38,7 +38,11 @@ struct SearchView: View {
             viewModel.submitSearch()
         }
         .taskPresentation(item: $selectedResult, style: .contextual) { result in
-            SearchServerSelectionView(result: result, onSelect: onSelectMedia)
+            MediaSourceSelectionView(
+                title: "search.serverSelection.title",
+                sources: result.sourcesByQuality,
+                onSelect: onSelectMedia,
+            )
         }
     }
 

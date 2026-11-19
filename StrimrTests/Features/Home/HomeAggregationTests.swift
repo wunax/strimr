@@ -72,6 +72,24 @@ struct HomeAggregationTests {
         #expect(row?.items.map(\.server) == [jellyfin])
     }
 
+    @Test func `continue watching keeps every copy of a merged title`() {
+        let ids = ExternalIDs(imdb: "tt1")
+        let homes = [
+            home(plex, rows: [continueWatching(on: plex, items: [
+                movie("hd", on: plex, date: 20, ids: ids),
+                movie("uhd", on: plex, date: 10, ids: ids),
+                movie("other", on: plex, date: 5),
+            ])]),
+        ]
+
+        let row = HomeAggregation.merge(homes, showsServerNames: false).first
+        let shown = MediaIdentity(server: plex, itemID: "hd")
+
+        #expect(row?.items.map(\.id) == ["hd", "other"])
+        #expect(row?.copies.keys.map(\.self) == [shown])
+        #expect(row?.copies[shown]?.map(\.id) == ["hd", "uhd"])
+    }
+
     @Test func `the copy last played on this device wins`() {
         let ids = ExternalIDs(tmdb: "5")
         let homes = [

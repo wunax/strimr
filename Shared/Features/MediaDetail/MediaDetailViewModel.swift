@@ -784,6 +784,10 @@ final class MediaDetailViewModel {
             let copies = await copyFinder.copies(of: item)
             guard !Task.isCancelled else { return }
             self?.copies = copies
+            guard !copies.isEmpty else { return }
+            let detailed = await copyFinder.withDetails(copies)
+            guard !Task.isCancelled else { return }
+            self?.copies = detailed
         }
     }
 

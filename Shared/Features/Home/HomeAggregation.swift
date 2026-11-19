@@ -81,12 +81,18 @@ enum HomeAggregation {
         let sources = homes.compactMap { home in home.rows.first { $0.kind == kind } }
         guard let first = sources.first else { return nil }
         let ordered = sortsByLastViewed ? sortedByLastViewed(sources.map(\.items)) : sources.flatMap(\.items)
+        var copies: [MediaIdentity: [MediaItem]] = [:]
         let items = MediaMatching.group(ordered) { matchDescriptor(of: $0) }.compactMap { group in
-            preferredCopy(in: group, localPlaybackDate: localPlaybackDate)
+            let preferred = preferredCopy(in: group, localPlaybackDate: localPlaybackDate)
+            let playable = group.compactMap(\.playableItem)
+            if kind == .continueWatching, playable.count > 1, let identity = preferred?.playableItem?.identity {
+                copies[identity] = playable
+            }
+            return preferred
         }
         guard !items.isEmpty else { return nil }
         let id = kind == .continueWatching ? HomeRow.continueWatchingID : HomeRow.nextUpID
-        return HomeRow(
+        var row = HomeRow(
             id: id,
             kind: kind,
             style: first.style,
@@ -100,6 +106,8 @@ enum HomeAggregation {
                 items: items,
             ),
         )
+        row.copies = copies
+        return row
     }
 
     /// The copy played most recently on this device wins, otherwise the most recent on its server (the group is
