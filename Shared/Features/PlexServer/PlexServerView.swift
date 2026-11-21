@@ -756,7 +756,7 @@
         private struct PlexHistoryTable: View {
             @Bindable var model: PlexDashboardViewModel
             let onSelect: (String) -> Void
-            @State private var selection = Set<PlexDashboardPlay.ID>()
+            @State private var selection: PlexDashboardPlay.ID?
 
             private var users: [PlexDashboardUser] {
                 model.selectableUsers.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
@@ -768,6 +768,10 @@
                         Picker("plex.dashboard.user", selection: $model.userID) {
                             Text("plex.dashboard.allUsers").tag("")
                             ForEach(users) { Text($0.name).tag($0.id) }
+                            // The active filter keeps its option even if the account drops out of the list.
+                            if !model.userID.isEmpty, !users.contains(where: { $0.id == model.userID }) {
+                                Text(model.userName(model.userID)).tag(model.userID)
+                            }
                         }.fixedSize()
                         Picker("plex.dashboard.library", selection: $model.libraryID) {
                             Text("plex.dashboard.allLibraries").tag("")
@@ -807,14 +811,25 @@
                         }
                         .width(min: 140, ideal: 170, max: 220)
                     }
-                    .contextMenu(forSelectionType: PlexDashboardPlay.ID.self) { _ in } primaryAction: { ids in
-                        guard let play = model.history.first(where: { ids.contains($0.id) }), play.canOpenDetail
-                        else { return }
-                        onSelect(play.ratingKey)
+                    .contextMenu(forSelectionType: PlexDashboardPlay.ID.self) { ids in
+                        if let play = openablePlay(ids) {
+                            Button("media.quickActions.showDetails") { onSelect(play.ratingKey) }
+                        }
+                    } primaryAction: { ids in
+                        if let play = openablePlay(ids) {
+                            onSelect(play.ratingKey)
+                        }
                     }
                     .overlay { emptyState }
                     footer
                 }
+            }
+
+            /// Only a single row opens, so a double-click never picks one of several selected rows at random.
+            private func openablePlay(_ ids: Set<PlexDashboardPlay.ID>) -> PlexDashboardPlay? {
+                guard ids.count == 1, let play = model.history.first(where: { ids.contains($0.id) }),
+                      play.canOpenDetail else { return nil }
+                return play
             }
 
             @ViewBuilder private var emptyState: some View {
@@ -835,8 +850,9 @@
 
             /// Paging stays an explicit action, as on iOS, so scrolling never starts a request on its own.
             @ViewBuilder private var footer: some View {
-                if !model.history.isEmpty,
-                   model.errors[.history] != nil || model.loading.contains(.history) || model.historyHasMore
+                // Load more stays reachable when a page had no usable rows but the server reports more.
+                if model.historyHasMore
+                    || (!model.history.isEmpty && (model.errors[.history] != nil || model.loading.contains(.history)))
                 {
                     Divider()
                     HStack(spacing: 12) {
@@ -859,7 +875,7 @@
         private struct PlexTopPlayedTable: View {
             @Bindable var model: PlexDashboardViewModel
             let onSelect: (String) -> Void
-            @State private var selection = Set<PlexDashboardTopTitle.ID>()
+            @State private var selection: PlexDashboardTopTitle.ID?
 
             var body: some View {
                 let titles = model.filteredTopTitles
@@ -913,10 +929,14 @@
                         }
                         .width(min: 120, ideal: 200)
                     }
-                    .contextMenu(forSelectionType: PlexDashboardTopTitle.ID.self) { _ in } primaryAction: { ids in
-                        guard let title = titles.first(where: { ids.contains($0.id) }),
-                              title.media.canOpenDetail, !title.media.groupKey.isEmpty else { return }
-                        onSelect(title.media.groupKey)
+                    .contextMenu(forSelectionType: PlexDashboardTopTitle.ID.self) { ids in
+                        if let key = openableKey(ids, in: titles) {
+                            Button("media.quickActions.showDetails") { onSelect(key) }
+                        }
+                    } primaryAction: { ids in
+                        if let key = openableKey(ids, in: titles) {
+                            onSelect(key)
+                        }
                     }
                     .overlay { emptyState(isEmpty: titles.isEmpty) }
                     Divider()
@@ -927,6 +947,15 @@
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
                 }
+            }
+
+            private func openableKey(
+                _ ids: Set<PlexDashboardTopTitle.ID>,
+                in titles: [PlexDashboardTopTitle],
+            ) -> String? {
+                guard ids.count == 1, let title = titles.first(where: { ids.contains($0.id) }),
+                      title.media.canOpenDetail, !title.media.groupKey.isEmpty else { return nil }
+                return title.media.groupKey
             }
 
             @ViewBuilder private func emptyState(isEmpty: Bool) -> some View {
