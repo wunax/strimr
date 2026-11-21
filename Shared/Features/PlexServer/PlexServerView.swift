@@ -180,9 +180,11 @@
                         if dynamicTypeSize.isAccessibilitySize {
                             tabPicker.pickerStyle(.menu)
                         } else {
-                            // The segmented control has its own background, so it sits on the page without a row card.
+                            // The segmented control has its own background, so it sits on the page as wide as the cards
+                            // below.
                             tabPicker.pickerStyle(.segmented)
                                 .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets())
                         }
                     } header: {
                         Text(serverName).textCase(nil)
