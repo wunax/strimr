@@ -66,6 +66,19 @@ enum SeerrMediaRequestAvailability {
         !requestableSeasons(media: media, is4k: is4k).isEmpty
     }
 
+    /// A movie that is already pending, approved, downloading or available cannot be requested again.
+    static func isMovieRequestable(
+        media: SeerrMedia,
+        is4k: Bool,
+    ) -> Bool {
+        switch is4k ? media.mediaInfo?.status4k : media.mediaInfo?.status {
+        case nil, .unknown, .deleted:
+            true
+        case .pending, .processing, .partiallyAvailable, .available, .blacklisted:
+            false
+        }
+    }
+
     static func pendingRequest(
         in media: SeerrMedia,
         for user: SeerrUser?,

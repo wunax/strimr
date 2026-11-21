@@ -370,7 +370,9 @@ final class SeerrMediaDetailViewModel {
 
         switch media.mediaType {
         case .movie:
-            return requestTypes.allSatisfy { isMediaAvailable(is4k: $0.is4k) }
+            return requestTypes.allSatisfy { type in
+                !SeerrMediaRequestAvailability.isMovieRequestable(media: media, is4k: type.is4k)
+            }
         case .tv:
             return requestTypes.allSatisfy { type in
                 let available = isMediaAvailable(is4k: type.is4k)
