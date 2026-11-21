@@ -715,7 +715,7 @@
                         PlexDashboardUserLabel(name: user, url: avatarURL)
                             .font(.subheadline).foregroundStyle(.secondary)
                         if !live, let date = play.viewedAt {
-                            Text(date, format: .dateTime.month(.abbreviated).day().hour().minute())
+                            Text(date, format: .dateTime.day().month(.abbreviated).year().hour().minute())
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
