@@ -347,7 +347,13 @@
                             }
                         }
 
-                        LazyVGrid(columns: Self.columns(minimum: 560), alignment: .leading, spacing: 28) {
+                        LazyVGrid(
+                            columns: model.topUsers.isEmpty
+                                ? [GridItem(.flexible(), alignment: .top)]
+                                : Self.columns(minimum: 560),
+                            alignment: .leading,
+                            spacing: 28,
+                        ) {
                             PlexDashboardMacSection("plex.dashboard.playHistory") {
                                 VStack(alignment: .leading, spacing: 12) {
                                     periodPicker.fixedSize()
@@ -739,7 +745,7 @@
 
             var body: some View {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(title).font(.headline)
+                    Text(title).font(.headline).accessibilityAddTraits(.isHeader)
                     content
                     footer.font(.caption).foregroundStyle(.secondary)
                 }
