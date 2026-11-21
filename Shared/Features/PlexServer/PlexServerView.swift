@@ -378,7 +378,8 @@
                 }
             }
 
-            /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum. The minimums
+            /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum. The
+            /// minimums
             /// keep the three charts and the history and top users pair on one row each at the 1600 pt content width.
             private static func columns(minimum: CGFloat) -> [GridItem] {
                 [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .top)]
@@ -745,9 +746,23 @@
             }
         }
 
+        /// The default macOS style lays label and value out like a form and centers them inside a card.
+        private struct PlexDashboardRowStyle: LabeledContentStyle {
+            func makeBody(configuration: Configuration) -> some View {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    configuration.label
+                    Spacer(minLength: 12)
+                    configuration.content
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+        }
+
         private extension View {
             func dashboardCard() -> some View {
-                padding(16)
+                labeledContentStyle(PlexDashboardRowStyle())
+                    .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quinary, in: .rect(cornerRadius: 12))
             }
