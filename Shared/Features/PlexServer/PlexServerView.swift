@@ -121,58 +121,80 @@
         }
 
         var body: some View {
-            List {
-                Section {
-                    if dynamicTypeSize.isAccessibilitySize {
-                        tabPicker.pickerStyle(.menu)
-                    } else {
-                        // The segmented control has its own background, so it sits on the page without a row card.
-                        tabPicker.pickerStyle(.segmented)
-                            .listRowBackground(Color.clear)
+            content
+                .task { await model.loadFilters() }
+                .toolbar {
+                    #if os(macOS)
+                        ToolbarItem(placement: .principal) {
+                            tabPicker.pickerStyle(.segmented).fixedSize()
+                        }
+                    #endif
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            Task { await refresh() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .accessibilityLabel("plex.dashboard.refresh")
+                        .disabled(isRefreshing)
                     }
-                } header: {
-                    Text(serverName).textCase(nil)
                 }
-                switch model.tab {
-                case .dashboard: dashboard
-                case .history: history
-                case .topPlayed: topPlayed
-                }
-            }
-            .insetListStyle()
-            .task { await model.loadFilters() }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task { await refresh() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
+            #if os(macOS)
+                .navigationSubtitle(serverName)
+            #endif
+                .task(id: isLive) {
+                    if isLive {
+                        await model.poll()
                     }
-                    .accessibilityLabel("plex.dashboard.refresh")
-                    .disabled(isRefreshing)
                 }
-            }
-            .task(id: isLive) {
-                if isLive {
-                    await model.poll()
+                .task(id: "\(model.tab.rawValue)|\(model.period.rawValue)") {
+                    switch model.tab {
+                    case .dashboard: await model.loadActivity()
+                    case .topPlayed: await model.loadRankings()
+                    case .history: break
+                    }
                 }
-            }
-            .task(id: "\(model.tab.rawValue)|\(model.period.rawValue)") {
+                .task(id: "\(model.tab.rawValue)|\(model.historyFilterID)") {
+                    if model.tab == .history {
+                        await model.loadHistory(reset: true)
+                    }
+                }
+                .refreshable { await refresh() }
+                .sheet(item: $stopTarget) { play in
+                    PlexStopPlaybackView(play: play, model: model)
+                }
+        }
+
+        /// macOS shows the dashboard as a page of cards and keeps the tab picker in the toolbar. History and Top
+        /// Played stay lists on both platforms.
+        @ViewBuilder private var content: some View {
+            #if os(macOS)
                 switch model.tab {
-                case .dashboard: await model.loadActivity()
-                case .topPlayed: await model.loadRankings()
-                case .history: break
+                case .dashboard: macDashboard
+                case .history: List { history }.insetListStyle()
+                case .topPlayed: List { topPlayed }.insetListStyle()
                 }
-            }
-            .task(id: "\(model.tab.rawValue)|\(model.historyFilterID)") {
-                if model.tab == .history {
-                    await model.loadHistory(reset: true)
+            #else
+                List {
+                    Section {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            tabPicker.pickerStyle(.menu)
+                        } else {
+                            // The segmented control has its own background, so it sits on the page without a row card.
+                            tabPicker.pickerStyle(.segmented)
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text(serverName).textCase(nil)
+                    }
+                    switch model.tab {
+                    case .dashboard: dashboard
+                    case .history: history
+                    case .topPlayed: topPlayed
+                    }
                 }
-            }
-            .refreshable { await refresh() }
-            .sheet(item: $stopTarget) { play in
-                PlexStopPlaybackView(play: play, model: model)
-            }
+                .insetListStyle()
+            #endif
         }
 
         private func refresh() async {
@@ -199,22 +221,14 @@
 
         @ViewBuilder private var dashboard: some View {
             Section {
-                if let error = model.errors[.sessions] {
-                    status(error, symbol: "wifi.exclamationmark")
-                } else if model.loading.contains(.sessions), model.updatedAt == nil {
-                    ProgressView()
-                } else if model.sessions.isEmpty {
-                    status(String(localized: "plex.dashboard.noStreams"), symbol: "play.rectangle")
-                } else {
+                if showsSessions {
                     ForEach(model.sessions) { play in
                         liveSession(play)
                     }
+                } else {
+                    sessionsStatus
                 }
-            } header: { Text("plex.dashboard.nowPlaying") } footer: {
-                if let updatedAt = model.updatedAt {
-                    Text("plex.dashboard.updated \(updatedAt.formatted(date: .omitted, time: .standard))")
-                }
-            }
+            } header: { Text("plex.dashboard.nowPlaying") } footer: { updatedFooter }
 
             metric(
                 "plex.dashboard.bandwidth",
@@ -228,16 +242,7 @@
 
             Section {
                 periodPicker
-                if let error = model.errors[.activity] {
-                    status(error, symbol: "chart.bar.xaxis")
-                } else if model.loading.contains(.activity) {
-                    ProgressView()
-                } else if model.activity.isEmpty {
-                    status(String(localized: "plex.dashboard.noActivity"), symbol: "chart.bar.xaxis")
-                } else {
-                    PlexActivityChart(points: model.activityPoints)
-                        .padding(.vertical, 8)
-                }
+                activityContent
             } header: { Text("plex.dashboard.playHistory") } footer: {
                 Text("plex.dashboard.recordedTime")
             }
@@ -245,30 +250,139 @@
             if !model.topUsers.isEmpty {
                 Section("plex.dashboard.topUsers") {
                     ForEach(model.topUsers) { user in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                PlexDashboardUserLabel(name: model.userName(user.id), url: model.userAvatar(user.id))
-                                    .font(.headline)
-                                Spacer()
-                                Text(PlexDashboardFormatting.duration(user.duration))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text("plex.dashboard.plays \(user.plays)").font(.subheadline).foregroundStyle(.secondary)
-                            ForEach(
-                                PlexDashboardMediaKind.allCases.filter { (user.breakdown[$0] ?? 0) > 0 },
-                                id: \.self,
-                            ) { kind in
-                                LabeledContent {
-                                    Text(PlexDashboardFormatting.duration(user.breakdown[kind] ?? 0))
-                                } label: { Label(kind.title, systemImage: kind.symbol) }
-                                    .font(.subheadline)
-                            }
-                        }.padding(.vertical, 6)
+                        topUserRow(user)
                     }
                 }
             }
             filterError
         }
+
+        @ViewBuilder private var activityContent: some View {
+            if let error = model.errors[.activity] {
+                status(error, symbol: "chart.bar.xaxis")
+            } else if model.loading.contains(.activity) {
+                ProgressView()
+            } else if model.activity.isEmpty {
+                status(String(localized: "plex.dashboard.noActivity"), symbol: "chart.bar.xaxis")
+            } else {
+                PlexActivityChart(points: model.activityPoints)
+                    .padding(.vertical, 8)
+            }
+        }
+
+        @ViewBuilder private var sessionsStatus: some View {
+            if let error = model.errors[.sessions] {
+                status(error, symbol: "wifi.exclamationmark")
+            } else if model.loading.contains(.sessions), model.updatedAt == nil {
+                ProgressView()
+            } else if model.sessions.isEmpty {
+                status(String(localized: "plex.dashboard.noStreams"), symbol: "play.rectangle")
+            }
+        }
+
+        private var showsSessions: Bool {
+            model.errors[.sessions] == nil && !model.sessions.isEmpty
+        }
+
+        @ViewBuilder private var updatedFooter: some View {
+            if let updatedAt = model.updatedAt {
+                Text("plex.dashboard.updated \(updatedAt.formatted(date: .omitted, time: .standard))")
+            }
+        }
+
+        private func topUserRow(_ user: PlexDashboardTopUser) -> some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    PlexDashboardUserLabel(name: model.userName(user.id), url: model.userAvatar(user.id))
+                        .font(.headline)
+                    Spacer()
+                    Text(PlexDashboardFormatting.duration(user.duration))
+                        .foregroundStyle(.secondary)
+                }
+                Text("plex.dashboard.plays \(user.plays)").font(.subheadline).foregroundStyle(.secondary)
+                ForEach(
+                    PlexDashboardMediaKind.allCases.filter { (user.breakdown[$0] ?? 0) > 0 },
+                    id: \.self,
+                ) { kind in
+                    LabeledContent {
+                        Text(PlexDashboardFormatting.duration(user.breakdown[kind] ?? 0))
+                    } label: { Label(kind.title, systemImage: kind.symbol) }
+                        .font(.subheadline)
+                }
+            }.padding(.vertical, 6)
+        }
+
+        #if os(macOS)
+            private var macDashboard: some View {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        PlexDashboardMacSection("plex.dashboard.nowPlaying") {
+                            if showsSessions {
+                                LazyVGrid(columns: Self.columns(minimum: 340), alignment: .leading, spacing: 16) {
+                                    ForEach(model.sessions) { play in
+                                        liveSession(play).dashboardCard()
+                                    }
+                                }
+                            } else {
+                                sessionsStatus.dashboardCard()
+                            }
+                        } footer: { updatedFooter }
+
+                        LazyVGrid(columns: Self.columns(minimum: 300), alignment: .leading, spacing: 28) {
+                            PlexDashboardMacSection("plex.dashboard.bandwidth") {
+                                metricContent(
+                                    points: model.bandwidth,
+                                    unit: "Mbps",
+                                    errorKey: .bandwidth,
+                                    percentage: false,
+                                ).dashboardCard()
+                            }
+                            PlexDashboardMacSection("plex.dashboard.cpu") {
+                                metricContent(points: model.cpu, unit: "%", errorKey: .resources, percentage: true)
+                                    .dashboardCard()
+                            }
+                            PlexDashboardMacSection("plex.dashboard.memory") {
+                                metricContent(points: model.memory, unit: "%", errorKey: .resources, percentage: true)
+                                    .dashboardCard()
+                            }
+                        }
+
+                        LazyVGrid(columns: Self.columns(minimum: 420), alignment: .leading, spacing: 28) {
+                            PlexDashboardMacSection("plex.dashboard.playHistory") {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    periodPicker.fixedSize()
+                                    activityContent
+                                }.dashboardCard()
+                            } footer: { Text("plex.dashboard.recordedTime") }
+                            if !model.topUsers.isEmpty {
+                                PlexDashboardMacSection("plex.dashboard.topUsers") {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        ForEach(Array(model.topUsers.enumerated()), id: \.element.id) { index, user in
+                                            if index > 0 {
+                                                Divider()
+                                            }
+                                            topUserRow(user)
+                                        }
+                                    }.dashboardCard()
+                                }
+                            }
+                        }
+
+                        if model.errors[.users] != nil || model.errors[.libraries] != nil {
+                            Text("plex.dashboard.filtersUnavailable").font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: 1600, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+
+            /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum.
+            private static func columns(minimum: CGFloat) -> [GridItem] {
+                [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .top)]
+            }
+        #endif
 
         private func liveSession(_ play: PlexDashboardPlay) -> some View {
             VStack(alignment: .leading, spacing: 12) {
@@ -424,17 +538,26 @@
             percentage: Bool,
         ) -> some View {
             Section {
-                if let error = model.errors[errorKey] {
-                    status(error, symbol: "chart.xyaxis.line")
-                } else if model.loading.contains(errorKey), model.updatedAt == nil {
-                    ProgressView()
-                } else if points.isEmpty {
-                    status(String(localized: "plex.dashboard.noSamples"), symbol: "chart.xyaxis.line")
-                } else {
-                    PlexMetricChart(points: points, unit: unit, percentage: percentage)
-                        .padding(.vertical, 8)
-                }
+                metricContent(points: points, unit: unit, errorKey: errorKey, percentage: percentage)
             } header: { Text(title) }
+        }
+
+        @ViewBuilder private func metricContent(
+            points: [PlexDashboardPoint],
+            unit: String,
+            errorKey: PlexDashboardLoad,
+            percentage: Bool,
+        ) -> some View {
+            if let error = model.errors[errorKey] {
+                status(error, symbol: "chart.xyaxis.line")
+            } else if model.loading.contains(errorKey), model.updatedAt == nil {
+                ProgressView()
+            } else if points.isEmpty {
+                status(String(localized: "plex.dashboard.noSamples"), symbol: "chart.xyaxis.line")
+            } else {
+                PlexMetricChart(points: points, unit: unit, percentage: percentage)
+                    .padding(.vertical, 8)
+            }
         }
 
         private func status(_ message: String, symbol: String) -> some View {
@@ -594,6 +717,41 @@
             PlexDashboardFormatting.decision(play.decision) ?? String(localized: "plex.dashboard.directPlay")
         }
     }
+
+    #if os(macOS)
+        /// A titled group of cards on the macOS dashboard, with the same header and footer text as the iOS list.
+        private struct PlexDashboardMacSection<Content: View, Footer: View>: View {
+            let title: LocalizedStringKey
+            let content: Content
+            let footer: Footer
+
+            init(
+                _ title: LocalizedStringKey,
+                @ViewBuilder content: () -> Content,
+                @ViewBuilder footer: () -> Footer = { EmptyView() },
+            ) {
+                self.title = title
+                self.content = content()
+                self.footer = footer()
+            }
+
+            var body: some View {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(title).font(.headline)
+                    content
+                    footer.font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        private extension View {
+            func dashboardCard() -> some View {
+                padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.quinary, in: .rect(cornerRadius: 12))
+            }
+        }
+    #endif
 
     private struct PlexDashboardPoster: View {
         let path: String?
