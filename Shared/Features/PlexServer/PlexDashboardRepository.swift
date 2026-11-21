@@ -90,6 +90,10 @@
             request.setValue("application/xml", forHTTPHeaderField: "Accept")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else { throw PlexAPIError.invalidResponse }
+            // An account without access to the shared users list simply keeps the server's own avatars.
+            if [401, 403].contains(response.statusCode) {
+                return []
+            }
             guard response.statusCode == 200 else { throw PlexAPIError.requestFailed(statusCode: response.statusCode) }
             try Task.checkCancellation()
             return PlexDashboardAvatarParser.profiles(from: data)
