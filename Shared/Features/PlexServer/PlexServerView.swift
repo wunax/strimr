@@ -25,7 +25,8 @@
                     ) { key in
                         openDetail(key, on: server.identity)
                     }
-                    .id("\(registry.generation)|\(server.identity.id)")
+                    // A reconnect can replace the context without a new generation, e.g. after a custom address.
+                    .id("\(registry.generation)|\(server.identity.id)|\(ObjectIdentifier(context).hashValue)")
                 } else {
                     ContentUnavailableView {
                         Label("plex.dashboard.unavailable.title", systemImage: "server.rack")
