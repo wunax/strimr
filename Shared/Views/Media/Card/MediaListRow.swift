@@ -153,7 +153,7 @@ struct MediaListRow: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(media.title)
+            Text(media.displayTitle(spoilerProtection: settingsManager.interface.spoilerProtection))
                 .font(.rowTitle)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(2)

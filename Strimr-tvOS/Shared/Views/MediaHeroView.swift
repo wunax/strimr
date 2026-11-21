@@ -136,7 +136,8 @@ private struct MediaHeroDetailsView: View {
             }
 
             if let secondary = media.secondaryLabel, media.type != .movie, media.type != .series {
-                Text(secondary)
+                Text(media.type == .episode ? media
+                    .spoilerSafeTitle(at: settingsManager.interface.spoilerProtection) : secondary)
                     .font(.facts.weight(.semibold))
                     .foregroundStyle(.textPrimary)
                     .lineLimit(1)

@@ -74,7 +74,7 @@ struct MediaDetailView: View {
                 .padding(.bottom, 32)
             }
         }
-        .navigationTitle(viewModel.detailPrimaryLabel)
+        .navigationTitle(viewModel.detailPrimaryLabel(spoilerProtection: settingsManager.interface.spoilerProtection))
         .task { await viewModel.loadDetailsIfNeeded() }
         .onChange(of: mediaServices.mediaRevision) {
             guard !viewModel.wasDeleted else {

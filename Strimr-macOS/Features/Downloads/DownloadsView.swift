@@ -85,6 +85,8 @@ struct DownloadsView: View {
     private func downloadRow(_ item: DownloadItem) -> some View {
         DownloadRow(
             item: item,
+            title: downloadManager.localMediaItem(for: item)
+                .spoilerSafeTitle(at: settingsManager.interface.spoilerProtection),
             posterURL: downloadManager.localPosterURL(for: item),
             isSpoilerProtected: isSpoilerProtected(item),
             onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,

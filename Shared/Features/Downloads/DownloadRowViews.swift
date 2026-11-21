@@ -55,6 +55,7 @@ struct DownloadsOfflineBanner: View {
 
 struct DownloadRow: View {
     let item: DownloadItem
+    let title: String
     let posterURL: URL?
     let isSpoilerProtected: Bool
     var isWaitingForWiFi = false
@@ -74,7 +75,7 @@ struct DownloadRow: View {
                 }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.metadata.title)
+                Text(title)
                     .font(.cardTitle)
                     .foregroundStyle(.textPrimary)
                     .lineLimit(2)
