@@ -58,6 +58,13 @@ struct MediaDisplayItemListMetadataTests {
         #expect(episode.displayTitle(spoilerProtection: .full) == String(localized: "media.labels.episodeNumber \(3)"))
     }
 
+    @Test func `card captions of a hidden episode title without a season keep the episode number`() {
+        let episode = makeMedia(type: .episode, index: 3)
+
+        #expect(episode.cardSecondaryLabel(remainingTime: nil, spoilerProtection: .full)
+            == String(localized: "media.labels.episodeNumber \(3)"))
+    }
+
     @Test func `season and episode subtitles name the edition`() {
         let season = makeMedia(type: .season, editionTitle: "Black and White")
         let episode = makeMedia(

@@ -39,7 +39,7 @@ extension MediaDisplayItem {
         if item.type == .episode {
             // A hidden title leaves the episode number on its line instead of repeating it below.
             return item.shouldHideSpoilerSummary(at: spoilerProtection)
-                ? Self.joined(tertiaryLabel, item.editionTitle)
+                ? Self.joined(tertiaryLabel ?? item.spoilerSafeTitle(at: spoilerProtection), item.editionTitle)
                 : secondaryLabel
         }
         if let remainingTime {
