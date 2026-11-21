@@ -3,6 +3,7 @@ import SwiftUI
 /// A playlist position: its number, a 16:9 image and what is playing there.
 struct PlaylistEntryRow: View {
     @Environment(ServerRegistry.self) private var registry
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     @Environment(\.horizontalSizeClass) private var sizeClass
     #if os(tvOS)
@@ -92,7 +93,7 @@ struct PlaylistEntryRow: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(media.title)
+            Text(media.displayTitle(spoilerProtection: settingsManager.interface.spoilerProtection))
                 .font(.rowTitle)
                 .foregroundStyle(.textPrimary)
                 .lineLimit(2)

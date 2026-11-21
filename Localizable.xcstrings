@@ -10828,6 +10828,28 @@
         }
       }
     },
+    "media.labels.episodeNumber %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épisode %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%lld集"
+          }
+        }
+      }
+    },
     "media.labels.episodeWithTitle %@ %@" : {
       "localizations" : {
         "en" : {
@@ -12820,6 +12842,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为避免剧透，已隐藏剧情简介"
+          }
+        }
+      }
+    },
+    "media.spoilerProtection.titleHidden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title hidden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre masqué"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题已隐藏"
           }
         }
       }
@@ -24332,19 +24376,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hide artwork or summaries for episodes you haven’t watched."
+            "value" : "Hide artwork, or also titles and summaries, for episodes you haven’t watched."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Masquez les illustrations ou les résumés des épisodes que vous n’avez pas regardés."
+            "value" : "Masquez les illustrations, ou aussi les titres et les résumés, des épisodes que vous n’avez pas regardés."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏尚未观看剧集的图片或剧情简介。"
+            "value" : "隐藏未观看剧集的图片，或同时隐藏标题和剧情简介。"
           }
         }
       }

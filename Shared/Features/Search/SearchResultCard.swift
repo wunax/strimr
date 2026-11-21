@@ -292,7 +292,7 @@ private extension SearchResultCard {
             media.cardSecondaryLabel(remainingTime: nil) ?? media.title
         case .episode:
             media.cardTertiaryLabel(remainingTime: nil)
-                ?? media.secondaryLabel
+                ?? media.playableItem?.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection)
                 ?? media.playableItem?.parentTitle
                 ?? String(localized: "search.fallback.episode")
         case .clip:

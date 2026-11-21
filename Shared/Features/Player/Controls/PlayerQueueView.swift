@@ -210,6 +210,7 @@ struct PlayerQueueView: View {
 
 @MainActor
 struct PlayerQueueItemView: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let item: PlaybackQueueItem
     let position: Int
     let totalCount: Int
@@ -248,9 +249,14 @@ struct PlayerQueueItemView: View {
 
     private var accessibilityTitle: String {
         if media.type == .episode {
-            return "\(media.primaryLabel), \(media.title)"
+            return "\(media.primaryLabel), \(episodeTitle)"
         }
         return media.primaryLabel
+    }
+
+    /// The playing episode keeps its title; the ones ahead may hide it against spoilers.
+    private var episodeTitle: String {
+        isCurrent ? media.title : media.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection)
     }
 
     var body: some View {
@@ -297,7 +303,7 @@ struct PlayerQueueItemView: View {
                     .foregroundStyle(.textSecondary)
                     .lineLimit(1)
 
-                Text(media.title)
+                Text(episodeTitle)
                     .font(.cardTitle)
                     .lineLimit(2)
 
