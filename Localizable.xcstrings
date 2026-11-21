@@ -1088,19 +1088,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Some user or library information could not be loaded. Pull down to retry."
+            "value" : "Some user or library information could not be loaded. Refresh to retry."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Certaines informations sur les utilisateurs ou bibliothèques sont indisponibles. Tirez vers le bas pour réessayer."
+            "value" : "Certaines informations sur les utilisateurs ou bibliothèques sont indisponibles. Actualisez pour réessayer."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "部分用户或媒体库信息无法加载。下拉即可重试。"
+            "value" : "部分用户或媒体库信息无法加载。刷新即可重试。"
           }
         }
       }

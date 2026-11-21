@@ -44,7 +44,7 @@
 
         func resolvedUsers(_ users: [PlexDashboardUser]) async -> [PlexDashboardUser] {
             async let home = try? UserRepository(context: context).getHomeUsers()
-            async let shared = try? sharedUserAvatars()
+            async let shared = sharedUserAvatarsReportingFailures()
             let homeProfiles = await home?.users.map {
                 PlexDashboardAvatarProfile(
                     id: $0.id.map(String.init),
@@ -52,7 +52,7 @@
                     thumb: $0.thumb?.absoluteString,
                 )
             } ?? []
-            let profiles = await homeProfiles + (shared ?? [])
+            let profiles = await homeProfiles + shared
             return users.map { user in
                 let exact = profiles.first { $0.id == user.id }
                 let named = profiles
@@ -70,6 +70,17 @@
             }
         }
 
+        /// Avatars only fill in names and pictures, so a failure leaves the server's own list in place, but it is
+        /// still reported: this request bypasses the Plex network clients that report their own failures.
+        private func sharedUserAvatarsReportingFailures() async -> [PlexDashboardAvatarProfile] {
+            do {
+                return try await sharedUserAvatars()
+            } catch {
+                ErrorReporter.capture(error)
+                return []
+            }
+        }
+
         private func sharedUserAvatars() async throws -> [PlexDashboardAvatarProfile] {
             guard let token = context.authTokenCloud else { return [] }
             var request = URLRequest(url: URL(string: "https://plex.tv/api/users")!)
@@ -78,7 +89,8 @@
             request.setValue(context.clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
             request.setValue("application/xml", forHTTPHeaderField: "Accept")
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { return [] }
+            guard let response = response as? HTTPURLResponse else { throw PlexAPIError.invalidResponse }
+            guard response.statusCode == 200 else { throw PlexAPIError.requestFailed(statusCode: response.statusCode) }
             try Task.checkCancellation()
             return PlexDashboardAvatarParser.profiles(from: data)
         }
@@ -215,7 +227,10 @@
             headers: [String: String] = [:],
         ) async throws -> [String: Any] {
             let result = try await network.json(path: path, queryItems: query, headers: headers)
-            guard let container = result["MediaContainer"] as? [String: Any] else { throw PlexAPIError.invalidResponse }
+            guard let container = result["MediaContainer"] as? [String: Any] else {
+                ErrorReporter.capture(PlexAPIError.invalidResponse)
+                throw PlexAPIError.invalidResponse
+            }
             return container
         }
 
