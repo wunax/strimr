@@ -385,9 +385,9 @@
             private var macTopPlayed: some View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        HStack(spacing: 24) {
-                            periodPicker.fixedSize()
-                            mediaTypePicker.fixedSize()
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 24) { topPlayedFilters }
+                            VStack(alignment: .leading, spacing: 12) { topPlayedFilters }
                         }
                         if model.rankingsIncomplete {
                             Text("plex.dashboard.rankingsLimited").font(.callout).foregroundStyle(.secondary)
@@ -405,6 +405,11 @@
                     }
                     .dashboardPage()
                 }
+            }
+
+            @ViewBuilder private var topPlayedFilters: some View {
+                periodPicker.fixedSize()
+                mediaTypePicker.fixedSize()
             }
 
             /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum. The
