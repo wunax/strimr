@@ -70,9 +70,15 @@
                     Button("common.actions.close", role: .cancel) { detailError = nil }
                 } message: { Text(detailError ?? "") }
                 .onDisappear { detailTask?.cancel() }
+                // A title from the previous server must not open after switching to another one.
+                .onChange(of: server?.identity) {
+                    detailTask?.cancel()
+                    detailTask = nil
+                }
         }
 
-        /// Only the latest tap opens a detail page, and nothing opens once the dashboard is gone.
+        /// Only the latest tap on the selected server opens a detail page, and nothing opens once the dashboard is
+        /// gone.
         private func openDetail(_ key: String, on server: ServerIdentity) {
             guard !key.isEmpty, let services = registry.services(for: server) else { return }
             detailTask?.cancel()
@@ -80,7 +86,8 @@
             detailTask = Task {
                 do {
                     let media = try await services.detail.mediaItem(id: key)
-                    guard !Task.isCancelled, generation == registry.generation else { return }
+                    guard !Task.isCancelled, generation == registry.generation, self.server?.identity == server
+                    else { return }
                     onSelectMedia(media)
                 } catch {
                     guard !Task.isCancelled else { return }
@@ -483,11 +490,12 @@
                     Button("common.actions.retry") { Task { await model.loadHistory(reset: model.history.isEmpty) } }
                 } else if model.loading.contains(.history) {
                     ProgressView().frame(maxWidth: .infinity)
-                } else if model.history.isEmpty {
-                    status(String(localized: "plex.dashboard.noHistory"), symbol: "clock")
                 } else if model.historyHasMore {
+                    // A page can hold no usable rows while later pages still do.
                     Button("plex.dashboard.loadMore") { Task { await model.loadHistory(reset: false) } }
                         .frame(maxWidth: .infinity)
+                } else if model.history.isEmpty {
+                    status(String(localized: "plex.dashboard.noHistory"), symbol: "clock")
                 }
             }
         }
