@@ -22,6 +22,7 @@ final class AppModel: PlaybackPresenting {
         case liveTV
         case library(LibraryIdentity)
         case settings
+        case plexServer
 
         var id: String {
             switch self {
@@ -34,6 +35,7 @@ final class AppModel: PlaybackPresenting {
             case .liveTV: "liveTV"
             case let .library(identity): "library-\(identity.stableKey)"
             case .settings: "settings"
+            case .plexServer: "plexServer"
             }
         }
     }
