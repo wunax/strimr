@@ -328,7 +328,7 @@
                             }
                         } footer: { updatedFooter }
 
-                        LazyVGrid(columns: Self.columns(minimum: 300), alignment: .leading, spacing: 28) {
+                        LazyVGrid(columns: Self.columns(minimum: 400), alignment: .leading, spacing: 28) {
                             PlexDashboardMacSection("plex.dashboard.bandwidth") {
                                 metricContent(
                                     points: model.bandwidth,
@@ -347,7 +347,7 @@
                             }
                         }
 
-                        LazyVGrid(columns: Self.columns(minimum: 420), alignment: .leading, spacing: 28) {
+                        LazyVGrid(columns: Self.columns(minimum: 560), alignment: .leading, spacing: 28) {
                             PlexDashboardMacSection("plex.dashboard.playHistory") {
                                 VStack(alignment: .leading, spacing: 12) {
                                     periodPicker.fixedSize()
@@ -378,7 +378,8 @@
                 }
             }
 
-            /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum.
+            /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum. The minimums
+            /// keep the three charts and the history and top users pair on one row each at the 1600 pt content width.
             private static func columns(minimum: CGFloat) -> [GridItem] {
                 [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .top)]
             }
