@@ -186,12 +186,12 @@ struct SeerrMediaRequestSheetView: View {
                 Text("seerr.request.seasons.empty")
                     .foregroundStyle(.textSecondary)
             } else {
-                ForEach(viewModel.seasons, id: \.id) { season in
+                ForEach(viewModel.seasons, id: \.seasonNumber) { season in
                     if let seasonNumber = season.seasonNumber {
                         Toggle(isOn: seasonSelectionBinding(for: seasonNumber)) {
                             HStack(alignment: .center, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(viewModel.seasonTitle(for: season))
+                                    Text(season.displayTitle)
                                         .font(.cardTitle)
                                         .foregroundStyle(.textPrimary)
                                     Text(seasonEpisodeCountText(season))
@@ -278,17 +278,5 @@ struct SeerrMediaRequestSheetView: View {
         Task {
             await viewModel.submitRequest()
         }
-    }
-}
-
-private extension SeerrMediaRequestViewModel {
-    func seasonTitle(for season: SeerrSeason) -> String {
-        if let name = season.name, !name.isEmpty {
-            return name
-        }
-        if let number = season.seasonNumber {
-            return String(localized: "media.detail.season") + " \(number)"
-        }
-        return String(localized: "media.detail.season")
     }
 }

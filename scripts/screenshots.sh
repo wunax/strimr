@@ -14,7 +14,6 @@ DERIVED="$REPO/build/DerivedData"
 PACKAGES="$HOME/Library/Caches/Strimr/SourcePackages"
 
 PLATFORM="all"
-DUO_UDID="823A013B-550E-481C-B099-F499EA778CF4"
 LANGUAGES="en"
 DELAY=6
 SKIP_BUILD=0
@@ -144,19 +143,18 @@ if wants iphone || wants ipad || wants duo; then
     build Strimr "generic/platform=iOS Simulator"
 fi
 if wants iphone; then
-    capture iphone iphone "$(simulator_udid "iPhone 18 Pro Max" "iOS-27-0")" "$IOS_APP" "${IOS_SHOTS[@]}"
+    capture iphone iphone "$(simulator_udid "iPhone 18 Pro Max" "iOS-27-2")" "$IOS_APP" "${IOS_SHOTS[@]}"
 fi
 if wants ipad; then
-    capture ipad ipad "$(simulator_udid "iPad Pro 13-inch (M5)" "iOS-27-0")" "$IOS_APP" "${IPAD_SHOTS[@]}"
+    capture ipad ipad "$(simulator_udid "iPad Pro 13-inch (M5)" "iOS-27-2")" "$IOS_APP" "${IPAD_SHOTS[@]}"
 fi
 if wants duo; then
-    # Two simulators are named iPhone Duo: AGENTS.md pins this one by id.
-    capture iphone-duo iphone_duo "$DUO_UDID" "$IOS_APP" "${IOS_SHOTS[@]}"
+    capture iphone-duo iphone_duo "$(simulator_udid "iPhone Duo" "iOS-27-2-iPhone19-4")" "$IOS_APP" "${IOS_SHOTS[@]}"
 fi
 
 if wants tvos; then
     build Strimr-tvOS "generic/platform=tvOS Simulator" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
-    capture appletv appletv "$(simulator_udid "Apple TV 4K (3rd generation)" "tvOS-27-0")" \
+    capture appletv appletv "$(simulator_udid "Apple TV 4K (4th generation)" "tvOS-27-2")" \
         "$DERIVED/Build/Products/Debug-appletvsimulator/Strimr-tvOS.app" "${TVOS_SHOTS[@]}"
 fi
 

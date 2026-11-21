@@ -8,7 +8,6 @@ struct SeerrEpisodeCardView: View {
     let airDateText: String?
     #if !os(macOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-        @State private var rowWidth: CGFloat = 0
 
         private var isRegularWidth: Bool {
             #if os(tvOS)
@@ -34,8 +33,10 @@ struct SeerrEpisodeCardView: View {
         #else
             Group {
                 if isRegularWidth {
-                    HStack(alignment: .top, spacing: 16) {
-                        SeerrEpisodeArtworkView(imageURL: imageURL, width: rowWidth / 3)
+                    EpisodeRowLayout {
+                        GeometryReader { proxy in
+                            SeerrEpisodeArtworkView(imageURL: imageURL, width: proxy.size.width)
+                        }
                         caption
                     }
                 } else {
@@ -51,7 +52,6 @@ struct SeerrEpisodeCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .padding(.vertical, 12)
         #endif
     }

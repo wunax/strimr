@@ -26,9 +26,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build-number:
+    runs-on: xcode-27
+    timeout-minutes: 10
+    outputs:
+      build_number: ${{ steps.resolve.outputs.build_number }}
+    env:
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      FASTLANE_APP_IDENTIFIER: ${{ secrets.FASTLANE_APP_IDENTIFIER }}
+      TESTFLIGHT_BUILD_NUMBER: ${{ inputs.build_number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: Resolve build number
+        id: resolve
+        run: bundle exec fastlane ios resolve_build_number
+
   deploy:
+    name: deploy (${{ matrix.platform }})
+    needs: build-number
     runs-on: xcode-27
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platform == 'all' && '["ios","tvos","macos"]' || format('["{0}"]', inputs.platform)) }}
     env:
       APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
       APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
@@ -41,7 +73,7 @@ jobs:
       SENTRY_IOS_PROJECT_SLUG: ${{ secrets.SENTRY_IOS_PROJECT_SLUG }}
       SENTRY_TVOS_PROJECT_SLUG: ${{ secrets.SENTRY_TVOS_PROJECT_SLUG }}
       SENTRY_MACOS_PROJECT_SLUG: ${{ secrets.SENTRY_MACOS_PROJECT_SLUG }}
-      TESTFLIGHT_BUILD_NUMBER: ${{ inputs.build_number }}
+      TESTFLIGHT_BUILD_NUMBER: ${{ needs.build-number.outputs.build_number }}
 
     steps:
       - name: Checkout
@@ -67,18 +99,5 @@ jobs:
           chmod 600 "$match_key_path"
           printf 'MATCH_GIT_PRIVATE_KEY=%s\n' "$match_key_path" >> "$GITHUB_ENV"
 
-      - name: Deploy iOS, tvOS, and macOS
-        if: inputs.platform == 'all'
-        run: bundle exec fastlane ios beta
-
-      - name: Deploy iOS
-        if: inputs.platform == 'ios'
-        run: bundle exec fastlane ios ios_beta
-
-      - name: Deploy tvOS
-        if: inputs.platform == 'tvos'
-        run: bundle exec fastlane ios tvos_beta
-
-      - name: Deploy macOS
-        if: inputs.platform == 'macos'
-        run: bundle exec fastlane ios macos_beta
+      - name: Deploy ${{ matrix.platform }}
+        run: bundle exec fastlane ios ${{ matrix.platform }}_beta

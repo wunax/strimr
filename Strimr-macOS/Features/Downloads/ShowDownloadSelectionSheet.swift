@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let services: MediaServices
     let defaultQuality: TranscodeQualityPreset
@@ -114,10 +115,12 @@ struct ShowDownloadSelectionSheet: View {
                         ?? String(localized: "downloads.sheet.episodeUnknown"))
                         .font(.cardTitle)
                         .foregroundStyle(.textPrimary)
-                    Text(episode.title)
-                        .font(.cardMetadata)
-                        .foregroundStyle(.textSecondary)
-                        .lineLimit(1)
+                    if !episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                        Text(episode.title)
+                            .font(.cardMetadata)
+                            .foregroundStyle(.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
                 if downloaded {

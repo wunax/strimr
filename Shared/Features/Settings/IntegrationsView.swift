@@ -17,7 +17,7 @@ struct IntegrationsView: View {
                 )
             }
 
-            ForEach(TrackerService.available) { service in
+            ForEach(TrackerService.allCases) { service in
                 NavigationLink {
                     TrackerSettingsView(service: service)
                 } label: {

@@ -65,6 +65,24 @@ nonisolated extension KeyedDecodingContainer {
     func decodeLossyArrayIfPresent<Element: Decodable>(_: Element.Type, forKey key: Key) throws -> [Element]? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
 
+        let (elements, firstError) = try decodeValidElements(Element.self, forKey: key)
+        if let firstError {
+            Task { @MainActor in ErrorReporter.capture(firstError) }
+        }
+        return elements
+    }
+
+    /// Like `decodeLossyArrayIfPresent`, without reporting: for secondary arrays inside an item (images, tags,
+    /// markers), where Plex lookalike servers often send partial entries on every request.
+    func decodeCompactArrayIfPresent<Element: Decodable>(_: Element.Type, forKey key: Key) -> [Element]? {
+        guard contains(key), (try? decodeNil(forKey: key)) == false else { return nil }
+        return try? decodeValidElements(Element.self, forKey: key).elements
+    }
+
+    private func decodeValidElements<Element: Decodable>(
+        _: Element.Type,
+        forKey key: Key,
+    ) throws -> (elements: [Element], firstError: Error?) {
         var container = try nestedUnkeyedContainer(forKey: key)
         var elements: [Element] = []
         var firstError: Error?
@@ -76,11 +94,7 @@ nonisolated extension KeyedDecodingContainer {
                 _ = try container.decode(SkippedElement.self)
             }
         }
-
-        if let firstError {
-            Task { @MainActor in ErrorReporter.capture(firstError) }
-        }
-        return elements
+        return (elements, firstError)
     }
 }
 

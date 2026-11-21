@@ -19,6 +19,24 @@ struct MediaCopyFinderTests {
         #expect(MediaCopy.sorted(copies).map(\.media.id) == ["uhd", "hd-a1", "hd-b", "hd-a2", "sd"])
     }
 
+    @Test func `copy details describe the best version`() {
+        let details = MediaCopyDetails(libraryID: "1", versions: [
+            .make(id: "hd", height: 1080, codec: "h264"),
+            .make(id: "dv", height: 2160, codec: "hevc", dynamicRange: "Dolby Vision"),
+            .make(id: "missing", height: 4320, isAvailable: false),
+        ])
+
+        #expect(details.qualityLabel == "4K DV")
+    }
+
+    @Test func `the higher bitrate wins between versions of one resolution`() {
+        let encode = MediaFileVersion.make(id: "encode", height: 2160, bitrateKbps: 20000)
+        let remux = MediaFileVersion.make(id: "remux", height: 2160, bitrateKbps: 60000)
+
+        #expect(MediaCopyDetails.bestVersion(of: [remux, encode])?.id == "remux")
+        #expect(MediaCopyDetails.bestVersion(of: [encode, remux])?.id == "remux")
+    }
+
     private func copy(
         _ id: String,
         on server: ServerIdentity,

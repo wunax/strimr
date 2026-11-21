@@ -4,9 +4,6 @@ nonisolated enum TrackerService: String, Codable, CaseIterable, Identifiable, Se
     case trakt
     case simkl
 
-    /// Trakt is hidden until its API app is approved for production.
-    static let available: [TrackerService] = allCases.filter { $0 != .trakt }
-
     var id: String {
         rawValue
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Logo or title over the bottom of the backdrop, with the facts and ratings under it.
 struct DetailHeroTitle: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     var alignment: HorizontalAlignment = .center
 
@@ -51,11 +52,15 @@ struct DetailHeroTitle: View {
 
     /// Episodes and seasons show their series' logo or name, with their own title under it.
     private var logoTitle: String {
-        isChildItem ? viewModel.detailSecondaryLabel ?? viewModel.detailPrimaryLabel : viewModel.detailPrimaryLabel
+        isChildItem ? viewModel.detailSecondaryLabel ?? primaryLabel : primaryLabel
     }
 
     private var subtitle: String? {
-        isChildItem ? viewModel.detailPrimaryLabel : nil
+        isChildItem ? primaryLabel : nil
+    }
+
+    private var primaryLabel: String {
+        viewModel.detailPrimaryLabel(spoilerProtection: settingsManager.interface.spoilerProtection)
     }
 
     private var seriesLogoPath: String? {

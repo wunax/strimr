@@ -98,24 +98,27 @@ struct SeerrRequestCardView: View {
 
     private var backdrop: some View {
         let media = viewModel.mediaDetail(for: request)
-        return ZStack {
-            Color.surfaceSubtle
-            AsyncImage(url: TMDBImageService.backdropURL(path: media?.backdropPath, width: 1280)) { phase in
-                if case let .success(image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .overlay {
-                            // Darkest behind the text, lighter on the trailing side so the artwork shows through.
-                            LinearGradient(
-                                colors: [.black.opacity(0.9), .black.opacity(0.7), .black.opacity(0.45)],
-                                startPoint: .leading,
-                                endPoint: .trailing,
-                            )
-                        }
-                }
+        return AsyncImage(url: TMDBImageService.backdropURL(path: media?.backdropPath, width: 1280)) { phase in
+            switch phase {
+            case let .success(image):
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .overlay {
+                        // Darkest behind the text, lighter on the trailing side so the artwork shows through.
+                        LinearGradient(
+                            colors: [.black.opacity(0.9), .black.opacity(0.7), .black.opacity(0.45)],
+                            startPoint: .leading,
+                            endPoint: .trailing,
+                        )
+                    }
+            default:
+                Color.surfaceSubtle
             }
         }
+        // Flatten the artwork and its gradient before the card clips them. Clipped layer by layer, the
+        // antialiased edge keeps more artwork than gradient, so bright backdrops leave a light rim.
+        .compositingGroup()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -136,7 +139,8 @@ struct SeerrRequestCardView: View {
             }
         }
         .frame(width: posterSize.width, height: posterSize.height)
-        .mediaArtworkStyle()
+        // The light hairline is meant for flat backgrounds; over the backdrop it reads as a white rim.
+        .mediaArtworkStyle(borderColor: .clear)
     }
 
     private var details: some View {

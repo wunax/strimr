@@ -17,6 +17,9 @@ struct StrimrApp: App {
         #if DEBUG
             let demoStores = DemoStores.makeIfEnabled()
             let settingsManager = demoStores.map { SettingsManager(userDefaults: $0.defaults) } ?? SettingsManager()
+            if demoStores != nil, let style = DemoMode.playerControlsStyle {
+                settingsManager.setPlayerControlsStyle(style)
+            }
         #else
             let settingsManager = SettingsManager()
         #endif
@@ -76,7 +79,10 @@ struct StrimrApp: App {
                 .toastHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
-                    if !externalPlaybackCallbackRouter.receive(url) {
+                    if externalPlaybackCallbackRouter.receive(url) {
+                        sessionManager.didReturnFromExternalPlayback()
+                    } else {
+                        sessionManager.sceneWillReturnFromBackground()
                         topShelfDeepLinkRouter.receive(url)
                     }
                 }

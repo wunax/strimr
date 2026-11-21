@@ -3680,6 +3680,28 @@
         }
       }
     },
+    "downloads.status.serverError %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned an error (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur a renvoyé une erreur (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器返回错误（%lld）"
+          }
+        }
+      }
+    },
     "downloads.status.waitingForWiFi" : {
       "localizations" : {
         "en" : {
@@ -10882,6 +10904,28 @@
         }
       }
     },
+    "media.copySelection.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a version"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir une version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择版本"
+          }
+        }
+      }
+    },
     "media.detail.action.favorite" : {
       "localizations" : {
         "en" : {
@@ -13022,6 +13066,28 @@
         }
       }
     },
+    "media.labels.episodeNumber %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épisode %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%lld集"
+          }
+        }
+      }
+    },
     "media.labels.episodeWithTitle %@ %@" : {
       "localizations" : {
         "en" : {
@@ -15014,6 +15080,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为避免剧透，已隐藏剧情简介"
+          }
+        }
+      }
+    },
+    "media.spoilerProtection.titleHidden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title hidden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre masqué"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题已隐藏"
           }
         }
       }
@@ -19464,6 +19552,28 @@
         }
       }
     },
+    "player.timeline.accessibilityLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeline"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barre de progression"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进度条"
+          }
+        }
+      }
+    },
     "player.timeline.endsAt %@" : {
       "localizations" : {
         "en" : {
@@ -20261,19 +20371,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otherwise Strimr opens the last profile used."
+            "value" : "Also asked when you come back to the app after 15 minutes away. Otherwise Strimr opens the last profile used."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sinon, Strimr reprend le dernier profil utilisé."
+            "value" : "Aussi demandé au retour dans l’app après 15 minutes d’absence. Sinon, Strimr reprend le dernier profil utilisé."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "否则 Strimr 将打开上次使用的个人资料。"
+            "value" : "离开应用 15 分钟后返回时也会询问。否则 Strimr 将打开上次使用的个人资料。"
           }
         }
       }
@@ -26504,19 +26614,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hide artwork or summaries for episodes you haven’t watched."
+            "value" : "Hide artwork, or also titles and summaries, for episodes you haven’t watched."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Masquez les illustrations ou les résumés des épisodes que vous n’avez pas regardés."
+            "value" : "Masquez les illustrations, ou aussi les titres et les résumés, des épisodes que vous n’avez pas regardés."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏尚未观看剧集的图片或剧情简介。"
+            "value" : "隐藏未观看剧集的图片，或同时隐藏标题和剧情简介。"
           }
         }
       }
@@ -27043,6 +27153,28 @@
         }
       }
     },
+    "settings.playback.appearance.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
     "settings.playback.audio.title" : {
       "localizations" : {
         "en" : {
@@ -27315,6 +27447,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "离开应用时继续播放音频，并可在控制中心和锁定屏幕中控制。关闭后将改为暂停播放（画中画或同播共享期间除外）。"
+          }
+        }
+      }
+    },
+    "settings.playback.centerClick" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Center click"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clic central"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中心按键"
+          }
+        }
+      }
+    },
+    "settings.playback.centerClick.playPause" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play / Pause"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture / pause"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放 / 暂停"
+          }
+        }
+      }
+    },
+    "settings.playback.centerClick.showControls" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show controls"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les contrôles"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示控制"
           }
         }
       }
@@ -28215,6 +28413,94 @@
         }
       }
     },
+    "settings.playback.playerStyle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Player style"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style du lecteur"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放器样式"
+          }
+        }
+      }
+    },
+    "settings.playback.playerStyle.classic" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classique"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "经典"
+          }
+        }
+      }
+    },
+    "settings.playback.playerStyle.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System matches the Apple TV player. Classic keeps Strimr's previous layout."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système reprend le lecteur de l’Apple TV, Classique garde l’ancien affichage de Strimr."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“系统”与 Apple TV 播放器一致，“经典”保留 Strimr 以前的布局。"
+          }
+        }
+      }
+    },
+    "settings.playback.playerStyle.system" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统"
+          }
+        }
+      }
+    },
     "settings.playback.quality" : {
       "localizations" : {
         "en" : {
@@ -28409,6 +28695,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当存在匹配的音轨时，在此电影或剧集中重复使用手动选择。"
+          }
+        }
+      }
+    },
+    "settings.playback.remote.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécommande"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遥控器"
           }
         }
       }

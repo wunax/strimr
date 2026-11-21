@@ -119,15 +119,27 @@ struct DownloadsView: View {
                     Label("common.actions.delete", systemImage: "trash")
                 }
             }
+            .swipeActions(edge: .leading) {
+                if downloadManager.canRetry(item) {
+                    Button {
+                        downloadManager.retry(item)
+                    } label: {
+                        Label("common.actions.retry", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
     }
 
     private func downloadRow(_ item: DownloadItem) -> some View {
         DownloadRow(
             item: item,
+            title: downloadManager.localMediaItem(for: item)
+                .spoilerSafeTitle(at: settingsManager.interface.spoilerProtection),
             posterURL: downloadManager.localPosterURL(for: item),
             isSpoilerProtected: isSpoilerProtected(item),
             isWaitingForWiFi: isWaitingForWiFi(item),
             onUseCellular: { downloadUsingCellular = item },
+            onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,
         )
     }
 

@@ -54,7 +54,7 @@ struct EpisodeRowText: View {
     var body: some View {
         EpisodeCaption(
             eyebrow: [episode.tertiaryLabel, runtime].compactMap(\.self).joined(separator: " · "),
-            title: episode.title,
+            title: episode.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection),
             summaryLineLimit: summaryLineLimit,
         ) {
             if episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {

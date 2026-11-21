@@ -1,0 +1,41 @@
+{
+  "MediaContainer": {
+    "size": 4,
+    "Stream": [
+      {
+        "id": 101,
+        "key": "/library/streams/101",
+        "codec": "srt",
+        "language": "English",
+        "languageCode": "eng",
+        "providerTitle": "OpenSubtitles",
+        "score": 92,
+        "title": "Sample.Movie.2020.1080p.srt",
+        "displayTitle": "English (SRT)",
+        "forced": false,
+        "hearingImpaired": false
+      },
+      {
+        "id": "102",
+        "key": "/library/streams/102",
+        "codec": "srt",
+        "language": "English",
+        "score": "87.5",
+        "displayTitle": "English (SRT)",
+        "forced": "1",
+        "hearingImpaired": 0
+      },
+      {
+        "id": 103,
+        "key": "/library/streams/103",
+        "codec": "ass",
+        "score": null
+      },
+      {
+        "key": "/library/streams/104",
+        "codec": "srt",
+        "displayTitle": "English (SRT)"
+      }
+    ]
+  }
+}

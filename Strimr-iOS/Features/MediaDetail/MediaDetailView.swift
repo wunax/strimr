@@ -39,7 +39,7 @@ struct MediaDetailView: View {
         @Bindable var bindableViewModel = viewModel
 
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
                 MediaDetailHeaderSection(
                     viewModel: bindableViewModel,
                     isSummaryExpanded: $isSummaryExpanded,

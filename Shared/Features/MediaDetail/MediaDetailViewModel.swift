@@ -481,11 +481,11 @@ final class MediaDetailViewModel {
         selectedSeason?.title ?? String(localized: "media.detail.season")
     }
 
-    var detailPrimaryLabel: String {
+    func detailPrimaryLabel(spoilerProtection: SpoilerProtectionLevel) -> String {
         guard resolutionMode == .selectedMedia, [.season, .episode].contains(media.type) else {
             return media.primaryLabel
         }
-        return media.title
+        return media.mediaItem.spoilerSafeTitle(at: spoilerProtection)
     }
 
     var detailSecondaryLabel: String? {
@@ -784,6 +784,10 @@ final class MediaDetailViewModel {
             let copies = await copyFinder.copies(of: item)
             guard !Task.isCancelled else { return }
             self?.copies = copies
+            guard !copies.isEmpty else { return }
+            let detailed = await copyFinder.withDetails(copies)
+            guard !Task.isCancelled else { return }
+            self?.copies = detailed
         }
     }
 

@@ -1,0 +1,49 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Hub": [
+      {
+        "key": "/hubs/promoted/1",
+        "title": "Trending Movies",
+        "hubIdentifier": "home.movies.trending",
+        "type": "movie",
+        "size": "3",
+        "more": 1,
+        "Metadata": [
+          {
+            "ratingKey": 1001,
+            "key": "/library/metadata/1001",
+            "type": "movie",
+            "title": "Sample Movie",
+            "year": "2021",
+            "duration": "7200000",
+            "audienceRating": "7.4",
+            "Image": [
+              { "alt": "Sample Movie", "type": "coverPoster", "url": null },
+              { "alt": "Sample Movie", "type": "clearLogo", "url": "https://images.example.com/logo.png" }
+            ],
+            "Genre": [{ "tag": "Drama" }, { "id": 4 }],
+            "Media": [{ "id": 1, "duration": 7200000, "Part": [] }]
+          },
+          {
+            "ratingKey": "1002",
+            "key": "/library/metadata/1002",
+            "guid": "plex://movie/sample-guid",
+            "type": "movie",
+            "title": "Second Movie",
+            "UltraBlurColors": { "topLeft": "000000" }
+          },
+          {
+            "key": "/library/metadata/1003",
+            "type": "movie",
+            "title": "Missing Rating Key"
+          }
+        ]
+      },
+      {
+        "key": "/hubs/promoted/2",
+        "title": "Broken Hub"
+      }
+    ]
+  }
+}

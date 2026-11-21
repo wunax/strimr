@@ -10,6 +10,8 @@
         let slides: [HomeHeroSlide]
         /// Bumped by the home while the user scrolls it, which holds the pages still.
         let interactionCount: Int
+        /// The home's horizontal safe area, which the artwork runs under but the text stays clear of.
+        let horizontalSafeArea: EdgeInsets
         let onPlay: (MediaItem) -> Void
         let onDetails: (MediaItem) -> Void
 
@@ -26,8 +28,13 @@
                 // sliding in and the scroll coming to rest off the page.
                 HStack(spacing: 0) {
                     ForEach(slides) { slide in
-                        HomeHeroPage(slide: slide, onPlay: onPlay, onDetails: onDetails)
-                            .containerRelativeFrame(.horizontal)
+                        HomeHeroPage(
+                            slide: slide,
+                            horizontalSafeArea: horizontalSafeArea,
+                            onPlay: onPlay,
+                            onDetails: onDetails,
+                        )
+                        .containerRelativeFrame(.horizontal)
                     }
                 }
                 .scrollTargetLayout()
@@ -42,6 +49,7 @@
             .scrollIndicators(.never)
             .scrollClipDisabled()
             .onScrollVisibilityChange(threshold: 0.5) { isVisible = $0 }
+            .ignoresSafeArea(edges: .horizontal)
             .containerRelativeFrame(.vertical) { height, _ in
                 Self.height(for: height)
             }
@@ -49,6 +57,8 @@
                 if slides.count > 1 {
                     pageIndicator
                         .padding(.bottom, 12)
+                        // Centers under the full-width artwork rather than the safe area.
+                        .offset(x: (horizontalSafeArea.trailing - horizontalSafeArea.leading) / 2)
                 }
             }
             #if os(macOS)
@@ -188,6 +198,7 @@
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
         let slide: HomeHeroSlide
+        let horizontalSafeArea: EdgeInsets
         let onPlay: (MediaItem) -> Void
         let onDetails: (MediaItem) -> Void
 
@@ -207,7 +218,8 @@
                     }
 
                 details
-                    .padding(.horizontal, LayoutMetrics.pageMargin)
+                    .padding(.leading, LayoutMetrics.pageMargin + horizontalSafeArea.leading)
+                    .padding(.trailing, LayoutMetrics.pageMargin + horizontalSafeArea.trailing)
                     .padding(.bottom, 36)
             }
             .clipped()

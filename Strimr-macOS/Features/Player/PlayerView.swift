@@ -1388,8 +1388,10 @@ struct PlayerView: View {
         .help(Text("player.info.open"))
         .popover(isPresented: $isShowingInfoPopover, arrowEdge: .bottom) {
             ScrollView {
-                PlayerMediaInfoView(media: media, services: viewModel.artworkServices)
-                    .padding(20)
+                PlayerMediaInfoView(media: media, services: viewModel.artworkServices) {
+                    PlayerInfoRestartButton(viewModel: viewModel, action: restartFromBeginning)
+                }
+                .padding(20)
             }
             .frame(width: 460)
             .frame(maxHeight: 520)
@@ -2174,11 +2176,33 @@ struct PlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
+    private func restartFromBeginning() {
+        playerController.seek(to: 0)
+        scrubPosition = 0
+        viewModel.handlePlaybackPosition(0, isScrubbing: false)
+        if playerController.isPaused {
+            playerController.resume()
+        }
+        isShowingInfoPopover = false
+    }
+
     private func selectChapter(_ chapter: MediaChapter) {
         playerController.seek(to: chapter.startTime)
         scrubPosition = chapter.startTime
         viewModel.handlePlaybackPosition(chapter.startTime, isScrubbing: false)
         isShowingChapterPopover = false
+    }
+}
+
+/// Reads the playback position in its own body, so its updates do not redraw the whole player.
+private struct PlayerInfoRestartButton: View {
+    let viewModel: PlayerViewModel
+    let action: () -> Void
+
+    var body: some View {
+        if PlayerRestartButton.isAvailable(at: viewModel.position) {
+            PlayerRestartButton(action: action)
+        }
     }
 }
 

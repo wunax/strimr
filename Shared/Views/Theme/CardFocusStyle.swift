@@ -17,9 +17,11 @@ struct CardFocusStyle: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // Only the focused card casts a shadow: each shadow costs an offscreen pass, and one on every card
+            // tripled the render time of the home rows.
             .shadow(
-                color: .black.opacity(isFocused ? 0.45 : 0.3),
-                radius: isFocused ? 18 : 8,
+                color: .black.opacity(isFocused ? 0.45 : 0),
+                radius: isFocused ? 18 : 0,
                 y: isFocused ? 8 : 0,
             )
             .animation(Motion.focus, value: isFocused)

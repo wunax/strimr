@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum TraktAPI {
-    static let clientID = "A-yBlYoCBeTGUq8U467O2BkqtgHdV31i9vTLo672F1Y"
+    static let clientID = "RpiVkZiIlP83SPNL8sQiVRHxsrDbkyGb6il3uI5MU18"
     static let baseURL = URL(string: "https://api.trakt.tv")!
     /// The hosted activation page Trakt recommends for a QR code.
     static let activationURL = URL(string: "https://auth.trakt.tv/activate")!

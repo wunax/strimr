@@ -169,3 +169,79 @@ struct LibraryScrubber: View {
         }
     }
 }
+
+extension View {
+    /// Adds the scrubber to a listing's scroll view. The scroll position changes on every frame, so it lives in this
+    /// modifier's state: scrolling then updates only the scrubber instead of the whole listing.
+    func libraryScrubber(
+        isEnabled: Bool,
+        totalCount: Int,
+        sectionIndex: LibrarySectionIndex?,
+        onBegin: @escaping () -> Void,
+        onScrub: @escaping (Int) -> Void,
+        onEnd: @escaping (Int) -> Void,
+    ) -> some View {
+        modifier(
+            LibraryScrubberModifier(
+                isEnabled: isEnabled,
+                totalCount: totalCount,
+                sectionIndex: sectionIndex,
+                onBegin: onBegin,
+                onScrub: onScrub,
+                onEnd: onEnd,
+            ),
+        )
+    }
+}
+
+private struct LibraryScrubberModifier: ViewModifier {
+    let isEnabled: Bool
+    let totalCount: Int
+    let sectionIndex: LibrarySectionIndex?
+    let onBegin: () -> Void
+    let onScrub: (Int) -> Void
+    let onEnd: (Int) -> Void
+
+    @State private var metrics = LibraryScrollMetrics()
+    @State private var isScrolling = false
+    @State private var isPointerNearEdge = false
+
+    private var showsScrubber: Bool {
+        isEnabled && metrics.isLongEnoughToScrub
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .scrollIndicators(showsScrubber ? .hidden : .automatic)
+            .onScrollGeometryChange(for: LibraryScrollMetrics.self) { geometry in
+                LibraryScrollMetrics(geometry)
+            } action: { _, newMetrics in
+                metrics = newMetrics
+            }
+            .onScrollPhaseChange { _, phase in
+                isScrolling = phase.isScrolling
+            }
+            .onContinuousHover { phase in
+                switch phase {
+                case let .active(location):
+                    isPointerNearEdge = location.x > metrics.containerSize.width - 44
+                case .ended:
+                    isPointerNearEdge = false
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if showsScrubber {
+                    LibraryScrubber(
+                        totalCount: totalCount,
+                        sectionIndex: sectionIndex,
+                        scrollFraction: metrics.fraction,
+                        isScrolling: isScrolling,
+                        isPointerNearby: isPointerNearEdge,
+                        onBegin: onBegin,
+                        onScrub: onScrub,
+                        onEnd: onEnd,
+                    )
+                }
+            }
+    }
+}

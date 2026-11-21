@@ -313,6 +313,25 @@ struct DownloadItem: Codable, Identifiable, Hashable {
     var createdAt: Date {
         metadata.createdAt
     }
+
+    /// A failed download can be retried unless the same media was downloaded again since.
+    func canRetry(among items: [DownloadItem]) -> Bool {
+        guard status == .failed else { return false }
+        return !items.contains { other in
+            other.id != id && other.identity == identity && other.ownerID == ownerID && other.status != .failed
+        }
+    }
+}
+
+enum DownloadedFileValidation {
+    /// The reason a finished transfer must not be kept as a video, or nil when it is usable.
+    static func failureMessage(response: URLResponse?, fileSize: Int64) -> String? {
+        if let response = response as? HTTPURLResponse, !(200 ..< 300).contains(response.statusCode) {
+            return String(localized: "downloads.status.serverError \(response.statusCode)")
+        }
+        guard fileSize > 0 else { return String(localized: "downloads.status.failed") }
+        return nil
+    }
 }
 
 struct DownloadStorageSummary: Equatable {

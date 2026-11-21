@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct NextEpisodeOverlay: View {
+    @Environment(SettingsManager.self) private var settingsManager
     let presentation: NextEpisodePresentation
     let services: MediaServices
     let onPlay: (PlayerViewModel) async -> Void
@@ -72,7 +73,7 @@ struct NextEpisodeOverlay: View {
                     .font(.sectionTitle)
                     .lineLimit(2)
 
-                Text(media.title)
+                Text(media.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection))
                     .font(.tileTitle)
                     .lineLimit(2)
 
