@@ -165,14 +165,14 @@
                 }
         }
 
-        /// macOS shows the dashboard as a page of cards and keeps the tab picker in the toolbar. History and Top
-        /// Played stay lists on both platforms.
+        /// macOS shows the dashboard and the top titles as pages of cards and keeps the tab picker in the toolbar.
+        /// History stays a list on both platforms.
         @ViewBuilder private var content: some View {
             #if os(macOS)
                 switch model.tab {
                 case .dashboard: macDashboard
                 case .history: List { history }.insetListStyle()
-                case .topPlayed: List { topPlayed }.insetListStyle()
+                case .topPlayed: macTopPlayed
                 }
             #else
                 List {
@@ -378,15 +378,38 @@
                             Text("plex.dashboard.filtersUnavailable").font(.footnote).foregroundStyle(.secondary)
                         }
                     }
-                    .padding(24)
-                    .frame(maxWidth: 1600, alignment: .leading)
-                    .frame(maxWidth: .infinity)
+                    .dashboardPage()
+                }
+            }
+
+            private var macTopPlayed: some View {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        HStack(spacing: 24) {
+                            periodPicker.fixedSize()
+                            mediaTypePicker.fixedSize()
+                        }
+                        if model.rankingsIncomplete {
+                            Text("plex.dashboard.rankingsLimited").font(.callout).foregroundStyle(.secondary)
+                        }
+                        if showsTopTitles {
+                            LazyVGrid(columns: Self.columns(minimum: 320), alignment: .leading, spacing: 16) {
+                                ForEach(Array(model.filteredTopTitles.enumerated()), id: \.element.id) { index, title in
+                                    topTitleButton(title, rank: index + 1)
+                                }
+                            }
+                        } else {
+                            VStack(alignment: .leading, spacing: 8) { rankingsStatus }.dashboardCard()
+                        }
+                        Text("plex.dashboard.rankingsExplanation").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .dashboardPage()
                 }
             }
 
             /// Cards fill the row and wrap onto the next one when the window gets narrower than the minimum. The
-            /// minimums
-            /// keep the three charts and the history and top users pair on one row each at the 1600 pt content width.
+            /// minimums keep the three charts and the history and top users pair on one row each at the 1600 pt
+            /// content width.
             private static func columns(minimum: CGFloat) -> [GridItem] {
                 [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .top)]
             }
@@ -495,41 +518,74 @@
         @ViewBuilder private var topPlayed: some View {
             Section {
                 periodPicker
-                Picker("plex.dashboard.mediaType", selection: $model.kind) {
-                    Text("plex.dashboard.allMedia").tag(PlexDashboardMediaKind?.none)
-                    ForEach(PlexDashboardMediaKind.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
-                }
+                mediaTypePicker
             }
             if model.rankingsIncomplete {
                 Section { Text("plex.dashboard.rankingsLimited").foregroundStyle(.secondary) }
             }
             Section {
-                if let error = model.errors[.rankings] {
-                    status(error, symbol: "exclamationmark.circle")
-                    Button("common.actions.retry") { Task { await model.loadRankings(force: true) } }
-                } else if model.loading.contains(.rankings) {
-                    ProgressView("plex.dashboard.loadingRankings")
-                } else if model.filteredTopTitles.isEmpty {
-                    status(String(localized: "plex.dashboard.noHistory"), symbol: "chart.bar")
-                } else {
+                if showsTopTitles {
                     ForEach(model.filteredTopTitles) { title in
-                        Button { onSelect(title.media.groupKey) } label: {
-                            HStack(spacing: 14) {
-                                PlexDashboardPoster(path: title.media.thumb, repository: model.repository)
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(title.media.title).font(.rowTitle).foregroundStyle(.primary)
-                                    Text("plex.dashboard.plays \(title.plays)").foregroundStyle(.secondary)
-                                    ForEach(title.accountIDs.sorted(), id: \.self) { id in
-                                        PlexDashboardUserLabel(name: model.userName(id), url: model.userAvatar(id))
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }.padding(.vertical, 4)
-                        }.buttonStyle(.plain)
-                            .disabled(!title.media.canOpenDetail || title.media.groupKey.isEmpty)
+                        topTitleButton(title, rank: nil)
                     }
+                } else {
+                    rankingsStatus
                 }
             } footer: { Text("plex.dashboard.rankingsExplanation") }
+        }
+
+        private var mediaTypePicker: some View {
+            Picker("plex.dashboard.mediaType", selection: $model.kind) {
+                Text("plex.dashboard.allMedia").tag(PlexDashboardMediaKind?.none)
+                ForEach(PlexDashboardMediaKind.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
+            }
+        }
+
+        private var showsTopTitles: Bool {
+            model.errors[.rankings] == nil && !model.loading.contains(.rankings) && !model.filteredTopTitles.isEmpty
+        }
+
+        @ViewBuilder private var rankingsStatus: some View {
+            if let error = model.errors[.rankings] {
+                status(error, symbol: "exclamationmark.circle")
+                Button("common.actions.retry") { Task { await model.loadRankings(force: true) } }
+            } else if model.loading.contains(.rankings) {
+                ProgressView("plex.dashboard.loadingRankings")
+            } else if model.filteredTopTitles.isEmpty {
+                status(String(localized: "plex.dashboard.noHistory"), symbol: "chart.bar")
+            }
+        }
+
+        /// The iOS list shows the order by position alone; the macOS cards add the rank because a grid reads less
+        /// clearly from top to bottom.
+        private func topTitleButton(_ title: PlexDashboardTopTitle, rank: Int?) -> some View {
+            Button { onSelect(title.media.groupKey) } label: {
+                HStack(alignment: rank == nil ? .center : .top, spacing: 14) {
+                    if let rank {
+                        Text(rank, format: .number)
+                            .font(.title2.weight(.semibold)).monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(minWidth: 28, alignment: .leading)
+                    }
+                    PlexDashboardPoster(path: title.media.thumb, repository: model.repository)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(title.media.title).font(.rowTitle).foregroundStyle(.primary)
+                        Text("plex.dashboard.plays \(title.plays)").foregroundStyle(.secondary)
+                        ForEach(title.accountIDs.sorted(), id: \.self) { id in
+                            PlexDashboardUserLabel(name: model.userName(id), url: model.userAvatar(id))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 4)
+                #if os(macOS)
+                    .dashboardCard()
+                    .contentShape(.rect(cornerRadius: 12))
+                #endif
+            }
+            .buttonStyle(.plain)
+            .disabled(!title.media.canOpenDetail || title.media.groupKey.isEmpty)
         }
 
         @ViewBuilder private var filterError: some View {
@@ -766,6 +822,12 @@
         }
 
         private extension View {
+            func dashboardPage() -> some View {
+                padding(24)
+                    .frame(maxWidth: 1600, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+            }
+
             func dashboardCard() -> some View {
                 labeledContentStyle(PlexDashboardRowStyle())
                     .padding(16)
