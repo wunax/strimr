@@ -897,6 +897,7 @@
                                 repository: model.repository,
                             )
                         }
+                        .width(min: 220, ideal: 320, max: 420)
                         TableColumn("plex.dashboard.column.plays") { title in
                             HStack(spacing: 10) {
                                 Text(title.plays, format: .number)
@@ -906,11 +907,11 @@
                                     .accessibilityHidden(true)
                             }
                         }
-                        .width(min: 140, ideal: 200, max: 280)
+                        .width(min: 160, ideal: 260, max: 320)
                         TableColumn("plex.dashboard.column.users") { title in
                             PlexDashboardAvatarStack(model: model, accountIDs: title.accountIDs.sorted())
                         }
-                        .width(min: 120, ideal: 160, max: 240)
+                        .width(min: 120, ideal: 200)
                     }
                     .contextMenu(forSelectionType: PlexDashboardTopTitle.ID.self) { _ in } primaryAction: { ids in
                         guard let title = titles.first(where: { ids.contains($0.id) }),
