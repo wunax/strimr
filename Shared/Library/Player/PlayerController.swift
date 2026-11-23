@@ -123,6 +123,7 @@ final class PlayerController {
     @ObservationIgnored private var sidecarASSHeaderCancellable: AnyCancellable?
     @ObservationIgnored private lazy var assCoordinator = ASSRenderCoordinator(engine: engine)
     @ObservationIgnored private var nowPlayingController: NowPlayingController?
+    @ObservationIgnored private let displaySleepAssertion = DisplaySleepAssertion()
     #if os(iOS)
         @ObservationIgnored private var backgroundRestoreTask: Task<Void, Never>?
         @ObservationIgnored private var backgroundRestoreResumesPlayback = false
@@ -804,6 +805,7 @@ final class PlayerController {
             backgroundRestoreTask = nil
         #endif
         nowPlayingController?.stop()
+        displaySleepAssertion.release()
         engine.stop()
     }
 
@@ -1291,6 +1293,11 @@ final class PlayerController {
     }
 
     private func handleState(_ state: PlaybackState) {
+        if isStopping {
+            displaySleepAssertion.release()
+        } else {
+            displaySleepAssertion.update(for: state)
+        }
         switch state {
         case .playing:
             hasStartedPlayback = true
