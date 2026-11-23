@@ -15,7 +15,7 @@ struct DetailRoundActionLabel: View {
             ZStack {
                 Circle()
                     .fill(.surfaceRaised)
-                if isLoading, let progress {
+                if showsProgress, let progress {
                     DownloadProgressRing(progress: progress, lineWidth: 3)
                 } else if isLoading {
                     ProgressView()
@@ -33,13 +33,18 @@ struct DetailRoundActionLabel: View {
                 .lineLimit(1)
         }
         .frame(minWidth: 56)
-        .opacity(isEnabled ? 1 : 0.5)
+        // A running download disables the button but its progress stays readable.
+        .opacity(isEnabled || showsProgress ? 1 : 0.5)
         .contentShape(Rectangle())
         .accessibilityValue(progressValue)
     }
 
+    private var showsProgress: Bool {
+        isLoading && progress != nil
+    }
+
     private var progressValue: Text {
-        guard isLoading, let progress else { return Text(verbatim: "") }
+        guard showsProgress, let progress else { return Text(verbatim: "") }
         return Text(progress, format: .percent.precision(.fractionLength(0)))
     }
 }
