@@ -135,11 +135,11 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         latestItem(for: identity)?.progress
     }
 
-    /// Progress of a download the server prepares or the device transfers; nil while it is queued, before the
-    /// first percent, or when the server does not send the file size.
+    /// Progress of the file transfer; nil while the download is queued or prepared on the server (whose progress
+    /// restarts at zero when the transfer begins), before the first percent, or when the file size is unknown.
     func activeProgress(for identity: MediaIdentity) -> Double? {
         guard let item = latestItem(for: identity),
-              item.status == .preparing || item.status == .downloading,
+              item.status == .downloading,
               item.progress > 0
         else { return nil }
         return min(item.progress, 1)
