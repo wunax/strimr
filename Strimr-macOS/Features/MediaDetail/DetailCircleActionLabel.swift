@@ -12,6 +12,8 @@ struct DetailCircleActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
+    /// Replaces the loading spinner with a ring and percentage when the work reports how far it is.
+    var progress: Double?
     /// Set by a menu, whose label does not receive pointer events itself.
     var isHovered: Bool?
 
@@ -19,7 +21,9 @@ struct DetailCircleActionLabel: View {
         ZStack {
             Circle()
                 .fill(isLifted ? Color.white.opacity(0.22) : Color.surfaceRaised)
-            if isLoading {
+            if isLoading, let progress {
+                DownloadProgressRing(progress: progress, lineWidth: 2.5)
+            } else if isLoading {
                 ProgressView()
                     .controlSize(.small)
             } else {
@@ -36,6 +40,12 @@ struct DetailCircleActionLabel: View {
         .scaleEffect(isLifted && !reduceMotion ? 1.06 : 1)
         .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isLifted)
         .onHover { isPointerOver = $0 }
+        .accessibilityValue(progressValue)
+    }
+
+    private var progressValue: Text {
+        guard isLoading, let progress else { return Text(verbatim: "") }
+        return Text(progress, format: .percent.precision(.fractionLength(0)))
     }
 
     private var isLifted: Bool {

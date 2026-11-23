@@ -7,13 +7,17 @@ struct DetailRoundActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
+    /// Replaces the loading spinner with a ring and percentage when the work reports how far it is.
+    var progress: Double?
 
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .fill(.surfaceRaised)
-                if isLoading {
+                if isLoading, let progress {
+                    DownloadProgressRing(progress: progress, lineWidth: 3)
+                } else if isLoading {
                     ProgressView()
                 } else {
                     Image(systemName: systemImage)
@@ -31,5 +35,11 @@ struct DetailRoundActionLabel: View {
         .frame(minWidth: 56)
         .opacity(isEnabled ? 1 : 0.5)
         .contentShape(Rectangle())
+        .accessibilityValue(progressValue)
+    }
+
+    private var progressValue: Text {
+        guard isLoading, let progress else { return Text(verbatim: "") }
+        return Text(progress, format: .percent.precision(.fractionLength(0)))
     }
 }
