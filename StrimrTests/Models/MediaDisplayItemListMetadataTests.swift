@@ -33,7 +33,7 @@ struct MediaDisplayItemListMetadataTests {
     }
 
     @Test func `card captions keep the edition`() {
-        let episodeNumber = String(localized: "media.labels.seasonEpisode \(1) \(3)")
+        let episodeNumber = String(localized: "media.labels.seasonEpisode \("1") \("3")")
         let movie = makeMedia(editionTitle: "Director's Cut", year: 1982)
         let season = makeMedia(type: .season, editionTitle: "Black and White")
         let episode = makeMedia(type: .episode, editionTitle: "Black and White", parentIndex: 1, index: 3)
@@ -48,21 +48,22 @@ struct MediaDisplayItemListMetadataTests {
     }
 
     @Test func `card captions of a hidden episode title keep the number on the second line`() {
-        let episodeNumber = String(localized: "media.labels.seasonEpisode \(1) \(3)")
+        let episodeNumber = String(localized: "media.labels.seasonEpisode \("1") \("3")")
         let episode = makeMedia(type: .episode, editionTitle: "Black and White", parentIndex: 1, index: 3)
 
         #expect(episode.cardSecondaryLabel(remainingTime: nil, spoilerProtection: .full)
             == "\(episodeNumber) · Black and White")
         #expect(episode.cardTertiaryLabel(remainingTime: "23 min left", spoilerProtection: .full) == "23 min left")
         #expect(episode.cardSecondaryLabel(remainingTime: nil, spoilerProtection: .thumbnails) == "Title")
-        #expect(episode.displayTitle(spoilerProtection: .full) == String(localized: "media.labels.episodeNumber \(3)"))
+        #expect(episode.displayTitle(spoilerProtection: .full)
+            == String(localized: "media.labels.episodeNumber \("3")"))
     }
 
     @Test func `card captions of a hidden episode title without a season keep the episode number`() {
         let episode = makeMedia(type: .episode, index: 3)
 
         #expect(episode.cardSecondaryLabel(remainingTime: nil, spoilerProtection: .full)
-            == String(localized: "media.labels.episodeNumber \(3)"))
+            == String(localized: "media.labels.episodeNumber \("3")"))
     }
 
     @Test func `season and episode subtitles name the edition`() {
@@ -76,14 +77,14 @@ struct MediaDisplayItemListMetadataTests {
         )
 
         #expect(season.listSubtitle == "Black and White")
-        #expect(episode.listSubtitle == "Series · " + String(localized: "media.labels.seasonEpisode \(1) \(3)")
+        #expect(episode.listSubtitle == "Series · " + String(localized: "media.labels.seasonEpisode \("1") \("3")")
             + " · Black and White")
     }
 
     @Test func `episode subtitle shows the series and episode number`() {
         let media = makeMedia(type: .episode, grandparentTitle: "Series", parentIndex: 1, index: 3)
 
-        #expect(media.listSubtitle == "Series · " + String(localized: "media.labels.seasonEpisode \(1) \(3)"))
+        #expect(media.listSubtitle == "Series · " + String(localized: "media.labels.seasonEpisode \("1") \("3")"))
         #expect(media.usesWideListArtwork)
     }
 

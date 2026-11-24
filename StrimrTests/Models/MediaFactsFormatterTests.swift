@@ -80,7 +80,7 @@ struct MediaFactsFormatterTests {
         let media = makeMedia(type: .episode, year: 2020, duration: 2400, parentIndex: 2, index: 7)
 
         #expect(MediaFactsFormatter.facts(for: media).tokens == [
-            String(localized: "media.labels.seasonEpisode \(2) \(7)"),
+            String(localized: "media.labels.seasonEpisode \("2") \("7")"),
             "2020",
             TimeInterval(2400).mediaDurationText(),
         ])

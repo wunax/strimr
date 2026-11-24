@@ -318,7 +318,7 @@ struct MediaItem: Identifiable, Hashable, Codable {
             return nil
         }
 
-        return String(localized: "media.labels.seasonEpisode \(parentIndex) \(index)")
+        return String(localized: "media.labels.seasonEpisode \(String(parentIndex)) \(String(index))")
     }
 
     var episodeTitleLabel: String? {
