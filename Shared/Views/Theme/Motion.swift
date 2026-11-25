@@ -15,6 +15,8 @@ enum Motion {
     static let heroFocusDelay: Duration = .milliseconds(150)
     /// The home hero moving between its showcase and the rows below it: a larger move than `hero`.
     static let showcase: Animation = .smooth(duration: 0.45)
+    /// A row scrolling to the top as focus enters it, at the pace of the system's own focus scrolling.
+    static let rowScroll: Animation = .smooth(duration: 0.45)
 
     private static let fades: [Animation] = [crossfade, hero, ambient, controls]
 

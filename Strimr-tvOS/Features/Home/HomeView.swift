@@ -22,6 +22,7 @@ struct HomeView: View {
     @State private var autoAdvanceStartedAt: Date?
     @State private var isZoomedIn = false
     @FocusState private var focusedHeroButton: HomeHeroButton?
+    @FocusState private var focusedRowID: String?
 
     private static let autoAdvanceInterval: Duration = .seconds(8)
     private static let showcaseRowsTop: CGFloat = 0.85
@@ -320,6 +321,8 @@ struct HomeView: View {
                         onViewAll: coordinator.showHubDetail,
                         onSelectMedia: onSelectMedia,
                     )
+                    .id(row.id)
+                    .focused($focusedRowID, equals: row.id)
                 }
 
                 if viewModel.isLoading, !viewModel.hasContent {
@@ -336,6 +339,7 @@ struct HomeView: View {
             }
             .padding(.trailing, LayoutMetrics.pageMargin)
         }
+        .scrollsFocusedRowToTop(focusedRowID)
     }
 
     @ViewBuilder
