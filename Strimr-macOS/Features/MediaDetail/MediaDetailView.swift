@@ -356,16 +356,17 @@ struct MediaDetailView: View {
                 {
                     Button(action: handleDownload) {
                         DetailCircleActionLabel(
-                            systemImage: downloadIconName,
-                            isActive: downloadStatus == .completed,
-                            isLoading: isDownloadInProgress,
-                            progress: downloadManager.activeProgress(for: viewModel.media.identity),
+                            systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
+                            isActive: downloadActivity?.phase == .completed,
+                            isLoading: downloadActivity?.showsSpinner ?? false,
+                            ring: downloadActivity?.ring,
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(viewModel.isLoading || isDownloadInProgress || isServerUnreachable)
-                    .help(Text("downloads.action"))
+                    .disabled(viewModel.isLoading || isSingleDownloadInProgress || isServerUnreachable)
+                    .help(Text(verbatim: downloadHelp))
                     .accessibilityLabel(Text("downloads.action"))
+                    .accessibilityValue(Text(verbatim: downloadActivity?.accessibilityValue ?? ""))
                 }
 
                 moreActionsMenu
@@ -616,21 +617,21 @@ struct MediaDetailView: View {
         }
     }
 
-    private var downloadStatus: DownloadStatus? {
-        downloadManager.status(for: viewModel.media.identity)
+    private var downloadActivity: DownloadActivity? {
+        downloadManager.activity(for: viewModel.media.mediaItem)
     }
 
-    private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
+    /// A series or season stays enabled so more episodes can be queued while others download.
+    private var isSingleDownloadInProgress: Bool {
+        guard let activity = downloadActivity else { return false }
+        return activity.isInProgress && [.movie, .episode].contains(viewModel.media.type)
     }
 
-    private var downloadIconName: String {
-        switch downloadStatus {
-        case .completed: "checkmark.circle.fill"
-        case .failed: "exclamationmark.circle"
-        case .queued, .preparing, .downloading: "arrow.down.circle.fill"
-        case nil: "arrow.down.circle"
+    private var downloadHelp: String {
+        guard let activity = downloadActivity, activity.isInProgress else {
+            return String(localized: "downloads.action")
         }
+        return activity.accessibilityValue
     }
 
     private var episodesSection: some View {

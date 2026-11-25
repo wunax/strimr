@@ -241,15 +241,17 @@ struct DetailActionsRow: View {
             handleDownloadTap()
         } label: {
             DetailRoundActionLabel(
-                title: "downloads.action",
-                systemImage: downloadIconName,
-                isActive: downloadStatus == .completed,
-                isLoading: isDownloadInProgress,
-                progress: downloadManager.activeProgress(for: viewModel.media.identity),
+                title: downloadTitle,
+                systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
+                isActive: downloadActivity?.phase == .completed,
+                isLoading: downloadActivity?.showsSpinner ?? false,
+                ring: downloadActivity?.ring,
             )
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isLoading || isServerUnreachable)
+        .accessibilityLabel(Text("downloads.action"))
+        .accessibilityValue(Text(verbatim: downloadActivity?.accessibilityValue ?? ""))
     }
 
     private func handlePlay() {
@@ -311,24 +313,19 @@ struct DetailActionsRow: View {
         }
     }
 
-    private var downloadStatus: DownloadStatus? {
-        downloadManager.status(for: viewModel.media.identity)
+    private var downloadActivity: DownloadActivity? {
+        downloadManager.activity(for: viewModel.media.mediaItem)
     }
 
-    private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
-    }
-
-    private var downloadIconName: String {
-        switch downloadStatus {
-        case .completed:
-            "checkmark.circle.fill"
-        case .failed:
-            "exclamationmark.circle"
-        case .queued, .preparing, .downloading:
-            "arrow.down.circle.fill"
-        case nil:
-            "arrow.down.circle"
+    private var downloadTitle: LocalizedStringKey {
+        guard let activity = downloadActivity, activity.isInProgress else { return "downloads.action" }
+        if activity.totalCount > 1 {
+            return "offline.badge.partial \(activity.completedCount) \(activity.totalCount)"
+        }
+        switch activity.phase {
+        case .queued: return "downloads.status.queued"
+        case .preparing: return "downloads.phase.preparing"
+        default: return "downloads.phase.transferring"
         }
     }
 }
