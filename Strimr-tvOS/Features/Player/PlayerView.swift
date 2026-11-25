@@ -72,6 +72,9 @@ struct PlayerView: View {
     @State private var showsPlaybackStatistics = false
     @State private var isSystemMenuPresented = false
     @State private var isShowingSystemTabs = false
+    @State private var autoScroll: PlayerAutoScroll?
+    /// Where playback stood when the last left or right press started, before its move command seeked.
+    @State private var arrowPressOrigin: Double?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -169,6 +172,9 @@ struct PlayerView: View {
                 .task(id: automaticSubtitleSearchKey) {
                     await searchMissingSubtitle()
                 }
+                .task(id: autoScroll != nil) {
+                    await runAutoScroll()
+                }
                 .toast($automaticSubtitleToast),
         )
 
@@ -222,6 +228,7 @@ struct PlayerView: View {
                         return
                     }
                     isShowingSystemTabs = false
+                    finishAutoScroll(commit: false)
 
                     focusHiddenControlsTarget(hasSkipOverlay: viewModel.activeSkipMarker != nil)
                 }
@@ -516,6 +523,7 @@ struct PlayerView: View {
                 )
                 : nil,
             isShowingTabs: isShowingSystemTabs,
+            autoScroll: autoScroll,
         )
     }
 
@@ -624,6 +632,8 @@ struct PlayerView: View {
             selectChapter: selectChapter(_:),
             restartFromBeginning: restartFromBeginning,
             selectQueueItem: selectQueueItem(at:),
+            arrowPressed: handleArrowPress(forward:),
+            arrowHeld: handleArrowHold(forward:),
         )
     }
 
@@ -654,6 +664,11 @@ struct PlayerView: View {
                     .onMoveCommand { direction in
                         handleMoveCommand(direction)
                     }
+                    .playerArrowHold(
+                        isEnabled: focusedPlayerSurface == .controlsProxy,
+                        onPress: handleArrowPress(forward:),
+                        onHold: handleArrowHold(forward:),
+                    )
             }
 
             if viewModel.isBuffering || isRecoveringServerAccess {
@@ -678,6 +693,11 @@ struct PlayerView: View {
                     .onMoveCommand { direction in
                         handleSkipOverlayMoveCommand(direction)
                     }
+                    .playerArrowHold(
+                        isEnabled: focusedPlayerSurface == .skipOverlay,
+                        onPress: handleArrowPress(forward:),
+                        onHold: handleArrowHold(forward:),
+                    )
             }
 
             if let seekFeedback {
@@ -931,6 +951,10 @@ struct PlayerView: View {
     }
 
     private func togglePlayPause() {
+        if autoScroll != nil {
+            finishAutoScroll(commit: true)
+            return
+        }
         if sleepTimer.isPromptPresented {
             sleepTimer.pauseNow()
             return
@@ -1110,6 +1134,10 @@ struct PlayerView: View {
     }
 
     private func handleExitCommand() {
+        if autoScroll != nil {
+            finishAutoScroll(commit: false)
+            return
+        }
         if dismissPauseScreen() {
             return
         }
@@ -1456,6 +1484,75 @@ struct PlayerView: View {
             viewModel.position = timelinePosition
             scheduleControlsHide()
         }
+    }
+
+    /// Only the system style imitates the fast forward of the system player.
+    private var canAutoScroll: Bool {
+        controlsStyle == .system
+            && !viewModel.isLivePlayback
+            && (viewModel.duration ?? 0) > 0
+            && sheetPresentation.item == nil
+            && activeAdjustmentBar == nil
+            && !isShowingInfoPanel
+            && !isShowingSystemTabs
+            && !isSystemMenuPresented
+            && !isShowingLiveChannels
+            && !nextEpisodePresentation.isPresented
+            && !sleepTimer.isPromptPresented
+    }
+
+    private func handleArrowPress(forward: Bool) {
+        if autoScroll != nil {
+            autoScroll?.press(forward: forward)
+        } else {
+            arrowPressOrigin = playerController.seekOrigin
+        }
+    }
+
+    /// The press that started the hold already jumped or stepped; the fast forward starts from before it.
+    private func handleArrowHold(forward: Bool) {
+        guard autoScroll == nil, canAutoScroll else { return }
+        let origin = arrowPressOrigin ?? playerController.seekOrigin
+        seekFeedbackWorkItem?.cancel()
+        seekFeedback = nil
+        playerController.pause()
+        if !isScrubbing {
+            isScrubbing = true
+            playerController.beginScrubPreviewing(at: origin)
+        }
+        timelinePosition = origin
+        autoScroll = PlayerAutoScroll(origin: origin, forward: forward)
+        showControls(temporarily: false)
+    }
+
+    private func runAutoScroll() async {
+        let clock = ContinuousClock()
+        var last = clock.now
+        while !Task.isCancelled, let autoScroll {
+            try? await Task.sleep(for: .milliseconds(33))
+            guard !Task.isCancelled, let duration = viewModel.duration else { return }
+            let now = clock.now
+            timelinePosition = autoScroll.advance(
+                timelinePosition,
+                by: (now - last) / .seconds(1),
+                upperBound: duration,
+            )
+            last = now
+        }
+    }
+
+    /// Plays from the reached position, or from where the fast forward started when cancelled.
+    private func finishAutoScroll(commit: Bool) {
+        guard let autoScroll else { return }
+        self.autoScroll = nil
+        arrowPressOrigin = nil
+        isScrubbing = false
+        playerController.endScrubPreviewing()
+        let target = commit ? timelinePosition : autoScroll.origin
+        playerController.seek(to: target)
+        viewModel.position = target
+        timelinePosition = target
+        playerController.resume()
     }
 
     private func cancelScrubbing() {

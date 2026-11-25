@@ -33,6 +33,8 @@ struct PlayerControlsState {
     var tabs: PlayerTabsContent?
     /// The system style tabs are open, or asked to open with the remote while the controls were hidden.
     var isShowingTabs = false
+    /// A fast forward or rewind held from the remote, which the system style timeline shows and drives.
+    var autoScroll: PlayerAutoScroll?
 
     var seekBackwardSymbol: String {
         Self.seekSymbol(prefix: "gobackward", seconds: seekBackwardSeconds)
@@ -93,6 +95,8 @@ struct PlayerControlsActions {
     var selectChapter: (MediaChapter) -> Void
     var restartFromBeginning: () -> Void
     var selectQueueItem: (Int) -> Void
+    var arrowPressed: (_ forward: Bool) -> Void = { _ in }
+    var arrowHeld: (_ forward: Bool) -> Void = { _ in }
 }
 
 struct PlayerControlBadge: Identifiable {
