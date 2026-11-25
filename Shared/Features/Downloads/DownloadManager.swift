@@ -135,6 +135,16 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         latestItem(for: identity)?.progress
     }
 
+    /// Progress of the file transfer; nil while the download is queued or prepared on the server (whose progress
+    /// restarts at zero when the transfer begins), before the first percent, or when the file size is unknown.
+    func activeProgress(for identity: MediaIdentity) -> Double? {
+        guard let item = latestItem(for: identity),
+              item.status == .downloading,
+              item.progress > 0
+        else { return nil }
+        return min(item.progress, 1)
+    }
+
     func useCellularData(for item: DownloadItem) async {
         guard let initialIndex = items.firstIndex(where: { $0.id == item.id }),
               items[initialIndex].status == .downloading,

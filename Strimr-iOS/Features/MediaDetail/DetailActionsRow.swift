@@ -245,6 +245,7 @@ struct DetailActionsRow: View {
                 systemImage: downloadIconName,
                 isActive: downloadStatus == .completed,
                 isLoading: isDownloadInProgress,
+                progress: downloadManager.activeProgress(for: viewModel.media.identity),
             )
         }
         .buttonStyle(.plain)
