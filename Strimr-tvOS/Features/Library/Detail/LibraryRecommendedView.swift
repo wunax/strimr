@@ -9,6 +9,7 @@ struct LibraryRecommendedView: View {
     @State var viewModel: LibraryRecommendedViewModel
     @Binding var heroMedia: MediaItem?
     let onSelectMedia: (MediaDisplayItem) -> Void
+    @FocusState private var focusedHubID: String?
     private let focusOverflowInset: CGFloat = 24
 
     private let landscapeHubIdentifiers: [String] = [
@@ -75,6 +76,8 @@ struct LibraryRecommendedView: View {
                         MediaHubSection(title: hub.title) {
                             carousel(for: hub)
                         }
+                        .id(hub.id)
+                        .focused($focusedHubID, equals: hub.id)
                     }
                 }
 
@@ -93,6 +96,7 @@ struct LibraryRecommendedView: View {
             .padding(.leading, focusOverflowInset)
             .padding(.trailing, LayoutMetrics.pageMargin)
         }
+        .scrollsFocusedRowToTop(focusedHubID)
     }
 
     @ViewBuilder
