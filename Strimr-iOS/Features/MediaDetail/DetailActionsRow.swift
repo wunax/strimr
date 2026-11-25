@@ -237,21 +237,42 @@ struct DetailActionsRow: View {
     }
 
     private var downloadButton: some View {
-        Button {
-            handleDownloadTap()
-        } label: {
-            DetailRoundActionLabel(
-                title: downloadTitle,
-                systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
-                isActive: downloadActivity?.phase == .completed,
-                isLoading: downloadActivity?.showsSpinner ?? false,
-                ring: downloadActivity?.ring,
-            )
+        Group {
+            if let item = existingDownload {
+                Menu {
+                    DownloadItemMenuItems(item: item, isServerReachable: !isServerUnreachable) { request in
+                        coordinator.showLocalPlayer(request)
+                    }
+                } label: {
+                    downloadLabel
+                }
+                .disabled(viewModel.isLoading)
+            } else {
+                Button(action: handleDownloadTap) {
+                    downloadLabel
+                }
+                .disabled(viewModel.isLoading || isServerUnreachable)
+            }
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.isLoading || isServerUnreachable)
         .accessibilityLabel(Text("downloads.action"))
         .accessibilityValue(Text(verbatim: downloadActivity?.accessibilityValue ?? ""))
+    }
+
+    private var downloadLabel: some View {
+        DetailRoundActionLabel(
+            title: downloadTitle,
+            systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
+            isActive: downloadActivity?.phase == .completed,
+            isLoading: downloadActivity?.showsSpinner ?? false,
+            ring: downloadActivity?.ring,
+        )
+    }
+
+    /// A series or season keeps the episode picker, so more episodes can always be added.
+    private var existingDownload: DownloadItem? {
+        guard [.movie, .episode].contains(viewModel.media.mediaKind) else { return nil }
+        return downloadManager.latestItem(for: viewModel.media.identity)
     }
 
     private func handlePlay() {

@@ -90,6 +90,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Features/Downloads/DownloadActivity.swift,
+				Features/Downloads/DownloadItemMenuItems.swift,
 				Features/Downloads/DownloadManager.swift,
 				Features/Downloads/DownloadModels.swift,
 				Features/Downloads/DownloadOptionsView.swift,
