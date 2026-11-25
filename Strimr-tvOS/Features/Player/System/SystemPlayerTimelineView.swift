@@ -12,6 +12,8 @@ struct SystemPlayerTimelineView: View {
     var onSeekForward: () -> Void
     var onPlayPause: () -> Void
     var onIdleSwipe: () -> Void
+    var onArrowPress: (Bool) -> Void
+    var onArrowHold: (Bool) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrubOrigin: Double?
@@ -63,11 +65,11 @@ struct SystemPlayerTimelineView: View {
                     // The system bar keeps its size when focus leaves it and only fades.
                     .opacity(isFocused ? 1 : 0.55)
 
-                    if let scrubOrigin {
+                    if let origin = scrubOrigin ?? state.autoScroll?.origin {
                         Capsule()
                             .fill(.textSecondary)
                             .frame(width: 3, height: 22)
-                            .offset(x: x(for: scrubOrigin, width: width) - 1.5)
+                            .offset(x: x(for: origin, width: width) - 1.5)
                     }
 
                     Capsule()
@@ -82,7 +84,9 @@ struct SystemPlayerTimelineView: View {
                 timeLabels(width: width, playheadX: playheadX)
             }
             .overlay(alignment: .topLeading) {
-                if scrubOrigin != nil, let preview = state.scrubPreview, let image = preview.image {
+                if scrubOrigin != nil || state.autoScroll != nil, let preview = state.scrubPreview,
+                   let image = preview.image
+                {
                     let size = previewSize(for: image)
                     SystemPlayerScrubThumbnail(image: image, size: size)
                         .offset(
@@ -102,6 +106,7 @@ struct SystemPlayerTimelineView: View {
             isFocused: isFocused,
             pressesScrub: state.isPaused,
             swipesScrub: state.isPaused,
+            isSuspended: state.autoScroll != nil,
             onEditingChanged: handleEditingChanged(_:),
             onCancel: handleCancel,
             onIdleMove: handleJump(_:),
@@ -114,6 +119,13 @@ struct SystemPlayerTimelineView: View {
             },
             onIdleSwipe: onIdleSwipe,
         )
+        .playerArrowHold(isEnabled: isFocused, onPress: onArrowPress, onHold: onArrowHold)
+        .onChange(of: state.autoScroll != nil) { _, isAutoScrolling in
+            // The fast forward took over a scrub the first press had started.
+            if isAutoScrolling {
+                scrubOrigin = nil
+            }
+        }
         .accessibilityElement()
         .accessibilityLabel(Text("player.timeline.accessibilityLabel"))
         .accessibilityValue(Text(verbatim: "\(elapsedText), \(remainingText)"))
@@ -127,7 +139,11 @@ struct SystemPlayerTimelineView: View {
     }
 
     private func timeLabels(width: CGFloat, playheadX: CGFloat) -> some View {
-        let elapsedWidth: CGFloat = state.isPaused || jumpDirection != nil ? 150 : 110
+        let elapsedWidth: CGFloat = if state.autoScroll != nil {
+            190
+        } else {
+            state.isPaused || jumpDirection != nil ? 150 : 110
+        }
         let elapsedX = clamped(playheadX - elapsedWidth / 2, width: elapsedWidth, in: width)
         // As in the system player, the labels on the right step aside when the elapsed time reaches them near the
         // end: the end time first, then the remaining time.
@@ -137,11 +153,19 @@ struct SystemPlayerTimelineView: View {
         let isRemainingHidden = elapsedReach > remainingStart
         return ZStack(alignment: .topLeading) {
             HStack(spacing: 8) {
-                if jumpDirection == .left {
+                if let autoScroll = state.autoScroll {
+                    if !autoScroll.isForward {
+                        autoScrollIndicator(autoScroll)
+                    }
+                } else if jumpDirection == .left {
                     jumpIndicator(.left)
                 }
                 Text(elapsedText)
-                if state.isPaused {
+                if let autoScroll = state.autoScroll {
+                    if autoScroll.isForward {
+                        autoScrollIndicator(autoScroll)
+                    }
+                } else if state.isPaused {
                     Image(systemName: "pause.circle")
                         .accessibilityHidden(true)
                 } else if jumpDirection == .right {
@@ -190,6 +214,21 @@ struct SystemPlayerTimelineView: View {
         Image(systemName: direction == .left ? state.seekBackwardSymbol : state.seekForwardSymbol)
             .transition(.opacity)
             .accessibilityHidden(true)
+    }
+
+    /// The speed sits on the outer side of the symbol, and only shows past the slowest speed.
+    private func autoScrollIndicator(_ autoScroll: PlayerAutoScroll) -> some View {
+        HStack(spacing: 8) {
+            if !autoScroll.isForward, autoScroll.speed > 1 {
+                Text(autoScroll.speed, format: .number)
+            }
+            Image(systemName: autoScroll.isForward ? "forward.circle" : "backward.circle")
+                .accessibilityHidden(true)
+            if autoScroll.isForward, autoScroll.speed > 1 {
+                Text(autoScroll.speed, format: .number)
+            }
+        }
+        .transition(.opacity)
     }
 
     private func handleJump(_ direction: MoveCommandDirection) {
