@@ -75,6 +75,8 @@ struct PlayerView: View {
     @State private var autoScroll: PlayerAutoScroll?
     /// Where playback stood when the last left or right press started, before its move command seeked.
     @State private var arrowPressOrigin: Double?
+    /// Where the playhead stood when that press started: the previewed position while a swipe scrub runs.
+    @State private var arrowPressStart: Double?
     @FocusState private var focusedPlayerSurface: PlayerFocusTarget?
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -1506,6 +1508,7 @@ struct PlayerView: View {
             autoScroll?.press(forward: forward)
         } else {
             arrowPressOrigin = playerController.seekOrigin
+            arrowPressStart = isScrubbing ? timelinePosition : playerController.seekOrigin
         }
     }
 
@@ -1513,14 +1516,15 @@ struct PlayerView: View {
     private func handleArrowHold(forward: Bool) {
         guard autoScroll == nil, canAutoScroll else { return }
         let origin = arrowPressOrigin ?? playerController.seekOrigin
+        let start = arrowPressStart ?? origin
         seekFeedbackWorkItem?.cancel()
         seekFeedback = nil
         playerController.pause()
         if !isScrubbing {
             isScrubbing = true
-            playerController.beginScrubPreviewing(at: origin)
+            playerController.beginScrubPreviewing(at: start)
         }
-        timelinePosition = origin
+        timelinePosition = start
         autoScroll = PlayerAutoScroll(origin: origin, forward: forward)
         showControls(temporarily: false)
     }
@@ -1532,9 +1536,11 @@ struct PlayerView: View {
             try? await Task.sleep(for: .milliseconds(33))
             guard !Task.isCancelled, let duration = viewModel.duration else { return }
             let now = clock.now
+            // Time spent with the app suspended must not move the playhead on resume.
+            let elapsed = min((now - last) / .seconds(1), 0.1)
             timelinePosition = autoScroll.advance(
                 timelinePosition,
-                by: (now - last) / .seconds(1),
+                by: elapsed,
                 upperBound: duration,
             )
             last = now
@@ -1544,15 +1550,20 @@ struct PlayerView: View {
     /// Plays from the reached position, or from where the fast forward started when cancelled.
     private func finishAutoScroll(commit: Bool) {
         guard let autoScroll else { return }
-        self.autoScroll = nil
-        arrowPressOrigin = nil
-        isScrubbing = false
-        playerController.endScrubPreviewing()
+        endAutoScrollSession()
         let target = commit ? timelinePosition : autoScroll.origin
         playerController.seek(to: target)
         viewModel.position = target
         timelinePosition = target
         playerController.resume()
+    }
+
+    private func endAutoScrollSession() {
+        autoScroll = nil
+        arrowPressOrigin = nil
+        arrowPressStart = nil
+        isScrubbing = false
+        playerController.endScrubPreviewing()
     }
 
     private func cancelScrubbing() {
@@ -2075,6 +2086,10 @@ struct PlayerView: View {
 
     private func startPlayback(using nextViewModel: PlayerViewModel) async {
         await MainActor.run {
+            // The outgoing item's fast forward must neither seek nor resume the new one.
+            if autoScroll != nil {
+                endAutoScrollSession()
+            }
             activePlaybackURL = nil
             viewModel = nextViewModel
         }
