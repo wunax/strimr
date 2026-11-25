@@ -12,8 +12,7 @@ struct DetailCircleActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
-    /// Replaces the loading spinner with a ring and percentage when the work reports how far it is.
-    var progress: Double?
+    var ring: DownloadProgressRing.Value?
     /// Set by a menu, whose label does not receive pointer events itself.
     var isHovered: Bool?
 
@@ -21,8 +20,8 @@ struct DetailCircleActionLabel: View {
         ZStack {
             Circle()
                 .fill(isLifted ? Color.white.opacity(0.22) : Color.surfaceRaised)
-            if showsProgress, let progress {
-                DownloadProgressRing(progress: progress, lineWidth: 2.5)
+            if let ring {
+                DownloadProgressRing(value: ring, lineWidth: 2.5)
             } else if isLoading {
                 ProgressView()
                     .controlSize(.small)
@@ -34,23 +33,13 @@ struct DetailCircleActionLabel: View {
         }
         .frame(width: Self.size, height: Self.size)
         // A running download disables the button but its progress stays readable.
-        .opacity(isEnabled || showsProgress ? 1 : 0.5)
+        .opacity(isEnabled || ring != nil ? 1 : 0.5)
         .contentShape(Circle())
         .shadow(color: .black.opacity(isLifted ? 0.35 : 0), radius: 12, y: 4)
         .animation(Motion.focus, value: isLifted)
         .scaleEffect(isLifted && !reduceMotion ? 1.06 : 1)
         .animation(Motion.animation(Motion.focusScale, reduceMotion: reduceMotion), value: isLifted)
         .onHover { isPointerOver = $0 }
-        .accessibilityValue(progressValue)
-    }
-
-    private var showsProgress: Bool {
-        isLoading && progress != nil
-    }
-
-    private var progressValue: Text {
-        guard showsProgress, let progress else { return Text(verbatim: "") }
-        return Text(progress, format: .percent.precision(.fractionLength(0)))
     }
 
     private var isLifted: Bool {

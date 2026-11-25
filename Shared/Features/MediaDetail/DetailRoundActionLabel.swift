@@ -7,16 +7,15 @@ struct DetailRoundActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
-    /// Replaces the loading spinner with a ring and percentage when the work reports how far it is.
-    var progress: Double?
+    var ring: DownloadProgressRing.Value?
 
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .fill(.surfaceRaised)
-                if showsProgress, let progress {
-                    DownloadProgressRing(progress: progress, lineWidth: 3)
+                if let ring {
+                    DownloadProgressRing(value: ring, lineWidth: 3)
                 } else if isLoading {
                     ProgressView()
                 } else {
@@ -34,17 +33,7 @@ struct DetailRoundActionLabel: View {
         }
         .frame(minWidth: 56)
         // A running download disables the button but its progress stays readable.
-        .opacity(isEnabled || showsProgress ? 1 : 0.5)
+        .opacity(isEnabled || ring != nil ? 1 : 0.5)
         .contentShape(Rectangle())
-        .accessibilityValue(progressValue)
-    }
-
-    private var showsProgress: Bool {
-        isLoading && progress != nil
-    }
-
-    private var progressValue: Text {
-        guard showsProgress, let progress else { return Text(verbatim: "") }
-        return Text(progress, format: .percent.precision(.fractionLength(0)))
     }
 }
