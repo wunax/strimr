@@ -738,6 +738,50 @@
         }
       }
     },
+    "downloads.actions.cancel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Download"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler le téléchargement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消下载"
+          }
+        }
+      }
+    },
+    "downloads.actions.delete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Download"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le téléchargement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除下载"
+          }
+        }
+      }
+    },
     "downloads.cellular.confirmation.confirm" : {
       "localizations" : {
         "en" : {
@@ -1024,6 +1068,50 @@
         }
       }
     },
+    "downloads.phase.preparing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converting"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversion"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转码中"
+          }
+        }
+      }
+    },
+    "downloads.phase.transferring" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载中"
+          }
+        }
+      }
+    },
     "downloads.sheet.byEpisode" : {
       "localizations" : {
         "en" : {
@@ -1090,24 +1178,24 @@
         }
       }
     },
-    "downloads.sheet.episodeNumber %lld" : {
+    "downloads.sheet.episodeNumber %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Episode %lld"
+            "value" : "Episode %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Épisode %lld"
+            "value" : "Épisode %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 集"
+            "value" : "第 %@ 集"
           }
         }
       }
@@ -1438,6 +1526,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "队列中"
+          }
+        }
+      }
+    },
+    "downloads.status.serverError %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned an error (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur a renvoyé une erreur (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器返回错误（%lld）"
           }
         }
       }
@@ -1780,24 +1890,24 @@
         }
       }
     },
-    "home.featured.newSeason %lld" : {
+    "home.featured.newSeason %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Season %lld now available"
+            "value" : "Season %@ now available"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saison %lld disponible"
+            "value" : "Saison %@ disponible"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 季已上线"
+            "value" : "第 %@ 季已上线"
           }
         }
       }
@@ -8644,6 +8754,28 @@
         }
       }
     },
+    "media.copySelection.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a version"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir une version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择版本"
+          }
+        }
+      }
+    },
     "media.detail.action.favorite" : {
       "localizations" : {
         "en" : {
@@ -8864,24 +8996,24 @@
         }
       }
     },
-    "media.detail.episodeNumber %lld" : {
+    "media.detail.episodeNumber %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Episode %lld"
+            "value" : "Episode %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Épisode %lld"
+            "value" : "Épisode %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 集"
+            "value" : "第 %@ 集"
           }
         }
       }
@@ -10784,6 +10916,28 @@
         }
       }
     },
+    "media.labels.episodeNumber %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épisode %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%@集"
+          }
+        }
+      }
+    },
     "media.labels.episodeWithTitle %@ %@" : {
       "localizations" : {
         "en" : {
@@ -10828,24 +10982,24 @@
         }
       }
     },
-    "media.labels.seasonEpisode %lld %lld" : {
+    "media.labels.seasonEpisode %@ %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%1$lld · E%2$lld"
+            "value" : "S%1$@ · E%2$@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%1$lld · E%2$lld"
+            "value" : "S%1$@ · E%2$@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第%1$lld季 · 第%2$lld集"
+            "value" : "第%1$@季 · 第%2$@集"
           }
         }
       }
@@ -12776,6 +12930,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为避免剧透，已隐藏剧情简介"
+          }
+        }
+      }
+    },
+    "media.spoilerProtection.titleHidden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title hidden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre masqué"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题已隐藏"
           }
         }
       }
@@ -18045,19 +18221,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otherwise Strimr opens the last profile used."
+            "value" : "Also asked when you come back to the app after 15 minutes away. Otherwise Strimr opens the last profile used."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sinon, Strimr reprend le dernier profil utilisé."
+            "value" : "Aussi demandé au retour dans l’app après 15 minutes d’absence. Sinon, Strimr reprend le dernier profil utilisé."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "否则 Strimr 将打开上次使用的个人资料。"
+            "value" : "离开应用 15 分钟后返回时也会询问。否则 Strimr 将打开上次使用的个人资料。"
           }
         }
       }
@@ -19830,24 +20006,24 @@
         }
       }
     },
-    "seerr.manageRequests.season.badge %lld" : {
+    "seerr.manageRequests.season.badge %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%lld"
+            "value" : "S%@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%lld"
+            "value" : "S%@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第%lld季"
+            "value" : "第%@季"
           }
         }
       }
@@ -24288,19 +24464,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hide artwork or summaries for episodes you haven’t watched."
+            "value" : "Hide artwork, or also titles and summaries, for episodes you haven’t watched."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Masquez les illustrations ou les résumés des épisodes que vous n’avez pas regardés."
+            "value" : "Masquez les illustrations, ou aussi les titres et les résumés, des épisodes que vous n’avez pas regardés."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏尚未观看剧集的图片或剧情简介。"
+            "value" : "隐藏未观看剧集的图片，或同时隐藏标题和剧情简介。"
           }
         }
       }

@@ -249,6 +249,7 @@ struct SystemPlayerControlsView: View {
 
             buttons
         }
+        .focusSection()
     }
 
     @ViewBuilder
@@ -300,6 +301,8 @@ struct SystemPlayerControlsView: View {
                 Button("livetv.player.goLive", systemImage: "dot.radiowaves.left.and.right", action: actions.goLive)
                     .actionButtonStyle(.secondary)
                     .focused($focus, equals: .button(.goLive))
+                    // Spans the width so focus can come down to it from the buttons on the right.
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .focusSection()
             }
         } else {
@@ -313,6 +316,8 @@ struct SystemPlayerControlsView: View {
                 onSeekForward: actions.seekForward,
                 onPlayPause: actions.playPause,
                 onIdleSwipe: actions.userInteraction,
+                onArrowPress: actions.arrowPressed,
+                onArrowHold: actions.arrowHeld,
             )
             .focused($focus, equals: .timeline)
             .disabled(isTimelineFocusSuspended)

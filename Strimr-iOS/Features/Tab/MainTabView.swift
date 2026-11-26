@@ -63,6 +63,7 @@ struct MainTabView: View {
             }
             .onChange(of: coordinator.isPresentingPlayer, initial: true) { _, isPresenting in
                 homeViewModel.isPlaybackActive = isPresenting
+                sessionManager.isPlaybackActive = isPresenting
             }
             .fullScreenCover(isPresented: $coordinator.isPresentingPlayer, onDismiss: playerDidClose) {
                 if let queue = coordinator.selectedMediaQueue,

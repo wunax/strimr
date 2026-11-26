@@ -22,6 +22,9 @@ struct HomeRow: Identifiable, Hashable {
     var libraryName: String?
     /// The server's owner excluded the row's library from the home screen.
     var isExcludedFromServerHome = false
+    /// Continue Watching shows one copy of a title held by several libraries or servers; this lists all of them, the
+    /// shown one included, keyed by the shown one.
+    var copies: [MediaIdentity: [MediaItem]] = [:]
 
     var title: String {
         hub.title

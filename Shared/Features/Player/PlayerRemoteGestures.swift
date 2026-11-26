@@ -84,3 +84,36 @@ struct PlayerScrubSession {
         lastMoveDate = nil
     }
 }
+
+/// Fast forward or rewind started by holding left or right on the tvOS remote: the playhead runs on its own while
+/// the video stays paused, until a click plays from there or Back returns to where it started.
+struct PlayerAutoScroll: Equatable {
+    static let maximumSpeed = 4
+    /// Seconds of video covered per second, for each speed.
+    private static let rates: [Double] = [8, 24, 64, 128]
+
+    let origin: Double
+    private(set) var isForward: Bool
+    private(set) var speed = 1
+
+    init(origin: Double, forward: Bool) {
+        self.origin = origin
+        isForward = forward
+    }
+
+    /// The same direction speeds up; the opposite one slows down, then turns around once at the slowest speed.
+    mutating func press(forward: Bool) {
+        if forward == isForward {
+            speed = min(speed + 1, Self.maximumSpeed)
+        } else if speed > 1 {
+            speed -= 1
+        } else {
+            isForward = forward
+        }
+    }
+
+    func advance(_ position: Double, by elapsed: Double, upperBound: Double) -> Double {
+        let delta = Self.rates[speed - 1] * elapsed
+        return min(max(isForward ? position + delta : position - delta, 0), upperBound)
+    }
+}

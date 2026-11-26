@@ -28,7 +28,7 @@ struct HomeHeroSlide: Identifiable, Hashable {
             case .recentlyAdded:
                 String(localized: "home.featured.recentlyAdded")
             case .newSeason:
-                newSeasonNumber.map { String(localized: "home.featured.newSeason \($0)") }
+                newSeasonNumber.map { String(localized: "home.featured.newSeason \(String($0))") }
                     ?? String(localized: "home.featured.newEpisodes")
             case .trending:
                 String(localized: "home.featured.trending")

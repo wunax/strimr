@@ -302,7 +302,7 @@ final class SeerrMediaDetailViewModel {
     func episodeLabel(for episode: SeerrEpisode) -> String? {
         let seasonNumber = episode.seasonNumber ?? selectedSeasonNumber
         guard let seasonNumber, let episodeNumber = episode.episodeNumber else { return nil }
-        return String(localized: "media.labels.seasonEpisode \(seasonNumber) \(episodeNumber)")
+        return String(localized: "media.labels.seasonEpisode \(String(seasonNumber)) \(String(episodeNumber))")
     }
 
     func episodeAirDateText(for episode: SeerrEpisode) -> String? {

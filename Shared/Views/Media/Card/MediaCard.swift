@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MediaCard: View {
     @Environment(ServerRegistry.self) private var registry
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(MediaServices.self) private var scopedServices: MediaServices?
     #if os(tvOS)
         @Environment(MediaFocusModel.self) private var focusModel
@@ -110,11 +111,17 @@ struct MediaCard: View {
     }
 
     private var secondaryLabel: String? {
-        media.cardSecondaryLabel(remainingTime: remainingTimeLine == .secondary ? remainingTimeText : nil)
+        media.cardSecondaryLabel(
+            remainingTime: remainingTimeLine == .secondary ? remainingTimeText : nil,
+            spoilerProtection: settingsManager.interface.spoilerProtection,
+        )
     }
 
     private var tertiaryLabel: String? {
-        media.cardTertiaryLabel(remainingTime: remainingTimeLine == .tertiary ? remainingTimeText : nil)
+        media.cardTertiaryLabel(
+            remainingTime: remainingTimeLine == .tertiary ? remainingTimeText : nil,
+            spoilerProtection: settingsManager.interface.spoilerProtection,
+        )
     }
 
     private var titleOpacity: Double {

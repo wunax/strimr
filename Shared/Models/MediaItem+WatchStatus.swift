@@ -25,6 +25,14 @@ extension MediaItem {
         isSpoilerProtected(at: level) && level == .full
     }
 
+    /// The episode title stands in for the plot as much as the summary does, so full protection swaps it for the
+    /// episode number.
+    func spoilerSafeTitle(at level: SpoilerProtectionLevel) -> String {
+        guard shouldHideSpoilerSummary(at: level) else { return title }
+        guard let index else { return String(localized: "media.spoilerProtection.titleHidden") }
+        return String(localized: "media.labels.episodeNumber \(String(index))")
+    }
+
     func spoilerProtectedArtworkPath(at level: SpoilerProtectionLevel) -> String? {
         guard isSpoilerProtected(at: level) else { return nil }
         return seriesArtworkPath

@@ -73,6 +73,9 @@ struct DownloadsView: View {
                 if item.isPlayable {
                     Button("common.actions.play", systemImage: "play.fill") { play(item) }
                 }
+                if downloadManager.canRetry(item) {
+                    Button("common.actions.retry", systemImage: "arrow.clockwise") { downloadManager.retry(item) }
+                }
                 Button("common.actions.delete", systemImage: "trash", role: .destructive) {
                     Task { await downloadManager.delete(item) }
                 }
@@ -82,8 +85,11 @@ struct DownloadsView: View {
     private func downloadRow(_ item: DownloadItem) -> some View {
         DownloadRow(
             item: item,
+            title: downloadManager.localMediaItem(for: item)
+                .spoilerSafeTitle(at: settingsManager.interface.spoilerProtection),
             posterURL: downloadManager.localPosterURL(for: item),
             isSpoilerProtected: isSpoilerProtected(item),
+            onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,
         )
     }
 

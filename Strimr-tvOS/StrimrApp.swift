@@ -79,7 +79,10 @@ struct StrimrApp: App {
                 .toastHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
-                    if !externalPlaybackCallbackRouter.receive(url) {
+                    if externalPlaybackCallbackRouter.receive(url) {
+                        sessionManager.didReturnFromExternalPlayback()
+                    } else {
+                        sessionManager.sceneWillReturnFromBackground()
                         topShelfDeepLinkRouter.receive(url)
                     }
                 }

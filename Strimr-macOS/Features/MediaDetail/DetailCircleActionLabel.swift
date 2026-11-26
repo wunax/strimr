@@ -12,6 +12,7 @@ struct DetailCircleActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
+    var ring: DownloadProgressRing.Value?
     /// Set by a menu, whose label does not receive pointer events itself.
     var isHovered: Bool?
 
@@ -19,7 +20,9 @@ struct DetailCircleActionLabel: View {
         ZStack {
             Circle()
                 .fill(isLifted ? Color.white.opacity(0.22) : Color.surfaceRaised)
-            if isLoading {
+            if let ring {
+                DownloadProgressRing(value: ring, lineWidth: 2.5)
+            } else if isLoading {
                 ProgressView()
                     .controlSize(.small)
             } else {
@@ -29,7 +32,8 @@ struct DetailCircleActionLabel: View {
             }
         }
         .frame(width: Self.size, height: Self.size)
-        .opacity(isEnabled ? 1 : 0.5)
+        // A running download disables the button but its progress stays readable.
+        .opacity(isEnabled || ring != nil ? 1 : 0.5)
         .contentShape(Circle())
         .shadow(color: .black.opacity(isLifted ? 0.35 : 0), radius: 12, y: 4)
         .animation(Motion.focus, value: isLifted)

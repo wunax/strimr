@@ -231,6 +231,7 @@ struct MainTabView: View {
         }
         .onChange(of: coordinator.isPresentingPlayer, initial: true) { _, isPresenting in
             homeViewModel.isPlaybackActive = isPresenting
+            sessionManager.isPlaybackActive = isPresenting
         }
         .task(id: topShelfDeepLinkRouter.pendingAction) {
             guard let action = topShelfDeepLinkRouter.pendingAction else { return }

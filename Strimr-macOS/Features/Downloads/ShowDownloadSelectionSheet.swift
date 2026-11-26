@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let services: MediaServices
     let defaultQuality: TranscodeQualityPreset
@@ -110,14 +111,16 @@ struct ShowDownloadSelectionSheet: View {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(selected ? .selectionAccent : .textTertiary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \($0)") }
+                    Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \(String($0))") }
                         ?? String(localized: "downloads.sheet.episodeUnknown"))
                         .font(.cardTitle)
                         .foregroundStyle(.textPrimary)
-                    Text(episode.title)
-                        .font(.cardMetadata)
-                        .foregroundStyle(.textSecondary)
-                        .lineLimit(1)
+                    if !episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                        Text(episode.title)
+                            .font(.cardMetadata)
+                            .foregroundStyle(.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
                 if downloaded {

@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct ShowDownloadSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let services: MediaServices
     let defaultQuality: TranscodeQualityPreset
@@ -133,10 +134,12 @@ struct ShowDownloadSelectionSheet: View {
                         .font(.cardTitle)
                         .foregroundStyle(.textPrimary)
 
-                    Text(episode.title)
-                        .font(.cardMetadata)
-                        .foregroundStyle(.textSecondary)
-                        .lineLimit(1)
+                    if !episode.shouldHideSpoilerSummary(at: settingsManager.interface.spoilerProtection) {
+                        Text(episode.title)
+                            .font(.cardMetadata)
+                            .foregroundStyle(.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -180,7 +183,7 @@ struct ShowDownloadSelectionSheet: View {
         guard let index = episode.index else {
             return String(localized: "downloads.sheet.episodeUnknown")
         }
-        return String(localized: "downloads.sheet.episodeNumber \(index)")
+        return String(localized: "downloads.sheet.episodeNumber \(String(index))")
     }
 
     private func toggleEpisodeSelection(_ episodeID: String) {

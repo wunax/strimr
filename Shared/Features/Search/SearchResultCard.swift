@@ -103,17 +103,19 @@ struct SearchUnavailableServersNote: View {
     }
 }
 
-struct SearchServerSelectionView: View {
-    let result: MergedSearchResult
+/// Lists the copies of a title, best quality first, with their server, library and quality.
+struct MediaSourceSelectionView: View {
+    let title: LocalizedStringKey
+    let sources: [SearchResultSource]
     let onSelect: (SearchResultSource) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(ServerRegistry.self) private var registry
     @Environment(LibraryStore.self) private var libraryStore
-    @State private var libraryIDs: [String: String] = [:]
+    @State private var details: [String: MediaCopyDetails] = [:]
 
     var body: some View {
         TaskModalNavigationView {
-            List(result.sourcesByQuality) { source in
+            List(sources) { source in
                 Button {
                     dismiss()
                     onSelect(source)
@@ -128,14 +130,16 @@ struct SearchServerSelectionView: View {
                 // Room for the focused row to grow below the title's divider.
                 .contentMargins(.top, 24, for: .scrollContent)
             #endif
-                .taskModalTitle("search.serverSelection.title")
+                .taskModalTitle(title)
         }
         .presentationDetents([.medium, .large])
-        .task { await loadLibraryIDs() }
+        .task { await loadDetails() }
     }
 
     private func row(for source: SearchResultSource) -> some View {
-        HStack(spacing: Self.spacing) {
+        let item = source.media.playableItem
+        let details = details[source.id] ?? MediaCopyDetails()
+        return HStack(spacing: Self.spacing) {
             Image(systemName: "server.rack")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Color.primary)
@@ -147,7 +151,7 @@ struct SearchServerSelectionView: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.primary)
                     .lineLimit(1)
-                if let library = libraryTitle(for: source) {
+                if let item, let library = libraryLine(for: item, details: details) {
                     HStack(spacing: 6) {
                         Image(systemName: "books.vertical")
                         Text(library)
@@ -160,8 +164,8 @@ struct SearchServerSelectionView: View {
 
             Spacer(minLength: Self.spacing)
 
-            if let resolution = source.media.playableItem?.playbackResolutionLabel {
-                Text(resolution)
+            if let quality = details.qualityLabel ?? item?.playbackResolutionLabel {
+                Text(quality)
                     .font(.footnote.weight(.bold))
                     .foregroundStyle(Color.primary)
                     .padding(.horizontal, 10)
@@ -180,25 +184,22 @@ struct SearchServerSelectionView: View {
         private static let spacing: CGFloat = 12
     #endif
 
-    private func libraryTitle(for source: SearchResultSource) -> String? {
-        if let title = source.media.playableItem?.librarySectionTitle {
-            return title
-        }
-        guard let libraryID = source.media.playableItem?.librarySectionID ?? libraryIDs[source.id] else { return nil }
-        return libraryStore.library(LibraryIdentity(server: source.server, libraryID: libraryID))?.title
+    private func libraryLine(for item: MediaItem, details: MediaCopyDetails) -> String? {
+        let parts = [details.libraryTitle(for: item, libraryStore: libraryStore), details.bitrateText]
+            .compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// Jellyfin search results do not carry their library; it takes one request per copy.
-    private func loadLibraryIDs() async {
-        await withTaskGroup(of: (String, String?).self) { group in
-            for source in result.sources {
-                guard let item = source.media.playableItem, item.librarySectionID == nil,
+    private func loadDetails() async {
+        await withTaskGroup(of: (String, MediaCopyDetails).self) { group in
+            for source in sources {
+                guard let item = source.media.playableItem,
                       let detail = registry.services(for: source.server)?.detail
                 else { continue }
-                group.addTask { await (source.id, try? detail.libraryID(for: item)) }
+                group.addTask { await (source.id, MediaCopyDetails.load(for: item, detail: detail)) }
             }
-            for await (id, libraryID) in group {
-                libraryIDs[id] = libraryID
+            for await (id, value) in group {
+                details[id] = value
             }
         }
     }
@@ -291,7 +292,7 @@ private extension SearchResultCard {
             media.cardSecondaryLabel(remainingTime: nil) ?? media.title
         case .episode:
             media.cardTertiaryLabel(remainingTime: nil)
-                ?? media.secondaryLabel
+                ?? media.playableItem?.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection)
                 ?? media.playableItem?.parentTitle
                 ?? String(localized: "search.fallback.episode")
         case .clip:

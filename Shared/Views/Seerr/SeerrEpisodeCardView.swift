@@ -71,7 +71,7 @@ struct SeerrEpisodeCardView: View {
         if let name = episode.name, !name.isEmpty {
             return name
         }
-        return episode.episodeNumber.map { String(localized: "media.detail.episodeNumber \($0)") } ?? ""
+        return episode.episodeNumber.map { String(localized: "media.detail.episodeNumber \(String($0))") } ?? ""
     }
 }
 

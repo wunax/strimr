@@ -27,10 +27,21 @@ extension MediaDisplayItem {
         return parts.isEmpty ? nil : parts.joined(separator: " • ")
     }
 
+    /// The title of a playable item, or its stand-in when it would spoil an unwatched episode.
+    func displayTitle(spoilerProtection: SpoilerProtectionLevel) -> String {
+        playableItem?.spoilerSafeTitle(at: spoilerProtection) ?? title
+    }
+
     /// In-progress cards show the time left in place of the year. Editions share the title's artwork and name, so the
     /// caption keeps naming the edition.
-    func cardSecondaryLabel(remainingTime: String?) -> String? {
-        guard case let .playable(item) = self, item.type != .episode else { return secondaryLabel }
+    func cardSecondaryLabel(remainingTime: String?, spoilerProtection: SpoilerProtectionLevel = .off) -> String? {
+        guard case let .playable(item) = self else { return secondaryLabel }
+        if item.type == .episode {
+            // A hidden title leaves the episode number on its line instead of repeating it below.
+            return item.shouldHideSpoilerSummary(at: spoilerProtection)
+                ? Self.joined(tertiaryLabel ?? item.spoilerSafeTitle(at: spoilerProtection), item.editionTitle)
+                : secondaryLabel
+        }
         if let remainingTime {
             return Self.joined(remainingTime, item.editionTitle)
         }
@@ -38,8 +49,11 @@ extension MediaDisplayItem {
     }
 
     /// Episodes keep their title on the second line, so the edition and the time left follow the episode number.
-    func cardTertiaryLabel(remainingTime: String?) -> String? {
+    func cardTertiaryLabel(remainingTime: String?, spoilerProtection: SpoilerProtectionLevel = .off) -> String? {
         guard case let .playable(item) = self, item.type == .episode else { return tertiaryLabel }
+        if item.shouldHideSpoilerSummary(at: spoilerProtection) {
+            return remainingTime
+        }
         return Self.joined(tertiaryLabel, item.editionTitle, remainingTime)
     }
 

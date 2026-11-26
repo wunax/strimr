@@ -56,8 +56,16 @@ struct ContentView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active {
+            switch phase {
+            case .active:
+                sessionManager.sceneWillReturnFromBackground()
                 registry.retryUnavailable()
+            case .background:
+                sessionManager.sceneDidEnterBackground()
+            case .inactive:
+                sessionManager.sceneWillReturnFromBackground()
+            @unknown default:
+                break
             }
         }
     }

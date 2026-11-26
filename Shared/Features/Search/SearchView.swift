@@ -46,7 +46,11 @@ struct SearchView: View {
                 viewModel.submitSearch()
             }
             .sheet(item: $selectedResult) { result in
-                SearchServerSelectionView(result: result, onSelect: onSelectMedia)
+                MediaSourceSelectionView(
+                    title: "search.serverSelection.title",
+                    sources: result.sourcesByQuality,
+                    onSelect: onSelectMedia,
+                )
             }
     }
 

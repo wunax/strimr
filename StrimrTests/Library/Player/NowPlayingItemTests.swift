@@ -24,7 +24,7 @@ struct NowPlayingItemTests {
         ))
 
         #expect(item.title == "Pilot")
-        #expect(item.subtitle == "Series · \(String(localized: "media.labels.seasonEpisode \(1) \(3)"))")
+        #expect(item.subtitle == "Series · \(String(localized: "media.labels.seasonEpisode \("1") \("3")"))")
         #expect(item.skipBackwardSeconds == 10)
         #expect(item.skipForwardSeconds == 30)
     }

@@ -674,6 +674,7 @@ private struct EpisodeArtworkCard: View {
     let onFocus: () -> Void
     let onFileInfo: () -> Void
 
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
 
@@ -692,7 +693,7 @@ private struct EpisodeArtworkCard: View {
                 .foregroundStyle(.textTertiary)
                 .opacity(isFocused ? 1 : 0.32 / 0.45)
                 .lineLimit(1)
-            Text(episode.title)
+            Text(episode.spoilerSafeTitle(at: settingsManager.interface.spoilerProtection))
                 .font(.cardTitle)
                 .foregroundStyle(.textPrimary.opacity(isFocused ? 1 : 0.45))
                 .lineLimit(1)
@@ -704,7 +705,7 @@ private struct EpisodeArtworkCard: View {
 
     private var episodeNumberText: String {
         guard let index = episode.index else { return String(localized: "search.fallback.episode") }
-        return String(localized: "media.detail.episodeNumber \(index)")
+        return String(localized: "media.detail.episodeNumber \(String(index))")
     }
 
     private var onDeckBadge: LocalizedStringKey? {
