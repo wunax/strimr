@@ -1178,24 +1178,24 @@
         }
       }
     },
-    "downloads.sheet.episodeNumber %lld" : {
+    "downloads.sheet.episodeNumber %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Episode %lld"
+            "value" : "Episode %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Épisode %lld"
+            "value" : "Épisode %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 集"
+            "value" : "第 %@ 集"
           }
         }
       }
@@ -1890,24 +1890,24 @@
         }
       }
     },
-    "home.featured.newSeason %lld" : {
+    "home.featured.newSeason %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Season %lld now available"
+            "value" : "Season %@ now available"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saison %lld disponible"
+            "value" : "Saison %@ disponible"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 季已上线"
+            "value" : "第 %@ 季已上线"
           }
         }
       }
@@ -8996,24 +8996,24 @@
         }
       }
     },
-    "media.detail.episodeNumber %lld" : {
+    "media.detail.episodeNumber %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Episode %lld"
+            "value" : "Episode %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Épisode %lld"
+            "value" : "Épisode %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第 %lld 集"
+            "value" : "第 %@ 集"
           }
         }
       }
@@ -10916,24 +10916,24 @@
         }
       }
     },
-    "media.labels.episodeNumber %lld" : {
+    "media.labels.episodeNumber %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Episode %lld"
+            "value" : "Episode %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Épisode %lld"
+            "value" : "Épisode %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第%lld集"
+            "value" : "第%@集"
           }
         }
       }
@@ -10982,24 +10982,24 @@
         }
       }
     },
-    "media.labels.seasonEpisode %lld %lld" : {
+    "media.labels.seasonEpisode %@ %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%1$lld · E%2$lld"
+            "value" : "S%1$@ · E%2$@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%1$lld · E%2$lld"
+            "value" : "S%1$@ · E%2$@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第%1$lld季 · 第%2$lld集"
+            "value" : "第%1$@季 · 第%2$@集"
           }
         }
       }
@@ -20006,24 +20006,24 @@
         }
       }
     },
-    "seerr.manageRequests.season.badge %lld" : {
+    "seerr.manageRequests.season.badge %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%lld"
+            "value" : "S%@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "S%lld"
+            "value" : "S%@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "第%lld季"
+            "value" : "第%@季"
           }
         }
       }

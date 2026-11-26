@@ -705,7 +705,7 @@ private struct EpisodeArtworkCard: View {
 
     private var episodeNumberText: String {
         guard let index = episode.index else { return String(localized: "search.fallback.episode") }
-        return String(localized: "media.detail.episodeNumber \(index)")
+        return String(localized: "media.detail.episodeNumber \(String(index))")
     }
 
     private var onDeckBadge: LocalizedStringKey? {

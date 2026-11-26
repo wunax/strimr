@@ -183,7 +183,7 @@ struct ShowDownloadSelectionSheet: View {
         guard let index = episode.index else {
             return String(localized: "downloads.sheet.episodeUnknown")
         }
-        return String(localized: "downloads.sheet.episodeNumber \(index)")
+        return String(localized: "downloads.sheet.episodeNumber \(String(index))")
     }
 
     private func toggleEpisodeSelection(_ episodeID: String) {

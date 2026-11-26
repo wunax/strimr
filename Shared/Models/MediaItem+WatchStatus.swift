@@ -30,7 +30,7 @@ extension MediaItem {
     func spoilerSafeTitle(at level: SpoilerProtectionLevel) -> String {
         guard shouldHideSpoilerSummary(at: level) else { return title }
         guard let index else { return String(localized: "media.spoilerProtection.titleHidden") }
-        return String(localized: "media.labels.episodeNumber \(index)")
+        return String(localized: "media.labels.episodeNumber \(String(index))")
     }
 
     func spoilerProtectedArtworkPath(at level: SpoilerProtectionLevel) -> String? {

@@ -113,7 +113,7 @@ struct SeerrManageRequestsView: View {
         } else {
             HStack(spacing: 8) {
                 ForEach(seasonNumbers, id: \.self) { seasonNumber in
-                    Text(String(localized: "seerr.manageRequests.season.badge \(seasonNumber)"))
+                    Text(String(localized: "seerr.manageRequests.season.badge \(String(seasonNumber))"))
                         .font(.badge)
                         .foregroundStyle(.textPrimary)
                         .padding(.horizontal, 10)

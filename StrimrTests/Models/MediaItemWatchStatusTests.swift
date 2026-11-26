@@ -8,7 +8,7 @@ struct MediaItemWatchStatusTests {
     @Test func `full protection swaps an unwatched episode title for its number`() {
         let episode = MediaItem.make(id: "1", server: server, title: "Pilot", type: .episode, episodeNumber: 3)
 
-        #expect(episode.spoilerSafeTitle(at: .full) == String(localized: "media.labels.episodeNumber \(3)"))
+        #expect(episode.spoilerSafeTitle(at: .full) == String(localized: "media.labels.episodeNumber \("3")"))
         #expect(episode.spoilerSafeTitle(at: .thumbnails) == "Pilot")
         #expect(episode.spoilerSafeTitle(at: .off) == "Pilot")
     }
