@@ -8,6 +8,7 @@ struct SeerrDiscoverView: View {
     @Environment(SeerrFocusModel.self) private var focusModel
     @Environment(SeerrStore.self) private var seerrStore
     @State var viewModel: SeerrDiscoverViewModel
+    @FocusState private var focusedRail: String?
     let onSelectMedia: (SeerrMedia) -> Void
 
     init(
@@ -102,6 +103,7 @@ struct SeerrDiscoverView: View {
             .padding(.top, 16)
             .padding(.trailing, LayoutMetrics.pageMargin)
         }
+        .scrollsFocusedRowToTop(focusedRail)
     }
 
     @ViewBuilder
@@ -135,6 +137,8 @@ struct SeerrDiscoverView: View {
                     onSelectMedia: onSelectMedia,
                 )
             }
+            .id(title)
+            .focused($focusedRail, equals: title)
         }
     }
 

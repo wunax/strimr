@@ -7,13 +7,16 @@ struct DetailRoundActionLabel: View {
     let systemImage: String
     let isActive: Bool
     let isLoading: Bool
+    var ring: DownloadProgressRing.Value?
 
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .fill(.surfaceRaised)
-                if isLoading {
+                if let ring {
+                    DownloadProgressRing(value: ring, lineWidth: 3)
+                } else if isLoading {
                     ProgressView()
                 } else {
                     Image(systemName: systemImage)
@@ -29,7 +32,8 @@ struct DetailRoundActionLabel: View {
                 .lineLimit(1)
         }
         .frame(minWidth: 56)
-        .opacity(isEnabled ? 1 : 0.5)
+        // A running download disables the button but its progress stays readable.
+        .opacity(isEnabled || ring != nil ? 1 : 0.5)
         .contentShape(Rectangle())
     }
 }

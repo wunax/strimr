@@ -18,6 +18,7 @@ struct MediaDetailView: View {
     @State private var isShowingSubtitleSearch = false
     @State private var isShowingFileInfo = false
     @State private var isMoreMenuHovered = false
+    @State private var isDownloadMenuHovered = false
     @State private var mediaToAddToPlaylist: MediaItem?
     @State private var manageController = MediaManageController()
     let onSelectMedia: (MediaItem) -> Void
@@ -354,17 +355,7 @@ struct MediaDetailView: View {
                 if mediaServices.capabilities.downloads,
                    [.movie, .episode, .season, .show].contains(viewModel.media.type)
                 {
-                    Button(action: handleDownload) {
-                        DetailCircleActionLabel(
-                            systemImage: downloadIconName,
-                            isActive: downloadStatus == .completed,
-                            isLoading: isDownloadInProgress,
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isLoading || isDownloadInProgress || isServerUnreachable)
-                    .help(Text("downloads.action"))
-                    .accessibilityLabel(Text("downloads.action"))
+                    downloadButton
                 }
 
                 moreActionsMenu
@@ -615,21 +606,58 @@ struct MediaDetailView: View {
         }
     }
 
-    private var downloadStatus: DownloadStatus? {
-        downloadManager.status(for: viewModel.media.identity)
+    private var downloadActivity: DownloadActivity? {
+        downloadManager.activity(for: viewModel.media.mediaItem)
     }
 
-    private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
-    }
-
-    private var downloadIconName: String {
-        switch downloadStatus {
-        case .completed: "checkmark.circle.fill"
-        case .failed: "exclamationmark.circle"
-        case .queued, .preparing, .downloading: "arrow.down.circle.fill"
-        case nil: "arrow.down.circle"
+    @ViewBuilder
+    private var downloadButton: some View {
+        if let item = existingDownload {
+            Menu {
+                DownloadItemMenuItems(item: item, isServerReachable: !isServerUnreachable) { request in
+                    appModel.showLocalPlayer(request)
+                }
+            } label: {
+                downloadLabel(isHovered: isDownloadMenuHovered)
+            }
+            .onHover { isDownloadMenuHovered = $0 }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .disabled(viewModel.isLoading)
+            .modifier(DownloadButtonDescription(help: downloadHelp, activity: downloadActivity))
+        } else {
+            Button(action: handleDownload) {
+                downloadLabel(isHovered: nil)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isLoading || isServerUnreachable)
+            .modifier(DownloadButtonDescription(help: downloadHelp, activity: downloadActivity))
         }
+    }
+
+    private func downloadLabel(isHovered: Bool?) -> some View {
+        DetailCircleActionLabel(
+            systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
+            isActive: downloadActivity?.phase == .completed,
+            isLoading: downloadActivity?.showsSpinner ?? false,
+            ring: downloadActivity?.ring,
+            isHovered: isHovered,
+        )
+    }
+
+    /// A series or season keeps the episode picker, so more episodes can always be added.
+    private var existingDownload: DownloadItem? {
+        guard [.movie, .episode].contains(viewModel.media.type) else { return nil }
+        return downloadManager.latestItem(for: viewModel.media.identity)
+    }
+
+    private var downloadHelp: String {
+        guard let activity = downloadActivity, activity.isInProgress else {
+            return String(localized: "downloads.action")
+        }
+        return activity.accessibilityValue
     }
 
     private var episodesSection: some View {
@@ -735,5 +763,17 @@ private struct SharePlaySharingRequest: Identifiable {
 
     var id: UUID {
         activity.activityID
+    }
+}
+
+private struct DownloadButtonDescription: ViewModifier {
+    let help: String
+    let activity: DownloadActivity?
+
+    func body(content: Content) -> some View {
+        content
+            .help(Text(verbatim: help))
+            .accessibilityLabel(Text("downloads.action"))
+            .accessibilityValue(Text(verbatim: activity?.accessibilityValue ?? ""))
     }
 }

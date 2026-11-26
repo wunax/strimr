@@ -95,3 +95,45 @@ struct PlayerRemoteGesturesTests {
         )
     }
 }
+
+struct PlayerAutoScrollTests {
+    @Test func `pressing the same direction speeds up to the maximum`() {
+        var scroll = PlayerAutoScroll(origin: 100, forward: true)
+        for _ in 0 ..< 6 {
+            scroll.press(forward: true)
+        }
+
+        #expect(scroll.speed == PlayerAutoScroll.maximumSpeed)
+        #expect(scroll.isForward)
+    }
+
+    @Test func `pressing the opposite direction slows down then turns around`() {
+        var scroll = PlayerAutoScroll(origin: 100, forward: true)
+        scroll.press(forward: true)
+        scroll.press(forward: false)
+        #expect(scroll.speed == 1)
+        #expect(scroll.isForward)
+
+        scroll.press(forward: false)
+        #expect(scroll.speed == 1)
+        #expect(!scroll.isForward)
+    }
+
+    @Test func `advancing stays within the video`() {
+        let forward = PlayerAutoScroll(origin: 0, forward: true)
+        let backward = PlayerAutoScroll(origin: 0, forward: false)
+
+        #expect(forward.advance(100, by: 1, upperBound: 600) > 100)
+        #expect(forward.advance(595, by: 10, upperBound: 600) == 600)
+        #expect(backward.advance(100, by: 1, upperBound: 600) < 100)
+        #expect(backward.advance(5, by: 10, upperBound: 600) == 0)
+    }
+
+    @Test func `faster speeds cover more video`() {
+        var scroll = PlayerAutoScroll(origin: 0, forward: true)
+        let slow = scroll.advance(0, by: 1, upperBound: 10000)
+        scroll.press(forward: true)
+
+        #expect(scroll.advance(0, by: 1, upperBound: 10000) > slow)
+    }
+}

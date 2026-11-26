@@ -27,11 +27,10 @@ extension DownloadManager {
         return item
     }
 
-    /// Completed downloads of the active user that belong to a series or a season.
-    func completedEpisodes(inContainer container: MediaItem) -> [DownloadItem] {
+    /// Downloads of the active user, in any state, that belong to a series or a season.
+    func episodeDownloads(inContainer container: MediaItem) -> [DownloadItem] {
         ownedItems.filter { item in
-            guard item.status == .completed,
-                  item.identity?.server == container.identity.server,
+            guard item.identity?.server == container.identity.server,
                   item.metadata.type == .episode
             else { return false }
             switch container.kind {
@@ -45,12 +44,22 @@ extension DownloadManager {
         }
     }
 
+    func completedEpisodes(inContainer container: MediaItem) -> [DownloadItem] {
+        episodeDownloads(inContainer: container).filter { $0.status == .completed }
+    }
+
     private func activeEpisodes(inContainer container: MediaItem) -> [DownloadItem] {
-        ownedItems.filter { item in
-            guard item.status.isActive, item.identity?.server == container.identity.server else { return false }
-            return container.kind == .series
-                ? item.metadata.grandparentRatingKey == container.id
-                : item.metadata.parentRatingKey == container.id
+        episodeDownloads(inContainer: container).filter(\.status.isActive)
+    }
+
+    func activity(for media: MediaItem) -> DownloadActivity? {
+        switch media.kind {
+        case .series, .season:
+            DownloadActivity(episodes: episodeDownloads(inContainer: media), expectedCount: media.leafCount)
+        case .movie, .episode:
+            latestItem(for: media.identity).map(DownloadActivity.init(item:))
+        case .clip, .collection, .playlist, .folder, .unknown:
+            nil
         }
     }
 
