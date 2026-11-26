@@ -303,7 +303,6 @@ extension MediaArtworkService {
 
 @MainActor
 protocol MediaDetailService: AnyObject {
-    var supportsWatchlist: Bool { get }
     var supportsRemoteSubtitleSearch: Bool { get }
     var supportsAdvancedSubtitleSearch: Bool { get }
     func mediaItem(id: String) async throws -> MediaItem
@@ -325,8 +324,6 @@ protocol MediaDetailService: AnyObject {
     func episodes(for season: MediaItem, seriesID: String?) async throws -> [MediaItem]
     func allEpisodes(for series: MediaItem) async throws -> [MediaItem]
     func setPlayed(_ played: Bool, itemID: String) async throws
-    func isWatchlisted(_ media: MediaItem) async throws -> Bool
-    func setWatchlisted(_ watchlisted: Bool, media: MediaItem) async throws
     /// A nil `versionID` returns the tracks of the provider's default version.
     func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection
     func selectAudioTrack(id: Int, itemID: String, versionID: String?) async throws

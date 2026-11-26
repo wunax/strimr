@@ -70,6 +70,11 @@ struct MediaDetailHeaderSection: View {
                         .foregroundStyle(.red)
                 }
 
+                if let watchlistActionErrorMessage = viewModel.watchlistActionErrorMessage {
+                    Label(watchlistActionErrorMessage, systemImage: "exclamationmark.octagon.fill")
+                        .foregroundStyle(.red)
+                }
+
                 if let trackSelectionErrorMessage = viewModel.trackSelectionErrorMessage {
                     Label(trackSelectionErrorMessage, systemImage: "exclamationmark.octagon.fill")
                         .foregroundStyle(.red)

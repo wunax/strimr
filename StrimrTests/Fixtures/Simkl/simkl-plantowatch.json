@@ -1,0 +1,35 @@
+{
+  "movies": [
+    {
+      "added_to_watchlist_at": "2026-01-01T00:00:00Z",
+      "status": "plantowatch",
+      "movie": {
+        "title": "Sample Movie",
+        "year": 2020,
+        "poster": "00/000000000000000",
+        "ids": { "simkl": 7001, "slug": "sample-movie", "imdb": "tt0000001", "tmdb": "2001" }
+      }
+    }
+  ],
+  "shows": [
+    {
+      "status": "plantowatch",
+      "show": {
+        "title": "Sample Show",
+        "year": 2019,
+        "ids": { "simkl": 7002, "tvdb": "4001", "tmdb": "5001" }
+      }
+    }
+  ],
+  "anime": [
+    {
+      "status": "plantowatch",
+      "anime_type": "movie",
+      "show": {
+        "title": "Sample Anime Film",
+        "year": 2018,
+        "ids": { "simkl": 7003, "tmdb": "6001" }
+      }
+    }
+  ]
+}

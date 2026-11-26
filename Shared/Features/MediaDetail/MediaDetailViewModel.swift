@@ -19,6 +19,8 @@ final class MediaDetailViewModel {
     @ObservationIgnored private let services: MediaServices
     @ObservationIgnored private let resolutionMode: MediaDetailResolutionMode
     @ObservationIgnored private let copyFinder: MediaCopyFinder?
+    @ObservationIgnored private let watchlists: ExploreSourceRegistry?
+    @ObservationIgnored private var watchlistTask: Task<Void, Never>?
     @ObservationIgnored private let onSelectCopy: ((MediaItem) -> Void)?
     @ObservationIgnored private var copiesTask: Task<Void, Never>?
     /// Copies of the title on the profile's servers, shown in the Version menu.
@@ -74,8 +76,9 @@ final class MediaDetailViewModel {
     private var updatingWatchStatusIds: Set<String> = []
     var watchActionErrorMessage: String?
     var isLoadingWatchlistStatus = false
-    var isUpdatingWatchlistStatus = false
-    private var isWatchlisted = false
+    /// One entry per connected watchlist that can hold the title.
+    private(set) var watchlistOptions: [ExploreWatchlistOption] = []
+    var watchlistActionErrorMessage: String?
     var isLoadingFavoriteStatus = false
     var isUpdatingFavoriteStatus = false
     private(set) var isFavorite = false
@@ -102,12 +105,14 @@ final class MediaDetailViewModel {
         services: MediaServices,
         resolutionMode: MediaDetailResolutionMode = .seriesRoot,
         copyFinder: MediaCopyFinder? = nil,
+        watchlists: ExploreSourceRegistry? = nil,
         onSelectCopy: ((MediaItem) -> Void)? = nil,
     ) {
         self.media = media
         self.services = services
         self.resolutionMode = resolutionMode
         self.copyFinder = copyFinder
+        self.watchlists = watchlists
         self.onSelectCopy = onSelectCopy
         requestedEpisodeID = resolutionMode == .seriesRoot && media.type == .episode
             && media.metadataRatingKey != media.id ? media.id : nil
@@ -239,18 +244,20 @@ final class MediaDetailViewModel {
         }
     }
 
-    func toggleWatchlistStatus() async {
-        guard !isUpdatingWatchlistStatus else { return }
+    var isUpdatingWatchlistStatus: Bool {
+        watchlistOptions.contains { $0.isUpdating }
+    }
 
-        isUpdatingWatchlistStatus = true
-        defer { isUpdatingWatchlistStatus = false }
-
+    func toggleWatchlist(_ option: ExploreWatchlistOption) async {
+        watchlistActionErrorMessage = nil
         do {
-            try await services.detail.setWatchlisted(!isWatchlisted, media: media.mediaItem)
-            await loadWatchlistStatus()
+            try await option.watchlist.set(!option.isOnWatchlist, target: option.target)
         } catch {
             guard !Task.isCancelled, !error.isCancellation else { return }
-            ErrorReporter.capture(error)
+            if !error.isTrackerTransient {
+                ErrorReporter.capture(error)
+            }
+            watchlistActionErrorMessage = ExploreDetailViewModel.message(for: error)
         }
     }
 
@@ -389,21 +396,20 @@ final class MediaDetailViewModel {
         return await (try? ImageCornerColorSampler.colors(from: resource)) ?? []
     }
 
-    private func loadWatchlistStatus() async {
-        guard [.movie, .show].contains(media.type), services.detail.supportsWatchlist else {
-            isWatchlisted = false
+    /// Resolving the title on each watchlist takes requests of its own, which the page does not wait for.
+    private func refreshWatchlistOptions() {
+        watchlistTask?.cancel()
+        guard let watchlists, [.movie, .show].contains(media.type) else {
+            watchlistOptions = []
             return
         }
-
         isLoadingWatchlistStatus = true
-        defer { isLoadingWatchlistStatus = false }
-
-        do {
-            isWatchlisted = try await services.detail.isWatchlisted(media.mediaItem)
-        } catch {
-            guard !Task.isCancelled, !error.isCancellation else { return }
-            isWatchlisted = false
-            ErrorReporter.capture(error)
+        let item = media.mediaItem
+        watchlistTask = Task { [weak self, services] in
+            let options = await watchlists.watchlistOptions(for: item, services: services)
+            guard let self, !Task.isCancelled else { return }
+            watchlistOptions = options
+            isLoadingWatchlistStatus = false
         }
     }
 
@@ -935,16 +941,6 @@ final class MediaDetailViewModel {
         watchActionIcon(for: media.mediaItem)
     }
 
-    var watchlistActionTitle: String {
-        isWatchlisted
-            ? String(localized: "media.detail.watchlist.remove")
-            : String(localized: "media.detail.watchlist.add")
-    }
-
-    var watchlistActionIcon: String {
-        isWatchlisted ? "bookmark.fill" : "bookmark"
-    }
-
     var favoriteActionTitle: String {
         favoriteActionTitle(for: media.mediaItem)
     }
@@ -974,8 +970,7 @@ final class MediaDetailViewModel {
     }
 
     var shouldShowWatchlistButton: Bool {
-        services.detail.supportsWatchlist && [.movie, .show].contains(media.type)
-            && media.plexGuidID != nil
+        !watchlistOptions.isEmpty
     }
 
     var isUpdatingWatchStatus: Bool {
@@ -1375,7 +1370,7 @@ final class MediaDetailViewModel {
 
             await resolveFallbackPlaybackTarget(preservingExistingContent: preservingExistingContent)
             await loadTrackSelection(preservingExistingContent: preservingExistingContent)
-            await loadWatchlistStatus()
+            refreshWatchlistOptions()
             await loadFavoriteStatus()
             let artworkPath = resolveArtwork()
             await loadBackdropGradient(path: artworkPath)

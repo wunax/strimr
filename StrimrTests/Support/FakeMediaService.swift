@@ -101,10 +101,6 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
 
     // MARK: - Detail
 
-    var supportsWatchlist: Bool {
-        false
-    }
-
     var supportsRemoteSubtitleSearch: Bool {
         false
     }
@@ -160,14 +156,6 @@ class FakeMediaService: MediaHomeService, MediaLibraryService, MediaSearchServic
     }
 
     func setPlayed(_: Bool, itemID _: String) async throws {
-        throw NotStubbed(function: #function)
-    }
-
-    func isWatchlisted(_: MediaItem) async throws -> Bool {
-        throw NotStubbed(function: #function)
-    }
-
-    func setWatchlisted(_: Bool, media _: MediaItem) async throws {
         throw NotStubbed(function: #function)
     }
 

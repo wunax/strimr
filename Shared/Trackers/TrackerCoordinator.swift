@@ -94,6 +94,12 @@ final class TrackerCoordinator {
         states[service] ?? TrackerAccountState()
     }
 
+    /// The active profile's client for reading the service's catalog, while its account is connected.
+    func catalogClient(for service: TrackerService) -> (any TrackerClient)? {
+        guard !isDisabled, let binding = bindings[service], binding.isActive else { return nil }
+        return binding.client
+    }
+
     // MARK: - Profiles
 
     /// A playback in progress keeps writing through the account it began with.

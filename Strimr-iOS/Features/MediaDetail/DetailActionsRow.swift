@@ -70,17 +70,13 @@ struct DetailActionsRow: View {
             }
 
             if !isServerUnreachable {
-                if viewModel.shouldShowWatchlistButton {
+                ForEach(viewModel.watchlistOptions) { option in
                     Button {
-                        Task { await viewModel.toggleWatchlistStatus() }
+                        Task { await viewModel.toggleWatchlist(option) }
                     } label: {
-                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                        Label(option.title, systemImage: option.systemImage)
                     }
-                    .disabled(
-                        viewModel.isLoading
-                            || viewModel.isLoadingWatchlistStatus
-                            || viewModel.isUpdatingWatchlistStatus,
-                    )
+                    .disabled(viewModel.isLoading || option.isUpdating)
                 }
 
                 if viewModel.shouldShowBothWatchActions {

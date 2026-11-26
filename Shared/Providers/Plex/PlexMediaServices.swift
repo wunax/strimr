@@ -24,10 +24,6 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
         self.isServerAdministrator = isServerAdministrator
     }
 
-    var supportsWatchlist: Bool {
-        true
-    }
-
     var supportsRemoteSubtitleSearch: Bool {
         true
     }
@@ -606,22 +602,6 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
             try await repository.markWatched(key: itemID)
         } else {
             try await repository.markUnwatched(key: itemID)
-        }
-    }
-
-    func isWatchlisted(_ media: MediaItem) async throws -> Bool {
-        guard let discoverID = media.plexGuidID else { return false }
-        let response = try await DiscoverWatchlistRepository(context: context).getUserState(discoverID: discoverID)
-        return response.mediaContainer.userState?.first?.watchlistedAt != nil
-    }
-
-    func setWatchlisted(_ watchlisted: Bool, media: MediaItem) async throws {
-        guard let discoverID = media.plexGuidID else { return }
-        let repository = try DiscoverWatchlistRepository(context: context)
-        if watchlisted {
-            try await repository.addToWatchlist(ratingKey: discoverID)
-        } else {
-            try await repository.removeFromWatchlist(ratingKey: discoverID)
         }
     }
 

@@ -560,8 +560,8 @@ final class SettingsManager {
         persist()
     }
 
-    func setDisplaySeerrDiscoverTab(_ enabled: Bool) {
-        settings.interface.displaySeerrDiscoverTab = enabled
+    func setDisplayExploreTab(_ enabled: Bool) {
+        settings.interface.displayExploreTab = enabled
         persist()
     }
 

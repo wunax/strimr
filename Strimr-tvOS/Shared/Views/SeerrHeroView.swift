@@ -5,7 +5,8 @@ struct SeerrHeroBackgroundView: View {
     let media: SeerrMedia
 
     var body: some View {
-        HeroBackdropView(key: media.id, load: loadBackdrop)
+        // Keyed on the image: a page opened from another catalog starts from a placeholder without artwork.
+        HeroBackdropView(key: heroImageURL, load: loadBackdrop)
     }
 
     private var heroImageURL: URL? {

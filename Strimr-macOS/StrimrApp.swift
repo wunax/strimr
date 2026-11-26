@@ -7,6 +7,7 @@ struct StrimrApp: App {
     @State private var downloadManager: DownloadManager
     @State private var libraryStore: LibraryStore
     @State private var seerrStore: SeerrStore
+    @State private var exploreRegistry: ExploreSourceRegistry
     @State private var appModel: AppModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
     @State private var externalPlaybackCallbackRouter = ExternalPlaybackCallbackRouter()
@@ -49,10 +50,16 @@ struct StrimrApp: App {
             settingsManager: settingsManager,
         ))
         #if DEBUG
-            _seerrStore = State(initialValue: SeerrStore(userDefaults: demoStores?.defaults ?? .standard))
+            let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)
         #else
-            _seerrStore = State(initialValue: SeerrStore())
+            let seerrStore = SeerrStore()
         #endif
+        _seerrStore = State(initialValue: seerrStore)
+        _exploreRegistry = State(initialValue: ExploreSourceRegistry(
+            sessionManager: sessionManager,
+            settingsManager: settingsManager,
+            seerrStore: seerrStore,
+        ))
         _appModel = State(initialValue: AppModel(settingsManager: settingsManager))
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
@@ -87,6 +94,7 @@ struct StrimrApp: App {
             .environment(downloadManager)
             .environment(libraryStore)
             .environment(seerrStore)
+            .environment(exploreRegistry)
             .environment(appModel)
             .environment(sharePlayCoordinator)
             .environment(OfflineCoordinator.shared)

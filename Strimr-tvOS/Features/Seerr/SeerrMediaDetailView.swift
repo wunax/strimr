@@ -8,9 +8,11 @@ struct SeerrMediaDetailView: View {
     @State var viewModel: SeerrMediaDetailViewModel
     @State private var requestSheet: SeerrMediaRequestSheetState?
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
+    @State private var explore: ExploreDetailViewModel?
 
-    init(viewModel: SeerrMediaDetailViewModel) {
+    init(viewModel: SeerrMediaDetailViewModel, explore: ExploreDetailViewModel? = nil) {
         _viewModel = State(initialValue: viewModel)
+        _explore = State(initialValue: explore)
     }
 
     var body: some View {
@@ -36,6 +38,11 @@ struct SeerrMediaDetailView: View {
                                 .foregroundStyle(.red)
                         } else if bindableViewModel.isLoading {
                             ProgressView("media.detail.updating")
+                        }
+
+                        if let explore {
+                            ExploreLibrarySection(viewModel: explore, onSelectCopy: coordinator.showMediaDetail)
+                                .padding(.trailing, LayoutMetrics.pageMargin)
                         }
 
                         if bindableViewModel.media.mediaType == .tv {
@@ -67,10 +74,13 @@ struct SeerrMediaDetailView: View {
         }
         .task {
             await viewModel.loadDetails()
+            explore?.adopt(viewModel.media)
+            async let exploreLoad: Void? = explore?.load()
             async let ratings: Void = viewModel.loadRatings()
             async let collection: Void = viewModel.loadCollection()
             _ = await (ratings, collection)
             await viewModel.loadRelatedContent()
+            _ = await exploreLoad
         }
         .toolbar(.hidden, for: .tabBar)
         .taskPresentation(
@@ -120,6 +130,10 @@ struct SeerrMediaDetailView: View {
                     .padding(.horizontal, 12)
                 }
                 .actionButtonStyle(.secondary)
+            }
+
+            if let explore {
+                ExploreWatchlistButton(viewModel: explore)
             }
 
             if let trailerURL = viewModel.youtubeAppTrailerURL, UIApplication.shared.canOpenURL(trailerURL) {

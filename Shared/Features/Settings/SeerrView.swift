@@ -4,7 +4,6 @@ import SwiftUI
 struct SeerrView: View {
     @Bindable var viewModel: SeerrViewModel
     @State private var showingSetup = false
-    @Environment(SettingsManager.self) private var settingsManager
 
     var body: some View {
         List {
@@ -58,16 +57,6 @@ struct SeerrView: View {
                         Text(quotaSummary(viewModel.quota?.tv))
                             .foregroundStyle(.secondary)
                     }
-                }
-
-                Section("integrations.seerr.settings.title") {
-                    Toggle(
-                        "integrations.seerr.settings.discoverTab",
-                        isOn: Binding(
-                            get: { settingsManager.interface.displaySeerrDiscoverTab },
-                            set: { settingsManager.setDisplaySeerrDiscoverTab($0) },
-                        ),
-                    )
                 }
 
                 Section {

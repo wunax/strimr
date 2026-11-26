@@ -29,7 +29,7 @@ struct MainCoordinatorTests {
         let coordinator = coordinator(startupScreen: .liveTV)
         #expect(coordinator.tab == .home)
 
-        coordinator.openPendingStartupTab(.seerrDiscover)
+        coordinator.openPendingStartupTab(.explore)
         #expect(coordinator.tab == .home)
 
         coordinator.openPendingStartupTab(.liveTV)
@@ -37,21 +37,21 @@ struct MainCoordinatorTests {
     }
 
     @Test func `does not switch tabs once the user has picked one`() {
-        let coordinator = coordinator(startupScreen: .discover)
+        let coordinator = coordinator(startupScreen: .explore)
 
         coordinator.tab = .search
         coordinator.tab = .home
-        coordinator.openPendingStartupTab(.seerrDiscover)
+        coordinator.openPendingStartupTab(.explore)
 
         #expect(coordinator.tab == .home)
     }
 
     @Test func `does not switch tabs once the user has browsed Home`() {
-        let coordinator = coordinator(startupScreen: .discover)
+        let coordinator = coordinator(startupScreen: .explore)
 
         coordinator.homePath.append("detail")
         coordinator.homePath = NavigationPath()
-        coordinator.openPendingStartupTab(.seerrDiscover)
+        coordinator.openPendingStartupTab(.explore)
 
         #expect(coordinator.tab == .home)
     }
@@ -77,11 +77,11 @@ struct MainCoordinatorTests {
     // MARK: More tab
 
     private let compactLayout = MainTabLayout(
-        tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV],
+        tabs: [.home, .explore, .downloads, .library, .liveTV],
         isCompact: true,
     )
     private let regularLayout = MainTabLayout(
-        tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV],
+        tabs: [.home, .explore, .downloads, .library, .liveTV],
         isCompact: false,
     )
     private let library = Library(
@@ -189,7 +189,7 @@ struct MainCoordinatorTests {
     @Test func `closes a tab removed from More`() {
         let coordinator = coordinator(startupScreen: .home)
         coordinator.updateTabLayout(MainTabLayout(
-            tabs: [.home, .seerrDiscover, .downloads, .library, .liveTV, .favorites],
+            tabs: [.home, .explore, .downloads, .library, .liveTV, .favorites],
             isCompact: true,
         ))
         coordinator.tab = .favorites

@@ -7,6 +7,7 @@ struct StrimrApp: App {
     @State private var libraryStore: LibraryStore
     @State private var mediaFocusModel: MediaFocusModel
     @State private var seerrStore: SeerrStore
+    @State private var exploreRegistry: ExploreSourceRegistry
     @State private var seerrFocusModel: SeerrFocusModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
     @State private var topShelfDeepLinkRouter = TopShelfDeepLinkRouter()
@@ -52,10 +53,16 @@ struct StrimrApp: App {
         ))
         _mediaFocusModel = State(initialValue: MediaFocusModel())
         #if DEBUG
-            _seerrStore = State(initialValue: SeerrStore(userDefaults: demoStores?.defaults ?? .standard))
+            let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)
         #else
-            _seerrStore = State(initialValue: SeerrStore())
+            let seerrStore = SeerrStore()
         #endif
+        _seerrStore = State(initialValue: seerrStore)
+        _exploreRegistry = State(initialValue: ExploreSourceRegistry(
+            sessionManager: sessionManager,
+            settingsManager: settingsManager,
+            seerrStore: seerrStore,
+        ))
         _seerrFocusModel = State(initialValue: SeerrFocusModel())
         _sharePlayCoordinator = State(initialValue: SharePlayCoordinator(
             sessionManager: sessionManager,
@@ -71,6 +78,7 @@ struct StrimrApp: App {
                 .environment(libraryStore)
                 .environment(mediaFocusModel)
                 .environment(seerrStore)
+                .environment(exploreRegistry)
                 .environment(seerrFocusModel)
                 .environment(sharePlayCoordinator)
                 .environment(topShelfDeepLinkRouter)

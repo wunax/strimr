@@ -165,10 +165,6 @@
 
         // MARK: - Detail
 
-        var supportsWatchlist: Bool {
-            false
-        }
-
         var supportsRemoteSubtitleSearch: Bool {
             false
         }
@@ -257,12 +253,6 @@
         }
 
         func setPlayed(_: Bool, itemID _: String) async throws {}
-
-        func isWatchlisted(_: MediaItem) async throws -> Bool {
-            false
-        }
-
-        func setWatchlisted(_: Bool, media _: MediaItem) async throws {}
 
         func trackSelection(itemID: String, versionID _: String?) async throws -> MediaTrackSelection {
             MediaTrackSelection(
