@@ -14,7 +14,7 @@ final class AppModel: PlaybackPresenting {
 
     enum SidebarItem: Hashable, Identifiable {
         case home
-        case discover
+        case explore
         case search
         case downloads
         case libraries
@@ -26,7 +26,7 @@ final class AppModel: PlaybackPresenting {
         var id: String {
             switch self {
             case .home: "home"
-            case .discover: "discover"
+            case .explore: "explore"
             case .search: "search"
             case .downloads: "downloads"
             case .libraries: "libraries"
@@ -48,6 +48,8 @@ final class AppModel: PlaybackPresenting {
         case library(Library)
         case seerr(SeerrMedia)
         case seerrRequests
+        case exploreItem(ExploreItem)
+        case exploreRail(ExploreRail)
 
         var server: ServerIdentity? {
             switch self {
@@ -57,7 +59,7 @@ final class AppModel: PlaybackPresenting {
             case let .hub(hub): hub.server
             case let .person(_, server): server
             case let .library(library): library.server
-            case .seerr, .seerrRequests: nil
+            case .seerr, .seerrRequests, .exploreItem, .exploreRail: nil
             }
         }
     }
@@ -154,8 +156,8 @@ final class AppModel: PlaybackPresenting {
 
     private var mediaRouteEntries: [SidebarItem: [MediaRouteEntry]] = [:]
     @ObservationIgnored private let settingsManager: SettingsManager
-    /// Discover and Live TV only appear once Seerr and the servers have answered, so they are opened when they show
-    /// up, unless the user has picked another item meanwhile.
+    /// Explore and Live TV only appear once their sources have answered, so they are opened when they show up, unless
+    /// the user has picked another item meanwhile.
     @ObservationIgnored private var pendingStartupSelection: SidebarItem?
 
     init(settingsManager: SettingsManager) {
@@ -175,9 +177,9 @@ final class AppModel: PlaybackPresenting {
             selection = .libraries
         case .favorites:
             selection = .favorites
-        case .discover:
-            if interface.displaySeerrDiscoverTab {
-                pendingStartupSelection = .discover
+        case .explore:
+            if interface.displayExploreTab {
+                pendingStartupSelection = .explore
             }
         case .liveTV:
             if interface.displayLiveTVTab {
@@ -257,6 +259,14 @@ final class AppModel: PlaybackPresenting {
 
     func showSeerrRequests() {
         append(.seerrRequests)
+    }
+
+    func showExploreItem(_ item: ExploreItem) {
+        append(.exploreItem(item))
+    }
+
+    func showExploreRail(_ rail: ExploreRail) {
+        append(.exploreRail(rail))
     }
 
     func showDownloadedPlayer(

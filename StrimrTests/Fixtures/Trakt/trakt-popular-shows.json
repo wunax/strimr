@@ -1,0 +1,9 @@
+[
+  {
+    "title": "Sample Show",
+    "year": 2019,
+    "overview": "A sample show.",
+    "ids": { "trakt": 3001, "slug": "sample-show", "tvdb": 4001, "imdb": "tt0000003", "tmdb": 5001 },
+    "images": { "poster": ["https://media.example.invalid/show-poster.jpg"], "thumb": ["media.example.invalid/show-thumb.jpg"] }
+  }
+]

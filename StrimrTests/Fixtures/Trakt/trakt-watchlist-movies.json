@@ -1,0 +1,35 @@
+[
+  {
+    "rank": 1,
+    "id": 101,
+    "listed_at": "2026-01-01T00:00:00.000Z",
+    "type": "movie",
+    "movie": {
+      "title": "Sample Movie",
+      "year": 2020,
+      "overview": "A sample overview.",
+      "ids": { "trakt": 1001, "slug": "sample-movie-2020", "imdb": "tt0000001", "tmdb": 2001 },
+      "images": {
+        "poster": ["media.example.invalid/images/movies/poster.jpg.webp"],
+        "fanart": ["media.example.invalid/images/movies/fanart.jpg.webp"]
+      }
+    }
+  },
+  {
+    "rank": 2,
+    "id": 102,
+    "listed_at": "2026-01-02T00:00:00.000Z",
+    "type": "movie",
+    "movie": {
+      "title": "Movie Without Images",
+      "year": 2021,
+      "ids": { "trakt": 1002, "slug": "movie-without-images", "imdb": null, "tmdb": 2002 }
+    }
+  },
+  {
+    "rank": 3,
+    "id": 103,
+    "type": "movie",
+    "movie": { "title": "Missing Trakt Id", "year": 2022, "ids": { "tmdb": 2003 } }
+  }
+]

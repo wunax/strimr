@@ -3,7 +3,9 @@ import SwiftUI
 @MainActor
 struct SeerrMediaDetailView: View {
     @State var viewModel: SeerrMediaDetailViewModel
+    @State private var explore: ExploreDetailViewModel?
     let onSelectMedia: (SeerrMedia) -> Void
+    let onSelectCopy: (MediaItem) -> Void
     @State private var requestSheet: SeerrMediaRequestSheetState?
     @State private var manageRequestsSheet: SeerrManageRequestsSheetState?
     #if os(iOS)
@@ -13,10 +15,14 @@ struct SeerrMediaDetailView: View {
 
     init(
         viewModel: SeerrMediaDetailViewModel,
+        explore: ExploreDetailViewModel? = nil,
         onSelectMedia: @escaping (SeerrMedia) -> Void = { _ in },
+        onSelectCopy: @escaping (MediaItem) -> Void = { _ in },
     ) {
         _viewModel = State(initialValue: viewModel)
+        _explore = State(initialValue: explore)
         self.onSelectMedia = onSelectMedia
+        self.onSelectCopy = onSelectCopy
     }
 
     var body: some View {
@@ -39,6 +45,14 @@ struct SeerrMediaDetailView: View {
                         onManageRequestsTap: presentManageRequestsSheet,
                     )
                 #endif
+
+                if let explore {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ExploreWatchlistButton(viewModel: explore)
+                        ExploreLibrarySection(viewModel: explore, onSelectCopy: onSelectCopy)
+                    }
+                    .padding(.horizontal, LayoutMetrics.detailSectionMargin)
+                }
 
                 if bindableViewModel.media.mediaType == .tv {
                     SeerrSeasonEpisodesSection(viewModel: bindableViewModel)
@@ -73,10 +87,13 @@ struct SeerrMediaDetailView: View {
         #endif
         .task {
             await bindableViewModel.loadDetails()
+            explore?.adopt(bindableViewModel.media)
+            async let exploreLoad: Void? = explore?.load()
             async let ratings: Void = bindableViewModel.loadRatings()
             async let collection: Void = bindableViewModel.loadCollection()
             _ = await (ratings, collection)
             await bindableViewModel.loadRelatedContent()
+            _ = await exploreLoad
         }
         .background(gradientBackground(for: bindableViewModel))
         .sheet(item: $requestSheet) { sheet in

@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct SettingsInterfaceView: View {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(ExploreSourceRegistry.self) private var exploreRegistry
     let settingsManager: SettingsManager
     let libraryStore: LibraryStore
 
@@ -91,6 +92,16 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayFavoritesTab")
+                if exploreRegistry.hasSources {
+                    Toggle(
+                        "settings.interface.displayExploreTab",
+                        isOn: Binding(
+                            get: { settingsManager.interface.displayExploreTab },
+                            set: { settingsManager.setDisplayExploreTab($0) },
+                        ),
+                    )
+                    .settingsFocus("settings.interface.displayExploreTab")
+                }
                 Toggle(
                     "settings.interface.displayLiveTVTab",
                     isOn: Binding(

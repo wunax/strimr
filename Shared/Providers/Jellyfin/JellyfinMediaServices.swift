@@ -32,10 +32,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         playbackService = JellyfinPlaybackService(context: context)
     }
 
-    var supportsWatchlist: Bool {
-        false
-    }
-
     var supportsFavorites: Bool {
         true
     }
@@ -604,12 +600,6 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
     func setPlayed(_ played: Bool, itemID: String) async throws {
         try await catalog.markPlayed(itemID: itemID, played: played)
     }
-
-    func isWatchlisted(_: MediaItem) async throws -> Bool {
-        false
-    }
-
-    func setWatchlisted(_: Bool, media _: MediaItem) async throws {}
 
     func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {
         let item = try await catalog.item(id: itemID)
