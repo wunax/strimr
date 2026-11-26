@@ -20,6 +20,7 @@ struct LibraryRecommendedView: View {
                     if hub.hasItems {
                         MediaHubSection(
                             title: hub.title,
+                            systemImage: HubIcon.systemImage(for: hub),
                             onViewAll: hub.canOpenDetail ? { selectedHub = hub } : nil,
                         ) {
                             carousel(for: hub)
