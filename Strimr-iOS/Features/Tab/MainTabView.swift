@@ -110,7 +110,7 @@ struct MainTabView: View {
     }
 
     private var isExploreAvailable: Bool {
-        settingsManager.interface.displayExploreTab && exploreRegistry.hasSources
+        settingsManager.interface.displayExploreTab && exploreRegistry.hasConnectedSources
     }
 
     private var isLiveTVAvailable: Bool {

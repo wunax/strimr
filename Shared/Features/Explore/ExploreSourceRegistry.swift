@@ -41,6 +41,12 @@ final class ExploreSourceRegistry {
         !sources.isEmpty
     }
 
+    /// Known before the sources are built, so the tab is there from the first frame: a tab inserted after launch makes
+    /// the tvOS tab bar drop the startup selection.
+    var hasConnectedSources: Bool {
+        hasSources || ExploreSourceID.allCases.contains { sourceKey($0) != nil }
+    }
+
     var activeSource: (any ExploreSource)? {
         let id = Self.resolveActive(preferred: preferredSourceID, connected: sources.map(\.id))
         return sources.first { $0.id == id }

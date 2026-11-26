@@ -132,7 +132,7 @@ struct MainView: View {
     @State private var lastPlayedServer: ServerIdentity?
 
     private var isExploreAvailable: Bool {
-        settingsManager.interface.displayExploreTab && exploreRegistry.hasSources
+        settingsManager.interface.displayExploreTab && exploreRegistry.hasConnectedSources
     }
 
     private var isLiveTVAvailable: Bool {
