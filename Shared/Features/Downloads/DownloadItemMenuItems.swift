@@ -13,14 +13,24 @@ struct DownloadItemMenuItems: View {
                 onPlay(request)
             }
         }
+        if downloadManager.canPause(item) {
+            Button("downloads.actions.pause", systemImage: "pause.fill") {
+                downloadManager.pause(item)
+            }
+        }
+        if isServerReachable, downloadManager.canResume(item) {
+            Button("downloads.actions.resume", systemImage: "play.fill") {
+                downloadManager.resume(item)
+            }
+        }
         if isServerReachable, downloadManager.canRetry(item) {
             Button("common.actions.retry", systemImage: "arrow.clockwise") {
                 downloadManager.retry(item)
             }
         }
         Button(
-            item.status.isActive ? "downloads.actions.cancel" : "downloads.actions.delete",
-            systemImage: item.status.isActive ? "xmark.circle" : "trash",
+            item.status.isUnfinished ? "downloads.actions.cancel" : "downloads.actions.delete",
+            systemImage: item.status.isUnfinished ? "xmark.circle" : "trash",
             role: .destructive,
         ) {
             Task { await downloadManager.delete(item) }

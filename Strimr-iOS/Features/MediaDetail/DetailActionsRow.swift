@@ -339,13 +339,16 @@ struct DetailActionsRow: View {
     }
 
     private var downloadTitle: LocalizedStringKey {
-        guard let activity = downloadActivity, activity.isInProgress else { return "downloads.action" }
+        guard let activity = downloadActivity, activity.isInProgress || activity.phase == .paused else {
+            return "downloads.action"
+        }
         if activity.totalCount > 1 {
             return "offline.badge.partial \(activity.completedCount) \(activity.totalCount)"
         }
         switch activity.phase {
         case .queued: return "downloads.status.queued"
         case .preparing: return "downloads.phase.preparing"
+        case .paused: return "downloads.status.paused"
         default: return "downloads.phase.transferring"
         }
     }

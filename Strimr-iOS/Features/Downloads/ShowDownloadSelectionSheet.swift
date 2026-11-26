@@ -164,6 +164,9 @@ struct ShowDownloadSelectionSheet: View {
         case .queued:
             Image(systemName: "clock.arrow.circlepath")
                 .foregroundStyle(.textSecondary)
+        case .paused:
+            Image(systemName: "pause.circle")
+                .foregroundStyle(.textSecondary)
         case .failed:
             Image(systemName: "exclamationmark.circle")
                 .foregroundStyle(.orange)

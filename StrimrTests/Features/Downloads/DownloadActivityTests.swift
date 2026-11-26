@@ -55,6 +55,34 @@ struct DownloadActivityTests {
         #expect(activity.isInProgress)
     }
 
+    @Test func `a paused download keeps its progress on the ring`() {
+        let activity = DownloadActivity(item: episode("e1", .paused, progress: 0.4))
+
+        #expect(activity.phase == .paused)
+        #expect(!activity.isInProgress)
+        #expect(activity.ring == .init(progress: 0.4, style: .transfer))
+    }
+
+    @Test func `a running episode takes precedence over a paused one`() throws {
+        let activity = try #require(DownloadActivity(
+            episodes: [episode("e1", .paused, progress: 0.5), episode("e2", .downloading, progress: 0.5)],
+            expectedCount: nil,
+        ))
+
+        #expect(activity.phase == .transferring)
+        #expect(activity.progress == 0.5)
+    }
+
+    @Test func `paused episodes next to downloaded ones pause the series`() throws {
+        let activity = try #require(DownloadActivity(
+            episodes: [episode("e1", .completed), episode("e2", .paused)],
+            expectedCount: nil,
+        ))
+
+        #expect(activity.phase == .paused)
+        #expect(activity.progress == 0.5)
+    }
+
     @Test func `episodes add up completed ones and the running transfer`() throws {
         let activity = try #require(DownloadActivity(
             episodes: [

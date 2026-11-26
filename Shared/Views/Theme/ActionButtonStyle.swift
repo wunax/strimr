@@ -46,14 +46,19 @@ extension View {
         var body: some View {
             configuration.label
                 .transformEnvironment(\.font) { font in
-                    if isSmall {
+                    switch controlSize {
+                    case .mini:
+                        font = .caption
+                    case .small:
                         font = .subheadline
+                    default:
+                        break
                     }
                 }
                 .fontWeight(.semibold)
                 .foregroundStyle(foreground)
-                .padding(.horizontal, isSmall ? 16 : 20)
-                .frame(minHeight: isSmall ? LayoutMetrics.smallActionButtonHeight : LayoutMetrics.actionButtonHeight)
+                .padding(.horizontal, horizontalPadding)
+                .frame(minHeight: minHeight)
                 .background(background, in: Capsule(style: .continuous))
                 .contentShape(Capsule(style: .continuous))
                 .opacity(configuration.isPressed ? 0.7 : 1)
@@ -62,8 +67,20 @@ extension View {
             #endif
         }
 
-        private var isSmall: Bool {
-            controlSize == .small || controlSize == .mini
+        private var horizontalPadding: CGFloat {
+            switch controlSize {
+            case .mini: 12
+            case .small: 16
+            default: 20
+            }
+        }
+
+        private var minHeight: CGFloat {
+            switch controlSize {
+            case .mini: LayoutMetrics.miniActionButtonHeight
+            case .small: LayoutMetrics.smallActionButtonHeight
+            default: LayoutMetrics.actionButtonHeight
+            }
         }
 
         private var foreground: Color {

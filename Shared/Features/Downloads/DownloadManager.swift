@@ -108,8 +108,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     private func sorted(_ items: [DownloadItem]) -> [DownloadItem] {
         items.sorted { lhs, rhs in
-            if lhs.status.isActive != rhs.status.isActive {
-                return lhs.status.isActive
+            if lhs.status.isUnfinished != rhs.status.isUnfinished {
+                return lhs.status.isUnfinished
             }
             return lhs.createdAt > rhs.createdAt
         }
@@ -554,10 +554,112 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
 
     /// Resumes a failed direct download from its partial data when iOS kept some, else prepares it from scratch.
     func retry(_ item: DownloadItem) {
-        guard canRetry(item),
-              let index = items.firstIndex(where: { $0.id == item.id }),
-              let server = items[index].identity?.server
-        else { return }
+        guard canRetry(item), let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        restart(itemAt: index)
+    }
+
+    func canPause(_ item: DownloadItem) -> Bool {
+        guard let current = items.first(where: { $0.id == item.id }) else { return false }
+        return isOwnedByActiveUser(current) && current.status.isActive
+    }
+
+    func canResume(_ item: DownloadItem) -> Bool {
+        guard let current = items.first(where: { $0.id == item.id }),
+              current.status == .paused,
+              isOwnedByActiveUser(current),
+              let server = current.identity?.server
+        else { return false }
+        return servicesByServer[server] != nil
+    }
+
+    var canPauseAll: Bool {
+        ownedItems.contains(where: canPause)
+    }
+
+    var canResumeAll: Bool {
+        ownedItems.contains(where: canResume)
+    }
+
+    /// A direct transfer keeps its partial data; a transcode is torn down on the server and starts over on resume.
+    /// The status changes synchronously so callers can animate it; the transfer is torn down afterwards.
+    func pause(_ item: DownloadItem) {
+        guard canPause(item), let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let taskIdentifier = items[index].taskIdentifier
+        let reference = items[index].remoteReference
+        let server = items[index].identity?.server
+
+        preparationTasks.removeValue(forKey: item.id)?.cancel()
+        pendingRequestsByItemID[item.id] = nil
+        // Cleared before cancelling so the completion callback no longer matches this item and does not fail it.
+        items[index].taskIdentifier = nil
+        items[index].status = .paused
+        items[index].errorMessage = nil
+        if reference != nil {
+            items[index].remoteReference = nil
+            items[index].progress = 0
+            items[index].bytesWritten = 0
+            items[index].totalBytes = 0
+        }
+        persistState()
+
+        Task {
+            await tearDownPausedTransfer(
+                itemID: item.id,
+                taskIdentifier: taskIdentifier,
+                reference: reference,
+                server: server,
+            )
+        }
+    }
+
+    private func tearDownPausedTransfer(
+        itemID: String,
+        taskIdentifier: Int?,
+        reference: MediaDownloadRemoteReference?,
+        server: ServerIdentity?,
+    ) async {
+        if let taskIdentifier {
+            progressByTaskIdentifier.removeValue(forKey: taskIdentifier)
+            freshTaskIdentifiers.remove(taskIdentifier)
+            unknownLengthReportTimes.removeValue(forKey: taskIdentifier)
+            let task = await allTasks().first { $0.taskIdentifier == taskIdentifier }
+            if reference == nil, let downloadTask = task as? URLSessionDownloadTask {
+                let resumeData = await downloadTask.cancelByProducingResumeData()
+                if items.contains(where: { $0.id == itemID && $0.status == .paused }) {
+                    writeResumeData(resumeData, itemID: itemID)
+                }
+            } else {
+                task?.cancel()
+            }
+        }
+        if let reference, let server, let services = servicesByServer[server] {
+            await services.downloads.cancelDownloadPreparation(reference)
+        }
+        if let server {
+            startNextQueuedTransfer(on: server)
+        }
+    }
+
+    func resume(_ item: DownloadItem) {
+        guard canResume(item), let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        restart(itemAt: index)
+    }
+
+    func pauseAll() {
+        for item in ownedItems where canPause(item) {
+            pause(item)
+        }
+    }
+
+    func resumeAll() {
+        for item in ownedItems.sorted(by: { $0.createdAt < $1.createdAt }) where canResume(item) {
+            resume(item)
+        }
+    }
+
+    private func restart(itemAt index: Int) {
+        let item = items[index]
+        guard let server = item.identity?.server else { return }
 
         items[index].errorMessage = nil
         if let resumeData = takeResumeData(for: item.id) {
@@ -607,10 +709,12 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func saveResumeData(from error: Error, itemID: String) {
+        writeResumeData((error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data, itemID: itemID)
+    }
+
+    private func writeResumeData(_ data: Data?, itemID: String) {
         let url = resumeDataURL(for: itemID)
-        guard let data = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data,
-              !data.isEmpty
-        else {
+        guard let data, !data.isEmpty else {
             try? FileManager.default.removeItem(at: url)
             return
         }
@@ -944,6 +1048,9 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             preparationTasks[item.id] = nil
             if needsPolling {
                 startPreparationPolling(for: item.id, services: services)
+            } else {
+                // A direct transfer leaves the transcode slot free, so the next queued item can start too.
+                startNextQueuedTransfer(on: server)
             }
         }
     }

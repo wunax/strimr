@@ -12,11 +12,18 @@ struct DownloadModelsTests {
         #expect(failed.canRetry(among: [failed]))
     }
 
-    @Test(arguments: [DownloadStatus.queued, .preparing, .downloading, .completed])
+    @Test(arguments: [DownloadStatus.queued, .preparing, .downloading, .paused, .completed])
     func `only a failed download can be retried`(status: DownloadStatus) {
         let item = DownloadItem.make(id: "download-1", itemID: "movie-1", server: server, status: status)
 
         #expect(!item.canRetry(among: [item]))
+    }
+
+    @Test func `a paused download is unfinished but not active`() {
+        #expect(!DownloadStatus.paused.isActive)
+        #expect(DownloadStatus.paused.isUnfinished)
+        #expect(!DownloadStatus.completed.isUnfinished)
+        #expect(!DownloadStatus.failed.isUnfinished)
     }
 
     @Test func `a failed download cannot be retried once the same media was downloaded again`() {

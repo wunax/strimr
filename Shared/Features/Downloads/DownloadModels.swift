@@ -4,6 +4,7 @@ enum DownloadStatus: String, Codable, Hashable {
     case queued
     case preparing
     case downloading
+    case paused
     case completed
     case failed
 
@@ -11,9 +12,13 @@ enum DownloadStatus: String, Codable, Hashable {
         switch self {
         case .queued, .preparing, .downloading:
             true
-        case .completed, .failed:
+        case .paused, .completed, .failed:
             false
         }
+    }
+
+    var isUnfinished: Bool {
+        isActive || self == .paused
     }
 }
 
