@@ -654,7 +654,7 @@ struct MediaDetailView: View {
     }
 
     private var downloadHelp: String {
-        guard let activity = downloadActivity, activity.isInProgress else {
+        guard let activity = downloadActivity, activity.isInProgress || activity.phase == .paused else {
             return String(localized: "downloads.action")
         }
         return activity.accessibilityValue

@@ -10,6 +10,7 @@ struct DownloadActivity: Equatable {
         case completed
         /// Some episodes are downloaded and nothing is running.
         case partial
+        case paused
         case failed
     }
 
@@ -23,7 +24,7 @@ struct DownloadActivity: Equatable {
         switch phase {
         case .queued, .preparing, .transferring:
             true
-        case .completed, .partial, .failed:
+        case .paused, .completed, .partial, .failed:
             false
         }
     }
@@ -44,6 +45,8 @@ struct DownloadActivity: Equatable {
             self.init(phase: .preparing, progress: progress, completedCount: 0, totalCount: 1)
         case .downloading:
             self.init(phase: .transferring, progress: progress, completedCount: 0, totalCount: 1)
+        case .paused:
+            self.init(phase: .paused, progress: progress, completedCount: 0, totalCount: 1)
         case .completed:
             self.init(phase: .completed, progress: 1, completedCount: 1, totalCount: 1)
         case .failed:
@@ -67,6 +70,8 @@ struct DownloadActivity: Equatable {
             .preparing
         } else if statuses.contains(.queued) {
             .queued
+        } else if statuses.contains(.paused) {
+            .paused
         } else if completedCount == 0 {
             .failed
         } else if completedCount < max(latest.count, expectedCount ?? 0) {
@@ -76,7 +81,7 @@ struct DownloadActivity: Equatable {
         }
 
         let progress: Double? = switch phase {
-        case .queued, .preparing, .transferring:
+        case .queued, .preparing, .transferring, .paused:
             Self.aggregateProgress(of: latest, completedCount: completedCount)
         case .completed:
             1
@@ -89,7 +94,7 @@ struct DownloadActivity: Equatable {
     private static func aggregateProgress(of items: [DownloadItem], completedCount: Int) -> Double? {
         // Preparation progress is left out: it restarts at zero when the transfer begins.
         let transferred = items
-            .filter { $0.status == .downloading }
+            .filter { $0.status == .downloading || $0.status == .paused }
             .reduce(0) { $0 + min(max($1.progress, 0), 1) }
         let value = (Double(completedCount) + transferred) / Double(items.count)
         guard value > 0 else { return nil }
@@ -109,6 +114,8 @@ extension DownloadActivity {
         case .queued:
             // A series keeps its ring between two episodes.
             return totalCount > 1 ? .init(progress: progress, style: .transfer) : nil
+        case .paused:
+            return .init(progress: progress, style: .transfer)
         case .completed, .partial, .failed:
             return nil
         }
@@ -121,6 +128,7 @@ extension DownloadActivity {
     var systemImage: String {
         switch phase {
         case .queued: "clock"
+        case .paused: "pause.circle"
         case .preparing, .transferring: "arrow.down.circle.fill"
         case .completed: "checkmark.circle.fill"
         case .partial: "arrow.down.circle.fill"
@@ -133,6 +141,7 @@ extension DownloadActivity {
         case .queued: "downloads.status.queued"
         case .preparing: "downloads.phase.preparing"
         case .transferring: "downloads.phase.transferring"
+        case .paused: "downloads.status.paused"
         case .completed, .partial, .failed: nil
         }
     }
@@ -142,7 +151,7 @@ extension DownloadActivity {
         if let phaseTitle {
             parts.append(String(localized: phaseTitle))
         }
-        if let progress, isInProgress {
+        if let progress, isInProgress || phase == .paused {
             parts.append(progress.formatted(.percent.precision(.fractionLength(0))))
         }
         if totalCount > 1 {

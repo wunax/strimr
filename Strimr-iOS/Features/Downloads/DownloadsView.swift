@@ -5,6 +5,7 @@ struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloadManager
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedDownload: DownloadItem?
     @State private var downloadUsingCellular: DownloadItem?
 
@@ -22,6 +23,7 @@ struct DownloadsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("downloads.title")
+        .toolbar { queueToolbar }
         .fullScreenCover(item: $selectedDownload) { item in
             if let localURL = downloadManager.localVideoURL(for: item) {
                 PlayerWrapper(
@@ -59,6 +61,26 @@ struct DownloadsView: View {
         } message: {
             Text("downloads.cellular.confirmation.message")
         }
+    }
+
+    @ToolbarContentBuilder
+    private var queueToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if downloadManager.canPauseAll {
+                Button("downloads.actions.pauseAll", systemImage: "pause.fill") {
+                    animateQueueChange(downloadManager.pauseAll)
+                }
+            } else if downloadManager.canResumeAll {
+                Button("downloads.actions.resumeAll", systemImage: "play.fill") {
+                    animateQueueChange(downloadManager.resumeAll)
+                }
+            }
+        }
+    }
+
+    /// Pausing or resuming changes the row height; animating it keeps the list cell in step with its content.
+    private func animateQueueChange(_ change: () -> Void) {
+        withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion), change)
     }
 
     private var storageSection: some View {
@@ -120,6 +142,19 @@ struct DownloadsView: View {
                 }
             }
             .swipeActions(edge: .leading) {
+                if downloadManager.canPause(item) {
+                    Button {
+                        animateQueueChange { downloadManager.pause(item) }
+                    } label: {
+                        Label("downloads.actions.pause", systemImage: "pause.fill")
+                    }
+                } else if downloadManager.canResume(item) {
+                    Button {
+                        animateQueueChange { downloadManager.resume(item) }
+                    } label: {
+                        Label("downloads.actions.resume", systemImage: "play.fill")
+                    }
+                }
                 if downloadManager.canRetry(item) {
                     Button {
                         downloadManager.retry(item)
@@ -140,6 +175,12 @@ struct DownloadsView: View {
             isWaitingForWiFi: isWaitingForWiFi(item),
             onUseCellular: { downloadUsingCellular = item },
             onRetry: downloadManager.canRetry(item) ? { downloadManager.retry(item) } : nil,
+            onResume: downloadManager.canResume(item)
+                ? { animateQueueChange { downloadManager.resume(item) } }
+                : nil,
+            onPause: downloadManager.canPause(item)
+                ? { animateQueueChange { downloadManager.pause(item) } }
+                : nil,
         )
     }
 
