@@ -3,17 +3,20 @@ import SwiftUI
 struct MediaHubSection<Content: View>: View {
     let title: String
     let subtitle: String?
+    let systemImage: String?
     let onViewAll: (() -> Void)?
     @ViewBuilder let content: Content
 
     init(
         title: String,
         subtitle: String? = nil,
+        systemImage: String? = nil,
         onViewAll: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content,
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.systemImage = systemImage
         self.onViewAll = onViewAll
         self.content = content()
     }
@@ -56,8 +59,16 @@ struct MediaHubSection<Content: View>: View {
     }
 
     private var titleText: some View {
-        Text(title)
-            .font(.sectionTitle)
-            .foregroundStyle(.textPrimary)
+        HStack(spacing: 8) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .symbolVariant(.fill)
+                    .foregroundStyle(.textSecondary)
+                    .accessibilityHidden(true)
+            }
+            Text(title)
+                .foregroundStyle(.textPrimary)
+        }
+        .font(.sectionTitle)
     }
 }

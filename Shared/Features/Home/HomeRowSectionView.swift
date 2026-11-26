@@ -14,6 +14,7 @@ struct HomeRowSectionView: View {
         MediaHubSection(
             title: row.title,
             subtitle: row.serverName,
+            systemImage: HubIcon.systemImage(for: row),
             onViewAll: canOpenViewAll ? { onViewAll(row.hub) } : nil,
         ) {
             MediaCarousel(
