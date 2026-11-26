@@ -39,8 +39,8 @@ final class ExploreViewModel {
     @ObservationIgnored let registry: ExploreSourceRegistry
     @ObservationIgnored private let seerrStore: SeerrStore
     @ObservationIgnored private let now: () -> Date
-    @ObservationIgnored private var loadedSourceID: ExploreSourceID?
-    @ObservationIgnored private var loadedSource: ObjectIdentifier?
+    /// Held strongly: a freed source's address can come back for its replacement.
+    @ObservationIgnored private var loadedSource: (any ExploreSource)?
     @ObservationIgnored private var loadedAt: Date?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
@@ -104,11 +104,12 @@ final class ExploreViewModel {
 
     /// Loads when the source changed, after a failure, or once the rails are stale.
     func loadIfNeeded() async {
+        await registry.retryFailedSources()
         guard let source else {
-            reset()
+            showMissingSource()
             return
         }
-        let isSameSource = loadedSource == ObjectIdentifier(source)
+        let isSameSource = loadedSource === source
         if isSameSource, let loadedAt, now().timeIntervalSince(loadedAt) < Self.staleAfter, errorMessage == nil {
             return
         }
@@ -120,7 +121,23 @@ final class ExploreViewModel {
     }
 
     func reload() async {
+        await registry.retryFailedSources()
+        guard source != nil else {
+            showMissingSource()
+            return
+        }
         await load(preservingContent: true)
+    }
+
+    /// The tab shows as soon as a source is connected, before it is built: loading until then, and an error when the
+    /// build failed until a retry succeeds.
+    private func showMissingSource() {
+        reset()
+        if !registry.failedSources.isEmpty {
+            errorMessage = String(localized: "common.errors.tryAgainLater")
+        } else if registry.hasConnectedSources {
+            isLoading = true
+        }
     }
 
     private func reset() {
@@ -132,7 +149,6 @@ final class ExploreViewModel {
         errorMessage = nil
         isLoading = false
         loadedSource = nil
-        loadedSourceID = nil
         loadedAt = nil
     }
 
@@ -145,8 +161,7 @@ final class ExploreViewModel {
         loadTask?.cancel()
         generation += 1
         let generation = generation
-        loadedSource = ObjectIdentifier(source)
-        loadedSourceID = source.id
+        loadedSource = source
         let task = Task { [weak self] in
             guard let self else { return }
             await fetch(source, generation: generation)
@@ -224,7 +239,7 @@ final class ExploreViewModel {
         }
         if failures > 0, !hasContent {
             errorMessage = String(localized: "common.errors.tryAgainLater")
-        } else {
+        } else if failures == 0 {
             loadedAt = now()
         }
     }
@@ -238,9 +253,15 @@ final class ExploreViewModel {
             return
         }
         Task { [weak self] in
-            let count = try? await SeerrRequestRepository(baseURL: baseURL).getRequestCount()
-            guard let self, !Task.isCancelled else { return }
-            pendingRequestsCount = count?.pending ?? 0
+            do {
+                let count = try await SeerrRequestRepository(baseURL: baseURL).getRequestCount()
+                guard let self, !Task.isCancelled else { return }
+                pendingRequestsCount = count.pending
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                ErrorReporter.capture(error)
+                self?.pendingRequestsCount = 0
+            }
         }
     }
 }

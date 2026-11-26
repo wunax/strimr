@@ -227,21 +227,26 @@ private struct MediaCardContextMenu: ViewModifier {
             && isOnline(services)
     }
 
-    /// The watchlists that can hold the title are only resolved once the entry is picked: one is toggled at once,
-    /// several are offered to choose from.
+    /// The watchlists that can hold the title are only resolved once the entry is picked. Even a single one is
+    /// offered as "Add" or "Remove", so the entry never removes a title without saying so; one whose state could not
+    /// be read is left out.
     private func chooseWatchlist(for item: MediaItem, services: MediaServices) {
         guard let exploreRegistry, !isPerforming else { return }
         isPerforming = true
         Task {
             let options = await exploreRegistry.watchlistOptions(for: item, services: services)
             isPerforming = false
-            switch options.count {
-            case 0:
+            let known = options.filter { $0.watchlist.contains($0.target) != nil }
+            if !known.isEmpty {
+                watchlistChoices = known
+            } else if options.isEmpty {
                 failure = Toast(style: .failure, title: String(localized: "explore.watchlist.noMatch"))
-            case 1:
-                toggle(options[0])
-            default:
-                watchlistChoices = options
+            } else {
+                failure = Toast(
+                    style: .failure,
+                    title: String(localized: "explore.watchlist.error.title"),
+                    message: String(localized: "explore.watchlist.error.generic"),
+                )
             }
         }
     }

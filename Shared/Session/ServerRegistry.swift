@@ -459,8 +459,6 @@ final class ServerRegistry {
         return user.authToken
     }
 
-    /// Token of the profile's watchlist account: its parent account for a Plex Home profile, otherwise the chosen or
-    /// first linked Plex account. There is no merge between Plex accounts.
     /// The Plex account whose watchlist the profile uses, if it has one.
     var plexWatchlistAccountID: String? {
         guard let profile else { return nil }
@@ -477,6 +475,8 @@ final class ServerRegistry {
         return context
     }
 
+    /// Token of the profile's watchlist account: its parent account for a Plex Home profile, otherwise the chosen or
+    /// first linked Plex account. There is no merge between Plex accounts.
     private func watchlistToken() async -> String? {
         guard let profile,
               let accountID = profileStore.watchlistAccountID(for: profile, accounts: accountStore.accounts),

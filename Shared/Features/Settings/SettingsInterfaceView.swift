@@ -85,7 +85,7 @@ struct SettingsInterfaceView: View {
                         ),
                     )
                 #endif
-                if exploreRegistry.hasSources {
+                if exploreRegistry.hasConnectedSources {
                     Toggle(
                         "settings.interface.displayExploreTab",
                         isOn: Binding(

@@ -9,7 +9,10 @@ struct ExploreWatchlistTests {
         var mutations: [(Bool, ExploreWatchlistTarget)] = []
         var fetchCount = 0
         var failure: Error?
+        var failingTMDB: String?
         var pendingMutation: CheckedContinuation<Void, Never>?
+        var holdsFetch = false
+        var pendingFetch: CheckedContinuation<Void, Never>?
     }
 
     private func watchlist(_ recorder: Recorder, holdsMutations: Bool = false) -> ExploreWatchlist {
@@ -17,9 +20,16 @@ struct ExploreWatchlistTests {
             reloadDelay: .seconds(3600),
             fetch: {
                 recorder.fetchCount += 1
-                return recorder.items
+                let items = recorder.items
+                if recorder.holdsFetch {
+                    await withCheckedContinuation { recorder.pendingFetch = $0 }
+                }
+                return items
             },
             mutate: { add, target in
+                if let failingTMDB = recorder.failingTMDB, target.externalIDs.tmdb == failingTMDB {
+                    throw ExploreTestError()
+                }
                 if holdsMutations {
                     await withCheckedContinuation { recorder.pendingMutation = $0 }
                 }
@@ -121,5 +131,45 @@ struct ExploreWatchlistTests {
         try await watchlist.load(force: true)
 
         #expect(watchlist.contains(target) == false)
+    }
+
+    @Test func `a change made while the source is read again survives that read`() async throws {
+        let recorder = Recorder()
+        let watchlist = watchlist(recorder)
+        try await watchlist.load()
+        let target = ExploreWatchlistTarget(kind: .movie, externalIDs: ExternalIDs(tmdb: "10"))
+
+        recorder.holdsFetch = true
+        let reload = Task { try await watchlist.load(force: true) }
+        while recorder.pendingFetch == nil {
+            await Task.yield()
+        }
+        try await watchlist.set(true, target: target)
+        recorder.pendingFetch?.resume()
+        try await reload.value
+
+        #expect(watchlist.contains(target) == true)
+    }
+
+    @Test func `a failed change leaves the other pending changes alone`() async throws {
+        let recorder = Recorder()
+        recorder.failingTMDB = "20"
+        let watchlist = watchlist(recorder, holdsMutations: true)
+        try await watchlist.load()
+        let pending = ExploreWatchlistTarget(kind: .movie, externalIDs: ExternalIDs(tmdb: "10"))
+        let failing = ExploreWatchlistTarget(kind: .movie, externalIDs: ExternalIDs(tmdb: "20"))
+
+        let first = Task { try await watchlist.set(true, target: pending) }
+        while recorder.pendingMutation == nil {
+            await Task.yield()
+        }
+        await #expect(throws: ExploreTestError.self) {
+            try await watchlist.set(true, target: failing)
+        }
+
+        #expect(watchlist.contains(pending) == true)
+        #expect(watchlist.contains(failing) == false)
+        recorder.pendingMutation?.resume()
+        _ = try await first.value
     }
 }

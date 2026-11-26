@@ -11,12 +11,21 @@ final class ExploreWatchlist {
 
     nonisolated static let reloadDelay: Duration = .seconds(1)
 
+    /// A change shown before the source confirms it. `settledAt` is the clock once the source answered, which tells
+    /// whether a fetch already includes it.
+    private struct Override {
+        let value: Bool
+        let change: Int
+        var settledAt: Int?
+    }
+
     private(set) var items: [ExploreItem] = []
     private(set) var isLoaded = false
-    private var overrides: [String: Bool] = [:]
+    private var overrides: [String: Override] = [:]
     private var inFlight: Set<String> = []
 
     @ObservationIgnored private var keys: Set<String> = []
+    @ObservationIgnored private var clock = 0
     @ObservationIgnored private let fetch: Fetch
     @ObservationIgnored private let mutate: Mutate
     @ObservationIgnored private let reloadDelay: Duration
@@ -37,13 +46,17 @@ final class ExploreWatchlist {
             _ = try await loadTask.value
             return
         }
+        let startedAt = clock
         let task = Task { try await fetch() }
         loadTask = task
         defer { loadTask = nil }
         let fetched = try await task.value
         items = fetched
         keys = fetched.reduce(into: Set<String>()) { $0.formUnion($1.watchlistTarget.keys) }
-        overrides = [:]
+        // Only changes the source answered before the fetch started are in it; the others still need their override.
+        overrides = overrides.filter { _, override in
+            override.settledAt.map { $0 > startedAt } ?? true
+        }
         isLoaded = true
     }
 
@@ -51,7 +64,7 @@ final class ExploreWatchlist {
     func contains(_ target: ExploreWatchlistTarget) -> Bool? {
         let targetKeys = target.keys
         if let override = targetKeys.lazy.compactMap({ self.overrides[$0] }).first {
-            return override
+            return override.value
         }
         guard isLoaded else { return nil }
         return !keys.isDisjoint(with: targetKeys)
@@ -69,15 +82,23 @@ final class ExploreWatchlist {
         inFlight.formUnion(targetKeys)
         defer { inFlight.subtract(targetKeys) }
 
-        let previous = overrides
+        clock += 1
+        let change = clock
+        let previous = targetKeys.map { ($0, overrides[$0]) }
         for key in targetKeys {
-            overrides[key] = onWatchlist
+            overrides[key] = Override(value: onWatchlist, change: change)
         }
         do {
             try await mutate(onWatchlist, target)
         } catch {
-            overrides = previous
+            for (key, override) in previous where overrides[key]?.change == change {
+                overrides[key] = override
+            }
             throw error
+        }
+        clock += 1
+        for key in targetKeys where overrides[key]?.change == change {
+            overrides[key]?.settledAt = clock
         }
         scheduleReload()
         return true

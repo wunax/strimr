@@ -6,6 +6,8 @@ import Observation
 @Observable
 final class ExploreSourceRegistry {
     private(set) var sources: [any ExploreSource] = []
+    /// Connected sources that could not be built, tried again by `retryFailedSources()`.
+    private(set) var failedSources: Set<ExploreSourceID> = []
     private var preferredSourceID: ExploreSourceID?
 
     @ObservationIgnored let matcher: ExploreLibraryMatcher
@@ -14,7 +16,8 @@ final class ExploreSourceRegistry {
     @ObservationIgnored private let trackers: TrackerCoordinator
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let isDisabled: Bool
-    @ObservationIgnored private var builtKeys: [ExploreSourceID: String] = [:]
+    @ObservationIgnored private var built: [ExploreSourceID: BuiltSource] = [:]
+    @ObservationIgnored private var lastBuildToken = 0
     @ObservationIgnored private var loadedProfileID: String?
     @ObservationIgnored private var candidates: [String: [ExploreSourceID: ExploreWatchlistTarget]] = [:]
 
@@ -50,6 +53,11 @@ final class ExploreSourceRegistry {
     var activeSource: (any ExploreSource)? {
         let id = Self.resolveActive(preferred: preferredSourceID, connected: sources.map(\.id))
         return sources.first { $0.id == id }
+    }
+
+    /// Changes whenever the active source is replaced, even by a new build of the same source.
+    var activeSourceToken: Int? {
+        activeSource.flatMap { built[$0.id]?.token }
     }
 
     var watchlistSources: [any ExploreSource] {
@@ -103,29 +111,70 @@ final class ExploreSourceRegistry {
             preferredSourceID = profileID
                 .flatMap { defaults.string(forKey: Self.preferenceKey(profileID: $0)) }
                 .flatMap(ExploreSourceID.init(rawValue:))
-            builtKeys = [:]
             candidates = [:]
             matcher.reset()
         }
 
-        var next: [ExploreSourceID: any ExploreSource] = [:]
-        for id in ExploreSourceID.allCases {
-            let key = sourceKey(id)
-            if let key, builtKeys[id] == key, let existing = source(id) {
-                next[id] = existing
-            } else if let key, let built = await build(id) {
-                guard !Task.isCancelled else { return }
-                next[id] = built
-                builtKeys[id] = key
-            } else {
-                builtKeys[id] = nil
-            }
-        }
-        let rebuilt = ExploreSourceID.allCases.compactMap { next[$0] }
+        guard let result = await Self.rebuild(
+            previous: built,
+            lastToken: lastBuildToken,
+            key: sourceKey,
+            build: build,
+        ) else { return }
+        let rebuilt = ExploreSourceID.allCases.compactMap { result.sources[$0]?.source }
         if rebuilt.map(ObjectIdentifier.init) != sources.map(ObjectIdentifier.init) {
             candidates = [:]
         }
+        built = result.sources
+        lastBuildToken = result.lastToken
+        failedSources = result.failed
         sources = rebuilt
+    }
+
+    struct BuiltSource {
+        let source: any ExploreSource
+        /// What it was built from; the source profile is part of it.
+        let key: String
+        /// Tells two builds of a source apart, which an object identity cannot once the first one is freed.
+        let token: Int
+    }
+
+    struct RebuildResult {
+        var sources: [ExploreSourceID: BuiltSource] = [:]
+        var failed: Set<ExploreSourceID> = []
+        var lastToken: Int
+    }
+
+    /// Keeps the sources whose key did not change and builds the others. Nil when cancelled halfway, so the caller
+    /// keeps its previous state whole instead of a mix of both.
+    static func rebuild(
+        previous: [ExploreSourceID: BuiltSource],
+        lastToken: Int,
+        key: (ExploreSourceID) -> String?,
+        build: (ExploreSourceID) async -> (any ExploreSource)?,
+    ) async -> RebuildResult? {
+        var result = RebuildResult(lastToken: lastToken)
+        for id in ExploreSourceID.allCases {
+            guard let key = key(id) else { continue }
+            if let existing = previous[id], existing.key == key {
+                result.sources[id] = existing
+                continue
+            }
+            let source = await build(id)
+            guard !Task.isCancelled else { return nil }
+            if let source {
+                result.lastToken += 1
+                result.sources[id] = BuiltSource(source: source, key: key, token: result.lastToken)
+            } else {
+                result.failed.insert(id)
+            }
+        }
+        return result
+    }
+
+    func retryFailedSources() async {
+        guard !failedSources.isEmpty else { return }
+        await sync()
     }
 
     private func sourceKey(_ id: ExploreSourceID) -> String? {
@@ -149,7 +198,12 @@ final class ExploreSourceRegistry {
             return seerrStore.baseURLString.flatMap(URL.init(string:)).map { SeerrExploreSource(baseURL: $0) }
         case .plex:
             guard let context = await sessionManager.registry.plexDiscoverContext() else { return nil }
-            return try? PlexExploreSource(context: context)
+            do {
+                return try PlexExploreSource(context: context)
+            } catch {
+                ErrorReporter.capture(error)
+                return nil
+            }
         case .trakt:
             return (trackers.catalogClient(for: .trakt) as? TraktClient).map(TraktExploreSource.init)
         case .simkl:
@@ -207,7 +261,13 @@ final class ExploreSourceRegistry {
         var options: [ExploreWatchlistOption] = []
         for source in sources {
             guard let target = targets[source.id], let watchlist = source.watchlist else { continue }
-            try? await watchlist.load()
+            do {
+                try await watchlist.load()
+            } catch {
+                if !error.isCancellation, !error.isTrackerTransient {
+                    ErrorReporter.capture(error)
+                }
+            }
             options.append(ExploreWatchlistOption(source: source.id, target: target, watchlist: watchlist))
         }
         return options

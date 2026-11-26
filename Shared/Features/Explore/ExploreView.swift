@@ -92,11 +92,11 @@ struct ExploreView: View {
 
     private struct SearchKey: Equatable {
         let query: String
-        let source: ObjectIdentifier?
+        let source: Int?
     }
 
-    private var activeSourceKey: ObjectIdentifier? {
-        registry.activeSource.map { ObjectIdentifier($0) }
+    private var activeSourceKey: Int? {
+        registry.activeSourceToken
     }
 
     private var searchPrompt: String {

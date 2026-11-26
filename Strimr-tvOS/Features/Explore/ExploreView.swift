@@ -79,8 +79,8 @@ struct ExploreView: View {
         }
     }
 
-    private var activeSourceKey: ObjectIdentifier? {
-        registry.activeSource.map { ObjectIdentifier($0) }
+    private var activeSourceKey: Int? {
+        registry.activeSourceToken
     }
 
     private var heroItem: ExploreItem? {

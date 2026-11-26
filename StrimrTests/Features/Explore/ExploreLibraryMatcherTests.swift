@@ -22,7 +22,7 @@ struct ExploreLibraryMatcherTests {
                 return lookups.results.isEmpty ? ExploreLibraryMatch(copies: [], uncheckedServers: 0)
                     : lookups.results.removeFirst()
             },
-            scope: scope,
+            scope: { AnyHashable(scope()) },
             now: now,
         )
     }
@@ -83,6 +83,28 @@ struct ExploreLibraryMatcherTests {
         _ = await matcher.match(.make())
 
         #expect(lookups.count == 2)
+    }
+
+    @Test func `hiding a library searches again`() async {
+        let lookups = Lookups()
+        lookups.results = [ExploreLibraryMatch(copies: [copy()], uncheckedServers: 0)]
+        var hidden: [LibraryIdentity] = []
+        let matcher = ExploreLibraryMatcher(
+            lookup: { _ in
+                lookups.count += 1
+                return lookups.results.isEmpty ? ExploreLibraryMatch(copies: [], uncheckedServers: 0)
+                    : lookups.results.removeFirst()
+            },
+            scope: { [server] in ExploreLibraryMatcher.scope(servers: [server], hiddenLibraries: hidden) },
+            now: { Date(timeIntervalSince1970: 0) },
+        )
+
+        _ = await matcher.match(.make())
+        hidden = [LibraryIdentity(server: server, libraryID: "1")]
+        let match = await matcher.match(.make())
+
+        #expect(lookups.count == 2)
+        #expect(match.copies.isEmpty)
     }
 
     @Test func `ids learned from the details make a new search`() async {

@@ -92,7 +92,7 @@ struct SettingsInterfaceView: View {
                     ),
                 )
                 .settingsFocus("settings.interface.displayFavoritesTab")
-                if exploreRegistry.hasSources {
+                if exploreRegistry.hasConnectedSources {
                     Toggle(
                         "settings.interface.displayExploreTab",
                         isOn: Binding(

@@ -22,17 +22,18 @@ final class ExploreLibraryMatcher {
     private struct Entry {
         let match: ExploreLibraryMatch
         let date: Date
-        let scope: Set<ServerIdentity>
+        let scope: AnyHashable
     }
 
     private let lookup: Lookup
-    private let scope: @MainActor () -> Set<ServerIdentity>
+    /// What the answers depend on besides the title: a change drops the cached ones.
+    private let scope: @MainActor () -> AnyHashable
     private let now: () -> Date
     private var cache: [String: Entry] = [:]
 
     init(
         lookup: @escaping Lookup,
-        scope: @escaping @MainActor () -> Set<ServerIdentity>,
+        scope: @escaping @MainActor () -> AnyHashable,
         now: @escaping () -> Date = Date.init,
     ) {
         self.lookup = lookup
@@ -45,12 +46,19 @@ final class ExploreLibraryMatcher {
             lookup: { item in
                 await Self.search(item, sessionManager: sessionManager, settingsManager: settingsManager)
             },
-            scope: { Set(sessionManager.registry.sessions.filter(\.isEnabled).map(\.identity)) },
+            scope: {
+                let profileID = sessionManager.activeProfile?.id ?? ""
+                return Self.scope(
+                    servers: sessionManager.registry.sessions.filter(\.isEnabled).map(\.identity),
+                    hiddenLibraries: settingsManager.libraryPreferences(profileID: profileID).hiddenLibraries,
+                )
+            },
         )
     }
 
     /// A complete answer with copies is kept for the session. An empty one expires, so a title added since is found,
-    /// and an answer a server sat out is asked again next time. A change in the servers drops everything.
+    /// and an answer a server sat out is asked again next time. A change in the servers or the hidden libraries drops
+    /// everything.
     func match(_ item: ExploreItem) async -> ExploreLibraryMatch {
         let key = Self.cacheKey(item)
         let currentScope = scope()
@@ -62,6 +70,10 @@ final class ExploreLibraryMatcher {
         let match = await lookup(item)
         cache[key] = Entry(match: match, date: now(), scope: currentScope)
         return match
+    }
+
+    static func scope(servers: [ServerIdentity], hiddenLibraries: [LibraryIdentity]) -> AnyHashable {
+        AnyHashable([AnyHashable(Set(servers)), AnyHashable(Set(hiddenLibraries))])
     }
 
     func reset() {
