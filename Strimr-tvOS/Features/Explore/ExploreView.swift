@@ -35,7 +35,7 @@ struct ExploreView: View {
                     if let heroItem {
                         ZStack(alignment: .topLeading) {
                             ExploreHeroBackgroundView(item: heroItem)
-                            ExploreHeroContentView(item: heroItem)
+                            hero(for: heroItem)
                                 .frame(
                                     maxWidth: proxy.size.width * 0.60,
                                     maxHeight: .infinity,
@@ -44,8 +44,10 @@ struct ExploreView: View {
                         }
                     }
 
+                    // Always the lower part of the screen, as on the library hero: the rails never jump when the
+                    // hero arrives, and the actions stay reachable while a source loads or fails.
                     content
-                        .frame(height: proxy.size.height * (heroItem == nil ? 1 : 0.60))
+                        .frame(height: proxy.size.height * 0.60)
                 }
             }
         }
@@ -64,6 +66,16 @@ struct ExploreView: View {
         }
         .onChange(of: viewModel.rails.first?.items.first?.id) { _, _ in
             updateInitialFocus()
+        }
+    }
+
+    /// Seerr items keep the hero the Discover tab always had, with its runtime, genres and rating.
+    @ViewBuilder
+    private func hero(for item: ExploreItem) -> some View {
+        if let media = item.seerrMedia {
+            SeerrHeroContentView(media: media)
+        } else {
+            ExploreHeroContentView(item: item)
         }
     }
 
@@ -94,19 +106,7 @@ struct ExploreView: View {
     }
 
     private var actions: some View {
-        HStack(spacing: LayoutMetrics.chipSpacing) {
-            if registry.sources.count > 1 {
-                ForEach(registry.sources.map(\.id), id: \.self) { id in
-                    SeasonPillButton(
-                        title: id.displayName,
-                        isSelected: id == registry.activeSource?.id,
-                        onSelect: { registry.select(id) },
-                    )
-                }
-            }
-
-            Spacer(minLength: 24)
-
+        HStack(spacing: 16) {
             NavigationLink {
                 ExploreSearchView(
                     viewModel: ExploreSearchViewModel(registry: registry),
@@ -114,8 +114,9 @@ struct ExploreView: View {
                 )
             } label: {
                 Label("tabs.search", systemImage: "magnifyingglass")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .actionButtonStyle(.secondary)
+            .actionButtonStyle(.primary)
 
             if registry.activeSource?.id == .seerr {
                 Button(action: onShowRequests) {
@@ -125,13 +126,48 @@ struct ExploreView: View {
                             : String(localized: "seerr.requests.title"),
                         systemImage: "tray.full.fill",
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .actionButtonStyle(.secondary)
             }
+
+            if registry.sources.count > 1 {
+                sourcePicker
+            }
         }
+        .frame(maxWidth: actionsMaxWidth, alignment: .leading)
         // Full width so moving up from the right side of a rail still lands on an action, not on the tab bar.
         .frame(maxWidth: .infinity, alignment: .leading)
         .focusSection()
+    }
+
+    private var actionsMaxWidth: CGFloat {
+        let buttonCount = (registry.activeSource?.id == .seerr ? 2 : 1) + (registry.sources.count > 1 ? 1 : 0)
+        return CGFloat(buttonCount) * 360
+    }
+
+    private var sourcePicker: some View {
+        Menu {
+            ForEach(registry.sources.map(\.id), id: \.self) { id in
+                Button {
+                    registry.select(id)
+                } label: {
+                    if id == registry.activeSource?.id {
+                        Label(id.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(id.displayName)
+                    }
+                }
+            }
+        } label: {
+            Label(
+                registry.activeSource?.displayName ?? "",
+                systemImage: registry.activeSource?.id.systemImage ?? "safari",
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .actionButtonStyle(.secondary)
+        .accessibilityLabel(Text("explore.source.pick"))
     }
 
     @ViewBuilder
@@ -175,34 +211,66 @@ struct ExploreSearchView: View {
     var body: some View {
         @Bindable var viewModel = viewModel
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    resultsContent
+                }
+                .padding(.vertical, 16)
+            }
+        }
+        .searchable(text: $viewModel.query, prompt: Text(prompt))
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        .navigationTitle("tabs.search")
+        .task(id: viewModel.trimmedQuery) {
+            await viewModel.search()
+        }
+    }
+
+    private var prompt: String {
+        String(localized: "explore.search.prompt \(registry.activeSource?.displayName ?? "")")
+    }
+
+    @ViewBuilder
+    private var resultsContent: some View {
+        if !viewModel.isActive {
+            ContentUnavailableView("tabs.search", systemImage: "magnifyingglass", description: Text(prompt))
+                .frame(maxWidth: .infinity)
+        } else if viewModel.isSearching, viewModel.results.isEmpty {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+        } else if let errorMessage = viewModel.errorMessage {
+            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else if viewModel.hasSearched, viewModel.results.isEmpty {
+            ContentUnavailableView(
+                "common.empty.nothingToShow",
+                systemImage: "film.stack.fill",
+                description: Text("explore.search.empty \(viewModel.trimmedQuery)"),
+            )
+            .frame(maxWidth: .infinity)
+        } else {
+            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 48) {
                 ForEach(viewModel.results) { item in
                     ExploreSearchRow(item: item) {
                         onSelectItem(item)
                     }
                 }
-
-                if viewModel.isSearching, viewModel.results.isEmpty {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else if let errorMessage = viewModel.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                } else if viewModel.hasSearched, viewModel.results.isEmpty {
-                    Text("explore.search.empty \(viewModel.trimmedQuery)")
-                        .foregroundStyle(.textSecondary)
-                }
             }
-            .padding(.horizontal, LayoutMetrics.pageMargin)
+            .focusSection()
         }
-        .searchable(
-            text: $viewModel.query,
-            prompt: Text("explore.search.prompt \(registry.activeSource?.displayName ?? "")"),
-        )
-        .task(id: viewModel.trimmedQuery) {
-            await viewModel.search()
-        }
+    }
+
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.flexible(minimum: 320), spacing: 48),
+            GridItem(.flexible(minimum: 320), spacing: 48),
+        ]
     }
 }
 
@@ -247,12 +315,7 @@ struct ExploreHeroContentView: View {
                     .accessibilityAddTraits(.isHeader)
 
                 HStack(spacing: 24) {
-                    MediaTypeBadge(type: item.kind.mediaKind)
-                    if let year = item.year {
-                        Text(String(year))
-                            .font(.facts)
-                            .foregroundStyle(.textSecondary)
-                    }
+                    MediaFactsLine(facts: MediaFacts(tokens: item.year.map { [String($0)] } ?? []))
                     if let status = item.seerrStatus {
                         SeerrAvailabilityBadgeView(status: status, showsLabel: true, isDownloading: false)
                     }

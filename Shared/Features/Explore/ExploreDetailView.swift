@@ -54,114 +54,138 @@ struct ExploreDetailView: View {
         #endif
     }
 
-    private var catalogPage: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: sectionSpacing) {
-                header
+    #if os(tvOS)
+        /// Laid out like the Seerr page: the backdrop fills the screen and the sections scroll over it.
+        private var catalogPage: some View {
+            GeometryReader { proxy in
+                ZStack {
+                    ExploreHeroBackgroundView(item: viewModel.item)
 
-                VStack(alignment: .leading, spacing: sectionSpacing) {
-                    ExploreWatchlistButton(viewModel: viewModel)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 32) {
+                            ExploreHeroContentView(item: viewModel.item)
+                                .frame(maxWidth: proxy.size.width * 0.60, alignment: .leading)
 
-                    if let overview = viewModel.item.overview, !overview.isEmpty {
-                        Text(overview)
-                            .font(.bodyText)
-                            .foregroundStyle(.textSecondary)
-                            .frame(maxWidth: 900, alignment: .leading)
+                            HStack(spacing: 16) {
+                                ExploreWatchlistButton(viewModel: viewModel)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .focusSection()
+
+                            ExploreLibrarySection(viewModel: viewModel, onSelectCopy: onSelectCopy)
+                                .padding(.trailing, LayoutMetrics.pageMargin)
+
+                            if !viewModel.related.isEmpty {
+                                MediaHubSection(title: String(localized: "explore.detail.related")) {
+                                    ExploreCarousel(
+                                        items: viewModel.related,
+                                        showsLabels: settingsManager.interface.showsCardLabels,
+                                        onSelect: onSelectItem,
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.bottom, 32)
                     }
+                }
+            }
+            .toolbar(.hidden, for: .tabBar)
+        }
+    #else
+        private var catalogPage: some View {
+            ScrollView {
+                VStack(alignment: .leading, spacing: sectionSpacing) {
+                    header
 
-                    ExploreLibrarySection(viewModel: viewModel, onSelectCopy: onSelectCopy)
+                    VStack(alignment: .leading, spacing: sectionSpacing) {
+                        ExploreWatchlistButton(viewModel: viewModel)
 
-                    if !viewModel.related.isEmpty {
-                        MediaHubSection(title: String(localized: "explore.detail.related")) {
-                            ExploreCarousel(
-                                items: viewModel.related,
-                                showsLabels: settingsManager.interface.showsCardLabels,
-                                onSelect: onSelectItem,
-                            )
+                        if let overview = viewModel.item.overview, !overview.isEmpty {
+                            Text(overview)
+                                .font(.bodyText)
+                                .foregroundStyle(.textSecondary)
+                                .frame(maxWidth: 900, alignment: .leading)
+                        }
+
+                        ExploreLibrarySection(viewModel: viewModel, onSelectCopy: onSelectCopy)
+
+                        if !viewModel.related.isEmpty {
+                            MediaHubSection(title: String(localized: "explore.detail.related")) {
+                                ExploreCarousel(
+                                    items: viewModel.related,
+                                    showsLabels: settingsManager.interface.showsCardLabels,
+                                    onSelect: onSelectItem,
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, LayoutMetrics.pageMargin)
+                }
+                .padding(.bottom, 32)
+            }
+            #if os(iOS)
+            .ignoresSafeArea(edges: .top)
+            #elseif os(macOS)
+            .navigationTitle(viewModel.item.title)
+            #endif
+        }
+
+        private var header: some View {
+            ZStack(alignment: .bottomLeading) {
+                AsyncImage(url: viewModel.item.backdropURL ?? viewModel.item.posterURL) { phase in
+                    if case let .success(image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color.surfaceSubtle
+                    }
+                }
+                .frame(height: heroHeight)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .overlay {
+                    LinearGradient(
+                        colors: [.clear, Color("Background")],
+                        startPoint: .center,
+                        endPoint: .bottom,
+                    )
+                }
+
+                HStack(alignment: .bottom, spacing: 20) {
+                    ExploreItemArtworkView(item: viewModel.item, width: posterWidth, height: posterWidth * 1.5)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(viewModel.item.title)
+                            .font(.heroTitle)
+                            .foregroundStyle(.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.7)
+                        HStack(spacing: 12) {
+                            MediaTypeBadge(type: viewModel.item.kind.mediaKind)
+                            if let year = viewModel.item.year {
+                                Text(String(year))
+                                    .font(.facts)
+                                    .foregroundStyle(.textSecondary)
+                            }
+                            Label(viewModel.item.source.displayName, systemImage: viewModel.item.source.systemImage)
+                                .font(.facts)
+                                .foregroundStyle(.textSecondary)
                         }
                     }
                 }
                 .padding(.horizontal, LayoutMetrics.pageMargin)
             }
-            .padding(.bottom, 32)
         }
-        #if os(iOS)
-        .ignoresSafeArea(edges: .top)
-        #elseif os(macOS)
-        .navigationTitle(viewModel.item.title)
-        #endif
-    }
 
-    private var header: some View {
-        ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: viewModel.item.backdropURL ?? viewModel.item.posterURL) { phase in
-                if case let .success(image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Color.surfaceSubtle
-                }
-            }
-            .frame(height: heroHeight)
-            .frame(maxWidth: .infinity)
-            .clipped()
-            .overlay {
-                LinearGradient(
-                    colors: [.clear, Color("Background")],
-                    startPoint: .center,
-                    endPoint: .bottom,
-                )
-            }
-
-            HStack(alignment: .bottom, spacing: 20) {
-                ExploreItemArtworkView(item: viewModel.item, width: posterWidth, height: posterWidth * 1.5)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.item.title)
-                        .font(.heroTitle)
-                        .foregroundStyle(.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                    HStack(spacing: 12) {
-                        MediaTypeBadge(type: viewModel.item.kind.mediaKind)
-                        if let year = viewModel.item.year {
-                            Text(String(year))
-                                .font(.facts)
-                                .foregroundStyle(.textSecondary)
-                        }
-                        Label(viewModel.item.source.displayName, systemImage: viewModel.item.source.systemImage)
-                            .font(.facts)
-                            .foregroundStyle(.textSecondary)
-                    }
-                }
-            }
-            .padding(.horizontal, LayoutMetrics.pageMargin)
+        private var heroHeight: CGFloat {
+            #if os(macOS)
+                360
+            #else
+                420
+            #endif
         }
-    }
 
-    private var heroHeight: CGFloat {
-        #if os(tvOS)
-            620
-        #elseif os(macOS)
-            360
-        #else
-            420
-        #endif
-    }
-
-    private var posterWidth: CGFloat {
-        #if os(tvOS)
-            220
-        #else
-            110
-        #endif
-    }
-
-    private var sectionSpacing: CGFloat {
-        #if os(tvOS)
-            32
-        #else
-            20
-        #endif
-    }
+        private let posterWidth: CGFloat = 110
+        private let sectionSpacing: CGFloat = 20
+    #endif
 }

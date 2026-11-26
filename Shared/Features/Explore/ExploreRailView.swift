@@ -28,8 +28,8 @@ struct ExploreRailView: View {
                         .frame(width: cardWidth)
                 }
             }
-            .padding(.horizontal, LayoutMetrics.pageMargin)
-            .padding(.vertical, 20)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
         }
         .navigationTitle(viewModel.rail.title)
         #if os(iOS)
@@ -43,6 +43,23 @@ struct ExploreRailView: View {
             .task {
                 await viewModel.load()
             }
+    }
+
+    /// The same insets as the library's "View all" grid.
+    private var horizontalPadding: CGFloat {
+        #if os(tvOS)
+            48
+        #else
+            LayoutMetrics.pageMargin
+        #endif
+    }
+
+    private var verticalPadding: CGFloat {
+        #if os(tvOS)
+            48
+        #else
+            20
+        #endif
     }
 
     private var spacing: CGFloat {

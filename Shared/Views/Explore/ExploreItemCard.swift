@@ -166,13 +166,7 @@ struct ExploreCarousel: View {
                 }
                 #if os(tvOS)
                     if let onViewAll {
-                        Button(action: onViewAll) {
-                            Label("hub.viewAll", systemImage: "chevron.right")
-                                .font(.facts.weight(.semibold))
-                                .padding(.horizontal, 12)
-                        }
-                        .actionButtonStyle(.secondary)
-                        .padding(.top, 120)
+                        ExploreViewAllCard(action: onViewAll)
                     }
                 #endif
             }
@@ -190,6 +184,44 @@ struct ExploreCarousel: View {
         #endif
     }
 }
+
+#if os(tvOS)
+    /// The "View all" card that ends library rails, for the portrait Explore cards.
+    private struct ExploreViewAllCard: View {
+        let action: () -> Void
+
+        @Environment(\.horizontalSizeClass) private var sizeClass
+        @Environment(SettingsManager.self) private var settingsManager
+        @FocusState private var isFocused: Bool
+
+        var body: some View {
+            let size = LayoutMetrics.cardSize(
+                for: .portrait,
+                sizeClass: sizeClass,
+                posterScale: settingsManager.interface.posterSize.scale,
+            )
+            VStack(spacing: 12) {
+                Image(systemName: "rectangle.stack.badge.plus")
+                    .font(.system(size: 56, weight: .semibold))
+                Text("hub.viewAll")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.textSecondary)
+            .frame(width: size.width, height: size.height)
+            .background(.surfaceSubtle)
+            .mediaArtworkStyle(borderColor: .strokeSubtle)
+            .cardFocusStyle(isFocused: isFocused)
+            .focusable()
+            .focused($isFocused)
+            .onPlayPauseCommand(perform: action)
+            .onTapGesture(perform: action)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+        }
+    }
+#endif
 
 /// A search result, laid out like a library search result.
 struct ExploreSearchRow: View {
