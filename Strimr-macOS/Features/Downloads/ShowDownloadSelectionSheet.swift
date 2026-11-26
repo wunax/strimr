@@ -127,6 +127,8 @@ struct ShowDownloadSelectionSheet: View {
                     Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
                 } else if statusForIdentity(episode.identity)?.isActive == true {
                     ProgressView().controlSize(.small)
+                } else if statusForIdentity(episode.identity) == .paused {
+                    Image(systemName: "pause.circle").foregroundStyle(.textSecondary)
                 }
             }
         }

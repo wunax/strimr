@@ -151,7 +151,7 @@ extension DownloadActivity {
         if let phaseTitle {
             parts.append(String(localized: phaseTitle))
         }
-        if let progress, isInProgress {
+        if let progress, isInProgress || phase == .paused {
             parts.append(progress.formatted(.percent.precision(.fractionLength(0))))
         }
         if totalCount > 1 {

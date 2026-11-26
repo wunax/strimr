@@ -26,6 +26,8 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     @ObservationIgnored private var ignoredCompletionIDs: Set<String> = []
     @ObservationIgnored private var servicesByServer: [ServerIdentity: MediaServices] = [:]
     @ObservationIgnored private var preparationTasks: [String: Task<Void, Never>] = [:]
+    /// Pausing tears the transfer down in the background; resuming waits for it so the two never overlap.
+    @ObservationIgnored private var pauseTeardowns: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var pendingRequestsByItemID: [String: URLRequest] = [:]
     @ObservationIgnored private var sidecarsByItemID: [String: [MediaDownloadSidecar]] = [:]
     @ObservationIgnored private let downloadsDirectory: URL
@@ -142,10 +144,12 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         else { return }
 
         let tasks = await allTasks()
-        guard let currentTask = tasks.first(where: { $0.taskIdentifier == currentTaskIdentifier }),
-              var request = currentTask.originalRequest ?? currentTask.currentRequest,
-              let index = items.firstIndex(where: { $0.id == item.id }),
+        // Paused or deleted meanwhile.
+        guard let index = items.firstIndex(where: { $0.id == item.id }),
               items[index].taskIdentifier == currentTaskIdentifier
+        else { return }
+        guard let currentTask = tasks.first(where: { $0.taskIdentifier == currentTaskIdentifier }),
+              var request = currentTask.originalRequest ?? currentTask.currentRequest
         else {
             let error = NSError(
                 domain: "Strimr.DownloadManager",
@@ -497,6 +501,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     func delete(_ item: DownloadItem) async {
         let server = item.identity?.server
         preparationTasks.removeValue(forKey: item.id)?.cancel()
+        pauseTeardowns[item.id] = nil
         if let taskIdentifier = item.taskIdentifier, item.status.isActive {
             ignoredCompletionIDs.insert(item.id)
             await cancelTask(with: taskIdentifier)
@@ -602,7 +607,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
         persistState()
 
-        Task {
+        pauseTeardowns[item.id] = Task {
             await tearDownPausedTransfer(
                 itemID: item.id,
                 taskIdentifier: taskIdentifier,
@@ -625,7 +630,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
             let task = await allTasks().first { $0.taskIdentifier == taskIdentifier }
             if reference == nil, let downloadTask = task as? URLSessionDownloadTask {
                 let resumeData = await downloadTask.cancelByProducingResumeData()
-                if items.contains(where: { $0.id == itemID && $0.status == .paused }) {
+                if items.contains(where: { $0.id == itemID }) {
                     writeResumeData(resumeData, itemID: itemID)
                 }
             } else {
@@ -658,6 +663,26 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     private func restart(itemAt index: Int) {
+        let itemID = items[index].id
+        guard let teardown = pauseTeardowns[itemID] else {
+            performRestart(itemAt: index)
+            return
+        }
+        // Queued meanwhile, but skipped by the queue until the teardown is done (see `startNextQueuedTransfer`).
+        items[index].status = .queued
+        items[index].errorMessage = nil
+        persistState()
+        Task {
+            await teardown.value
+            guard let index = items.firstIndex(where: { $0.id == itemID }),
+                  items[index].status == .queued
+            else { return }
+            pauseTeardowns[itemID] = nil
+            performRestart(itemAt: index)
+        }
+    }
+
+    private func performRestart(itemAt index: Int) {
         let item = items[index]
         guard let server = item.identity?.server else { return }
 
@@ -925,9 +950,19 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         return items.firstIndex(where: { $0.taskIdentifier == task.taskIdentifier })
     }
 
+    /// A transfer can finish right as its download is paused; the file is kept rather than downloaded again.
+    private func pausedItemIndex(finishedBy task: URLSessionTask) -> Int? {
+        guard let description = task.taskDescription else { return nil }
+        return items.firstIndex {
+            $0.id == description && $0.taskIdentifier == nil
+                && ($0.status == .paused || ($0.status == .queued && pauseTeardowns[$0.id] != nil))
+        }
+    }
+
     private func restoreRunningTasks() async {
         let tasks = await allTasks()
         let runningTaskIDs = Set(tasks.map(\.taskIdentifier))
+        await stopOrphanedTasks(tasks)
 
         for index in items.indices {
             if let taskIdentifier = items[index].taskIdentifier, runningTaskIDs.contains(taskIdentifier) {
@@ -944,6 +979,23 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         }
 
         persistState()
+    }
+
+    /// A transfer whose download was paused or deleted right before the app was killed keeps running in the
+    /// background session; a paused direct download keeps what it already received.
+    private func stopOrphanedTasks(_ tasks: [URLSessionTask]) async {
+        let knownTaskIDs = Set(items.compactMap(\.taskIdentifier))
+        for task in tasks where !knownTaskIDs.contains(task.taskIdentifier) {
+            let pausedItem = items.first {
+                $0.id == task.taskDescription && $0.status == .paused && $0.remoteReference == nil
+            }
+            if let pausedItem, let downloadTask = task as? URLSessionDownloadTask {
+                let resumeData = await downloadTask.cancelByProducingResumeData()
+                writeResumeData(resumeData, itemID: pausedItem.id)
+            } else {
+                task.cancel()
+            }
+        }
     }
 
     private func allTasks() async -> [URLSessionTask] {
@@ -1024,7 +1076,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         guard !hasActiveTranscode(on: server),
               let services = servicesByServer[server],
               let item = items
-                  .filter({ $0.identity?.server == server && $0.status == .queued })
+                  .filter({ $0.identity?.server == server && $0.status == .queued && pauseTeardowns[$0.id] == nil })
                   .min(by: { $0.createdAt < $1.createdAt }),
               preparationTasks[item.id] == nil
         else { return }
@@ -1044,13 +1096,12 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
         preparationTasks[item.id] = Task { [weak self] in
             guard let self else { return }
             let needsPolling = await prepareQueuedDownload(item, services: services)
+            // A cancelled preparation no longer owns this slot: a resume may already have taken it.
+            guard !Task.isCancelled else { return }
             // Released before polling starts, since the polling task takes over this slot.
             preparationTasks[item.id] = nil
             if needsPolling {
                 startPreparationPolling(for: item.id, services: services)
-            } else {
-                // A direct transfer leaves the transcode slot free, so the next queued item can start too.
-                startNextQueuedTransfer(on: server)
             }
         }
     }
@@ -1064,9 +1115,16 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
                 tracks: item.trackPreference ?? .serverDefault,
                 version: item.metadata.versionID.map { .explicit(versionID: $0) } ?? .automatic,
             )
-            guard let index = items.firstIndex(where: { $0.id == item.id }),
+            guard !Task.isCancelled,
+                  let index = items.firstIndex(where: { $0.id == item.id }),
                   items[index].status == .queued
-            else { return false }
+            else {
+                // Paused or deleted while the server was preparing: nothing will clean this entry up later.
+                if let reference = preparation.remoteReference {
+                    await services.downloads.cancelDownloadPreparation(reference)
+                }
+                return false
+            }
             items[index].remoteReference = preparation.remoteReference
             items[index].metadata.effectiveQuality = preparation.effectiveQuality
             items[index].metadata.audioTitle = preparation.audioTitle
@@ -1119,7 +1177,7 @@ final class DownloadManager: NSObject, URLSessionDownloadDelegate {
     private func completeDownload(task: URLSessionDownloadTask, stagedLocation: URL) async {
         freshTaskIdentifiers.remove(task.taskIdentifier)
         unknownLengthReportTimes.removeValue(forKey: task.taskIdentifier)
-        guard let index = itemIndex(for: task) else {
+        guard let index = itemIndex(for: task) ?? pausedItemIndex(finishedBy: task) else {
             try? FileManager.default.removeItem(at: stagedLocation)
             return
         }

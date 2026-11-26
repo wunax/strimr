@@ -61,6 +61,7 @@ struct DownloadActivityTests {
         #expect(activity.phase == .paused)
         #expect(!activity.isInProgress)
         #expect(activity.ring == .init(progress: 0.4, style: .transfer))
+        #expect(activity.accessibilityValue.contains("40"))
     }
 
     @Test func `a running episode takes precedence over a paused one`() throws {
