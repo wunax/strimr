@@ -70,17 +70,13 @@ struct DetailActionsRow: View {
             }
 
             if !isServerUnreachable {
-                if viewModel.shouldShowWatchlistButton {
+                ForEach(viewModel.watchlistOptions) { option in
                     Button {
-                        Task { await viewModel.toggleWatchlistStatus() }
+                        Task { await viewModel.toggleWatchlist(option) }
                     } label: {
-                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                        Label(option.title, systemImage: option.systemImage)
                     }
-                    .disabled(
-                        viewModel.isLoading
-                            || viewModel.isLoadingWatchlistStatus
-                            || viewModel.isUpdatingWatchlistStatus,
-                    )
+                    .disabled(viewModel.isLoading || option.isUpdating)
                 }
 
                 if viewModel.shouldShowBothWatchActions {
@@ -237,18 +233,42 @@ struct DetailActionsRow: View {
     }
 
     private var downloadButton: some View {
-        Button {
-            handleDownloadTap()
-        } label: {
-            DetailRoundActionLabel(
-                title: "downloads.action",
-                systemImage: downloadIconName,
-                isActive: downloadStatus == .completed,
-                isLoading: isDownloadInProgress,
-            )
+        Group {
+            if let item = existingDownload {
+                Menu {
+                    DownloadItemMenuItems(item: item, isServerReachable: !isServerUnreachable) { request in
+                        coordinator.showLocalPlayer(request)
+                    }
+                } label: {
+                    downloadLabel
+                }
+                .disabled(viewModel.isLoading)
+            } else {
+                Button(action: handleDownloadTap) {
+                    downloadLabel
+                }
+                .disabled(viewModel.isLoading || isServerUnreachable)
+            }
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.isLoading || isServerUnreachable)
+        .accessibilityLabel(Text("downloads.action"))
+        .accessibilityValue(Text(verbatim: downloadActivity?.accessibilityValue ?? ""))
+    }
+
+    private var downloadLabel: some View {
+        DetailRoundActionLabel(
+            title: downloadTitle,
+            systemImage: downloadActivity?.systemImage ?? "arrow.down.circle",
+            isActive: downloadActivity?.phase == .completed,
+            isLoading: downloadActivity?.showsSpinner ?? false,
+            ring: downloadActivity?.ring,
+        )
+    }
+
+    /// A series or season keeps the episode picker, so more episodes can always be added.
+    private var existingDownload: DownloadItem? {
+        guard [.movie, .episode].contains(viewModel.media.mediaKind) else { return nil }
+        return downloadManager.latestItem(for: viewModel.media.identity)
     }
 
     private func handlePlay() {
@@ -310,24 +330,22 @@ struct DetailActionsRow: View {
         }
     }
 
-    private var downloadStatus: DownloadStatus? {
-        downloadManager.status(for: viewModel.media.identity)
+    private var downloadActivity: DownloadActivity? {
+        downloadManager.activity(for: viewModel.media.mediaItem)
     }
 
-    private var isDownloadInProgress: Bool {
-        downloadStatus == .queued || downloadStatus == .preparing || downloadStatus == .downloading
-    }
-
-    private var downloadIconName: String {
-        switch downloadStatus {
-        case .completed:
-            "checkmark.circle.fill"
-        case .failed:
-            "exclamationmark.circle"
-        case .queued, .preparing, .downloading:
-            "arrow.down.circle.fill"
-        case nil:
-            "arrow.down.circle"
+    private var downloadTitle: LocalizedStringKey {
+        guard let activity = downloadActivity, activity.isInProgress || activity.phase == .paused else {
+            return "downloads.action"
+        }
+        if activity.totalCount > 1 {
+            return "offline.badge.partial \(activity.completedCount) \(activity.totalCount)"
+        }
+        switch activity.phase {
+        case .queued: return "downloads.status.queued"
+        case .preparing: return "downloads.phase.preparing"
+        case .paused: return "downloads.status.paused"
+        default: return "downloads.phase.transferring"
         }
     }
 }

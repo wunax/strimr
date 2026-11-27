@@ -86,6 +86,15 @@ enum LayoutMetrics {
         #endif
     }
 
+    /// Height of capsule action buttons under `.controlSize(.mini)`, for actions inside a list row.
+    static var miniActionButtonHeight: CGFloat {
+        #if os(macOS)
+            24
+        #else
+            28
+        #endif
+    }
+
     static var castAvatarSize: CGFloat {
         #if os(tvOS)
             176

@@ -18,6 +18,19 @@ struct MediaItemLabelsTests {
         #expect(episode.episodeTitleLabel == "S1 · E2 · Pilot")
     }
 
+    @Test func `episode label never groups the digits of date-based numbering`() {
+        let episode = MediaItem.make(
+            id: "1",
+            server: server,
+            title: "Pilot",
+            type: .episode,
+            seasonNumber: 2026,
+            episodeNumber: 12345,
+        )
+
+        #expect(episode.episodeTitleLabel == "S2026 · E12345 · Pilot")
+    }
+
     @Test func `episode label without a title keeps season and episode`() {
         let episode = MediaItem.make(
             id: "1",

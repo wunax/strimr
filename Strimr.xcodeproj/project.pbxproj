@@ -89,10 +89,13 @@
 		E9C449F82EF322DE00D2895B /* Exceptions for "Shared" folder in "Strimr-tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Features/Downloads/DownloadActivity.swift,
+				Features/Downloads/DownloadItemMenuItems.swift,
 				Features/Downloads/DownloadManager.swift,
 				Features/Downloads/DownloadModels.swift,
 				Features/Downloads/DownloadOptionsView.swift,
 				Features/Downloads/DownloadRowViews.swift,
+				Features/Explore/ExploreView.swift,
 				Features/Home/HomeView.swift,
 				Features/Library/LibraryBrowseView.swift,
 				Features/Library/LibraryBrowseViewModel.swift,
@@ -107,7 +110,6 @@
 				Features/Player/DoubleTapSeek.swift,
 				Features/Player/PlayerLayoutMode.swift,
 				Features/Search/SearchView.swift,
-				Features/Seerr/SeerrDiscoverView.swift,
 				Features/Seerr/SeerrManageRequestsSheetView.swift,
 				Features/Seerr/SeerrMediaDetailView.swift,
 				Features/Seerr/SeerrMediaRequestSheetView.swift,

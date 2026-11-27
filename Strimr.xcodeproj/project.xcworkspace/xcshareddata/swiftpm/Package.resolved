@@ -7,7 +7,7 @@
       "location" : "https://github.com/wunax/AetherEngine",
       "state" : {
         "branch" : "main",
-        "revision" : "b5695ba39215a9751031c93089494eb1b4241fdd"
+        "revision" : "5018b9ab8d5d441ee05d51b0c73471e16d2f5484"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/FFmpegBuild",
       "state" : {
-        "revision" : "9c87af0231fd1403654c14a0e867fe8aa43c5bea",
-        "version" : "3.12.1"
+        "revision" : "6169df99e21e80fb20cbda6ec79c634366a28dd0",
+        "version" : "3.19.2"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/LibDovi",
       "state" : {
-        "revision" : "0d7cce1d6836a30d13a3a2326e50a153af53f014",
-        "version" : "2.1.0"
+        "revision" : "caff700968700467c089a3f38c8b4180620518b5",
+        "version" : "2.2.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/superuser404notfound/LibTrueHD",
       "state" : {
-        "revision" : "73bee84d7ac7b8619db570e36490b92761fe91a6",
-        "version" : "3.1.0"
+        "revision" : "12b26e487a2ade918e53380d47f5727883fedafc",
+        "version" : "3.2.0"
       }
     },
     {

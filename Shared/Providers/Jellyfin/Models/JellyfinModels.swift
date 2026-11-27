@@ -443,7 +443,7 @@ nonisolated struct JellyfinItem: Decodable, Identifiable, Hashable, Sendable {
 
     var tertiaryLabel: String? {
         guard kind == .episode, let parentIndexNumber, let indexNumber else { return nil }
-        return String(localized: "media.labels.seasonEpisode \(parentIndexNumber) \(indexNumber)")
+        return String(localized: "media.labels.seasonEpisode \(String(parentIndexNumber)) \(String(indexNumber))")
     }
 
     var progress: Double? {

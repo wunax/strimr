@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Trending Movie",
+    "url": "/movies/7101/trending-movie",
+    "poster": "11/111111111111111",
+    "fanart": "22/222222222222222",
+    "release_date": "03/15/2024",
+    "rank": 1,
+    "ids": { "simkl_id": 7101, "slug": "trending-movie", "tmdb": "8101", "imdb": "tt0000101" }
+  },
+  {
+    "title": "Movie Without Ids",
+    "ids": { "slug": "no-ids" }
+  }
+]

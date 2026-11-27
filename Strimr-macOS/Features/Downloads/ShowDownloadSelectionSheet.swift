@@ -111,7 +111,7 @@ struct ShowDownloadSelectionSheet: View {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(selected ? .selectionAccent : .textTertiary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \($0)") }
+                    Text(episode.index.map { String(localized: "downloads.sheet.episodeNumber \(String($0))") }
                         ?? String(localized: "downloads.sheet.episodeUnknown"))
                         .font(.cardTitle)
                         .foregroundStyle(.textPrimary)
@@ -127,6 +127,8 @@ struct ShowDownloadSelectionSheet: View {
                     Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
                 } else if statusForIdentity(episode.identity)?.isActive == true {
                     ProgressView().controlSize(.small)
+                } else if statusForIdentity(episode.identity) == .paused {
+                    Image(systemName: "pause.circle").foregroundStyle(.textSecondary)
                 }
             }
         }

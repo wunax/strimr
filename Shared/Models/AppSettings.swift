@@ -80,7 +80,8 @@ enum HomeHeroSource: String, Codable, CaseIterable, Hashable {
 
 enum StartupScreen: String, Codable, CaseIterable, Hashable {
     case home
-    case discover
+    /// Kept as `discover` from when the tab showed Seerr only.
+    case explore = "discover"
     case search
     case downloads
     case libraries
@@ -99,8 +100,8 @@ enum StartupScreen: String, Codable, CaseIterable, Hashable {
         switch self {
         case .home:
             String(localized: "tabs.home")
-        case .discover:
-            String(localized: "tabs.discover")
+        case .explore:
+            String(localized: "tabs.explore")
         case .search:
             String(localized: "tabs.search")
         case .downloads:
@@ -638,7 +639,7 @@ struct InterfaceSettings: Codable, Equatable {
     var displayFavoritesTab = false
     var displayDownloadsTab = false
     var displayLiveTVTab = true
-    var displaySeerrDiscoverTab = true
+    var displayExploreTab = true
     var multiServerSearchEnabled: Bool?
     var groupsSearchResults = true
     var spoilerProtection = SpoilerProtectionLevel.off
@@ -661,6 +662,11 @@ struct InterfaceSettings: Codable, Equatable {
     var tintsLiveTVGuideCategories = true
     var liveTVSectionByServer: [String: String] = [:]
     var liveTVChannelSortByServer: [String: LiveTVChannelSort] = [:]
+
+    /// Read when the newer key is absent, so a tab hidden before the rename stays hidden.
+    private enum LegacyCodingKeys: String, CodingKey {
+        case displaySeerrDiscoverTab
+    }
 
     init() {}
 
@@ -685,7 +691,10 @@ struct InterfaceSettings: Codable, Equatable {
         displayFavoritesTab = try container.decodeIfPresent(Bool.self, forKey: .displayFavoritesTab) ?? false
         displayDownloadsTab = try container.decodeIfPresent(Bool.self, forKey: .displayDownloadsTab) ?? false
         displayLiveTVTab = try container.decodeIfPresent(Bool.self, forKey: .displayLiveTVTab) ?? true
-        displaySeerrDiscoverTab = try container.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab) ?? true
+        let legacy = try decoder.container(keyedBy: LegacyCodingKeys.self)
+        displayExploreTab = try container.decodeIfPresent(Bool.self, forKey: .displayExploreTab)
+            ?? legacy.decodeIfPresent(Bool.self, forKey: .displaySeerrDiscoverTab)
+            ?? true
         multiServerSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .multiServerSearchEnabled)
         groupsSearchResults = try container.decodeIfPresent(Bool.self, forKey: .groupsSearchResults) ?? true
         spoilerProtection = (try? container.decode(SpoilerProtectionLevel.self, forKey: .spoilerProtection)) ?? .off

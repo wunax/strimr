@@ -12,6 +12,7 @@ extension View {
         isFocused: Bool,
         pressesScrub: Bool = true,
         swipesScrub: Bool = true,
+        isSuspended: Bool = false,
         onEditingChanged: @escaping (Bool) -> Void,
         onCancel: @escaping () -> Void,
         onIdleMove: ((MoveCommandDirection) -> Void)? = nil,
@@ -26,6 +27,7 @@ extension View {
             isFocused: isFocused,
             pressesScrub: pressesScrub,
             swipesScrub: swipesScrub,
+            isSuspended: isSuspended,
             onEditingChanged: onEditingChanged,
             onCancel: onCancel,
             onIdleMove: onIdleMove,
@@ -45,6 +47,9 @@ private struct PlayerScrubInteraction: ViewModifier {
     var pressesScrub: Bool
     /// When false, the touch surface does nothing until a press has started a scrub.
     var swipesScrub: Bool
+    /// Something else drives the playhead, such as a fast forward: presses and swipes leave it alone, and a running
+    /// scrub is dropped without a callback.
+    var isSuspended: Bool
     var onEditingChanged: (Bool) -> Void
     var onCancel: () -> Void
     var onIdleMove: ((MoveCommandDirection) -> Void)?
@@ -88,6 +93,12 @@ private struct PlayerScrubInteraction: ViewModifier {
                     commit()
                 }
             }
+            .onChange(of: isSuspended) { _, suspended in
+                guard suspended else { return }
+                ignoresCurrentSwipe = isSwiping
+                panStartPosition = nil
+                session = PlayerScrubSession()
+            }
             // The timeline goes away without losing the focus when a prompt or the zoom bar hides the controls;
             // the scrub was not the user's choice to commit then.
             .onDisappear(perform: cancel)
@@ -100,7 +111,7 @@ private struct PlayerScrubInteraction: ViewModifier {
     }
 
     private func handleMove(_ direction: MoveCommandDirection) {
-        guard isFocused, direction == .left || direction == .right else { return }
+        guard isFocused, !isSuspended, direction == .left || direction == .right else { return }
         if isSwiping {
             return
         }
@@ -138,7 +149,7 @@ private struct PlayerScrubInteraction: ViewModifier {
         guard isFocused, upperBound > 0, width > 0 else { return }
         let isStart = !isSwiping
         isSwiping = true
-        guard !ignoresCurrentSwipe, swipesScrub || session.isActive else {
+        guard !ignoresCurrentSwipe, !isSuspended, swipesScrub || session.isActive else {
             if isStart {
                 onIdleSwipe?()
             }

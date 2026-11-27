@@ -31,6 +31,9 @@ struct DownloadStatusBadge: View {
                 .controlSize(.mini)
                 .tint(.white)
                 .accessibilityLabel("offline.badge.downloading")
+        case .paused:
+            Image(systemName: "pause.circle.fill")
+                .accessibilityLabel("downloads.status.paused")
         case .downloaded:
             Image(systemName: "arrow.down.circle.fill")
                 .accessibilityLabel("offline.badge.downloaded")

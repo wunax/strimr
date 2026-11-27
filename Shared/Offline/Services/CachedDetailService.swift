@@ -18,10 +18,6 @@ final class CachedDetailService: MediaDetailService {
         policy.owner
     }
 
-    var supportsWatchlist: Bool {
-        base.supportsWatchlist
-    }
-
     var supportsRemoteSubtitleSearch: Bool {
         base.supportsRemoteSubtitleSearch
     }
@@ -147,14 +143,6 @@ final class CachedDetailService: MediaDetailService {
 
     func setPlayed(_ played: Bool, itemID: String) async throws {
         try await policy.online { try await base.setPlayed(played, itemID: itemID) }
-    }
-
-    func isWatchlisted(_ media: MediaItem) async throws -> Bool {
-        try await policy.online { try await base.isWatchlisted(media) }
-    }
-
-    func setWatchlisted(_ watchlisted: Bool, media: MediaItem) async throws {
-        try await policy.online { try await base.setWatchlisted(watchlisted, media: media) }
     }
 
     func trackSelection(itemID: String, versionID: String?) async throws -> MediaTrackSelection {

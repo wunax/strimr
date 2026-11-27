@@ -6,6 +6,7 @@ struct MainView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(SeerrStore.self) private var seerrStore
+    @Environment(ExploreSourceRegistry.self) private var exploreRegistry
     @Environment(AppModel.self) private var appModel
     @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
     @Environment(OfflineCoordinator.self) private var offlineCoordinator
@@ -27,8 +28,8 @@ struct MainView: View {
                 Section {
                     sidebarLabel("tabs.home", systemImage: "house.fill", item: .home)
 
-                    if isDiscoverAvailable {
-                        sidebarLabel("tabs.discover", systemImage: "sparkles", item: .discover)
+                    if isExploreAvailable {
+                        sidebarLabel("tabs.explore", systemImage: "safari", item: .explore)
                     }
 
                     sidebarLabel("tabs.search", systemImage: "magnifyingglass", item: .search)
@@ -97,9 +98,12 @@ struct MainView: View {
             guard phase == .active else { return }
             Task { await refreshLiveTVAvailability() }
         }
-        .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+        .task(id: exploreRegistry.configurationKey) {
+            await exploreRegistry.sync()
+        }
+        .onChange(of: isExploreAvailable, initial: true) { _, isAvailable in
             if isAvailable {
-                appModel.openPendingStartupSelection(.discover)
+                appModel.openPendingStartupSelection(.explore)
             }
         }
         .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
@@ -131,8 +135,8 @@ struct MainView: View {
 
     @State private var lastPlayedServer: ServerIdentity?
 
-    private var isDiscoverAvailable: Bool {
-        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    private var isExploreAvailable: Bool {
+        settingsManager.interface.displayExploreTab && exploreRegistry.hasConnectedSources
     }
 
     private var isLiveTVAvailable: Bool {
@@ -173,11 +177,12 @@ struct MainView: View {
         switch item {
         case .home:
             HomeView(viewModel: homeViewModel, onSelectMedia: appModel.showMedia)
-        case .discover:
-            SeerrDiscoverView(
-                viewModel: SeerrDiscoverViewModel(store: seerrStore),
-                searchViewModel: SeerrSearchViewModel(store: seerrStore),
-                onSelectMedia: appModel.showSeerr,
+        case .explore:
+            ExploreView(
+                viewModel: ExploreViewModel(registry: exploreRegistry, seerrStore: seerrStore),
+                searchViewModel: ExploreSearchViewModel(registry: exploreRegistry),
+                onSelectItem: appModel.showExploreItem,
+                onSelectRail: appModel.showExploreRail,
                 onShowRequests: appModel.showSeerrRequests,
             )
             .unavailableWhenOffline()
@@ -235,7 +240,23 @@ struct MainView: View {
         if case let .seerr(media) = route {
             SeerrMediaDetailView(
                 viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                explore: ExploreDetailViewModel.item(for: media).map {
+                    ExploreDetailViewModel(item: $0, registry: exploreRegistry, seerrStore: seerrStore)
+                },
                 onSelectMedia: appModel.showSeerr,
+                onSelectCopy: appModel.showMedia,
+            )
+        } else if case let .exploreItem(item) = route {
+            ExploreDetailView(
+                viewModel: ExploreDetailViewModel(item: item, registry: exploreRegistry, seerrStore: seerrStore),
+                onSelectItem: appModel.showExploreItem,
+                onSelectSeerrMedia: appModel.showSeerr,
+                onSelectCopy: appModel.showMedia,
+            )
+        } else if case let .exploreRail(rail) = route {
+            ExploreRailView(
+                viewModel: ExploreRailViewModel(rail: rail, source: exploreRegistry.source(rail.source)),
+                onSelect: appModel.showExploreItem,
             )
         } else if case .seerrRequests = route {
             SeerrRequestsView(
@@ -269,6 +290,7 @@ struct MainView: View {
                     services: services,
                     resolutionMode: .selectedMedia,
                     copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    watchlists: exploreRegistry,
                     onSelectCopy: appModel.showMedia,
                 ),
                 onSelectMedia: appModel.showMedia,
@@ -308,7 +330,7 @@ struct MainView: View {
             )
         case let .library(library):
             LibraryDetailView(library: library, onSelectMedia: appModel.showMedia)
-        case .seerr, .seerrRequests:
+        case .seerr, .seerrRequests, .exploreItem, .exploreRail:
             EmptyView()
         }
     }

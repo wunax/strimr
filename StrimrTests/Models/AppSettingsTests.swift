@@ -11,6 +11,17 @@ struct AppSettingsTests {
         #expect(!settings.interface.displayPlaylists)
     }
 
+    @Test func `a Discover tab hidden before the rename stays hidden`() throws {
+        #expect(try !decode(#"{"interface":{"displaySeerrDiscoverTab":false}}"#).interface.displayExploreTab)
+        #expect(try decode(#"{"interface":{}}"#).interface.displayExploreTab)
+        #expect(try decode(#"{"interface":{"displaySeerrDiscoverTab":false,"displayExploreTab":true}}"#)
+            .interface.displayExploreTab)
+    }
+
+    @Test func `the Discover startup screen opens Explore`() throws {
+        #expect(try decode(#"{"interface":{"startupScreen":"discover"}}"#).interface.startupScreen == .explore)
+    }
+
     @Test func `theme music is off unless chosen`() throws {
         #expect(try decode(#"{"interface":{}}"#).interface.themeMusicVolume == .off)
         #expect(try decode(#"{"interface":{"themeMusicVolume":"loud"}}"#).interface.themeMusicVolume == .off)

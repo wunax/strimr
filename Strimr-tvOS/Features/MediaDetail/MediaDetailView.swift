@@ -197,6 +197,23 @@ struct MediaDetailView: View {
             Text(bindableViewModel.watchActionErrorMessage ?? "")
         }
         .alert(
+            "explore.watchlist.error.title",
+            isPresented: Binding(
+                get: { bindableViewModel.watchlistActionErrorMessage != nil },
+                set: {
+                    if !$0 {
+                        bindableViewModel.watchlistActionErrorMessage = nil
+                    }
+                },
+            ),
+        ) {
+            Button("common.actions.done") {
+                bindableViewModel.watchlistActionErrorMessage = nil
+            }
+        } message: {
+            Text(bindableViewModel.watchlistActionErrorMessage ?? "")
+        }
+        .alert(
             "media.detail.favorite.error.title",
             isPresented: Binding(
                 get: { bindableViewModel.favoriteActionErrorMessage != nil },
@@ -370,25 +387,21 @@ struct MediaDetailView: View {
                 .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
             }
 
-            if viewModel.shouldShowWatchlistButton {
+            ForEach(viewModel.watchlistOptions) { option in
                 Button {
-                    Task { await viewModel.toggleWatchlistStatus() }
+                    Task { await viewModel.toggleWatchlist(option) }
                 } label: {
-                    if viewModel.isLoadingWatchlistStatus || viewModel.isUpdatingWatchlistStatus {
+                    if option.isUpdating {
                         Label {
-                            Text(viewModel.watchlistActionTitle)
+                            Text(option.title)
                         } icon: {
                             ProgressView()
                         }
                     } else {
-                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                        Label(option.title, systemImage: option.systemImage)
                     }
                 }
-                .disabled(
-                    viewModel.isLoading
-                        || viewModel.isLoadingWatchlistStatus
-                        || viewModel.isUpdatingWatchlistStatus,
-                )
+                .disabled(viewModel.isLoading || option.isUpdating)
             }
 
             if AddToPlaylistViewModel.canAdd(viewModel.media.mediaItem) {
@@ -705,7 +718,7 @@ private struct EpisodeArtworkCard: View {
 
     private var episodeNumberText: String {
         guard let index = episode.index else { return String(localized: "search.fallback.episode") }
-        return String(localized: "media.detail.episodeNumber \(index)")
+        return String(localized: "media.detail.episodeNumber \(String(index))")
     }
 
     private var onDeckBadge: LocalizedStringKey? {

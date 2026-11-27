@@ -111,6 +111,8 @@ nonisolated struct TrackerHTTPResponse: Sendable {
     let statusCode: Int
     let data: Data
     let retryAfter: TimeInterval?
+    /// Trakt's `X-Pagination-Page-Count`, on paginated lists.
+    var pageCount: Int?
 
     var isSuccess: Bool {
         (200 ..< 300).contains(statusCode)
@@ -143,6 +145,7 @@ nonisolated struct TrackerHTTP: Sendable {
             statusCode: response.statusCode,
             data: data,
             retryAfter: response.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init),
+            pageCount: response.value(forHTTPHeaderField: "X-Pagination-Page-Count").flatMap { Int($0) },
         )
     }
 }

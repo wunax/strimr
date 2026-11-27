@@ -1,0 +1,33 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "totalSize": 2,
+    "offset": 0,
+    "Metadata": [
+      {
+        "ratingKey": "5d7768aaaaaaaaaaaaaaaaaa",
+        "guid": "plex://movie/5d7768aaaaaaaaaaaaaaaaaa",
+        "type": "movie",
+        "title": "Sample Movie",
+        "originalTitle": "Film Exemple",
+        "year": 2020,
+        "summary": "A sample overview.",
+        "thumb": "https://images.example.invalid/movie-poster.jpg",
+        "art": "https://images.example.invalid/movie-art.jpg",
+        "Guid": [{ "id": "imdb://tt0000001" }, { "id": "tmdb://2001" }]
+      },
+      {
+        "ratingKey": "5d7768bbbbbbbbbbbbbbbbbb",
+        "guid": "plex://show/5d7768bbbbbbbbbbbbbbbbbb",
+        "type": "show",
+        "title": "Sample Show",
+        "year": 2019
+      },
+      {
+        "ratingKey": "5d7768cccccccccccccccccc",
+        "type": "collection",
+        "title": "Not a title"
+      }
+    ]
+  }
+}
