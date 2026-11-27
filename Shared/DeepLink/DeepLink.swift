@@ -7,8 +7,8 @@ import Foundation
 /// strimr://open
 /// strimr://media/<itemID>?provider=&server=[&type=]
 /// strimr://media?type=movie|show&tmdb=|tvdb=|imdb=[&title=][&year=]
-/// strimr://play/<itemID>?provider=&server=[&type=][&mode=resume|restart|shuffle]
-/// strimr://play?type=movie|show&tmdb=|tvdb=|imdb=[&title=][&year=][&mode=]
+/// strimr://play/<itemID>?provider=&server=[&type=][&mode=resume|restart|shuffle][&offset=][&audio=][&subs=]
+/// strimr://play?type=movie|show&tmdb=|tvdb=|imdb=[&title=][&year=][&mode=][&offset=][&audio=][&subs=]
 /// strimr://live/<channel>[?provider=&server=]
 /// strimr://library/<libraryID>?provider=&server=
 /// strimr://search[?q=]
@@ -23,7 +23,7 @@ struct DeepLink: Hashable, Sendable {
     enum Destination: Hashable, Sendable {
         case open
         case media(MediaTarget)
-        case play(MediaTarget, mode: PlayMode)
+        case play(MediaTarget, mode: PlayMode, options: PlaybackStartOptions = .none)
         case liveChannel(String, server: ServerIdentity?)
         case library(LibraryIdentity)
         case search(String?)
@@ -111,8 +111,11 @@ extension DeepLink {
         case "media":
             Self.mediaTarget(path: path, query: query).map { .media($0) }
         case "play":
-            if let mode = Self.playMode(query["mode"]), let target = Self.mediaTarget(path: path, query: query) {
-                .play(target, mode: mode)
+            if let mode = Self.playMode(query["mode"]),
+               let options = Self.startOptions(query),
+               let target = Self.mediaTarget(path: path, query: query)
+            {
+                .play(target, mode: mode, options: options)
             } else {
                 nil
             }
@@ -144,6 +147,28 @@ extension DeepLink {
     private static func playMode(_ value: String?) -> PlayMode? {
         guard let value else { return .resume }
         return PlayMode(rawValue: value.lowercased())
+    }
+
+    /// `offset` in seconds, `audio` and `subs` as ISO 639 codes (`fr`, `fra`, `fre`), `subs=off` for no subtitles.
+    private static func startOptions(_ query: [String: String]) -> PlaybackStartOptions? {
+        var options = PlaybackStartOptions()
+        if let value = query["offset"] {
+            guard let offset = TimeInterval(value), offset.isFinite, offset >= 0 else { return nil }
+            options.offset = offset
+        }
+        if let value = query["audio"] {
+            guard let code = AccountLanguageCode.code(fromTrackLanguage: value) else { return nil }
+            options.audioLanguage = code
+        }
+        if let value = query["subs"] {
+            if value.lowercased() == "off" {
+                options.subtitles = .off
+            } else {
+                guard let code = AccountLanguageCode.code(fromTrackLanguage: value) else { return nil }
+                options.subtitles = .language(code)
+            }
+        }
+        return options
     }
 
     private static func mediaTarget(path: String?, query: [String: String]) -> MediaTarget? {
@@ -223,12 +248,13 @@ extension DeepLink {
         case let .media(target):
             components.host = "media"
             Self.write(target, path: &components.percentEncodedPath, items: &items)
-        case let .play(target, mode):
+        case let .play(target, mode, options):
             components.host = "play"
             Self.write(target, path: &components.percentEncodedPath, items: &items)
             if mode != .resume {
                 items.append(URLQueryItem(name: "mode", value: mode.rawValue))
             }
+            items += Self.optionItems(options)
         case let .liveChannel(channel, server):
             components.host = "live"
             components.percentEncodedPath = Self.encodedPath(channel)
@@ -283,6 +309,26 @@ extension DeepLink {
                 items.append(URLQueryItem(name: "year", value: String(year)))
             }
         }
+    }
+
+    private static func optionItems(_ options: PlaybackStartOptions) -> [URLQueryItem] {
+        var items: [URLQueryItem] = []
+        if let offset = options.offset {
+            let value = offset.rounded() == offset ? String(Int(offset)) : String(offset)
+            items.append(URLQueryItem(name: "offset", value: value))
+        }
+        if let audio = options.audioLanguage {
+            items.append(URLQueryItem(name: "audio", value: audio))
+        }
+        switch options.subtitles {
+        case .off:
+            items.append(URLQueryItem(name: "subs", value: "off"))
+        case let .language(code):
+            items.append(URLQueryItem(name: "subs", value: code))
+        case nil:
+            break
+        }
+        return items
     }
 
     private static func encodedPath(_ component: String) -> String {

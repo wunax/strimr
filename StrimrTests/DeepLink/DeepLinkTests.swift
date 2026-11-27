@@ -25,6 +25,16 @@ struct DeepLinkTests {
             DeepLink(.play(.item(MediaIdentity(server: plex, itemID: "42"), kind: .movie), mode: .resume)),
             DeepLink(.play(.item(MediaIdentity(server: plex, itemID: "42"), kind: .series), mode: .shuffle)),
             DeepLink(.play(.catalog(.init(kind: .show, ids: ExternalIDs(tvdb: "81189"))), mode: .restart)),
+            DeepLink(.play(
+                .item(MediaIdentity(server: jellyfin, itemID: "abc"), kind: .movie),
+                mode: .resume,
+                options: PlaybackStartOptions(offset: 1800, audioLanguage: "ja", subtitles: .language("en")),
+            )),
+            DeepLink(.play(
+                .catalog(.init(kind: .movie, ids: ExternalIDs(tmdb: "278"))),
+                mode: .restart,
+                options: PlaybackStartOptions(offset: 90.5, subtitles: .off),
+            )),
             DeepLink(.liveChannel("TF1", server: nil)),
             DeepLink(.liveChannel("/channels/12", server: jellyfin)),
             DeepLink(.library(LibraryIdentity(server: plex, libraryID: "3"))),
@@ -61,7 +71,21 @@ struct DeepLinkTests {
         )))
     }
 
+    @Test func `play options accept any form of a language code`() {
+        let parsed = link("strimr://play/42?server=s1&offset=600&audio=FRE&subs=OFF")
+        #expect(parsed == DeepLink(.play(
+            .item(MediaIdentity(server: ServerIdentity(provider: .plex, id: "s1"), itemID: "42"), kind: nil),
+            mode: .resume,
+            options: PlaybackStartOptions(offset: 600, audioLanguage: "fr", subtitles: .off),
+        )))
+        #expect(link("strimr://play/42?server=s1&subs=eng") == link("strimr://play/42?server=s1&subs=en"))
+    }
+
     @Test func `malformed links are refused`() {
+        #expect(link("strimr://play/42?server=s1&offset=-5") == nil)
+        #expect(link("strimr://play/42?server=s1&offset=soon") == nil)
+        #expect(link("strimr://play/42?server=s1&audio=xx") == nil)
+        #expect(link("strimr://play/42?server=s1&subs=und") == nil)
         #expect(link("strimr://play/42?server=s1&mode=loop") == nil)
         #expect(link("strimr://play?type=movie&imdb=0111161") == nil)
         #expect(link("strimr://play?type=movie&tmdb=abc") == nil)

@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleSpokenName</key>
+	<string>Strimmer</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -13,6 +15,27 @@
 			<array>
 				<string>strimr</string>
 			</array>
+		</dict>
+	</array>
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Strimmer</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>strimmer</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Strim-er</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>strim er</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Strimeur</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>strimeur</string>
 		</dict>
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>

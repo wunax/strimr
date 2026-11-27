@@ -134,6 +134,35 @@ struct TrackSelectionMatcherTests {
         #expect(bestSubtitle(preference, tracks) == nil)
     }
 
+    @Test func `an ISO code matches the other forms of the language`() {
+        let jellyfin = [track(1, language: "eng", codec: "aac"), track(2, language: "fre", codec: "aac")]
+        #expect(bestAudio(audioPreference(language: "fr"), jellyfin)?.id == 2)
+
+        let named = [track(1, language: "English", codec: "srt"), track(2, language: "French", codec: "srt")]
+        #expect(bestSubtitle(subtitlePreference(language: "fr", codec: ""), named)?.id == 2)
+    }
+
+    @Test func `an ISO code matches the code of a track named in another language`() {
+        let streams = [("Englisch", "eng"), ("Französisch", "fra")]
+        let match = TrackSelectionMatcher.bestAudioMatch(
+            preference: audioPreference(language: "fr"),
+            candidates: streams,
+            descriptor: { stream in
+                TrackSelectionMatchDescriptor(
+                    exactIdentifiers: [],
+                    language: stream.0,
+                    title: nil,
+                    displayTitle: nil,
+                    codec: nil,
+                    isForced: nil,
+                    isHearingImpaired: nil,
+                    languageCode: stream.1,
+                )
+            },
+        )
+        #expect(match?.1 == "fra")
+    }
+
     // MARK: - Preference
 
     @Test func `matching across items drops stream indexes`() {

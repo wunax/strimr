@@ -80,7 +80,7 @@ struct DeepLinkHandler {
                 navigator.showDeepLinkMedia(media)
                 return nil
             }
-        case let .play(target, mode):
+        case let .play(target, mode, options):
             switch await resolve(target) {
             case let .failure(failure):
                 return failure
@@ -91,6 +91,7 @@ struct DeepLinkHandler {
                     type: media.type,
                     shuffle: mode == .shuffle,
                     shouldResumeFromOffset: mode != .restart,
+                    startOptions: options,
                 )
                 return nil
             }

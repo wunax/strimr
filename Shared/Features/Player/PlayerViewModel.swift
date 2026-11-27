@@ -109,7 +109,7 @@ final class PlayerViewModel {
     }
 
     var resumePosition: Double? {
-        media?.viewOffset
+        startOptions.offset ?? media?.viewOffset
     }
 
     var markers: [SkipSegment] = []
@@ -149,7 +149,15 @@ final class PlayerViewModel {
             artworkService: artworkServices?.artwork,
             skipBackwardSeconds: settings.seekBackwardSeconds,
             skipForwardSeconds: settings.seekForwardSeconds,
+            contentLink: nowPlayingLink,
         )
+    }
+
+    private var nowPlayingLink: DeepLink? {
+        if let liveContext, let mediaServices {
+            return .liveChannelLink(liveContext.channel, server: mediaServices.identity, profile: nil)
+        }
+        return media.map { DeepLink(.play(.item($0.identity, kind: $0.type), mode: .resume)) }
     }
 
     var subtitleSearchTitlePlaceholder: String {
@@ -212,7 +220,7 @@ final class PlayerViewModel {
     }
 
     var shouldResumeFromOffset: Bool {
-        shouldResumeFromOffsetFlag
+        shouldResumeFromOffsetFlag || startOptions.offset != nil
     }
 
     var serverAccessGeneration: Int {
@@ -238,6 +246,8 @@ final class PlayerViewModel {
     @ObservationIgnored private var playbackPlan: PlaybackPlan?
     @ObservationIgnored private var didReportPlaybackStarted = false
     @ObservationIgnored private let shouldResumeFromOffsetFlag: Bool
+    /// A choice made in the player replaces the link's for the rest of the playback.
+    @ObservationIgnored private var startOptions: PlaybackStartOptions = .none
     @ObservationIgnored private let localMedia: MediaItem?
     @ObservationIgnored private let localPlaybackURL: URL?
     @ObservationIgnored private let localExternalSubtitles: [ExternalSubtitleTrack]
@@ -272,6 +282,7 @@ final class PlayerViewModel {
             : queue.items.first?.media
         ratingKey = currentMedia?.id ?? ""
         shouldResumeFromOffsetFlag = shouldResumeFromOffset
+        startOptions = queue.startOptions
         localMedia = nil
         localPlaybackURL = nil
         localExternalSubtitles = []
@@ -459,6 +470,7 @@ final class PlayerViewModel {
         else { return nil }
 
         queue.currentIndex = index
+        queue.startOptions = .none
         let viewModel = PlayerViewModel(
             queue: queue,
             services: mediaServices,
@@ -509,9 +521,9 @@ final class PlayerViewModel {
             }
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag,
+                resume: resumesFromServerPosition,
                 quality: selectedQuality,
-                trackPreference: rememberedTrackPreference,
+                trackPreference: trackPreference,
                 version: mediaServices.versionRequest(for: media),
             )
             apply(plan: plan)
@@ -548,9 +560,9 @@ final class PlayerViewModel {
             let previousPlan = playbackPlan
             let plan = try await mediaServices.playback.prepare(
                 media: media,
-                resume: shouldResumeFromOffsetFlag,
+                resume: resumesFromServerPosition,
                 quality: selectedQuality,
-                trackPreference: rememberedTrackPreference,
+                trackPreference: trackPreference,
                 version: currentVersionRequest(services: mediaServices, media: media),
             )
             apply(plan: plan)
@@ -575,7 +587,7 @@ final class PlayerViewModel {
             media: media,
             resume: false,
             quality: quality,
-            trackPreference: rememberedTrackPreference,
+            trackPreference: trackPreference,
             version: currentVersionRequest(services: mediaServices, media: media),
         )
         selectedQuality = quality
@@ -719,7 +731,7 @@ final class PlayerViewModel {
         }
         guard isStillWanted,
               let language = AutomaticSubtitleSearch.language(
-                  remembered: rememberedTrackPreference?.subtitle,
+                  remembered: trackPreference?.subtitle,
                   account: account,
                   deviceLanguage: Locale.preferredLanguages.first ?? "en",
               ),
@@ -979,6 +991,7 @@ final class PlayerViewModel {
             ErrorReporter.capture(error)
         }
         if track.type == .audio, let media {
+            startOptions.audioLanguage = nil
             preferredAudioStreamFFIndex = track.ffIndex ?? track.providerStreamID
             let coordinator = mediaServices.trackSelectionCoordinator
             coordinator?.rememberAudio(
@@ -996,6 +1009,7 @@ final class PlayerViewModel {
 
     func persistSubtitleStreamSelection(for track: PlayerTrack?) async {
         manualSubtitleChanges += 1
+        startOptions.subtitles = nil
         guard let mediaServices, let itemID = media?.id else { return }
         let streamID = track?.providerStreamID
         do {
@@ -1149,7 +1163,7 @@ final class PlayerViewModel {
             trackerSession = TrackerCoordinator.shared.beginPlayback(
                 of: plan.media,
                 detail: mediaServices.detail,
-                resumeOffset: shouldResumeFromOffsetFlag ? plan.media.viewOffset : nil,
+                resumeOffset: startOptions.offset ?? (shouldResumeFromOffsetFlag ? plan.media.viewOffset : nil),
             )
         }
         playbackURL = plan.url
@@ -1333,6 +1347,15 @@ final class PlayerViewModel {
             server: mediaServices.identity,
             accountIdentifier: mediaServices.trackSelectionAccountIdentifier ?? "default",
         )
+    }
+
+    /// A link's offset is a seek once the stream starts, so the server streams from the beginning.
+    private var resumesFromServerPosition: Bool {
+        shouldResumeFromOffsetFlag && startOptions.offset == nil
+    }
+
+    private var trackPreference: MediaTrackPreference? {
+        startOptions.trackPreference(over: rememberedTrackPreference)
     }
 
     private var rememberedTrackPreference: MediaTrackPreference? {
