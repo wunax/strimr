@@ -76,7 +76,7 @@ final class PlayerSystemLevels {
         volumeObservation = AVAudioSession.sharedInstance()
             .observe(\.outputVolume, options: [.new]) { [weak self] _, change in
                 guard let volume = change.newValue else { return }
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.onVolumeChange?(Double(volume))
                 }
             }
