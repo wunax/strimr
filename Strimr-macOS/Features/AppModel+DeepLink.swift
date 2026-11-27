@@ -5,6 +5,10 @@ extension AppModel: DeepLinkNavigating {
         playerPresentation != nil
     }
 
+    var playerCoversPages: Bool {
+        false
+    }
+
     func closePlayerForDeepLink() {
         resetPlayer()
     }

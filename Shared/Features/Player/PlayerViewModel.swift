@@ -609,7 +609,7 @@ final class PlayerViewModel {
         let previousPlan = playbackPlan
         // Track ids are specific to each file: carry the preference by language, not the old stream index.
         // Without remembered tracks, keep what is playing now so switching files never changes the language.
-        let trackPreference = rememberedTrackPreference?.matchingAcrossItems
+        let currentPreference = rememberedTrackPreference?.matchingAcrossItems
             ?? previousPlan.map { plan in
                 Self.sessionTrackPreference(
                     tracks: plan.tracks,
@@ -618,6 +618,7 @@ final class PlayerViewModel {
                     subtitleIsOff: preferredSubtitleSelectionIsOff,
                 )
             }
+        let trackPreference = startOptions.trackPreference(over: currentPreference)
         let plan = try await mediaServices.playback.prepare(
             media: media,
             resume: false,
@@ -964,6 +965,9 @@ final class PlayerViewModel {
     }
 
     func persistStreamSelection(for track: PlayerTrack) async {
+        if track.type == .audio {
+            startOptions.audioLanguage = nil
+        }
         guard let mediaServices,
               let itemID = media?.id,
               let streamID = track.providerStreamID
@@ -991,7 +995,6 @@ final class PlayerViewModel {
             ErrorReporter.capture(error)
         }
         if track.type == .audio, let media {
-            startOptions.audioLanguage = nil
             preferredAudioStreamFFIndex = track.ffIndex ?? track.providerStreamID
             let coordinator = mediaServices.trackSelectionCoordinator
             coordinator?.rememberAudio(

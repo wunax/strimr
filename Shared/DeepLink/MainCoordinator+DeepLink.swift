@@ -5,6 +5,10 @@ extension MainCoordinator: DeepLinkNavigating {
         isPresentingPlayer
     }
 
+    var playerCoversPages: Bool {
+        true
+    }
+
     func closePlayerForDeepLink() {
         resetPlayer()
     }

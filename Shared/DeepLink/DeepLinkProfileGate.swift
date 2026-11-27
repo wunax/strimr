@@ -8,7 +8,6 @@ enum DeepLinkProfileGate {
         case wait
         case proceed
         case drop
-        case profileNotFound
         case activate(String)
         /// The profile has a PIN: the picker asks for it.
         case askForPIN(String)
@@ -29,6 +28,8 @@ enum DeepLinkProfileGate {
         }
     }
 
+    /// `profiles` holds the profiles that can be activated. A link naming another one opens on the active profile, as
+    /// a copied link reaches devices without the profile it was copied on.
     static func decide(
         reference: String,
         profiles: [StrimrProfile],
@@ -44,7 +45,9 @@ enum DeepLinkProfileGate {
         case .needsProfileSelection, .ready:
             break
         }
-        guard let profile = profile(named: reference, in: profiles) else { return .profileNotFound }
+        guard let profile = profile(named: reference, in: profiles) else {
+            return status == .ready ? .proceed : .wait
+        }
         if let awaitedProfileID {
             // The picker is open for this link: wait for the user, and drop the link if they picked another profile.
             guard status == .ready else { return .wait }
@@ -66,7 +69,6 @@ extension View {
 private struct DeepLinkProfileModifier: ViewModifier {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(DeepLinkRouter.self) private var router
-    @Environment(ToastCenter.self) private var toastCenter: ToastCenter?
 
     private struct Key: Equatable {
         let link: DeepLink?
@@ -94,7 +96,7 @@ private struct DeepLinkProfileModifier: ViewModifier {
         guard let link = router.pending, let reference = link.profile else { return }
         let decision = DeepLinkProfileGate.decide(
             reference: reference,
-            profiles: sessionManager.profiles,
+            profiles: sessionManager.profiles.filter(sessionManager.profileStore.hasLinks),
             activeProfileID: sessionManager.activeProfile?.id,
             status: sessionManager.status,
             awaitedProfileID: router.awaitedProfileID,
@@ -106,9 +108,6 @@ private struct DeepLinkProfileModifier: ViewModifier {
             router.resolveProfile(of: link)
         case .drop:
             router.clear(link)
-        case .profileNotFound:
-            router.clear(link)
-            toastCenter?.show(Toast(style: .failure, title: String(localized: "deepLinks.profileNotFound")))
         case let .askForPIN(profileID):
             askForPIN(profileID, link: link)
         case let .activate(profileID):
@@ -119,6 +118,11 @@ private struct DeepLinkProfileModifier: ViewModifier {
                 guard !Task.isCancelled, !error.isCancellation else { return }
                 // Plex may still want a PIN, or plex.tv did not answer: the picker lets the user try.
                 askForPIN(profileID, link: link)
+                return
+            }
+            // A profile that could not be activated would be activated again each time the session settles.
+            if sessionManager.activeProfile?.id != profileID {
+                router.clear(link)
             }
         }
     }

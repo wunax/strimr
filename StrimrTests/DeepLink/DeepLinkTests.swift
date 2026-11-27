@@ -155,4 +155,15 @@ struct DeepLinkTests {
 
         #expect(DeepLink.shareLink(for: MediaItem.make(id: "3", server: plex, type: .playlist), profile: nil) == nil)
     }
+
+    @Test @MainActor func `hidden tabs are not available`() {
+        var interface = InterfaceSettings()
+        interface.displayLiveTVTab = false
+        interface.displayExploreTab = true
+
+        #expect(!DeepLinkHandler.isAvailable(.liveTV, interface: interface, hasLiveTV: true, hasExploreSources: true))
+        #expect(!DeepLinkHandler.isAvailable(.explore, interface: interface, hasLiveTV: true, hasExploreSources: false))
+        #expect(DeepLinkHandler.isAvailable(.explore, interface: interface, hasLiveTV: true, hasExploreSources: true))
+        #expect(DeepLinkHandler.isAvailable(.home, interface: interface, hasLiveTV: false, hasExploreSources: false))
+    }
 }

@@ -71,7 +71,7 @@ strimr://play?type=movie&tmdb=278&title=The%20Shawshank%20Redemption&year=1994&s
 ## Profile
 
 Every link accepts `profile=<id or name>`. The profile is matched by id, then by name ignoring case. Without it, the
-link opens on the active profile. A link that names an unknown profile shows a message and does nothing.
+link opens on the active profile, as does a link that names an unknown profile or one without connections.
 
 ## Now Playing
 

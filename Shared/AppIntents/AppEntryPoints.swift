@@ -181,6 +181,7 @@ extension View {
 private struct AppEntryPointsModifier: ViewModifier {
     @Environment(SessionManager.self) private var sessionManager
     @Environment(ServerRegistry.self) private var registry
+    @Environment(SettingsManager.self) private var settingsManager
     #if !os(tvOS)
         @Environment(DownloadManager.self) private var downloadManager
     #endif
@@ -209,7 +210,7 @@ private struct AppEntryPointsModifier: ViewModifier {
             resume: resume,
             watching: HomeHeroSlides.watchingItems(in: rows),
             downloads: downloads,
-            hasLiveTV: !registry.liveTVServices.isEmpty,
+            hasLiveTV: !registry.liveTVServices.isEmpty && settingsManager.interface.displayLiveTVTab,
         )
     }
 

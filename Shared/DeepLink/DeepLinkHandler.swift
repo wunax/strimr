@@ -4,6 +4,8 @@ import SwiftUI
 @MainActor
 protocol DeepLinkNavigating: PlaybackPresenting {
     var isShowingPlayer: Bool { get }
+    /// False where the player has its own window, so a page can open without stopping playback.
+    var playerCoversPages: Bool { get }
     func closePlayerForDeepLink()
     func openDeepLinkTab(_ tab: DeepLink.Tab)
     func showDeepLinkMedia(_ media: MediaItem)
@@ -33,6 +35,7 @@ struct DeepLinkHandler {
     static let serverWait: Duration = .seconds(20)
 
     let sessionManager: SessionManager
+    let settingsManager: SettingsManager
     let libraryStore: LibraryStore
     let exploreRegistry: ExploreSourceRegistry
     let router: DeepLinkRouter
@@ -48,11 +51,12 @@ struct DeepLinkHandler {
         case .open:
             return nil
         case let .tab(tab):
-            await closePlayer()
+            let tab = await availableTab(tab)
+            await closePlayerCoveringPages()
             navigator.openDeepLinkTab(tab)
             return nil
         case let .search(query):
-            await closePlayer()
+            await closePlayerCoveringPages()
             navigator.openDeepLinkTab(.search)
             if let query {
                 router.searchRequest = DeepLinkRouter.SearchRequest(query: query)
@@ -67,7 +71,7 @@ struct DeepLinkHandler {
                     try? await libraryStore.loadLibraries()
                 }
                 guard let library = libraryStore.library(identity) else { return .notFound }
-                await closePlayer()
+                await closePlayerCoveringPages()
                 navigator.showDeepLinkLibrary(library)
                 return nil
             }
@@ -76,7 +80,7 @@ struct DeepLinkHandler {
             case let .failure(failure):
                 return failure
             case let .success((media, _)):
-                await closePlayer()
+                await closePlayerCoveringPages()
                 navigator.showDeepLinkMedia(media)
                 return nil
             }
@@ -121,6 +125,52 @@ struct DeepLinkHandler {
         }
     }
 
+    // MARK: - Tabs
+
+    /// A hidden tab opens Home instead. Live TV is found once the servers connect, e.g. from a quick action at launch.
+    private func availableTab(_ tab: DeepLink.Tab) async -> DeepLink.Tab {
+        let interface = settingsManager.interface
+        if tab == .liveTV, interface.displayLiveTVTab, registry.liveTVServices.isEmpty {
+            await waitForServers()
+            await registry.refreshLiveTVAvailability()
+        }
+        let isAvailable = Self.isAvailable(
+            tab,
+            interface: interface,
+            hasLiveTV: !registry.liveTVServices.isEmpty,
+            hasExploreSources: exploreRegistry.hasConnectedSources,
+        )
+        return isAvailable ? tab : .home
+    }
+
+    static func isAvailable(
+        _ tab: DeepLink.Tab,
+        interface: InterfaceSettings,
+        hasLiveTV: Bool,
+        hasExploreSources: Bool,
+    ) -> Bool {
+        switch tab {
+        case .home, .search, .libraries:
+            true
+        case .downloads:
+            #if os(iOS)
+                interface.displayDownloadsTab
+            #else
+                true
+            #endif
+        case .favorites:
+            #if os(macOS)
+                true
+            #else
+                interface.displayFavoritesTab
+            #endif
+        case .liveTV:
+            hasLiveTV && interface.displayLiveTVTab
+        case .explore:
+            hasExploreSources && interface.displayExploreTab
+        }
+    }
+
     // MARK: - Media
 
     private func resolve(_ target: DeepLink.MediaTarget) async -> Result<(MediaItem, MediaServices), Failure> {
@@ -141,7 +191,10 @@ struct DeepLinkHandler {
                 if error.isTransportFailure {
                     return .failure(.serverUnavailable)
                 }
-                ErrorReporter.capture(error)
+                // Tags and automations keep links to titles that were removed since.
+                if !error.isNotFound {
+                    ErrorReporter.capture(error)
+                }
                 return .failure(.notFound)
             }
         case let .catalog(catalog):
@@ -260,6 +313,11 @@ struct DeepLinkHandler {
 
     // MARK: - Player
 
+    private func closePlayerCoveringPages() async {
+        guard navigator.playerCoversPages else { return }
+        await closePlayer()
+    }
+
     /// A link replaces what is playing, or the page it opens would stay hidden under the player.
     private func closePlayer() async {
         guard navigator.isShowingPlayer else { return }
@@ -278,6 +336,7 @@ extension View {
 
 private struct DeepLinkHandlingModifier: ViewModifier {
     @Environment(SessionManager.self) private var sessionManager
+    @Environment(SettingsManager.self) private var settingsManager
     @Environment(LibraryStore.self) private var libraryStore
     @Environment(ExploreSourceRegistry.self) private var exploreRegistry
     @Environment(DeepLinkRouter.self) private var router
@@ -304,6 +363,7 @@ private struct DeepLinkHandlingModifier: ViewModifier {
                 #endif
                 let handler = DeepLinkHandler(
                     sessionManager: sessionManager,
+                    settingsManager: settingsManager,
                     libraryStore: libraryStore,
                     exploreRegistry: exploreRegistry,
                     router: router,

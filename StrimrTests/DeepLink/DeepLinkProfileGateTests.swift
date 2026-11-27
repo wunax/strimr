@@ -41,8 +41,9 @@ struct DeepLinkProfileGateTests {
         #expect(decide("Anna", active: nil, status: .needsProfileSelection) == .activate("local.anna"))
     }
 
-    @Test func `an unknown profile is reported`() {
-        #expect(decide("Bob") == .profileNotFound)
+    @Test func `an unknown profile opens on the active one`() {
+        #expect(decide("Bob") == .proceed)
+        #expect(decide("Bob", active: nil, status: .needsProfileSelection) == .wait)
     }
 
     @Test func `the session settles first`() {

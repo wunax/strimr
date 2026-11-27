@@ -30470,28 +30470,6 @@
         }
       }
     },
-    "deepLinks.profileNotFound" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The link's profile doesn't exist on this device"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le profil du lien n'existe pas sur cet appareil"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此设备上不存在链接中的个人资料"
-          }
-        }
-      }
-    },
     "deepLinks.serverNotInProfile" : {
       "localizations" : {
         "en" : {
