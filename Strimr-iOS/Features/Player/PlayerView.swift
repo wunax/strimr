@@ -1630,36 +1630,45 @@ struct PlayerView: View {
         switch adjustment {
         case .brightness:
             systemLevels.setBrightness(level)
-            showLevelIndicator(.brightness, level: level)
         case .volume:
             systemLevels.setVolume(level)
         }
+        showLevelIndicator(adjustment, level: level)
     }
 
-    private func beginDrag(_ value: DragGesture.Value) -> PlayerDragIntent {
-        guard swipesAdjustLevels,
+    private func swipeAdjustment(for value: DragGesture.Value) -> (VerticalSwipeAdjustment, startLevel: Double)? {
+        guard swipesAdjustLevels, !isShowingInfoPanel, !isShowingSubtitleAppearance, activeOffsetBar == nil,
               let adjustment = VerticalSwipeAdjustment(
                   start: value.startLocation,
                   translation: value.translation,
                   area: CGSize(width: tapAreaWidth, height: tapAreaHeight),
               )
-        else { return .other }
-        doubleTapSeek.cancel()
-        pauseScreen.registerInteraction()
-        let startLevel = switch adjustment {
+        else { return nil }
+        let startLevel: Double? = switch adjustment {
         case .brightness: systemLevels.brightness
         case .volume: systemLevels.volume
         }
+        return startLevel.map { (adjustment, $0) }
+    }
+
+    private func beginDrag(_ value: DragGesture.Value) -> PlayerDragIntent {
+        guard let (adjustment, startLevel) = swipeAdjustment(for: value) else { return .other }
+        doubleTapSeek.cancel()
+        pauseScreen.registerInteraction()
         return .adjust(adjustment, startLevel: startLevel)
     }
 
     private func handleDragEnded(_ value: DragGesture.Value) {
         let intent = dragIntent
         dragIntent = nil
-        if case .adjust = intent {
-            return
+        // The drag state may already be reset when the gesture ends, so a swipe that adjusted a level is
+        // recognized again from its start.
+        let adjustedLevel = if let intent {
+            intent != .other
+        } else {
+            swipeAdjustment(for: value) != nil
         }
-        guard !isPinchInteractionRecent else { return }
+        guard !adjustedLevel, !isPinchInteractionRecent else { return }
         let translation = value.translation
         if translation.height < -60, abs(translation.height) > abs(translation.width) {
             showInfoPanel()
@@ -1876,10 +1885,11 @@ struct PlayerView: View {
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
         switch scenePhase {
         case .background:
-            systemLevels.restoreBrightness()
+            systemLevels.suspendBrightness()
             pauseForBackgroundIfNeeded()
             preparePlaybackForBackground()
         case .active:
+            systemLevels.resumeBrightness()
             reloadPlaybackAfterBackgroundIfNeeded()
         case .inactive:
             break

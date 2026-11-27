@@ -10,6 +10,8 @@ final class PlayerSystemLevels {
     @ObservationIgnored var onVolumeChange: ((Double) -> Void)?
     @ObservationIgnored fileprivate weak var hostView: UIView?
     @ObservationIgnored private var originalBrightness: CGFloat?
+    @ObservationIgnored private var appliedBrightness: CGFloat?
+    @ObservationIgnored private var suspendedBrightness: CGFloat?
     @ObservationIgnored private var volumeObservation: NSKeyValueObservation?
 
     private var screen: UIScreen? {
@@ -20,12 +22,14 @@ final class PlayerSystemLevels {
         hostView?.subviews.first { $0 is MPVolumeView }?.subviews.lazy.compactMap { $0 as? UISlider }.first
     }
 
-    var brightness: Double {
-        Double(screen?.brightness ?? 0.5)
+    /// Nil until the host view is in a window, when the screen cannot be adjusted yet.
+    var brightness: Double? {
+        screen.map { Double($0.brightness) }
     }
 
-    var volume: Double {
-        Double(AVAudioSession.sharedInstance().outputVolume)
+    /// Nil when the volume slider cannot be found, since the volume then cannot be set.
+    var volume: Double? {
+        volumeSlider.map { _ in Double(AVAudioSession.sharedInstance().outputVolume) }
     }
 
     func setBrightness(_ level: Double) {
@@ -34,13 +38,33 @@ final class PlayerSystemLevels {
             originalBrightness = screen.brightness
         }
         screen.brightness = CGFloat(level)
+        appliedBrightness = screen.brightness
     }
 
-    /// Gives the screen back the brightness it had before the first swipe.
+    /// Gives the screen back the brightness it had before the first swipe, unless the user changed it since, for
+    /// example from Control Center.
     func restoreBrightness() {
-        guard let originalBrightness else { return }
-        screen?.brightness = originalBrightness
-        self.originalBrightness = nil
+        if let screen, let originalBrightness, let appliedBrightness,
+           abs(screen.brightness - appliedBrightness) < 0.01
+        {
+            screen.brightness = originalBrightness
+        }
+        originalBrightness = nil
+        appliedBrightness = nil
+    }
+
+    /// Leaves the rest of the system at its own brightness while the app is away, and remembers the swiped level
+    /// for `resumeBrightness()`.
+    func suspendBrightness() {
+        guard let appliedBrightness else { return }
+        suspendedBrightness = appliedBrightness
+        restoreBrightness()
+    }
+
+    func resumeBrightness() {
+        guard let suspendedBrightness else { return }
+        self.suspendedBrightness = nil
+        setBrightness(Double(suspendedBrightness))
     }
 
     func setVolume(_ level: Double) {
@@ -62,6 +86,7 @@ final class PlayerSystemLevels {
         volumeObservation?.invalidate()
         volumeObservation = nil
         restoreBrightness()
+        suspendedBrightness = nil
         hostView = nil
     }
 }

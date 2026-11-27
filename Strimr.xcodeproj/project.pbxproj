@@ -109,6 +109,7 @@
 				Features/Player/Controls/PlayerControlButtonStyle.swift,
 				Features/Player/DoubleTapSeek.swift,
 				Features/Player/PlayerLayoutMode.swift,
+				Features/Player/VerticalSwipeAdjustment.swift,
 				Features/Search/SearchView.swift,
 				Features/Seerr/SeerrManageRequestsSheetView.swift,
 				Features/Seerr/SeerrMediaDetailView.swift,
