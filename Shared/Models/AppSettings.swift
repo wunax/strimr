@@ -455,6 +455,7 @@ struct PlaybackSettings: Codable, Equatable {
     var seekBackwardSeconds = 10
     var seekForwardSeconds = 10
     var doubleTapToSeek = true
+    var swipeForBrightnessAndVolume = true
     var defaultPlaybackRate: Float = 1.0
     var audioDelayMilliseconds = 0
     var subtitleFontSize = defaultSubtitleFontSize
@@ -542,6 +543,10 @@ struct PlaybackSettings: Codable, Equatable {
         seekBackwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekBackwardSeconds) ?? 10
         seekForwardSeconds = try container.decodeIfPresent(Int.self, forKey: .seekForwardSeconds) ?? 10
         doubleTapToSeek = try container.decodeIfPresent(Bool.self, forKey: .doubleTapToSeek) ?? true
+        swipeForBrightnessAndVolume = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .swipeForBrightnessAndVolume,
+        ) ?? true
         let decodedRate = (try? container.decodeIfPresent(Float.self, forKey: .defaultPlaybackRate)) ?? 1.0
         defaultPlaybackRate = PlaybackSpeedOptions.all.contains { $0.rate == decodedRate } ? decodedRate : 1.0
         audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(

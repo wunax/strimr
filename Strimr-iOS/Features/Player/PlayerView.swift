@@ -83,6 +83,12 @@ struct PlayerView: View {
     @State private var isShowingSubtitleAppearance = false
     @State private var doubleTapSeek = DoubleTapSeek()
     @State private var tapAreaWidth = 0.0
+    @State private var tapAreaHeight = 0.0
+    @State private var systemLevels = PlayerSystemLevels()
+    @State private var dragIntent: PlayerDragIntent?
+    @GestureState private var isDragging = false
+    @State private var levelIndicator: PlayerLevelIndicator?
+    @State private var levelIndicatorWorkItem: DispatchWorkItem?
     @State private var showsPlaybackStatistics = false
 
     private let controlsHideDelay: TimeInterval = 3.0
@@ -177,6 +183,8 @@ struct PlayerView: View {
                     hideControlsWorkItem?.cancel()
                     feedbackWorkItem?.cancel()
                     doubleTapSeek.cancel()
+                    levelIndicatorWorkItem?.cancel()
+                    systemLevels.detach()
                     playerController.stop()
                     AppDelegate.orientationLock = .all
                     isControlsLocked = false
@@ -498,7 +506,10 @@ struct PlayerView: View {
             Color.clear
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
-                .onGeometryChange(for: Double.self) { $0.size.width } action: { tapAreaWidth = $0 }
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                    tapAreaWidth = size.width
+                    tapAreaHeight = size.height
+                }
                 .onTapGesture { location in
                     guard !isPinchInteractionRecent else { return }
                     pauseScreen.registerInteraction()
@@ -511,15 +522,20 @@ struct PlayerView: View {
                     }
                 }
                 .gesture(
-                    DragGesture(minimumDistance: 24).onEnded { value in
-                        guard !isPinchInteractionRecent else { return }
-                        let translation = value.translation
-                        if translation.height < -60, abs(translation.height) > abs(translation.width) {
-                            showInfoPanel()
+                    DragGesture(minimumDistance: 24)
+                        .updating($isDragging) { _, isDragging, _ in
+                            isDragging = true
                         }
-                    },
+                        .onChanged(handleDragChanged)
+                        .onEnded(handleDragEnded),
                     isEnabled: !isControlsLocked,
                 )
+                .onChange(of: isDragging) { _, isDragging in
+                    // A cancelled drag never reaches onEnded.
+                    if !isDragging {
+                        dragIntent = nil
+                    }
+                }
                 .simultaneousGesture(
                     MagnifyGesture(minimumScaleDelta: 0.03)
                         .updating($isPinching) { _, isPinching, _ in
@@ -538,6 +554,7 @@ struct PlayerView: View {
                 .onChange(of: isPinching) { _, isPinching in
                     lastPinchInteraction = .now
                     if isPinching {
+                        dragIntent = .other
                         doubleTapSeek.cancel()
                         pauseScreen.registerInteraction()
                     } else {
@@ -583,6 +600,8 @@ struct PlayerView: View {
 
             seekFeedbackOverlay
 
+            levelIndicatorOverlay
+
             playerFeedbackOverlay(bottomPadding: areControlsShown ? 150 : 32)
 
             if pauseScreen.isPresented, let media = viewModel.media {
@@ -614,6 +633,19 @@ struct PlayerView: View {
             )
         }
         .animation(Motion.animation(Motion.controls, reduceMotion: reduceMotion), value: pauseScreen.isPresented)
+        .background {
+            if swipesAdjustLevels {
+                PlayerSystemLevelsHost(levels: systemLevels)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .onAppear {
+                        systemLevels.onVolumeChange = { showLevelIndicator(.volume, level: $0) }
+                    }
+                    .onDisappear {
+                        systemLevels.detach()
+                    }
+            }
+        }
     }
 
     private var playerControls: some View {
@@ -740,6 +772,17 @@ struct PlayerView: View {
             SeekFeedbackView(feedback: doubleTapSeekFeedback(for: pending))
                 .padding(.horizontal, 32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: pending.forward ? .trailing : .leading)
+                .transition(.opacity)
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var levelIndicatorOverlay: some View {
+        if let levelIndicator {
+            PlayerLevelIndicatorView(adjustment: levelIndicator.adjustment, level: levelIndicator.level)
+                .padding(.top, areControlsShown ? 84 : 24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .transition(.opacity)
                 .allowsHitTesting(false)
         }
@@ -1565,6 +1608,92 @@ struct PlayerView: View {
         return true
     }
 
+    /// VoiceOver claims swipes to move between elements.
+    private var swipesAdjustLevels: Bool {
+        settingsManager.playback.swipeForBrightnessAndVolume && !isVoiceOverEnabled
+    }
+
+    private func handleDragChanged(_ value: DragGesture.Value) {
+        if isPinchInteractionRecent {
+            dragIntent = .other
+            return
+        }
+        if dragIntent == nil {
+            dragIntent = beginDrag(value)
+        }
+        guard case let .adjust(adjustment, startLevel) = dragIntent else { return }
+        let level = VerticalSwipeAdjustment.level(
+            from: startLevel,
+            translation: value.translation.height,
+            height: tapAreaHeight,
+        )
+        switch adjustment {
+        case .brightness:
+            systemLevels.setBrightness(level)
+        case .volume:
+            systemLevels.setVolume(level)
+        }
+        showLevelIndicator(adjustment, level: level)
+    }
+
+    private func swipeAdjustment(for value: DragGesture.Value) -> (VerticalSwipeAdjustment, startLevel: Double)? {
+        guard swipesAdjustLevels, !isShowingInfoPanel, !isShowingSubtitleAppearance, activeOffsetBar == nil,
+              let adjustment = VerticalSwipeAdjustment(
+                  start: value.startLocation,
+                  translation: value.translation,
+                  area: CGSize(width: tapAreaWidth, height: tapAreaHeight),
+              )
+        else { return nil }
+        let startLevel: Double? = switch adjustment {
+        case .brightness: systemLevels.brightness
+        case .volume: systemLevels.volume
+        }
+        return startLevel.map { (adjustment, $0) }
+    }
+
+    private func beginDrag(_ value: DragGesture.Value) -> PlayerDragIntent {
+        guard let (adjustment, startLevel) = swipeAdjustment(for: value) else { return .other }
+        doubleTapSeek.cancel()
+        pauseScreen.registerInteraction()
+        return .adjust(adjustment, startLevel: startLevel)
+    }
+
+    private func handleDragEnded(_ value: DragGesture.Value) {
+        let intent = dragIntent
+        dragIntent = nil
+        // The drag state may already be reset when the gesture ends, so a swipe that adjusted a level is
+        // recognized again from its start.
+        let adjustedLevel = if let intent {
+            intent != .other
+        } else {
+            swipeAdjustment(for: value) != nil
+        }
+        guard !adjustedLevel, !isPinchInteractionRecent else { return }
+        let translation = value.translation
+        if translation.height < -60, abs(translation.height) > abs(translation.width) {
+            showInfoPanel()
+        }
+    }
+
+    private func showLevelIndicator(_ adjustment: VerticalSwipeAdjustment, level: Double) {
+        levelIndicatorWorkItem?.cancel()
+        if levelIndicator?.adjustment != adjustment {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                levelIndicator = PlayerLevelIndicator(adjustment: adjustment, level: level)
+            }
+        } else {
+            levelIndicator?.level = level
+        }
+
+        let workItem = DispatchWorkItem {
+            withAnimation(Motion.animation(Motion.crossfade, reduceMotion: reduceMotion)) {
+                levelIndicator = nil
+            }
+        }
+        levelIndicatorWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: workItem)
+    }
+
     private func doubleTapSeekOffset(for pending: DoubleTapSeek.Pending) -> Double {
         Double(pending.steps) * (pending.forward ? seekForwardInterval : -seekBackwardInterval)
     }
@@ -1756,9 +1885,11 @@ struct PlayerView: View {
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
         switch scenePhase {
         case .background:
+            systemLevels.suspendBrightness()
             pauseForBackgroundIfNeeded()
             preparePlaybackForBackground()
         case .active:
+            systemLevels.resumeBrightness()
             reloadPlaybackAfterBackgroundIfNeeded()
         case .inactive:
             break
@@ -2193,4 +2324,14 @@ private enum PlayerSheet: String, Identifiable {
     var id: String {
         rawValue
     }
+}
+
+private enum PlayerDragIntent: Equatable {
+    case adjust(VerticalSwipeAdjustment, startLevel: Double)
+    case other
+}
+
+private struct PlayerLevelIndicator {
+    let adjustment: VerticalSwipeAdjustment
+    var level: Double
 }

@@ -14676,6 +14676,50 @@
         }
       }
     },
+    "player.gestures.brightness" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luminosité"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "亮度"
+          }
+        }
+      }
+    },
+    "player.gestures.volume" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音量"
+          }
+        }
+      }
+    },
     "player.info.open" : {
       "localizations" : {
         "en" : {
@@ -28221,6 +28265,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "半粗体"
+          }
+        }
+      }
+    },
+    "settings.playback.swipeForBrightnessAndVolume" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe for brightness and volume"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balayer pour la luminosité et le volume"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动调节亮度和音量"
+          }
+        }
+      }
+    },
+    "settings.playback.swipeForBrightnessAndVolume.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe up or down on the left side of the player to change the brightness, or on the right side to change the volume."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balayez vers le haut ou le bas sur le côté gauche du lecteur pour régler la luminosité, ou sur le côté droit pour régler le volume."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在播放器左侧上下滑动可调节亮度，在右侧上下滑动可调节音量。"
           }
         }
       }
