@@ -66,6 +66,7 @@ struct ContentView: View {
             }
         }
         .appliesDeepLinkProfiles()
+        .continuesUserActivities()
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
 

@@ -44,6 +44,7 @@ struct StrimrApp: App {
         #endif
         let downloadManager = DownloadManager(settingsManager: settingsManager)
         _sessionManager = State(initialValue: sessionManager)
+        AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: downloadManager)
         _libraryStore = State(initialValue: LibraryStore(

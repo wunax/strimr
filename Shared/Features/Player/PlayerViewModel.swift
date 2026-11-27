@@ -223,6 +223,11 @@ final class PlayerViewModel {
         localPlaybackURL != nil
     }
 
+    /// What Handoff offers: on-demand streams only, as a download or a channel does not carry over.
+    var handoffMedia: MediaItem? {
+        isLivePlayback || isLocalPlayback ? nil : media
+    }
+
     @ObservationIgnored private let timelineInterval: TimeInterval = 10
     @ObservationIgnored private var trackerSession: TrackerPlaybackSession?
     @ObservationIgnored private var lastTimelineSentAt: Date?

@@ -20,6 +20,11 @@
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
 	</array>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.github.wunax.strimr.media</string>
+		<string>com.github.wunax.strimr.playback</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

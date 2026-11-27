@@ -82,6 +82,12 @@ private struct DeepLinkProfileModifier: ViewModifier {
         )) {
             await apply()
         }
+        .onChange(of: sessionManager.status) { _, status in
+            // Signed out: the last profile's titles leave the quick actions and Spotlight.
+            if status == .needsAccount {
+                AppEntryPoints.shared.publish(nil, registry: sessionManager.registry)
+            }
+        }
     }
 
     private func apply() async {

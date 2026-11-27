@@ -266,6 +266,7 @@ struct MainTabView: View {
             sessionManager.isPlaybackActive = isPresenting
         }
         .handlesDeepLinks(navigator: coordinator)
+        .publishesAppEntryPoints(homeViewModel: homeViewModel)
         .overlay {
             if coordinator.isPresentingPlayer,
                let services = coordinator.selectedMediaServices

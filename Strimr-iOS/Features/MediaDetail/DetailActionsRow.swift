@@ -132,6 +132,8 @@ struct DetailActionsRow: View {
             if !viewModel.listsCopiesWithVersions {
                 MediaCopiesMenuItems(viewModel: viewModel)
             }
+
+            CopyDeepLinkButton(media: viewModel.media.mediaItem)
         } label: {
             DetailRoundActionLabel(
                 title: "common.actions.more",

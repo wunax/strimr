@@ -53,6 +53,7 @@ struct ContentView: View {
             }
         }
         .appliesDeepLinkProfiles()
+        .continuesUserActivities()
         .onChange(of: offlineCoordinator.availability.hasNetworkPath) { _, hasNetworkPath in
             guard hasNetworkPath, sessionManager.status == .migrationFailed else { return }
             Task {

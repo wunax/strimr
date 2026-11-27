@@ -45,6 +45,7 @@ struct StrimrApp: App {
             )
         #endif
         _sessionManager = State(initialValue: sessionManager)
+        AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
         _libraryStore = State(initialValue: LibraryStore(
             sessionManager: sessionManager,

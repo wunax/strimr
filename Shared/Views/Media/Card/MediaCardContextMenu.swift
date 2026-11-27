@@ -220,6 +220,10 @@ private struct MediaCardContextMenu: ViewModifier {
             }
             .disabled(isPerforming)
         }
+
+        #if !os(tvOS)
+            CopyDeepLinkButton(media: item)
+        #endif
     }
 
     private func offersWatchlist(for item: MediaItem, services: MediaServices) -> Bool {

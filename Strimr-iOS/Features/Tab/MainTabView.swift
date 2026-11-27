@@ -48,6 +48,7 @@ struct MainTabView: View {
                 Task { await homeViewModel.refresh(server: server) }
             }
             .handlesDeepLinks(navigator: coordinator)
+            .publishesAppEntryPoints(homeViewModel: homeViewModel)
             .task(id: exploreRegistry.configurationKey) {
                 await exploreRegistry.sync()
             }

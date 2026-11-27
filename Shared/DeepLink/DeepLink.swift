@@ -17,7 +17,7 @@ import Foundation
 ///
 /// Every link may add `profile=`. Links end up on NFC tags and in home automations: parameters may be added, never
 /// renamed or removed.
-nonisolated struct DeepLink: Hashable, Sendable {
+struct DeepLink: Hashable, Sendable {
     static let scheme = "strimr"
 
     enum Destination: Hashable, Sendable {
@@ -87,7 +87,7 @@ nonisolated struct DeepLink: Hashable, Sendable {
 
 // MARK: - Parsing
 
-nonisolated extension DeepLink {
+extension DeepLink {
     /// Nil for any malformed link, another scheme, or an external player callback.
     init?(url: URL) {
         guard url.scheme?.lowercased() == Self.scheme,
@@ -149,7 +149,8 @@ nonisolated extension DeepLink {
     private static func mediaTarget(path: String?, query: [String: String]) -> MediaTarget? {
         if let path {
             guard let server = server(query) else { return nil }
-            return .item(MediaIdentity(server: server, itemID: path), kind: query["type"].flatMap(mediaKind))
+            let kind = query["type"].map { mediaKind($0) } ?? nil
+            return .item(MediaIdentity(server: server, itemID: path), kind: kind)
         }
         guard let kind = query["type"].flatMap(catalogKind) else { return nil }
         let imdb = query["imdb"]?.lowercased()
@@ -192,7 +193,7 @@ nonisolated extension DeepLink {
         return kind
     }
 
-    private static func catalogKind(_ value: String) -> CatalogTarget.Kind? {
+    private nonisolated static func catalogKind(_ value: String) -> CatalogTarget.Kind? {
         switch value.lowercased() {
         case "movie": .movie
         case "show", "series": .show
@@ -200,18 +201,18 @@ nonisolated extension DeepLink {
         }
     }
 
-    private static func isNumber(_ value: String) -> Bool {
-        !value.isEmpty && value.allSatisfy(\.isASCIIDigit)
+    private nonisolated static func isNumber(_ value: String) -> Bool {
+        !value.isEmpty && value.allSatisfy { $0.isASCII && $0.isNumber }
     }
 
-    private static func isIMDbID(_ value: String) -> Bool {
+    private nonisolated static func isIMDbID(_ value: String) -> Bool {
         value.hasPrefix("tt") && isNumber(String(value.dropFirst(2)))
     }
 }
 
 // MARK: - Writing
 
-nonisolated extension DeepLink {
+extension DeepLink {
     var url: URL {
         var components = URLComponents()
         components.scheme = Self.scheme
@@ -298,13 +299,7 @@ nonisolated extension DeepLink {
     }
 }
 
-private nonisolated extension Character {
-    var isASCIIDigit: Bool {
-        isASCII && isNumber
-    }
-}
-
-private nonisolated extension String {
+private extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
     }

@@ -25,6 +25,9 @@ struct LiveTVChannelListView: View {
                     ) {
                         Task { await store.toggleFavorite(channel) }
                     }
+                    #if !os(tvOS)
+                        CopyChannelLinkButton(channel: channel)
+                    #endif
                 }
                 #if os(iOS)
                 .swipeActions {

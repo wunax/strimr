@@ -116,6 +116,7 @@ struct MainView: View {
             Task { await homeViewModel.refresh(server: server) }
         }
         .handlesDeepLinks(navigator: appModel)
+        .publishesAppEntryPoints(homeViewModel: homeViewModel)
         .onChange(of: appModel.playerPresentation?.id, initial: true) { previous, current in
             homeViewModel.isPlaybackActive = current != nil
             sessionManager.isPlaybackActive = current != nil
