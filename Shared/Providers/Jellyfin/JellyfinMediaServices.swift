@@ -1122,7 +1122,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             plan: source,
             position: position,
             isPaused: isPaused,
-            currentSelection: Self.serverSelection(currentSelection, plan: plan),
+            currentSelection: Self.serverSelection(currentSelection, tracks: plan.tracks),
         )
     }
 
@@ -1137,7 +1137,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             plan: source,
             position: position,
             isPaused: isPaused,
-            currentSelection: Self.serverSelection(currentSelection, plan: plan),
+            currentSelection: Self.serverSelection(currentSelection, tracks: plan.tracks),
         )
     }
 
@@ -1151,7 +1151,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await playbackService.reportStopped(
             plan: source,
             position: position,
-            currentSelection: Self.serverSelection(currentSelection, plan: plan),
+            currentSelection: Self.serverSelection(currentSelection, tracks: plan.tracks),
         )
     }
 
@@ -1185,18 +1185,27 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
 
     /// Jellyfin numbers external subtitles before the file's own streams (after them on older servers),
     /// so its index only matches the container's once the external streams numbered earlier are skipped.
+    /// External streams are not in the file: they are numbered after its streams so no index is shared.
     nonisolated static func containerStreamIndex(ofStream index: Int, in streams: [JellyfinMediaStream]) -> Int {
-        guard streams.contains(where: { $0.index == index && $0.isExternal != true }) else { return index }
-        return index - streams.count(where: { $0.isExternal == true && $0.index < index })
+        guard let stream = streams.first(where: { $0.index == index }) else { return index }
+        let externalIndices = streams.filter { $0.isExternal == true }.map(\.index)
+        guard stream.isExternal == true else {
+            return index - externalIndices.count(where: { $0 < index })
+        }
+        let lastContainerIndex = streams
+            .filter { $0.isExternal != true }
+            .map { stream in stream.index - externalIndices.count(where: { $0 < stream.index }) }
+            .max() ?? -1
+        return lastContainerIndex + 1 + externalIndices.count(where: { $0 < index })
     }
 
-    private static func serverSelection(
+    nonisolated static func serverSelection(
         _ selection: PlaybackStreamSelection?,
-        plan: PlaybackPlan,
+        tracks: [PlaybackTrack],
     ) -> PlaybackStreamSelection? {
         guard let selection, let audioIndex = selection.audioStreamIndex else { return selection }
         return PlaybackStreamSelection(
-            audioStreamIndex: plan.tracks
+            audioStreamIndex: tracks
                 .first { $0.kind == .audio && $0.sourceIndex == audioIndex }
                 .flatMap { Int($0.id) } ?? audioIndex,
             subtitleStreamIndex: selection.subtitleStreamIndex,

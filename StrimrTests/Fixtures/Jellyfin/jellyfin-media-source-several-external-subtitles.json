@@ -1,0 +1,12 @@
+{
+  "Id": "source-1",
+  "MediaStreams": [
+    { "Index": 0, "Type": "Subtitle", "Codec": "subrip", "Language": "spa", "IsExternal": true },
+    { "Index": 1, "Type": "Subtitle", "Codec": "subrip", "Language": "deu", "IsExternal": true },
+    { "Index": 2, "Type": "Subtitle", "Codec": "subrip", "Language": "ita", "IsExternal": true },
+    { "Index": 3, "Type": "Video", "Codec": "hevc", "IsExternal": false },
+    { "Index": 4, "Type": "Audio", "Codec": "eac3", "Title": "VO", "Language": "eng", "IsExternal": false },
+    { "Index": 5, "Type": "Audio", "Codec": "eac3", "Title": "VF", "Language": "fra", "IsExternal": false },
+    { "Index": 6, "Type": "Subtitle", "Codec": "subrip", "Title": "Full", "Language": "fra", "IsExternal": false }
+  ]
+}

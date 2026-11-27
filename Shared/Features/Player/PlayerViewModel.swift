@@ -345,9 +345,11 @@ final class PlayerViewModel {
               })
         else { return nil }
 
+        let providerID = Int(track.id)
         return MediaTrackMetadata(
-            id: Int(track.id) ?? track.sourceIndex,
-            sourceIndex: track.sourceIndex,
+            id: providerID ?? track.sourceIndex,
+            // The file's index is not the provider's (Jellyfin numbers external streams first), so it is left out.
+            sourceIndex: providerID == nil ? track.sourceIndex : nil,
             codec: track.codec ?? "",
             title: track.name,
             displayTitle: track.title,
@@ -362,13 +364,18 @@ final class PlayerViewModel {
         guard let id else { return nil }
         return playbackPlan?.tracks.first(where: {
             providerStreamID(for: $0) == id
-        })?.sourceIndex ?? id
+        })?.sourceIndex
     }
 
     func providerStreamIDsByFFIndex() -> [Int: Int] {
-        playbackPlan?.tracks.reduce(into: [:]) { result, track in
-            result[track.sourceIndex] = providerStreamID(for: track)
-        } ?? [:]
+        Self.providerStreamIDsByFFIndex(playbackPlan?.tracks ?? [])
+    }
+
+    /// External subtitles are not in the file: the engine numbers them itself and maps them separately.
+    static func providerStreamIDsByFFIndex(_ tracks: [PlaybackTrack]) -> [Int: Int] {
+        tracks.filter { !$0.isExternal }.reduce(into: [:]) { result, track in
+            result[track.sourceIndex] = Int(track.id) ?? track.sourceIndex
+        }
     }
 
     func externalSubtitleTracks() -> [PlayerExternalSubtitle] {
