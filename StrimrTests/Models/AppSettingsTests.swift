@@ -371,6 +371,12 @@ struct AppSettingsTests {
         #expect(try !decode(#"{"playback":{"doubleTapToSeek":false}}"#).playback.doubleTapToSeek)
     }
 
+    @Test func `swipe for brightness and volume is on unless turned off`() throws {
+        #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.swipeForBrightnessAndVolume)
+        #expect(try !decode(#"{"playback":{"swipeForBrightnessAndVolume":false}}"#).playback
+            .swipeForBrightnessAndVolume)
+    }
+
     @Test func `subtitles on skip back are on unless turned off`() throws {
         #expect(try decode(#"{"playback":{"autoSkipIntros":true}}"#).playback.showSubtitlesOnSkipBack)
         #expect(try !decode(#"{"playback":{"showSubtitlesOnSkipBack":false}}"#).playback.showSubtitlesOnSkipBack)

@@ -229,6 +229,11 @@ final class SettingsManager {
         persist()
     }
 
+    func setSwipeForBrightnessAndVolume(_ enabled: Bool) {
+        settings.playback.swipeForBrightnessAndVolume = enabled
+        persist()
+    }
+
     func setAudioDelayMilliseconds(_ milliseconds: Int) {
         settings.playback.audioDelayMilliseconds = PlaybackOffsetRange.audio.clamp(milliseconds)
         persist()
