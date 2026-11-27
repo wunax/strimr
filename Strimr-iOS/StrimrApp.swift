@@ -79,12 +79,15 @@ struct StrimrApp: App {
                 .environment(sharePlayCoordinator)
                 .environment(OfflineCoordinator.shared)
                 .environment(externalPlaybackCallbackRouter)
+                .environment(DeepLinkRouter.shared)
                 .flushesTrackerQueue()
                 .toastHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
                     if externalPlaybackCallbackRouter.receive(url) {
                         sessionManager.didReturnFromExternalPlayback()
+                    } else {
+                        DeepLinkRouter.shared.receive(url)
                     }
                 }
         }

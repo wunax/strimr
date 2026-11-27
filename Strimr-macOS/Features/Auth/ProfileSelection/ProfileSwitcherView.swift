@@ -34,6 +34,9 @@ struct ProfileSwitcherView: View {
         .onKeyPress(action: handleKey)
         .onAppear { isKeyboardFocused = true }
         .task { await viewModel.load() }
+        .onChange(of: viewModel.preferredProfileID, initial: true) { _, _ in
+            viewModel.choosePreferredProfile()
+        }
         .sheet(isPresented: $isShowingProfiles, onDismiss: refreshAfterSheet) {
             NavigationStack { ProfilesSettingsView() }
                 .frame(minWidth: 520, minHeight: 480)

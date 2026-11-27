@@ -27,6 +27,9 @@ struct ProfileSwitcherView: View {
         .animation(ProfilePickerMetrics.entranceAnimation, value: viewModel.pinChoice)
         .environment(\.colorScheme, .dark)
         .task { await viewModel.load() }
+        .onChange(of: viewModel.preferredProfileID, initial: true) { _, _ in
+            viewModel.choosePreferredProfile()
+        }
         // Keeps a navigation stack: profiles are pushed from the list.
         .taskPresentation(isPresented: $isShowingProfiles, style: .compactModal, onDismiss: viewModel.refreshChoices) {
             NavigationStack { ProfilesSettingsView() }

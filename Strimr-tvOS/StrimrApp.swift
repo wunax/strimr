@@ -10,7 +10,6 @@ struct StrimrApp: App {
     @State private var exploreRegistry: ExploreSourceRegistry
     @State private var seerrFocusModel: SeerrFocusModel
     @State private var sharePlayCoordinator: SharePlayCoordinator
-    @State private var topShelfDeepLinkRouter = TopShelfDeepLinkRouter()
     @State private var externalPlaybackCallbackRouter = ExternalPlaybackCallbackRouter()
 
     init() {
@@ -81,7 +80,7 @@ struct StrimrApp: App {
                 .environment(exploreRegistry)
                 .environment(seerrFocusModel)
                 .environment(sharePlayCoordinator)
-                .environment(topShelfDeepLinkRouter)
+                .environment(DeepLinkRouter.shared)
                 .environment(externalPlaybackCallbackRouter)
                 .flushesTrackerQueue()
                 .toastHost()
@@ -91,7 +90,7 @@ struct StrimrApp: App {
                         sessionManager.didReturnFromExternalPlayback()
                     } else {
                         sessionManager.sceneWillReturnFromBackground()
-                        topShelfDeepLinkRouter.receive(url)
+                        DeepLinkRouter.shared.receive(url)
                     }
                 }
         }

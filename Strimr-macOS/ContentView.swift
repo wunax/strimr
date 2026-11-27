@@ -57,12 +57,15 @@ struct ContentView: View {
         .onChange(of: registry.connectedServices.map(ObjectIdentifier.init), initial: true) { _, _ in
             downloadManager.activateSession(services: registry.connectedServices)
         }
-        // This window takes the external player callbacks so the window group does not open a new one.
+        // This window takes the external player callbacks and links so the window group does not open a new one.
         .onOpenURL { url in
             if externalPlaybackCallbackRouter.receive(url) {
                 sessionManager.didReturnFromExternalPlayback()
+            } else {
+                DeepLinkRouter.shared.receive(url)
             }
         }
+        .appliesDeepLinkProfiles()
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
     }
 

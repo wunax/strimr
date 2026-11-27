@@ -8,7 +8,6 @@ struct MainTabView: View {
     @Environment(SeerrStore.self) var seerrStore
     @Environment(ExploreSourceRegistry.self) var exploreRegistry
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
-    @Environment(TopShelfDeepLinkRouter.self) var topShelfDeepLinkRouter
     @Environment(\.scenePhase) private var scenePhase
     @StateObject var coordinator: MainCoordinator
     @State private var homeViewModel: HomeViewModel
@@ -266,29 +265,7 @@ struct MainTabView: View {
             homeViewModel.isPlaybackActive = isPresenting
             sessionManager.isPlaybackActive = isPresenting
         }
-        .task(id: topShelfDeepLinkRouter.pendingAction) {
-            guard let action = topShelfDeepLinkRouter.pendingAction else { return }
-            defer { topShelfDeepLinkRouter.clear(action) }
-            // A link to a server outside the active profile is ignored.
-            guard let serverIdentifier = action.serverIdentifier,
-                  let services = registry.services(for: ServerIdentity(provider: action.provider, id: serverIdentifier))
-            else { return }
-
-            switch action.kind {
-            case .display:
-                do {
-                    let item = try await services.detail.mediaItem(id: action.ratingKey)
-                    coordinator.tab = .home
-                    coordinator.showMediaDetail(item)
-                } catch {
-                    guard !Task.isCancelled, !error.isCancellation else { return }
-                    ErrorReporter.capture(error)
-                }
-            case .play:
-                await PlaybackLauncher(services: services, coordinator: coordinator)
-                    .play(ratingKey: action.ratingKey, type: action.type)
-            }
-        }
+        .handlesDeepLinks(navigator: coordinator)
         .overlay {
             if coordinator.isPresentingPlayer,
                let services = coordinator.selectedMediaServices

@@ -47,6 +47,7 @@ struct MainTabView: View {
             .handlesExternalPlaybackCallbacks { server in
                 Task { await homeViewModel.refresh(server: server) }
             }
+            .handlesDeepLinks(navigator: coordinator)
             .task(id: exploreRegistry.configurationKey) {
                 await exploreRegistry.sync()
             }

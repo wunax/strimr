@@ -115,6 +115,22 @@ final class ProfileSwitcherViewModel {
         choices.first { $0.id == enteringID }
     }
 
+    var preferredProfileID: String? {
+        sessionManager.preferredProfileID
+    }
+
+    /// Opens the PIN entry of the profile a link asked for.
+    func choosePreferredProfile() {
+        guard case .activateProfile = mode, sessionManager.preferredProfileID != nil else { return }
+        if choices.isEmpty {
+            refreshChoices()
+        }
+        guard let id = sessionManager.consumePreferredProfile(),
+              let choice = choices.first(where: { $0.id == id })
+        else { return }
+        choose(choice)
+    }
+
     func choose(_ choice: ProfileChoice) {
         highlightedID = choice.id
         guard choice.requiresPIN else {

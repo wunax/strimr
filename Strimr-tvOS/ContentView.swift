@@ -47,6 +47,7 @@ struct ContentView: View {
             }
         }
         .background(ClosingMenuBackPressGuard())
+        .appliesDeepLinkProfiles()
         .onChange(of: registry.readyServers) { _, _ in
             sessionManager.updateTopShelf()
         }

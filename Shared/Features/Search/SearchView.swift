@@ -5,6 +5,7 @@ struct SearchView: View {
     @State var viewModel: SearchViewModel
     let onSelectMedia: (SearchResultSource) -> Void
     @State private var selectedResult: MergedSearchResult?
+    @Environment(DeepLinkRouter.self) private var deepLinkRouter: DeepLinkRouter?
 
     init(
         viewModel: SearchViewModel,
@@ -43,6 +44,12 @@ struct SearchView: View {
                 viewModel.queryDidChange()
             }
             .onSubmit(of: .search) {
+                viewModel.submitSearch()
+            }
+            .onChange(of: deepLinkRouter?.searchRequest, initial: true) { _, request in
+                guard let request else { return }
+                deepLinkRouter?.searchRequest = nil
+                viewModel.query = request.query
                 viewModel.submitSearch()
             }
             .sheet(item: $selectedResult) { result in

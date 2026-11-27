@@ -99,5 +99,6 @@ struct StrimrApp: App {
             .environment(sharePlayCoordinator)
             .environment(OfflineCoordinator.shared)
             .environment(externalPlaybackCallbackRouter)
+            .environment(DeepLinkRouter.shared)
     }
 }
