@@ -1,0 +1,9 @@
+{
+  "Id": "source-1",
+  "MediaStreams": [
+    { "Index": 0, "Type": "Video", "Codec": "hevc", "IsExternal": false },
+    { "Index": 1, "Type": "Audio", "Codec": "eac3", "Language": "eng", "IsExternal": false },
+    { "Index": 2, "Type": "Subtitle", "Codec": "subrip", "Language": "fra", "IsExternal": false },
+    { "Index": 3, "Type": "Subtitle", "Codec": "subrip", "Language": "spa", "IsExternal": true }
+  ]
+}
