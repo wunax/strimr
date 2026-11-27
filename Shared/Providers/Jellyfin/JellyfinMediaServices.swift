@@ -749,31 +749,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         )
         activePlans[plan.playSessionID] = plan
         let segments = await (try? catalog.mediaSegments(itemID: item.id)) ?? []
-        let tracks = plan.mediaStreams.sorted { lhs, rhs in
-            let lhsPriority = lhs.type.lowercased() == "subtitle" && lhs.isExternal == true ? 0 : 1
-            let rhsPriority = rhs.type.lowercased() == "subtitle" && rhs.isExternal == true ? 0 : 1
-            return lhsPriority == rhsPriority ? lhs.index < rhs.index : lhsPriority < rhsPriority
-        }.compactMap { stream -> PlaybackTrack? in
-            let kind: PlaybackTrackKind
-            switch stream.type.lowercased() {
-            case "audio": kind = .audio
-            case "subtitle": kind = .subtitle
-            default: return nil
-            }
-            return PlaybackTrack(
-                id: "jellyfin.\(stream.index)",
-                sourceIndex: stream.index,
-                kind: kind,
-                isExternal: stream.isExternal == true,
-                title: stream.displayTitle ?? stream.language ?? stream.codec ?? "",
-                name: stream.title,
-                language: stream.language,
-                codec: stream.codec,
-                isDefault: stream.isDefault ?? false,
-                isForced: stream.isForced ?? false,
-                isHearingImpaired: stream.isHearingImpaired ?? false,
-            )
-        }
+        let tracks = Self.playbackTracks(from: plan.mediaStreams)
         let scrubSource: ScrubThumbnailSource? = {
             guard let variants = item.trickplay?[plan.mediaSourceID],
                   let info = variants.values
@@ -813,7 +789,9 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             playSessionID: plan.playSessionID,
             transcodeSessionID: plan.method == .transcode ? plan.playSessionID : nil,
             initialPosition: plan.initialPosition,
-            selectedAudioIndex: plan.preferredAudioStreamIndex,
+            selectedAudioIndex: plan.preferredAudioStreamIndex.map {
+                Self.containerStreamIndex(ofStream: $0, in: plan.mediaStreams)
+            },
             selectedSubtitleIndex: plan.preferredSubtitleStreamIndex,
             subtitleSelectionIsOff: plan.subtitleSelectionIsOff,
             tracks: tracks,
@@ -1144,7 +1122,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             plan: source,
             position: position,
             isPaused: isPaused,
-            currentSelection: currentSelection,
+            currentSelection: Self.serverSelection(currentSelection, plan: plan),
         )
     }
 
@@ -1159,7 +1137,7 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
             plan: source,
             position: position,
             isPaused: isPaused,
-            currentSelection: currentSelection,
+            currentSelection: Self.serverSelection(currentSelection, plan: plan),
         )
     }
 
@@ -1173,7 +1151,56 @@ final class JellyfinMediaServiceAdapter: MediaHomeService, MediaLibraryService, 
         try await playbackService.reportStopped(
             plan: source,
             position: position,
-            currentSelection: currentSelection,
+            currentSelection: Self.serverSelection(currentSelection, plan: plan),
+        )
+    }
+
+    nonisolated static func playbackTracks(from streams: [JellyfinMediaStream]) -> [PlaybackTrack] {
+        streams.sorted { lhs, rhs in
+            let lhsPriority = lhs.type.lowercased() == "subtitle" && lhs.isExternal == true ? 0 : 1
+            let rhsPriority = rhs.type.lowercased() == "subtitle" && rhs.isExternal == true ? 0 : 1
+            return lhsPriority == rhsPriority ? lhs.index < rhs.index : lhsPriority < rhsPriority
+        }.compactMap { stream -> PlaybackTrack? in
+            let kind: PlaybackTrackKind
+            switch stream.type.lowercased() {
+            case "audio": kind = .audio
+            case "subtitle": kind = .subtitle
+            default: return nil
+            }
+            return PlaybackTrack(
+                id: String(stream.index),
+                sourceIndex: containerStreamIndex(ofStream: stream.index, in: streams),
+                kind: kind,
+                isExternal: stream.isExternal == true,
+                title: stream.displayTitle ?? stream.language ?? stream.codec ?? "",
+                name: stream.title,
+                language: stream.language,
+                codec: stream.codec,
+                isDefault: stream.isDefault ?? false,
+                isForced: stream.isForced ?? false,
+                isHearingImpaired: stream.isHearingImpaired ?? false,
+            )
+        }
+    }
+
+    /// Jellyfin numbers external subtitles before the file's own streams (after them on older servers),
+    /// so its index only matches the container's once the external streams numbered earlier are skipped.
+    nonisolated static func containerStreamIndex(ofStream index: Int, in streams: [JellyfinMediaStream]) -> Int {
+        guard streams.contains(where: { $0.index == index && $0.isExternal != true }) else { return index }
+        return index - streams.count(where: { $0.isExternal == true && $0.index < index })
+    }
+
+    private static func serverSelection(
+        _ selection: PlaybackStreamSelection?,
+        plan: PlaybackPlan,
+    ) -> PlaybackStreamSelection? {
+        guard let selection, let audioIndex = selection.audioStreamIndex else { return selection }
+        return PlaybackStreamSelection(
+            audioStreamIndex: plan.tracks
+                .first { $0.kind == .audio && $0.sourceIndex == audioIndex }
+                .flatMap { Int($0.id) } ?? audioIndex,
+            subtitleStreamIndex: selection.subtitleStreamIndex,
+            subtitleIsOff: selection.subtitleIsOff,
         )
     }
 

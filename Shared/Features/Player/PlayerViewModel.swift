@@ -401,7 +401,6 @@ final class PlayerViewModel {
                 selectedAudioIndex == track.sourceIndex
             case .subtitle:
                 selectedSubtitleIndex == providerStreamID
-                    || selectedSubtitleIndex == track.sourceIndex
             }
             return PlayerTrack(
                 id: track.sourceIndex,
