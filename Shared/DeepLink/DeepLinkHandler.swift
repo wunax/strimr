@@ -48,9 +48,11 @@ struct DeepLinkHandler {
         case .open:
             return nil
         case let .tab(tab):
+            await closePlayer()
             navigator.openDeepLinkTab(tab)
             return nil
         case let .search(query):
+            await closePlayer()
             navigator.openDeepLinkTab(.search)
             if let query {
                 router.searchRequest = DeepLinkRouter.SearchRequest(query: query)
@@ -65,6 +67,7 @@ struct DeepLinkHandler {
                     try? await libraryStore.loadLibraries()
                 }
                 guard let library = libraryStore.library(identity) else { return .notFound }
+                await closePlayer()
                 navigator.showDeepLinkLibrary(library)
                 return nil
             }
@@ -73,6 +76,7 @@ struct DeepLinkHandler {
             case let .failure(failure):
                 return failure
             case let .success((media, _)):
+                await closePlayer()
                 navigator.showDeepLinkMedia(media)
                 return nil
             }
@@ -236,23 +240,26 @@ struct DeepLinkHandler {
         return .channelNotFound
     }
 
-    /// Matched on the channel id, then its number, call sign and title, ignoring case, so a link can be written by
-    /// hand (`strimr://live/TF1`).
+    /// Matched on the channel id, then its number (`2` finds `002`), call sign and title, ignoring case, so a link can
+    /// be written by hand (`strimr://live/TF1`).
     static func channelIndex(matching reference: String, in channels: [LiveTVChannel]) -> Int? {
         let reference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
         func same(_ value: String?) -> Bool {
             guard let value else { return false }
             return value.compare(reference, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
         }
+        let number = LiveTVChannelNumber(reference)
         return channels.firstIndex { $0.providerID == reference }
             ?? channels.firstIndex { same($0.number) }
+            ?? number
+            .flatMap { number in channels.firstIndex { $0.number.flatMap(LiveTVChannelNumber.init) == number } }
             ?? channels.firstIndex { same($0.callSign) }
             ?? channels.firstIndex { same($0.title) }
     }
 
     // MARK: - Player
 
-    /// A link replaces what is playing.
+    /// A link replaces what is playing, or the page it opens would stay hidden under the player.
     private func closePlayer() async {
         guard navigator.isShowingPlayer else { return }
         navigator.closePlayerForDeepLink()
@@ -274,27 +281,39 @@ private struct DeepLinkHandlingModifier: ViewModifier {
     @Environment(ExploreSourceRegistry.self) private var exploreRegistry
     @Environment(DeepLinkRouter.self) private var router
     @Environment(ToastCenter.self) private var toastCenter: ToastCenter?
+    @Environment(\.scenePhase) private var scenePhase
 
     let navigator: any DeepLinkNavigating
 
+    private struct Key: Equatable {
+        let link: DeepLink?
+        let isActive: Bool
+    }
+
     func body(content: Content) -> some View {
-        content.task(id: router.pending) {
-            guard let link = router.pending, link.profile == nil else { return }
-            defer { router.clear(link) }
-            #if DEBUG
-                if DemoMode.isEnabled {
-                    return
-                }
-            #endif
-            let handler = DeepLinkHandler(
-                sessionManager: sessionManager,
-                libraryStore: libraryStore,
-                exploreRegistry: exploreRegistry,
-                router: router,
-                navigator: navigator,
-            )
-            guard let failure = await handler.handle(link), !Task.isCancelled else { return }
-            toastCenter?.show(Toast(style: .failure, title: failure.message))
-        }
+        // A quick action or Handoff can launch the app before its scene is active, when a player cannot be presented.
+        content
+            .task(id: Key(link: router.pending, isActive: scenePhase == .active)) {
+                guard scenePhase == .active, let link = router.pending, link.profile == nil else { return }
+                #if DEBUG
+                    if DemoMode.isEnabled {
+                        router.clear(link)
+                        return
+                    }
+                #endif
+                let handler = DeepLinkHandler(
+                    sessionManager: sessionManager,
+                    libraryStore: libraryStore,
+                    exploreRegistry: exploreRegistry,
+                    router: router,
+                    navigator: navigator,
+                )
+                let failure = await handler.handle(link)
+                // A run cancelled when the scene turned active or the link changed is taken over by the next one.
+                guard !Task.isCancelled else { return }
+                router.clear(link)
+                guard let failure else { return }
+                toastCenter?.show(Toast(style: .failure, title: failure.message))
+            }
     }
 }

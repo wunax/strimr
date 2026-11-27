@@ -32,6 +32,7 @@ struct DeepLinkHandlerTests {
         #expect(DeepLinkHandler.channelIndex(matching: "fr2", in: channels) == 0)
         #expect(DeepLinkHandler.channelIndex(matching: "tf1", in: channels) == 1)
         #expect(DeepLinkHandler.channelIndex(matching: "M6", in: channels) == nil)
+        #expect(DeepLinkHandler.channelIndex(matching: "1", in: [channel("201", "TF1", number: "001")]) == 0)
     }
 
     private func copy(_ id: String, offset: TimeInterval? = nil, reachable: Bool = true) -> MediaCopy {
