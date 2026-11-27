@@ -1,0 +1,32 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "SearchResults": [
+      {
+        "id": "external",
+        "SearchResult": [
+          {
+            "score": 0.9,
+            "Metadata": {
+              "ratingKey": "5d7768dddddddddddddddddd",
+              "guid": "plex://movie/5d7768dddddddddddddddddd",
+              "type": "movie",
+              "title": "Searched Movie",
+              "year": 2023
+            }
+          },
+          {
+            "score": 0.5,
+            "Metadata": [
+              {
+                "ratingKey": "5d7768eeeeeeeeeeeeeeeeee",
+                "type": "show",
+                "title": "Searched Show"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

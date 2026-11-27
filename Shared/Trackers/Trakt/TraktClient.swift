@@ -206,7 +206,18 @@ final class TraktClient: TrackerClient {
         ))
     }
 
-    private func post(path: String, body: [String: Any]) async throws {
+    func get(_ path: String, query: [URLQueryItem] = []) async throws -> TrackerHTTPResponse {
+        try await transport.read { token in
+            .trackerJSON(
+                url: TraktAPI.baseURL.appending(path: path).appending(queryItems: query),
+                method: "GET",
+                headers: TraktAPI.headers(token: token),
+                body: nil,
+            )
+        }
+    }
+
+    func post(path: String, body: [String: Any]) async throws {
         let payload = try JSONSerialization.data(withJSONObject: body, options: .sortedKeys)
         try await transport.write { token in
             var request = URLRequest.trackerJSON(

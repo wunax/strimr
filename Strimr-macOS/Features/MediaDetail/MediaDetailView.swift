@@ -303,6 +303,7 @@ struct MediaDetailView: View {
             if let error = viewModel.errorMessage
                 ?? viewModel.watchActionErrorMessage
                 ?? viewModel.favoriteActionErrorMessage
+                ?? viewModel.watchlistActionErrorMessage
                 ?? viewModel.trackSelectionErrorMessage
             {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -478,11 +479,11 @@ struct MediaDetailView: View {
                     .disabled(viewModel.isLoading || viewModel.isUpdatingWatchStatus)
                 }
 
-                if viewModel.shouldShowWatchlistButton {
-                    Button(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon) {
-                        Task { await viewModel.toggleWatchlistStatus() }
+                ForEach(viewModel.watchlistOptions) { option in
+                    Button(option.title, systemImage: option.systemImage) {
+                        Task { await viewModel.toggleWatchlist(option) }
                     }
-                    .disabled(viewModel.isUpdatingWatchlistStatus || viewModel.isLoadingWatchlistStatus)
+                    .disabled(option.isUpdating)
                 }
 
                 if viewModel.primaryActionRatingKey != nil {
@@ -654,7 +655,7 @@ struct MediaDetailView: View {
     }
 
     private var downloadHelp: String {
-        guard let activity = downloadActivity, activity.isInProgress else {
+        guard let activity = downloadActivity, activity.isInProgress || activity.phase == .paused else {
             return String(localized: "downloads.action")
         }
         return activity.accessibilityValue

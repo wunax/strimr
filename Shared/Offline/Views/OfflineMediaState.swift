@@ -14,6 +14,7 @@ struct LocalPlaybackRequest: Identifiable {
 enum DownloadBadgeState: Equatable {
     case queued
     case downloading(progress: Double)
+    case paused
     case downloaded
     case failed
     case partial(downloaded: Int, total: Int?)
@@ -49,7 +50,7 @@ extension DownloadManager {
     }
 
     private func activeEpisodes(inContainer container: MediaItem) -> [DownloadItem] {
-        episodeDownloads(inContainer: container).filter(\.status.isActive)
+        episodeDownloads(inContainer: container).filter(\.status.isUnfinished)
     }
 
     func activity(for media: MediaItem) -> DownloadActivity? {
@@ -77,6 +78,8 @@ extension DownloadManager {
                 return .queued
             case .downloading:
                 return .downloading(progress: download.progress)
+            case .paused:
+                return .paused
             case .completed:
                 return .downloaded
             case .failed:

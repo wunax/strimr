@@ -70,17 +70,13 @@ struct DetailActionsRow: View {
             }
 
             if !isServerUnreachable {
-                if viewModel.shouldShowWatchlistButton {
+                ForEach(viewModel.watchlistOptions) { option in
                     Button {
-                        Task { await viewModel.toggleWatchlistStatus() }
+                        Task { await viewModel.toggleWatchlist(option) }
                     } label: {
-                        Label(viewModel.watchlistActionTitle, systemImage: viewModel.watchlistActionIcon)
+                        Label(option.title, systemImage: option.systemImage)
                     }
-                    .disabled(
-                        viewModel.isLoading
-                            || viewModel.isLoadingWatchlistStatus
-                            || viewModel.isUpdatingWatchlistStatus,
-                    )
+                    .disabled(viewModel.isLoading || option.isUpdating)
                 }
 
                 if viewModel.shouldShowBothWatchActions {
@@ -339,13 +335,16 @@ struct DetailActionsRow: View {
     }
 
     private var downloadTitle: LocalizedStringKey {
-        guard let activity = downloadActivity, activity.isInProgress else { return "downloads.action" }
+        guard let activity = downloadActivity, activity.isInProgress || activity.phase == .paused else {
+            return "downloads.action"
+        }
         if activity.totalCount > 1 {
             return "offline.badge.partial \(activity.completedCount) \(activity.totalCount)"
         }
         switch activity.phase {
         case .queued: return "downloads.status.queued"
         case .preparing: return "downloads.phase.preparing"
+        case .paused: return "downloads.status.paused"
         default: return "downloads.phase.transferring"
         }
     }

@@ -53,6 +53,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @Environment(\.mediaCardIsInContinueWatching) private var isInContinueWatching
     @Environment(\.reloadAfterMediaCardAction) private var reload
     @Environment(\.reloadAfterPlaylistChange) private var reloadAfterPlaylistChange
+    @Environment(ExploreSourceRegistry.self) private var exploreRegistry: ExploreSourceRegistry?
     #if !os(tvOS)
         @Environment(DownloadManager.self) private var downloadManager
     #endif
@@ -66,6 +67,7 @@ private struct MediaCardContextMenu: ViewModifier {
     @State private var isRenamingPlaylist = false
     @State private var isConfirmingPlaylistDeletion = false
     @State private var manageController = MediaManageController()
+    @State private var watchlistChoices: [ExploreWatchlistOption]?
 
     func body(content: Content) -> some View {
         if let item = media.playableItem, let services, let actions {
@@ -74,6 +76,24 @@ private struct MediaCardContextMenu: ViewModifier {
                     menu(for: item, services: services, actions: actions)
                 }
                 .addToPlaylistPresentation(media: $mediaToAddToPlaylist, services: services)
+                .confirmationDialog(
+                    "explore.watchlist.choose",
+                    isPresented: Binding(
+                        get: { watchlistChoices != nil },
+                        set: {
+                            if !$0 {
+                                watchlistChoices = nil
+                            }
+                        },
+                    ),
+                    presenting: watchlistChoices,
+                ) { options in
+                    ForEach(options) { option in
+                        Button(option.title) {
+                            toggle(option)
+                        }
+                    }
+                }
                 .mediaManagePresentation(
                     manageController,
                     quickActions: MediaQuickActions(services: services),
@@ -189,6 +209,67 @@ private struct MediaCardContextMenu: ViewModifier {
                     Label(action.title, systemImage: action.systemImage)
                 }
                 .disabled(isPerforming)
+            }
+        }
+
+        if offersWatchlist(for: item, services: services) {
+            Button {
+                chooseWatchlist(for: item, services: services)
+            } label: {
+                Label("explore.watchlist.menu", systemImage: "bookmark")
+            }
+            .disabled(isPerforming)
+        }
+    }
+
+    private func offersWatchlist(for item: MediaItem, services: MediaServices) -> Bool {
+        ExploreItemKind(mediaKind: item.type) != nil && exploreRegistry?.watchlistSources.isEmpty == false
+            && isOnline(services)
+    }
+
+    /// The watchlists that can hold the title are only resolved once the entry is picked. Even a single one is
+    /// offered as "Add" or "Remove", so the entry never removes a title without saying so; one whose state could not
+    /// be read is left out.
+    private func chooseWatchlist(for item: MediaItem, services: MediaServices) {
+        guard let exploreRegistry, !isPerforming else { return }
+        isPerforming = true
+        Task {
+            let options = await exploreRegistry.watchlistOptions(for: item, services: services)
+            isPerforming = false
+            let known = options.filter { $0.watchlist.contains($0.target) != nil }
+            if !known.isEmpty {
+                watchlistChoices = known
+            } else if options.isEmpty {
+                failure = Toast(style: .failure, title: String(localized: "explore.watchlist.noMatch"))
+            } else {
+                failure = Toast(
+                    style: .failure,
+                    title: String(localized: "explore.watchlist.error.title"),
+                    message: String(localized: "explore.watchlist.error.generic"),
+                )
+            }
+        }
+    }
+
+    private func toggle(_ option: ExploreWatchlistOption) {
+        guard !isPerforming else { return }
+        isPerforming = true
+        let wasOnWatchlist = option.isOnWatchlist
+        Task {
+            defer { isPerforming = false }
+            do {
+                try await option.watchlist.set(!wasOnWatchlist, target: option.target)
+                successCount += 1
+            } catch {
+                guard !Task.isCancelled, !error.isCancellation else { return }
+                if !error.isTrackerTransient {
+                    ErrorReporter.capture(error)
+                }
+                failure = Toast(
+                    style: .failure,
+                    title: String(localized: "explore.watchlist.error.title"),
+                    message: ExploreDetailViewModel.message(for: error),
+                )
             }
         }
     }

@@ -3,7 +3,6 @@ import SwiftUI
 @MainActor
 struct SeerrView: View {
     @Bindable var viewModel: SeerrViewModel
-    @Environment(SettingsManager.self) private var settingsManager
 
     var body: some View {
         ZStack {
@@ -22,7 +21,6 @@ struct SeerrView: View {
                     if let user = viewModel.user {
                         accountCard(user)
                         quotaCard
-                        settingsCard
                         signOutCard
                     }
 
@@ -76,26 +74,13 @@ struct SeerrView: View {
         }
     }
 
-    private var settingsCard: some View {
-        SeerrCard(title: "integrations.seerr.settings.title") {
-            Toggle(
-                "integrations.seerr.settings.discoverTab",
-                isOn: Binding(
-                    get: { settingsManager.interface.displaySeerrDiscoverTab },
-                    set: { settingsManager.setDisplaySeerrDiscoverTab($0) },
-                ),
-            )
-            .settingsFocus("seerrDiscover", isDefault: true)
-        }
-    }
-
     private var signOutCard: some View {
         SeerrCard {
             Button("integrations.seerr.actions.signOut", role: .destructive) {
                 viewModel.signOut()
             }
             .buttonStyle(.bordered)
-            .settingsFocus("seerrSignOut")
+            .settingsFocus("seerrSignOut", isDefault: true)
         }
     }
 

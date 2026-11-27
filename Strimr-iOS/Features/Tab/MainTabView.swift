@@ -6,6 +6,7 @@ struct MainTabView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(LibraryStore.self) var libraryStore
     @Environment(SeerrStore.self) var seerrStore
+    @Environment(ExploreSourceRegistry.self) var exploreRegistry
     @Environment(SharePlayCoordinator.self) var sharePlayCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -46,9 +47,12 @@ struct MainTabView: View {
             .handlesExternalPlaybackCallbacks { server in
                 Task { await homeViewModel.refresh(server: server) }
             }
-            .onChange(of: isDiscoverAvailable, initial: true) { _, isAvailable in
+            .task(id: exploreRegistry.configurationKey) {
+                await exploreRegistry.sync()
+            }
+            .onChange(of: isExploreAvailable, initial: true) { _, isAvailable in
                 if isAvailable {
-                    coordinator.openPendingStartupTab(.seerrDiscover)
+                    coordinator.openPendingStartupTab(.explore)
                 }
             }
             .onChange(of: isLiveTVAvailable, initial: true) { _, isAvailable in
@@ -105,8 +109,8 @@ struct MainTabView: View {
         }
     }
 
-    private var isDiscoverAvailable: Bool {
-        settingsManager.interface.displaySeerrDiscoverTab && seerrStore.isLoggedIn
+    private var isExploreAvailable: Bool {
+        settingsManager.interface.displayExploreTab && exploreRegistry.hasConnectedSources
     }
 
     private var isLiveTVAvailable: Bool {
@@ -115,8 +119,8 @@ struct MainTabView: View {
 
     private var orderedTabs: [MainCoordinator.Tab] {
         var tabs: [MainCoordinator.Tab] = [.home]
-        if isDiscoverAvailable {
-            tabs.append(.seerrDiscover)
+        if isExploreAvailable {
+            tabs.append(.explore)
         }
         if settingsManager.interface.displayDownloadsTab {
             tabs.append(.downloads)
@@ -146,9 +150,9 @@ struct MainTabView: View {
                 homeTabContent
             }
 
-            if tabLayout.bar.contains(.seerrDiscover) {
-                Tab("tabs.discover", systemImage: "sparkles", value: MainCoordinator.Tab.seerrDiscover) {
-                    discoverTabContent
+            if tabLayout.bar.contains(.explore) {
+                Tab("tabs.explore", systemImage: "safari", value: MainCoordinator.Tab.explore) {
+                    exploreTabContent
                 }
             }
 
@@ -219,7 +223,7 @@ struct MainTabView: View {
         }
     }
 
-    /// Home and Discover come first, so they always stay in the bar.
+    /// Home and Explore come first, so they always stay in the bar.
     @ViewBuilder
     private func tabLabel(_ tab: MainCoordinator.Tab) -> some View {
         switch tab {
@@ -235,7 +239,7 @@ struct MainTabView: View {
             if let library = libraryStore.library(identity) {
                 Label(library.title, systemImage: library.iconName)
             }
-        case .home, .seerrDiscover, .search, .more:
+        case .home, .explore, .search, .more:
             EmptyView()
         }
     }
@@ -277,7 +281,7 @@ struct MainTabView: View {
             if let library = libraryStore.library(identity) {
                 libraryDetailRoot(library)
             }
-        case .home, .seerrDiscover, .search, .more:
+        case .home, .explore, .search, .more:
             EmptyView()
         }
     }
@@ -294,19 +298,38 @@ struct MainTabView: View {
         }
     }
 
-    private var discoverTabContent: some View {
-        NavigationStack(path: coordinator.pathBinding(for: .seerrDiscover)) {
-            SeerrDiscoverView(
-                viewModel: SeerrDiscoverViewModel(store: seerrStore),
-                searchViewModel: SeerrSearchViewModel(store: seerrStore),
-                onSelectMedia: coordinator.showSeerrMediaDetail,
+    private var exploreTabContent: some View {
+        NavigationStack(path: coordinator.pathBinding(for: .explore)) {
+            ExploreView(
+                viewModel: ExploreViewModel(registry: exploreRegistry, seerrStore: seerrStore),
+                searchViewModel: ExploreSearchViewModel(registry: exploreRegistry),
+                onSelectItem: coordinator.showExploreItem,
+                onSelectRail: coordinator.showExploreRail,
                 onShowRequests: coordinator.showSeerrRequests,
             )
             .unavailableWhenOffline()
+            .navigationDestination(for: ExploreItem.self) { item in
+                ExploreDetailView(
+                    viewModel: ExploreDetailViewModel(item: item, registry: exploreRegistry, seerrStore: seerrStore),
+                    onSelectItem: coordinator.showExploreItem,
+                    onSelectSeerrMedia: coordinator.showSeerrMediaDetail,
+                    onSelectCopy: coordinator.showMediaDetail,
+                )
+            }
+            .navigationDestination(for: ExploreRail.self) { rail in
+                ExploreRailView(
+                    viewModel: ExploreRailViewModel(rail: rail, source: exploreRegistry.source(rail.source)),
+                    onSelect: coordinator.showExploreItem,
+                )
+            }
             .navigationDestination(for: SeerrMedia.self) { media in
                 SeerrMediaDetailView(
                     viewModel: SeerrMediaDetailViewModel(media: media, store: seerrStore),
+                    explore: ExploreDetailViewModel.item(for: media).map {
+                        ExploreDetailViewModel(item: $0, registry: exploreRegistry, seerrStore: seerrStore)
+                    },
                     onSelectMedia: coordinator.showSeerrMediaDetail,
+                    onSelectCopy: coordinator.showMediaDetail,
                 )
             }
             .navigationDestination(for: SeerrRequestsRoute.self) { _ in
@@ -314,6 +337,9 @@ struct MainTabView: View {
                     viewModel: SeerrRequestsViewModel(store: seerrStore),
                     onSelectMedia: coordinator.showSeerrMediaDetail,
                 )
+            }
+            .navigationDestination(for: MainCoordinator.Route.self) {
+                destination(for: $0)
             }
         }
     }
@@ -431,6 +457,7 @@ struct MainTabView: View {
                     services: services,
                     resolutionMode: .selectedMedia,
                     copyFinder: MediaCopyFinder(sessionManager: sessionManager),
+                    watchlists: exploreRegistry,
                     onSelectCopy: coordinator.showMediaDetail,
                 ),
                 onPlay: { ratingKey, type in

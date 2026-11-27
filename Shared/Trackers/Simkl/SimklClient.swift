@@ -5,6 +5,8 @@ nonisolated enum SimklAPI {
     static let baseURL = URL(string: "https://api.simkl.com")!
     static let scope = "media:read media:write"
     static let writeScope = "media:write"
+    /// Simkl's public CDN for discovery lists, which needs no token.
+    static let dataBaseURL = URL(string: "https://data.simkl.in")!
 
     private static let dailyQuotaFallback: TimeInterval = 60 * 60
     private static let unknownLimitFallback: TimeInterval = 60
@@ -237,7 +239,29 @@ final class SimklClient: TrackerClient {
         ))
     }
 
-    private func post(path: String, body: [String: Any]) async throws {
+    func get(_ path: String, query: [URLQueryItem] = []) async throws -> TrackerHTTPResponse {
+        try await transport.read { token in
+            .trackerJSON(
+                url: SimklAPI.url(path: path).appending(queryItems: query),
+                method: "GET",
+                headers: SimklAPI.headers(token: token),
+                body: nil,
+            )
+        }
+    }
+
+    func publicData(_ path: String) async throws -> TrackerHTTPResponse {
+        let response = try await http.send(.trackerJSON(
+            url: SimklAPI.dataBaseURL.appending(path: path),
+            method: "GET",
+            headers: SimklAPI.headers(),
+            body: nil,
+        ))
+        guard response.isSuccess else { throw SimklAPI.error(for: response) }
+        return response
+    }
+
+    func post(path: String, body: [String: Any]) async throws {
         let payload = try JSONSerialization.data(withJSONObject: body, options: .sortedKeys)
         try await transport.write { token in
             var request = URLRequest.trackerJSON(

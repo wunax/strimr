@@ -61,6 +61,8 @@ struct DownloadRow: View {
     var isWaitingForWiFi = false
     var onUseCellular: (() -> Void)?
     var onRetry: (() -> Void)?
+    var onResume: (() -> Void)?
+    var onPause: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -137,8 +139,36 @@ struct DownloadRow: View {
         #endif
     }
 
-    @ViewBuilder
     private var status: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            statusDetails
+            statusAction
+        }
+    }
+
+    /// Pause and resume sit at the same place so the row keeps its height when it switches between the two.
+    @ViewBuilder
+    private var statusAction: some View {
+        switch item.status {
+        case .queued, .preparing, .downloading:
+            if !isWaitingForWiFi, let onPause {
+                rowActionButton("downloads.actions.pause", systemImage: "pause.fill", action: onPause)
+            }
+        case .paused:
+            if let onResume {
+                rowActionButton("downloads.actions.resume", systemImage: "play.fill", action: onResume)
+            }
+        case .failed:
+            if let onRetry {
+                rowActionButton("common.actions.retry", systemImage: "arrow.clockwise", action: onRetry)
+            }
+        case .completed:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var statusDetails: some View {
         switch item.status {
         case .queued:
             statusText("downloads.status.queued")
@@ -160,19 +190,19 @@ struct DownloadRow: View {
             } else {
                 progress(label: "downloads.status.downloading \(percent)")
             }
+        case .paused:
+            if item.progress > 0 {
+                progress(label: "downloads.status.pausedProgress \(percent)")
+            } else {
+                statusText("downloads.status.paused")
+            }
         case .completed:
             statusText("downloads.status.completed \(formattedBytes(item.metadata.fileSize ?? item.totalBytes))")
         case .failed:
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
-                    .font(.cardMetadata)
-                    .foregroundStyle(.red)
-                    .lineLimit(2)
-
-                if let onRetry {
-                    rowActionButton("common.actions.retry", systemImage: "arrow.clockwise", action: onRetry)
-                }
-            }
+            Text(item.errorMessage ?? String(localized: "downloads.status.failed"))
+                .font(.cardMetadata)
+                .foregroundStyle(.red)
+                .lineLimit(2)
         }
     }
 
@@ -183,10 +213,9 @@ struct DownloadRow: View {
     ) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.cardMetadata)
         }
         .actionButtonStyle(.secondary)
-        .controlSize(.small)
+        .controlSize(.mini)
         .padding(.top, 4)
     }
 

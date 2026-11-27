@@ -73,7 +73,7 @@ struct LibraryRecommendedView: View {
             VStack(alignment: .leading, spacing: 32) {
                 ForEach(viewModel.hubs) { hub in
                     if hub.hasItems {
-                        MediaHubSection(title: hub.title) {
+                        MediaHubSection(title: hub.title, systemImage: HubIcon.systemImage(for: hub)) {
                             carousel(for: hub)
                         }
                         .id(hub.id)
