@@ -106,6 +106,16 @@ struct SettingsPlaybackView: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(
+                            "settings.playback.swipeForBrightnessAndVolume",
+                            isOn: viewModel.swipeForBrightnessAndVolumeBinding,
+                        )
+                        Text("settings.playback.swipeForBrightnessAndVolume.description")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 #endif
             }
 

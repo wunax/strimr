@@ -244,6 +244,13 @@ final class SettingsViewModel {
         )
     }
 
+    var swipeForBrightnessAndVolumeBinding: Binding<Bool> {
+        Binding(
+            get: { self.settingsManager.playback.swipeForBrightnessAndVolume },
+            set: { self.settingsManager.setSwipeForBrightnessAndVolume($0) },
+        )
+    }
+
     var subtitleFontSizeBinding: Binding<Int> {
         Binding(
             get: { self.settingsManager.playback.subtitleFontSize },
