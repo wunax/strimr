@@ -128,6 +128,38 @@
           }
         }
       }
+    },
+    "Mark ${media} as watched in ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marquer ${media} comme regardé dans ${applicationName}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在${applicationName}中将${media}标记为已看"
+          }
+        }
+      }
+    },
+    "Open ${target} in ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir ${target} dans ${applicationName}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在${applicationName}中打开${target}"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

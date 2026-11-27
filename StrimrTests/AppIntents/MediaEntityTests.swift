@@ -39,4 +39,11 @@ struct MediaEntityTests {
         #expect(entity.link == DeepLink(.liveChannel("ch-1", server: server)))
         #expect(entity.name == "Arte")
     }
+
+    @Test func `library entities keep their link`() {
+        let library = Library(id: "3", title: "Films", type: .movie, server: server)
+        let entity = LibraryEntity(library: library, serverName: "Home")
+        #expect(entity.link == DeepLink(.library(library.identity)))
+        #expect(entity.title == "Films")
+    }
 }

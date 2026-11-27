@@ -47,10 +47,9 @@ struct StrimrApp: App {
         _sessionManager = State(initialValue: sessionManager)
         AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
-        _libraryStore = State(initialValue: LibraryStore(
-            sessionManager: sessionManager,
-            settingsManager: settingsManager,
-        ))
+        let libraryStore = LibraryStore(sessionManager: sessionManager, settingsManager: settingsManager)
+        _libraryStore = State(initialValue: libraryStore)
+        AppIntentsEnvironment.libraryStore = libraryStore
         _mediaFocusModel = State(initialValue: MediaFocusModel())
         #if DEBUG
             let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)

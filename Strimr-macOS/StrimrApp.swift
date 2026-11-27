@@ -46,10 +46,9 @@ struct StrimrApp: App {
         AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: DownloadManager(settingsManager: settingsManager))
-        _libraryStore = State(initialValue: LibraryStore(
-            sessionManager: sessionManager,
-            settingsManager: settingsManager,
-        ))
+        let libraryStore = LibraryStore(sessionManager: sessionManager, settingsManager: settingsManager)
+        _libraryStore = State(initialValue: libraryStore)
+        AppIntentsEnvironment.libraryStore = libraryStore
         #if DEBUG
             let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)
         #else

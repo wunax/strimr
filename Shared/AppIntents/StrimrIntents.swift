@@ -120,6 +120,91 @@ struct SearchMediaIntent: ShowInAppSearchResultsIntent {
     }
 }
 
+struct OpenLibraryIntent: OpenIntent {
+    static let title = LocalizedStringResource("intents.openLibrary.title")
+    static let description = IntentDescription(LocalizedStringResource("intents.openLibrary.description"))
+
+    @Parameter(title: LocalizedStringResource("intents.library.parameter"))
+    var target: LibraryEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        open(target.link)
+        return .result()
+    }
+}
+
+enum WatchState: String, AppEnum {
+    case watched
+    case unwatched
+
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(
+        name: LocalizedStringResource("intents.watchState.type"),
+    )
+    static let caseDisplayRepresentations: [WatchState: DisplayRepresentation] = [
+        .watched: DisplayRepresentation(title: LocalizedStringResource("intents.watchState.watched")),
+        .unwatched: DisplayRepresentation(title: LocalizedStringResource("intents.watchState.unwatched")),
+    ]
+}
+
+/// The only intent that changes the server, so it asks first. It runs without opening the app: links never change
+/// the watch state, since any web page can open them, but an intent only runs from Siri or Shortcuts.
+struct SetWatchStateIntent: AppIntent {
+    static let title = LocalizedStringResource("intents.watchState.title")
+    static let description = IntentDescription(LocalizedStringResource("intents.watchState.description"))
+
+    @Parameter(title: LocalizedStringResource("intents.media.parameter"))
+    var media: MediaEntity
+
+    @Parameter(title: LocalizedStringResource("intents.watchState.parameter"), default: .watched)
+    var state: WatchState
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("intents.watchState.summary \(\.$media) \(\.$state)")
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let watched = state == .watched
+        let title = media.title
+        try await requestConfirmation(
+            actionName: .set,
+            dialog: watched
+                ? IntentDialog("intents.watchState.confirm.watched \(title)")
+                : IntentDialog("intents.watchState.confirm.unwatched \(title)"),
+        )
+        guard let identity = media.identity,
+              let services = await AppIntentsEnvironment.readyServices(for: identity.server)
+        else { throw StrimrIntentError.sessionUnavailable }
+        let item: MediaItem
+        do {
+            item = try await services.detail.mediaItem(id: identity.itemID)
+        } catch {
+            guard !Task.isCancelled, !error.isCancellation else { throw error }
+            ErrorReporter.capture(error)
+            throw StrimrIntentError.failed(error.localizedDescription)
+        }
+        if case let .failed(message) = await MediaQuickActions(services: services).setPlayed(watched, for: item) {
+            throw StrimrIntentError.failed(message)
+        }
+        return .result(dialog: watched
+            ? IntentDialog("intents.watchState.done.watched \(title)")
+            : IntentDialog("intents.watchState.done.unwatched \(title)"))
+    }
+}
+
+enum StrimrIntentError: Error, CustomLocalizedStringResourceConvertible {
+    case sessionUnavailable
+    case failed(String)
+
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .sessionUnavailable: "intents.error.sessionUnavailable"
+        case let .failed(message): "\(message)"
+        }
+    }
+}
+
 struct StrimrShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
@@ -156,6 +241,22 @@ struct StrimrShortcuts: AppShortcutsProvider {
             ],
             shortTitle: LocalizedStringResource("intents.liveChannel.shortTitle"),
             systemImageName: "tv",
+        )
+        AppShortcut(
+            intent: SetWatchStateIntent(),
+            phrases: [
+                "Mark \(\.$media) as watched in \(.applicationName)",
+            ],
+            shortTitle: LocalizedStringResource("intents.watchState.shortTitle"),
+            systemImageName: "checkmark.circle",
+        )
+        AppShortcut(
+            intent: OpenLibraryIntent(),
+            phrases: [
+                "Open \(\.$target) in \(.applicationName)",
+            ],
+            shortTitle: LocalizedStringResource("intents.openLibrary.shortTitle"),
+            systemImageName: "rectangle.stack",
         )
         AppShortcut(
             intent: SearchMediaIntent(),
