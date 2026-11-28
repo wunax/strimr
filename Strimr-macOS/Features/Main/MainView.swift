@@ -52,6 +52,10 @@ struct MainView: View {
 
                 Section {
                     sidebarLabel("settings.title", systemImage: "gearshape.fill", item: .settings)
+                    if !registry.administeredPlexServers.isEmpty {
+                        Label { Text("plex.dashboard.title") } icon: { PlexServerIcon() }
+                            .tag(AppModel.SidebarItem.plexServer)
+                    }
                 }
             }
             .navigationTitle("Strimr")
@@ -225,6 +229,8 @@ struct MainView: View {
             }
         case .settings:
             SettingsView()
+        case .plexServer:
+            PlexServerView(onSelectMedia: appModel.showMedia)
         }
     }
 
