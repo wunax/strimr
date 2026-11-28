@@ -4,6 +4,7 @@ import SwiftUI
 /// One entry of the profile picker.
 struct ProfileChoice: Identifiable, Hashable {
     let id: String
+    let avatarProfileID: String
     let name: String
     let detail: String?
     let avatarURL: URL?
@@ -29,6 +30,7 @@ extension ProfileChoice {
         case let .local(local):
             self.init(
                 id: local.id,
+                avatarProfileID: local.id,
                 name: local.name,
                 detail: nil,
                 avatarURL: nil,
@@ -42,10 +44,11 @@ extension ProfileChoice {
         }
     }
 
-    /// While adding an account, Home users are listed by UUID; the tint still follows their future profile ID.
+    /// While adding an account, selection uses the UUID; avatar ownership and tint use the canonical profile ID.
     init(homeUser user: PlexHomeUser, id: String, isActive: Bool) {
         self.init(
             id: id,
+            avatarProfileID: PlexHomeProfile.id(userUUID: user.uuid),
             name: user.displayName,
             detail: user.username ?? user.email,
             avatarURL: user.thumb,
