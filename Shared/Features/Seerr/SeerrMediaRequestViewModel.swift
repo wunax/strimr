@@ -75,7 +75,14 @@ final class SeerrMediaRequestViewModel {
         if canRequest4K {
             options.append(.fourK)
         }
-        return options
+        guard isMovie else { return options }
+        // Keep the type of the request being edited, drop movie versions that are already requested.
+        return options.filter { type in
+            type == preferredRequestType || SeerrMediaRequestAvailability.isMovieRequestable(
+                media: media,
+                is4k: type.is4k,
+            )
+        }
     }
 
     var requiresRequestTypeSelection: Bool {
