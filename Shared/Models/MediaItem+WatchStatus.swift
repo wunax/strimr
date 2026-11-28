@@ -17,6 +17,24 @@ extension MediaItem {
         return remaining > 0 ? remaining : nil
     }
 
+    var seasonProgress: EpisodeProgress? {
+        guard type == .season else { return nil }
+        if let leafCount, let viewedLeafCount, leafCount > 0 {
+            return EpisodeProgress(watched: min(viewedLeafCount, leafCount), total: leafCount)
+        }
+        // Jellyfin leaves watched episodes out of a season's RecursiveItemCount, so its total is the ChildCount.
+        if let childCount, childCount > 0, let unplayed = watchState.unplayedItemCount {
+            return EpisodeProgress(watched: max(0, childCount - unplayed), total: childCount)
+        }
+        return nil
+    }
+
+    /// Progress a season chip shows: none for a season not started yet.
+    var startedSeasonProgress: EpisodeProgress? {
+        guard let seasonProgress, seasonProgress.watched > 0 else { return nil }
+        return seasonProgress
+    }
+
     func isSpoilerProtected(at level: SpoilerProtectionLevel) -> Bool {
         type == .episode && !isFullyWatched && level != .off
     }
@@ -44,5 +62,18 @@ extension MediaItem {
 
     var seasonPosterPath: String? {
         parentThumbPath ?? grandparentThumbPath
+    }
+}
+
+struct EpisodeProgress: Equatable {
+    let watched: Int
+    let total: Int
+
+    var fraction: Double {
+        Double(watched) / Double(total)
+    }
+
+    var isComplete: Bool {
+        watched >= total
     }
 }

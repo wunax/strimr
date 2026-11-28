@@ -1,0 +1,5 @@
+[
+  {"Id": "season-1", "Name": "Season 1", "Type": "Season", "SeriesId": "series-1", "IndexNumber": 1, "ChildCount": 8, "RecursiveItemCount": 0, "UserData": {"Played": true, "PlayCount": 0, "IsFavorite": false, "UnplayedItemCount": 0}},
+  {"Id": "season-2", "Name": "Season 2", "Type": "Season", "SeriesId": "series-1", "IndexNumber": 2, "ChildCount": 12, "RecursiveItemCount": 9, "UserData": {"Played": false, "PlayCount": 0, "IsFavorite": false, "UnplayedItemCount": 9}},
+  {"Id": "season-3", "Name": "Season 3", "Type": "Season", "SeriesId": "series-1", "IndexNumber": 3, "ChildCount": 6, "RecursiveItemCount": 6, "UserData": {"Played": false, "PlayCount": 0, "IsFavorite": false, "UnplayedItemCount": 6}}
+]

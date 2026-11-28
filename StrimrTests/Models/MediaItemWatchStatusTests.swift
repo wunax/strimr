@@ -26,4 +26,42 @@ struct MediaItemWatchStatusTests {
 
         #expect(special.spoilerSafeTitle(at: .full) == String(localized: "media.spoilerProtection.titleHidden"))
     }
+
+    @Test func `plex seasons count their viewed leaves`() throws {
+        let seasons = try Fixtures.decode(PlexItemMediaContainer.self, from: "plex-seasons").mediaContainer
+            .metadata ?? []
+        let progress = seasons.map { MediaItem(plexItem: $0).seasonProgress }
+
+        #expect(progress == [
+            EpisodeProgress(watched: 25, total: 25),
+            EpisodeProgress(watched: 5, total: 25),
+            EpisodeProgress(watched: 0, total: 10),
+        ])
+    }
+
+    @Test func `jellyfin seasons count episodes from the child count`() throws {
+        let server = ServerIdentity(provider: .jellyfin, id: "server-1")
+        let seasons = try Fixtures.decode([JellyfinItem].self, from: "jellyfin-seasons")
+        let progress = seasons.map { MediaItem(jellyfinItem: $0, server: server).seasonProgress }
+
+        #expect(progress == [
+            EpisodeProgress(watched: 8, total: 8),
+            EpisodeProgress(watched: 3, total: 12),
+            EpisodeProgress(watched: 0, total: 6),
+        ])
+    }
+
+    @Test func `chips skip seasons not started yet`() throws {
+        let seasons = try Fixtures.decode(PlexItemMediaContainer.self, from: "plex-seasons").mediaContainer
+            .metadata ?? []
+        let progress = seasons.map { MediaItem(plexItem: $0).startedSeasonProgress }
+
+        #expect(progress.map { $0?.isComplete } == [true, false, nil])
+    }
+
+    @Test func `only seasons have a season progress`() {
+        let episode = MediaItem.make(id: "1", server: ServerIdentity(provider: .plex, id: "plex"), type: .episode)
+
+        #expect(episode.seasonProgress == nil)
+    }
 }

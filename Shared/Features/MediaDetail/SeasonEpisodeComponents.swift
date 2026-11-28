@@ -3,6 +3,7 @@ import SwiftUI
 /// Season chips of the iOS and macOS detail pages, with their loading and error states. Tapping the selected season
 /// opens it.
 struct SeasonPillsRow: View {
+    @Environment(SettingsManager.self) private var settingsManager
     @Bindable var viewModel: MediaDetailViewModel
     let onSelectSeason: (MediaItem) -> Void
 
@@ -27,13 +28,27 @@ struct SeasonPillsRow: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(viewModel.seasons) { season in
-                        FilterChip(title: season.title, isSelected: season.id == viewModel.selectedSeasonId) {
-                            if season.id == viewModel.selectedSeasonId {
+                        let isSelected = season.id == viewModel.selectedSeasonId
+                        let progress = settingsManager.interface.showsWatchStatusBadges
+                            ? season.startedSeasonProgress
+                            : nil
+                        Button {
+                            if isSelected {
                                 onSelectSeason(season)
                             } else {
                                 Task { await viewModel.selectSeason(id: season.id) }
                             }
+                        } label: {
+                            HStack(spacing: 6) {
+                                if let progress {
+                                    SeasonProgressIndicator(progress: progress)
+                                }
+                                Text(season.title)
+                            }
                         }
+                        .buttonStyle(.chip(isSelected: isSelected))
+                        .accessibilityAddTraits(isSelected ? .isSelected : [])
+                        .accessibilityValue(progress?.accessibilityDescription ?? "")
                     }
                 }
                 .padding(.vertical, 4)
