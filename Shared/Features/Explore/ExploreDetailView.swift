@@ -132,25 +132,28 @@ struct ExploreDetailView: View {
 
         private var header: some View {
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: viewModel.item.backdropURL ?? viewModel.item.posterURL) { phase in
-                    if case let .success(image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Color.surfaceSubtle
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: heroHeight)
+                    .overlay {
+                        AsyncImage(url: viewModel.item.backdropURL ?? viewModel.item.posterURL) { phase in
+                            if case let .success(image) = phase {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                Color.surfaceSubtle
+                            }
+                        }
                     }
-                }
-                .frame(height: heroHeight)
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .overlay {
-                    LinearGradient(
-                        colors: [.clear, Color("Background")],
-                        startPoint: .center,
-                        endPoint: .bottom,
-                    )
-                }
+                    .clipped()
+                    .overlay {
+                        LinearGradient(
+                            colors: [.clear, Color("Background")],
+                            startPoint: .center,
+                            endPoint: .bottom,
+                        )
+                    }
 
                 HStack(alignment: .bottom, spacing: 20) {
                     ExploreItemArtworkView(item: viewModel.item, width: posterWidth, height: posterWidth * 1.5)
