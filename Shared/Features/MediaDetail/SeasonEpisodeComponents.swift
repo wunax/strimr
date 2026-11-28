@@ -28,27 +28,19 @@ struct SeasonPillsRow: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: LayoutMetrics.chipSpacing) {
                     ForEach(viewModel.seasons) { season in
-                        let isSelected = season.id == viewModel.selectedSeasonId
-                        let progress = settingsManager.interface.showsWatchStatusBadges
-                            ? season.startedSeasonProgress
-                            : nil
-                        Button {
-                            if isSelected {
+                        FilterChip(
+                            title: season.title,
+                            progress: settingsManager.interface.showsWatchStatusBadges
+                                ? season.startedSeasonProgress
+                                : nil,
+                            isSelected: season.id == viewModel.selectedSeasonId,
+                        ) {
+                            if season.id == viewModel.selectedSeasonId {
                                 onSelectSeason(season)
                             } else {
                                 Task { await viewModel.selectSeason(id: season.id) }
                             }
-                        } label: {
-                            HStack(spacing: 6) {
-                                if let progress {
-                                    SeasonProgressIndicator(progress: progress)
-                                }
-                                Text(season.title)
-                            }
                         }
-                        .buttonStyle(.chip(isSelected: isSelected))
-                        .accessibilityAddTraits(isSelected ? .isSelected : [])
-                        .accessibilityValue(progress?.accessibilityDescription ?? "")
                     }
                 }
                 .padding(.vertical, 4)

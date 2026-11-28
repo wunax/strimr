@@ -36,8 +36,13 @@ struct SeasonProgressIndicator: View {
     }
 }
 
-extension EpisodeProgress {
-    var accessibilityDescription: String {
-        String(localized: "media.detail.seasonProgress \(watched) \(total)")
+extension View {
+    @ViewBuilder
+    func seasonProgressAccessibility(_ progress: EpisodeProgress?) -> some View {
+        if let progress {
+            accessibilityValue(String(localized: "media.detail.seasonProgress \(progress.watched) \(progress.total)"))
+        } else {
+            self
+        }
     }
 }

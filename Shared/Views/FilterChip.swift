@@ -5,6 +5,7 @@ import SwiftUI
 struct FilterChip: View {
     let title: String
     var systemImage: String?
+    var progress: EpisodeProgress?
     let isSelected: Bool
     let action: () -> Void
 
@@ -14,10 +15,14 @@ struct FilterChip: View {
                 if let systemImage {
                     Image(systemName: systemImage)
                 }
+                if let progress {
+                    SeasonProgressIndicator(progress: progress)
+                }
                 Text(title)
             }
         }
         .buttonStyle(.chip(isSelected: isSelected))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .seasonProgressAccessibility(progress)
     }
 }

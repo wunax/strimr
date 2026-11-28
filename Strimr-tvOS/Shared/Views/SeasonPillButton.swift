@@ -31,6 +31,6 @@ struct SeasonPillButton: View {
         .onPlayPauseCommand(perform: onSelect)
         .onTapGesture(perform: onSelect)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityValue(progress?.accessibilityDescription ?? "")
+        .seasonProgressAccessibility(progress)
     }
 }

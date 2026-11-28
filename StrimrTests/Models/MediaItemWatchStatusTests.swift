@@ -48,6 +48,7 @@ struct MediaItemWatchStatusTests {
             EpisodeProgress(watched: 8, total: 8),
             EpisodeProgress(watched: 3, total: 12),
             EpisodeProgress(watched: 0, total: 6),
+            nil,
         ])
     }
 
@@ -63,5 +64,12 @@ struct MediaItemWatchStatusTests {
         let episode = MediaItem.make(id: "1", server: ServerIdentity(provider: .plex, id: "plex"), type: .episode)
 
         #expect(episode.seasonProgress == nil)
+    }
+
+    @Test func `an empty progress is neither started nor complete`() {
+        let empty = EpisodeProgress(watched: 0, total: 0)
+
+        #expect(empty.fraction == 0)
+        #expect(!empty.isComplete)
     }
 }

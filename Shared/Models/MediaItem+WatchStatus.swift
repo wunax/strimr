@@ -22,7 +22,8 @@ extension MediaItem {
         if let leafCount, let viewedLeafCount, leafCount > 0 {
             return EpisodeProgress(watched: min(viewedLeafCount, leafCount), total: leafCount)
         }
-        // Jellyfin leaves watched episodes out of a season's RecursiveItemCount, so its total is the ChildCount.
+        // Jellyfin drops a watched season's RecursiveItemCount to 0, so the total is its ChildCount, which counts real
+        // episodes only, like UnplayedItemCount.
         if let childCount, childCount > 0, let unplayed = watchState.unplayedItemCount {
             return EpisodeProgress(watched: max(0, childCount - unplayed), total: childCount)
         }
@@ -70,10 +71,10 @@ struct EpisodeProgress: Equatable {
     let total: Int
 
     var fraction: Double {
-        Double(watched) / Double(total)
+        total > 0 ? Double(watched) / Double(total) : 0
     }
 
     var isComplete: Bool {
-        watched >= total
+        total > 0 && watched >= total
     }
 }
