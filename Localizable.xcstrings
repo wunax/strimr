@@ -10197,13 +10197,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld of %2$lld episodes watched"
+            "value" : "Episodes watched: %1$lld of %2$lld"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld épisodes vus sur %2$lld"
+            "value" : "Épisodes vus : %1$lld sur %2$lld"
           }
         },
         "zh-Hans" : {
