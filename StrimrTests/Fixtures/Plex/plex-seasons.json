@@ -1,0 +1,10 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "Metadata": [
+      {"ratingKey": "301", "key": "/library/metadata/301/children", "guid": "plex://season/ccc301", "type": "season", "title": "Season 1", "index": 1, "parentRatingKey": "300", "viewCount": 6, "leafCount": 25, "viewedLeafCount": 25},
+      {"ratingKey": "302", "key": "/library/metadata/302/children", "guid": "plex://season/ccc302", "type": "season", "title": "Season 2", "index": 2, "parentRatingKey": "300", "viewCount": 6, "leafCount": 25, "viewedLeafCount": 5},
+      {"ratingKey": "303", "key": "/library/metadata/303/children", "guid": "plex://season/ccc303", "type": "season", "title": "Season 3", "index": 3, "parentRatingKey": "300", "leafCount": 10, "viewedLeafCount": 0}
+    ]
+  }
+}

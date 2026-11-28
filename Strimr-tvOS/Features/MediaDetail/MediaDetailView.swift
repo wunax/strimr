@@ -471,6 +471,9 @@ struct MediaDetailView: View {
                     ForEach(viewModel.seasons) { season in
                         SeasonPillButton(
                             title: season.title,
+                            progress: settingsManager.interface.showsWatchStatusBadges
+                                ? season.startedSeasonProgress
+                                : nil,
                             isSelected: season.id == viewModel.selectedSeasonId,
                             onSelect: {
                                 if season.id != viewModel.selectedSeasonId {

@@ -10192,6 +10192,28 @@
         }
       }
     },
+    "media.detail.seasonProgress %lld %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes watched: %1$lld of %2$lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épisodes vus : %1$lld sur %2$lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已观看 %1$lld/%2$lld 集"
+          }
+        }
+      }
+    },
     "media.detail.studio" : {
       "localizations" : {
         "en" : {
