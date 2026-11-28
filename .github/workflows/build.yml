@@ -12,6 +12,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure iOS build
+        run: |
+          cp Config/Config-example.xcconfig Config/Config.xcconfig
+          printf '\nPRODUCT_BUNDLE_IDENTIFIER = app.strimr.ci\n' >> Config/Config.xcconfig
+          touch Config/Config-TopShelf.xcconfig
+
       - name: iOS build
         run: |
           xcodebuild \
