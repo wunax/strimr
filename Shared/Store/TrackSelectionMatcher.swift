@@ -8,6 +8,8 @@ struct TrackSelectionMatchDescriptor {
     let codec: String?
     let isForced: Bool?
     let isHearingImpaired: Bool?
+    /// The ISO code, when `language` holds a name (Plex).
+    var languageCode: String?
 }
 
 enum TrackSelectionMatcher {
@@ -33,15 +35,13 @@ enum TrackSelectionMatcher {
 
         let languageCandidates = candidates.filter { candidate in
             guard let language = preference.audioLanguage else { return true }
-            return normalized(descriptor(candidate).language) == normalized(language)
+            return matchesLanguage(descriptor(candidate), language)
         }
 
         return bestCandidate(languageCandidates) { candidate in
             let track = descriptor(candidate)
             var score = 0
-            if let language = preference.audioLanguage,
-               normalized(track.language) == normalized(language)
-            {
+            if let language = preference.audioLanguage, matchesLanguage(track, language) {
                 score += 4
             }
             if let title = preference.audioTitle,
@@ -85,15 +85,13 @@ enum TrackSelectionMatcher {
 
         let languageCandidates = candidates.filter { candidate in
             guard let language else { return true }
-            return normalized(descriptor(candidate).language) == normalized(language)
+            return matchesLanguage(descriptor(candidate), language)
         }
 
         return bestCandidate(languageCandidates) { candidate in
             let track = descriptor(candidate)
             var score = 0
-            if let language,
-               normalized(track.language) == normalized(language)
-            {
+            if let language, matchesLanguage(track, language) {
                 score += 4
             }
             if let title,
@@ -130,6 +128,16 @@ enum TrackSelectionMatcher {
             bestScore = candidateScore
         }
         return best
+    }
+
+    /// Matches as stored, or by ISO code whatever its form (`fr`, `fra`, `fre`, `French`): a link gives `fr` where
+    /// Plex names the track and Jellyfin uses `fre`.
+    private static func matchesLanguage(_ track: TrackSelectionMatchDescriptor, _ language: String) -> Bool {
+        if normalized(track.language) == normalized(language) {
+            return true
+        }
+        guard let code = AccountLanguageCode.code(fromTrackLanguage: language) else { return false }
+        return [track.languageCode, track.language].contains { AccountLanguageCode.code(fromTrackLanguage: $0) == code }
     }
 
     private static func normalized(_ value: String?) -> String {

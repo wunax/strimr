@@ -56,6 +56,22 @@ struct NowPlayingItemTests {
         #expect(item.subtitle == nil)
     }
 
+    @Test func `the content identifier is a link to play the item again`() throws {
+        let media = MediaItem.make(id: "movie", server: server, title: "Movie")
+        let link = DeepLink(.play(.item(media.identity, kind: .movie), mode: .resume))
+
+        let item = try #require(NowPlayingItem(
+            media: media,
+            artworkService: nil,
+            skipBackwardSeconds: 10,
+            skipForwardSeconds: 10,
+            contentLink: link,
+        ))
+
+        let info = item.identityInfo(artwork: nil, isLive: false)
+        #expect(info[MPNowPlayingInfoPropertyExternalContentIdentifier] as? String == link.url.absoluteString)
+    }
+
     @Test func `no media publishes nothing`() {
         #expect(NowPlayingItem(media: nil, artworkService: nil, skipBackwardSeconds: 10, skipForwardSeconds: 10) == nil)
     }

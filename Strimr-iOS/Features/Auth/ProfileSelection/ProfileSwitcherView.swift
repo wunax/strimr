@@ -53,6 +53,9 @@ struct ProfileSwitcherView: View {
         }
         .sensoryFeedback(.error, trigger: viewModel.rejectedPINCount)
         .task { await viewModel.load() }
+        .onChange(of: viewModel.preferredProfileID, initial: true) { _, _ in
+            viewModel.choosePreferredProfile()
+        }
     }
 
     private var picker: some View {

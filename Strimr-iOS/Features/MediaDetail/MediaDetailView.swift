@@ -121,6 +121,7 @@ struct MediaDetailView: View {
         }
         .background(gradientBackground(for: bindableViewModel))
         .themeMusic(for: bindableViewModel.media.mediaItem)
+        .handoffMedia(bindableViewModel.media.mediaItem)
     }
 
     private func gradientBackground(for viewModel: MediaDetailViewModel) -> some View {

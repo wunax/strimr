@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PlayerWindowView: View {
     @Environment(AppModel.self) private var appModel
+    @Environment(SharePlayCoordinator.self) private var sharePlayCoordinator
 
     var body: some View {
         if let presentation = appModel.playerPresentation,
@@ -14,6 +15,7 @@ struct PlayerWindowView: View {
             )
             .environment(presentation.mediaServices)
             .id(presentation.id)
+            .handoffPlayback(sharePlayCoordinator.isInSession ? nil : viewModel.handoffMedia)
         } else {
             ContentUnavailableView("player.window.title", systemImage: "play.rectangle")
         }

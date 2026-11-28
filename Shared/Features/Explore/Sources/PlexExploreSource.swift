@@ -114,6 +114,12 @@ final class PlexExploreSource: ExploreSource {
         if let plexGuidID {
             return ExploreWatchlistTarget(kind: kind, externalIDs: externalIDs, sourceID: plexGuidID)
         }
+        guard let item = try await catalogItem(kind: kind, externalIDs: externalIDs) else { return nil }
+        return ExploreWatchlistTarget(kind: kind, externalIDs: item.externalIDs, sourceID: item.sourceID)
+    }
+
+    /// The Discover title for catalog ids, which names a title a link gave only by its ids.
+    func catalogItem(kind: ExploreItemKind, externalIDs: ExternalIDs) async throws -> ExploreItem? {
         let guid = externalIDs.imdb.map { "imdb://\($0)" }
             ?? externalIDs.tmdb.map { "tmdb://\($0)" }
             ?? externalIDs.tvdb.map { "tvdb://\($0)" }
@@ -121,7 +127,7 @@ final class PlexExploreSource: ExploreSource {
               let metadata = try await repository.match(guid: guid, type: kind == .movie ? 1 : 2),
               let item = Self.item(from: metadata), item.kind == kind
         else { return nil }
-        return ExploreWatchlistTarget(kind: kind, externalIDs: item.externalIDs, sourceID: item.sourceID)
+        return item
     }
 
     private static func loadWatchlist(repository: DiscoverWatchlistRepository) async throws -> [ExploreItem] {

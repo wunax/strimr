@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct StrimrApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var sessionManager: SessionManager
     @State private var settingsManager: SettingsManager
     @State private var downloadManager: DownloadManager
@@ -43,12 +44,12 @@ struct StrimrApp: App {
         #endif
 
         _sessionManager = State(initialValue: sessionManager)
+        AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: DownloadManager(settingsManager: settingsManager))
-        _libraryStore = State(initialValue: LibraryStore(
-            sessionManager: sessionManager,
-            settingsManager: settingsManager,
-        ))
+        let libraryStore = LibraryStore(sessionManager: sessionManager, settingsManager: settingsManager)
+        _libraryStore = State(initialValue: libraryStore)
+        AppIntentsEnvironment.libraryStore = libraryStore
         #if DEBUG
             let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)
         #else
@@ -75,6 +76,9 @@ struct StrimrApp: App {
                 .preferredColorScheme(.dark)
         }
         .defaultSize(width: 1440, height: 900)
+        .commands {
+            GoCommands()
+        }
 
         Window("player.window.title", id: AppModel.playerWindowID) {
             configured(PlayerWindowView())
@@ -99,5 +103,6 @@ struct StrimrApp: App {
             .environment(sharePlayCoordinator)
             .environment(OfflineCoordinator.shared)
             .environment(externalPlaybackCallbackRouter)
+            .environment(DeepLinkRouter.shared)
     }
 }

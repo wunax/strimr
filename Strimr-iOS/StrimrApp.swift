@@ -44,12 +44,12 @@ struct StrimrApp: App {
         #endif
         let downloadManager = DownloadManager(settingsManager: settingsManager)
         _sessionManager = State(initialValue: sessionManager)
+        AppIntentsEnvironment.sessionManager = sessionManager
         _settingsManager = State(initialValue: settingsManager)
         _downloadManager = State(initialValue: downloadManager)
-        _libraryStore = State(initialValue: LibraryStore(
-            sessionManager: sessionManager,
-            settingsManager: settingsManager,
-        ))
+        let libraryStore = LibraryStore(sessionManager: sessionManager, settingsManager: settingsManager)
+        _libraryStore = State(initialValue: libraryStore)
+        AppIntentsEnvironment.libraryStore = libraryStore
         #if DEBUG
             let seerrStore = SeerrStore(userDefaults: demoStores?.defaults ?? .standard)
         #else
@@ -79,12 +79,15 @@ struct StrimrApp: App {
                 .environment(sharePlayCoordinator)
                 .environment(OfflineCoordinator.shared)
                 .environment(externalPlaybackCallbackRouter)
+                .environment(DeepLinkRouter.shared)
                 .flushesTrackerQueue()
                 .toastHost()
                 .preferredColorScheme(.dark)
                 .onOpenURL { url in
                     if externalPlaybackCallbackRouter.receive(url) {
                         sessionManager.didReturnFromExternalPlayback()
+                    } else {
+                        DeepLinkRouter.shared.receive(url)
                     }
                 }
         }

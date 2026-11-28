@@ -9,6 +9,8 @@ struct NowPlayingItem {
     let artworkService: (any MediaArtworkService)?
     let skipBackwardSeconds: Double
     let skipForwardSeconds: Double
+    /// A `strimr://` link to the content, which home automations reading Now Playing can open again.
+    let contentIdentifier: String?
 
     init(
         title: String,
@@ -17,6 +19,7 @@ struct NowPlayingItem {
         artworkService: (any MediaArtworkService)? = nil,
         skipBackwardSeconds: Double,
         skipForwardSeconds: Double,
+        contentIdentifier: String? = nil,
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -24,6 +27,7 @@ struct NowPlayingItem {
         self.artworkService = artworkService
         self.skipBackwardSeconds = skipBackwardSeconds
         self.skipForwardSeconds = skipForwardSeconds
+        self.contentIdentifier = contentIdentifier
     }
 
     init?(
@@ -31,6 +35,7 @@ struct NowPlayingItem {
         artworkService: (any MediaArtworkService)?,
         skipBackwardSeconds: Int,
         skipForwardSeconds: Int,
+        contentLink: DeepLink? = nil,
     ) {
         guard let media else { return nil }
         let subtitle: String? = if case .episode = media.type {
@@ -47,6 +52,7 @@ struct NowPlayingItem {
             artworkService: artworkService,
             skipBackwardSeconds: Double(skipBackwardSeconds),
             skipForwardSeconds: Double(skipForwardSeconds),
+            contentIdentifier: contentLink?.url.absoluteString,
         )
     }
 
@@ -62,6 +68,9 @@ struct NowPlayingItem {
         }
         if let artwork {
             info[MPMediaItemPropertyArtwork] = artwork
+        }
+        if let contentIdentifier {
+            info[MPNowPlayingInfoPropertyExternalContentIdentifier] = contentIdentifier
         }
         return info
     }

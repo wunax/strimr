@@ -249,6 +249,31 @@ final class SessionManager {
         status = .needsProfileSelection
     }
 
+    /// Opens the picker on a profile's PIN, for a link that names a protected profile.
+    func requestProfileSelection(preferring profileID: String) {
+        preferredProfileID = profileID
+        requestProfileSelection()
+    }
+
+    /// A link named this profile: the picker asks its PIN straight away.
+    private(set) var preferredProfileID: String?
+
+    func consumePreferredProfile() -> String? {
+        defer { preferredProfileID = nil }
+        return preferredProfileID
+    }
+
+    /// Activates a profile that has no PIN, for a link that names it. A Plex Home user still needs a fresh token.
+    func activateWithoutPIN(_ profile: StrimrProfile) async throws {
+        switch profile {
+        case .local:
+            await activate(profile)
+        case let .plexHome(home):
+            let token = try await switchPlexHomeUser(accountID: home.accountID, userUUID: home.user.uuid, pin: nil)
+            await activate(profile, plexHomeToken: token)
+        }
+    }
+
     func cancelProfileSelection() {
         guard activeProfile != nil else { return }
         isPromptingProfileOnReturn = false

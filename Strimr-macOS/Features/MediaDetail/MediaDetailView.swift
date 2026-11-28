@@ -86,6 +86,7 @@ struct MediaDetailView: View {
             Task { await viewModel.refreshAfterMediaChange(itemID: changedMediaID) }
         }
         .themeMusic(for: viewModel.media.mediaItem)
+        .handoffMedia(viewModel.media.mediaItem)
         .sheet(isPresented: $isShowingShowDownloadSheet) {
             ShowDownloadSelectionSheet(
                 viewModel: viewModel,
@@ -531,6 +532,8 @@ struct MediaDetailView: View {
             if !viewModel.listsCopiesWithVersions {
                 MediaCopiesMenuItems(viewModel: viewModel)
             }
+
+            CopyDeepLinkButton(media: viewModel.media.mediaItem)
         } label: {
             DetailCircleActionLabel(
                 systemImage: "ellipsis",

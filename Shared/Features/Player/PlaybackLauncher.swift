@@ -22,12 +22,15 @@ struct PlaybackLauncher {
     let services: MediaServices
     let coordinator: any PlaybackPresenting
 
-    /// - Parameter allowsExternalPlayer: false keeps the built-in player, which SharePlay needs to stay in sync.
+    /// - Parameters:
+    ///   - allowsExternalPlayer: false keeps the built-in player, which SharePlay needs to stay in sync.
+    ///   - startOptions: only the built-in player streaming from the server applies them.
     func play(
         ratingKey: String,
         type: MediaKind,
         shuffle: Bool = false,
         shouldResumeFromOffset: Bool = true,
+        startOptions: PlaybackStartOptions = .none,
         allowsExternalPlayer: Bool = true,
     ) async {
         ThemeMusicPlayer.shared.silence()
@@ -39,11 +42,12 @@ struct PlaybackLauncher {
             }
         #endif
         do {
-            let queue = try await services.playback.queue(
+            var queue = try await services.playback.queue(
                 startingWith: ratingKey,
                 kind: type,
                 shuffle: shuffle,
             )
+            queue.startOptions = startOptions
             await present(
                 queue,
                 shouldResumeFromOffset: shouldResumeFromOffset,

@@ -1254,6 +1254,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     codec: stream.codec,
                     isForced: stream.forced,
                     isHearingImpaired: stream.hearingImpaired,
+                    languageCode: stream.languageCode ?? stream.languageTag,
                 )
             },
         )
@@ -1276,6 +1277,7 @@ final class PlexMediaServiceAdapter: MediaHomeService, MediaLibraryService, Medi
                     codec: stream.codec,
                     isForced: stream.forced,
                     isHearingImpaired: stream.hearingImpaired,
+                    languageCode: stream.languageCode ?? stream.languageTag,
                 )
             },
         )

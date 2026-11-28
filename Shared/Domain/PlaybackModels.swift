@@ -272,6 +272,55 @@ struct PlaybackQueue: Sendable, Equatable {
     var items: [PlaybackQueueItem]
     var currentIndex: Int
     var isShuffled: Bool
+    /// Applies to the item at `currentIndex` only.
+    var startOptions: PlaybackStartOptions = .none
+}
+
+/// How a link asks the first item to start: position and track languages.
+struct PlaybackStartOptions: Sendable, Hashable {
+    enum Subtitles: Sendable, Hashable {
+        case off
+        /// An ISO 639-1 code.
+        case language(String)
+    }
+
+    var offset: TimeInterval?
+    /// An ISO 639-1 code.
+    var audioLanguage: String?
+    var subtitles: Subtitles?
+
+    nonisolated static let none = PlaybackStartOptions()
+
+    /// The tracks a link asks for, over the remembered ones. A language the file lacks matches nothing, so the server's
+    /// choice plays instead.
+    nonisolated func trackPreference(over base: MediaTrackPreference?) -> MediaTrackPreference? {
+        guard audioLanguage != nil || subtitles != nil else { return base }
+        var preference = base ?? .serverDefault
+        if let audioLanguage {
+            preference.audioStreamIndex = nil
+            preference.audioLanguage = audioLanguage
+            preference.audioTitle = nil
+            preference.audioCodec = nil
+            preference.audioIsHearingImpaired = false
+            preference.audioIsCommentary = false
+        }
+        switch subtitles {
+        case .off:
+            preference.subtitle = .off
+        case let .language(code):
+            preference.subtitle = .track(
+                streamIndex: nil,
+                language: code,
+                title: nil,
+                codec: "",
+                isForced: false,
+                isHearingImpaired: false,
+            )
+        case nil:
+            break
+        }
+        return preference
+    }
 }
 
 extension PlaybackQueue {
